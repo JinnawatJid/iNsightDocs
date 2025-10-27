@@ -67,7 +67,6 @@ const login = () => {
   display: flex;
   align-items: center;
   padding-left: 2rem;
-  font-family: 'Roboto', sans-serif;
 }
 
 .nav-bar img {
@@ -83,7 +82,6 @@ const login = () => {
   background-color: #ffffff;
   padding-top: 0px;
   box-sizing: border-box;
-  font-family: 'Roboto', sans-serif;
 }
 
 .login-box {
