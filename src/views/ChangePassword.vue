@@ -22,6 +22,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import Swal from 'sweetalert2';
 import employees from '../data/employees.json';
 
 const newPassword = ref('');
@@ -30,7 +31,11 @@ const router = useRouter();
 
 const changePassword = () => {
   if (newPassword.value !== confirmPassword.value) {
-    alert('รหัสผ่านไม่ตรงกัน');
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops...',
+      text: 'รหัสผ่านไม่ตรงกัน',
+    });
     return;
   }
 
@@ -42,10 +47,19 @@ const changePassword = () => {
     user.password = newPassword.value;
     // ในอนาคตต้องส่งไปยังฐานข้อมูลจริงด้วย
     console.log('Password updated for:', empId, 'New password:', newPassword.value);
-    alert('เปลี่ยนรหัสผ่านสำเร็จ!');
-    router.push('/');
+    Swal.fire({
+      icon: 'success',
+      title: 'สำเร็จ',
+      text: 'เปลี่ยนรหัสผ่านสำเร็จ!',
+    }).then(() => {
+      router.push('/');
+    });
   } else {
-    alert('รหัสพนักงานไม่ถูกต้อง');
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops...',
+      text: 'รหัสพนักงานไม่ถูกต้อง',
+    });
   }
 };
 </script>

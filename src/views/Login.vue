@@ -30,6 +30,7 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import Swal from 'sweetalert2';
 import employees from "../data/employees.json";
 
 const empId = ref("");
@@ -50,7 +51,11 @@ const login = () => {
       router.push("/main");
     }
   } else {
-    alert("รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง");
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops...',
+      text: 'รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง',
+    });
   }
 };
 </script>
