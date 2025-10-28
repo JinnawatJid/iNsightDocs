@@ -18,6 +18,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import Swal from 'sweetalert2';
 import employees from '../data/employees.json';
 
 const empId = ref('');
@@ -30,10 +31,19 @@ const resetPassword = () => {
     user.password = 'Welcome';
     // ในอนาคตต้องส่งไปยังฐานข้อมูลจริงด้วย
     console.log('Password reset for:', empId.value);
-    alert('เปลี่ยนรหัสผ่านเป็นค่าเริ่มต้นสำเร็จ');
-    router.push('/');
+    Swal.fire({
+      icon: 'success',
+      title: 'สำเร็จ',
+      text: 'เปลี่ยนรหัสผ่านเป็นค่าเริ่มต้นสำเร็จ',
+    }).then(() => {
+      router.push('/');
+    });
   } else {
-    alert('รหัสพนักงานไม่ถูกต้อง');
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops...',
+      text: 'รหัสพนักงานไม่ถูกต้อง',
+    });
   }
 };
 </script>
