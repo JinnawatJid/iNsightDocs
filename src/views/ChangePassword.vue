@@ -1,6 +1,7 @@
 <template>
-  <div class="change-password-container">
-    <div class="change-password-box">
+  <div class="nav-bar"><img src="../assets/logo.png" /></div>
+  <div class="login-container">
+    <div class="login-box">
       <h2>เปลี่ยนรหัสผ่าน</h2>
       <p>ตั้งรหัสผ่านใหม่ของคุณ</p>
       <form @submit.prevent="changePassword">
@@ -12,7 +13,7 @@
           <label for="confirm-password">ยืนยันรหัสผ่านใหม่</label>
           <input type="password" id="confirm-password" v-model="confirmPassword" />
         </div>
-        <button type="submit" class="change-password-button">บันทึก</button>
+        <button type="submit" class="login-button">บันทึก</button>
       </form>
     </div>
   </div>
@@ -50,61 +51,5 @@ const changePassword = () => {
 </script>
 
 <style scoped>
-.change-password-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.change-password-box {
-  background-color: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  width: 400px;
-  text-align: center;
-}
-
-h2 {
-  margin-bottom: 0.5rem;
-}
-
-p {
-  margin-bottom: 2rem;
-  color: #666;
-}
-
-.input-group {
-  margin-bottom: 1.5rem;
-  text-align: left;
-}
-
-.input-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.input-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.change-password-button {
-  width: 100%;
-  padding: 0.75rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.change-password-button:hover {
-  background-color: #0056b3;
-}
+@import "../assets/auth.css";
 </style>
