@@ -11,7 +11,7 @@
         <div class="notification-badge">1</div>
       </div>
       <div class="user-info" @click="toggleDropdown">
-        <span>{{ user.branch }} : {{ user.firstName }} {{ user.lastName }}</span>
+        <span>{{ user.branch }} : {{ user.name }}</span>
         <div v-if="dropdownOpen" class="dropdown-menu">
           <a href="#">Setting</a>
           <a href="#">Sign Out</a>
@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import employees from '@/data/employee_details.json';
+import employees from '@/data/employees.json';
 
 export default {
   name: 'Navbar',
