@@ -1,0 +1,20 @@
+[
+  {
+    "EmpId": "AYEmp001",
+    "firstName": "อิทธิพล",
+    "lastName": "ชัยสุวรรณ",
+    "branch": "AY"
+  },
+  {
+    "EmpId": "KKEmp001",
+    "firstName": "สมชาย",
+    "lastName": "สามารถ",
+    "branch": "KK"
+  },
+  {
+    "EmpId": "CBEmp001",
+    "firstName": "สมหญิง",
+    "lastName": "ใจดี",
+    "branch": "CB"
+  }
+]

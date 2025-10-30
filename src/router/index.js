@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Login from '../views/Login.vue';
 import ChangePassword from '../views/ChangePassword.vue';
-import MainPage from '../views/MainPage.vue';
+import HomePage from '../views/HomePage.vue';
 import ForgotPassword from '../views/ForgotPassword.vue';
+import CreditHistory from '../views/CreditHistory.vue';
 
 const routes = [
   {
@@ -16,14 +17,19 @@ const routes = [
     component: ChangePassword,
   },
   {
-    path: '/main',
-    name: 'MainPage',
-    component: MainPage,
+    path: '/home',
+    name: 'HomePage',
+    component: HomePage,
   },
   {
     path: '/forgot-password',
     name: 'ForgotPassword',
     component: ForgotPassword,
+  },
+  {
+    path: '/credit-history',
+    name: 'CreditHistory',
+    component: CreditHistory,
   },
 ];
 

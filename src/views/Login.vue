@@ -48,7 +48,7 @@ const login = () => {
     if (user.password === "Welcome") {
       router.push("/change-password");
     } else {
-      router.push("/main");
+      router.push("/home");
     }
   } else {
     Swal.fire({
