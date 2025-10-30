@@ -1,0 +1,32 @@
+[
+  {
+    "CustId": "100020AY",
+    "name": "แสงชัย รักชาติ",
+    "custType": "Retail/Contractor",
+    "bussinessName": "แสงชัยอลูมิเนียม",
+    "bussinessType": "Retail",
+    "documentStatus": "เอกสารครบ",
+    "creditAmount": "",
+    "lastCreditRequest": "2023-10-10"
+  },
+  {
+    "CustId": "607730AY",
+    "name": "เหล็กดี และกระจก",
+    "custType": "Retail/Contractor",
+    "bussinessName": "ห้างหุ้นส่วน เหล็กดีและกระจก จำกัด",
+    "bussinessType": "Wholesales",
+    "documentStatus": "เอกสารไม่ครบ",
+    "creditAmount": "",
+    "lastCreditRequest": "2023-10-13"
+  },
+  {
+    "CustId": "630425AY",
+    "name": "บริษัท ค้าเหล็ก จำกัด",
+    "custType": "Corporate",
+    "bussinessName": "บริษัท ค้าเหล็ก จำกัด",
+    "bussinessType": "Industry",
+    "documentStatus": "เอกสารไม่ครบ",
+    "creditAmount": "",
+    "lastCreditRequest": "2023-10-14"
+  }
+]
