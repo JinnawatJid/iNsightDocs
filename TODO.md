@@ -6,3 +6,5 @@
 
 ## ForgotPassword.vue
 - ในอนาคตต้องส่งไปยังฐานข้อมูลจริงด้วย
+
+- Re-commit to fix deployment
