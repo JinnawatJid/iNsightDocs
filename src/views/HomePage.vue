@@ -29,10 +29,26 @@
         <table>
           <thead>
             <tr>
-              <th>รหัสลูกค้า</th>
-              <th>ชื่อลูกค้า</th>
-              <th>วันที่ขอเครดิต</th>
-              <th>ประเภทลูกค้า</th>
+              <th @click="sortBy('CustId')">
+                รหัสลูกค้า
+                <span v-if="sortKey === 'CustId'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th @click="sortBy('bussinessName')">
+                ชื่อลูกค้า
+                <span v-if="sortKey === 'bussinessName'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th @click="sortBy('lastCreditRequest')">
+                วันที่ขอเครดิต
+                <span v-if="sortKey === 'lastCreditRequest'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th @click="sortBy('bussinessType')">
+                ประเภทลูกค้า
+                <span v-if="sortKey === 'bussinessType'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th @click="sortBy('creditRequestAmount')">
+                วงเงินเครดิตที่ขอ
+                <span v-if="sortKey === 'creditRequestAmount'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
               <th>เอกสารของลูกค้า</th>
               <th>ข้อมูลลูกค้า</th>
             </tr>
@@ -42,7 +58,6 @@
               <td>{{ customer.CustId }}</td>
               <td>
                 <div class="customer-name">
-                  <div class="avatar"></div>
                   <div>
                     <p>{{ customer.bussinessName }}</p>
                     <p class="subtext">{{ customer.custType }}</p>
@@ -51,6 +66,7 @@
               </td>
               <td>{{ formatDate(customer.lastCreditRequest) }}</td>
               <td>{{ customer.bussinessType }}</td>
+              <td>{{ customer.creditRequestAmount }}</td>
               <td>
                 <span :class="['status-badge', getStatusClass(customer.documentStatus)]">
                   {{ customer.documentStatus }}
@@ -82,6 +98,8 @@ export default {
       searchQuery: '',
       filterCorporate: false,
       filterContractor: false,
+      sortKey: '',
+      sortDirection: 'asc',
     };
   },
   computed: {
@@ -89,16 +107,38 @@ export default {
       let filtered = this.customers;
 
       if (this.searchQuery) {
+        const lowerCaseQuery = this.searchQuery.toLowerCase();
         filtered = filtered.filter(customer =>
-          customer.bussinessName.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-          customer.CustId.toLowerCase().includes(this.searchQuery.toLowerCase())
+          Object.values(customer).some(value =>
+            String(value).toLowerCase().includes(lowerCaseQuery)
+          )
         );
       }
 
       if (this.filterCorporate && !this.filterContractor) {
-        filtered = filtered.filter(customer => customer.custType === 'Corporate');
+        filtered = filtered.filter(customer => customer.custType === 'ลูกค้าบริษัท');
       } else if (!this.filterCorporate && this.filterContractor) {
-        filtered = filtered.filter(customer => customer.custType === 'Retail/Contractor');
+        filtered = filtered.filter(customer => customer.custType === 'ลูกค้าช่าง');
+      }
+
+      if (this.sortKey) {
+        filtered.sort((a, b) => {
+          let aValue = a[this.sortKey];
+          let bValue = b[this.sortKey];
+
+          if (this.sortKey === 'creditRequestAmount') {
+            aValue = parseFloat(aValue.replace(/,/g, ''));
+            bValue = parseFloat(bValue.replace(/,/g, ''));
+          }
+
+          if (aValue < bValue) {
+            return this.sortDirection === 'asc' ? -1 : 1;
+          }
+          if (aValue > bValue) {
+            return this.sortDirection === 'asc' ? 1 : -1;
+          }
+          return 0;
+        });
       }
 
       return filtered;
@@ -114,16 +154,25 @@ export default {
     },
     viewCustomerDetails(custId) {
       this.$router.push({ name: 'CreditApplication', params: { custId: custId } });
-    }
+    },
+    sortBy(key) {
+      if (this.sortKey === key) {
+        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        this.sortKey = key;
+        this.sortDirection = 'asc';
+      }
+    },
   },
 };
 </script>
 
 <style scoped>
 .home-content {
+  width: 80%;
+  margin: 0 auto;
   padding-top: 100px;
-  padding-left: 2rem;
-  padding-right: 2rem;
+  color: #21272A;
 }
 
 .header {
@@ -131,8 +180,9 @@ export default {
 }
 
 .header h1 {
-  font-size: 2rem;
+  font-size: 36px;
   font-weight: bold;
+  text-align: left;
 }
 
 .actions {
@@ -165,6 +215,8 @@ export default {
   border: none;
   outline: none;
   font-size: 1rem;
+  color: #21272A;
+  background-color: #ffffff;
 }
 
 .checkbox-label {
@@ -186,7 +238,7 @@ export default {
   border: none;
   border-radius: 4px;
   padding: 0.75rem 1.5rem;
-  font-size: 1rem;
+  font-size: 16px;
   cursor: pointer;
 }
 
@@ -207,9 +259,10 @@ table {
 }
 
 th, td {
-  padding: 1rem;
-  text-align: left;
+  padding: 0.8rem;
+  text-align: center;
   border-bottom: 1px solid #ddd;
+  font-size: 14px;
 }
 
 th {
@@ -220,43 +273,38 @@ th {
 .customer-name {
   display: flex;
   align-items: center;
-}
-
-.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #ccc;
-  margin-right: 1rem;
+  font-weight: 500;
 }
 
 .subtext {
-  color: #888;
-  font-size: 0.9rem;
+  display: flex;
+  color: #697077;
+  font-size: 12px;
+  align-items: left;
 }
 
 .status-badge {
-  padding: 0.25rem 0.75rem;
+  padding: 0.25rem 1rem;
   border-radius: 12px;
-  font-size: 0.9rem;
+  font-size: 14px;
   color: white;
 }
 
 .status-complete {
-  background-color: #28a745;
+  background-color: #25A249;
 }
 
 .status-incomplete {
-  background-color: #dc3545;
+  background-color: #FF383C;
 }
 
 .details-button {
-  background-color: #ffc107;
-  color: black;
+  background-color: #F1C21B;
+  color: #ffffff;
   border: none;
   border-radius: 4px;
   padding: 0.5rem 1rem;
-  font-size: 0.9rem;
+  font-size: 12px;
   cursor: pointer;
 }
 </style>
