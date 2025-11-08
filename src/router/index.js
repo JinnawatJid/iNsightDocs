@@ -5,6 +5,7 @@ import HomePage from '../views/HomePage.vue';
 import ForgotPassword from '../views/ForgotPassword.vue';
 import CreditHistory from '../views/CreditHistory.vue';
 import CreditApplication from '../views/CreditApplication.vue';
+import NewCreditApplication from '../views/NewCreditApplication.vue';
 
 const routes = [
   {
@@ -36,6 +37,11 @@ const routes = [
     path: '/credit-application/:custId',
     name: 'CreditApplication',
     component: CreditApplication,
+  },
+  {
+    path: '/new-credit-application',
+    name: 'NewCreditApplication',
+    component: NewCreditApplication,
   },
 ];
 
