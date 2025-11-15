@@ -7,7 +7,7 @@
         <div class="search-bar">
           <div class="search-input-container">
             <div class="search-icon-container">
-              <img src="../../public/search-icon.png" alt="search-icon" class="search-icon" />
+              <img src="/search-icon.png" alt="search-icon" class="search-icon" />
             </div>
             <input type="text" placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ หรือ เบอร์โทร" class="search-input" />
           </div>
@@ -16,7 +16,7 @@
       </div>
       <div class="search-placeholder">
         <div class="search-placeholder-image">
-          <img src="../../public/search-circle-outline.png" alt="search-circle-outline" />
+          <img src="/search-circle-outline.png" alt="search-circle-outline" />
         </div>
         <p>เริ่มค้นหาข้อมูลลูกค้าด้วย รหัสลูกค้า, ชื่อ หรือ เบอร์โทร</p>
       </div>
