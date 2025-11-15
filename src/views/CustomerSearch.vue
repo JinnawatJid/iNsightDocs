@@ -9,12 +9,25 @@
             <div class="search-icon-container">
               <img src="/search-icon.png" alt="search-icon" class="search-icon" />
             </div>
-            <input type="text" placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ หรือ เบอร์โทร" class="search-input" />
+            <input
+              type="text"
+              placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ, เบอร์โทร หรือ ชื่อบริษัท"
+              class="search-input"
+              v-model="searchQuery"
+              @keyup.enter="handleSearch"
+            />
           </div>
         </div>
         <NewCreditRequestButton />
       </div>
-      <div class="search-placeholder">
+      <div v-if="foundCustomer">
+        <div class="customer-details-grid">
+          <CustomerGeneralDetail :customer="foundCustomer" />
+          <CustomerCredit :customer="foundCustomer" />
+        </div>
+        <CustomerInvoices :invoices="foundCustomer.invoices" />
+      </div>
+      <div v-else class="search-placeholder">
         <div class="search-placeholder-image">
           <img src="/search-circle-outline.png" alt="search-circle-outline" />
         </div>
@@ -24,16 +37,43 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref } from 'vue';
 import Navbar from '@/components/Navbar.vue';
 import NewCreditRequestButton from '@/components/NewCreditRequestButton.vue';
+import CustomerGeneralDetail from '@/components/CustomerGeneralDetail.vue';
+import CustomerCredit from '@/components/CustomerCredit.vue';
+import CustomerInvoices from '@/components/CustomerInvoices.vue';
+import customers from '@/data/customers.json';
+import Swal from 'sweetalert2';
 
-export default {
-  name: 'CustomerSearch',
-  components: {
-    Navbar,
-    NewCreditRequestButton,
-  },
+const searchQuery = ref('');
+const foundCustomer = ref(null);
+
+const handleSearch = () => {
+  const query = searchQuery.value.trim().toLowerCase();
+  if (!query) {
+    foundCustomer.value = null;
+    return;
+  }
+
+  const result = customers.find(customer =>
+    customer.CustId.toLowerCase().includes(query) ||
+    customer.name.toLowerCase().includes(query) ||
+    customer.phone.toLowerCase().includes(query) ||
+    customer.bussinessName.toLowerCase().includes(query)
+  );
+
+  if (result) {
+    foundCustomer.value = result;
+  } else {
+    foundCustomer.value = null;
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops...',
+      text: 'ไม่พบข้อมูลลูกค้า',
+    });
+  }
 };
 </script>
 
@@ -105,5 +145,12 @@ h1 {
 .search-input-container {
   display: flex;
   align-items: center;
+}
+
+.customer-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 </style>
