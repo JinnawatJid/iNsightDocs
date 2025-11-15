@@ -3,6 +3,7 @@
     <div class="nav-left">
       <img src="@/assets/logo.png" alt="Company Logo" class="logo" />
       <router-link to="/home" class="nav-link">คำขอเครดิตใหม่</router-link>
+      <router-link to="/customer-search" class="nav-link">ค้นหาข้อมูลลูกค้า</router-link>
       <router-link to="/credit-history" class="nav-link">ประวัติการขอเครดิต</router-link>
     </div>
     <div class="nav-right">
