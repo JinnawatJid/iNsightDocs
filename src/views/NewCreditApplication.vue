@@ -1,18 +1,12 @@
-import Navbar from '@/components/Navbar.vue';
+<template>
+  <div>
+    <h1>คำขอเครดิตใหม่</h1>
+    <!-- This is a blank page for now -->
+  </div>
+</template>
 
+<script>
 export default {
   name: 'NewCreditApplication',
-  components: {
-    Navbar,
-  },
 };
 </script>
-
-<style scoped>
-.new-credit-application-content {
-  padding-top: 100px;
-  padding-left: 2rem;
-  padding-right: 2rem;
-  text-align: center;
-}
-</style>
