@@ -5,11 +5,19 @@
       <h1>ค้นหาข้อมูลลูกค้า</h1>
       <div class="search-controls">
         <div class="search-bar">
-          <input type="text" placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ หรือ เบอร์โทร" />
+          <div class="search-input-container">
+            <div class="search-icon-container">
+              <img src="../../public/search-icon.png" alt="search-icon" class="search-icon" />
+            </div>
+            <input type="text" placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ หรือ เบอร์โทร" class="search-input" />
+          </div>
         </div>
         <NewCreditRequestButton />
       </div>
       <div class="search-placeholder">
+        <div class="search-placeholder-image">
+          <img src="../../public/search-circle-outline.png" alt="search-circle-outline" />
+        </div>
         <p>เริ่มค้นหาข้อมูลลูกค้าด้วย รหัสลูกค้า, ชื่อ หรือ เบอร์โทร</p>
       </div>
     </div>
@@ -32,6 +40,10 @@ export default {
 <style scoped>
 .customer-search-container {
   padding: 2rem 4rem;
+  padding-top: 100px;
+  color: #21272A;
+  width: 1200px;
+  margin: 0 auto;
 }
 
 h1 {
@@ -59,8 +71,10 @@ h1 {
 .search-bar input {
   border: none;
   outline: none;
-  width: 100%;
+  width: 500px;
   font-size: 1rem;
+  color: #21272A;
+  background-color: #ffffff;
 }
 
 .search-placeholder {
@@ -69,11 +83,27 @@ h1 {
   align-items: center;
   justify-content: center;
   color: #888;
-  border: 1px dashed #ccc;
+  border: 1px solid #ccc;
   border-radius: 5px;
   padding: 4rem;
-  width: 100%;
-  height: 400px;
+  height: 340px;
   text-align: center;
+}
+
+.search-placeholder-image img {
+  width: 80px;
+  height: 80px;
+}
+
+.search-icon {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+}
+
+.search-input-container {
+  display: flex;
+  align-items: center;
 }
 </style>
