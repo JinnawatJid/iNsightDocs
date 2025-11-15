@@ -11,7 +11,7 @@
             </div>
             <input
               type="text"
-              placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ หรือ เบอร์โทร"
+              placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ, เบอร์โทร หรือ ชื่อบริษัท"
               class="search-input"
               v-model="searchQuery"
               @keyup.enter="handleSearch"
@@ -60,7 +60,8 @@ const handleSearch = () => {
   const result = customers.find(customer =>
     customer.CustId.toLowerCase().includes(query) ||
     customer.name.toLowerCase().includes(query) ||
-    customer.phone.toLowerCase().includes(query)
+    customer.phone.toLowerCase().includes(query) ||
+    customer.bussinessName.toLowerCase().includes(query)
   );
 
   if (result) {
