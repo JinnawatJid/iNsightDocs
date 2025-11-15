@@ -71,7 +71,7 @@ h1 {
 .search-bar input {
   border: none;
   outline: none;
-  width: 500px;
+  width: 400px;
   font-size: 1rem;
   color: #21272A;
   background-color: #ffffff;
