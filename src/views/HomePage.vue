@@ -12,12 +12,12 @@
             <input type="text" placeholder="ค้นหาข้อมูลลูกค้า" v-model="searchQuery" />
           </div>
           <label class="checkbox-label">
-            <input type="checkbox" v-model="filterCorporate" />
-            ลูกค้าบริษัท
+            <input type="checkbox" v-model="filterDocumentsComplete" />
+            เอกสารครบ
           </label>
           <label class="checkbox-label">
-            <input type="checkbox" v-model="filterContractor" />
-            ลูกค้าช่าง
+            <input type="checkbox" v-model="filterDocumentsIncomplete" />
+            เอกสารไม่ครบ
           </label>
         </div>
       </div>
@@ -92,8 +92,8 @@ export default {
     return {
       customers: customers,
       searchQuery: '',
-      filterCorporate: false,
-      filterContractor: false,
+      filterDocumentsComplete: false,
+      filterDocumentsIncomplete: false,
       sortKey: '',
       sortDirection: 'asc',
     };
@@ -111,10 +111,10 @@ export default {
         );
       }
 
-      if (this.filterCorporate && !this.filterContractor) {
-        filtered = filtered.filter(customer => customer.custType === 'ลูกค้าบริษัท');
-      } else if (!this.filterCorporate && this.filterContractor) {
-        filtered = filtered.filter(customer => customer.custType === 'ลูกค้าช่าง');
+      if (this.filterDocumentsComplete && !this.filterDocumentsIncomplete) {
+        filtered = filtered.filter(customer => customer.documentStatus === 'เอกสารครบ');
+      } else if (!this.filterDocumentsComplete && this.filterDocumentsIncomplete) {
+        filtered = filtered.filter(customer => customer.documentStatus === 'เอกสารไม่ครบ');
       }
 
       if (this.sortKey) {
