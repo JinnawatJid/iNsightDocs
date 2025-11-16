@@ -255,13 +255,15 @@ table {
 }
 
 th, td {
-  padding: 0.8rem;
+  padding: 0.2rem;
   text-align: center;
   border-bottom: 1px solid #ddd;
   font-size: 14px;
 }
 
 th {
+  padding: 0.8rem;
+  height: 10px;
   background-color: #f8f9fa;
   font-weight: bold;
 }
@@ -270,6 +272,10 @@ th {
   display: flex;
   align-items: center;
   font-weight: 500;
+}
+
+.customer-name p {
+  margin: 4px;
 }
 
 .subtext {
@@ -282,7 +288,7 @@ th {
 .status-badge {
   padding: 0.25rem 1rem;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 12px;
   color: white;
 }
 
@@ -299,7 +305,7 @@ th {
   color: #ffffff;
   border: none;
   border-radius: 4px;
-  padding: 0.5rem 1rem;
+  padding: 0.25rem 1rem;
   font-size: 12px;
   cursor: pointer;
 }
