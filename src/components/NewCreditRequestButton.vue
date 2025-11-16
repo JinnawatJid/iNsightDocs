@@ -8,9 +8,9 @@
       เพิ่มคำขอเครดิตใหม่
     </button>
     <div v-if="showDropdown" class="dropdown-content">
-      <a @click="handleNewCreditApplication">คำขอเครดิตใหม่</a>
-      <a class="disabled">คำขอเครดิตเพิ่มเติม</a>
-      <a class="disabled">คำขอเครดิตโครงการ</a>
+      <a :class="{ 'disabled': !menuItems.newCredit }" @click="!menuItems.newCredit ? null : handleNewCreditApplication()">คำขอเครดิตใหม่</a>
+      <a :class="{ 'disabled': !menuItems.additionalCredit }">คำขอเครดิตเพิ่มเติม</a>
+      <a :class="{ 'disabled': !menuItems.projectCredit }">คำขอเครดิตโครงการ</a>
     </div>
   </div>
 </template>
@@ -18,10 +18,32 @@
 <script>
 export default {
   name: 'CreditRequestDropdown',
+  props: {
+    creditBadgeStatus: {
+      type: String,
+      default: '',
+    },
+  },
   data() {
     return {
       showDropdown: false,
     };
+  },
+  computed: {
+    menuItems() {
+      const status = this.creditBadgeStatus;
+      if (status === 'สามารถขอเครดิตได้') {
+        return { newCredit: true, additionalCredit: false, projectCredit: false };
+      } else if (status === 'ไม่สามารถขอเครดิตได้') {
+        return { newCredit: false, additionalCredit: false, projectCredit: false };
+      } else if (status === 'สามารถขอเครดิตเพิ่มได้') {
+        return { newCredit: false, additionalCredit: true, projectCredit: true };
+      } else if (status === 'ไม่สามารถขอเครดิตเพิ่มได้') {
+        return { newCredit: false, additionalCredit: false, projectCredit: true };
+      }
+      // Default state when no customer is found or badge is not present
+      return { newCredit: true, additionalCredit: false, projectCredit: false };
+    }
   },
   methods: {
     toggleDropdown() {
