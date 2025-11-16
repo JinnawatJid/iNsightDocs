@@ -13,14 +13,15 @@
     "taxId": "0135560024243",
     "address": "99/5 หมู่ที่ 5 ตำบลบึงคำพร้อย อำเภอลำลูกกา จังหวัดปทุมธานี 12150",
     "registeredDate": "27/05/2020",
-    "creditLimit": "500,000 บาท",
-    "creditAvailable": "300,000 บาท",
-    "avgCreditUsage": "200,000 บาท",
-    "creditUsagePercentage": 40,
-    "creditPeriod": "รวมบิล 30 เครดิต 60",
-    "creditStatus": "NPL: เร่งรัดหนี้สิน",
-    "lastPaymentDate": "10/11/2024",
-    "overdueBalance": "100,000 บาท",
+    "creditBadge": "สามารถขอเครดิตได้",
+    "creditLimit": "0",
+    "creditAvailable": "0",
+    "avgCreditUsage": "0",
+    "creditUsagePercentage": 0,
+    "creditPeriod": "0",
+    "creditStatus": "0",
+    "lastPaymentDate": "0",
+    "overdueBalance": "0",
     "invoices": [
       {
         "receiptNumber": "INV-2024-1234",
@@ -59,14 +60,15 @@
     "taxId": "0135560024244",
     "address": "123/4 หมู่ที่ 1 ตำบลคลองหนึ่ง อำเภอคลองหลวง จังหวัดปทุมธานี 12120",
     "registeredDate": "15/01/2021",
-    "creditLimit": "200,000 บาท",
-    "creditAvailable": "150,000 บาท",
-    "avgCreditUsage": "50,000 บาท",
-    "creditUsagePercentage": 25,
-    "creditPeriod": "รวมบิล 15 เครดิต 30",
-    "creditStatus": "ปกติ",
-    "lastPaymentDate": "01/11/2024",
-    "overdueBalance": "0 บาท",
+    "creditBadge": "ไม่สามารถขอเครดิตได้",
+    "creditLimit": "0",
+    "creditAvailable": "0",
+    "avgCreditUsage": "0",
+    "creditUsagePercentage": 0,
+    "creditPeriod": "0",
+    "creditStatus": "0",
+    "lastPaymentDate": "0",
+    "overdueBalance": "0",
     "invoices": [
       {
         "receiptNumber": "INV-2024-1235",
@@ -98,11 +100,12 @@
     "taxId": "0135560024245",
     "address": "567/8 หมู่ที่ 3 ตำบลลาดสวาย อำเภอลำลูกกา จังหวัดปทุมธานี 12150",
     "registeredDate": "20/08/2022",
-    "creditLimit": "1,000,000 บาท",
-    "creditAvailable": "750,000 บาท",
-    "avgCreditUsage": "250,000 บาท",
+    "creditBadge": "สามารถขอเครดิตเพิ่มได้",
+    "creditLimit": "100,000 บาท",
+    "creditAvailable": "25,000 บาท",
+    "avgCreditUsage": "75,000 บาท",
     "creditUsagePercentage": 25,
-    "creditPeriod": "รวมบิล 60 เครดิต 90",
+    "creditPeriod": "รวมบิล 30 เครดิต 30",
     "creditStatus": "ปกติ",
     "lastPaymentDate": "15/10/2024",
     "overdueBalance": "0 บาท",
@@ -112,7 +115,42 @@
         "date": "03/11/2025",
         "product": "เหล็กกล่อง",
         "amount": "250,000 บาท",
-        "status": "ค้างชำระ"
+        "status": "ชำระแล้ว"
+      },
+      {
+        "receiptNumber": "INV-2024-1237",
+        "date": "04/11/2025",
+        "product": "เหล็ก H-Beam",
+        "amount": "250,000 บาท",
+        "status": "ชำระแล้ว"
+      },
+      {
+        "receiptNumber": "INV-2024-1238",
+        "date": "05/11/2025",
+        "product": "กระจกเทมเปอร์ 8mm",
+        "amount": "250,000 บาท",
+        "status": "ชำระแล้ว"
+      },
+      {
+        "receiptNumber": "INV-2024-1239",
+        "date": "06/11/2025",
+        "product": "เหล็ก H-Beam",
+        "amount": "250,000 บาท",
+        "status": "ชำระแล้ว"
+      },
+      {
+        "receiptNumber": "INV-2024-1240",
+        "date": "07/11/2025",
+        "product": "กระจกเทมเปอร์ 10mm",
+        "amount": "250,000 บาท",
+        "status": "ชำระแล้ว"
+      },
+      {
+        "receiptNumber": "INV-2024-1241",
+        "date": "08/11/2025",
+        "product": "เหล็ก H-Beam",
+        "amount": "250,000 บาท",
+        "status": "ชำระแล้ว"
       }
     ]
   },
@@ -162,6 +200,7 @@
     "taxId": "0135560024247",
     "address": "45/6 หมู่ที่ 7 ตำบลคลองสี่ อำเภอคลองหลวง จังหวัดปทุมธานี 12120",
     "registeredDate": "19/07/2018",
+    "creditBadge": "ไม่สามารถขอเครดิตเพิ่มได้",
     "creditLimit": "1,500,000 บาท",
     "creditAvailable": "500,000 บาท",
     "avgCreditUsage": "1,000,000 บาท",
@@ -169,7 +208,7 @@
     "creditPeriod": "รวมบิล 30 เครดิต 60",
     "creditStatus": "ปกติ",
     "lastPaymentDate": "10/11/2024",
-    "overdueBalance": "0 บาท",
+    "overdueBalance": "700,000 บาท",
     "invoices": [
       {
         "receiptNumber": "INV-2024-1238",
@@ -183,6 +222,34 @@
         "date": "20/10/2025",
         "product": "กระจกเงา",
         "amount": "300,000 บาท",
+        "status": "ชำระแล้ว"
+      },
+      {
+        "receiptNumber": "INV-2024-1196",
+        "date": "12/10/2025",
+        "product": "กระจกเงา 8mm",
+        "amount": "500,000 บาท",
+        "status": "ชำระแล้ว"
+      },
+      {
+        "receiptNumber": "INV-2024-1197",
+        "date": "03/09/2025",
+        "product": "กระจกเงา 10mm",
+        "amount": "600,000 บาท",
+        "status": "ชำระแล้ว"
+      },
+      {
+        "receiptNumber": "INV-2024-1198",
+        "date": "02/09/2025",
+        "product": "กระจกเงา 12mm",
+        "amount": "800,000 บาท",
+        "status": "ชำระแล้ว"
+      },
+      {
+        "receiptNumber": "INV-2024-1199",
+        "date": "25/08/2025",
+        "product": "กระจกเงา 15mm",
+        "amount": "1,000,000 บาท",
         "status": "ชำระแล้ว"
       }
     ]
