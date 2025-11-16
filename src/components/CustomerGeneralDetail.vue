@@ -109,6 +109,6 @@ p {
 }
 
 .address-section {
-  grid-column: 1 / -1;
+  text-align: left;
 }
 </style>
