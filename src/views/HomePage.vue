@@ -50,7 +50,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="customer in filteredCustomers" :key="customer.CustId">
+            <tr v-for="customer in paginatedCustomers" :key="customer.CustId">
               <td>{{ customer.CustId }}</td>
               <td>
                 <div class="customer-name">
@@ -75,18 +75,27 @@
           </tbody>
         </table>
       </div>
+      <div class="pagination-container">
+        <Pagination
+          :currentPage="currentPage"
+          :totalPages="totalPages"
+          @page-changed="handlePageChange"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import Navbar from '@/components/Navbar.vue';
+import Pagination from '@/components/Pagination.vue';
 import customers from '@/data/customers.json';
 
 export default {
   name: 'HomePage',
   components: {
     Navbar,
+    Pagination,
   },
   data() {
     return {
@@ -96,6 +105,8 @@ export default {
       filterDocumentsIncomplete: false,
       sortKey: '',
       sortDirection: 'asc',
+      currentPage: 1,
+      itemsPerPage: 5,
     };
   },
   computed: {
@@ -139,8 +150,19 @@ export default {
 
       return filtered;
     },
+    totalPages() {
+      return Math.ceil(this.filteredCustomers.length / this.itemsPerPage);
+    },
+    paginatedCustomers() {
+      const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+      const endIndex = startIndex + this.itemsPerPage;
+      return this.filteredCustomers.slice(startIndex, endIndex);
+    },
   },
   methods: {
+    handlePageChange(page) {
+      this.currentPage = page;
+    },
     getStatusClass(status) {
       return status === 'เอกสารครบ' ? 'status-complete' : 'status-incomplete';
     },
@@ -164,6 +186,12 @@ export default {
 </script>
 
 <style scoped>
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem 0;
+}
+
 .home-content {
   width: 80%;
   margin: 0 auto;
