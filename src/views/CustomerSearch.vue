@@ -29,9 +29,7 @@
         <CustomerInvoices :invoices="foundCustomer.invoices" />
       </div>
       <div v-else class="search-placeholder">
-        <div class="search-placeholder-image">
-          <img src="/search-circle-outline.png" alt="search-circle-outline" />
-        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         <p>เริ่มค้นหาข้อมูลลูกค้าด้วย รหัสลูกค้า, ชื่อ หรือ เบอร์โทร</p>
       </div>
     </div>
@@ -136,11 +134,6 @@ h1 {
   padding: 4rem;
   height: 340px;
   text-align: center;
-}
-
-.search-placeholder-image img {
-  width: 80px;
-  height: 80px;
 }
 
 .search-input-container {
