@@ -75,11 +75,13 @@
           </tbody>
         </table>
       </div>
-      <Pagination
-        :currentPage="currentPage"
-        :totalPages="totalPages"
-        @page-changed="handlePageChange"
-      />
+      <div class="pagination-container">
+        <Pagination
+          :currentPage="currentPage"
+          :totalPages="totalPages"
+          @page-changed="handlePageChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -184,6 +186,12 @@ export default {
 </script>
 
 <style scoped>
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem 0;
+}
+
 .home-content {
   width: 80%;
   margin: 0 auto;
