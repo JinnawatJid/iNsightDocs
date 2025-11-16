@@ -200,6 +200,7 @@ export default {
   border-radius: 4px;
   padding: 0.5rem;
   margin-right: 1rem;
+  height: 20px;
 }
 
 .search-box svg {

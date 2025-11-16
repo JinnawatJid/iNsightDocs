@@ -6,9 +6,7 @@
       <div class="search-controls">
         <div class="search-bar">
           <div class="search-input-container">
-            <div class="search-icon-container">
-              <img src="/search-icon.png" alt="search-icon" class="search-icon" />
-            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input
               type="text"
               placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ, เบอร์โทร หรือ ชื่อบริษัท"
@@ -79,15 +77,14 @@ const handleSearch = () => {
 
 <style scoped>
 .customer-search-container {
-  padding: 2rem 4rem;
   padding-top: 100px;
   color: #21272A;
-  width: 1200px;
+  width: 80%;
   margin: 0 auto;
 }
 
 h1 {
-  font-size: 2rem;
+  font-size: 36px;
   margin-bottom: 2rem;
   text-align: left;
 }
@@ -95,7 +92,6 @@ h1 {
 .search-controls {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   margin-bottom: 2rem;
 }
 
@@ -103,9 +99,11 @@ h1 {
   display: flex;
   align-items: center;
   border: 1px solid #ccc;
-  border-radius: 5px;
+  border-radius: 4px;
   padding: 0.5rem;
+  margin-right: 1rem;
   width: 500px;
+  height: 20px;
 }
 
 .search-bar input {
@@ -135,16 +133,14 @@ h1 {
   height: 80px;
 }
 
-.search-icon {
-  width: 30px;
-  height: 30px;
+.search-input-container {
   display: flex;
   align-items: center;
 }
 
-.search-input-container {
-  display: flex;
-  align-items: center;
+.search-input-container svg {
+  margin-right: 0.5rem;
+  color: #888;
 }
 
 .customer-details-grid {
