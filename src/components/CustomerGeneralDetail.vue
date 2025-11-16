@@ -54,7 +54,6 @@ defineProps({
   border-radius: 8px;
   padding: 24px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  font-family: 'Sarabun', sans-serif; /* Assuming a default font, can be adjusted */
 }
 
 .title-container {
