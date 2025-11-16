@@ -32,7 +32,7 @@ export default {
   border-radius: 1rem;
   color: white;
   font-weight: bold;
-  font-size: 0.875rem;
+  font-size: 12px;
   text-align: center;
   display: inline-block;
   margin-left: 1rem;
