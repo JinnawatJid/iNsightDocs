@@ -45,9 +45,10 @@ export default {
   padding: 20px;
   border-radius: 8px;
   display: flex;
-  gap: 20px;
+  gap: 40px; /* Increased gap */
   border: 1px solid #e0e0e0;
   margin-bottom: 20px;
+  align-items: flex-end; /* Align bottoms */
 }
 
 .header-section {
@@ -58,6 +59,7 @@ export default {
 
 .header-section.flex-grow {
   flex-grow: 1;
+  max-width: none; /* Remove limit to let it fill or we can center it explicitly */
 }
 
 label {

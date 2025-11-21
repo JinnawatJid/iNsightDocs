@@ -1,5 +1,6 @@
 <template>
   <div class="create-credit-request">
+    <Navbar />
     <div class="page-content">
       <CreditRequestHeader @search="handleSearch" />
 
@@ -37,6 +38,7 @@
 </template>
 
 <script>
+import Navbar from '@/components/Navbar.vue';
 import CreditRequestHeader from '@/components/credit/CreditRequestHeader.vue';
 import CreditHistorySidebar from '@/components/credit/CreditHistorySidebar.vue';
 import CreditRequestForm from '@/components/credit/CreditRequestForm.vue';
@@ -46,6 +48,7 @@ import mockData from '@/data/mock_customer_data.json';
 export default {
   name: 'CreateCreditRequest',
   components: {
+    Navbar,
     CreditRequestHeader,
     CreditHistorySidebar,
     CreditRequestForm,
