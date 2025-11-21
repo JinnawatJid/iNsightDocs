@@ -92,7 +92,7 @@ import Pagination from '@/components/Pagination.vue';
 import customers from '@/data/customers.json';
 
 export default {
-  name: 'HomePage',
+  name: 'PendingRequestOld',
   components: {
     Navbar,
     Pagination,
@@ -171,7 +171,8 @@ export default {
       return new Date(dateString).toLocaleDateString('th-TH', options);
     },
     viewCustomerDetails(custId) {
-      this.$router.push({ name: 'CreditApplication', params: { custId: custId } });
+      // this.$router.push({ name: 'CreditApplication', params: { custId: custId } });
+      console.log('View details for customer:', custId);
     },
     sortBy(key) {
       if (this.sortKey === key) {

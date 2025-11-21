@@ -1,22 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomePage from '../views/HomePage.vue';
-import CreditApplication from '../views/CreditApplication.vue';
+import PendingRequestOld from '../views/PendingRequestOld.vue';
 import CustomerSearch from '../views/CustomerSearch.vue';
 
 const routes = [
   {
     path: '/',
-    redirect: '/home',
+    redirect: '/pending-request-old',
   },
   {
-    path: '/home',
-    name: 'HomePage',
-    component: HomePage,
-  },
-  {
-    path: '/credit-application/:custId',
-    name: 'CreditApplication',
-    component: CreditApplication,
+    path: '/pending-request-old',
+    name: 'PendingRequestOld',
+    component: PendingRequestOld,
   },
   {
     path: '/customer-search',
