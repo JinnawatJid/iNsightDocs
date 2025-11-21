@@ -13,6 +13,7 @@
       </button>
     </div>
 
+    <!-- Tab 1: General Information -->
     <div class="tab-content" v-if="activeTab === 'general'">
       <div class="upload-grid">
         <div class="upload-item">
@@ -47,15 +48,114 @@
       </div>
     </div>
 
-    <!-- Placeholders for other tabs -->
+    <!-- Tab 2: Residential Address -->
     <div class="tab-content" v-if="activeTab === 'address'">
-       <p>ที่อยู่อาศัย Uploads...</p>
+      <div class="upload-grid">
+        <div class="upload-item">
+          <label>รูปถ่ายบ้าน</label>
+          <div class="upload-box" @click="triggerUpload('home-photo')">
+             <input type="file" ref="home-photo" class="hidden-input" @change="handleFileChange($event, 'home_photo')" />
+             <div class="upload-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0056FF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-image"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                <p>Drop your files here or <span class="link">Click to upload</span></p>
+                <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
+             </div>
+             <div v-if="files.home_photo" class="file-preview">
+               {{ files.home_photo.name }}
+             </div>
+          </div>
+        </div>
+
+        <div class="upload-item">
+          <label>เอกสารเสียภาษีที่ดิน</label>
+          <div class="upload-box" @click="triggerUpload('land-tax')">
+             <input type="file" ref="land-tax" class="hidden-input" @change="handleFileChange($event, 'land_tax')" />
+             <div class="upload-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0056FF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <p>Drop your files here or <span class="link">Click to upload</span></p>
+                <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
+             </div>
+             <div v-if="files.land_tax" class="file-preview">
+               {{ files.land_tax.name }}
+             </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="address-details">
+         <div class="map-placeholder">
+            <span>Google Map Extension (Pin Location)</span>
+         </div>
+         <textarea class="form-input" placeholder="รายละเอียดที่อยู่..." rows="3" v-model="addressDetails.residential"></textarea>
+      </div>
     </div>
+
+    <!-- Tab 3: Store/Company Address -->
     <div class="tab-content" v-if="activeTab === 'store'">
-       <p>ที่อยู่ร้านค้า Uploads...</p>
+      <div class="checkbox-row">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="sameAsResidential"> ที่อยู่เดียวกับที่อยู่อาศัย
+        </label>
+      </div>
+
+      <div class="upload-grid" :class="{ disabled: sameAsResidential }">
+        <div class="upload-item">
+          <label>รูปถ่ายบริษัท/ร้านค้า</label>
+          <div class="upload-box" @click="!sameAsResidential && triggerUpload('company-photo')">
+             <input type="file" ref="company-photo" class="hidden-input" @change="handleFileChange($event, 'company_photo')" :disabled="sameAsResidential" />
+             <div class="upload-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0056FF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-image"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                <p>Drop your files here or <span class="link">Click to upload</span></p>
+                <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
+             </div>
+             <div v-if="files.company_photo" class="file-preview">
+               {{ files.company_photo.name }}
+             </div>
+          </div>
+        </div>
+
+        <div class="upload-item">
+          <label>เอกสารเสียภาษีที่ดินบริษัท/ร้านค้า</label>
+          <div class="upload-box" @click="!sameAsResidential && triggerUpload('company-land-tax')">
+             <input type="file" ref="company-land-tax" class="hidden-input" @change="handleFileChange($event, 'company_land_tax')" :disabled="sameAsResidential" />
+             <div class="upload-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0056FF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <p>Drop your files here or <span class="link">Click to upload</span></p>
+                <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
+             </div>
+             <div v-if="files.company_land_tax" class="file-preview">
+               {{ files.company_land_tax.name }}
+             </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="address-details" :class="{ disabled: sameAsResidential }">
+         <div class="map-placeholder">
+            <span>Google Map Extension (Pin Location)</span>
+         </div>
+         <textarea class="form-input" placeholder="รายละเอียดที่อยู่..." rows="3" v-model="addressDetails.company" :disabled="sameAsResidential"></textarea>
+      </div>
     </div>
+
+    <!-- Tab 4: Financial Documents -->
     <div class="tab-content" v-if="activeTab === 'finance'">
-       <p>เอกสารการเงิน Uploads...</p>
+       <div class="upload-grid single-col">
+        <div class="upload-item">
+          <label>Statement ย้อนหลัง 3 เดือน</label>
+          <div class="upload-box" @click="triggerUpload('statement')">
+             <input type="file" ref="statement" class="hidden-input" @change="handleFileChange($event, 'statement')" multiple />
+             <div class="upload-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0056FF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <p>Drop your files here or <span class="link">Click to upload</span></p>
+                <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
+             </div>
+             <div v-if="files.statement" class="file-preview">
+               {{ files.statement.name }} (and other selected files)
+             </div>
+          </div>
+        </div>
+       </div>
     </div>
 
   </div>
@@ -76,12 +176,24 @@ export default {
       files: {
         id_card: null,
         home_reg: null,
-      }
+        home_photo: null,
+        land_tax: null,
+        company_photo: null,
+        company_land_tax: null,
+        statement: null
+      },
+      addressDetails: {
+        residential: '',
+        company: ''
+      },
+      sameAsResidential: false
     };
   },
   methods: {
     triggerUpload(refName) {
-      this.$refs[refName].click();
+      if (this.$refs[refName]) {
+          this.$refs[refName].click();
+      }
     },
     handleFileChange(event, key) {
       const file = event.target.files[0];
@@ -151,6 +263,10 @@ h3::before {
   gap: 20px;
 }
 
+.upload-grid.single-col {
+  grid-template-columns: 1fr;
+}
+
 .upload-item label {
   display: block;
   margin-bottom: 8px;
@@ -166,6 +282,7 @@ h3::before {
   cursor: pointer;
   position: relative;
   transition: border-color 0.2s;
+  background-color: white;
 }
 
 .upload-box:hover {
@@ -199,4 +316,52 @@ h3::before {
   color: #28a745;
   font-weight: bold;
 }
+
+.checkbox-row {
+  margin-bottom: 15px;
+}
+
+.checkbox-label {
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.address-details {
+  margin-top: 20px;
+}
+
+.map-placeholder {
+  background-color: #eee;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  border: 1px dashed #ccc;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 14px;
+  resize: vertical;
+}
+
+/* Disabled State Styles */
+.upload-grid.disabled .upload-box,
+.address-details.disabled .map-placeholder,
+.address-details.disabled .form-input {
+  opacity: 0.5;
+  pointer-events: none;
+  background-color: #f9f9f9;
+}
+
 </style>

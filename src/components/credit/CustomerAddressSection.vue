@@ -35,39 +35,6 @@
           </div>
       </div>
     </div>
-
-    <!-- Address Section would ideally go here if separate, but prompt asked for specific structure.
-         The design image shows "Address" is implicit or handled in the document section or search.
-         However, the prompt explicitly asked for:
-         "2. Residential address ... 3. Company/Store Address ... user has an option to select 'ที่อยู่เดียวกับที่อยู่อาศัย'"
-
-         I will add the address fields below as requested, even if not fully visible in the main screenshot.
-    -->
-    <hr class="divider" />
-
-    <div class="address-container">
-        <h4>ที่อยู่อาศัย (Residential Address)</h4>
-        <!-- Placeholder for Google Map -->
-        <div class="map-placeholder">
-            <span>Google Map Extension (Pin Location)</span>
-        </div>
-        <textarea class="form-input" placeholder="รายละเอียดที่อยู่..." rows="2"></textarea>
-    </div>
-
-    <div class="address-container">
-        <div class="header-row">
-            <h4>ที่อยู่ร้านค้า (Company Address)</h4>
-            <label class="checkbox-label">
-                <input type="checkbox" v-model="sameAsResidential"> ที่อยู่เดียวกับที่อยู่อาศัย
-            </label>
-        </div>
-
-        <div class="map-placeholder" :class="{ disabled: sameAsResidential }">
-            <span>Google Map Extension (Pin Location)</span>
-        </div>
-        <textarea class="form-input" placeholder="รายละเอียดที่อยู่..." rows="2" :disabled="sameAsResidential"></textarea>
-    </div>
-
   </div>
 </template>
 
@@ -88,8 +55,7 @@ export default {
     return {
       position: '',
       creditAmount: '',
-      creditReason: 'สต๊อคสินค้า',
-      sameAsResidential: false
+      creditReason: 'สต๊อคสินค้า'
     };
   }
 };
@@ -165,53 +131,5 @@ label {
   background-color: #f0f0f0;
   color: #888;
   cursor: not-allowed;
-}
-
-.divider {
-    margin: 20px 0;
-    border: none;
-    border-top: 1px solid #eee;
-}
-
-.address-container {
-    margin-bottom: 20px;
-}
-
-h4 {
-    font-size: 14px;
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-.header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.checkbox-label {
-    font-weight: normal;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
-}
-
-.map-placeholder {
-    background-color: #eee;
-    height: 150px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #888;
-    border-radius: 4px;
-    margin-bottom: 10px;
-    border: 1px dashed #ccc;
-}
-
-.map-placeholder.disabled {
-    opacity: 0.5;
 }
 </style>
