@@ -1,53 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import Login from '../views/Login.vue';
-import ChangePassword from '../views/ChangePassword.vue';
-import HomePage from '../views/HomePage.vue';
-import ForgotPassword from '../views/ForgotPassword.vue';
-import CreditHistory from '../views/CreditHistory.vue';
-import CreditApplication from '../views/CreditApplication.vue';
+import PendingRequestOld from '../views/PendingRequestOld.vue';
 import CustomerSearch from '../views/CustomerSearch.vue';
-import NewCreditApplication from '../views/NewCreditApplication.vue';
 
 const routes = [
   {
     path: '/',
-    name: 'Login',
-    component: Login,
+    redirect: '/pending-request-old',
   },
   {
-    path: '/change-password',
-    name: 'ChangePassword',
-    component: ChangePassword,
-  },
-  {
-    path: '/home',
-    name: 'HomePage',
-    component: HomePage,
-  },
-  {
-    path: '/forgot-password',
-    name: 'ForgotPassword',
-    component: ForgotPassword,
-  },
-  {
-    path: '/credit-history',
-    name: 'CreditHistory',
-    component: CreditHistory,
-  },
-  {
-    path: '/credit-application/:custId',
-    name: 'CreditApplication',
-    component: CreditApplication,
+    path: '/pending-request-old',
+    name: 'PendingRequestOld',
+    component: PendingRequestOld,
   },
   {
     path: '/customer-search',
     name: 'CustomerSearch',
     component: CustomerSearch,
-  },
-  {
-    path: '/new-credit-application',
-    name: 'NewCreditApplication',
-    component: NewCreditApplication,
   },
 ];
 

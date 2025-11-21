@@ -50,7 +50,8 @@ export default {
       this.showDropdown = !this.showDropdown;
     },
     handleNewCreditApplication() {
-      this.$router.push({ name: 'NewCreditApplication' });
+      // this.$router.push({ name: 'NewCreditApplication' });
+      console.log('New Credit Application clicked');
       this.showDropdown = false;
     },
     closeDropdown(event) {

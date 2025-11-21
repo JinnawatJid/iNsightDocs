@@ -2,9 +2,8 @@
   <nav class="nav-bar">
     <div class="nav-left">
       <img src="@/assets/logo.png" alt="Company Logo" class="logo" />
-      <router-link to="/home" class="nav-link">คำขอเครดิตใหม่</router-link>
+      <router-link to="/pending-request-old" class="nav-link">คำขอเครดิตใหม่</router-link>
       <router-link to="/customer-search" class="nav-link">ค้นหาข้อมูลลูกค้า</router-link>
-      <router-link to="/credit-history" class="nav-link">ประวัติการขอเครดิต</router-link>
     </div>
     <div class="nav-right">
       <div class="notification-bell">
@@ -23,13 +22,14 @@
 </template>
 
 <script>
-import employees from '@/data/employees.json';
-
 export default {
   name: 'Navbar',
   data() {
     return {
-      user: employees[0],
+      user: {
+        branch: 'AY',
+        name: 'จิณณวัฒน์ จิตเสนาะ',
+      },
       dropdownOpen: false,
     };
   },
