@@ -23,13 +23,14 @@
 </template>
 
 <script>
-import employees from '@/data/employees.json';
-
 export default {
   name: 'Navbar',
   data() {
     return {
-      user: employees[0],
+      user: {
+        branch: 'AY',
+        name: 'จิณณวัฒน์ จิตเสนาะ',
+      },
       dropdownOpen: false,
     };
   },
