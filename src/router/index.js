@@ -1,11 +1,17 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import PendingRequestOld from '../views/PendingRequestOld.vue';
 import CustomerSearch from '../views/CustomerSearch.vue';
+import CreateCreditRequest from '../views/CreateCreditRequest.vue';
 
 const routes = [
   {
     path: '/',
-    redirect: '/pending-request-old',
+    redirect: '/create-credit-request',
+  },
+  {
+    path: '/create-credit-request',
+    name: 'CreateCreditRequest',
+    component: CreateCreditRequest,
   },
   {
     path: '/pending-request-old',

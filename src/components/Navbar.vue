@@ -2,8 +2,8 @@
   <nav class="nav-bar">
     <div class="nav-left">
       <img src="@/assets/logo.png" alt="Company Logo" class="logo" />
-      <router-link to="/pending-request-old" class="nav-link">คำขอเครดิตใหม่</router-link>
-      <router-link to="/customer-search" class="nav-link">ค้นหาข้อมูลลูกค้า</router-link>
+      <router-link to="/create-credit-request" class="nav-link">สร้างคำขอ</router-link>
+      <router-link to="/pending-request-old" class="nav-link">คำขอทั้งหมด</router-link>
     </div>
     <div class="nav-right">
       <div class="notification-bell">
@@ -72,6 +72,11 @@ export default {
   text-decoration: none;
   margin-right: 1.5rem;
   font-size: 18px;
+}
+
+.nav-link.router-link-active {
+  font-weight: bold;
+  text-decoration: underline;
 }
 
 .nav-right {
