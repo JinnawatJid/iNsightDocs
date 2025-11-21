@@ -1,0 +1,44 @@
+{
+  "customer": {
+    "id": "C001",
+    "name": "ห้างหุ้นส่วน สตีลแอนด์กลาส จำกัด",
+    "address_residential": "123/45 หมู่ 6 ต.บางเสาธง อ.บางเสาธง จ.สมุทรปราการ 10540",
+    "address_company": "123/45 หมู่ 6 ต.บางเสาธง อ.บางเสาธง จ.สมุทรปราการ 10540"
+  },
+  "history": [
+    {
+      "id": 1,
+      "date": "15/10/2024",
+      "amount": "300,000 บาท",
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "date": "15/09/2024",
+      "amount": "300,000 บาท",
+      "status": "rejected"
+    },
+    {
+      "id": 3,
+      "date": "15/08/2024",
+      "amount": "300,000 บาท",
+      "status": "approved"
+    }
+  ],
+  "financial_summary": {
+    "total_purchase_3_months": "311,430 บาท",
+    "total_purchase_growth": "เพิ่มขึ้น 27% จากรอบก่อน",
+    "avg_monthly": "103,810 บาท",
+    "avg_monthly_trend": "แนวโน้มเพิ่มขึ้นเล็กน้อย"
+  },
+  "credit_score": {
+    "can_request_credit": true,
+    "badges": [
+      { "text": "ไม่เคยมีเครดิตมาก่อน" },
+      { "text": "มียอดซื้อติดต่อกัน 3 เดือน" }
+    ],
+    "suggestions": [
+      "ลูกค้ามีแนวโน้มการซื้อที่ดีและเพิ่มขึ้นอย่างต่อเนื่อง"
+    ]
+  }
+}
