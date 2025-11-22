@@ -9,7 +9,7 @@
       <!-- Left Column -->
       <div class="column-layout">
         <div class="form-group">
-          <label>ชื่อจริง นามสกุล (ตัวอย่าง สมชาย เหล็กดี)</label>
+          <label>ชื่อจริง นามสกุล</label>
           <input type="text" class="form-input disabled" :value="customerName" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
         </div>
         <div class="form-group">
