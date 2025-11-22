@@ -120,6 +120,7 @@ label {
   font-weight: bold;
   font-size: 14px;
   margin-bottom: 6px;
+  text-align: left;
 }
 
 .form-input {
