@@ -45,10 +45,12 @@ export default {
   padding: 20px;
   border-radius: 8px;
   display: flex;
-  gap: 40px; /* Increased gap */
+  gap: 16px; /* Increased gap */
   border: 1px solid #e0e0e0;
+  margin: 0 auto;
   margin-bottom: 20px;
   align-items: flex-end; /* Align bottoms */
+  width: fit-content;
 }
 
 .header-section {
@@ -66,15 +68,17 @@ label {
   font-weight: bold;
   font-size: 16px;
   color: #000;
+  text-align: left;
 }
 
 .form-select {
   padding: 10px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 14px;
   min-width: 200px;
   background-color: #f9f9f9;
+  color: black;
 }
 
 .search-group {
@@ -92,11 +96,15 @@ label {
 }
 
 .form-input {
-  flex-grow: 1;
   padding: 10px 10px 10px 35px; /* Space for icon */
   border: 1px solid #ccc;
-  border-radius: 4px 0 0 4px;
+  border-radius: 8px;
   font-size: 14px;
+  background-color: #ffffff;
+  color: #000;
+  min-width: 300px;
+  width: fit-content;
+  margin-right: 16px;
 }
 
 .btn-search {
@@ -104,7 +112,7 @@ label {
   background-color: #0056FF;
   color: white;
   border: none;
-  border-radius: 0 4px 4px 0;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: bold;
 }

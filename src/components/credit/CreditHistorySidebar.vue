@@ -15,9 +15,9 @@
     <div class="history-section">
       <h3>ประวัติการขอเครดิต</h3>
       <span class="subtitle" v-if="historyItems.length > 0">ทั้งหมด {{ historyItems.length }} รายการ</span>
-
+      <hr v-if="historyItems.length > 0" />
       <div class="history-list" v-if="historyItems.length > 0">
-        <div v-for="item in historyItems" :key="item.id" class="history-item">
+        <div class="history-item" v-for="(item, index) in historyItems" :key="item.id">
           <div class="item-info">
             <div class="date">{{ item.date }}</div>
             <div class="amount">{{ item.amount }}</div>
@@ -86,6 +86,7 @@ export default {
 .customer-name {
   font-weight: bold;
   font-size: 16px;
+  text-align: left;
 }
 
 .customer-name.placeholder {
@@ -94,6 +95,7 @@ export default {
 
 .history-section {
   padding: 20px;
+  text-align: left;
 }
 
 h3 {
@@ -119,7 +121,7 @@ h3 {
   justify-content: space-between;
   align-items: center;
   padding: 15px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #e6e6e6;
 }
 
 .history-item:last-child {
@@ -147,4 +149,11 @@ h3 {
   font-style: italic;
   margin-top: 10px;
 }
+
+hr {
+  border: none;
+  border-top: 1px solid #e6e6e6;
+  margin: 15px 0;
+}
+
 </style>

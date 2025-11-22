@@ -97,6 +97,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: fit-content;
 }
 
 .badge {
@@ -168,6 +169,10 @@ h3 {
   color: #0056FF; /* Light blue trend text */
 }
 
+.suggestion-section {
+  text-align: left;
+}
+
 .suggestion-section ul {
   padding-left: 20px;
   margin: 0;
@@ -176,5 +181,9 @@ h3 {
 .suggestion-section li {
   margin-bottom: 8px;
   font-size: 14px;
+}
+
+.summary-section {
+  text-align: left;
 }
 </style>
