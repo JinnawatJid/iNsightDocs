@@ -208,7 +208,7 @@ export default {
 <style scoped>
 .document-upload-section {
   background: white;
-  padding: 20px;
+  padding: 0px 20px 20px 20px;
   border-radius: 8px;
   border: 1px solid #e0e0e0;
   margin-bottom: 20px;
@@ -235,15 +235,17 @@ h3::before {
 .tabs {
   display: flex;
   background-color: #888;
-  border-radius: 20px;
+  border: 1px solid #ccc;
+  border-radius: 52px;
   overflow: hidden;
-  margin-bottom: 20px;
+  margin: 0 auto 20px auto; /* Centering with auto margins */
   width: fit-content;
 }
 
 .tab-btn {
   padding: 8px 20px;
   border: none;
+  border-radius: 52px;
   background: transparent;
   color: white;
   cursor: pointer;
@@ -252,8 +254,9 @@ h3::before {
 
 .tab-btn.active {
   background-color: white;
+  border: 1px solid #ccc;
   color: black;
-  border-radius: 20px;
+  border-radius: 52px;
   font-weight: bold;
 }
 
