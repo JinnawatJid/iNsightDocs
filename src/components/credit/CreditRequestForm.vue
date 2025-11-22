@@ -1,7 +1,9 @@
 <template>
   <div class="credit-request-form">
-    <DocumentUploadSection />
-    <CustomerAddressSection :customerName="customerData.name" :companyName="customerData.name" />
+    <div class="unified-card">
+      <DocumentUploadSection />
+      <DocumentInfoSection :customerName="customerData.name" :companyName="customerData.name" />
+    </div>
 
     <div class="form-footer">
       <div class="comment-section">
@@ -23,13 +25,13 @@
 
 <script>
 import DocumentUploadSection from './DocumentUploadSection.vue';
-import CustomerAddressSection from './CustomerAddressSection.vue';
+import DocumentInfoSection from './DocumentInfoSection.vue';
 
 export default {
   name: 'CreditRequestForm',
   components: {
     DocumentUploadSection,
-    CustomerAddressSection
+    DocumentInfoSection
   },
   props: {
     customerData: {
@@ -45,6 +47,13 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.unified-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  padding: 10px 0; /* Padding inside the card */
 }
 
 .form-footer {

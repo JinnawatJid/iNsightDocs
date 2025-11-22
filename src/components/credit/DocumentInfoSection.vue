@@ -40,7 +40,7 @@
 
 <script>
 export default {
-  name: 'CustomerAddressSection',
+  name: 'DocumentInfoSection',
   props: {
     customerName: {
       type: String,
@@ -63,10 +63,7 @@ export default {
 
 <style scoped>
 .customer-address-section {
-  background: white;
   padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
 }
 
 .section-header {
