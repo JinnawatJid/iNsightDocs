@@ -2,7 +2,14 @@
   <div class="create-credit-request">
     <Navbar />
     <div class="page-content">
-      <CreditRequestHeader @search="handleSearch" />
+      <!-- Header row aligned with center column -->
+      <div class="main-grid header-row">
+        <div class="grid-col left"></div>
+        <div class="grid-col center">
+          <CreditRequestHeader @search="handleSearch" />
+        </div>
+        <div class="grid-col right"></div>
+      </div>
 
       <div class="main-grid">
         <!-- Left Column: History -->

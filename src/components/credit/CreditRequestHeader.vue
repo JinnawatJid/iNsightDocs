@@ -45,12 +45,11 @@ export default {
   padding: 20px;
   border-radius: 8px;
   display: flex;
-  gap: 16px; /* Increased gap */
+  gap: 24px; /* Increased gap */
   border: 1px solid #e0e0e0;
   margin: 0 auto;
   margin-bottom: 20px;
   align-items: flex-end; /* Align bottoms */
-  width: fit-content;
 }
 
 .header-section {
@@ -61,7 +60,6 @@ export default {
 
 .header-section.flex-grow {
   flex-grow: 1;
-  max-width: none; /* Remove limit to let it fill or we can center it explicitly */
 }
 
 label {
@@ -76,7 +74,7 @@ label {
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 14px;
-  min-width: 200px;
+  width: 220px;
   background-color: #f9f9f9;
   color: black;
 }
@@ -102,19 +100,20 @@ label {
   font-size: 14px;
   background-color: #ffffff;
   color: #000;
-  min-width: 300px;
-  width: fit-content;
+  width: 340px;
   margin-right: 16px;
 }
 
 .btn-search {
-  padding: 10px 25px;
+  padding: 10px 0;
+  width: 100px;
   background-color: #0056FF;
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-weight: bold;
+  text-align: center;
 }
 
 .btn-search:hover {
