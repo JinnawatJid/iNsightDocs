@@ -207,11 +207,7 @@ export default {
 
 <style scoped>
 .document-upload-section {
-  background: white;
-  padding: 0px 20px 20px 20px;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-  margin-bottom: 20px;
+  padding: 0 20px 20px 20px;
 }
 
 h3 {
