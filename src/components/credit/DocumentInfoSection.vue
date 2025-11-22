@@ -5,34 +5,37 @@
       <span class="badge-edit">แก้ไขข้อมูลส่วนตัว</span>
     </div>
 
-    <div class="form-grid">
-      <div class="form-group">
-        <label>ชื่อจริง นามสกุล (ตัวอย่าง สมชาย เหล็กดี)</label>
-        <input type="text" class="form-input disabled" :value="customerName" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
-      </div>
-      <div class="form-group">
-        <label>ชื่อร้าน/บริษัท</label>
-        <input type="text" class="form-input disabled" :value="companyName" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
-      </div>
-      <div class="form-group">
-        <label>ตำแหน่ง</label>
-        <input type="text" class="form-input" placeholder="เจ้าหน้าที่ใส่" v-model="position" />
+    <div class="form-rows">
+      <!-- Row 1: Name and Company -->
+      <div class="row-two-col">
+        <div class="form-group">
+          <label>ชื่อจริง นามสกุล (ตัวอย่าง สมชาย เหล็กดี)</label>
+          <input type="text" class="form-input disabled" :value="customerName" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
+        </div>
+        <div class="form-group">
+          <label>ชื่อร้าน/บริษัท</label>
+          <input type="text" class="form-input disabled" :value="companyName" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
+        </div>
       </div>
 
-      <!-- Split row for Credit Amount and Reason -->
-      <div class="form-group-row">
-          <div class="form-group half">
-            <label>วงเงินสินเชื่อที่ต้องการ</label>
-            <input type="text" class="form-input" placeholder="เจ้าหน้าที่ใส่" v-model="creditAmount" />
-          </div>
-          <div class="form-group half">
-            <label>สาเหตุการขอเครดิต</label>
-            <select class="form-input" v-model="creditReason">
-                <option value="สต๊อคสินค้า">สต๊อคสินค้า</option>
-                <option value="หมุนเวียนธุรกิจ">หมุนเวียนธุรกิจ</option>
-                <option value="ขยายกิจการ">ขยายกิจการ</option>
-            </select>
-          </div>
+      <!-- Row 2: Position, Amount, Reason (40% 30% 30%) -->
+      <div class="row-three-col">
+        <div class="form-group">
+          <label>ตำแหน่ง</label>
+          <input type="text" class="form-input" placeholder="เจ้าหน้าที่ใส่" v-model="position" />
+        </div>
+        <div class="form-group">
+          <label>วงเงินสินเชื่อที่ต้องการ</label>
+          <input type="text" class="form-input" placeholder="เจ้าหน้าที่ใส่" v-model="creditAmount" />
+        </div>
+        <div class="form-group">
+          <label>สาเหตุการขอเครดิต</label>
+          <select class="form-input" v-model="creditReason">
+              <option value="สต๊อคสินค้า">สต๊อคสินค้า</option>
+              <option value="หมุนเวียนธุรกิจ">หมุนเวียนธุรกิจ</option>
+              <option value="ขยายกิจการ">ขยายกิจการ</option>
+          </select>
+        </div>
       </div>
     </div>
   </div>
@@ -88,26 +91,27 @@ h3 {
   cursor: pointer;
 }
 
-.form-grid {
+.form-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.row-two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.row-three-col {
+  display: grid;
+  grid-template-columns: 4fr 3fr 3fr; /* 40% 30% 30% */
   gap: 20px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  margin-bottom: 15px;
-}
-
-.form-group-row {
-    display: flex;
-    gap: 20px;
-    grid-column: span 2; /* Take up full width of the grid row */
-}
-
-.form-group.half {
-    flex: 1;
 }
 
 label {
