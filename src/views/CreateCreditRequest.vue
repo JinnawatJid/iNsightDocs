@@ -50,7 +50,8 @@ import CreditRequestHeader from '@/components/credit/CreditRequestHeader.vue';
 import CreditHistorySidebar from '@/components/credit/CreditHistorySidebar.vue';
 import CreditRequestForm from '@/components/credit/CreditRequestForm.vue';
 import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
-import mockData from '@/data/mock_customer_data.json';
+import CustomerService from '@/services/CustomerService';
+import Swal from 'sweetalert2';
 
 export default {
   name: 'CreateCreditRequest',
@@ -71,18 +72,46 @@ export default {
     };
   },
   methods: {
-    handleSearch(query) {
-      // In a real app, we would use the query. For now, load the mock data.
-      console.log('Searching for:', query);
+    async handleSearch(query) {
+      if (!query) return;
 
-      // Simulate API delay
-      setTimeout(() => {
-          this.customer = mockData.customer;
-          this.history = mockData.history;
-          this.financialSummary = mockData.financial_summary;
-          this.creditScore = mockData.credit_score;
+      console.log('Searching for:', query);
+      try {
+        const results = await CustomerService.searchCustomers(query);
+        if (results && results.length > 0) {
+          // Assuming we pick the first match for now, or we could show a list selection modal
+          // The user logic implies we just want to fill the form with the result.
+          const data = results[0];
+
+          this.customer = data.customer;
+          this.history = data.history;
+          this.financialSummary = data.financial_summary;
+          this.creditScore = data.credit_score;
           this.hasSearched = true;
-      }, 300);
+
+          if (results.length > 1) {
+             Swal.fire({
+               icon: 'info',
+               title: 'Found multiple results',
+               text: `Found ${results.length} matches. Using the first one: ${data.customer.name}`
+             });
+          }
+        } else {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Not Found',
+            text: 'No customer found matching your query.'
+          });
+          this.hasSearched = false;
+        }
+      } catch (error) {
+        console.error(error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to fetch customer data. Please try again.'
+        });
+      }
     }
   }
 };
