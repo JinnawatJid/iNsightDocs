@@ -1,8 +1,10 @@
 <template>
   <div class="credit-request-form">
     <div class="unified-card">
-      <DocumentUploadSection />
-      <DocumentInfoSection :customerName="customerData.name" :companyName="customerData.name" />
+      <div class="card-header">
+        <h3>เอกสารประกอบการพิจารณา</h3>
+      </div>
+      <ApplicationTabs :customerData="customerData" />
     </div>
 
     <div class="form-footer">
@@ -24,14 +26,12 @@
 </template>
 
 <script>
-import DocumentUploadSection from './DocumentUploadSection.vue';
-import DocumentInfoSection from './DocumentInfoSection.vue';
+import ApplicationTabs from './ApplicationTabs.vue';
 
 export default {
   name: 'CreditRequestForm',
   components: {
-    DocumentUploadSection,
-    DocumentInfoSection
+    ApplicationTabs
   },
   props: {
     customerData: {
@@ -53,7 +53,30 @@ export default {
   background: white;
   border-radius: 8px;
   border: 1px solid #e0e0e0;
-  padding: 10px 0; /* Padding inside the card */
+  /* padding: 10px 0; */
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 20px 20px 0 20px;
+}
+
+.card-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.card-header h3::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'%3E%3C/path%3E%3Cpolyline points='14 2 14 8 20 8'%3E%3C/polyline%3E%3Cline x1='16' y1='13' x2='8' y2='13'%3E%3C/line%3E%3Cline x1='16' y1='17' x2='8' y2='17'%3E%3C/line%3E%3Cpolyline points='10 9 9 9 8 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
 }
 
 .form-footer {
@@ -76,7 +99,7 @@ export default {
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   background-color: #f5f6f8;
-  box-sizing: border-box; /* Ensure padding doesn't overflow width */
+  box-sizing: border-box;
 }
 
 .footer-info {
