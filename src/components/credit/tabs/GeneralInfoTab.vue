@@ -315,5 +315,6 @@ select.form-input {
     background-repeat: no-repeat;
     background-position: right .7em top 50%;
     background-size: .65em auto;
+    color: #333;
 }
 </style>
