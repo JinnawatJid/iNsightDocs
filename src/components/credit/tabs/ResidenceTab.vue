@@ -54,8 +54,6 @@
       </div>
     </div>
 
-    <hr class="divider" />
-
     <!-- Address Verification Section -->
     <div class="address-verification">
       <div class="section-header">
@@ -200,12 +198,6 @@ export default {
   font-size: 16px;
   cursor: pointer;
   color: #999;
-}
-
-.divider {
-  border: none;
-  border-top: 1px solid #eee;
-  margin: 20px 0;
 }
 
 .map-container {
