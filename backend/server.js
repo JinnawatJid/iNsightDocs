@@ -20,25 +20,25 @@ app.get('/api/customers/search', async (req, res) => {
   // Note: Using ILIKE for case-insensitive search
   // Double quotes for column names because they might contain spaces or special chars (like "No_", "Phone No_")
   const sql = `
-    SELECT
-      "No_",
-      "Name",
-      "Contact",
-      "Phone No_",
-      "VAT Registration No_",
-      "Address",
-      "City",
-      "County",
+    SELECT 
+      "No_", 
+      "Name", 
+      "Contact", 
+      "Phone No_", 
+      "VAT Registration No_", 
+      "Address", 
+      "City", 
+      "County", 
       "Post Code"
     FROM "Customers"
-    WHERE
-      "Name" ILIKE $1 OR
-      "No_" ILIKE $1 OR
+    WHERE 
+      "Name" ILIKE $1 OR 
+      "No_" ILIKE $1 OR 
       "Phone No_" ILIKE $1 OR
       "Contact" ILIKE $1
     LIMIT 20
   `;
-
+  
   const searchPattern = `%${query}%`;
   const params = [searchPattern];
 
@@ -54,7 +54,7 @@ app.get('/api/customers/search', async (req, res) => {
         row["County"],
         row["Post Code"]
       ].filter(part => part && part.trim() !== ""); // Filter out empty parts
-
+      
       const fullAddress = addressParts.join(' ');
 
       // Logic: Company vs Individual
