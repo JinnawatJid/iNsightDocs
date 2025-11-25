@@ -58,7 +58,7 @@ export default {
 }
 
 .card-header {
-  padding: 20px 20px 0 20px;
+  padding: 0px 20px 0 20px;
 }
 
 .card-header h3 {

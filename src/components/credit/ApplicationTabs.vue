@@ -76,15 +76,17 @@ export default {
 .tabs-header {
   display: flex;
   background-color: #999; /* Gray background */
-  border-radius: 50px;
+  border-radius: 52px;
   overflow: hidden;
-  width: 100%; /* Or fit-content? Image shows full width or large width. Let's stick to full for now or flex. */
+  width: 80%; /* Or fit-content? Image shows full width or large width. Let's stick to full for now or flex. */
+  height: fit-content;
+  margin: 0 auto;
 }
 
 .tab-item {
   flex: 1;
   text-align: center;
-  padding: 12px 20px;
+  padding: 4px 0px;
   cursor: pointer;
   font-weight: 500;
   color: white;
@@ -102,9 +104,11 @@ export default {
   color: #333; /* Dark text for active */
   font-weight: bold;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid #e0e0e0;
 }
 
 .tab-content {
   padding: 0 20px 20px 20px;
+  text-align: left;
 }
 </style>
