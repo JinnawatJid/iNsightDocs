@@ -60,10 +60,7 @@
     <div class="address-verification">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลที่อยู่</h3>
-        <button class="btn-edit">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="16 3 21 8 8 21 3 21 3 16 16 3"></polygon></svg>
-          แก้ไขข้อมูลที่อยู่
-        </button>
+        <span class="badge-edit">แก้ไขข้อมูลที่อยู่</span>
       </div>
 
       <!-- Map Placeholder -->
@@ -191,84 +188,10 @@ export default {
 </script>
 
 <style scoped>
+@import './shared-styles.css';
+
 .residence-tab {
   padding: 10px;
-}
-
-.upload-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.upload-item label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 10px;
-  font-size: 14px;
-}
-
-.upload-item .required {
-  color: red;
-}
-
-.upload-box {
-  border: 1px dashed #ccc;
-  border-radius: 8px;
-  height: 150px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  background-color: #fafafa;
-  transition: border-color 0.2s;
-}
-
-.upload-box:hover {
-  border-color: #0056FF;
-  background-color: #f0f7ff;
-}
-
-.hidden-input {
-  display: none;
-}
-
-.upload-placeholder {
-  text-align: center;
-}
-
-.icon-wrapper {
-  color: #0056FF;
-  margin-bottom: 8px;
-}
-
-.upload-placeholder p {
-  font-size: 13px;
-  margin: 5px 0;
-  color: #666;
-}
-
-.upload-placeholder .link {
-  color: #0056FF;
-  text-decoration: underline;
-}
-
-.upload-placeholder .info {
-  font-size: 11px;
-  color: #999;
-  display: block;
-}
-
-.file-preview {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: white;
-  padding: 5px 10px;
-  border-radius: 4px;
-  border: 1px solid #ddd;
 }
 
 .remove-btn {
@@ -283,31 +206,6 @@ export default {
   border: none;
   border-top: 1px solid #eee;
   margin: 20px 0;
-}
-
-/* Address Verification */
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.section-header h3 {
-  font-size: 16px;
-  font-weight: bold;
-  margin: 0;
-}
-
-.btn-edit {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: none;
-  border: none;
-  color: #0056FF;
-  cursor: pointer;
-  font-size: 14px;
 }
 
 .map-container {
@@ -333,42 +231,8 @@ export default {
   gap: 10px;
 }
 
-/* Form Grid */
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.form-group {
-  margin-bottom: 15px;
-}
-
 .form-group.full-width {
   grid-column: 1 / -1;
-}
-
-.form-group label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 8px;
-  color: #333;
-}
-
-.form-control {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 14px;
-  box-sizing: border-box;
-}
-
-.form-control.readonly {
-  background-color: #f5f5f5;
-  color: #666;
-  border-color: #eee;
 }
 
 .input-with-icon {
