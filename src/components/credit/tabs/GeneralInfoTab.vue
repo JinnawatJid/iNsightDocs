@@ -41,33 +41,49 @@
       </div>
     </div>
 
-    <hr class="divider" />
-
-    <!-- General Info Form -->
-    <div class="form-grid">
-      <div class="form-group">
-        <label>ชื่อ-นามสกุล</label>
-        <div class="info-value">{{ displayName || '-' }}</div>
+    <!-- Personal Info Section -->
+    <div class="personal-info-section">
+      <div class="section-header">
+        <h3>ตรวจสอบข้อมูลส่วนตัว</h3>
+        <span class="badge-edit">แก้ไขข้อมูลส่วนตัว</span>
       </div>
 
-      <div class="form-group">
-        <label>ตำแหน่ง</label>
-        <input type="text" class="form-control" placeholder="-" />
-      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ชื่อจริง นามสกุล (ตัวอย่าง สมชาย เหล็กดี)</label>
+          <div class="readonly-field">
+            {{ displayName || '**ดึงข้อมูลจาก Dynamics**' }}
+          </div>
+        </div>
 
-      <div class="form-group">
-        <label>บริษัท</label>
-        <div class="info-value">{{ displayCompany || '-' }}</div>
-      </div>
+        <div class="form-group">
+          <label>ชื่อร้าน/บริษัท</label>
+          <div class="readonly-field">
+            {{ displayCompany || '**ดึงข้อมูลจาก Dynamics**' }}
+          </div>
+        </div>
 
-      <div class="form-group">
-        <label>วงเงินเครดิต</label>
-        <div class="info-value">-</div>
-      </div>
+        <div class="form-group">
+          <label>ตำแหน่ง</label>
+          <input type="text" class="form-control" placeholder="เจ้าหน้าที่ใส่" />
+        </div>
 
-      <div class="form-group full-width">
-         <label>เหตุผลขอเครดิต</label>
-         <div class="info-value">-</div>
+        <div class="form-group">
+          <label>วงเงินสินเชื่อที่ต้องการ</label>
+          <input type="text" class="form-control" placeholder="เจ้าหน้าที่ใส่" />
+        </div>
+
+        <div class="form-group">
+           <label>สาเหตุการขอเครดิต</label>
+           <div class="custom-select-wrapper">
+              <select class="form-control select-input">
+                <option value="" disabled selected>สต๊อคสินค้า</option>
+                <option value="stock">สต๊อคสินค้า</option>
+                <option value="expansion">ขยายกิจการ</option>
+                <option value="other">อื่นๆ</option>
+              </select>
+           </div>
+        </div>
       </div>
     </div>
   </div>
@@ -92,18 +108,15 @@ export default {
   },
   computed: {
     displayName() {
-      // If contact person exists, that's likely the individual's name.
-      // Otherwise use the main name.
+      // Logic: Contact Person > Name
       return this.customerData.contact_person || this.customerData.name;
     },
     displayCompany() {
-      // If contact person exists, the main name is likely the Company.
-      // If not, and we used name for displayName, then Company might be blank or same?
-      // For now: if contact_person exists, use name as Company.
+      // Logic: If Contact Person exists, Name is Company. Else maybe empty/same?
       if (this.customerData.contact_person) {
         return this.customerData.name;
       }
-      return '-';
+      return this.customerData.name; // Use main name as company fallback or let it be Dynamics placeholder if empty
     }
   },
   methods: {
@@ -132,12 +145,12 @@ export default {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
 }
 
 .upload-item label {
   display: block;
-  font-weight: 500;
+  font-weight: bold;
   margin-bottom: 10px;
   font-size: 14px;
 }
@@ -147,21 +160,20 @@ export default {
 }
 
 .upload-box {
-  border: 1px dashed #ccc;
-  border-radius: 8px;
-  height: 150px;
+  border: 1px dashed #e0e0e0;
+  border-radius: 12px;
+  height: 180px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  background-color: #fafafa;
+  background-color: white;
   transition: border-color 0.2s;
 }
 
 .upload-box:hover {
   border-color: #0056FF;
-  background-color: #f0f7ff;
 }
 
 .hidden-input {
@@ -173,25 +185,35 @@ export default {
 }
 
 .icon-wrapper {
+  background-color: #E6F0FF; /* Light blue background for icon */
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px auto;
   color: #0056FF;
-  margin-bottom: 8px;
 }
 
 .upload-placeholder p {
-  font-size: 13px;
+  font-size: 14px;
   margin: 5px 0;
-  color: #666;
+  color: #333;
 }
 
 .upload-placeholder .link {
   color: #0056FF;
-  text-decoration: underline;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
 }
 
 .upload-placeholder .info {
-  font-size: 11px;
+  font-size: 12px;
   color: #999;
   display: block;
+  margin-top: 5px;
 }
 
 .file-preview {
@@ -204,52 +226,88 @@ export default {
   border: 1px solid #ddd;
 }
 
-.remove-btn {
-  background: none;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  color: #999;
+/* Personal Info Section */
+.personal-info-section {
+  margin-top: 20px;
 }
 
-.divider {
-  border: none;
-  border-top: 1px solid #eee;
-  margin: 20px 0;
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.section-header h3 {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.badge-edit {
+  background-color: #FBC02D; /* Yellow/Gold */
+  color: white;
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+  align-items: start;
 }
 
 .form-group {
-  margin-bottom: 15px;
-}
-
-.form-group.full-width {
-  grid-column: 1 / -1;
+  margin-bottom: 10px;
 }
 
 .form-group label {
   display: block;
   font-size: 14px;
-  color: #888;
-  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8px;
 }
 
-.info-value {
-  font-size: 16px;
-  font-weight: 500;
-  color: #333;
+.readonly-field {
+  background-color: #F0F2F5; /* Light gray background */
+  padding: 10px 12px;
+  border-radius: 4px;
+  color: #666;
+  font-size: 14px;
+  min-height: 20px; /* Ensure height if empty */
 }
 
 .form-control {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0; /* No border for input style in screenshot? Actually standard input style */
+  background-color: #F0F2F5; /* Matches placeholder bg in screenshot */
+  border-radius: 4px;
   font-size: 14px;
+  box-sizing: border-box;
+}
+
+.form-control::placeholder {
+  color: #999;
+}
+
+.custom-select-wrapper {
+  position: relative;
+}
+
+/* Make select look consistent */
+.select-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right .7em top 50%;
+  background-size: .65em auto;
 }
 </style>

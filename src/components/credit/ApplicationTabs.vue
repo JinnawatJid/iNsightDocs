@@ -1,13 +1,15 @@
 <template>
   <div class="application-tabs">
-    <div class="tabs-header">
-      <div
-        v-for="(tab, index) in tabs"
-        :key="index"
-        :class="['tab-item', { active: currentTab === tab.id }]"
-        @click="currentTab = tab.id"
-      >
-        {{ tab.label }}
+    <div class="tabs-container">
+      <div class="tabs-header">
+        <div
+          v-for="(tab, index) in tabs"
+          :key="index"
+          :class="['tab-item', { active: currentTab === tab.id }]"
+          @click="currentTab = tab.id"
+        >
+          {{ tab.label }}
+        </div>
       </div>
     </div>
 
@@ -20,11 +22,8 @@
 </template>
 
 <script>
-// Placeholder components for other tabs, implementing ResidenceTab specifically now.
 import ResidenceTab from './tabs/ResidenceTab.vue';
 import GeneralInfoTab from './tabs/GeneralInfoTab.vue';
-// import StoreAddressTab from './tabs/StoreAddressTab.vue';
-// import FinancialDocumentsTab from './tabs/FinancialDocumentsTab.vue';
 
 export default {
   name: 'ApplicationTabs',
@@ -40,7 +39,7 @@ export default {
   },
   data() {
     return {
-      currentTab: 'residence', // Default to residence as per screenshot request
+      currentTab: 'general', // Switch default to General based on flow
       tabs: [
         { id: 'general', label: 'ข้อมูลทั่วไป' },
         { id: 'residence', label: 'ที่อยู่อาศัย' },
@@ -56,10 +55,8 @@ export default {
           return 'GeneralInfoTab';
         case 'residence':
           return 'ResidenceTab';
-        // case 'store': return 'StoreAddressTab';
-        // case 'financial': return 'FinancialDocumentsTab';
         default:
-          return 'ResidenceTab';
+          return 'GeneralInfoTab'; // Fallback
       }
     }
   }
@@ -70,38 +67,44 @@ export default {
 .application-tabs {
   background: white;
   border-radius: 8px;
-  /* border: 1px solid #e0e0e0; */ /* Border handled by container? */
+}
+
+.tabs-container {
+  padding: 0 20px 20px 20px; /* Add padding to align with card content */
 }
 
 .tabs-header {
   display: flex;
-  border-bottom: 1px solid #e0e0e0;
+  background-color: #999; /* Gray background */
+  border-radius: 50px;
+  overflow: hidden;
+  width: 100%; /* Or fit-content? Image shows full width or large width. Let's stick to full for now or flex. */
 }
 
 .tab-item {
-  padding: 15px 25px;
+  flex: 1;
+  text-align: center;
+  padding: 12px 20px;
   cursor: pointer;
   font-weight: 500;
-  color: #666;
+  color: white;
   position: relative;
+  transition: all 0.2s;
+  border-radius: 50px; /* To match the container corners when active */
+}
+
+.tab-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .tab-item.active {
-  color: #0056FF;
+  background-color: white;
+  color: #333; /* Dark text for active */
   font-weight: bold;
-}
-
-.tab-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background-color: #0056FF;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .tab-content {
-  padding: 20px;
+  padding: 0 20px 20px 20px;
 }
 </style>
