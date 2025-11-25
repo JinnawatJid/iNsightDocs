@@ -48,41 +48,39 @@
         <span class="badge-edit">แก้ไขข้อมูลส่วนตัว</span>
       </div>
 
-      <div class="form-grid">
-        <div class="form-group">
-          <label>ชื่อจริง นามสกุล (ตัวอย่าง สมชาย เหล็กดี)</label>
-          <div class="readonly-field">
-            {{ displayName || '**ดึงข้อมูลจาก Dynamics**' }}
+      <div class="form-layout-columns">
+        <!-- Left Column -->
+        <div class="column-layout">
+          <div class="form-group">
+            <label>ชื่อจริง นามสกุล (ตัวอย่าง สมชาย เหล็กดี)</label>
+            <input type="text" class="form-input disabled" :value="displayName" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
+          </div>
+          <div class="form-group">
+            <label>ตำแหน่ง</label>
+            <input type="text" class="form-input" placeholder="เจ้าหน้าที่ใส่" v-model="formData.position" />
           </div>
         </div>
 
-        <div class="form-group">
-          <label>ชื่อร้าน/บริษัท</label>
-          <div class="readonly-field">
-            {{ displayCompany || '**ดึงข้อมูลจาก Dynamics**' }}
+        <!-- Right Column -->
+        <div class="column-layout">
+          <div class="form-group">
+            <label>ชื่อร้าน/บริษัท</label>
+            <input type="text" class="form-input disabled" :value="displayCompany" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
           </div>
-        </div>
-
-        <div class="form-group">
-          <label>ตำแหน่ง</label>
-          <input type="text" class="form-control" placeholder="เจ้าหน้าที่ใส่" />
-        </div>
-
-        <div class="form-group">
-          <label>วงเงินสินเชื่อที่ต้องการ</label>
-          <input type="text" class="form-control" placeholder="เจ้าหน้าที่ใส่" />
-        </div>
-
-        <div class="form-group">
-           <label>สาเหตุการขอเครดิต</label>
-           <div class="custom-select-wrapper">
-              <select class="form-control select-input">
-                <option value="" disabled selected>สต๊อคสินค้า</option>
-                <option value="stock">สต๊อคสินค้า</option>
-                <option value="expansion">ขยายกิจการ</option>
-                <option value="other">อื่นๆ</option>
+          <div class="row-two-col">
+            <div class="form-group">
+              <label>วงเงินสินเชื่อที่ต้องการ</label>
+              <input type="text" class="form-input" placeholder="เจ้าหน้าที่ใส่" v-model="formData.creditAmount" />
+            </div>
+            <div class="form-group">
+              <label>สาเหตุการขอเครดิต</label>
+              <select class="form-input" v-model="formData.creditReason">
+                  <option value="สต๊อคสินค้า">สต๊อคสินค้า</option>
+                  <option value="หมุนเวียนธุรกิจ">หมุนเวียนธุรกิจ</option>
+                  <option value="ขยายกิจการ">ขยายกิจการ</option>
               </select>
-           </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -103,20 +101,27 @@ export default {
       files: {
         idCard: null,
         homeReg: null
+      },
+      formData: {
+        position: '',
+        creditAmount: '',
+        creditReason: 'สต๊อคสินค้า'
       }
     };
   },
   computed: {
     displayName() {
       // Logic: Contact Person > Name
-      return this.customerData.contact_person || this.customerData.name;
+      return this.customerData.contact_person || this.customerData.name || '';
     },
     displayCompany() {
-      // Logic: If Contact Person exists, Name is Company. Else maybe empty/same?
+      // Logic: If Contact Person exists, Name is Company.
+      // If only Name exists (Individual), Company might be empty or same.
+      // Assuming if VAT ID exists, it's a company.
       if (this.customerData.contact_person) {
-        return this.customerData.name;
+        return this.customerData.name || '';
       }
-      return this.customerData.name; // Use main name as company fallback or let it be Dynamics placeholder if empty
+      return this.customerData.name || '';
     }
   },
   methods: {
@@ -141,6 +146,7 @@ export default {
   padding: 10px;
 }
 
+/* Upload Section Styles */
 .upload-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -185,7 +191,7 @@ export default {
 }
 
 .icon-wrapper {
-  background-color: #E6F0FF; /* Light blue background for icon */
+  background-color: #E6F0FF;
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -234,7 +240,7 @@ export default {
 .section-header {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
@@ -245,69 +251,69 @@ export default {
 }
 
 .badge-edit {
-  background-color: #FBC02D; /* Yellow/Gold */
+  background-color: #FFA500; /* Orange matching user snippet */
   color: white;
   font-size: 12px;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
   cursor: pointer;
 }
 
-.form-grid {
+/* Form Grid Layout */
+.form-layout-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  align-items: start;
+}
+
+.column-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.row-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
 }
 
 .form-group {
-  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
 }
 
-.form-group label {
-  display: block;
-  font-size: 14px;
+label {
   font-weight: bold;
-  color: #333;
-  margin-bottom: 8px;
-}
-
-.readonly-field {
-  background-color: #F0F2F5; /* Light gray background */
-  padding: 10px 12px;
-  border-radius: 4px;
-  color: #666;
   font-size: 14px;
-  min-height: 20px; /* Ensure height if empty */
+  margin-bottom: 6px;
+  text-align: left;
 }
 
-.form-control {
+.form-input {
+  padding: 10px;
+  border: 1px solid #ccc; /* Updated border to match snippet */
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  font-size: 14px;
+  font-family: inherit; /* Ensure font consistency */
+  box-sizing: border-box; /* Ensure padding doesn't affect width */
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #e0e0e0; /* No border for input style in screenshot? Actually standard input style */
-  background-color: #F0F2F5; /* Matches placeholder bg in screenshot */
-  border-radius: 4px;
-  font-size: 14px;
-  box-sizing: border-box;
 }
 
-.form-control::placeholder {
-  color: #999;
+.form-input.disabled {
+  background-color: #f0f0f0;
+  color: #888;
+  cursor: not-allowed;
 }
 
-.custom-select-wrapper {
-  position: relative;
-}
-
-/* Make select look consistent */
-.select-input {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-  background-repeat: no-repeat;
-  background-position: right .7em top 50%;
-  background-size: .65em auto;
+select.form-input {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right .7em top 50%;
+    background-size: .65em auto;
 }
 </style>
