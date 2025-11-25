@@ -17,7 +17,7 @@
         <input
           type="text"
           class="form-input"
-          placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ, เบอร์โทร หรือ ชื่อบริษัท"
+          placeholder="ห้างหุ้นส่วน สตีลแอนด์กลาส จำกัด"
           v-model="searchQuery"
           @keyup.enter="$emit('search', searchQuery)"
         />
