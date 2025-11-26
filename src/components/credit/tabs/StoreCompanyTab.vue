@@ -1,86 +1,165 @@
 <template>
   <div class="store-company-tab">
-    <!-- Address Section -->
-    <div class="address-section">
-      <div class="section-header">
-        <h3>ที่อยู่ร้านค้า/บริษัท</h3>
-        <span class="badge-edit">แก้ไขข้อมูล</span>
-      </div>
-
-      <div class="form-layout-columns">
-        <!-- Left Column -->
-        <div class="column-layout">
-          <div class="form-group">
-            <label>ที่อยู่</label>
-            <input type="text" class="form-input disabled" :value="customerData.address" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
-          </div>
-          <div class="row-two-col">
-            <div class="form-group">
-              <label>อำเภอ/เขต</label>
-              <input type="text" class="form-input disabled" :value="customerData.district" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
+    <!-- Conditional Upload Section -->
+    <div class="upload-section">
+      <!-- Company Uploads -->
+      <div v-if="isCompany" class="upload-grid">
+        <div class="upload-item">
+          <label>หนังสือรับรองนิติบุคคล <span class="required">*</span></label>
+          <div class="upload-box" @click="triggerUpload('legalEntityCertificate')">
+            <input type="file" ref="legalEntityCertificate" class="hidden-input" @change="handleFileChange($event, 'legalEntityCertificate')" />
+            <div v-if="!files.legalEntityCertificate" class="upload-placeholder">
+              <div class="icon-wrapper"><svg-icon-document /></div>
+              <p>Drop your files here or <span class="link">Click to upload</span></p>
             </div>
-            <div class="form-group">
-              <label>รหัสไปรษณีย์</label>
-              <input type="text" class="form-input disabled" :value="customerData.zipcode" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
+            <div v-else class="file-preview">
+              <span>{{ files.legalEntityCertificate.name }}</span>
+              <button @click.stop="removeFile('legalEntityCertificate')">×</button>
             </div>
           </div>
         </div>
-
-        <!-- Right Column -->
-        <div class="column-layout">
-          <div class="row-two-col">
-            <div class="form-group">
-              <label>จังหวัด</label>
-              <input type="text" class="form-input disabled" :value="customerData.province" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
+        <div class="upload-item">
+          <label>เอกสารภพ.20 <span class="required">*</span></label>
+          <div class="upload-box" @click="triggerUpload('vatDocument')">
+            <input type="file" ref="vatDocument" class="hidden-input" @change="handleFileChange($event, 'vatDocument')" />
+            <div v-if="!files.vatDocument" class="upload-placeholder">
+              <div class="icon-wrapper"><svg-icon-document /></div>
+              <p>Drop your files here or <span class="link">Click to upload</span></p>
             </div>
-             <div class="form-group">
-              <label>ตำบล/แขวง</label>
-              <input type="text" class="form-input disabled" :value="customerData.subdistrict" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
+            <div v-else class="file-preview">
+              <span>{{ files.vatDocument.name }}</span>
+              <button @click.stop="removeFile('vatDocument')">×</button>
             </div>
           </div>
-           <div class="form-group">
-                <button class="btn-check-map">ตรวจสอบในแผนที่</button>
-           </div>
+        </div>
+        <div class="upload-item">
+          <label>รูปถ่ายบริษัท <span class="required">*</span></label>
+          <div class="upload-box" @click="triggerUpload('companyPhoto')">
+            <input type="file" ref="companyPhoto" class="hidden-input" @change="handleFileChange($event, 'companyPhoto')" />
+            <div v-if="!files.companyPhoto" class="upload-placeholder">
+              <div class="icon-wrapper"><svg-icon-image /></div>
+              <p>Drop your files here or <span class="link">Click to upload</span></p>
+            </div>
+            <div v-else class="file-preview">
+              <span>{{ files.companyPhoto.name }}</span>
+              <button @click.stop="removeFile('companyPhoto')">×</button>
+            </div>
+          </div>
+        </div>
+        <div class="upload-item">
+          <label>เอกสารเสียภาษีที่ดินบริษัท <span class="required">*</span></label>
+          <div class="upload-box" @click="triggerUpload('companyLandTax')">
+            <input type="file" ref="companyLandTax" class="hidden-input" @change="handleFileChange($event, 'companyLandTax')" />
+            <div v-if="!files.companyLandTax" class="upload-placeholder">
+              <div class="icon-wrapper"><svg-icon-document /></div>
+              <p>Drop your files here or <span class="link">Click to upload</span></p>
+            </div>
+            <div v-else class="file-preview">
+              <span>{{ files.companyLandTax.name }}</span>
+              <button @click.stop="removeFile('companyLandTax')">×</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Individual/Store Uploads -->
+      <div v-else class="upload-grid">
+        <div class="upload-item">
+          <label>รูปร้านค้า <span class="required">*</span></label>
+           <div class="upload-box" @click="triggerUpload('storePhoto')">
+            <input type="file" ref="storePhoto" class="hidden-input" @change="handleFileChange($event, 'storePhoto')" />
+            <div v-if="!files.storePhoto" class="upload-placeholder">
+              <div class="icon-wrapper"><svg-icon-image /></div>
+              <p>Drop your files here or <span class="link">Click to upload</span></p>
+            </div>
+            <div v-else class="file-preview">
+              <span>{{ files.storePhoto.name }}</span>
+              <button @click.stop="removeFile('storePhoto')">×</button>
+            </div>
+          </div>
+        </div>
+        <div class="upload-item">
+          <label>ทะเบียนพาณิชย์ <span class="required">*</span></label>
+           <div class="upload-box" @click="triggerUpload('commercialReg')">
+            <input type="file" ref="commercialReg" class="hidden-input" @change="handleFileChange($event, 'commercialReg')" />
+            <div v-if="!files.commercialReg" class="upload-placeholder">
+              <div class="icon-wrapper"><svg-icon-document /></div>
+              <p>Drop your files here or <span class="link">Click to upload</span></p>
+            </div>
+            <div v-else class="file-preview">
+              <span>{{ files.commercialReg.name }}</span>
+              <button @click.stop="removeFile('commercialReg')">×</button>
+            </div>
+          </div>
+        </div>
+        <div class="upload-item">
+          <label>เอกสารเสียภาษีที่ดินร้านค้า <span class="required">*</span></label>
+           <div class="upload-box" @click="triggerUpload('storeLandTax')">
+            <input type="file" ref="storeLandTax" class="hidden-input" @change="handleFileChange($event, 'storeLandTax')" />
+            <div v-if="!files.storeLandTax" class="upload-placeholder">
+              <div class="icon-wrapper"><svg-icon-document /></div>
+              <p>Drop your files here or <span class="link">Click to upload</span></p>
+            </div>
+            <div v-else class="file-preview">
+              <span>{{ files.storeLandTax.name }}</span>
+              <button @click.stop="removeFile('storeLandTax')">×</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Upload Section -->
-    <div class="upload-section">
-      <div class="upload-grid">
-        <div class="upload-item">
-          <label>รูปร้านค้า <span class="required">*</span></label>
-          <div class="upload-box" @click="triggerUpload('storePhoto')">
-            <input type="file" ref="storePhoto" class="hidden-input" @change="handleFileChange($event, 'storePhoto')" />
-            <div v-if="!files.storePhoto" class="upload-placeholder">
-              <div class="icon-wrapper">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              </div>
-              <p>Drop your files here or <span class="link">Click to upload</span></p>
-              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
-            </div>
-            <div v-else class="file-preview">
-              <span class="file-name">{{ files.storePhoto.name }}</span>
-              <button class="remove-btn" @click.stop="removeFile('storePhoto')">×</button>
-            </div>
+    <!-- Address Section (from ResidenceTab) -->
+    <div class="address-verification">
+      <div class="section-header">
+        <h3>ตรวจสอบข้อมูลที่อยู่ร้านค้า/บริษัท</h3>
+        <span class="badge-edit">แก้ไขข้อมูลที่อยู่</span>
+      </div>
+
+      <!-- Map Placeholder -->
+      <div class="map-container">
+        <div class="map-placeholder">
+          <div class="map-content">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span>Google Map Area</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Address Form -->
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>ตำแหน่งที่ตั้ง</label>
+          <div class="input-with-icon">
+            <input type="text" class="form-control readonly" :value="customerData.address" readonly />
+            <span class="icon-right">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </span>
           </div>
         </div>
 
-        <div class="upload-item">
-          <label>ทะเบียนการค้า <span class="required">*</span></label>
-          <div class="upload-box" @click="triggerUpload('commercialReg')">
-            <input type="file" ref="commercialReg" class="hidden-input" @change="handleFileChange($event, 'commercialReg')" />
-            <div v-if="!files.commercialReg" class="upload-placeholder">
-              <div class="icon-wrapper">
-                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              </div>
-              <p>Drop your files here or <span class="link">Click to upload</span></p>
-              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
-            </div>
-            <div v-else class="file-preview">
-              <span class="file-name">{{ files.commercialReg.name }}</span>
-              <button class="remove-btn" @click.stop="removeFile('commercialReg')">×</button>
-            </div>
+        <div class="form-group">
+          <label>เบอร์โทรศัพท์</label>
+          <input type="text" class="form-control" v-model="formData.phone" placeholder="0XX-XXX-XXXX" />
+        </div>
+
+        <div class="form-group">
+          <label>แฟกซ์/อีเมล</label>
+          <input type="text" class="form-control" v-model="formData.email" placeholder="example@email.com" />
+        </div>
+
+        <div class="form-group">
+          <label>ลักษณะที่ตั้ง</label>
+          <div class="custom-select-group">
+            <button class="select-trigger">เลือกประเภทที่ตั้ง</button>
+            <input type="text" class="form-control" placeholder="ระบุ..." />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>กรรมสิทธิ์ทรัพย์สิน</label>
+          <div class="custom-select-group">
+            <button class="select-trigger">เลือกประเภทกรรมสิทธิ์</button>
+            <input type="text" class="form-control" placeholder="ระบุ..." />
           </div>
         </div>
       </div>
@@ -89,8 +168,20 @@
 </template>
 
 <script>
+// Simple SVG components for icons
+const SvgIconDocument = {
+  template: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
+};
+const SvgIconImage = {
+  template: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`
+};
+
 export default {
   name: 'StoreCompanyTab',
+  components: {
+    SvgIconDocument,
+    SvgIconImage
+  },
   props: {
     customerData: {
       type: Object,
@@ -100,10 +191,37 @@ export default {
   data() {
     return {
       files: {
+        // Company
+        legalEntityCertificate: null,
+        vatDocument: null,
+        companyPhoto: null,
+        companyLandTax: null,
+        // Individual
         storePhoto: null,
-        commercialReg: null
+        commercialReg: null,
+        storeLandTax: null,
+      },
+      formData: {
+        phone: '',
+        email: ''
       }
     };
+  },
+  computed: {
+    isCompany() {
+      return !!(this.customerData && this.customerData['VAT Registration No_']);
+    }
+  },
+  watch: {
+    customerData: {
+      immediate: true,
+      handler(newVal) {
+        if (newVal) {
+          this.formData.phone = newVal['Phone No_'] || '';
+          this.formData.email = newVal.email || '';
+        }
+      }
+    }
   },
   methods: {
     triggerUpload(refName) {
@@ -129,17 +247,84 @@ export default {
   padding: 10px;
 }
 
-.address-section {
+.address-verification {
+  margin-top: 30px;
+}
+
+.map-container {
   margin-bottom: 20px;
 }
 
-.btn-check-map {
-    width: 100%;
-    padding: 12px;
-    background-color: #f0f0f0;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    cursor: pointer;
-    text-align: center;
+.map-placeholder {
+  width: 100%;
+  height: 200px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #999;
+  font-size: 14px;
+  gap: 10px;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.icon-right {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+}
+
+.custom-select-group {
+  display: flex;
+  gap: 10px;
+}
+
+.select-trigger {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+}
+
+.custom-select-group .form-control {
+  flex: 1;
+}
+
+.file-preview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+}
+
+.file-preview button {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #999;
 }
 </style>
