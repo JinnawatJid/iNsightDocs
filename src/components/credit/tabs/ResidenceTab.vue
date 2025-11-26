@@ -93,7 +93,9 @@
           <label>จังหวัด</label>
           <input type="text" class="form-control" v-model="formData.city" placeholder="อัตโนมัติ" />
         </div>
-        <div class="form-group">
+      </div>
+       <div class="bottom-grid">
+         <div class="form-group">
           <label>เบอร์โทรศัพท์</label>
           <input type="text" class="form-control" v-model="formData.phone" placeholder="0XX-XXX-XXXX" />
         </div>
@@ -226,6 +228,13 @@ export default {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 15px;
+  margin-bottom: 15px;
+}
+
+.bottom-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
 }
 
 .form-group.span-2 {
