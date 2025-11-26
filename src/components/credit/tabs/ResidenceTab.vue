@@ -72,10 +72,14 @@
       </div>
 
       <!-- Address Form -->
-      <div class="form-grid">
-         <div class="form-group full-width">
+      <div class="form-grid-complex">
+        <div class="form-group span-2">
           <label>ที่อยู่ (บ้านเลขที่, ถนน)</label>
           <input type="text" class="form-control" v-model="formData.houseAddress" placeholder="ระบุบ้านเลขที่, ถนน" />
+        </div>
+        <div class="form-group">
+          <label>ตำบล/แขวง</label>
+          <input type="text" class="form-control" v-model="formData.subdistrict" placeholder="อัตโนมัติ" />
         </div>
         <div class="form-group">
           <label>รหัสไปรษณีย์</label>
@@ -96,6 +100,20 @@
         <div class="form-group">
           <label>แฟกซ์/อีเมล</label>
           <input type="text" class="form-control" v-model="formData.email" placeholder="example@email.com" />
+        </div>
+        <div class="form-group">
+          <label>ลักษณะที่ตั้ง</label>
+           <div class="custom-select-group">
+            <button class="select-trigger">เลือกประเภทที่ตั้ง</button>
+            <input type="text" class="form-control" placeholder="ระบุ..." />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>กรรมสิทธิ์ทรัพย์สิน</label>
+           <div class="custom-select-group">
+            <button class="select-trigger">เลือกประเภทกรรมสิทธิ์</button>
+            <input type="text" class="form-control" placeholder="ระบุ..." />
+          </div>
         </div>
       </div>
     </div>
@@ -121,6 +139,7 @@ export default {
       },
       formData: {
         houseAddress: '',
+        subdistrict: '',
         postCode: '',
         district: '',
         city: '',
@@ -141,6 +160,7 @@ export default {
           this.formData.city = newVal.County || '';
           this.formData.phone = newVal['Phone No_'] || '';
           this.formData.email = newVal.email || '';
+          // Assuming subdistrict is not in the initial fetch
         }
       }
     },
@@ -148,7 +168,7 @@ export default {
       if (newZip && newZip.length === 5) {
         const results = searchAddressByZipcode(newZip);
         if (results.length > 0) {
-          // In case of multiple results, we'll use the first one
+          this.formData.subdistrict = results[0].district;
           this.formData.district = results[0].amphoe;
           this.formData.city = results[0].province;
         }
@@ -202,7 +222,35 @@ export default {
   gap: 10px;
 }
 
-.form-group.full-width {
-  grid-column: 1 / -1;
+.form-grid-complex {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.form-group.span-2 {
+  grid-column: span 2;
+}
+.custom-select-group {
+  display: flex;
+  gap: 10px;
+}
+
+.select-trigger {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+}
+
+.custom-select-group .form-control {
+  flex: 1;
 }
 </style>
