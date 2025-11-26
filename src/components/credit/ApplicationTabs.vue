@@ -24,12 +24,16 @@
 <script>
 import ResidenceTab from './tabs/ResidenceTab.vue';
 import GeneralInfoTab from './tabs/GeneralInfoTab.vue';
+import StoreCompanyTab from './tabs/StoreCompanyTab.vue';
+import StoreStatementTab from './tabs/StoreStatementTab.vue';
 
 export default {
   name: 'ApplicationTabs',
   components: {
     ResidenceTab,
-    GeneralInfoTab
+    GeneralInfoTab,
+    StoreCompanyTab,
+    StoreStatementTab
   },
   props: {
     customerData: {
@@ -43,7 +47,7 @@ export default {
       tabs: [
         { id: 'general', label: 'ข้อมูลทั่วไป' },
         { id: 'residence', label: 'ที่อยู่อาศัย' },
-        { id: 'store', label: 'ที่อยู่ร้านค้า' },
+        { id: 'store', label: 'ที่อยู่ร้านค้า/บริษัท' },
         { id: 'financial', label: 'เอกสารการเงิน' }
       ]
     };
@@ -55,6 +59,10 @@ export default {
           return 'GeneralInfoTab';
         case 'residence':
           return 'ResidenceTab';
+        case 'store':
+          return 'StoreCompanyTab';
+        case 'financial':
+          return 'StoreStatementTab';
         default:
           return 'GeneralInfoTab'; // Fallback
       }
