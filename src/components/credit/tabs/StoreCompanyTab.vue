@@ -9,8 +9,9 @@
           <div class="upload-box" @click="triggerUpload('legalEntityCertificate')">
             <input type="file" ref="legalEntityCertificate" class="hidden-input" @change="handleFileChange($event, 'legalEntityCertificate')" />
             <div v-if="!files.legalEntityCertificate" class="upload-placeholder">
-              <div class="icon-wrapper"><svg-icon-document /></div>
+              <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
               <p>Drop your files here or <span class="link">Click to upload</span></p>
+              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
             </div>
             <div v-else class="file-preview">
               <span>{{ files.legalEntityCertificate.name }}</span>
@@ -23,8 +24,9 @@
           <div class="upload-box" @click="triggerUpload('vatDocument')">
             <input type="file" ref="vatDocument" class="hidden-input" @change="handleFileChange($event, 'vatDocument')" />
             <div v-if="!files.vatDocument" class="upload-placeholder">
-              <div class="icon-wrapper"><svg-icon-document /></div>
+              <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
               <p>Drop your files here or <span class="link">Click to upload</span></p>
+              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
             </div>
             <div v-else class="file-preview">
               <span>{{ files.vatDocument.name }}</span>
@@ -37,8 +39,9 @@
           <div class="upload-box" @click="triggerUpload('companyPhoto')">
             <input type="file" ref="companyPhoto" class="hidden-input" @change="handleFileChange($event, 'companyPhoto')" />
             <div v-if="!files.companyPhoto" class="upload-placeholder">
-              <div class="icon-wrapper"><svg-icon-image /></div>
+              <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>
               <p>Drop your files here or <span class="link">Click to upload</span></p>
+              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
             </div>
             <div v-else class="file-preview">
               <span>{{ files.companyPhoto.name }}</span>
@@ -51,8 +54,9 @@
           <div class="upload-box" @click="triggerUpload('companyLandTax')">
             <input type="file" ref="companyLandTax" class="hidden-input" @change="handleFileChange($event, 'companyLandTax')" />
             <div v-if="!files.companyLandTax" class="upload-placeholder">
-              <div class="icon-wrapper"><svg-icon-document /></div>
+              <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
               <p>Drop your files here or <span class="link">Click to upload</span></p>
+              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
             </div>
             <div v-else class="file-preview">
               <span>{{ files.companyLandTax.name }}</span>
@@ -68,8 +72,9 @@
            <div class="upload-box" @click="triggerUpload('storePhoto')">
             <input type="file" ref="storePhoto" class="hidden-input" @change="handleFileChange($event, 'storePhoto')" />
             <div v-if="!files.storePhoto" class="upload-placeholder">
-              <div class="icon-wrapper"><svg-icon-image /></div>
+              <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>
               <p>Drop your files here or <span class="link">Click to upload</span></p>
+              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
             </div>
             <div v-else class="file-preview">
               <span>{{ files.storePhoto.name }}</span>
@@ -82,8 +87,9 @@
            <div class="upload-box" @click="triggerUpload('commercialReg')">
             <input type="file" ref="commercialReg" class="hidden-input" @change="handleFileChange($event, 'commercialReg')" />
             <div v-if="!files.commercialReg" class="upload-placeholder">
-              <div class="icon-wrapper"><svg-icon-document /></div>
+              <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
               <p>Drop your files here or <span class="link">Click to upload</span></p>
+              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
             </div>
             <div v-else class="file-preview">
               <span>{{ files.commercialReg.name }}</span>
@@ -96,8 +102,9 @@
            <div class="upload-box" @click="triggerUpload('storeLandTax')">
             <input type="file" ref="storeLandTax" class="hidden-input" @change="handleFileChange($event, 'storeLandTax')" />
             <div v-if="!files.storeLandTax" class="upload-placeholder">
-              <div class="icon-wrapper"><svg-icon-document /></div>
+              <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
               <p>Drop your files here or <span class="link">Click to upload</span></p>
+              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
             </div>
             <div v-else class="file-preview">
               <span>{{ files.storeLandTax.name }}</span>
@@ -108,10 +115,14 @@
       </div>
     </div>
 
-    <!-- Address Section (from ResidenceTab) -->
+    <!-- Address Section -->
     <div class="address-verification">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลที่อยู่ร้านค้า/บริษัท</h3>
+        <div class="checkbox-wrapper">
+          <input type="checkbox" id="sameAddress" v-model="isSameAddress" />
+          <label for="sameAddress">ที่อยู่เดียวกับที่อยู่อาศัย</label>
+        </div>
         <span class="badge-edit">แก้ไขข้อมูลที่อยู่</span>
       </div>
 
@@ -130,7 +141,7 @@
         <div class="form-group full-width">
           <label>ตำแหน่งที่ตั้ง</label>
           <div class="input-with-icon">
-            <input type="text" class="form-control readonly" :value="customerData.address" readonly />
+            <input type="text" class="form-control" :value="formData.address" />
             <span class="icon-right">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
             </span>
@@ -168,20 +179,8 @@
 </template>
 
 <script>
-// Simple SVG components for icons
-const SvgIconDocument = {
-  template: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
-};
-const SvgIconImage = {
-  template: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`
-};
-
 export default {
   name: 'StoreCompanyTab',
-  components: {
-    SvgIconDocument,
-    SvgIconImage
-  },
   props: {
     customerData: {
       type: Object,
@@ -190,6 +189,7 @@ export default {
   },
   data() {
     return {
+      isSameAddress: false,
       files: {
         // Company
         legalEntityCertificate: null,
@@ -202,6 +202,7 @@ export default {
         storeLandTax: null,
       },
       formData: {
+        address: '',
         phone: '',
         email: ''
       }
@@ -215,11 +216,26 @@ export default {
   watch: {
     customerData: {
       immediate: true,
+      deep: true,
       handler(newVal) {
         if (newVal) {
-          this.formData.phone = newVal['Phone No_'] || '';
-          this.formData.email = newVal.email || '';
+           this.formData.phone = newVal['Phone No_'] || '';
+           this.formData.email = newVal.email || '';
+           // Initialize store address if different, otherwise it will be handled by the checkbox
+           this.formData.address = newVal.store_address || ''; // Assuming a store_address field
         }
+      }
+    },
+    isSameAddress(isSame) {
+      if (isSame) {
+        this.formData.address = this.customerData.address || '';
+        this.formData.phone = this.customerData['Phone No_'] || '';
+        this.formData.email = this.customerData.email || '';
+      } else {
+        // Clear the fields to allow for manual entry of a different address
+        this.formData.address = '';
+        this.formData.phone = '';
+        this.formData.email = '';
       }
     }
   },
@@ -245,6 +261,26 @@ export default {
 
 .store-company-tab {
   padding: 10px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.section-header h3 {
+  margin: 0;
+  flex-grow: 1;
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #333;
 }
 
 .address-verification {
