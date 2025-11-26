@@ -121,9 +121,9 @@
         <h3>ตรวจสอบข้อมูลที่อยู่ร้านค้า/บริษัท</h3>
         <div class="checkbox-wrapper">
           <input type="checkbox" id="sameAddress" v-model="isSameAddress" />
-          <label for="sameAddress">ที่อยู่เดียวกับที่อยู่อาศัย</label>
+          <label class="sameAddress" for="sameAddress">ที่อยู่เดียวกับที่อยู่อาศัย</label>
         </div>
-        <span class="badge-edit">แก้ไขข้อมูลที่อยู่</span>
+        <span class="badge-edit">แก้ไขข้อมูลที่อยู่ร้านค้า</span>
       </div>
 
       <!-- Map Placeholder -->
@@ -259,6 +259,10 @@ export default {
 <style scoped>
 @import './shared-styles.css';
 
+.sameAddress {
+  margin-bottom: 0px;
+}
+
 .store-company-tab {
   padding: 10px;
 }
@@ -266,7 +270,6 @@ export default {
 .section-header {
   display: flex;
   align-items: center;
-  gap: 20px;
   margin-bottom: 20px;
 }
 
