@@ -121,9 +121,9 @@
         <h3>ตรวจสอบข้อมูลที่อยู่ร้านค้า/บริษัท</h3>
         <div class="checkbox-wrapper">
           <input type="checkbox" id="sameAddress" v-model="isSameAddress" />
-          <label class="sameAddress" for="sameAddress">ที่อยู่เดียวกับที่อยู่อาศัย</label>
+          <label for="sameAddress">ที่อยู่เดียวกับที่อยู่อาศัย</label>
         </div>
-        <span class="badge-edit">แก้ไขข้อมูลที่อยู่ร้านค้า</span>
+        <span class="badge-edit">แก้ไขข้อมูลที่อยู่</span>
       </div>
 
       <!-- Map Placeholder -->
@@ -137,27 +137,37 @@
       </div>
 
       <!-- Address Form -->
-      <div class="form-grid">
-        <div class="form-group full-width">
-          <label>ตำแหน่งที่ตั้ง</label>
-          <div class="input-with-icon">
-            <input type="text" class="form-control" :value="formData.address" />
-            <span class="icon-right">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-            </span>
-          </div>
+      <div class="form-grid-complex">
+        <div class="form-group span-2">
+          <label>ที่อยู่ (บ้านเลขที่, ถนน)</label>
+          <input type="text" class="form-control" v-model="formData.houseAddress" placeholder="ระบุบ้านเลขที่, ถนน" />
         </div>
-
+        <div class="form-group">
+          <label>ตำบล/แขวง</label>
+          <input type="text" class="form-control" v-model="formData.subdistrict" placeholder="อัตโนมัติ" />
+        </div>
+        <div class="form-group">
+          <label>รหัสไปรษณีย์</label>
+          <input type="text" class="form-control" v-model="formData.postCode" placeholder="ระบุรหัสไปรษณีย์" />
+        </div>
+        <div class="form-group">
+          <label>อำเภอ/เขต</label>
+          <input type="text" class="form-control" v-model="formData.district" placeholder="อัตโนมัติ" />
+        </div>
+        <div class="form-group">
+          <label>จังหวัด</label>
+          <input type="text" class="form-control" v-model="formData.city" placeholder="อัตโนมัติ" />
+        </div>
+      </div>
+      <div class="bottom-grid">
         <div class="form-group">
           <label>เบอร์โทรศัพท์</label>
           <input type="text" class="form-control" v-model="formData.phone" placeholder="0XX-XXX-XXXX" />
         </div>
-
         <div class="form-group">
           <label>แฟกซ์/อีเมล</label>
           <input type="text" class="form-control" v-model="formData.email" placeholder="example@email.com" />
         </div>
-
         <div class="form-group">
           <label>ลักษณะที่ตั้ง</label>
           <div class="custom-select-group">
@@ -165,7 +175,6 @@
             <input type="text" class="form-control" placeholder="ระบุ..." />
           </div>
         </div>
-
         <div class="form-group">
           <label>กรรมสิทธิ์ทรัพย์สิน</label>
           <div class="custom-select-group">
@@ -179,6 +188,8 @@
 </template>
 
 <script>
+import { searchAddressByZipcode } from 'thai-address-database';
+
 export default {
   name: 'StoreCompanyTab',
   props: {
@@ -202,7 +213,11 @@ export default {
         storeLandTax: null,
       },
       formData: {
-        address: '',
+        houseAddress: '',
+        subdistrict: '',
+        postCode: '',
+        district: '',
+        city: '',
         phone: '',
         email: ''
       }
@@ -217,25 +232,49 @@ export default {
     customerData: {
       immediate: true,
       deep: true,
-      handler(newVal) {
-        if (newVal) {
-           this.formData.phone = newVal['Phone No_'] || '';
-           this.formData.email = newVal.email || '';
-           // Initialize store address if different, otherwise it will be handled by the checkbox
-           this.formData.address = newVal.store_address || ''; // Assuming a store_address field
-        }
+      handler() {
+        // Data is now handled by the isSameAddress watcher
+        // to avoid conflicts. Initial state is empty unless checkbox is checked.
       }
     },
-    isSameAddress(isSame) {
-      if (isSame) {
-        this.formData.address = this.customerData.address || '';
-        this.formData.phone = this.customerData['Phone No_'] || '';
-        this.formData.email = this.customerData.email || '';
-      } else {
-        // Clear the fields to allow for manual entry of a different address
-        this.formData.address = '';
-        this.formData.phone = '';
-        this.formData.email = '';
+    isSameAddress: {
+        immediate: true,
+        handler(isSame) {
+            if (isSame) {
+                this.formData.houseAddress = this.customerData.Address || '';
+                this.formData.postCode = this.customerData['Post Code'] || '';
+                this.formData.district = this.customerData.City || '';
+                this.formData.city = this.customerData.County || '';
+                this.formData.phone = this.customerData['Phone No_'] || '';
+                this.formData.email = this.customerData.email || '';
+                // Since subdistrict is not in the main data, we might need to trigger a lookup
+                // if a post code exists.
+                if (this.formData.postCode) {
+                    const results = searchAddressByZipcode(this.formData.postCode);
+                    if (results.length > 0) {
+                        this.formData.subdistrict = results[0].district;
+                    }
+                }
+            } else {
+                // Clear the fields for manual entry
+                this.formData.houseAddress = '';
+                this.formData.subdistrict = '';
+                this.formData.postCode = '';
+                this.formData.district = '';
+                this.formData.city = '';
+                this.formData.phone = '';
+                this.formData.email = '';
+            }
+        }
+    },
+    'formData.postCode'(newZip) {
+      if (!this.isSameAddress && newZip && newZip.length === 5) {
+        const results = searchAddressByZipcode(newZip);
+        if (results.length > 0) {
+          this.formData.subdistrict = results[0].district;
+          this.formData.district = results[0].amphoe;
+          this.formData.city = results[0].province;
+        }
       }
     }
   },
@@ -259,10 +298,6 @@ export default {
 <style scoped>
 @import './shared-styles.css';
 
-.sameAddress {
-  margin-bottom: 0px;
-}
-
 .store-company-tab {
   padding: 10px;
 }
@@ -270,6 +305,7 @@ export default {
 .section-header {
   display: flex;
   align-items: center;
+  gap: 20px;
   margin-bottom: 20px;
 }
 
@@ -312,20 +348,21 @@ export default {
   gap: 10px;
 }
 
-.form-group.full-width {
-  grid-column: 1 / -1;
+.form-grid-complex {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
 }
 
-.input-with-icon {
-  position: relative;
+.bottom-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
 }
 
-.icon-right {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #999;
+.form-group.span-2 {
+  grid-column: span 2;
 }
 
 .custom-select-group {
