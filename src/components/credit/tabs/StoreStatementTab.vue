@@ -1,77 +1,54 @@
 <template>
   <div class="store-statement-tab">
-    <div class="upload-section">
-      <div class="upload-grid">
-        <div class="upload-item">
-          <label>Bank Statement 1 <span class="required">*</span></label>
-          <div class="upload-box" @click="triggerUpload('bankStatement1')">
-            <input type="file" ref="bankStatement1" class="hidden-input" @change="handleFileChange($event, 'bankStatement1')" />
-            <div v-if="!files.bankStatement1" class="upload-placeholder">
-              <div class="icon-wrapper">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              </div>
-              <p>Drop your files here or <span class="link">Click to upload</span></p>
-              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
-            </div>
-            <div v-else class="file-preview">
-              <span class="file-name">{{ files.bankStatement1.name }}</span>
-              <button class="remove-btn" @click.stop="removeFile('bankStatement1')">×</button>
-            </div>
+    <!-- Main Upload Section -->
+    <div class="upload-section-large">
+      <label>รายการเดินบัญชี <span class="required">*</span></label>
+      <div class="upload-box-large" @click="triggerUpload('bankStatement')">
+        <input type="file" ref="bankStatement" class="hidden-input" @change="handleFileChange($event, 'bankStatement')" multiple />
+        <div v-if="files.bankStatement.length === 0" class="upload-placeholder">
+          <div class="icon-wrapper-large">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15c.7-1.2 1-2.5.7-3.9-.6-2.4-3-4-5.4-4-1.3 0-2.5.6-3.4 1.5A5.6 5.6 0 0 0 8 5.1C5.2 5.1 3 7.3 3 10.1c0 .8.2 1.5.5 2.1"></path><path d="M12 13v9"></path><path d="m9 17 3 3 3-3"></path></svg>
           </div>
+          <p>Drop your files here or <span class="link">Click to upload</span></p>
+          <span class="info">Can add up to 6 files</span>
         </div>
-
-        <div class="upload-item">
-          <label>Bank Statement 2 <span class="required">*</span></label>
-          <div class="upload-box" @click="triggerUpload('bankStatement2')">
-            <input type="file" ref="bankStatement2" class="hidden-input" @change="handleFileChange($event, 'bankStatement2')" />
-            <div v-if="!files.bankStatement2" class="upload-placeholder">
-              <div class="icon-wrapper">
-                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              </div>
-              <p>Drop your files here or <span class="link">Click to upload</span></p>
-              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
-            </div>
-            <div v-else class="file-preview">
-              <span class="file-name">{{ files.bankStatement2.name }}</span>
-              <button class="remove-btn" @click.stop="removeFile('bankStatement2')">×</button>
-            </div>
-          </div>
+        <div v-else class="file-preview-list">
+          <ul>
+            <li v-for="(file, index) in files.bankStatement" :key="index">
+              <span class="file-name">{{ file.name }}</span>
+              <button class="remove-btn" @click.stop="removeFile('bankStatement', index)">×</button>
+            </li>
+          </ul>
         </div>
+      </div>
+    </div>
 
-        <div class="upload-item">
-          <label>Bank Statement 3 <span class="required">*</span></label>
-          <div class="upload-box" @click="triggerUpload('bankStatement3')">
-            <input type="file" ref="bankStatement3" class="hidden-input" @change="handleFileChange($event, 'bankStatement3')" />
-            <div v-if="!files.bankStatement3" class="upload-placeholder">
-              <div class="icon-wrapper">
-                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              </div>
-              <p>Drop your files here or <span class="link">Click to upload</span></p>
-              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
-            </div>
-            <div v-else class="file-preview">
-              <span class="file-name">{{ files.bankStatement3.name }}</span>
-              <button class="remove-btn" @click.stop="removeFile('bankStatement3')">×</button>
-            </div>
-          </div>
+    <!-- Details Section -->
+    <div class="details-section">
+      <div class="section-header">
+        <h3>รายละเอียด</h3>
+        <span class="badge-edit">แก้ไขข้อมูล</span>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ชื่อบัญชี</label>
+          <input type="text" class="form-control" v-model="formData.accountName" placeholder="ระบุชื่อบัญชี" />
         </div>
-
-        <div class="upload-item">
-          <label>Bank Statement 4</label>
-          <div class="upload-box" @click="triggerUpload('bankStatement4')">
-            <input type="file" ref="bankStatement4" class="hidden-input" @change="handleFileChange($event, 'bankStatement4')" />
-            <div v-if="!files.bankStatement4" class="upload-placeholder">
-              <div class="icon-wrapper">
-                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              </div>
-              <p>Drop your files here or <span class="link">Click to upload</span></p>
-              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
-            </div>
-            <div v-else class="file-preview">
-              <span class="file-name">{{ files.bankStatement4.name }}</span>
-              <button class="remove-btn" @click.stop="removeFile('bankStatement4')">×</button>
-            </div>
-          </div>
+        <div class="form-group">
+          <label>เลขที่บัญชี</label>
+          <input type="text" class="form-control" v-model="formData.accountNumber" placeholder="ระบุเลขที่บัญชี" />
+        </div>
+        <div class="form-group">
+          <label>ธนาคาร</label>
+          <input type="text" class="form-control" v-model="formData.bank" placeholder="ระบุธนาคาร" />
+        </div>
+        <div class="form-group">
+          <label>สาขา</label>
+          <input type="text" class="form-control" v-model="formData.branch" placeholder="ระบุสาขา" />
+        </div>
+        <div class="form-group">
+          <label>ประเภทบัญชี</label>
+          <input type="text" class="form-control" v-model="formData.accountType" placeholder="ระบุประเภทบัญชี" />
         </div>
       </div>
     </div>
@@ -81,14 +58,23 @@
 <script>
 export default {
   name: 'StoreStatementTab',
-  props: {},
+  props: {
+    customerData: {
+      type: Object,
+      default: () => ({})
+    }
+  },
   data() {
     return {
       files: {
-        bankStatement1: null,
-        bankStatement2: null,
-        bankStatement3: null,
-        bankStatement4: null,
+        bankStatement: []
+      },
+      formData: {
+        accountName: '',
+        accountNumber: '',
+        bank: '',
+        branch: '',
+        accountType: ''
       }
     };
   },
@@ -97,13 +83,15 @@ export default {
       this.$refs[refName].click();
     },
     handleFileChange(event, key) {
-      const file = event.target.files[0];
-      if (file) {
-        this.files[key] = file;
+      const newFiles = Array.from(event.target.files);
+      if (newFiles.length > 0) {
+        this.files[key].push(...newFiles);
       }
+      // Reset the input value to allow re-uploading the same file
+      this.$refs[key].value = '';
     },
-    removeFile(key) {
-      this.files[key] = null;
+    removeFile(key, index) {
+      this.files[key].splice(index, 1);
     }
   }
 };
@@ -114,5 +102,84 @@ export default {
 
 .store-statement-tab {
   padding: 10px;
+}
+
+.upload-section-large {
+  margin-bottom: 30px;
+}
+
+.upload-section-large label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.upload-box-large {
+  border: 2px dashed #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.upload-box-large:hover {
+  border-color: #0056FF;
+}
+
+.icon-wrapper-large {
+  margin-bottom: 15px;
+  color: #0056FF;
+}
+
+.upload-placeholder p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.upload-placeholder .link {
+  color: #0056FF;
+  font-weight: bold;
+}
+
+.upload-placeholder .info {
+  font-size: 12px;
+  color: #999;
+  margin-top: 5px;
+}
+
+.file-preview-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.file-preview-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+.file-name {
+  font-size: 14px;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #999;
+}
+
+.details-section {
+  margin-top: 20px;
 }
 </style>

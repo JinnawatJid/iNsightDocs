@@ -64,69 +64,56 @@
       <!-- Map Placeholder -->
       <div class="map-container">
         <div class="map-placeholder">
-          <!-- Temporary placeholder for Google Maps -->
           <div class="map-content">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><map-pin></map-pin><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
             <span>Google Map Area</span>
           </div>
         </div>
       </div>
 
       <!-- Address Form -->
-      <div class="form-grid">
-        <div class="form-group full-width">
-          <label>ตำแหน่งที่ตั้ง</label>
-          <div class="input-with-icon">
-            <input
-              type="text"
-              class="form-control readonly"
-              value="ใส่ให้อัตโนมัติ อิงตามข้อมูลเอกสาร"
-              readonly
-            />
-            <span class="icon-right">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-            </span>
-          </div>
+      <div class="form-grid-complex">
+        <div class="form-group span-2">
+          <label>ที่อยู่ (บ้านเลขที่, ถนน)</label>
+          <input type="text" class="form-control" v-model="formData.houseAddress" placeholder="ระบุบ้านเลขที่, ถนน" />
         </div>
-
         <div class="form-group">
-          <label>เบอร์โทรศัพท์</label>
-          <input
-            type="text"
-            class="form-control"
-            v-model="formData.phone"
-            placeholder="0XX-XXX-XXXX"
-          />
+          <label>ตำบล/แขวง</label>
+          <input type="text" class="form-control" v-model="formData.subdistrict" placeholder="อัตโนมัติ" />
         </div>
-
+        <div class="form-group">
+          <label>รหัสไปรษณีย์</label>
+          <input type="text" class="form-control" v-model="formData.postCode" placeholder="ระบุรหัสไปรษณีย์" />
+        </div>
+        <div class="form-group">
+          <label>อำเภอ/เขต</label>
+          <input type="text" class="form-control" v-model="formData.district" placeholder="อัตโนมัติ" />
+        </div>
+        <div class="form-group">
+          <label>จังหวัด</label>
+          <input type="text" class="form-control" v-model="formData.city" placeholder="อัตโนมัติ" />
+        </div>
+      </div>
+       <div class="bottom-grid">
+         <div class="form-group">
+          <label>เบอร์โทรศัพท์</label>
+          <input type="text" class="form-control" v-model="formData.phone" placeholder="0XX-XXX-XXXX" />
+        </div>
         <div class="form-group">
           <label>แฟกซ์/อีเมล</label>
-          <input
-            type="text"
-            class="form-control"
-            v-model="formData.email"
-            placeholder="example@email.com"
-          />
+          <input type="text" class="form-control" v-model="formData.email" placeholder="example@email.com" />
         </div>
-
         <div class="form-group">
           <label>ลักษณะที่ตั้ง</label>
-          <div class="custom-select-group">
-            <button class="select-trigger">
-              เลือกประเภทที่ตั้ง
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
+           <div class="custom-select-group">
+            <button class="select-trigger">เลือกประเภทที่ตั้ง</button>
             <input type="text" class="form-control" placeholder="ระบุ..." />
           </div>
         </div>
-
         <div class="form-group">
           <label>กรรมสิทธิ์ทรัพย์สิน</label>
-          <div class="custom-select-group">
-            <button class="select-trigger">
-              เลือกประเภทกรรมสิทธิ์
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
+           <div class="custom-select-group">
+            <button class="select-trigger">เลือกประเภทกรรมสิทธิ์</button>
             <input type="text" class="form-control" placeholder="ระบุ..." />
           </div>
         </div>
@@ -136,6 +123,8 @@
 </template>
 
 <script>
+import { searchAddressByZipcode } from 'thai-address-database';
+
 export default {
   name: 'ResidenceTab',
   props: {
@@ -151,6 +140,11 @@ export default {
         landTax: null
       },
       formData: {
+        houseAddress: '',
+        subdistrict: '',
+        postCode: '',
+        district: '',
+        city: '',
         phone: '',
         email: ''
       }
@@ -159,11 +153,26 @@ export default {
   watch: {
     customerData: {
       immediate: true,
+      deep: true,
       handler(newVal) {
         if (newVal) {
-          this.formData.phone = newVal.phone || '';
+          this.formData.houseAddress = newVal.Address || '';
+          this.formData.postCode = newVal['Post Code'] || '';
+          this.formData.district = newVal.City || '';
+          this.formData.city = newVal.County || '';
+          this.formData.phone = newVal['Phone No_'] || '';
           this.formData.email = newVal.email || '';
-          // Map other fields as they become available in the backend response
+          // Assuming subdistrict is not in the initial fetch
+        }
+      }
+    },
+    'formData.postCode'(newZip) {
+      if (newZip && newZip.length === 5) {
+        const results = searchAddressByZipcode(newZip);
+        if (results.length > 0) {
+          this.formData.subdistrict = results[0].district;
+          this.formData.district = results[0].amphoe;
+          this.formData.city = results[0].province;
         }
       }
     }
@@ -192,14 +201,6 @@ export default {
   padding: 10px;
 }
 
-.remove-btn {
-  background: none;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  color: #999;
-}
-
 .map-container {
   margin-bottom: 20px;
 }
@@ -223,23 +224,22 @@ export default {
   gap: 10px;
 }
 
-.form-group.full-width {
-  grid-column: 1 / -1;
+.form-grid-complex {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
 }
 
-.input-with-icon {
-  position: relative;
+.bottom-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
 }
 
-.icon-right {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #999;
+.form-group.span-2 {
+  grid-column: span 2;
 }
-
-/* Custom Select Group */
 .custom-select-group {
   display: flex;
   gap: 10px;
