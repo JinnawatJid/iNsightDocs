@@ -171,15 +171,27 @@
         <div class="form-group">
           <label>ลักษณะที่ตั้ง</label>
           <div class="custom-select-group">
-            <button class="select-trigger">เลือกประเภทที่ตั้ง</button>
-            <input type="text" class="form-control" placeholder="ระบุ..." />
+            <select class="form-control" v-model="formData.locationTypeSelect">
+              <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
+              <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
+              <option value="สำนักงานบนอาคารชุด">สำนักงานบนอาคารชุด</option>
+              <option value="บ้าน">บ้าน</option>
+              <option value="โรงงาน">โรงงาน</option>
+              <option value="อื่นๆ">อื่นๆ</option>
+            </select>
+            <input type="text" class="form-control" v-model="formData.locationTypeOther" placeholder="ระบุ..." />
           </div>
         </div>
         <div class="form-group">
           <label>กรรมสิทธิ์ทรัพย์สิน</label>
           <div class="custom-select-group">
-            <button class="select-trigger">เลือกประเภทกรรมสิทธิ์</button>
-            <input type="text" class="form-control" placeholder="ระบุ..." />
+            <select class="form-control" v-model="formData.ownershipSelect">
+              <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
+              <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
+              <option value="เช่า">เช่า</option>
+              <option value="อื่นๆ">อื่นๆ</option>
+            </select>
+            <input type="text" class="form-control" v-model="formData.ownershipOther" placeholder="ระบุ..." />
           </div>
         </div>
       </div>
@@ -219,7 +231,11 @@ export default {
         district: '',
         city: '',
         phone: '',
-        email: ''
+        email: '',
+        locationTypeSelect: '',
+        locationTypeOther: '',
+        ownershipSelect: '',
+        ownershipOther: ''
       }
     };
   },
@@ -245,9 +261,9 @@ export default {
                 this.formData.postCode = this.customerData.zipcode || '';
                 this.formData.district = this.customerData.district || '';
                 this.formData.city = this.customerData.province || '';
-                this.formData.phone = this.customerData.phone || '';
+                this.formData.phone = this.formatPhoneNumber(this.customerData.phone || '');
                 this.formData.email = this.customerData.email || '';
-
+                
                 // User requirement: Do NOT auto-fill subdistrict even when copying address.
                 // It must be manually filled.
                 this.formData.subdistrict = '';
@@ -287,6 +303,19 @@ export default {
     },
     removeFile(key) {
       this.files[key] = null;
+    },
+    formatPhoneNumber(phone) {
+      if (!phone) return '';
+      const cleaned = phone.replace(/\D/g, '');
+      if (cleaned.length === 10) {
+        return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+      } else if (cleaned.length === 9) {
+         if (cleaned.startsWith('02')) {
+           return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+         }
+         return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
+      }
+      return phone; 
     }
   }
 };
