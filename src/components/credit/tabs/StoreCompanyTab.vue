@@ -161,7 +161,10 @@
       </div>
       <div class="bottom-grid">
         <div class="form-group">
-          <label>เบอร์โทรศัพท์</label>
+          <label>
+            เบอร์โทรศัพท์
+            <span v-if="!formData.phone" class="no-data-alert">ไม่พบข้อมูล</span>
+          </label>
           <input type="text" class="form-control" v-model="formData.phone" placeholder="0XX-XXX-XXXX" />
         </div>
         <div class="form-group">
@@ -171,15 +174,25 @@
         <div class="form-group">
           <label>ลักษณะที่ตั้ง</label>
           <div class="custom-select-group">
-            <button class="select-trigger">เลือกประเภทที่ตั้ง</button>
-            <input type="text" class="form-control" placeholder="ระบุ..." />
+            <select class="form-control" v-model="formData.locationTypeSelect">
+              <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
+              <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
+              <option value="สำนักงานบนอาคารชุด">สำนักงานบนอาคารชุด</option>
+              <option value="บ้าน">บ้าน</option>
+              <option value="โรงงาน">โรงงาน</option>
+            </select>
+            <input type="text" class="form-control" v-model="formData.locationTypeOther" placeholder="ระบุ..." />
           </div>
         </div>
         <div class="form-group">
           <label>กรรมสิทธิ์ทรัพย์สิน</label>
           <div class="custom-select-group">
-            <button class="select-trigger">เลือกประเภทกรรมสิทธิ์</button>
-            <input type="text" class="form-control" placeholder="ระบุ..." />
+            <select class="form-control" v-model="formData.ownershipSelect">
+              <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
+              <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
+              <option value="เช่า">เช่า</option>
+            </select>
+            <input type="text" class="form-control" v-model="formData.ownershipOther" placeholder="ระบุ..." />
           </div>
         </div>
       </div>
@@ -219,7 +232,11 @@ export default {
         district: '',
         city: '',
         phone: '',
-        email: ''
+        email: '',
+        locationTypeSelect: '',
+        locationTypeOther: '',
+        ownershipSelect: '',
+        ownershipOther: ''
       }
     };
   },
@@ -241,20 +258,16 @@ export default {
         immediate: true,
         handler(isSame) {
             if (isSame) {
-                this.formData.houseAddress = this.customerData.Address || '';
-                this.formData.postCode = this.customerData['Post Code'] || '';
-                this.formData.district = this.customerData.City || '';
-                this.formData.city = this.customerData.County || '';
-                this.formData.phone = this.customerData['Phone No_'] || '';
+                this.formData.houseAddress = this.customerData.address || '';
+                this.formData.postCode = this.customerData.zipcode || '';
+                this.formData.district = this.customerData.district || '';
+                this.formData.city = this.customerData.province || '';
+                this.formData.phone = this.formatPhoneNumber(this.customerData.phone || '');
                 this.formData.email = this.customerData.email || '';
-                // Since subdistrict is not in the main data, we might need to trigger a lookup
-                // if a post code exists.
-                if (this.formData.postCode) {
-                    const results = searchAddressByZipcode(this.formData.postCode);
-                    if (results.length > 0) {
-                        this.formData.subdistrict = results[0].district;
-                    }
-                }
+
+                // User requirement: Do NOT auto-fill subdistrict even when copying address.
+                // It must be manually filled.
+                this.formData.subdistrict = '';
             } else {
                 // Clear the fields for manual entry
                 this.formData.houseAddress = '';
@@ -271,7 +284,8 @@ export default {
       if (!this.isSameAddress && newZip && newZip.length === 5) {
         const results = searchAddressByZipcode(newZip);
         if (results.length > 0) {
-          this.formData.subdistrict = results[0].district;
+          // User requirement: Do NOT auto-fill subdistrict. Leave it blank.
+          // this.formData.subdistrict = results[0].district;
           this.formData.district = results[0].amphoe;
           this.formData.city = results[0].province;
         }
@@ -290,6 +304,19 @@ export default {
     },
     removeFile(key) {
       this.files[key] = null;
+    },
+    formatPhoneNumber(phone) {
+      if (!phone) return '';
+      const cleaned = phone.replace(/\D/g, '');
+      if (cleaned.length === 10) {
+        return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+      } else if (cleaned.length === 9) {
+         if (cleaned.startsWith('02')) {
+           return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+         }
+         return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
+      }
+      return phone;
     }
   }
 };
@@ -300,6 +327,13 @@ export default {
 
 .store-company-tab {
   padding: 10px;
+}
+
+.no-data-alert {
+  color: red;
+  font-size: 12px;
+  margin-left: 8px;
+  font-weight: normal;
 }
 
 .section-header {

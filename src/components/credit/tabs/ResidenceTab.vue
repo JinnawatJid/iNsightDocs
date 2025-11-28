@@ -96,7 +96,10 @@
       </div>
        <div class="bottom-grid">
          <div class="form-group">
-          <label>เบอร์โทรศัพท์</label>
+          <label>
+            เบอร์โทรศัพท์
+            <span v-if="!formData.phone" class="no-data-alert">ไม่พบข้อมูล</span>
+          </label>
           <input type="text" class="form-control" v-model="formData.phone" placeholder="0XX-XXX-XXXX" />
         </div>
         <div class="form-group">
@@ -106,15 +109,25 @@
         <div class="form-group">
           <label>ลักษณะที่ตั้ง</label>
            <div class="custom-select-group">
-            <button class="select-trigger">เลือกประเภทที่ตั้ง</button>
-            <input type="text" class="form-control" placeholder="ระบุ..." />
+            <select class="form-control" v-model="formData.locationTypeSelect">
+              <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
+              <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
+              <option value="สำนักงานบนอาคารชุด">สำนักงานบนอาคารชุด</option>
+              <option value="บ้าน">บ้าน</option>
+              <option value="โรงงาน">โรงงาน</option>
+            </select>
+            <input type="text" class="form-control" v-model="formData.locationTypeOther" placeholder="ระบุ..." />
           </div>
         </div>
         <div class="form-group">
           <label>กรรมสิทธิ์ทรัพย์สิน</label>
            <div class="custom-select-group">
-            <button class="select-trigger">เลือกประเภทกรรมสิทธิ์</button>
-            <input type="text" class="form-control" placeholder="ระบุ..." />
+            <select class="form-control" v-model="formData.ownershipSelect">
+              <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
+              <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
+              <option value="เช่า">เช่า</option>
+            </select>
+            <input type="text" class="form-control" v-model="formData.ownershipOther" placeholder="ระบุ..." />
           </div>
         </div>
       </div>
@@ -146,7 +159,11 @@ export default {
         district: '',
         city: '',
         phone: '',
-        email: ''
+        email: '',
+        locationTypeSelect: '',
+        locationTypeOther: '',
+        ownershipSelect: '',
+        ownershipOther: ''
       }
     };
   },
@@ -156,13 +173,16 @@ export default {
       deep: true,
       handler(newVal) {
         if (newVal) {
-          this.formData.houseAddress = newVal.Address || '';
-          this.formData.postCode = newVal['Post Code'] || '';
-          this.formData.district = newVal.City || '';
-          this.formData.city = newVal.County || '';
-          this.formData.phone = newVal['Phone No_'] || '';
+          // Map data from backend (new raw fields added in server.js)
+          this.formData.houseAddress = newVal.address || '';
+          this.formData.postCode = newVal.zipcode || '';
+          this.formData.district = newVal.district || '';
+          this.formData.city = newVal.province || '';
+          this.formData.phone = this.formatPhoneNumber(newVal.phone || '');
           this.formData.email = newVal.email || '';
-          // Assuming subdistrict is not in the initial fetch
+
+          // Ensure subdistrict is blank for manual entry
+          this.formData.subdistrict = '';
         }
       }
     },
@@ -170,7 +190,8 @@ export default {
       if (newZip && newZip.length === 5) {
         const results = searchAddressByZipcode(newZip);
         if (results.length > 0) {
-          this.formData.subdistrict = results[0].district;
+          // User requirement: Do NOT auto-fill subdistrict. Leave it blank.
+          // this.formData.subdistrict = results[0].district;
           this.formData.district = results[0].amphoe;
           this.formData.city = results[0].province;
         }
@@ -189,6 +210,25 @@ export default {
     },
     removeFile(key) {
       this.files[key] = null;
+    },
+    formatPhoneNumber(phone) {
+      if (!phone) return '';
+      // Remove all non-digit characters
+      const cleaned = phone.replace(/\D/g, '');
+
+      // Check for standard 10-digit mobile (08X-XXX-XXXX) or 9-digit landline (02-XXX-XXXX or 0XX-XXX-XXX)
+      if (cleaned.length === 10) {
+        return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+      } else if (cleaned.length === 9) {
+         // Typical landline: 02-123-4567 or 044-123-456
+         if (cleaned.startsWith('02')) {
+           return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+         }
+         return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
+      }
+
+      // Fallback: return original or just cleaned
+      return phone;
     }
   }
 };
@@ -199,6 +239,13 @@ export default {
 
 .residence-tab {
   padding: 10px;
+}
+
+.no-data-alert {
+  color: red;
+  font-size: 12px;
+  margin-left: 8px;
+  font-weight: normal;
 }
 
 .map-container {

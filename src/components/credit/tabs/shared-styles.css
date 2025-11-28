@@ -152,6 +152,7 @@ label {
   font-family: inherit;
   box-sizing: border-box;
   width: 100%;
+  color: #000000; /* Ensure text is black */
 }
 
 .form-input.disabled,
@@ -170,5 +171,5 @@ select.form-control {
     background-repeat: no-repeat;
     background-position: right .7em top 50%;
     background-size: .65em auto;
-    color: #333;
+    color: #000000; /* Ensure text is black */
 }
