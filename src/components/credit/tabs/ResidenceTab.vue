@@ -96,7 +96,10 @@
       </div>
        <div class="bottom-grid">
          <div class="form-group">
-          <label>เบอร์โทรศัพท์</label>
+          <label>
+            เบอร์โทรศัพท์ 
+            <span v-if="!formData.phone" class="no-data-alert">ไม่พบข้อมูล</span>
+          </label>
           <input type="text" class="form-control" v-model="formData.phone" placeholder="0XX-XXX-XXXX" />
         </div>
         <div class="form-group">
@@ -112,7 +115,6 @@
               <option value="สำนักงานบนอาคารชุด">สำนักงานบนอาคารชุด</option>
               <option value="บ้าน">บ้าน</option>
               <option value="โรงงาน">โรงงาน</option>
-              <option value="อื่นๆ">อื่นๆ</option>
             </select>
             <input type="text" class="form-control" v-model="formData.locationTypeOther" placeholder="ระบุ..." />
           </div>
@@ -124,7 +126,6 @@
               <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
               <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
               <option value="เช่า">เช่า</option>
-              <option value="อื่นๆ">อื่นๆ</option>
             </select>
             <input type="text" class="form-control" v-model="formData.ownershipOther" placeholder="ระบุ..." />
           </div>
@@ -238,6 +239,13 @@ export default {
 
 .residence-tab {
   padding: 10px;
+}
+
+.no-data-alert {
+  color: red;
+  font-size: 12px;
+  margin-left: 8px;
+  font-weight: normal;
 }
 
 .map-container {

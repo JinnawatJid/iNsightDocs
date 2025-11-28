@@ -25,6 +25,8 @@ app.get('/api/customers/search', async (req, res) => {
       "Name",
       "Contact",
       "Phone No_",
+      "Telex No.",
+      "Mobile Phone No.",
       "VAT Registration No_",
       "Address",
       "City",
@@ -62,12 +64,22 @@ app.get('/api/customers/search', async (req, res) => {
       const isCompany = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
       const customerType = isCompany ? 'Company' : 'Individual';
 
+      // Logic: Phone Number Fallback
+      // Search order: Phone No_ -> Telex No. -> Mobile Phone No.
+      let finalPhone = row["Phone No_"];
+      if (!finalPhone || finalPhone.trim() === '') {
+        finalPhone = row["Telex No."];
+      }
+      if (!finalPhone || finalPhone.trim() === '') {
+        finalPhone = row["Mobile Phone No."];
+      }
+
       return {
         customer: {
           id: row["No_"],
           name: row["Name"], // Company/Store Name
           contact_person: row["Contact"], // Person Name
-          phone: row["Phone No_"],
+          phone: finalPhone, // Mapped with fallback logic
           tax_id: row["VAT Registration No_"],
           type: customerType,
           address_residential: fullAddress, // Assuming same address for now if not specified
