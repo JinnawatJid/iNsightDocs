@@ -241,20 +241,16 @@ export default {
         immediate: true,
         handler(isSame) {
             if (isSame) {
-                this.formData.houseAddress = this.customerData.Address || '';
-                this.formData.postCode = this.customerData['Post Code'] || '';
-                this.formData.district = this.customerData.City || '';
-                this.formData.city = this.customerData.County || '';
-                this.formData.phone = this.customerData['Phone No_'] || '';
+                this.formData.houseAddress = this.customerData.address || '';
+                this.formData.postCode = this.customerData.zipcode || '';
+                this.formData.district = this.customerData.district || '';
+                this.formData.city = this.customerData.province || '';
+                this.formData.phone = this.customerData.phone || '';
                 this.formData.email = this.customerData.email || '';
-                // Since subdistrict is not in the main data, we might need to trigger a lookup
-                // if a post code exists.
-                if (this.formData.postCode) {
-                    const results = searchAddressByZipcode(this.formData.postCode);
-                    if (results.length > 0) {
-                        this.formData.subdistrict = results[0].district;
-                    }
-                }
+
+                // User requirement: Do NOT auto-fill subdistrict even when copying address.
+                // It must be manually filled.
+                this.formData.subdistrict = '';
             } else {
                 // Clear the fields for manual entry
                 this.formData.houseAddress = '';
@@ -271,7 +267,8 @@ export default {
       if (!this.isSameAddress && newZip && newZip.length === 5) {
         const results = searchAddressByZipcode(newZip);
         if (results.length > 0) {
-          this.formData.subdistrict = results[0].district;
+          // User requirement: Do NOT auto-fill subdistrict. Leave it blank.
+          // this.formData.subdistrict = results[0].district;
           this.formData.district = results[0].amphoe;
           this.formData.city = results[0].province;
         }

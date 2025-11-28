@@ -156,13 +156,17 @@ export default {
       deep: true,
       handler(newVal) {
         if (newVal) {
-          this.formData.houseAddress = newVal.Address || '';
-          this.formData.postCode = newVal['Post Code'] || '';
-          this.formData.district = newVal.City || '';
-          this.formData.city = newVal.County || '';
-          this.formData.phone = newVal['Phone No_'] || '';
+          console.log("ResidenceTab received customerData:", JSON.stringify(newVal));
+          // Map data from backend (new raw fields added in server.js)
+          this.formData.houseAddress = newVal.address || '';
+          this.formData.postCode = newVal.zipcode || '';
+          this.formData.district = newVal.district || '';
+          this.formData.city = newVal.province || '';
+          this.formData.phone = newVal.phone || ''; // backend maps 'Phone No_' to 'phone'
           this.formData.email = newVal.email || '';
-          // Assuming subdistrict is not in the initial fetch
+
+          // Ensure subdistrict is blank for manual entry
+          this.formData.subdistrict = '';
         }
       }
     },
@@ -170,7 +174,8 @@ export default {
       if (newZip && newZip.length === 5) {
         const results = searchAddressByZipcode(newZip);
         if (results.length > 0) {
-          this.formData.subdistrict = results[0].district;
+          // User requirement: Do NOT auto-fill subdistrict. Leave it blank.
+          // this.formData.subdistrict = results[0].district;
           this.formData.district = results[0].amphoe;
           this.formData.city = results[0].province;
         }
