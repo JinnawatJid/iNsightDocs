@@ -72,7 +72,12 @@ app.get('/api/customers/search', async (req, res) => {
           type: customerType,
           address_residential: fullAddress, // Assuming same address for now if not specified
           address_company: fullAddress,
-          company_name: row["Name"] // Mapped same as name
+          company_name: row["Name"], // Mapped same as name
+          // Raw address fields for form pre-filling
+          address: row["Address"],
+          district: row["City"],       // Amphoe/District
+          province: row["County"],     // Province
+          zipcode: row["Post Code"]
         },
         // Mocking history/financials for now as they are likely in different tables
         // In a real scenario, you'd do a JOIN or separate queries here.
