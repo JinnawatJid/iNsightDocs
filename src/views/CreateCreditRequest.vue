@@ -14,11 +14,11 @@
       <div class="main-grid">
         <!-- Left Column: History -->
         <div class="grid-col left">
-          <CreditHistorySidebar
+          <!-- <CreditHistorySidebar
             :customerName="customer.name"
             :historyItems="history"
             :searched="hasSearched"
-          />
+          /> -->
         </div>
 
         <!-- Center Column: Purpose/Form -->
@@ -31,13 +31,13 @@
 
         <!-- Right Column: Idea/Summary -->
         <div class="grid-col right">
-           <CreditScoreSummary
+           <!-- <CreditScoreSummary
              v-if="hasSearched"
              :financial="financialSummary"
              :canRequest="creditScore.can_request_credit"
              :badges="creditScore.badges"
              :suggestions="creditScore.suggestions"
-           />
+           /> -->
         </div>
       </div>
     </div>
@@ -78,6 +78,7 @@ export default {
       console.log('Searching for:', query);
       try {
         const results = await CustomerService.searchCustomers(query);
+        console.log('Search results received:', results);
         if (results && results.length > 0) {
           // Assuming we pick the first match for now, or we could show a list selection modal
           // The user logic implies we just want to fill the form with the result.

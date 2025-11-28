@@ -170,7 +170,7 @@ export default {
       if (newZip && newZip.length === 5) {
         const results = searchAddressByZipcode(newZip);
         if (results.length > 0) {
-          this.formData.subdistrict = results[0].district;
+          // this.formData.subdistrict = results[0].district; // Removed auto-fill for subdistrict
           this.formData.district = results[0].amphoe;
           this.formData.city = results[0].province;
         }
