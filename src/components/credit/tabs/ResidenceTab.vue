@@ -179,7 +179,7 @@ export default {
           this.formData.city = newVal.province || '';
           this.formData.phone = this.formatPhoneNumber(newVal.phone || '');
           this.formData.email = newVal.email || '';
-
+          
           // Ensure subdistrict is blank for manual entry
           this.formData.subdistrict = '';
         }
@@ -190,7 +190,7 @@ export default {
         const results = searchAddressByZipcode(newZip);
         if (results.length > 0) {
           // User requirement: Do NOT auto-fill subdistrict. Leave it blank.
-          // this.formData.subdistrict = results[0].district;
+          // this.formData.subdistrict = results[0].district; 
           this.formData.district = results[0].amphoe;
           this.formData.city = results[0].province;
         }
@@ -214,7 +214,7 @@ export default {
       if (!phone) return '';
       // Remove all non-digit characters
       const cleaned = phone.replace(/\D/g, '');
-
+      
       // Check for standard 10-digit mobile (08X-XXX-XXXX) or 9-digit landline (02-XXX-XXXX or 0XX-XXX-XXX)
       if (cleaned.length === 10) {
         return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
@@ -225,9 +225,9 @@ export default {
          }
          return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
       }
-
+      
       // Fallback: return original or just cleaned
-      return phone;
+      return phone; 
     }
   }
 };
