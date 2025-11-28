@@ -264,7 +264,7 @@ export default {
                 this.formData.city = this.customerData.province || '';
                 this.formData.phone = this.formatPhoneNumber(this.customerData.phone || '');
                 this.formData.email = this.customerData.email || '';
-
+                
                 // User requirement: Do NOT auto-fill subdistrict even when copying address.
                 // It must be manually filled.
                 this.formData.subdistrict = '';
@@ -316,7 +316,7 @@ export default {
          }
          return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
       }
-      return phone;
+      return phone; 
     }
   }
 };
