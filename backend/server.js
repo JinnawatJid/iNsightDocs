@@ -25,8 +25,8 @@ app.get('/api/customers/search', async (req, res) => {
       "Name",
       "Contact",
       "Phone No_",
-      "Telex No.",
-      "Mobile Phone No.",
+      "Telex No_",
+      "Mobile Phone No_",
       "VAT Registration No_",
       "Address",
       "City",
@@ -37,6 +37,7 @@ app.get('/api/customers/search', async (req, res) => {
       "Name" ILIKE $1 OR
       "No_" ILIKE $1 OR
       "Phone No_" ILIKE $1 OR
+      "Mobile Phone No_" ILIKE $1 OR
       "Contact" ILIKE $1
     LIMIT 20
   `;
@@ -68,10 +69,10 @@ app.get('/api/customers/search', async (req, res) => {
       // Search order: Phone No_ -> Telex No. -> Mobile Phone No.
       let finalPhone = row["Phone No_"];
       if (!finalPhone || finalPhone.trim() === '') {
-        finalPhone = row["Telex No."];
+        finalPhone = row["Telex No_"];
       }
       if (!finalPhone || finalPhone.trim() === '') {
-        finalPhone = row["Mobile Phone No."];
+        finalPhone = row["Mobile Phone No_"];
       }
 
       return {
