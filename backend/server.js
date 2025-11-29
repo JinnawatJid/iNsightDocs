@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-// const db = require('./db'); // Database disabled for mock mode
+const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,67 +8,18 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Mock Data
-const MOCK_CUSTOMERS = [
-  {
-    "No_": "C001",
-    "Name": "Siam Department Store",
-    "Contact": "Mr. Somchai",
-    "Phone No_": "02-123-4567",
-    "Telex No_": "",
-    "Mobile Phone No_": "081-987-6543",
-    "VAT Registration No_": "1234567890123",
-    "Address": "123 Sukhumvit Road",
-    "City": "Wattana",
-    "County": "Bangkok",
-    "Post Code": "10110"
-  },
-  {
-    "No_": "C002",
-    "Name": "Chiang Mai Retail",
-    "Contact": "Ms. Malee",
-    "Phone No_": "053-111-222",
-    "Telex No_": "",
-    "Mobile Phone No_": "",
-    "VAT Registration No_": "",
-    "Address": "456 Nimman Road",
-    "City": "Muang",
-    "County": "Chiang Mai",
-    "Post Code": "50200"
-  }
-];
-
-const MOCK_AY_ACCUM = {
-  "C001": {
-    custcode: "C001",
-    Mar: "100,000",
-    Apr: "120,000",
-    May: "110,000",
-    firstAccum: "330,000",
-    firstTrend: 1.1,
-    SecondTrend: 0.95,
-    AvgFirstTrend: 1.05,
-    Jun: "105,000",
-    Jul: "115,000",
-    Aug: "91,430", // Sum = 311,430
-    SecondAccum: "311,430",
-    ThirdTrend: 1.27, // 1.27 -> +27%
-    FourthTrend: 0.85,
-    SecondAvgTrend: 1.05, // 1.05 -> +5%
-    AccumTrend: 1.27 // Duplicate of ThirdTrend/logic? prompt says "below it will be AccumTrend"
-  }
-};
-
 // Helper to format currency
 const formatCurrency = (val) => {
     // If it's already a string with commas, try to keep it, otherwise format
-    if (typeof val === 'string') return val;
+    if (!val) return "0";
+    if (typeof val === 'string' && val.includes(',')) return val;
     return new Intl.NumberFormat('en-US').format(val);
 };
 
 // Helper to parse float from string (remove commas)
 const parseAmount = (str) => {
   if (!str) return 0;
+  if (typeof str === 'number') return str;
   return parseFloat(str.replace(/,/g, ''));
 };
 
@@ -77,11 +28,8 @@ const formatTrend = (value) => {
   if (value === null || value === undefined) return null;
   // logic: (Value * 100) - 100
   const percentage = (value * 100) - 100;
-  const absPercentage = Math.abs(percentage).toFixed(2); // Keep 2 decimals or as integer? Prompt says "27%" in image, "0.86" in text.
-  // Image shows "เพิ่มขึ้น 27% ...". Let's format to integer if possible or 1 decimal.
-  // Prompt: "AccumTrend which looks like 0.86, 0.97, 1.21 you need to minus by 100"
-  // Wait, if 1.21 -> 121 - 100 = 21.
-
+  const absPercentage = Math.abs(percentage).toFixed(2);
+  
   const displayVal = Number.isInteger(percentage) ? percentage : percentage.toFixed(2);
   const absDisplayVal = Math.abs(displayVal);
 
@@ -96,115 +44,166 @@ const formatTrend = (value) => {
 
 // Search API
 app.get('/api/customers/search', async (req, res) => {
-  const query = req.query.q ? req.query.q.toLowerCase() : '';
+  const query = req.query.q;
 
   if (!query) {
     return res.status(400).json({ error: "Query parameter 'q' is required" });
   }
 
-  // Mock Search Logic
-  const rows = MOCK_CUSTOMERS.filter(c =>
-    c["Name"].toLowerCase().includes(query) ||
-    c["No_"].toLowerCase().includes(query) ||
-    c["Phone No_"].includes(query)
-  );
+  // Postgres SQL Query
+  const sql = `
+    SELECT
+      "No_",
+      "Name",
+      "Contact",
+      "Phone No_",
+      "Telex No_",
+      "Mobile Phone No_",
+      "VAT Registration No_",
+      "Address",
+      "City",
+      "County",
+      "Post Code"
+    FROM "Customers"
+    WHERE
+      "Name" ILIKE $1 OR
+      "No_" ILIKE $1 OR
+      "Phone No_" ILIKE $1 OR
+      "Mobile Phone No_" ILIKE $1 OR
+      "Contact" ILIKE $1
+    LIMIT 20
+  `;
 
-  const results = rows.map(row => {
-    // Basic Customer Logic
-    const addressParts = [
-      row["Address"],
-      row["City"],
-      row["County"],
-      row["Post Code"]
-    ].filter(part => part && part.trim() !== "");
+  const searchPattern = `%${query}%`;
+  const params = [searchPattern];
 
-    const fullAddress = addressParts.join(' ');
-    const isCompany = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
-    const customerType = isCompany ? 'Company' : 'Individual';
+  try {
+    const { rows } = await db.query(sql, params);
 
-    let finalPhone = row["Phone No_"];
-    if (!finalPhone || finalPhone.trim() === '') finalPhone = row["Telex No_"];
-    if (!finalPhone || finalPhone.trim() === '') finalPhone = row["Mobile Phone No_"];
+    // Transform data to match frontend expectations
+    // Use Promise.all to handle async DB calls for each customer
+    const results = await Promise.all(rows.map(async (row) => {
+      // Logic: Address Concatenation
+      const addressParts = [
+        row["Address"],
+        row["City"],
+        row["County"],
+        row["Post Code"]
+      ].filter(part => part && part.trim() !== ""); 
 
-    // Financial Summary Logic (Mock AY_ACCUM)
-    const accumData = MOCK_AY_ACCUM[row["No_"]];
-    let financialSummary = {};
-    let suggestions = [];
+      const fullAddress = addressParts.join(' ');
 
-    if (accumData) {
-        // Calculate Avg Monthly
-        const jun = parseAmount(accumData.Jun);
-        const jul = parseAmount(accumData.Jul);
-        const aug = parseAmount(accumData.Aug);
-        const avgRaw = (jun + jul + aug) / 1.5; // Requirement: divide by 1.5
-        const avgMonthly = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(avgRaw);
+      // Logic: Company vs Individual
+      const isCompany = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
+      const customerType = isCompany ? 'Company' : 'Individual';
 
-        // Trends
-        const totalPurchaseGrowth = formatTrend(accumData.AccumTrend); // Using AccumTrend for total purchase
-        const avgMonthlyTrend = formatTrend(accumData.SecondAvgTrend); // Using SecondAvgTrend for avg monthly
-
-        financialSummary = {
-            total_purchase_3_months: formatCurrency(accumData.SecondAccum), // Display SecondAccum
-            total_purchase_growth: totalPurchaseGrowth,
-            avg_monthly: avgMonthly,
-            avg_monthly_trend: avgMonthlyTrend
-        };
-
-        // Generate Suggestions based on vision/logic
-        if (accumData.AccumTrend > 1) {
-            suggestions.push("ลูกค้ามีแนวโน้มการซื้อที่ดีและเพิ่มขึ้นอย่างต่อเนื่อง"); // Customer has good buying trend and increasing continuously
-        } else {
-            suggestions.push("ยอดการสั่งซื้อมีแนวโน้มลดลง ควรติดตามสาเหตุ");
-        }
-
-        if (parseAmount(accumData.SecondAccum) > 300000) {
-            suggestions.push("เป็นลูกค้าชั้นดี มียอดซื้อสะสมสูง"); // High value customer
-        }
-
-        suggestions.push("รักษาประวัติการชำระเงินได้ดี"); // Maintains good payment history (Generic)
-        suggestions.push("ควรเสนอโปรโมชั่นเพื่อกระตุ้นยอดขายเพิ่มเติม"); // Should offer promo to boost sales (Generic)
-
-    } else {
-        // Fallback if no ACCUM data
-        financialSummary = {
-            total_purchase_3_months: "0",
-            total_purchase_growth: null,
-            avg_monthly: "0",
-            avg_monthly_trend: null
-        };
-        suggestions = ["ไม่พบข้อมูลประวัติการซื้อ"];
-    }
-
-    return {
-      customer: {
-        id: row["No_"],
-        name: row["Name"],
-        contact_person: row["Contact"],
-        phone: finalPhone,
-        tax_id: row["VAT Registration No_"],
-        type: customerType,
-        address_residential: fullAddress,
-        address_company: fullAddress,
-        company_name: row["Name"],
-        address: row["Address"],
-        district: row["City"],
-        province: row["County"],
-        zipcode: row["Post Code"]
-      },
-      history: [],
-      financial_summary: financialSummary,
-      credit_score: {
-          can_request_credit: true, // Mocking
-          badges: [], // User asked to keep empty for now
-          suggestions: suggestions
+      // Logic: Phone Number Fallback
+      let finalPhone = row["Phone No_"];
+      if (!finalPhone || finalPhone.trim() === '') {
+        finalPhone = row["Telex No_"];
       }
-    };
-  });
+      if (!finalPhone || finalPhone.trim() === '') {
+        finalPhone = row["Mobile Phone No_"];
+      }
 
-  // Artificial delay to simulate network
-  setTimeout(() => {
+      // --- Financial Data Fetching (AY_ACCUM) ---
+      let financialSummary = {};
+      let suggestions = [];
+      
+      try {
+          const accumSql = `SELECT * FROM "AY_ACCUM" WHERE "custcode" = $1`;
+          const accumRes = await db.query(accumSql, [row["No_"]]);
+          const accumData = accumRes.rows[0];
+
+          if (accumData) {
+              // Calculate Avg Monthly
+              const jun = parseAmount(accumData.Jun);
+              const jul = parseAmount(accumData.Jul);
+              const aug = parseAmount(accumData.Aug);
+              const avgRaw = (jun + jul + aug) / 1.5;
+              const avgMonthly = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(avgRaw);
+
+              // Trends
+              // Note: Using AccumTrend for total purchase growth as per previous mock logic
+              // and SecondAvgTrend for avg monthly trend.
+              const totalPurchaseGrowth = formatTrend(accumData.AccumTrend); 
+              const avgMonthlyTrend = formatTrend(accumData.SecondAvgTrend);
+
+              financialSummary = {
+                  total_purchase_3_months: formatCurrency(accumData.SecondAccum),
+                  total_purchase_growth: totalPurchaseGrowth,
+                  avg_monthly: avgMonthly,
+                  avg_monthly_trend: avgMonthlyTrend
+              };
+
+              // Generate Suggestions
+              if (accumData.AccumTrend > 1) {
+                  suggestions.push("ลูกค้ามีแนวโน้มการซื้อที่ดีและเพิ่มขึ้นอย่างต่อเนื่อง");
+              } else {
+                  suggestions.push("ยอดการสั่งซื้อมีแนวโน้มลดลง ควรติดตามสาเหตุ");
+              }
+
+              if (parseAmount(accumData.SecondAccum) > 300000) {
+                  suggestions.push("เป็นลูกค้าชั้นดี มียอดซื้อสะสมสูง");
+              }
+
+              suggestions.push("รักษาประวัติการชำระเงินได้ดี");
+              suggestions.push("ควรเสนอโปรโมชั่นเพื่อกระตุ้นยอดขายเพิ่มเติม");
+
+          } else {
+              // Fallback if no AY_ACCUM data found for this customer
+              financialSummary = {
+                  total_purchase_3_months: "0",
+                  total_purchase_growth: null,
+                  avg_monthly: "0",
+                  avg_monthly_trend: null
+              };
+              suggestions = ["ไม่พบข้อมูลประวัติการซื้อ"];
+          }
+      } catch (accumErr) {
+          console.error(`Error fetching AY_ACCUM for ${row["No_"]}:`, accumErr);
+          // Fallback on error
+           financialSummary = {
+              total_purchase_3_months: "0",
+              total_purchase_growth: null,
+              avg_monthly: "0",
+              avg_monthly_trend: null
+          };
+      }
+
+
+      return {
+        customer: {
+          id: row["No_"],
+          name: row["Name"], 
+          contact_person: row["Contact"], 
+          phone: finalPhone, 
+          tax_id: row["VAT Registration No_"],
+          type: customerType,
+          address_residential: fullAddress, 
+          address_company: fullAddress,
+          company_name: row["Name"], 
+          address: row["Address"],
+          district: row["City"],       
+          province: row["County"],     
+          zipcode: row["Post Code"]
+        },
+        history: [], // Still empty as per requirements/scope
+        financial_summary: financialSummary,
+        credit_score: {
+             can_request_credit: true, 
+             badges: [], 
+             suggestions: suggestions
+        }
+      };
+    }));
+
     res.json(results);
-  }, 500);
+
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: "Internal Server Error", details: err.message });
+  }
 });
 
 app.listen(PORT, () => {
