@@ -1,6 +1,6 @@
 <template>
   <div class="credit-score-summary">
-    <div v-if="canRequest" class="status-section">
+    <div v-if="canRequest && badges.length > 0" class="status-section">
       <div class="status-header">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="green" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
         <span class="status-text">สามารถขอเครดิตใหม่ได้</span>
@@ -10,9 +10,8 @@
           {{ badge.text }}
         </span>
       </div>
+       <hr class="divider" />
     </div>
-
-    <hr class="divider" />
 
     <div class="summary-section">
       <h3>พฤติกรรมการซื้อ</h3>
@@ -22,8 +21,10 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-shopping-cart"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
           <span>ยอดซื้อรวม 3 เดือน</span>
         </div>
-        <div class="stat-value highlight">{{ financial.total_purchase_3_months }}</div>
-        <div class="stat-trend up" v-if="financial.total_purchase_growth">{{ financial.total_purchase_growth }}</div>
+        <div class="stat-value highlight">{{ financial.total_purchase_3_months }} บาท</div>
+        <div class="stat-trend" :class="getTrendClass(financial.total_purchase_growth)" v-if="financial.total_purchase_growth">
+            {{ financial.total_purchase_growth }}
+        </div>
       </div>
 
       <div class="stat-item">
@@ -31,8 +32,10 @@
           <span class="currency-symbol">฿</span>
           <span>ค่าเฉลี่ยต่อเดือน</span>
         </div>
-        <div class="stat-value blue">{{ financial.avg_monthly }}</div>
-        <div class="stat-trend text-blue" v-if="financial.avg_monthly_trend">{{ financial.avg_monthly_trend }}</div>
+        <div class="stat-value blue">{{ financial.avg_monthly }} บาท</div>
+        <div class="stat-trend" :class="getTrendClass(financial.avg_monthly_trend)" v-if="financial.avg_monthly_trend">
+            {{ financial.avg_monthly_trend }}
+        </div>
       </div>
     </div>
 
@@ -65,6 +68,14 @@ export default {
       type: Array,
       default: () => []
     }
+  },
+  methods: {
+      getTrendClass(trendString) {
+          if (!trendString) return '';
+          if (trendString.includes('เพิ่มขึ้น')) return 'up'; // Increase
+          if (trendString.includes('ลดลง')) return 'down'; // Decrease
+          return 'neutral';
+      }
   }
 };
 </script>
@@ -141,10 +152,11 @@ h3 {
 .currency-symbol {
   font-weight: bold;
   font-size: 18px;
+  line-height: 1;
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: bold;
   margin-bottom: 2px;
 }
@@ -154,20 +166,29 @@ h3 {
 }
 
 .stat-value.blue {
-  color: #0056FF;
+  color: #007BFF;
 }
 
 .stat-trend {
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .stat-trend.up {
-  color: #28a745;
+  color: #28a745; /* Green */
 }
 
-.stat-trend.text-blue {
-  color: #0056FF; /* Light blue trend text */
+.stat-trend.down {
+    color: #dc3545; /* Red */
 }
+
+.stat-trend.neutral {
+    color: #6c757d;
+}
+
+/* User asked for format "like the AccumTrend" for the second trend, which implies green/blue is less important than consistency.
+   However, typically 'up' is green, 'down' is red. I used getTrendClass to handle this dynamically.
+   The original code had .text-blue for the second one, but I'll stick to semantic colors (up=green, down=red) unless forced otherwise.
+*/
 
 .suggestion-section {
   text-align: left;
