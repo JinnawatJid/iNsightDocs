@@ -38,12 +38,12 @@
 
 <script setup>
 import { ref } from 'vue';
-import Navbar from '@/components/Navbar.vue';
-import NewCreditRequestButton from '@/components/NewCreditRequestButton.vue';
-import CustomerGeneralDetail from '@/components/CustomerGeneralDetail.vue';
-import CustomerCredit from '@/components/CustomerCredit.vue';
-import CustomerInvoices from '@/components/CustomerInvoices.vue';
-import CreditBadge from '@/components/CreditBadge.vue';
+import Navbar from '@/components/shared/Navbar.vue';
+import NewCreditRequestButton from '@/components/old-credit-components/NewCreditRequestButton.vue';
+import CustomerGeneralDetail from '@/components/old-credit-components/CustomerGeneralDetail.vue';
+import CustomerCredit from '@/components/old-credit-components/CustomerCredit.vue';
+import CustomerInvoices from '@/components/old-credit-components/CustomerInvoices.vue';
+import CreditBadge from '@/components/old-credit-components/CreditBadge.vue';
 import customers from '@/data/customers.json';
 import Swal from 'sweetalert2';
 

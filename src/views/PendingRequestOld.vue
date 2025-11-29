@@ -87,8 +87,8 @@
 </template>
 
 <script>
-import Navbar from '@/components/Navbar.vue';
-import Pagination from '@/components/Pagination.vue';
+import Navbar from '@/components/shared/Navbar.vue';
+import Pagination from '@/components/shared/Pagination.vue';
 import customers from '@/data/customers.json';
 
 export default {
