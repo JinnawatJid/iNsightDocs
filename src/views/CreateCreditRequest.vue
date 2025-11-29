@@ -45,7 +45,7 @@
 </template>
 
 <script>
-import Navbar from '@/components/Navbar.vue';
+import Navbar from '@/components/shared/Navbar.vue';
 import CreditRequestHeader from '@/components/credit/CreditRequestHeader.vue';
 import CreditHistorySidebar from '@/components/credit/CreditHistorySidebar.vue';
 import CreditRequestForm from '@/components/credit/CreditRequestForm.vue';
