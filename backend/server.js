@@ -29,7 +29,7 @@ const formatTrend = (value) => {
   // logic: (Value * 100) - 100
   const percentage = (value * 100) - 100;
   const absPercentage = Math.abs(percentage).toFixed(2);
-
+  
   const displayVal = Number.isInteger(percentage) ? percentage : percentage.toFixed(2);
   const absDisplayVal = Math.abs(displayVal);
 
@@ -89,7 +89,7 @@ app.get('/api/customers/search', async (req, res) => {
         row["City"],
         row["County"],
         row["Post Code"]
-      ].filter(part => part && part.trim() !== "");
+      ].filter(part => part && part.trim() !== ""); 
 
       const fullAddress = addressParts.join(' ');
 
@@ -109,7 +109,7 @@ app.get('/api/customers/search', async (req, res) => {
       // --- Financial Data Fetching (AY_ACCUM) ---
       let financialSummary = {};
       let suggestions = [];
-
+      
       try {
           // Debugging Log
           const customerId = row["No_"] ? row["No_"].trim() : "";
@@ -117,7 +117,7 @@ app.get('/api/customers/search', async (req, res) => {
 
           // Robust Query: Trimmed ID and Unquoted Column Name (folds to lowercase in PG unless strictly quoted)
           // Also explicitly trying trim on the parameter side.
-          const accumSql = `SELECT * FROM "AY_ACCUM" WHERE custcode = $1`;
+          const accumSql = `SELECT * FROM "AY_ACCUM" WHERE custcode = $1`; 
           const accumRes = await db.query(accumSql, [customerId]);
           const accumData = accumRes.rows[0];
 
@@ -134,7 +134,7 @@ app.get('/api/customers/search', async (req, res) => {
               const avgMonthly = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(avgRaw);
 
               // Trends
-              const totalPurchaseGrowth = formatTrend(accumData.AccumTrend);
+              const totalPurchaseGrowth = formatTrend(accumData.AccumTrend); 
               const avgMonthlyTrend = formatTrend(accumData.SecondAvgTrend);
 
               financialSummary = {
@@ -184,24 +184,24 @@ app.get('/api/customers/search', async (req, res) => {
       return {
         customer: {
           id: row["No_"],
-          name: row["Name"],
-          contact_person: row["Contact"],
-          phone: finalPhone,
+          name: row["Name"], 
+          contact_person: row["Contact"], 
+          phone: finalPhone, 
           tax_id: row["VAT Registration No_"],
           type: customerType,
-          address_residential: fullAddress,
+          address_residential: fullAddress, 
           address_company: fullAddress,
-          company_name: row["Name"],
+          company_name: row["Name"], 
           address: row["Address"],
-          district: row["City"],
-          province: row["County"],
+          district: row["City"],       
+          province: row["County"],     
           zipcode: row["Post Code"]
         },
-        history: [],
+        history: [], 
         financial_summary: financialSummary,
         credit_score: {
-             can_request_credit: true,
-             badges: [],
+             can_request_credit: true, 
+             badges: [], 
              suggestions: suggestions
         }
       };
