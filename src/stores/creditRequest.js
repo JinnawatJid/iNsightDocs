@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import CustomerService from '@/services/CustomerService';
+import CreditRequestService from '@/services/CreditRequestService';
 import Swal from 'sweetalert2';
 
 export const useCreditRequestStore = defineStore('creditRequest', {
@@ -10,8 +11,36 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     financialSummary: {},
     creditScore: {},
     loading: false,
-    error: null
+    error: null,
+
+    // New state for Request Status and Approval Chance
+    requestId: null, // Displayed as TxId
+    requestStatus: null, // e.g. 'Draft'
+    uploadedDocuments: {}, // Key: docName, Value: boolean (has file)
   }),
+
+  getters: {
+    uploadedDocumentCount: (state) => {
+      return Object.values(state.uploadedDocuments).filter(val => val).length;
+    },
+
+    approvalChanceLevel: (state) => {
+      // Total docs tracked = 4 (2 from GeneralInfo, 2 from Residence)
+      const totalDocs = 4;
+      const count = Object.values(state.uploadedDocuments).filter(val => val).length;
+      const ratio = count / totalDocs;
+
+      if (ratio < 1/3) return 'Low';
+      if (ratio < 2/3) return 'Medium';
+      return 'High';
+    },
+
+    approvalChancePercent: (state) => {
+      const totalDocs = 4;
+      const count = Object.values(state.uploadedDocuments).filter(val => val).length;
+      return Math.min(100, Math.round((count / totalDocs) * 100));
+    }
+  },
 
   actions: {
     async searchCustomer(query) {
@@ -31,6 +60,9 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           this.financialSummary = data.financial_summary || {};
           this.creditScore = data.credit_score || {};
           this.hasSearched = true;
+
+          // Automatically create a credit request transaction
+          await this.createCreditRequest(this.customer.name);
 
           if (results.length > 1) {
             Swal.fire({
@@ -60,6 +92,23 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       }
     },
 
+    async createCreditRequest(customerName) {
+      try {
+        const result = await CreditRequestService.createCreditRequest(customerName);
+        if (result && result.data) {
+          this.requestId = result.data.txId;
+          this.requestStatus = 'Draft'; // API sets it to Draft
+        }
+      } catch (err) {
+        console.error('Failed to create credit request transaction', err);
+        // We don't block the UI flow, but maybe log it
+      }
+    },
+
+    updateDocumentStatus(docKey, hasFile) {
+      this.uploadedDocuments[docKey] = hasFile;
+    },
+
     resetState() {
       this.hasSearched = false;
       this.customer = {};
@@ -67,6 +116,9 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.financialSummary = {};
       this.creditScore = {};
       this.error = null;
+      this.requestId = null;
+      this.requestStatus = null;
+      this.uploadedDocuments = {};
     }
   }
 });

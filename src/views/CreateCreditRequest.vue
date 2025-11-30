@@ -4,11 +4,15 @@
     <div class="page-content">
       <!-- Header row aligned with center column -->
       <div class="main-grid header-row">
-        <div class="grid-col left"></div>
+        <div class="grid-col left">
+          <RequestStatus v-if="store.hasSearched" />
+        </div>
         <div class="grid-col center">
           <CreditRequestHeader @search="store.searchCustomer" />
         </div>
-        <div class="grid-col right"></div>
+        <div class="grid-col right">
+          <ApprovalChance v-if="store.hasSearched" />
+        </div>
       </div>
 
       <div class="main-grid">
@@ -53,8 +57,10 @@
 import Navbar from '@/components/shared/Navbar.vue';
 import CreditRequestHeader from '@/components/credit/CreditRequestHeader.vue';
 import CreditHistorySidebar from '@/components/credit/CreditHistorySidebar.vue';
+import RequestStatus from '@/components/credit/RequestStatus.vue';
 import CreditRequestForm from '@/components/credit/CreditRequestForm.vue';
 import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
+import ApprovalChance from '@/components/credit/ApprovalChance.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const store = useCreditRequestStore();
