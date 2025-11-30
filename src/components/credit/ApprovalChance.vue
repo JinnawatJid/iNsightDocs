@@ -4,13 +4,13 @@
       <span class="title">โอกาสในการอนุมัติ</span>
       <span class="chance-level" :class="levelClass">{{ chanceText }}</span>
     </div>
-
+    
     <div class="progress-container">
       <div class="progress-bar-bg">
         <div class="progress-bar-fill" :class="levelClass" :style="{ width: store.approvalChancePercent + '%' }"></div>
       </div>
     </div>
-
+    
     <div class="footer">
       <span class="upload-text">อัปโหลดเอกสาร เพื่อเพิ่มโอกาสในการอนุมัติ</span>
     </div>
@@ -43,9 +43,13 @@ const levelClass = computed(() => {
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 15px 20px;
+  padding: 20px;
   margin-bottom: 20px;
   text-align: left;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .header {
@@ -72,7 +76,7 @@ const levelClass = computed(() => {
 
 .chance-level.medium {
   color: #ffc107; /* Yellow/Orange - bootstrap warning color usually needs darker text on white */
-  color: #ffaa00;
+  color: #ffaa00; 
 }
 
 .chance-level.high {

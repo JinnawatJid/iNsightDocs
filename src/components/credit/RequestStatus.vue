@@ -25,13 +25,17 @@ const store = useCreditRequestStore();
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 15px 20px;
+  padding: 20px;
   margin-bottom: 20px;
   text-align: left;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .header {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   font-size: 16px;
 }
 

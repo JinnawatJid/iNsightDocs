@@ -83,7 +83,7 @@ const store = useCreditRequestStore();
   display: grid;
   grid-template-columns: 300px 1fr 300px;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
 }
 
 /* Responsive adjustments */
@@ -91,6 +91,16 @@ const store = useCreditRequestStore();
   .main-grid {
     grid-template-columns: 250px 1fr 250px;
   }
+}
+
+/* Ensure header row columns stretch their children */
+.header-row .grid-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-row .grid-col > * {
+  flex-grow: 1;
 }
 
 @media (max-width: 992px) {
