@@ -120,7 +120,7 @@ app.get('/api/customers/search', async (req, res) => {
               const jun = parseAmount(accumData.Jun);
               const jul = parseAmount(accumData.Jul);
               const aug = parseAmount(accumData.Aug);
-              const avgRaw = (jun + jul + aug) / 1.5;
+              const avgRaw = (jun + jul + aug) / 2;
               const avgMonthly = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(avgRaw);
 
               // Trends
