@@ -1,15 +1,25 @@
-require('dotenv').config();
-const { Pool } = require('pg');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
-// Check if DATABASE_URL is provided
-if (!process.env.DATABASE_URL) {
-  console.warn("WARNING: DATABASE_URL is missing in .env file. Database connection will fail.");
-}
+const DB_PATH = path.join(__dirname, 'database.sqlite');
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE, (err) => {
+    if (err) {
+        console.error('Error connecting to the SQLite database:', err.message);
+    } else {
+        console.log('Connected to the SQLite database.');
+    }
 });
 
 module.exports = {
-  query: (text, params) => pool.query(text, params),
+    query: (text, params = []) => {
+        return new Promise((resolve, reject) => {
+            db.all(text, params, (err, rows) => {
+                if (err) {
+                    return reject(err);
+                }
+                resolve({ rows });
+            });
+        });
+    }
 };

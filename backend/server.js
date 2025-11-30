@@ -50,7 +50,8 @@ app.get('/api/customers/search', async (req, res) => {
     return res.status(400).json({ error: "Query parameter 'q' is required" });
   }
 
-  // Postgres SQL Query
+  // SQLite Query
+  // Note: LIKE in SQLite is case-insensitive for ASCII characters by default
   const sql = `
     SELECT
       "No_",
@@ -66,16 +67,17 @@ app.get('/api/customers/search', async (req, res) => {
       "Post Code"
     FROM "Customers"
     WHERE
-      "Name" ILIKE $1 OR
-      "No_" ILIKE $1 OR
-      "Phone No_" ILIKE $1 OR
-      "Mobile Phone No_" ILIKE $1 OR
-      "Contact" ILIKE $1
+      "Name" LIKE ? OR
+      "No_" LIKE ? OR
+      "Phone No_" LIKE ? OR
+      "Mobile Phone No_" LIKE ? OR
+      "Contact" LIKE ?
     LIMIT 20
   `;
 
   const searchPattern = `%${query}%`;
-  const params = [searchPattern];
+  // SQLite params need to be repeated for each placeholder
+  const params = [searchPattern, searchPattern, searchPattern, searchPattern, searchPattern];
 
   try {
     const { rows } = await db.query(sql, params);
@@ -111,7 +113,7 @@ app.get('/api/customers/search', async (req, res) => {
       let suggestions = [];
       
       try {
-          const accumSql = `SELECT * FROM "AY_ACCUM" WHERE "custcode" = $1`;
+          const accumSql = `SELECT * FROM "AY_ACCUM" WHERE "custcode" = ?`;
           const accumRes = await db.query(accumSql, [row["No_"]]);
           const accumData = accumRes.rows[0];
 
