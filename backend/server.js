@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./db');
 const customerRoutes = require('./routes/customerRoutes');
+const creditRequestRoutes = require('./routes/creditRequestRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,6 +12,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/customers', customerRoutes);
+app.use('/api/credit-requests', creditRequestRoutes);
 
 const startServer = async () => {
   await db.initialize();
