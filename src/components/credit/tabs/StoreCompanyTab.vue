@@ -189,7 +189,7 @@ function formatPhoneNumber(phone) {
      }
      return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
   }
-  return phone;
+  return phone; 
 }
 
 // Watch isSameAddress for toggling
@@ -201,7 +201,7 @@ watch(isSameAddress, (isSame) => {
     formData.city = store.customer.province || '';
     formData.phone = formatPhoneNumber(store.customer.phone || '');
     formData.email = store.customer.email || '';
-
+    
     formData.subdistrict = '';
   } else {
     // Clear only if unchecking? Or keep? Usually clear if copying logic is off.

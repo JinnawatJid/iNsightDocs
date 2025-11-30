@@ -135,7 +135,7 @@ const formData = reactive({
 function formatPhoneNumber(phone) {
   if (!phone) return '';
   const cleaned = phone.replace(/\D/g, '');
-
+  
   if (cleaned.length === 10) {
     return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
   } else if (cleaned.length === 9) {
@@ -144,7 +144,7 @@ function formatPhoneNumber(phone) {
      }
      return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
   }
-  return phone;
+  return phone; 
 }
 
 // Watch store.customer for changes
@@ -156,7 +156,7 @@ watch(() => store.customer, (newVal) => {
     formData.city = newVal.province || '';
     formData.phone = formatPhoneNumber(newVal.phone || '');
     formData.email = newVal.email || '';
-
+    
     // Ensure subdistrict is blank for manual entry
     formData.subdistrict = '';
   }

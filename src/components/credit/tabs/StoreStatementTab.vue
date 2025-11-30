@@ -51,7 +51,7 @@ import { reactive } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
-// Although StoreStatementTab currently doesn't read customerData, we connect it to the store
+// Although StoreStatementTab currently doesn't read customerData, we connect it to the store 
 // for consistency and potential future needs (e.g. pre-filling bank info).
 const store = useCreditRequestStore();
 
