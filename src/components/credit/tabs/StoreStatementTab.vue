@@ -46,35 +46,26 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { reactive } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
+import { useCreditRequestStore } from '@/stores/creditRequest';
 
-export default {
-  name: 'StoreStatementTab',
-  components: {
-    FileUploader
-  },
-  props: {
-    customerData: {
-      type: Object,
-      default: () => ({})
-    }
-  },
-  data() {
-    return {
-      files: {
-        bankStatement: []
-      },
-      formData: {
-        accountName: '',
-        accountNumber: '',
-        bank: '',
-        branch: '',
-        accountType: ''
-      }
-    };
-  }
-};
+// Although StoreStatementTab currently doesn't read customerData, we connect it to the store 
+// for consistency and potential future needs (e.g. pre-filling bank info).
+const store = useCreditRequestStore();
+
+const files = reactive({
+  bankStatement: []
+});
+
+const formData = reactive({
+  accountName: '',
+  accountNumber: '',
+  bank: '',
+  branch: '',
+  accountType: ''
+});
 </script>
 
 <style scoped>

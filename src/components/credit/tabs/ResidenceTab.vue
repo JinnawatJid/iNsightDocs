@@ -105,95 +105,73 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { reactive, watch } from 'vue';
 import { searchAddressByZipcode } from 'thai-address-database';
 import FileUploader from '@/components/shared/FileUploader.vue';
+import { useCreditRequestStore } from '@/stores/creditRequest';
 
-export default {
-  name: 'ResidenceTab',
-  components: {
-    FileUploader
-  },
-  props: {
-    customerData: {
-      type: Object,
-      default: () => ({})
-    }
-  },
-  data() {
-    return {
-      files: {
-        homePhoto: null,
-        landTax: null
-      },
-      formData: {
-        houseAddress: '',
-        subdistrict: '',
-        postCode: '',
-        district: '',
-        city: '',
-        phone: '',
-        email: '',
-        locationTypeSelect: '',
-        locationTypeOther: '',
-        ownershipSelect: '',
-        ownershipOther: ''
-      }
-    };
-  },
-  watch: {
-    customerData: {
-      immediate: true,
-      deep: true,
-      handler(newVal) {
-        if (newVal) {
-          // Map data from backend (new raw fields added in server.js)
-          this.formData.houseAddress = newVal.address || '';
-          this.formData.postCode = newVal.zipcode || '';
-          this.formData.district = newVal.district || '';
-          this.formData.city = newVal.province || '';
-          this.formData.phone = this.formatPhoneNumber(newVal.phone || '');
-          this.formData.email = newVal.email || '';
-          
-          // Ensure subdistrict is blank for manual entry
-          this.formData.subdistrict = '';
-        }
-      }
-    },
-    'formData.postCode'(newZip) {
-      if (newZip && newZip.length === 5) {
-        const results = searchAddressByZipcode(newZip);
-        if (results.length > 0) {
-          // User requirement: Do NOT auto-fill subdistrict. Leave it blank.
-          // this.formData.subdistrict = results[0].district; 
-          this.formData.district = results[0].amphoe;
-          this.formData.city = results[0].province;
-        }
-      }
-    }
-  },
-  methods: {
-    formatPhoneNumber(phone) {
-      if (!phone) return '';
-      // Remove all non-digit characters
-      const cleaned = phone.replace(/\D/g, '');
-      
-      // Check for standard 10-digit mobile (08X-XXX-XXXX) or 9-digit landline (02-XXX-XXXX or 0XX-XXX-XXX)
-      if (cleaned.length === 10) {
-        return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-      } else if (cleaned.length === 9) {
-         // Typical landline: 02-123-4567 or 044-123-456
-         if (cleaned.startsWith('02')) {
-           return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
-         }
-         return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
-      }
-      
-      // Fallback: return original or just cleaned
-      return phone; 
+const store = useCreditRequestStore();
+
+const files = reactive({
+  homePhoto: null,
+  landTax: null
+});
+
+const formData = reactive({
+  houseAddress: '',
+  subdistrict: '',
+  postCode: '',
+  district: '',
+  city: '',
+  phone: '',
+  email: '',
+  locationTypeSelect: '',
+  locationTypeOther: '',
+  ownershipSelect: '',
+  ownershipOther: ''
+});
+
+function formatPhoneNumber(phone) {
+  if (!phone) return '';
+  const cleaned = phone.replace(/\D/g, '');
+  
+  if (cleaned.length === 10) {
+    return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+  } else if (cleaned.length === 9) {
+     if (cleaned.startsWith('02')) {
+       return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+     }
+     return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
+  }
+  return phone; 
+}
+
+// Watch store.customer for changes
+watch(() => store.customer, (newVal) => {
+  if (newVal) {
+    formData.houseAddress = newVal.address || '';
+    formData.postCode = newVal.zipcode || '';
+    formData.district = newVal.district || '';
+    formData.city = newVal.province || '';
+    formData.phone = formatPhoneNumber(newVal.phone || '');
+    formData.email = newVal.email || '';
+    
+    // Ensure subdistrict is blank for manual entry
+    formData.subdistrict = '';
+  }
+}, { immediate: true, deep: true });
+
+// Watch postCode for auto-completion
+watch(() => formData.postCode, (newZip) => {
+  if (newZip && newZip.length === 5) {
+    const results = searchAddressByZipcode(newZip);
+    if (results.length > 0) {
+      formData.district = results[0].amphoe;
+      formData.city = results[0].province;
     }
   }
-};
+});
 </script>
 
 <style scoped>

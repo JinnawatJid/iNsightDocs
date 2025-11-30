@@ -6,7 +6,7 @@
       <div class="main-grid header-row">
         <div class="grid-col left"></div>
         <div class="grid-col center">
-          <CreditRequestHeader @search="handleSearch" />
+          <CreditRequestHeader @search="store.searchCustomer" />
         </div>
         <div class="grid-col right"></div>
       </div>
@@ -15,28 +15,34 @@
         <!-- Left Column: History -->
         <div class="grid-col left">
           <CreditHistorySidebar
-            :customerName="customer.name"
-            :historyItems="history"
-            :searched="hasSearched"
+            v-if="store.hasSearched"
+            :customerName="store.customer.name"
+            :historyItems="store.history"
+            :searched="store.hasSearched"
           />
         </div>
 
         <!-- Center Column: Purpose/Form -->
         <div class="grid-col center">
-           <!-- Only show form if searched, or always show but empty?
-                Design shows form with data. I'll show it always but it will be empty until search.
-           -->
-           <CreditRequestForm :customerData="customer" />
+           <div v-if="!store.hasSearched" class="placeholder-state">
+             <div class="placeholder-content">
+               <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+               <h3>Please search for a customer to begin</h3>
+               <p>Enter a customer code, name, or phone number above.</p>
+             </div>
+           </div>
+
+           <CreditRequestForm v-else />
         </div>
 
         <!-- Right Column: Idea/Summary -->
         <div class="grid-col right">
            <CreditScoreSummary
-             v-if="hasSearched"
-             :financial="financialSummary"
-             :canRequest="creditScore.can_request_credit"
-             :badges="creditScore.badges"
-             :suggestions="creditScore.suggestions"
+             v-if="store.hasSearched"
+             :financial="store.financialSummary"
+             :canRequest="store.creditScore.can_request_credit"
+             :badges="store.creditScore.badges"
+             :suggestions="store.creditScore.suggestions"
            />
         </div>
       </div>
@@ -44,77 +50,15 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import Navbar from '@/components/shared/Navbar.vue';
 import CreditRequestHeader from '@/components/credit/CreditRequestHeader.vue';
 import CreditHistorySidebar from '@/components/credit/CreditHistorySidebar.vue';
 import CreditRequestForm from '@/components/credit/CreditRequestForm.vue';
 import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
-import CustomerService from '@/services/CustomerService';
-import Swal from 'sweetalert2';
+import { useCreditRequestStore } from '@/stores/creditRequest';
 
-export default {
-  name: 'CreateCreditRequest',
-  components: {
-    Navbar,
-    CreditRequestHeader,
-    CreditHistorySidebar,
-    CreditRequestForm,
-    CreditScoreSummary
-  },
-  data() {
-    return {
-      hasSearched: false,
-      customer: {},
-      history: [],
-      financialSummary: {},
-      creditScore: {}
-    };
-  },
-  methods: {
-    async handleSearch(query) {
-      if (!query) return;
-
-      console.log('Searching for:', query);
-      try {
-        const results = await CustomerService.searchCustomers(query);
-        if (results && results.length > 0) {
-          // Assuming we pick the first match for now, or we could show a list selection modal
-          // The user logic implies we just want to fill the form with the result.
-          const data = results[0];
-
-          this.customer = data.customer;
-          this.history = data.history;
-          this.financialSummary = data.financial_summary;
-          this.creditScore = data.credit_score;
-          this.hasSearched = true;
-
-          if (results.length > 1) {
-             Swal.fire({
-               icon: 'info',
-               title: 'Found multiple results',
-               text: `Found ${results.length} matches. Using the first one: ${data.customer.name}`
-             });
-          }
-        } else {
-          Swal.fire({
-            icon: 'warning',
-            title: 'Not Found',
-            text: 'No customer found matching your query.'
-          });
-          this.hasSearched = false;
-        }
-      } catch (error) {
-        console.error(error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Failed to fetch customer data. Please try again.'
-        });
-      }
-    }
-  }
-};
+const store = useCreditRequestStore();
 </script>
 
 <style scoped>
@@ -157,5 +101,30 @@ export default {
   .grid-col.right {
     order: 3;
   }
+}
+
+.placeholder-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  background: white;
+  border-radius: 8px;
+  border: 1px dashed #ccc;
+}
+
+.placeholder-content {
+  text-align: center;
+  color: #888;
+}
+
+.placeholder-content h3 {
+  margin: 10px 0 5px;
+  font-size: 18px;
+  color: #555;
+}
+
+.placeholder-content p {
+  font-size: 14px;
 }
 </style>

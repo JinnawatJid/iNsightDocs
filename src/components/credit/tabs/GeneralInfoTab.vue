@@ -62,45 +62,36 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { reactive, computed } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
+import { useCreditRequestStore } from '@/stores/creditRequest';
 
-export default {
-  name: 'GeneralInfoTab',
-  components: {
-    FileUploader
-  },
-  props: {
-    customerData: {
-      type: Object,
-      default: () => ({})
-    }
-  },
-  data() {
-    return {
-      files: {
-        idCard: null,
-        homeReg: null
-      },
-      formData: {
-        position: '',
-        creditAmount: '',
-        creditReason: 'สต๊อคสินค้า'
-      }
-    };
-  },
-  computed: {
-    displayName() {
-      return this.customerData.contact_person || this.customerData.name || '';
-    },
-    displayCompany() {
-      if (this.customerData.contact_person) {
-        return this.customerData.name || '';
-      }
-      return this.customerData.name || '';
-    }
+const store = useCreditRequestStore();
+
+const files = reactive({
+  idCard: null,
+  homeReg: null
+});
+
+const formData = reactive({
+  position: '',
+  creditAmount: '',
+  creditReason: 'สต๊อคสินค้า'
+});
+
+const displayName = computed(() => {
+  const data = store.customer;
+  return data.contact_person || data.name || '';
+});
+
+const displayCompany = computed(() => {
+  const data = store.customer;
+  if (data.contact_person) {
+    return data.name || '';
   }
-};
+  return data.name || '';
+});
 </script>
 
 <style scoped>

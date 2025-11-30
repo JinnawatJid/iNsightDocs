@@ -138,113 +138,94 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { reactive, computed, watch, ref } from 'vue';
 import { searchAddressByZipcode } from 'thai-address-database';
 import FileUploader from '@/components/shared/FileUploader.vue';
+import { useCreditRequestStore } from '@/stores/creditRequest';
 
-export default {
-  name: 'StoreCompanyTab',
-  components: {
-    FileUploader
-  },
-  props: {
-    customerData: {
-      type: Object,
-      default: () => ({})
-    }
-  },
-  data() {
-    return {
-      isSameAddress: false,
-      files: {
-        // Company
-        legalEntityCertificate: null,
-        vatDocument: null,
-        companyPhoto: null,
-        companyLandTax: null,
-        // Individual
-        storePhoto: null,
-        commercialReg: null,
-        storeLandTax: null,
-      },
-      formData: {
-        houseAddress: '',
-        subdistrict: '',
-        postCode: '',
-        district: '',
-        city: '',
-        phone: '',
-        email: '',
-        locationTypeSelect: '',
-        locationTypeOther: '',
-        ownershipSelect: '',
-        ownershipOther: ''
-      }
-    };
-  },
-  computed: {
-    isCompany() {
-      return !!(this.customerData && this.customerData['VAT Registration No_']);
-    }
-  },
-  watch: {
-    customerData: {
-      immediate: true,
-      deep: true,
-      handler() {
-        // Data is now handled by the isSameAddress watcher
-        // to avoid conflicts. Initial state is empty unless checkbox is checked.
-      }
-    },
-    isSameAddress: {
-        immediate: true,
-        handler(isSame) {
-            if (isSame) {
-                this.formData.houseAddress = this.customerData.address || '';
-                this.formData.postCode = this.customerData.zipcode || '';
-                this.formData.district = this.customerData.district || '';
-                this.formData.city = this.customerData.province || '';
-                this.formData.phone = this.formatPhoneNumber(this.customerData.phone || '');
-                this.formData.email = this.customerData.email || '';
-                
-                this.formData.subdistrict = '';
-            } else {
-                this.formData.houseAddress = '';
-                this.formData.subdistrict = '';
-                this.formData.postCode = '';
-                this.formData.district = '';
-                this.formData.city = '';
-                this.formData.phone = '';
-                this.formData.email = '';
-            }
-        }
-    },
-    'formData.postCode'(newZip) {
-      if (!this.isSameAddress && newZip && newZip.length === 5) {
-        const results = searchAddressByZipcode(newZip);
-        if (results.length > 0) {
-          this.formData.district = results[0].amphoe;
-          this.formData.city = results[0].province;
-        }
-      }
-    }
-  },
-  methods: {
-    formatPhoneNumber(phone) {
-      if (!phone) return '';
-      const cleaned = phone.replace(/\D/g, '');
-      if (cleaned.length === 10) {
-        return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-      } else if (cleaned.length === 9) {
-         if (cleaned.startsWith('02')) {
-           return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
-         }
-         return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
-      }
-      return phone; 
+const store = useCreditRequestStore();
+
+const isSameAddress = ref(false);
+
+const files = reactive({
+  // Company
+  legalEntityCertificate: null,
+  vatDocument: null,
+  companyPhoto: null,
+  companyLandTax: null,
+  // Individual
+  storePhoto: null,
+  commercialReg: null,
+  storeLandTax: null,
+});
+
+const formData = reactive({
+  houseAddress: '',
+  subdistrict: '',
+  postCode: '',
+  district: '',
+  city: '',
+  phone: '',
+  email: '',
+  locationTypeSelect: '',
+  locationTypeOther: '',
+  ownershipSelect: '',
+  ownershipOther: ''
+});
+
+const isCompany = computed(() => {
+  return !!(store.customer && store.customer['VAT Registration No_']);
+});
+
+function formatPhoneNumber(phone) {
+  if (!phone) return '';
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length === 10) {
+    return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+  } else if (cleaned.length === 9) {
+     if (cleaned.startsWith('02')) {
+       return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+     }
+     return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
+  }
+  return phone; 
+}
+
+// Watch isSameAddress for toggling
+watch(isSameAddress, (isSame) => {
+  if (isSame && store.customer) {
+    formData.houseAddress = store.customer.address || '';
+    formData.postCode = store.customer.zipcode || '';
+    formData.district = store.customer.district || '';
+    formData.city = store.customer.province || '';
+    formData.phone = formatPhoneNumber(store.customer.phone || '');
+    formData.email = store.customer.email || '';
+    
+    formData.subdistrict = '';
+  } else {
+    // Clear only if unchecking? Or keep? Usually clear if copying logic is off.
+    // For now, let's clear to be safe, or user can edit.
+    formData.houseAddress = '';
+    formData.subdistrict = '';
+    formData.postCode = '';
+    formData.district = '';
+    formData.city = '';
+    formData.phone = '';
+    formData.email = '';
+  }
+});
+
+// Watch postCode
+watch(() => formData.postCode, (newZip) => {
+  if (!isSameAddress.value && newZip && newZip.length === 5) {
+    const results = searchAddressByZipcode(newZip);
+    if (results.length > 0) {
+      formData.district = results[0].amphoe;
+      formData.city = results[0].province;
     }
   }
-};
+});
 </script>
 
 <style scoped>
