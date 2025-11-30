@@ -14,6 +14,7 @@
       <div class="main-grid">
         <!-- Left Column: History -->
         <div class="grid-col left">
+          <RequestStatus v-if="store.hasSearched" />
           <CreditHistorySidebar
             v-if="store.hasSearched"
             :customerName="store.customer.name"
@@ -36,6 +37,7 @@
 
         <!-- Right Column: Idea/Summary -->
         <div class="grid-col right">
+           <ApprovalChance v-if="store.hasSearched" />
            <CreditScoreSummary
              v-if="store.hasSearched"
              :financial="store.financialSummary"
@@ -53,8 +55,10 @@
 import Navbar from '@/components/shared/Navbar.vue';
 import CreditRequestHeader from '@/components/credit/CreditRequestHeader.vue';
 import CreditHistorySidebar from '@/components/credit/CreditHistorySidebar.vue';
+import RequestStatus from '@/components/credit/RequestStatus.vue';
 import CreditRequestForm from '@/components/credit/CreditRequestForm.vue';
 import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
+import ApprovalChance from '@/components/credit/ApprovalChance.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const store = useCreditRequestStore();

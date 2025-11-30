@@ -1,57 +1,39 @@
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
-const csv = require('csv-parser');
 const path = require('path');
+const csv = require('csv-parser');
 
 const DB_PATH = path.join(__dirname, 'database.sqlite');
-let db;
+let db = null;
 
-function createTableFromCSV(dbInstance, tableName, csvFilePath) {
+// Helper to create table from CSV (existing logic)
+const createTableFromCSV = (db, tableName, csvPath) => {
     return new Promise((resolve, reject) => {
-        const results = [];
-        let headers = [];
-
-        fs.createReadStream(csvFilePath)
+        const rows = [];
+        fs.createReadStream(csvPath)
             .pipe(csv())
-            .on('headers', (h) => {
-                headers = h;
-            })
-            .on('data', (data) => results.push(data))
+            .on('data', (row) => rows.push(row))
             .on('end', () => {
-                if (headers.length === 0) {
-                    console.log(`No headers found in ${csvFilePath}`);
+                if (rows.length === 0) {
                     return resolve();
                 }
 
-                const columns = headers.map(header => `"${header}" TEXT`).join(', ');
-                const createTableSql = `CREATE TABLE "${tableName}" (${columns});`;
+                const columns = Object.keys(rows[0]).map(col => `"${col}" TEXT`).join(', ');
+                const createTableSQL = `CREATE TABLE IF NOT EXISTS "${tableName}" (${columns})`;
 
-                dbInstance.serialize(() => {
-                    dbInstance.run(createTableSql, (err) => {
-                        if (err) {
-                            console.error(`Error creating table ${tableName}:`, err.message);
-                            return reject(err);
-                        }
-                        console.log(`Table "${tableName}" created.`);
+                db.run(createTableSQL, (err) => {
+                    if (err) return reject(err);
 
-                        const placeholders = headers.map(() => '?').join(', ');
-                        const insertSql = `INSERT INTO "${tableName}" ("${headers.join('", "')}") VALUES (${placeholders})`;
+                    const placeholders = Object.keys(rows[0]).map(() => '?').join(', ');
+                    const insertSQL = `INSERT INTO "${tableName}" VALUES (${placeholders})`;
 
-                        const stmt = dbInstance.prepare(insertSql);
-
-                        dbInstance.parallelize(() => {
-                            results.forEach((row) => {
-                                const values = headers.map(header => row[header]);
-                                stmt.run(values);
-                            });
+                    db.serialize(() => {
+                        const stmt = db.prepare(insertSQL);
+                        rows.forEach(row => {
+                            stmt.run(Object.values(row));
                         });
-
                         stmt.finalize((err) => {
-                            if (err) {
-                                console.error(`Error inserting data into ${tableName}:`, err.message);
-                                return reject(err);
-                            }
-                            console.log(`Inserted ${results.length} rows into "${tableName}".`);
+                            if (err) return reject(err);
                             resolve();
                         });
                     });
@@ -61,33 +43,53 @@ function createTableFromCSV(dbInstance, tableName, csvFilePath) {
     });
 }
 
-const initialize = async () => {
-    if (fs.existsSync(DB_PATH)) {
-        console.log('Database exists. Connecting...');
-        db = new sqlite3.Database(DB_PATH);
-        return;
-    }
+// New helper for CreditRequests table
+const createCreditRequestsTable = (db) => {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            CREATE TABLE IF NOT EXISTS CreditRequests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tx_id TEXT UNIQUE,
+                customer_name TEXT,
+                status TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+        db.run(sql, (err) => {
+            if (err) reject(err);
+            else resolve();
+        });
+    });
+};
 
-    console.log('Database not found. Initializing from CSV...');
+const initialize = async () => {
+    // Check if DB exists to decide if we need to load CSVs
+    const dbExists = fs.existsSync(DB_PATH);
+
     db = new sqlite3.Database(DB_PATH);
 
-    try {
-        await createTableFromCSV(db, 'Customers', path.join(__dirname, 'Customers_rows.csv'));
-        await createTableFromCSV(db, 'AY_ACCUM', path.join(__dirname, 'AY_ACCUM_rows.csv'));
-        console.log('Database initialization complete.');
-    } catch (error) {
-        console.error('Database initialization failed:', error);
-        // Clean up partial file
+    if (!dbExists) {
+        console.log('Database not found. Initializing from CSV...');
         try {
-            db.close();
-            if (fs.existsSync(DB_PATH)) {
-                fs.unlinkSync(DB_PATH);
-            }
-        } catch (cleanupErr) {
-            console.error('Error during cleanup:', cleanupErr);
+            await createTableFromCSV(db, 'Customers', path.join(__dirname, 'Customers_rows.csv'));
+            await createTableFromCSV(db, 'AY_ACCUM', path.join(__dirname, 'AY_ACCUM_rows.csv'));
+        } catch (error) {
+            console.error('CSV Import failed:', error);
+            // We might want to exit or continue depending on severity
         }
-        process.exit(1);
+    } else {
+        console.log('Database exists. Connecting...');
     }
+
+    // Always ensure CreditRequests table exists
+    try {
+        await createCreditRequestsTable(db);
+        console.log('CreditRequests table verified.');
+    } catch (error) {
+        console.error('Failed to create CreditRequests table:', error);
+    }
+
+    console.log('Database initialization complete.');
 };
 
 const query = (text, params = []) => {
@@ -104,4 +106,16 @@ const query = (text, params = []) => {
     });
 };
 
-module.exports = { initialize, query };
+const run = (text, params = []) => {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            return reject(new Error('Database not initialized. Ensure initialize() is called.'));
+        }
+        db.run(text, params, function(err) {
+            if (err) return reject(err);
+            resolve({ id: this.lastID, changes: this.changes });
+        });
+    });
+};
+
+module.exports = { initialize, query, run };
