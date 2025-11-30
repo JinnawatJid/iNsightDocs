@@ -1,5 +1,8 @@
 # Project TODOs
 
+## General
+- [ ] **Implement Test Cases**: Replace the deleted `TEST_CASES.md` with comprehensive automated (or updated manual) test cases for the current system architecture.
+
 ## Backend Integration
 - [ ] **Fetch Customer Data**: Implement API call in `CreateCreditRequest.vue` (currently using `mock_customer_data.json`).
 - [ ] **OCR Integration**: Implement backend OCR service to parse uploaded documents (ID card, Home registration, Financial statements) and auto-fill fields.
