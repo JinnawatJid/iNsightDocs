@@ -27,8 +27,7 @@
            <div v-if="!store.hasSearched" class="placeholder-state">
              <div class="placeholder-content">
                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-               <h3>Please search for a customer to begin</h3>
-               <p>Enter a customer code, name, or phone number above.</p>
+               <h3>ค้นหาลูกค้า เพื่อเริ่มสร้างคำขอเครดิต</h3>
              </div>
            </div>
 
