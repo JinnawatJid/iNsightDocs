@@ -4,8 +4,7 @@
   "description": "Backend API for Credit Request Application",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "init-db": "node init_db.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
