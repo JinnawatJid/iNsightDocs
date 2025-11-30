@@ -25,7 +25,7 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
 
                 const columns = headers;
                 let schema = columns.map(col => `"${col}" TEXT`).join(', ');
-
+                
                 if (primaryKey) {
                     // Check if primary key exists in columns
                     if (columns.includes(primaryKey)) {
@@ -41,7 +41,7 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                         reject(err);
                     } else {
                         console.log(`Table ${tableName} ensured.`);
-
+                        
                         // Check if data exists
                         db.get(`SELECT count(*) as count FROM ${tableName}`, (err, row) => {
                             if (err) return reject(err);
@@ -50,7 +50,7 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                                 const placeholders = columns.map(() => '?').join(',');
                                 const insertSQL = `INSERT INTO ${tableName} ("${columns.join('","')}") VALUES (${placeholders})`;
                                 const stmt = db.prepare(insertSQL);
-
+                                
                                 rows.forEach(row => {
                                     // Ensure values are ordered according to headers
                                     const values = columns.map(col => row[col]);
@@ -71,7 +71,7 @@ const initDB = async () => {
     try {
         // Initialize Customers
         await createTableFromCSV('Customers', path.resolve(__dirname, '../src/data/customers.csv'), 'No_');
-
+        
         // Initialize AY_ACCUM
         await createTableFromCSV('AY_ACCUM', path.resolve(__dirname, '../src/data/ay_accum.csv'), 'custcode');
 
