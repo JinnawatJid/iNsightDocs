@@ -70,10 +70,13 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
 const initDB = async () => {
     try {
         // Initialize Customers
-        await createTableFromCSV('Customers', path.resolve(__dirname, '../src/data/customers.csv'), 'No_');
+        // Fallback to local files in backend/ if src/data not found, or strict path. 
+        // Based on previous error, src/data/customers.csv does not exist. 
+        // The file listing showed backend/Customers_rows.csv
+        await createTableFromCSV('Customers', path.resolve(__dirname, 'Customers_rows.csv'), 'No_');
         
         // Initialize AY_ACCUM
-        await createTableFromCSV('AY_ACCUM', path.resolve(__dirname, '../src/data/ay_accum.csv'), 'custcode');
+        await createTableFromCSV('AY_ACCUM', path.resolve(__dirname, 'AY_ACCUM_rows.csv'), 'custcode');
 
         // Create CreditRequests table manually as it's not from CSV
         db.run(`CREATE TABLE IF NOT EXISTS CreditRequests (
@@ -90,6 +93,7 @@ const initDB = async () => {
     }
 };
 
-initDB();
+// Attach initialize function to db object to allow server.js to wait for initialization
+db.initialize = initDB;
 
 module.exports = db;
