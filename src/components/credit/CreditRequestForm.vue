@@ -4,7 +4,7 @@
       <div class="card-header">
         <h3>เอกสารประกอบการพิจารณา</h3>
       </div>
-      <ApplicationTabs :customerData="customerData" />
+      <ApplicationTabs />
     </div>
 
     <div class="form-footer">
@@ -32,12 +32,6 @@ export default {
   name: 'CreditRequestForm',
   components: {
     ApplicationTabs
-  },
-  props: {
-    customerData: {
-      type: Object,
-      default: () => ({})
-    }
   }
 };
 </script>

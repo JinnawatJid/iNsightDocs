@@ -4,53 +4,23 @@
     <div class="upload-section">
       <div class="upload-grid">
         <!-- Home Photo -->
-        <div class="upload-item">
-          <label>รูปถ่ายบ้าน <span class="required">*</span></label>
-          <div class="upload-box" @click="triggerUpload('homePhoto')">
-            <input
-              type="file"
-              ref="homePhoto"
-              class="hidden-input"
-              @change="handleFileChange($event, 'homePhoto')"
-              accept="image/*"
-            />
-            <div v-if="!files.homePhoto" class="upload-placeholder">
-              <div class="icon-wrapper">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-              </div>
-              <p>Drop your files here or <span class="link">Click to upload</span></p>
-              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
-            </div>
-            <div v-else class="file-preview">
-              <span class="file-name">{{ files.homePhoto.name }}</span>
-              <button class="remove-btn" @click.stop="removeFile('homePhoto')">×</button>
-            </div>
-          </div>
-        </div>
+        <FileUploader
+          label="รูปถ่ายบ้าน"
+          required
+          accept="image/*"
+          v-model="files.homePhoto"
+        >
+          <template #icon>
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+          </template>
+        </FileUploader>
 
         <!-- Land Tax Document -->
-        <div class="upload-item">
-          <label>เอกสารเสียภาษีที่ดิน <span class="required">*</span></label>
-          <div class="upload-box" @click="triggerUpload('landTax')">
-            <input
-              type="file"
-              ref="landTax"
-              class="hidden-input"
-              @change="handleFileChange($event, 'landTax')"
-            />
-            <div v-if="!files.landTax" class="upload-placeholder">
-              <div class="icon-wrapper">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              </div>
-              <p>Drop your files here or <span class="link">Click to upload</span></p>
-              <span class="info">SVG, PNG, JPG or GIF (max. 800x400px)</span>
-            </div>
-            <div v-else class="file-preview">
-              <span class="file-name">{{ files.landTax.name }}</span>
-              <button class="remove-btn" @click.stop="removeFile('landTax')">×</button>
-            </div>
-          </div>
-        </div>
+        <FileUploader
+          label="เอกสารเสียภาษีที่ดิน"
+          required
+          v-model="files.landTax"
+        />
       </div>
     </div>
 
@@ -135,103 +105,73 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { reactive, watch } from 'vue';
 import { searchAddressByZipcode } from 'thai-address-database';
+import FileUploader from '@/components/shared/FileUploader.vue';
+import { useCreditRequestStore } from '@/stores/creditRequest';
 
-export default {
-  name: 'ResidenceTab',
-  props: {
-    customerData: {
-      type: Object,
-      default: () => ({})
-    }
-  },
-  data() {
-    return {
-      files: {
-        homePhoto: null,
-        landTax: null
-      },
-      formData: {
-        houseAddress: '',
-        subdistrict: '',
-        postCode: '',
-        district: '',
-        city: '',
-        phone: '',
-        email: '',
-        locationTypeSelect: '',
-        locationTypeOther: '',
-        ownershipSelect: '',
-        ownershipOther: ''
-      }
-    };
-  },
-  watch: {
-    customerData: {
-      immediate: true,
-      deep: true,
-      handler(newVal) {
-        if (newVal) {
-          // Map data from backend (new raw fields added in server.js)
-          this.formData.houseAddress = newVal.address || '';
-          this.formData.postCode = newVal.zipcode || '';
-          this.formData.district = newVal.district || '';
-          this.formData.city = newVal.province || '';
-          this.formData.phone = this.formatPhoneNumber(newVal.phone || '');
-          this.formData.email = newVal.email || '';
-          
-          // Ensure subdistrict is blank for manual entry
-          this.formData.subdistrict = '';
-        }
-      }
-    },
-    'formData.postCode'(newZip) {
-      if (newZip && newZip.length === 5) {
-        const results = searchAddressByZipcode(newZip);
-        if (results.length > 0) {
-          // User requirement: Do NOT auto-fill subdistrict. Leave it blank.
-          // this.formData.subdistrict = results[0].district; 
-          this.formData.district = results[0].amphoe;
-          this.formData.city = results[0].province;
-        }
-      }
-    }
-  },
-  methods: {
-    triggerUpload(refName) {
-      this.$refs[refName].click();
-    },
-    handleFileChange(event, key) {
-      const file = event.target.files[0];
-      if (file) {
-        this.files[key] = file;
-      }
-    },
-    removeFile(key) {
-      this.files[key] = null;
-    },
-    formatPhoneNumber(phone) {
-      if (!phone) return '';
-      // Remove all non-digit characters
-      const cleaned = phone.replace(/\D/g, '');
-      
-      // Check for standard 10-digit mobile (08X-XXX-XXXX) or 9-digit landline (02-XXX-XXXX or 0XX-XXX-XXX)
-      if (cleaned.length === 10) {
-        return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-      } else if (cleaned.length === 9) {
-         // Typical landline: 02-123-4567 or 044-123-456
-         if (cleaned.startsWith('02')) {
-           return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
-         }
-         return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
-      }
-      
-      // Fallback: return original or just cleaned
-      return phone; 
+const store = useCreditRequestStore();
+
+const files = reactive({
+  homePhoto: null,
+  landTax: null
+});
+
+const formData = reactive({
+  houseAddress: '',
+  subdistrict: '',
+  postCode: '',
+  district: '',
+  city: '',
+  phone: '',
+  email: '',
+  locationTypeSelect: '',
+  locationTypeOther: '',
+  ownershipSelect: '',
+  ownershipOther: ''
+});
+
+function formatPhoneNumber(phone) {
+  if (!phone) return '';
+  const cleaned = phone.replace(/\D/g, '');
+
+  if (cleaned.length === 10) {
+    return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+  } else if (cleaned.length === 9) {
+     if (cleaned.startsWith('02')) {
+       return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+     }
+     return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
+  }
+  return phone;
+}
+
+// Watch store.customer for changes
+watch(() => store.customer, (newVal) => {
+  if (newVal) {
+    formData.houseAddress = newVal.address || '';
+    formData.postCode = newVal.zipcode || '';
+    formData.district = newVal.district || '';
+    formData.city = newVal.province || '';
+    formData.phone = formatPhoneNumber(newVal.phone || '');
+    formData.email = newVal.email || '';
+
+    // Ensure subdistrict is blank for manual entry
+    formData.subdistrict = '';
+  }
+}, { immediate: true, deep: true });
+
+// Watch postCode for auto-completion
+watch(() => formData.postCode, (newZip) => {
+  if (newZip && newZip.length === 5) {
+    const results = searchAddressByZipcode(newZip);
+    if (results.length > 0) {
+      formData.district = results[0].amphoe;
+      formData.city = results[0].province;
     }
   }
-};
+});
 </script>
 
 <style scoped>

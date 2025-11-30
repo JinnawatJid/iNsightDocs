@@ -15,7 +15,7 @@
 
     <div class="tab-content">
       <keep-alive>
-        <component :is="currentTabComponent" :customerData="customerData" />
+        <component :is="currentTabComponent" />
       </keep-alive>
     </div>
   </div>
@@ -35,15 +35,9 @@ export default {
     StoreCompanyTab,
     StoreStatementTab
   },
-  props: {
-    customerData: {
-      type: Object,
-      default: () => ({})
-    }
-  },
   data() {
     return {
-      currentTab: 'general', // Switch default to General based on flow
+      currentTab: 'general',
       tabs: [
         { id: 'general', label: 'ข้อมูลทั่วไป' },
         { id: 'residence', label: 'ที่อยู่อาศัย' },
@@ -64,7 +58,7 @@ export default {
         case 'financial':
           return 'StoreStatementTab';
         default:
-          return 'GeneralInfoTab'; // Fallback
+          return 'GeneralInfoTab';
       }
     }
   }
@@ -78,15 +72,15 @@ export default {
 }
 
 .tabs-container {
-  padding: 0 20px 20px 20px; /* Add padding to align with card content */
+  padding: 0 20px 20px 20px;
 }
 
 .tabs-header {
   display: flex;
-  background-color: #999; /* Gray background */
+  background-color: #999;
   border-radius: 52px;
   overflow: hidden;
-  width: 80%; /* Or fit-content? Image shows full width or large width. Let's stick to full for now or flex. */
+  width: 80%;
   height: fit-content;
   margin: 0 auto;
 }
@@ -100,7 +94,7 @@ export default {
   color: white;
   position: relative;
   transition: all 0.2s;
-  border-radius: 50px; /* To match the container corners when active */
+  border-radius: 50px;
 }
 
 .tab-item:hover {
@@ -109,7 +103,7 @@ export default {
 
 .tab-item.active {
   background-color: white;
-  color: #333; /* Dark text for active */
+  color: #333;
   font-weight: bold;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   border: 1px solid #e0e0e0;
