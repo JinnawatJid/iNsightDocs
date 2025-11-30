@@ -4,26 +4,55 @@ This is a web application for handling the document flow in a credit approval pr
 
 ## Project Setup
 
-To get started with the project, you first need to install the dependencies:
+To get started with the project, you need to install dependencies for both the frontend and the backend.
 
+### 1. Frontend Dependencies
+In the root directory:
 ```sh
+npm install
+```
+
+### 2. Backend Dependencies
+Navigate to the `backend/` directory:
+```sh
+cd backend
 npm install
 ```
 
 ## Running the Application
 
-To run the application in development mode, use the following command:
+You need to run both the backend server and the frontend development server.
 
+### 1. Start the Backend
+In a terminal, navigate to the `backend/` directory and run:
+```sh
+npm start
+```
+The backend server will run on `http://localhost:3000`. It handles database operations and API requests.
+
+### 2. Start the Frontend
+In a separate terminal (in the root directory), run:
 ```sh
 npm run dev
 ```
-
-This will start a development server, and you can view the application in your browser at the URL provided in the terminal.
+This will start the Vite development server, typically on `http://localhost:5173`.
 
 ## How to Use the Application
 
-1.  **Login**: Use one of the employee IDs from the `src/data/employees.json` file to log in. The default password for all users is `Welcome`.
-2.  **Change Password**: If you log in with the default password, you will be redirected to the change password page. Here, you can set a new password.
-3.  **Forgot Password**: If you forget your password, you can use the "Forgot Password" feature to reset your password to the default `Welcome`.
+The application currently supports the following workflows:
+
+1.  **Create Credit Request**:
+    -   Navigate to the root URL (e.g., `http://localhost:5173/`).
+    -   Use the **Customer Search** bar to find a customer by Name or ID.
+    -   The application will fetch customer data (Company vs. Individual) and pre-fill the form.
+    -   Fill out the tabs: General Information, Residence/Address, Store, and Financial.
+    -   Upload necessary documents in the respective tabs.
+
+2.  **View Pending Requests**:
+    -   Access the "Pending Requests" view (if enabled in navigation) to see a list of ongoing applications.
+
+**Note**: Authentication (Login/Password) has been removed. The application is open for internal use.
+
+## IDE Support
 
 Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
