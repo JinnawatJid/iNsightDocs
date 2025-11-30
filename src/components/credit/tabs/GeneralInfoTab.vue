@@ -63,7 +63,7 @@
 </template>
 
 <script setup>
-import { reactive, computed } from 'vue';
+import { reactive, computed, watch } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
@@ -72,6 +72,15 @@ const store = useCreditRequestStore();
 const files = reactive({
   idCard: null,
   homeReg: null
+});
+
+// Watch for file changes to update store for Approval Chance logic
+watch(() => files.idCard, (newVal) => {
+  store.updateDocumentStatus('id_card', !!newVal);
+});
+
+watch(() => files.homeReg, (newVal) => {
+  store.updateDocumentStatus('home_reg', !!newVal);
 });
 
 const formData = reactive({

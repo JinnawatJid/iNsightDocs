@@ -1,107 +1,120 @@
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
-const csv = require('csv-parser');
 const path = require('path');
+const csv = require('csv-parser');
 
-const DB_PATH = path.join(__dirname, 'database.sqlite');
-let db;
+const dbPath = path.resolve(__dirname, 'database.sqlite');
+const db = new sqlite3.Database(dbPath);
 
-function createTableFromCSV(dbInstance, tableName, csvFilePath) {
+// Helper to create table from CSV if not exists
+const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
     return new Promise((resolve, reject) => {
-        const results = [];
+        const rows = [];
         let headers = [];
-
         fs.createReadStream(csvFilePath)
             .pipe(csv())
-            .on('headers', (h) => {
-                headers = h;
+            .on('headers', (headerList) => {
+                headers = headerList;
             })
-            .on('data', (data) => results.push(data))
+            .on('data', (row) => rows.push(row))
             .on('end', () => {
                 if (headers.length === 0) {
-                    console.log(`No headers found in ${csvFilePath}`);
-                    return resolve();
+                     console.log(`No headers in ${csvFilePath}, skipping table creation for ${tableName}`);
+                     return resolve();
                 }
 
-                const columns = headers.map(header => `"${header}" TEXT`).join(', ');
-                const createTableSql = `CREATE TABLE "${tableName}" (${columns});`;
+                const columns = headers;
+                let schema = columns.map(col => `"${col}" TEXT`).join(', ');
 
-                dbInstance.serialize(() => {
-                    dbInstance.run(createTableSql, (err) => {
-                        if (err) {
-                            console.error(`Error creating table ${tableName}:`, err.message);
-                            return reject(err);
-                        }
-                        console.log(`Table "${tableName}" created.`);
+                if (primaryKey) {
+                    // Check if primary key exists in columns
+                    if (columns.includes(primaryKey)) {
+                         schema = schema.replace(`"${primaryKey}" TEXT`, `"${primaryKey}" TEXT PRIMARY KEY`);
+                    }
+                }
 
-                        const placeholders = headers.map(() => '?').join(', ');
-                        const insertSql = `INSERT INTO "${tableName}" ("${headers.join('", "')}") VALUES (${placeholders})`;
+                const createTableSQL = `CREATE TABLE IF NOT EXISTS ${tableName} (${schema})`;
 
-                        const stmt = dbInstance.prepare(insertSql);
+                db.run(createTableSQL, (err) => {
+                    if (err) {
+                        console.error(`Error creating table ${tableName}:`, err);
+                        reject(err);
+                    } else {
+                        console.log(`Table ${tableName} ensured.`);
 
-                        dbInstance.parallelize(() => {
-                            results.forEach((row) => {
-                                const values = headers.map(header => row[header]);
-                                stmt.run(values);
-                            });
-                        });
+                        // Check if data exists
+                        db.get(`SELECT count(*) as count FROM ${tableName}`, (err, row) => {
+                            if (err) return reject(err);
+                            if (row.count === 0 && rows.length > 0) {
+                                // Insert data
+                                const placeholders = columns.map(() => '?').join(',');
+                                const insertSQL = `INSERT INTO ${tableName} ("${columns.join('","')}") VALUES (${placeholders})`;
+                                const stmt = db.prepare(insertSQL);
 
-                        stmt.finalize((err) => {
-                            if (err) {
-                                console.error(`Error inserting data into ${tableName}:`, err.message);
-                                return reject(err);
+                                rows.forEach(row => {
+                                    // Ensure values are ordered according to headers
+                                    const values = columns.map(col => row[col]);
+                                    stmt.run(values);
+                                });
+                                stmt.finalize();
+                                console.log(`Imported ${rows.length} rows into ${tableName}`);
                             }
-                            console.log(`Inserted ${results.length} rows into "${tableName}".`);
                             resolve();
                         });
-                    });
+                    }
                 });
-            })
-            .on('error', (err) => reject(err));
+            });
     });
-}
+};
 
-const initialize = async () => {
-    if (fs.existsSync(DB_PATH)) {
-        console.log('Database exists. Connecting...');
-        db = new sqlite3.Database(DB_PATH);
-        return;
-    }
-
-    console.log('Database not found. Initializing from CSV...');
-    db = new sqlite3.Database(DB_PATH);
-
+const initDB = async () => {
     try {
-        await createTableFromCSV(db, 'Customers', path.join(__dirname, 'Customers_rows.csv'));
-        await createTableFromCSV(db, 'AY_ACCUM', path.join(__dirname, 'AY_ACCUM_rows.csv'));
-        console.log('Database initialization complete.');
+        // Initialize Customers
+        // Fallback to local files in backend/ if src/data not found, or strict path.
+        // Based on previous error, src/data/customers.csv does not exist.
+        // The file listing showed backend/Customers_rows.csv
+        await createTableFromCSV('Customers', path.resolve(__dirname, 'Customers_rows.csv'), 'No_');
+
+        // Initialize AY_ACCUM
+        await createTableFromCSV('AY_ACCUM', path.resolve(__dirname, 'AY_ACCUM_rows.csv'), 'custcode');
+
+        // Create CreditRequests table manually as it's not from CSV
+        db.run(`CREATE TABLE IF NOT EXISTS CreditRequests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tx_id TEXT UNIQUE,
+            customer_name TEXT,
+            status TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        console.log('Database initialized.');
     } catch (error) {
         console.error('Database initialization failed:', error);
-        // Clean up partial file
-        try {
-            db.close();
-            if (fs.existsSync(DB_PATH)) {
-                fs.unlinkSync(DB_PATH);
-            }
-        } catch (cleanupErr) {
-            console.error('Error during cleanup:', cleanupErr);
-        }
-        process.exit(1);
     }
 };
 
-const query = (text, params = []) => {
+// Attach initialize function to db object to allow server.js to wait for initialization
+db.initialize = initDB;
+
+// Attach query method to support Promise-based execution (db.query) used in controllers
+db.query = (sql, params = []) => {
     return new Promise((resolve, reject) => {
-        if (!db) {
-            return reject(new Error('Database not initialized. Ensure initialize() is called.'));
-        }
-        db.all(text, params, (err, rows) => {
-            if (err) {
-                return reject(err);
-            }
+        db.all(sql, params, (err, rows) => {
+            if (err) return reject(err);
             resolve({ rows });
         });
     });
 };
 
-module.exports = { initialize, query };
+// Attach runAsync method to support Promise-based execution for INSERT/UPDATE
+db.runAsync = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) return reject(err);
+            // 'this' refers to the statement context, containing lastID and changes
+            resolve({ id: this.lastID, changes: this.changes });
+        });
+    });
+};
+
+module.exports = db;
