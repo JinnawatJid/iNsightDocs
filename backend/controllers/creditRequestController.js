@@ -13,7 +13,7 @@ exports.createCreditRequest = async (req, res) => {
   const status = 'Draft';
 
   try {
-    const result = await db.run(
+    const result = await db.runAsync(
       'INSERT INTO CreditRequests (tx_id, customer_name, status) VALUES (?, ?, ?)',
       [txId, customer_name, status]
     );

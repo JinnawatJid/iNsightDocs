@@ -96,4 +96,25 @@ const initDB = async () => {
 // Attach initialize function to db object to allow server.js to wait for initialization
 db.initialize = initDB;
 
+// Attach query method to support Promise-based execution (db.query) used in controllers
+db.query = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) return reject(err);
+            resolve({ rows });
+        });
+    });
+};
+
+// Attach runAsync method to support Promise-based execution for INSERT/UPDATE
+db.runAsync = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) return reject(err);
+            // 'this' refers to the statement context, containing lastID and changes
+            resolve({ id: this.lastID, changes: this.changes });
+        });
+    });
+};
+
 module.exports = db;
