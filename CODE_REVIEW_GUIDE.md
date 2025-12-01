@@ -20,23 +20,11 @@
 
 ## 2. The Presentation Script (30 Minutes)
 
-### Phase 1: Project Structure Overview (3 Minutes)
-*   **Goal:** Give the professor the "Big Picture" before looking at code.
-*   **Say:** "Before diving into the specific feature, I want to briefly explain the high-level architecture we chose for this project."
-*   **Concept 1: Frontend (Client-Side)**
-    *   **Tech:** Vue.js 3 with Vite.
-    *   **Structure:** "All our frontend code lives in `src/`. We use **Pinia** for global state management and **Axios** to communicate with the server."
-*   **Concept 2: Backend (Server-Side)**
-    *   **Tech:** Node.js with Express and SQLite.
-    *   **Structure:** "The backend code is in the `backend/` folder. It follows a Controller-Service pattern to keep logic organized."
-*   **Concept 3: Communication Bridge**
-    *   **Explain:** "Since we are running two separate servers (Vite on port 5173, Express on port 3000), we configured a **Proxy** in `vite.config.js`. Any request starting with `/api` is automatically forwarded to the backend. This avoids CORS issues during development."
-
-### Phase 2: The Intro (2 Minutes)
-*   **Say:** "Now, let's look at the **Credit Request Creation** flow. This is the core entry point of the system where we identify a customer and aggregate their financial data from our backend."
+### Phase 1: The Intro (2 Minutes)
+*   **Say:** "Today I'd like to walk you through the **Credit Request Creation** flow. This is the core entry point of the system where we identify a customer and aggregate their financial data from our backend."
 *   **Show:** The main empty screen (`CreateCreditRequest.vue`).
 
-### Phase 3: The User Action (5 Minutes)
+### Phase 2: The User Action (5 Minutes)
 *   **Action:** Type "100" into the search bar.
 *   **Show:** The dropdown suggestions appearing.
 *   **Say:** "First, we implemented a real-time suggestion system. As the user types, we fetch matches."
@@ -44,7 +32,7 @@
     *   Point to `debouncedFetchSuggestions` (Line ~55).
     *   **Explain:** "We use `lodash/debounce` here to wait 300ms before firing the API call. This prevents spamming our server with every keystroke."
 
-### Phase 4: The Request - Frontend (5 Minutes)
+### Phase 3: The Request - Frontend (5 Minutes)
 *   **Action:** Select a customer from the dropdown.
 *   **Say:** "When I select a customer, the system initiates a full data fetch."
 *   **Code Switch:** Go to `src/services/CustomerService.js`.
@@ -52,7 +40,7 @@
     *   *Highlight:* `searchCustomers(query)` function.
     *   **Detail:** "It sends a GET request to `/api/customers/search`. We use a proxy in Vite to forward this to our backend port (3000)."
 
-### Phase 5: The Processing - Backend (8 Minutes)
+### Phase 4: The Processing - Backend (8 Minutes)
 *   **Code Switch:** Go to `backend/controllers/customerController.js`.
 *   **Say:** "On the server side, we don't just return raw data. We perform business logic aggregation here."
 *   **Step 1: Basic Info:** Show the first SQL query (Line ~44) on the `Customers` table.
@@ -60,13 +48,13 @@
     *   **Crucial:** Explain the `avgRaw` calculation (Line ~105): `(Jun + Jul + Aug) / 2`.
     *   **Say:** "This implements the specific business rule required by the credit department. We calculate the monthly average and format the trend data (Line ~20 `formatTrend`) before sending it to the frontend."
 
-### Phase 6: State Management - Pinia (5 Minutes)
+### Phase 5: State Management - Pinia (5 Minutes)
 *   **Code Switch:** Go to `src/stores/creditRequest.js`.
 *   **Say:** "Once the data returns, we need to share it across multiple components (the header, the form, the history sidebar). We use **Pinia** for this."
 *   **Highlight:** `state` (Line 6) and `searchCustomer` action (Line 44).
 *   **Explain:** "The `searchCustomer` action commits the data to our state variables (`customer`, `financialSummary`). Because this state is reactive, all components listening to it update automatically."
 
-### Phase 7: The Result (2 Minutes)
+### Phase 6: The Result (5 Minutes)
 *   **Back to Browser:** Show the populated screen.
     *   Point to the **Address Form**: "Auto-filled from `state.customer`."
     *   Point to the **Credit Score Summary** (right column): "Calculated from `state.financialSummary`."
