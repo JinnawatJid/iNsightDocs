@@ -62,7 +62,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           this.hasSearched = true;
 
           // Automatically create a credit request transaction
-          await this.createCreditRequest(this.customer.name);
+          // Now passing ID as well
+          await this.createCreditRequest(this.customer.id, this.customer.name);
 
           if (results.length > 1) {
             Swal.fire({
@@ -92,12 +93,12 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       }
     },
 
-    async createCreditRequest(customerName) {
+    async createCreditRequest(customerNo, customerName) {
       try {
-        const result = await CreditRequestService.createCreditRequest(customerName);
+        const result = await CreditRequestService.createCreditRequest(customerNo, customerName);
         if (result && result.data) {
           this.requestId = result.data.txId;
-          this.requestStatus = 'Draft'; // API sets it to Draft
+          this.requestStatus = result.data.status; // Use status from backend (could be Draft or existing)
         }
       } catch (err) {
         console.error('Failed to create credit request transaction', err);
