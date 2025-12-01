@@ -187,3 +187,48 @@ exports.searchCustomers = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error", details: err.message });
   }
 };
+
+exports.getSuggestions = async (req, res) => {
+  const query = req.query.q;
+
+  if (!query) {
+    return res.json([]);
+  }
+
+  const sql = `
+    SELECT
+      "No_",
+      "Name",
+      "Phone No_",
+      "Mobile Phone No_"
+    FROM "Customers"
+    WHERE
+      "Name" LIKE ? OR
+      "No_" LIKE ? OR
+      "Phone No_" LIKE ? OR
+      "Mobile Phone No_" LIKE ?
+    LIMIT 4
+  `;
+
+  const searchPattern = `%${query}%`;
+  const params = [searchPattern, searchPattern, searchPattern, searchPattern];
+
+  try {
+    const { rows } = await db.query(sql, params);
+
+    // Map the raw DB rows to a clean structure
+    // Handling potential nulls for phones if necessary, though lightweight
+    const suggestions = rows.map(row => ({
+      id: row["No_"],
+      name: row["Name"],
+      phone: row["Phone No_"],
+      mobile: row["Mobile Phone No_"]
+    }));
+
+    res.json(suggestions);
+
+  } catch (err) {
+    console.error("Database error in suggestions:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};

@@ -15,5 +15,17 @@ export default {
       console.error('Error fetching customer data:', error);
       throw error;
     }
+  },
+
+  async getSuggestions(query) {
+    try {
+      const response = await axios.get(`${API_URL}/suggestions`, {
+        params: { q: query }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+      return []; // Return empty array on error to prevent UI breakage
+    }
   }
 };
