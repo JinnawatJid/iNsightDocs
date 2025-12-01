@@ -81,26 +81,20 @@ const initDB = async () => {
         // Create CreditRequests table manually as it's not from CSV
         // Check if we need to drop it first to update schema (Dev only approach)
         // For this task, we assume we can drop it as requested "delete this and create new table"
-
+        
         // We will perform a check to see if 'customer_no' exists, if not we drop and recreate
         // Or simply drop it every time on init during this dev phase if that's safer for the user instructions
         // The user said "I need you to delete this and create new table".
-
-        // Let's try to check schema first.
-        db.get("PRAGMA table_info(CreditRequests)", (err, row) => {
-             // If table exists but we want to ensure new schema, let's drop it if it doesn't have customer_no or just always drop for now?
-             // User explicitly said "delete this", so I will Drop it.
-             db.run(`DROP TABLE IF EXISTS CreditRequests`, () => {
-                 db.run(`CREATE TABLE CreditRequests (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    tx_id TEXT UNIQUE,
-                    customer_no TEXT,
-                    customer_name TEXT,
-                    status TEXT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )`);
-             });
-        });
+        
+        // Ensure CreditRequests table exists with correct schema
+        db.run(`CREATE TABLE IF NOT EXISTS CreditRequests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tx_id TEXT UNIQUE,
+            customer_no TEXT,
+            customer_name TEXT,
+            status TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
 
         console.log('Database initialized.');
     } catch (error) {

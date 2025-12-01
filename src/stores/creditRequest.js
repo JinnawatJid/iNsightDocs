@@ -64,14 +64,6 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           // Automatically create a credit request transaction
           // Now passing ID as well
           await this.createCreditRequest(this.customer.id, this.customer.name);
-
-          if (results.length > 1) {
-            Swal.fire({
-              icon: 'info',
-              title: 'Found multiple results',
-              text: `Found ${results.length} matches. Using the first one: ${data.customer.name}`
-            });
-          }
         } else {
           this.resetState();
           Swal.fire({

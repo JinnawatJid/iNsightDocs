@@ -215,7 +215,7 @@ exports.getSuggestions = async (req, res) => {
 
   try {
     const { rows } = await db.query(sql, params);
-
+    
     // Map the raw DB rows to a clean structure
     // Handling potential nulls for phones if necessary, though lightweight
     const suggestions = rows.map(row => ({

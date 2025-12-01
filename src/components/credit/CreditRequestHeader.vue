@@ -86,28 +86,28 @@ export default {
     },
     async fetchSuggestions() {
       if (!this.searchQuery) return;
-
+      
       const results = await CustomerService.getSuggestions(this.searchQuery);
       this.suggestions = results;
       this.showDropdown = true;
     },
     getDisplayText(item) {
-      const q = this.searchQuery.toLowerCase();
-      // Logic:
-      // If input matches phone/mobile -> Phone - Name
-      // If input matches ID -> ID - Name
-      // Else (matches Name or generic) -> Name - ID
-
-      // Normalize check (simple substring)
-      const phoneMatch = (item.phone && item.phone.includes(q)) || (item.mobile && item.mobile.includes(q));
-      const idMatch = item.id.toLowerCase().includes(q);
+      const q = this.searchQuery.toLowerCase().replace(/[- ]/g, ''); // Normalize query
+      
+      const normalize = (val) => val ? val.replace(/[- ]/g, '') : '';
+      
+      const phone = normalize(item.phone);
+      const mobile = normalize(item.mobile);
+      
+      const phoneMatch = phone.includes(q) || mobile.includes(q);
+      const idMatch = item.id.toLowerCase().includes(this.searchQuery.toLowerCase());
 
       if (phoneMatch) {
         // Use whichever phone matched, or default to phone then mobile
         let displayPhone = item.phone || item.mobile;
         return `${displayPhone} - ${item.name}`;
       }
-
+      
       if (idMatch) {
         return `${item.id} - ${item.name}`;
       }

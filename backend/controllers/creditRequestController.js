@@ -10,7 +10,7 @@ exports.createCreditRequest = async (req, res) => {
   try {
     // Check for existing Draft or Pending request for this customer
     const existingSql = `
-      SELECT * FROM CreditRequests
+      SELECT * FROM CreditRequests 
       WHERE customer_no = ? AND status IN ('Draft', 'Pending')
       LIMIT 1
     `;
