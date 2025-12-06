@@ -35,8 +35,9 @@ app.post('/api/ocr/analyze', upload.single('document'), (req, res) => {
   const filePath = req.file.path;
   const pythonScript = path.join(__dirname, 'ocr_engine.py');
 
-  // Spawn Python process
-  const process = spawn('python3', [pythonScript, filePath]);
+  // Use 'python' instead of 'python3' for better Windows compatibility
+  // (Assuming 'python' is in the system PATH)
+  const process = spawn('python', [pythonScript, filePath]);
 
   let dataString = '';
   let errorString = '';
