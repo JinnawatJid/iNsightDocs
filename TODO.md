@@ -2,6 +2,7 @@
 
 ## General
 - [ ] **Implement Test Cases**: Replace the deleted `TEST_CASES.md` with comprehensive automated (or updated manual) test cases for the current system architecture.
+- [ ] **Refactor OCR Architecture**: Refactor the OCR engine into a separate Microservice (e.g., using FastAPI/Python) for better scalability and separation of concerns (separating heavy computational tasks from the main web server).
 
 ## Backend Integration
 - [ ] **Fetch Customer Data**: Implement API call in `CreateCreditRequest.vue` (currently using `mock_customer_data.json`).

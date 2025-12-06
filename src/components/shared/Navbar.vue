@@ -4,6 +4,7 @@
       <img src="@/assets/logo.png" alt="Company Logo" class="logo" />
       <router-link to="/create-credit-request" class="nav-link">สร้างคำขอ</router-link>
       <router-link to="/pending-request-old" class="nav-link">คำขอทั้งหมด</router-link>
+      <router-link to="/ocr-test" class="nav-link" style="color: #ff9900;">OCR Test</router-link>
     </div>
     <div class="nav-right">
       <div class="notification-bell">
