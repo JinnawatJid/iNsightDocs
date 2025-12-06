@@ -15,6 +15,7 @@ def analyze_image(file_path):
 
         extracted_data = []
         full_text = []
+        page_dimensions = {} # Map page_num -> {width, height}
 
         file_ext = os.path.splitext(file_path)[1].lower()
 
@@ -26,17 +27,16 @@ def analyze_image(file_path):
                 # matrix=fitz.Matrix(2, 2) increases resolution for better OCR
                 pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
 
+                # Store dimensions
+                current_page = page_num + 1
+                page_dimensions[current_page] = {"width": pix.w, "height": pix.h}
+
                 # Convert to numpy array (EasyOCR accepts numpy array)
-                # pix.samples is bytes, we need to reshape it
-                # We need to make sure we handle alpha channel if present, though PDF usually RGB
                 if pix.n < 3:
-                     # Grayscale
                      img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w)
                 else:
-                     # RGB or RGBA
                      img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w, pix.n)
                      if pix.n == 4:
-                         # Drop alpha channel
                          img = img[:, :, :3]
 
                 result = reader.readtext(img)
@@ -46,7 +46,7 @@ def analyze_image(file_path):
                         "text": text,
                         "confidence": float(prob),
                         "bbox": [[int(p[0]), int(p[1])] for p in bbox],
-                        "page": page_num + 1
+                        "page": current_page
                     })
                     full_text.append(text)
 
@@ -54,7 +54,36 @@ def analyze_image(file_path):
 
         else:
             # Handle Image
+            # For images, we need dimensions too for consistent frontend logic
+            # EasyOCR reads it internally, but let's read it to get dims
+            # Use Pillow or just let easyocr read it, but we need dims.
+            # Let's use easyocr to read first, then if we need dims, we might need to open it.
+            # Actually, `readtext` accepts a file path.
             result = reader.readtext(file_path)
+
+            # To get dimensions for image, we can use fitz or PIL.
+            # Let's use fitz since we have it, or PIL if installed.
+            # fitz can open images too.
+            try:
+                with fitz.open(file_path) as img_doc:
+                    page = img_doc[0]
+                    rect = page.rect
+                    # Note: easyocr might read it differently if it's just a path,
+                    # but usually it respects the image size.
+                    # fitz.open(image) treats it as a PDF page with that size.
+                    # pix = page.get_pixmap() -> width/height
+                    # However, simple images don't have "pages" in OCR output usually (defaults to 1).
+                    page_dimensions[1] = {"width": int(rect.width), "height": int(rect.height)}
+                    # Wait, rect.width might be points. Let's use a standard image library if possible.
+                    # Actually, we can just rely on frontend for images because
+                    # for images, frontend loads the EXACT SAME file.
+                    # For PDF, frontend renders a NEW representation, so scaling matters.
+                    # So for images, we might not strictly need backend dims if we assume 1:1.
+                    # But let's try to provide it for consistency.
+                    pix = page.get_pixmap()
+                    page_dimensions[1] = {"width": pix.w, "height": pix.h}
+            except:
+                pass # Fallback if fails
 
             for (bbox, text, prob) in result:
                 extracted_data.append({
@@ -68,7 +97,8 @@ def analyze_image(file_path):
         output = {
             "success": True,
             "full_text": "\n".join(full_text),
-            "details": extracted_data
+            "details": extracted_data,
+            "page_dimensions": page_dimensions
         }
 
     except Exception as e:

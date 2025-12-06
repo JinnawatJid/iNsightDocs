@@ -54,8 +54,8 @@
           >
             Raw JSON
           </div>
+          <!-- Always enable Visual Inspection, but we handle PDF logic inside -->
           <div
-            v-if="!isPdf"
             class="tab"
             :class="{ active: activeTab === 'visual' }"
             @click="handleVisualTab"
@@ -74,14 +74,32 @@
 
         <div class="tab-content" v-show="activeTab === 'visual'">
           <div class="visual-container" ref="visualContainer">
+
+            <!-- Controls for Multi-page (PDF) -->
+            <div v-if="isPdf && totalPages > 1" class="page-controls">
+              <button @click="prevPage" :disabled="currentPage <= 1">Previous</button>
+              <span>Page {{ currentPage }} of {{ totalPages }}</span>
+              <button @click="nextPage" :disabled="currentPage >= totalPages">Next</button>
+            </div>
+
+            <!-- Image View (for Images) -->
             <img
+              v-if="!isPdf"
               ref="imageRef"
               :src="imageUrl"
               alt="Uploaded Document"
               @load="onImageLoad"
               class="visual-image"
             />
-            <canvas ref="canvasRef" class="visual-canvas"></canvas>
+
+            <!-- Canvas for PDF Rendering OR Box Overlay -->
+            <!-- If PDF: this canvas renders the PDF page AND the boxes -->
+            <!-- If Image: this canvas overlays the boxes on top of the img -->
+            <canvas
+              ref="canvasRef"
+              class="visual-canvas"
+              :class="{ 'pdf-mode': isPdf, 'image-mode': !isPdf }"
+            ></canvas>
 
             <div
               v-if="hoveredText"
@@ -98,11 +116,19 @@
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted, nextTick } from 'vue';
+import { ref, watch, onUnmounted, nextTick, computed } from 'vue';
 import FileUploader from '../components/shared/FileUploader.vue';
 import axios from 'axios';
+import * as pdfjsLib from 'pdfjs-dist';
 
-import { computed } from 'vue'; // Added computed import
+// IMPORTANT: Configure worker for PDF.js.
+// In a standard Vite setup, we might need to point to the file in node_modules or public.
+// Using the CDN version for quick reliability in this environment,
+// BUT per user request "work on local without internet", we should technically use the local file.
+// However, serving the worker file from node_modules in Vite usually requires configuration (vite-plugin-static-copy or similar).
+// For now, let's try to import the worker entry point directly if possible, or fallback to a standard import.
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const selectedFile = ref(null);
 const imageUrl = ref(null);
@@ -118,6 +144,11 @@ const visualContainer = ref(null);
 const hoveredText = ref(null);
 const tooltipPos = ref({ x: 0, y: 0 });
 
+// PDF State
+const currentPage = ref(1);
+const totalPages = ref(0);
+const pdfDocument = ref(null);
+
 const isPdf = computed(() => {
   return selectedFile.value && selectedFile.value.type === 'application/pdf';
 });
@@ -126,12 +157,14 @@ watch(selectedFile, (newFile) => {
   if (newFile) {
     ocrResult.value = null;
     errorMessage.value = '';
-    activeTab.value = 'text'; // Reset tab
+    activeTab.value = 'text';
+    currentPage.value = 1;
+    totalPages.value = 0;
+    pdfDocument.value = null;
 
-    // Create local URL for preview
+    // Cleanup old URL
     if (imageUrl.value) URL.revokeObjectURL(imageUrl.value);
-    // Only create URL if it's an image, or handle PDF preview differently if needed
-    // For now, we only use imageUrl for the Visual Tab which is hidden for PDFs
+
     if (newFile.type.startsWith('image/')) {
         imageUrl.value = URL.createObjectURL(newFile);
     } else {
@@ -149,55 +182,140 @@ onUnmounted(() => {
 
 const handleVisualTab = () => {
   activeTab.value = 'visual';
-  nextTick(() => {
-    if (imageRef.value && imageRef.value.complete) {
-      drawBoundingBoxes();
+  nextTick(async () => {
+    if (isPdf.value) {
+      await renderPdfPage(currentPage.value);
+    } else if (imageRef.value && imageRef.value.complete) {
+      drawBoundingBoxesImage();
     }
   });
 };
 
 const onImageLoad = () => {
-  if (activeTab.value === 'visual') {
-    drawBoundingBoxes();
+  if (activeTab.value === 'visual' && !isPdf.value) {
+    drawBoundingBoxesImage();
   }
 };
 
-const drawBoundingBoxes = () => {
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    renderPdfPage(currentPage.value);
+  }
+};
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+    renderPdfPage(currentPage.value);
+  }
+};
+
+// --- PDF RENDER LOGIC ---
+const renderPdfPage = async (pageNum) => {
+  if (!selectedFile.value || !isPdf.value) return;
+  if (!ocrResult.value || !ocrResult.value.page_dimensions) return;
+
+  try {
+    // Load PDF if not loaded
+    if (!pdfDocument.value) {
+      const arrayBuffer = await selectedFile.value.arrayBuffer();
+      pdfDocument.value = await pdfjsLib.getDocument(arrayBuffer).promise;
+      totalPages.value = pdfDocument.value.numPages;
+    }
+
+    const page = await pdfDocument.value.getPage(pageNum);
+    const canvas = canvasRef.value;
+    const ctx = canvas.getContext('2d');
+
+    // Get Backend Dimensions for this page
+    // Backend keys might be strings or numbers.
+    const dims = ocrResult.value.page_dimensions[pageNum] || ocrResult.value.page_dimensions[String(pageNum)];
+
+    if (!dims) {
+        console.error("No dimensions found for page", pageNum);
+        return;
+    }
+
+    // Backend generated image at `dims.width` x `dims.height`.
+    // We want to render the PDF to fit comfortably or match that resolution.
+    // Let's render at scale 1.5 for crispness on screen.
+    const viewport = page.getViewport({ scale: 1.5 });
+
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+
+    const renderContext = {
+      canvasContext: ctx,
+      viewport: viewport,
+    };
+
+    await page.render(renderContext).promise;
+
+    // After rendering PDF, draw the boxes on top
+    drawBoxesOnPdf(ctx, pageNum, viewport.width, viewport.height, dims.width, dims.height);
+
+  } catch (error) {
+    console.error("Error rendering PDF:", error);
+    errorMessage.value = "Failed to render PDF page.";
+  }
+};
+
+const drawBoxesOnPdf = (ctx, pageNum, renderedW, renderedH, backendW, backendH) => {
+    // Calculate scaling factors
+    // Backend coordinate * scaleX = Canvas coordinate
+    const scaleX = renderedW / backendW;
+    const scaleY = renderedH / backendH;
+
+    drawBoxes(ctx, pageNum, scaleX, scaleY);
+};
+
+
+// --- IMAGE RENDER LOGIC ---
+const drawBoundingBoxesImage = () => {
   if (!canvasRef.value || !imageRef.value || !ocrResult.value) return;
 
   const canvas = canvasRef.value;
   const ctx = canvas.getContext('2d');
   const img = imageRef.value;
 
-  // Match canvas size to displayed image size
-  canvas.width = img.width;
-  canvas.height = img.height;
-
-  // EasyOCR coordinate system is usually based on the original image dimensions.
-  // We need to scale coordinates if the displayed image is resized via CSS.
-  // However, `img.width` and `img.height` give the *rendered* size in the DOM
-  // if not explicitly set, but for <img> tags it usually reflects intrinsic unless CSS constrains it.
-  // Let's rely on intrinsic size for drawing and CSS for scaling.
-  // Better approach: Make canvas match image's *natural* size, then scale via CSS.
-
+  // For images, we match the canvas to the intrinsic image size
   canvas.width = img.naturalWidth;
   canvas.height = img.naturalHeight;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // For standard images, scale is 1:1 usually unless backend resized it.
+  // We assume 1:1 for now as per previous implementation.
+  // If backend provided dimensions for page 1, we could verify scaling.
+  let scaleX = 1;
+  let scaleY = 1;
+
+  const dims = ocrResult.value.page_dimensions ? (ocrResult.value.page_dimensions[1] || ocrResult.value.page_dimensions['1']) : null;
+  if (dims) {
+      scaleX = canvas.width / dims.width;
+      scaleY = canvas.height / dims.height;
+  }
+
+  drawBoxes(ctx, 1, scaleX, scaleY);
+};
+
+// --- SHARED DRAWING LOGIC ---
+const drawBoxes = (ctx, pageNum, scaleX, scaleY) => {
   // Style for boxes
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 2;
   ctx.strokeStyle = '#00ff00';
   ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
 
-  ocrResult.value.details.forEach(item => {
-    const bbox = item.bbox;
-    // bbox is [[x1, y1], [x2, y1], [x2, y2], [x1, y2]] (Top-Left, Top-Right, Bottom-Right, Bottom-Left)
+  const pageDetails = ocrResult.value.details.filter(d => (d.page || 1) == pageNum);
 
-    const x = bbox[0][0];
-    const y = bbox[0][1];
-    const w = bbox[1][0] - bbox[0][0];
-    const h = bbox[2][1] - bbox[1][1];
+  pageDetails.forEach(item => {
+    const bbox = item.bbox;
+
+    const x = bbox[0][0] * scaleX;
+    const y = bbox[0][1] * scaleY;
+    const w = (bbox[1][0] - bbox[0][0]) * scaleX;
+    const h = (bbox[2][1] - bbox[1][1]) * scaleY;
 
     ctx.beginPath();
     ctx.rect(x, y, w, h);
@@ -205,25 +323,30 @@ const drawBoundingBoxes = () => {
     ctx.fill();
   });
 
-  // Add hover interaction
+  // Setup Interaction
+  setupInteraction(ctx.canvas, pageDetails, scaleX, scaleY);
+};
+
+const setupInteraction = (canvas, details, scaleX, scaleY) => {
   canvas.onmousemove = (e) => {
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    // DOM to Canvas scaling (CSS scaling)
+    const domScaleX = canvas.width / rect.width;
+    const domScaleY = canvas.height / rect.height;
 
-    const mouseX = (e.clientX - rect.left) * scaleX;
-    const mouseY = (e.clientY - rect.top) * scaleY;
+    const mouseX = (e.clientX - rect.left) * domScaleX;
+    const mouseY = (e.clientY - rect.top) * domScaleY;
 
     let found = false;
 
-    // Check in reverse order (topmost box first)
-    for (let i = ocrResult.value.details.length - 1; i >= 0; i--) {
-      const item = ocrResult.value.details[i];
+    for (let i = details.length - 1; i >= 0; i--) {
+      const item = details[i];
       const bbox = item.bbox;
-      const x = bbox[0][0];
-      const y = bbox[0][1];
-      const w = bbox[1][0] - bbox[0][0];
-      const h = bbox[2][1] - bbox[1][1];
+
+      const x = bbox[0][0] * scaleX;
+      const y = bbox[0][1] * scaleY;
+      const w = (bbox[1][0] - bbox[0][0]) * scaleX;
+      const h = (bbox[2][1] - bbox[1][1]) * scaleY;
 
       if (mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h) {
         hoveredText.value = item.text + ` (${(item.confidence * 100).toFixed(1)}%)`;
@@ -267,9 +390,11 @@ const analyzeImage = async () => {
 
     if (response.data.success) {
       ocrResult.value = response.data;
-      // If we are already on visual tab, refresh it
       if (activeTab.value === 'visual') {
-        nextTick(drawBoundingBoxes);
+        nextTick(() => {
+             if (isPdf.value) renderPdfPage(currentPage.value);
+             else drawBoundingBoxesImage();
+        });
       }
     } else {
       errorMessage.value = response.data.error || 'OCR Analysis failed.';
@@ -420,6 +545,33 @@ const analyzeImage = async () => {
   overflow: auto;
   border: 1px solid #ddd;
   background: #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.page-controls {
+  padding: 10px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  background: #e9ecef;
+  width: 100%;
+  justify-content: center;
+  border-bottom: 1px solid #ccc;
+}
+
+.page-controls button {
+  padding: 5px 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+.page-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .visual-image {
@@ -429,23 +581,12 @@ const analyzeImage = async () => {
 }
 
 .visual-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: auto; /* Allow mouse events for tooltip */
+  /* Canvas is controlled by JS width/height attributes */
+  /* For PDF, it renders the content. For Image, it overlays. */
+  /* But for Image overlay mode, we need absolute positioning. */
 }
 
-.tooltip {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  pointer-events: none;
-  z-index: 10;
-  white-space: nowrap;
-}
+/* Conditional Styling handled by Vue logic (v-if isPdf) */
+/* When PDF, canvas is relative/block. */
+/* When Image, canvas is absolute over img. */
 </style>
