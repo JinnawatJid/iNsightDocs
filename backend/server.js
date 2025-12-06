@@ -32,7 +32,21 @@ app.post('/api/ocr/analyze', upload.single('document'), (req, res) => {
     return res.status(400).json({ success: false, error: 'No file uploaded' });
   }
 
-  const filePath = req.file.path;
+  // Multer saves files without extensions. We need the extension for the Python script
+  // to correctly detect if it's a PDF or Image.
+  const originalExt = path.extname(req.file.originalname);
+  const oldPath = req.file.path;
+  const newPath = `${oldPath}${originalExt}`;
+
+  // Rename the file to include the extension
+  try {
+    fs.renameSync(oldPath, newPath);
+  } catch (err) {
+    console.error('Error renaming file:', err);
+    return res.status(500).json({ success: false, error: 'Failed to process file upload' });
+  }
+
+  const filePath = newPath;
   const pythonScript = path.join(__dirname, 'ocr_engine.py');
 
   // Use 'python' instead of 'python3' for better Windows compatibility
