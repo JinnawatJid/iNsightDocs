@@ -11,8 +11,8 @@
         <h2>Upload Document</h2>
         <div class="upload-area">
           <FileUploader
-            label="Select Image"
-            accept="image/*"
+            label="Select Document"
+            accept="image/*,application/pdf"
             v-model="selectedFile"
             :multiple="false"
           />
@@ -55,6 +55,7 @@
             Raw JSON
           </div>
           <div
+            v-if="!isPdf"
             class="tab"
             :class="{ active: activeTab === 'visual' }"
             @click="handleVisualTab"
@@ -101,6 +102,8 @@ import { ref, watch, onUnmounted, nextTick } from 'vue';
 import FileUploader from '../components/shared/FileUploader.vue';
 import axios from 'axios';
 
+import { computed } from 'vue'; // Added computed import
+
 const selectedFile = ref(null);
 const imageUrl = ref(null);
 const isLoading = ref(false);
@@ -115,13 +118,25 @@ const visualContainer = ref(null);
 const hoveredText = ref(null);
 const tooltipPos = ref({ x: 0, y: 0 });
 
+const isPdf = computed(() => {
+  return selectedFile.value && selectedFile.value.type === 'application/pdf';
+});
+
 watch(selectedFile, (newFile) => {
   if (newFile) {
     ocrResult.value = null;
     errorMessage.value = '';
+    activeTab.value = 'text'; // Reset tab
+
     // Create local URL for preview
     if (imageUrl.value) URL.revokeObjectURL(imageUrl.value);
-    imageUrl.value = URL.createObjectURL(newFile);
+    // Only create URL if it's an image, or handle PDF preview differently if needed
+    // For now, we only use imageUrl for the Visual Tab which is hidden for PDFs
+    if (newFile.type.startsWith('image/')) {
+        imageUrl.value = URL.createObjectURL(newFile);
+    } else {
+        imageUrl.value = null;
+    }
   } else {
     if (imageUrl.value) URL.revokeObjectURL(imageUrl.value);
     imageUrl.value = null;
