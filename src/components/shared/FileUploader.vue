@@ -95,8 +95,12 @@ export default {
       this.$refs.fileInput.click();
     },
     handleFileChange(event) {
+      console.log('FileUploader: handleFileChange triggered');
       const files = event.target.files;
-      if (!files || files.length === 0) return;
+      if (!files || files.length === 0) {
+          console.log('FileUploader: No files found');
+          return;
+      }
 
       if (this.multiple) {
         // Append new files to existing array
@@ -110,6 +114,7 @@ export default {
       } else {
         // Single file mode
         const selectedFile = files[0];
+        console.log('FileUploader: Emitting single file', selectedFile.name);
         this.file = selectedFile;
         this.$emit('update:modelValue', selectedFile);
         this.$emit('file-selected', selectedFile);

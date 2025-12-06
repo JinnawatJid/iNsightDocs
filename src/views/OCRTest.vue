@@ -13,8 +13,8 @@
           <FileUploader
             label="Select Image"
             accept="image/*"
-            @update:files="handleFileSelect"
-            :maxFiles="1"
+            v-model="selectedFile"
+            :multiple="false"
           />
         </div>
 
@@ -69,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import FileUploader from '../components/shared/FileUploader.vue';
 import axios from 'axios';
 
@@ -79,15 +79,12 @@ const ocrResult = ref(null);
 const errorMessage = ref('');
 const activeTab = ref('text');
 
-const handleFileSelect = (files) => {
-  if (files && files.length > 0) {
-    selectedFile.value = files[0];
+watch(selectedFile, (newFile) => {
+  if (newFile) {
     ocrResult.value = null;
     errorMessage.value = '';
-  } else {
-    selectedFile.value = null;
   }
-};
+});
 
 const analyzeImage = async () => {
   if (!selectedFile.value) return;
