@@ -54,6 +54,13 @@
           >
             Raw JSON
           </div>
+          <div
+            class="tab"
+            :class="{ active: activeTab === 'visual' }"
+            @click="handleVisualTab"
+          >
+            Visual Inspection
+          </div>
         </div>
 
         <div class="tab-content" v-if="activeTab === 'text'">
@@ -63,28 +70,168 @@
         <div class="tab-content" v-if="activeTab === 'json'">
           <pre class="json-output">{{ JSON.stringify(ocrResult.details, null, 2) }}</pre>
         </div>
+
+        <div class="tab-content" v-show="activeTab === 'visual'">
+          <div class="visual-container" ref="visualContainer">
+            <img
+              ref="imageRef"
+              :src="imageUrl"
+              alt="Uploaded Document"
+              @load="onImageLoad"
+              class="visual-image"
+            />
+            <canvas ref="canvasRef" class="visual-canvas"></canvas>
+
+            <div
+              v-if="hoveredText"
+              class="tooltip"
+              :style="{ top: tooltipPos.y + 'px', left: tooltipPos.x + 'px' }"
+            >
+              {{ hoveredText }}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, onUnmounted, nextTick } from 'vue';
 import FileUploader from '../components/shared/FileUploader.vue';
 import axios from 'axios';
 
 const selectedFile = ref(null);
+const imageUrl = ref(null);
 const isLoading = ref(false);
 const ocrResult = ref(null);
 const errorMessage = ref('');
 const activeTab = ref('text');
 
+// Visual Inspection Refs
+const imageRef = ref(null);
+const canvasRef = ref(null);
+const visualContainer = ref(null);
+const hoveredText = ref(null);
+const tooltipPos = ref({ x: 0, y: 0 });
+
 watch(selectedFile, (newFile) => {
   if (newFile) {
     ocrResult.value = null;
     errorMessage.value = '';
+    // Create local URL for preview
+    if (imageUrl.value) URL.revokeObjectURL(imageUrl.value);
+    imageUrl.value = URL.createObjectURL(newFile);
+  } else {
+    if (imageUrl.value) URL.revokeObjectURL(imageUrl.value);
+    imageUrl.value = null;
   }
 });
+
+onUnmounted(() => {
+  if (imageUrl.value) URL.revokeObjectURL(imageUrl.value);
+});
+
+const handleVisualTab = () => {
+  activeTab.value = 'visual';
+  nextTick(() => {
+    if (imageRef.value && imageRef.value.complete) {
+      drawBoundingBoxes();
+    }
+  });
+};
+
+const onImageLoad = () => {
+  if (activeTab.value === 'visual') {
+    drawBoundingBoxes();
+  }
+};
+
+const drawBoundingBoxes = () => {
+  if (!canvasRef.value || !imageRef.value || !ocrResult.value) return;
+
+  const canvas = canvasRef.value;
+  const ctx = canvas.getContext('2d');
+  const img = imageRef.value;
+
+  // Match canvas size to displayed image size
+  canvas.width = img.width;
+  canvas.height = img.height;
+
+  // EasyOCR coordinate system is usually based on the original image dimensions.
+  // We need to scale coordinates if the displayed image is resized via CSS.
+  // However, `img.width` and `img.height` give the *rendered* size in the DOM
+  // if not explicitly set, but for <img> tags it usually reflects intrinsic unless CSS constrains it.
+  // Let's rely on intrinsic size for drawing and CSS for scaling.
+  // Better approach: Make canvas match image's *natural* size, then scale via CSS.
+
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Style for boxes
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#00ff00';
+  ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
+
+  ocrResult.value.details.forEach(item => {
+    const bbox = item.bbox;
+    // bbox is [[x1, y1], [x2, y1], [x2, y2], [x1, y2]] (Top-Left, Top-Right, Bottom-Right, Bottom-Left)
+
+    const x = bbox[0][0];
+    const y = bbox[0][1];
+    const w = bbox[1][0] - bbox[0][0];
+    const h = bbox[2][1] - bbox[1][1];
+
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.stroke();
+    ctx.fill();
+  });
+
+  // Add hover interaction
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
+
+    let found = false;
+
+    // Check in reverse order (topmost box first)
+    for (let i = ocrResult.value.details.length - 1; i >= 0; i--) {
+      const item = ocrResult.value.details[i];
+      const bbox = item.bbox;
+      const x = bbox[0][0];
+      const y = bbox[0][1];
+      const w = bbox[1][0] - bbox[0][0];
+      const h = bbox[2][1] - bbox[1][1];
+
+      if (mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h) {
+        hoveredText.value = item.text + ` (${(item.confidence * 100).toFixed(1)}%)`;
+        tooltipPos.value = {
+          x: e.clientX - rect.left + 15,
+          y: e.clientY - rect.top + 15
+        };
+        found = true;
+        canvas.style.cursor = 'pointer';
+        break;
+      }
+    }
+
+    if (!found) {
+      hoveredText.value = null;
+      canvas.style.cursor = 'default';
+    }
+  };
+
+  canvas.onmouseleave = () => {
+    hoveredText.value = null;
+  };
+};
 
 const analyzeImage = async () => {
   if (!selectedFile.value) return;
@@ -105,6 +252,10 @@ const analyzeImage = async () => {
 
     if (response.data.success) {
       ocrResult.value = response.data;
+      // If we are already on visual tab, refresh it
+      if (activeTab.value === 'visual') {
+        nextTick(drawBoundingBoxes);
+      }
     } else {
       errorMessage.value = response.data.error || 'OCR Analysis failed.';
     }
@@ -245,5 +396,41 @@ const analyzeImage = async () => {
   font-size: 0.9rem;
   max-height: 500px;
   overflow-y: auto;
+}
+
+/* Visual Tab Styles */
+.visual-container {
+  position: relative;
+  width: 100%;
+  overflow: auto;
+  border: 1px solid #ddd;
+  background: #f0f0f0;
+}
+
+.visual-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.visual-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto; /* Allow mouse events for tooltip */
+}
+
+.tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
 }
 </style>
