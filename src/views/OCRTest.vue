@@ -54,7 +54,6 @@
           >
             Raw JSON
           </div>
-          <!-- Always enable Visual Inspection, but we handle PDF logic inside -->
           <div
             class="tab"
             :class="{ active: activeTab === 'visual' }"
@@ -82,24 +81,25 @@
               <button @click="nextPage" :disabled="currentPage >= totalPages">Next</button>
             </div>
 
-            <!-- Image View (for Images) -->
-            <img
-              v-if="!isPdf"
-              ref="imageRef"
-              :src="imageUrl"
-              alt="Uploaded Document"
-              @load="onImageLoad"
-              class="visual-image"
-            />
+            <!-- PDF Mode: Canvas is the content -->
+            <div v-if="isPdf" class="visual-content-wrapper pdf-wrapper">
+               <canvas ref="canvasRef" class="visual-canvas pdf-mode"></canvas>
+            </div>
 
-            <!-- Canvas for PDF Rendering OR Box Overlay -->
-            <!-- If PDF: this canvas renders the PDF page AND the boxes -->
-            <!-- If Image: this canvas overlays the boxes on top of the img -->
-            <canvas
-              ref="canvasRef"
-              class="visual-canvas"
-              :class="{ 'pdf-mode': isPdf, 'image-mode': !isPdf }"
-            ></canvas>
+            <!-- Image Mode: Image is content, Canvas is overlay -->
+            <div v-else class="visual-content-wrapper image-wrapper">
+              <img
+                ref="imageRef"
+                :src="imageUrl"
+                alt="Uploaded Document"
+                @load="onImageLoad"
+                class="visual-image"
+              />
+              <canvas
+                ref="canvasRef"
+                class="visual-canvas image-mode"
+              ></canvas>
+            </div>
 
             <div
               v-if="hoveredText"
@@ -121,14 +121,8 @@ import FileUploader from '../components/shared/FileUploader.vue';
 import axios from 'axios';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// IMPORTANT: Configure worker for PDF.js.
-// In a standard Vite setup, we might need to point to the file in node_modules or public.
-// Using the CDN version for quick reliability in this environment,
-// BUT per user request "work on local without internet", we should technically use the local file.
-// However, serving the worker file from node_modules in Vite usually requires configuration (vite-plugin-static-copy or similar).
-// For now, let's try to import the worker entry point directly if possible, or fallback to a standard import.
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+// Use local worker file from public folder
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.mjs';
 
 const selectedFile = ref(null);
 const imageUrl = ref(null);
@@ -229,7 +223,6 @@ const renderPdfPage = async (pageNum) => {
     const ctx = canvas.getContext('2d');
 
     // Get Backend Dimensions for this page
-    // Backend keys might be strings or numbers.
     const dims = ocrResult.value.page_dimensions[pageNum] || ocrResult.value.page_dimensions[String(pageNum)];
 
     if (!dims) {
@@ -238,8 +231,7 @@ const renderPdfPage = async (pageNum) => {
     }
 
     // Backend generated image at `dims.width` x `dims.height`.
-    // We want to render the PDF to fit comfortably or match that resolution.
-    // Let's render at scale 1.5 for crispness on screen.
+    // We render PDF at scale 1.5 for better viewing quality
     const viewport = page.getViewport({ scale: 1.5 });
 
     canvas.width = viewport.width;
@@ -257,13 +249,12 @@ const renderPdfPage = async (pageNum) => {
 
   } catch (error) {
     console.error("Error rendering PDF:", error);
-    errorMessage.value = "Failed to render PDF page.";
+    errorMessage.value = "Failed to render PDF page. " + error.message;
   }
 };
 
 const drawBoxesOnPdf = (ctx, pageNum, renderedW, renderedH, backendW, backendH) => {
     // Calculate scaling factors
-    // Backend coordinate * scaleX = Canvas coordinate
     const scaleX = renderedW / backendW;
     const scaleY = renderedH / backendH;
 
@@ -279,18 +270,18 @@ const drawBoundingBoxesImage = () => {
   const ctx = canvas.getContext('2d');
   const img = imageRef.value;
 
-  // For images, we match the canvas to the intrinsic image size
+  // Set internal canvas resolution to match image resolution
   canvas.width = img.naturalWidth;
   canvas.height = img.naturalHeight;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // For standard images, scale is 1:1 usually unless backend resized it.
-  // We assume 1:1 for now as per previous implementation.
-  // If backend provided dimensions for page 1, we could verify scaling.
+  // For images, we assume 1:1 scale relative to the image itself.
+  // The backend processed the image at full resolution.
   let scaleX = 1;
   let scaleY = 1;
 
+  // Optional: Verify against backend dims if available, but usually safe to assume 1:1 for images
   const dims = ocrResult.value.page_dimensions ? (ocrResult.value.page_dimensions[1] || ocrResult.value.page_dimensions['1']) : null;
   if (dims) {
       scaleX = canvas.width / dims.width;
@@ -302,7 +293,6 @@ const drawBoundingBoxesImage = () => {
 
 // --- SHARED DRAWING LOGIC ---
 const drawBoxes = (ctx, pageNum, scaleX, scaleY) => {
-  // Style for boxes
   ctx.lineWidth = 2;
   ctx.strokeStyle = '#00ff00';
   ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
@@ -323,14 +313,14 @@ const drawBoxes = (ctx, pageNum, scaleX, scaleY) => {
     ctx.fill();
   });
 
-  // Setup Interaction
   setupInteraction(ctx.canvas, pageDetails, scaleX, scaleY);
 };
 
 const setupInteraction = (canvas, details, scaleX, scaleY) => {
   canvas.onmousemove = (e) => {
     const rect = canvas.getBoundingClientRect();
-    // DOM to Canvas scaling (CSS scaling)
+
+    // Transform mouse coordinates (DOM space) to Canvas space
     const domScaleX = canvas.width / rect.width;
     const domScaleY = canvas.height / rect.height;
 
@@ -339,6 +329,7 @@ const setupInteraction = (canvas, details, scaleX, scaleY) => {
 
     let found = false;
 
+    // Check boxes in reverse order (topmost first)
     for (let i = details.length - 1; i >= 0; i--) {
       const item = details[i];
       const bbox = item.bbox;
@@ -350,6 +341,7 @@ const setupInteraction = (canvas, details, scaleX, scaleY) => {
 
       if (mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h) {
         hoveredText.value = item.text + ` (${(item.confidence * 100).toFixed(1)}%)`;
+        // Position tooltip near mouse pointer
         tooltipPos.value = {
           x: e.clientX - rect.left + 15,
           y: e.clientY - rect.top + 15
@@ -393,7 +385,7 @@ const analyzeImage = async () => {
       if (activeTab.value === 'visual') {
         nextTick(() => {
              if (isPdf.value) renderPdfPage(currentPage.value);
-             else drawBoundingBoxesImage();
+             else if (imageRef.value && imageRef.value.complete) drawBoundingBoxesImage();
         });
       }
     } else {
@@ -561,17 +553,14 @@ const analyzeImage = async () => {
   border-bottom: 1px solid #ccc;
 }
 
-.page-controls button {
-  padding: 5px 15px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
+.visual-content-wrapper {
+  position: relative;
+  /* Limits */
+  max-width: 100%;
 }
 
-.page-controls button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.image-wrapper {
+  display: inline-block; /* Wraps tightly around the image */
 }
 
 .visual-image {
@@ -580,13 +569,33 @@ const analyzeImage = async () => {
   height: auto;
 }
 
-.visual-canvas {
-  /* Canvas is controlled by JS width/height attributes */
-  /* For PDF, it renders the content. For Image, it overlays. */
-  /* But for Image overlay mode, we need absolute positioning. */
+/* PDF Mode: Canvas is just a block */
+.visual-canvas.pdf-mode {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
 
-/* Conditional Styling handled by Vue logic (v-if isPdf) */
-/* When PDF, canvas is relative/block. */
-/* When Image, canvas is absolute over img. */
+/* Image Mode: Canvas is absolute overlay */
+.visual-canvas.image-mode {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto; /* Allow interaction */
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 100;
+  white-space: nowrap;
+}
 </style>
