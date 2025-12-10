@@ -7,7 +7,7 @@
         <div class="search-and-badge">
           <div class="search-bar">
             <div class="search-input-container">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <img :src="iconSearch" alt="Search" width="20" height="20" />
               <input
                 type="text"
                 placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ, เบอร์โทร หรือ ชื่อบริษัท"
@@ -29,7 +29,7 @@
         <CustomerInvoices :invoices="foundCustomer.invoices" />
       </div>
       <div v-else class="search-placeholder">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <img :src="iconSearch" alt="Search" width="40" height="40" />
         <p>เริ่มค้นหาข้อมูลลูกค้าด้วย รหัสลูกค้า, ชื่อ หรือ เบอร์โทร</p>
       </div>
     </div>
@@ -46,6 +46,7 @@ import CustomerInvoices from '@/components/old-credit-components/CustomerInvoice
 import CreditBadge from '@/components/old-credit-components/CreditBadge.vue';
 import customers from '@/data/customers.json';
 import Swal from 'sweetalert2';
+import iconSearch from '@/assets/icons/search.svg';
 
 const searchQuery = ref('');
 const foundCustomer = ref(null);
@@ -141,9 +142,8 @@ h1 {
   align-items: center;
 }
 
-.search-input-container svg {
+.search-input-container img {
   margin-right: 0.5rem;
-  color: #888;
 }
 
 .customer-details-grid {

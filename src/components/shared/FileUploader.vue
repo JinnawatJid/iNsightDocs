@@ -16,8 +16,8 @@
         <div class="icon-wrapper" :class="{ 'icon-large': multiple }">
           <slot name="icon">
              <!-- Default Icon -->
-             <svg v-if="!multiple" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-             <svg v-else xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15c.7-1.2 1-2.5.7-3.9-.6-2.4-3-4-5.4-4-1.3 0-2.5.6-3.4 1.5A5.6 5.6 0 0 0 8 5.1C5.2 5.1 3 7.3 3 10.1c0 .8.2 1.5.5 2.1"></path><path d="M12 13v9"></path><path d="m9 17 3 3 3-3"></path></svg>
+             <img v-if="!multiple" :src="iconFileBlue" alt="File" width="24" height="24" />
+             <img v-else :src="iconUploadMulti" alt="Upload" width="48" height="48" />
           </slot>
         </div>
         <p>Drop your files here or <span class="link">Click to upload</span></p>
@@ -47,8 +47,18 @@
 </template>
 
 <script>
+import iconFileBlue from '@/assets/icons/file-blue.svg';
+import iconUploadMulti from '@/assets/icons/upload-multi.svg';
+
 export default {
   name: 'FileUploader',
+  data() {
+    return {
+      file: this.modelValue,
+      iconFileBlue,
+      iconUploadMulti
+    };
+  },
   props: {
     label: {
       type: String,
@@ -72,19 +82,6 @@ export default {
     }
   },
   emits: ['update:modelValue', 'file-selected', 'file-removed'],
-  data() {
-    return {
-      file: this.modelValue
-    };
-  },
-  computed: {
-    isEmpty() {
-      if (this.multiple) {
-        return !this.file || this.file.length === 0;
-      }
-      return !this.file;
-    }
-  },
   watch: {
     modelValue(newVal) {
       this.file = newVal;
@@ -129,6 +126,14 @@ export default {
         this.$emit('update:modelValue', null);
       }
       this.$emit('file-removed');
+    }
+  },
+  computed: {
+    isEmpty() {
+      if (this.multiple) {
+        return !this.file || this.file.length === 0;
+      }
+      return !this.file;
     }
   }
 };
