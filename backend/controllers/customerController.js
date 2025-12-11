@@ -40,28 +40,53 @@ exports.searchCustomers = async (req, res) => {
     return res.status(400).json({ error: "Query parameter 'q' is required" });
   }
 
-  const sql = `
-    SELECT
-      "No_",
-      "Name",
-      "Contact",
-      "Phone No_",
-      "Telex No_",
-      "Mobile Phone No_",
-      "VAT Registration No_",
-      "Address",
-      "City",
-      "County",
-      "Post Code"
-    FROM "Customers"
-    WHERE
-      "Name" LIKE ? OR
-      "No_" LIKE ? OR
-      "Phone No_" LIKE ? OR
-      "Mobile Phone No_" LIKE ? OR
-      "Contact" LIKE ?
-    LIMIT 20
-  `;
+  let sql;
+  if (db.dbType === 'mssql') {
+    sql = `
+      SELECT TOP 20
+        "No_",
+        "Name",
+        "Contact",
+        "Phone No_",
+        "Telex No_",
+        "Mobile Phone No_",
+        "VAT Registration No_",
+        "Address",
+        "City",
+        "County",
+        "Post Code"
+      FROM "Customers"
+      WHERE
+        "Name" LIKE ? OR
+        "No_" LIKE ? OR
+        "Phone No_" LIKE ? OR
+        "Mobile Phone No_" LIKE ? OR
+        "Contact" LIKE ?
+    `;
+  } else {
+    sql = `
+      SELECT
+        "No_",
+        "Name",
+        "Contact",
+        "Phone No_",
+        "Telex No_",
+        "Mobile Phone No_",
+        "VAT Registration No_",
+        "Address",
+        "City",
+        "County",
+        "Post Code"
+      FROM "Customers"
+      WHERE
+        "Name" LIKE ? OR
+        "No_" LIKE ? OR
+        "Phone No_" LIKE ? OR
+        "Mobile Phone No_" LIKE ? OR
+        "Contact" LIKE ?
+      LIMIT 20
+    `;
+  }
 
   const searchPattern = `%${query}%`;
   const params = [searchPattern, searchPattern, searchPattern, searchPattern, searchPattern];
@@ -228,20 +253,37 @@ exports.getSuggestions = async (req, res) => {
     return res.json([]);
   }
 
-  const sql = `
-    SELECT
-      "No_",
-      "Name",
-      "Phone No_",
-      "Mobile Phone No_"
-    FROM "Customers"
-    WHERE
-      "Name" LIKE ? OR
-      "No_" LIKE ? OR
-      "Phone No_" LIKE ? OR
-      "Mobile Phone No_" LIKE ?
-    LIMIT 4
-  `;
+  let sql;
+  if (db.dbType === 'mssql') {
+    sql = `
+      SELECT TOP 4
+        "No_",
+        "Name",
+        "Phone No_",
+        "Mobile Phone No_"
+      FROM "Customers"
+      WHERE
+        "Name" LIKE ? OR
+        "No_" LIKE ? OR
+        "Phone No_" LIKE ? OR
+        "Mobile Phone No_" LIKE ?
+    `;
+  } else {
+    sql = `
+      SELECT
+        "No_",
+        "Name",
+        "Phone No_",
+        "Mobile Phone No_"
+      FROM "Customers"
+      WHERE
+        "Name" LIKE ? OR
+        "No_" LIKE ? OR
+        "Phone No_" LIKE ? OR
+        "Mobile Phone No_" LIKE ?
+      LIMIT 4
+    `;
+  }
 
   const searchPattern = `%${query}%`;
   const params = [searchPattern, searchPattern, searchPattern, searchPattern];

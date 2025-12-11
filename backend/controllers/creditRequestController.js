@@ -12,11 +12,19 @@ exports.createCreditRequest = async (req, res) => {
     // We only allow new request if previous is Approved, Rejected, Canceled, or Closed.
     // Also, if we find an existing request, we should probably prefer the ACTIVE one to return, or the latest?
     // The current logic returns ANY request matching the status.
-    const existingSql = `
-      SELECT * FROM CreditRequests 
-      WHERE customer_no = ? AND status IN ('Opened', 'Submitted', 'Reviewed')
-      LIMIT 1
-    `;
+    let existingSql;
+    if (db.dbType === 'mssql') {
+      existingSql = `
+        SELECT TOP 1 * FROM CreditRequests
+        WHERE customer_no = ? AND status IN ('Opened', 'Submitted', 'Reviewed')
+      `;
+    } else {
+      existingSql = `
+        SELECT * FROM CreditRequests
+        WHERE customer_no = ? AND status IN ('Opened', 'Submitted', 'Reviewed')
+        LIMIT 1
+      `;
+    }
     const { rows } = await db.query(existingSql, [customer_no]);
 
     if (rows && rows.length > 0) {
@@ -40,12 +48,21 @@ exports.createCreditRequest = async (req, res) => {
     const prefix = `AYCA${yy}${mm}/`; // Branch (AY) + Type (CA) + Year + Month + /
 
     // Find the latest running number for this month
-    const latestSql = `
-      SELECT tx_id FROM CreditRequests
-      WHERE tx_id LIKE ?
-      ORDER BY tx_id DESC
-      LIMIT 1
-    `;
+    let latestSql;
+    if (db.dbType === 'mssql') {
+      latestSql = `
+        SELECT TOP 1 tx_id FROM CreditRequests
+        WHERE tx_id LIKE ?
+        ORDER BY tx_id DESC
+      `;
+    } else {
+      latestSql = `
+        SELECT tx_id FROM CreditRequests
+        WHERE tx_id LIKE ?
+        ORDER BY tx_id DESC
+        LIMIT 1
+      `;
+    }
     const { rows: latestRows } = await db.query(latestSql, [`${prefix}%`]);
 
     let runningNum = 1;
