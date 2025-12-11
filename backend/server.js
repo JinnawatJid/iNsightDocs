@@ -14,6 +14,18 @@ app.use(express.json());
 app.use('/api/customers', customerRoutes);
 app.use('/api/credit-requests', creditRequestRoutes);
 
+// Health Check
+app.get('/api/health', async (req, res) => {
+  try {
+    // Simple query to verify DB connection
+    await db.query('SELECT 1');
+    res.status(200).json({ status: 'ok', database: 'connected' });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(500).json({ status: 'error', database: 'disconnected', error: error.message });
+  }
+});
+
 const startServer = async () => {
   await db.initialize();
   app.listen(PORT, () => {
