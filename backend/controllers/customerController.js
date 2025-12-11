@@ -153,8 +153,20 @@ exports.searchCustomers = async (req, res) => {
                   suggestions.push("เป็นลูกค้าชั้นดี มียอดซื้อสะสมสูง");
               }
 
-              suggestions.push("รักษาประวัติการชำระเงินได้ดี");
-              suggestions.push("ควรเสนอโปรโมชั่นเพื่อกระตุ้นยอดขายเพิ่มเติม");
+              const secondAccumVal = parseAmount(accumData.SecondAccum);
+
+              // Consistency Check
+              if (jun > 0 && jul > 0 && aug > 0) {
+                  suggestions.push("มีการสั่งซื้อต่อเนื่องทุกเดือนในช่วง 3 เดือนล่าสุด");
+              } else if (secondAccumVal > 0) {
+                  // Sold something in the quarter, but missed some months
+                  suggestions.push("มีการเว้นช่วงการสั่งซื้อในบางเดือน");
+              }
+
+              // Churn Warning: No purchase in latest month (Aug) despite having history
+              if (aug === 0 && secondAccumVal > 0) {
+                  suggestions.push("ไม่มียอดซื้อในเดือนล่าสุด ควรติดต่อลูกค้าเพื่อสอบถามสถานะ");
+              }
 
           } else {
               financialSummary = {
