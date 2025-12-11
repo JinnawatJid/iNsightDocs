@@ -35,8 +35,8 @@
               :disabled="!isEditing"
               v-model="formData.name"
               placeholder="**ดึงข้อมูลจาก Dynamics**"
-              @input="validateField('name', formData.name, ['required'])"
-              @blur="validateField('name', formData.name, ['required'])"
+              @input="validateField('name', formData.name, ['required', 'text'])"
+              @blur="validateField('name', formData.name, ['required', 'text'])"
             />
             <span v-if="errors.name" class="error-text">{{ errors.name }}</span>
           </div>
@@ -49,8 +49,8 @@
               :disabled="!isEditing"
               placeholder="เจ้าหน้าที่ใส่"
               v-model="formData.position"
-              @input="validateField('position', formData.position, ['required'])"
-              @blur="validateField('position', formData.position, ['required'])"
+              @input="validateField('position', formData.position, ['required', 'text'])"
+              @blur="validateField('position', formData.position, ['required', 'text'])"
             />
             <span v-if="errors.position" class="error-text">{{ errors.position }}</span>
           </div>
@@ -140,70 +140,51 @@ const formData = reactive({
 });
 
 // Initialize from store
-// If store.customer has data, populate local formData
-// We prioritize existing local values if user already edited (handled by keep-alive implicitly, but good to be explicit if we re-mount).
-// However, since we are implementing syncing, the store is the source of truth.
 watch(() => store.customer, (newVal) => {
   if (newVal) {
-    // Determine initial values logic.
-    // If we have mapped fields in store.customer that match our form, use them.
-    // The store's updateCustomerData merges updates into store.customer.
-    // So store.customer always holds the latest state (original + edits).
+    // UPDATED LOGIC:
+    // User confirmed: contact_person is Personal Name, name is Company Name.
+    // If contact_person is undefined or null, we default to empty string.
+    // We do NOT fallback to companyName for the personal name field anymore,
+    // to strictly separate Personal Name vs Company Name.
 
-    // Map store fields to form fields
-    // Logic from original: contact_person || name
-    const contact = newVal.contact_person || newVal.name || '';
-    const company = newVal.contact_person ? (newVal.name || '') : (newVal.name || '');
+    // Check if property exists.
+    // If contact_person is "", it stays "".
+    // If contact_person is undefined, we use "".
+    const contact = (newVal.contact_person !== undefined && newVal.contact_person !== null)
+      ? newVal.contact_person
+      : '';
 
-    // Only update if formData is empty or we want to force sync?
-    // Since we want 2-way sync, we should update formData if store changes.
-    // But verify if it causes loop with the watcher below.
+    const company = (newVal.name !== undefined && newVal.name !== null)
+      ? newVal.name
+      : '';
+
+    // Only update if formData is DIFFERENT to avoid loops or unnecessary updates?
+    // Actually, if we update formData, the watcher below triggers.
+    // If we receive update from store, we update formData.
+    // The watcher below updates store.
+    // Store update triggers this watcher.
+    // Loop?
+    // Store update (customer obj ref change) -> this watcher -> formData update -> formData watcher -> store update -> store (obj ref change or not?)
+    // If values are same, store might not trigger reactivity if object reference is same?
+    // But `this.customer = { ...this.customer, ...updates }` creates new reference.
+    // So we need to check equality before updating formData.
+
     if (formData.name !== contact) formData.name = contact;
     if (formData.companyName !== company) formData.companyName = company;
-
-    // Other fields (position, creditAmount) might not be in store.customer initially?
-    // The task is about validating and verifying inputs.
-    // Assuming store.customer might hold these if we save them there.
   }
 }, { immediate: true, deep: true });
 
 // Sync changes back to store
 watch(formData, (newVal) => {
-  // Map back to store structure
-  // We need to know which field maps to what in store.customer
-  // Original logic:
-  // displayName -> contact_person (or name?)
-  // displayCompany -> name
-
-  // If we edit 'name', we should update 'contact_person' if it exists, or 'name'?
-  // To keep it simple and consistent with how we read it:
-  // If contact_person exists, we assume 'name' maps to 'contact_person'.
-  // If not, 'name' maps to 'name'.
-
   const updates = {};
 
-  // Heuristic: check current store state
-  if (store.customer.contact_person) {
-    updates.contact_person = newVal.name;
-    updates.name = newVal.companyName; // Company Name stays as Name
-  } else {
-    updates.name = newVal.name; // Individual name
-    // If individual, Company Name might be same or separate?
-    // In original code: displayCompany = data.name.
-    // If we edit companyName, we update data.name.
-    // This implies Name and Company Name might conflict if mapped to same field.
-    // But in the UI they are separate inputs.
-    // If data structure allows only one 'name', we have a problem.
-    // The CSV has 'Name', 'Name 2', 'Contact'.
-    // Let's assume 'name' (UI) -> 'Contact' (DB) or 'Name' (DB).
+  // Mapping confirmed by user:
+  // Personal Name (UI: name) -> contact_person (DB)
+  // Company Name (UI: companyName) -> name (DB)
 
-    // For now, let's update both to ensure persistence in UI at least.
-    // Or better, check if we can add new properties to store.customer to hold these separately if needed.
-    // But to respect the existing structure:
-    updates.contact_person = newVal.name;
-    // For Company Name, we update 'name' property
-    updates.name = newVal.companyName;
-  }
+  updates.contact_person = newVal.name;
+  updates.name = newVal.companyName;
 
   store.updateCustomerData(updates);
 }, { deep: true });
