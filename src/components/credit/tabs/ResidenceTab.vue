@@ -28,13 +28,7 @@
     <div class="address-verification">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลที่อยู่</h3>
-        <span
-          class="badge-edit"
-          @click="toggleEdit"
-          style="cursor: pointer;"
-        >
-          แก้ไขข้อมูลที่อยู่
-        </span>
+        <!-- Removed Edit button -->
       </div>
 
       <!-- Map Placeholder -->
@@ -216,7 +210,7 @@ import iconMapPin from '@/assets/icons/map-pin.svg';
 const store = useCreditRequestStore();
 const { errors, validateField, restrictPhoneInput } = useFormValidation();
 
-const isEditing = ref(false);
+const isEditing = ref(true); // Editable by default
 
 const files = reactive({
   homePhoto: null,

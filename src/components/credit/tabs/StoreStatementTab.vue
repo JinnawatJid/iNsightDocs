@@ -18,13 +18,7 @@
     <div class="details-section">
       <div class="section-header">
         <h3>รายละเอียด</h3>
-        <span
-          class="badge-edit"
-          @click="toggleEdit"
-          style="cursor: pointer;"
-        >
-          แก้ไขข้อมูล
-        </span>
+        <!-- Removed Edit button -->
       </div>
       <div class="form-grid">
         <div class="form-group">
@@ -53,10 +47,6 @@
             @input="(e) => { restrictPhoneInput(e); validateField('accountNumber', e.target.value, ['required', 'numeric']); }"
             @blur="validateField('accountNumber', formData.accountNumber, ['required', 'numeric'])"
           />
-          <!-- Changed restrictCreditAmountInput (commas) to restrictPhoneInput (digits) or allow digits/dashes.
-               Actually restrictPhoneInput is digits only.
-               Bank accounts are usually digits. I'll use that.
-          -->
           <span v-if="errors.accountNumber" class="error-text">{{ errors.accountNumber }}</span>
         </div>
         <div class="form-group">
@@ -114,10 +104,9 @@ import { useFormValidation } from '@/composables/useFormValidation';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 
 const store = useCreditRequestStore();
-// Use restrictPhoneInput for digits-only (even for account number, usually safe)
 const { errors, validateField, restrictPhoneInput } = useFormValidation();
 
-const isEditing = ref(false);
+const isEditing = ref(true); // Editable by default
 
 const files = reactive({
   bankStatement: []
