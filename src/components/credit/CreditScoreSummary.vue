@@ -30,7 +30,7 @@
       <div class="stat-item">
         <div class="stat-icon">
           <span class="currency-symbol">฿</span>
-          <span>ค่าเฉลี่ยต่อเดือน</span>
+          <span>ค่าเฉลี่ยต่อรอบการจ่ายเงิน</span>
         </div>
         <div class="stat-value blue">{{ financial.avg_monthly }} บาท</div>
         <div class="stat-trend" :class="getTrendClass(financial.avg_monthly_trend)" v-if="financial.avg_monthly_trend">
