@@ -8,7 +8,7 @@
       <div class="actions">
         <div class="search-group">
           <div class="search-box">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <img :src="iconSearch" alt="Search" width="20" height="20" />
             <input type="text" placeholder="ค้นหาข้อมูลลูกค้า" v-model="searchQuery" />
           </div>
           <label class="checkbox-label">
@@ -90,6 +90,7 @@
 import Navbar from '@/components/shared/Navbar.vue';
 import Pagination from '@/components/shared/Pagination.vue';
 import customers from '@/data/customers.json';
+import iconSearch from '@/assets/icons/search.svg';
 
 export default {
   name: 'PendingRequestOld',
@@ -99,6 +100,7 @@ export default {
   },
   data() {
     return {
+      iconSearch,
       customers: customers,
       searchQuery: '',
       filterDocumentsComplete: false,
@@ -232,9 +234,8 @@ export default {
   height: 20px;
 }
 
-.search-box svg {
+.search-box img {
   margin-right: 0.5rem;
-  color: #888;
 }
 
 .search-box input {

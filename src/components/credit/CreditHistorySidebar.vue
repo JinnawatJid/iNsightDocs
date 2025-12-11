@@ -2,7 +2,7 @@
   <div class="credit-history-sidebar">
     <div class="customer-header">
       <div class="avatar">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-user"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <img :src="userIcon" alt="User" width="24" height="24" />
       </div>
       <div class="customer-name" v-if="customerName">
         {{ customerName }}
@@ -23,9 +23,9 @@
             <div class="amount">{{ item.amount }}</div>
           </div>
           <div class="item-status">
-             <svg v-if="item.status === 'pending'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFA500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-             <svg v-if="item.status === 'rejected'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x-circle"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-             <svg v-if="item.status === 'approved'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="green" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+             <img v-if="item.status === 'pending'" :src="clockIcon" alt="Pending" width="24" height="24" />
+             <img v-if="item.status === 'rejected'" :src="rejectedIcon" alt="Rejected" width="24" height="24" />
+             <img v-if="item.status === 'approved'" :src="approvedIcon" alt="Approved" width="24" height="24" />
           </div>
         </div>
       </div>
@@ -38,6 +38,11 @@
 </template>
 
 <script>
+import userIcon from '@/assets/icons/user.svg';
+import clockIcon from '@/assets/icons/clock-orange.svg';
+import rejectedIcon from '@/assets/icons/x-circle-red.svg';
+import approvedIcon from '@/assets/icons/check-circle-green.svg';
+
 export default {
   name: 'CreditHistorySidebar',
   props: {
@@ -53,6 +58,14 @@ export default {
       type: Boolean,
       default: false
     }
+  },
+  data() {
+    return {
+      userIcon,
+      clockIcon,
+      rejectedIcon,
+      approvedIcon
+    };
   }
 };
 </script>

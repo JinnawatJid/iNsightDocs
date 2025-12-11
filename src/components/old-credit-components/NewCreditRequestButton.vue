@@ -1,10 +1,7 @@
 <template>
   <div class="dropdown" ref="dropdown">
     <button class="add-button" @click="toggleDropdown">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-plus">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
+      <img :src="iconPlus" alt="Add" width="20" height="20" />
       เพิ่มคำขอเครดิตใหม่
     </button>
     <div v-if="showDropdown" class="dropdown-content">
@@ -16,6 +13,8 @@
 </template>
 
 <script>
+import iconPlus from '@/assets/icons/plus.svg';
+
 export default {
   name: 'CreditRequestDropdown',
   props: {
@@ -26,6 +25,7 @@ export default {
   },
   data() {
     return {
+      iconPlus,
       showDropdown: false,
     };
   },
@@ -87,7 +87,7 @@ export default {
   cursor: pointer;
 }
 
-.add-button svg {
+.add-button img {
   margin-right: 0.5rem;
 }
 

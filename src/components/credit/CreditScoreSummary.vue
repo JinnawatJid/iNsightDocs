@@ -2,7 +2,7 @@
   <div class="credit-score-summary">
     <div v-if="canRequest && badges.length > 0" class="status-section">
       <div class="status-header">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="green" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        <img :src="iconCheckCircle" alt="Check" width="24" height="24" />
         <span class="status-text">สามารถขอเครดิตใหม่ได้</span>
       </div>
       <div class="badges">
@@ -18,7 +18,7 @@
 
       <div class="stat-item">
         <div class="stat-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-shopping-cart"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+          <img :src="iconShoppingCart" alt="Cart" width="20" height="20" />
           <span>ยอดซื้อรวม 3 เดือน</span>
         </div>
         <div class="stat-value highlight">{{ financial.total_purchase_3_months }} บาท</div>
@@ -49,8 +49,17 @@
 </template>
 
 <script>
+import iconCheckCircle from '@/assets/icons/check-circle-green.svg';
+import iconShoppingCart from '@/assets/icons/shopping-cart.svg';
+
 export default {
   name: 'CreditScoreSummary',
+  data() {
+    return {
+      iconCheckCircle,
+      iconShoppingCart
+    };
+  },
   props: {
     financial: {
       type: Object,
