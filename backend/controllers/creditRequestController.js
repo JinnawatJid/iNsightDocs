@@ -30,9 +30,36 @@ exports.createCreditRequest = async (req, res) => {
       });
     }
 
-    // Generate random TxId (e.g., AY + 6 digits)
-    const randomNum = Math.floor(100000 + Math.random() * 900000);
-    const txId = `AY${randomNum}`;
+    // Generate TxId: AYCA[YY][MM]/[RunningNumber]
+    const now = new Date();
+    const yy = now.getFullYear().toString().slice(-2);
+    const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+    const prefix = `AYCA${yy}${mm}/`; // Branch (AY) + Type (CA) + Year + Month + /
+
+    // Find the latest running number for this month
+    const latestSql = `
+      SELECT tx_id FROM CreditRequests
+      WHERE tx_id LIKE ?
+      ORDER BY tx_id DESC
+      LIMIT 1
+    `;
+    const { rows: latestRows } = await db.query(latestSql, [`${prefix}%`]);
+
+    let runningNum = 1;
+    if (latestRows && latestRows.length > 0) {
+      const lastTxId = latestRows[0].tx_id;
+      const lastNumStr = lastTxId.split('/')[1];
+      const lastNum = parseInt(lastNumStr, 10);
+      if (!isNaN(lastNum)) {
+        runningNum = lastNum + 1;
+      }
+    }
+
+    if (runningNum > 999) {
+      return res.status(500).json({ error: 'Transaction limit exceeded for this month (max 999)' });
+    }
+
+    const txId = `${prefix}${runningNum.toString().padStart(3, '0')}`;
     const status = 'Draft';
 
     const result = await db.runAsync(

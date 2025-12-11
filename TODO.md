@@ -2,6 +2,7 @@
 
 ## General
 - [ ] **Implement Test Cases**: Replace the deleted `TEST_CASES.md` with comprehensive automated (or updated manual) test cases for the current system architecture.
+- [ ] **Dynamic Branch Code**: Update the Transaction ID generation logic to retrieve the Branch Code from the future SSO system instead of using the hardcoded "AY".
 
 ## Backend Integration
 - [ ] **Fetch Customer Data**: Implement API call in `CreateCreditRequest.vue` (currently using `mock_customer_data.json`).
