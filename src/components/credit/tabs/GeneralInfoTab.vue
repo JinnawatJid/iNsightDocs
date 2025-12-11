@@ -27,7 +27,7 @@
         <!-- Left Column -->
         <div class="column-layout">
           <div class="form-group">
-            <label>ชื่อจริง นามสกุล</label>
+            <label>ชื่อจริงและนามสกุล</label>
             <input type="text" class="form-input disabled" :value="displayName" disabled placeholder="**ดึงข้อมูลจาก Dynamics**" />
           </div>
           <div class="form-group">
@@ -48,11 +48,10 @@
               <input type="text" class="form-input" placeholder="เจ้าหน้าที่ใส่" v-model="formData.creditAmount" />
             </div>
             <div class="form-group">
-              <label>สาเหตุการขอเครดิต</label>
+              <label>เหตุผลการขอเครดิต</label>
               <select class="form-input" v-model="formData.creditReason">
                   <option value="สต๊อคสินค้า">สต๊อคสินค้า</option>
-                  <option value="หมุนเวียนธุรกิจ">หมุนเวียนธุรกิจ</option>
-                  <option value="ขยายกิจการ">ขยายกิจการ</option>
+                  <option value="รับโปรเจค">รับโปรเจค</option>
               </select>
             </div>
           </div>
