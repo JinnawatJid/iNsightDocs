@@ -115,4 +115,6 @@ db.runAsync = (sql, params = []) => {
     });
 };
 
+db.dbType = 'sqlite';
+
 module.exports = db;

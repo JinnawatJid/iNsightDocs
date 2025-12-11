@@ -140,6 +140,7 @@ const initDB = async () => {
 };
 
 const db = {
+    dbType: 'mssql',
     initialize: initDB,
     query: async (sqlQuery, params = []) => {
         if (!pool) throw new Error('Database not connected');
