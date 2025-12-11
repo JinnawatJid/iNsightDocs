@@ -3,6 +3,7 @@
 ## General
 - [ ] **Implement Test Cases**: Replace the deleted `TEST_CASES.md` with comprehensive automated (or updated manual) test cases for the current system architecture.
 - [ ] **Dynamic Branch Code**: Update the Transaction ID generation logic to retrieve the Branch Code from the future SSO system instead of using the hardcoded "AY".
+- [ ] **File Storage Strategy**: Design and document a strategy for handling uploaded file storage in the containerized production environment (e.g., Docker Volumes vs External Storage Service).
 
 ## Backend Integration
 - [ ] **Fetch Customer Data**: Implement API call in `CreateCreditRequest.vue` (currently using `mock_customer_data.json`).
