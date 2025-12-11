@@ -28,7 +28,13 @@
     <div class="address-verification">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลที่อยู่</h3>
-        <span class="badge-edit">แก้ไขข้อมูลที่อยู่</span>
+        <span
+          class="badge-edit"
+          @click="toggleEdit"
+          style="cursor: pointer;"
+        >
+          แก้ไขข้อมูลที่อยู่
+        </span>
       </div>
 
       <!-- Map Placeholder -->
@@ -44,60 +50,153 @@
       <!-- Address Form -->
       <div class="form-grid-complex">
         <div class="form-group span-2">
-          <label>ที่อยู่ (บ้านเลขที่, ถนน)</label>
-          <input type="text" class="form-control" v-model="formData.houseAddress" placeholder="ระบุบ้านเลขที่, ถนน" />
+          <label>ที่อยู่ (บ้านเลขที่, ถนน) <span class="text-red-500">*</span></label>
+          <input
+            type="text"
+            class="form-control"
+            :class="{ 'border-red-500': errors.houseAddress, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.houseAddress"
+            placeholder="ระบุบ้านเลขที่, ถนน"
+            @input="validateField('houseAddress', formData.houseAddress, ['required'])"
+            @blur="validateField('houseAddress', formData.houseAddress, ['required'])"
+          />
+          <span v-if="errors.houseAddress" class="error-text">{{ errors.houseAddress }}</span>
         </div>
         <div class="form-group">
-          <label>ตำบล/แขวง</label>
-          <input type="text" class="form-control" v-model="formData.subdistrict" placeholder="อัตโนมัติ" />
+          <label>ตำบล/แขวง <span class="text-red-500">*</span></label>
+          <input
+            type="text"
+            class="form-control"
+            :class="{ 'border-red-500': errors.subdistrict, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.subdistrict"
+            placeholder="อัตโนมัติ"
+            @input="validateField('subdistrict', formData.subdistrict, ['required'])"
+            @blur="validateField('subdistrict', formData.subdistrict, ['required'])"
+          />
+          <span v-if="errors.subdistrict" class="error-text">{{ errors.subdistrict }}</span>
         </div>
         <div class="form-group">
-          <label>รหัสไปรษณีย์</label>
-          <input type="text" class="form-control" v-model="formData.postCode" placeholder="ระบุรหัสไปรษณีย์" />
+          <label>รหัสไปรษณีย์ <span class="text-red-500">*</span></label>
+          <input
+            type="text"
+            class="form-control"
+            :class="{ 'border-red-500': errors.postCode, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.postCode"
+            placeholder="ระบุรหัสไปรษณีย์"
+            @input="validateField('postCode', formData.postCode, ['required'])"
+            @blur="validateField('postCode', formData.postCode, ['required'])"
+          />
+          <span v-if="errors.postCode" class="error-text">{{ errors.postCode }}</span>
         </div>
         <div class="form-group">
-          <label>อำเภอ/เขต</label>
-          <input type="text" class="form-control" v-model="formData.district" placeholder="อัตโนมัติ" />
+          <label>อำเภอ/เขต <span class="text-red-500">*</span></label>
+          <input
+            type="text"
+            class="form-control"
+            :class="{ 'border-red-500': errors.district, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.district"
+            placeholder="อัตโนมัติ"
+            @input="validateField('district', formData.district, ['required'])"
+            @blur="validateField('district', formData.district, ['required'])"
+          />
+          <span v-if="errors.district" class="error-text">{{ errors.district }}</span>
         </div>
         <div class="form-group">
-          <label>จังหวัด</label>
-          <input type="text" class="form-control" v-model="formData.city" placeholder="อัตโนมัติ" />
+          <label>จังหวัด <span class="text-red-500">*</span></label>
+          <input
+            type="text"
+            class="form-control"
+            :class="{ 'border-red-500': errors.city, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.city"
+            placeholder="อัตโนมัติ"
+            @input="validateField('city', formData.city, ['required'])"
+            @blur="validateField('city', formData.city, ['required'])"
+          />
+          <span v-if="errors.city" class="error-text">{{ errors.city }}</span>
         </div>
       </div>
        <div class="bottom-grid">
          <div class="form-group">
           <label>
             เบอร์โทรศัพท์ 
+            <span class="text-red-500">*</span>
             <span v-if="!formData.phone" class="no-data-alert">ไม่พบข้อมูล</span>
           </label>
-          <input type="text" class="form-control" v-model="formData.phone" placeholder="0XX-XXX-XXXX" />
+          <input
+            type="text"
+            class="form-control"
+            :class="{ 'border-red-500': errors.phone, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.phone"
+            placeholder="0XX-XXX-XXXX"
+            @input="(e) => { restrictPhoneInput(e); validateField('phone', e.target.value, ['required', 'phone']); }"
+            @blur="validateField('phone', formData.phone, ['required', 'phone'])"
+          />
+          <span v-if="errors.phone" class="error-text">{{ errors.phone }}</span>
         </div>
         <div class="form-group">
           <label>แฟกซ์/อีเมล</label>
-          <input type="text" class="form-control" v-model="formData.email" placeholder="example@email.com" />
+          <input
+            type="text"
+            class="form-control"
+            :class="{ 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.email"
+            placeholder="example@email.com"
+          />
         </div>
         <div class="form-group">
-          <label>ลักษณะที่ตั้ง</label>
+          <label>ลักษณะที่ตั้ง <span class="text-red-500">*</span></label>
            <div class="custom-select-group">
-            <select class="form-control" v-model="formData.locationTypeSelect">
+            <select
+              class="form-control"
+              :class="{ 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              v-model="formData.locationTypeSelect"
+            >
               <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
               <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
               <option value="สำนักงานบนอาคารชุด">สำนักงานบนอาคารชุด</option>
               <option value="บ้าน">บ้าน</option>
               <option value="โรงงาน">โรงงาน</option>
             </select>
-            <input type="text" class="form-control" v-model="formData.locationTypeOther" placeholder="ระบุ..." />
+            <!-- Hybrid text input always enabled if isEditing is true -->
+            <input
+              type="text"
+              class="form-control"
+              :class="{ 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              v-model="formData.locationTypeOther"
+              placeholder="ระบุ..."
+            />
           </div>
         </div>
         <div class="form-group">
-          <label>กรรมสิทธิ์ทรัพย์สิน</label>
+          <label>กรรมสิทธิ์ทรัพย์สิน <span class="text-red-500">*</span></label>
            <div class="custom-select-group">
-            <select class="form-control" v-model="formData.ownershipSelect">
+            <select
+              class="form-control"
+              :class="{ 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              v-model="formData.ownershipSelect"
+            >
               <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
               <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
               <option value="เช่า">เช่า</option>
             </select>
-            <input type="text" class="form-control" v-model="formData.ownershipOther" placeholder="ระบุ..." />
+            <input
+              type="text"
+              class="form-control"
+              :class="{ 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              v-model="formData.ownershipOther"
+              placeholder="ระบุ..."
+            />
           </div>
         </div>
       </div>
@@ -106,14 +205,18 @@
 </template>
 
 <script setup>
-import { reactive, watch } from 'vue';
+import { reactive, watch, ref } from 'vue';
 import { searchAddressByZipcode } from 'thai-address-database';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useFormValidation } from '@/composables/useFormValidation';
 import iconImage from '@/assets/icons/image.svg';
 import iconMapPin from '@/assets/icons/map-pin.svg';
 
 const store = useCreditRequestStore();
+const { errors, validateField, restrictPhoneInput } = useFormValidation();
+
+const isEditing = ref(false);
 
 const files = reactive({
   homePhoto: null,
@@ -173,6 +276,26 @@ watch(() => store.customer, (newVal) => {
   }
 }, { immediate: true, deep: true });
 
+// Sync changes back to store
+watch(formData, (newVal) => {
+  const updates = {
+    address: newVal.houseAddress,
+    zipcode: newVal.postCode,
+    district: newVal.district,
+    province: newVal.city,
+    phone: newVal.phone, // We store formatted or cleaned? Store keeps what is passed.
+    // Phone logic in backend likely expects digits, but formatPhoneNumber adds dashes.
+    // If backend expects raw digits, we should clean it.
+    // But formatPhoneNumber is used for display.
+    // Let's store what is in the input.
+    // Wait, createCreditRequest uses customer_no and customer_name.
+    // If other fields are saved later, they might need cleaning.
+    // For now, syncing the form value is enough for client-side persistence.
+    email: newVal.email
+  };
+  store.updateCustomerData(updates);
+}, { deep: true });
+
 // Watch postCode for auto-completion
 watch(() => formData.postCode, (newZip) => {
   if (newZip && newZip.length === 5) {
@@ -183,6 +306,10 @@ watch(() => formData.postCode, (newZip) => {
     }
   }
 });
+
+function toggleEdit() {
+  isEditing.value = !isEditing.value;
+}
 </script>
 
 <style scoped>
@@ -259,5 +386,26 @@ watch(() => formData.postCode, (newZip) => {
 
 .custom-select-group .form-control {
   flex: 1;
+}
+
+.text-red-500 {
+  color: #ef4444;
+}
+
+.border-red-500 {
+  border-color: #ef4444 !important;
+}
+
+.error-text {
+  color: #ef4444;
+  font-size: 0.8em;
+  margin-top: 4px;
+  display: block;
+}
+
+.form-control.disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
 }
 </style>

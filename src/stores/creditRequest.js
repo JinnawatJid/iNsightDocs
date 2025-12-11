@@ -102,6 +102,13 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.uploadedDocuments[docKey] = hasFile;
     },
 
+    // Action to update customer data from form edits
+    updateCustomerData(updates) {
+      if (this.customer) {
+        this.customer = { ...this.customer, ...updates };
+      }
+    },
+
     resetState() {
       this.hasSearched = false;
       this.customer = {};
