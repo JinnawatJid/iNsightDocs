@@ -66,13 +66,7 @@
           />
           <label for="sameAddress">ที่อยู่เดียวกับที่อยู่อาศัย</label>
         </div>
-        <span
-          class="badge-edit"
-          @click="toggleEdit"
-          style="cursor: pointer;"
-        >
-          แก้ไขข้อมูลที่อยู่
-        </span>
+        <!-- Removed Edit button -->
       </div>
 
       <!-- Map Placeholder -->
@@ -253,7 +247,7 @@ import iconMapPin from '@/assets/icons/map-pin.svg';
 const store = useCreditRequestStore();
 const { errors, validateField, restrictPhoneInput } = useFormValidation();
 
-const isEditing = ref(false);
+const isEditing = ref(true); // Editable by default
 const isSameAddress = ref(false);
 
 const files = reactive({
@@ -323,33 +317,6 @@ watch(isSameAddress, (isSame) => {
     formData.email = '';
   }
 });
-
-// Sync Store/Company Address back to store?
-// This is trickier because this tab is "Store/Company Address".
-// Does it map to the MAIN customer address?
-// If customer is a Company, yes.
-// If customer is Individual, this is "Store Address", which might be same as Residence or different.
-// The store.customer object likely holds one primary address.
-// If we update store.customer here, it might conflict with Residence Tab if they are different.
-// However, the requirement is "Verify all input field... logic in 'Edit' ... enable edit when click".
-// User asked to "save it some where (cache)".
-// If I update store.customer, it acts as that cache.
-// If Residence and Store are distinct, the `store.customer` model might be insufficient.
-// But given the current schema (one address set), let's assume one main address.
-// OR, if "Store Address" is separate, we should store it separately.
-// But `store.customer` has only one set of address fields (address, zipcode, etc.).
-// For now, I will NOT sync StoreCompanyTab to store.customer to avoid overwriting Residence Tab unless `isSameAddress` is true or if it's a Company.
-// If it's a company, this IS the main address.
-// If it's individual, this is "Store Address".
-// I'll skip auto-sync here to be safe, as the prompt focused on "Edit Personal Info" logic primarily, and "Verify all input".
-// The reviewer complained about "Edit Personal Info" persistence.
-// I fixed that in GeneralInfoTab.
-// For address, I fixed ResidenceTab.
-// For StoreCompanyTab, I'll leave as local for now unless explicitly requested to map to specific fields.
-// Wait, if I don't sync, edits are lost on tab switch? No, `keep-alive` saves them.
-// But lost on submit?
-// If `isCompany` is true, this tab IS the main info.
-// So if `isCompany`, I should sync.
 
 watch(formData, (newVal) => {
   if (isCompany.value) {

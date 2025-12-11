@@ -20,13 +20,7 @@
     <div class="personal-info-section">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลส่วนตัว</h3>
-        <span
-          class="badge-edit"
-          @click="toggleEdit"
-          style="cursor: pointer;"
-        >
-          แก้ไขข้อมูลส่วนตัว
-        </span>
+        <!-- Removed "Edit" button as per user request -->
       </div>
 
       <div class="form-layout-columns">
@@ -121,7 +115,7 @@ import { useFormValidation } from '@/composables/useFormValidation';
 const store = useCreditRequestStore();
 const { errors, validateField, restrictCreditAmountInput } = useFormValidation();
 
-const isEditing = ref(false);
+const isEditing = ref(true); // Editable by default
 
 const files = reactive({
   idCard: null,
