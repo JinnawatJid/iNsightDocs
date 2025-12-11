@@ -6,19 +6,49 @@
     </div>
     <div class="status-row">
       <span class="label">สถานะ:</span>
-      <div class="status-badge draft">
-        <img :src="iconFile" alt="Draft" width="16" height="16" class="icon" />
-        <span>แบบร่าง</span>
+      <div :class="['status-badge', statusClass]">
+        <img :src="statusIcon" alt="" width="16" height="16" class="icon" />
+        <span>{{ statusLabel }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import iconFile from '@/assets/icons/file.svg';
+import iconClock from '@/assets/icons/clock-orange.svg';
+import iconCheck from '@/assets/icons/check-circle-green.svg';
+import iconX from '@/assets/icons/x-circle-red.svg';
+import iconUser from '@/assets/icons/user.svg';
 
 const store = useCreditRequestStore();
+
+// Status Mapping Logic
+const statusConfig = {
+  'Opened': { label: 'Opened', class: 'info', icon: iconFile },
+  'Submitted': { label: 'Submitted', class: 'warning', icon: iconClock },
+  'Reviewed': { label: 'Reviewed', class: 'purple', icon: iconUser },
+  'Approved': { label: 'Approved', class: 'success', icon: iconCheck },
+  'Rejected': { label: 'Rejected', class: 'error', icon: iconX },
+  'Canceled': { label: 'Canceled', class: 'gray', icon: iconX },
+  'Closed': { label: 'Closed', class: 'dark', icon: iconFile }
+};
+
+const currentStatus = computed(() => store.requestStatus || 'Opened');
+
+const statusLabel = computed(() => {
+  return statusConfig[currentStatus.value]?.label || currentStatus.value;
+});
+
+const statusClass = computed(() => {
+  return statusConfig[currentStatus.value]?.class || 'default';
+});
+
+const statusIcon = computed(() => {
+  return statusConfig[currentStatus.value]?.icon || iconFile;
+});
 </script>
 
 <style scoped>
@@ -60,16 +90,48 @@ const store = useCreditRequestStore();
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #666;
   font-weight: normal;
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 
-.status-badge.draft {
-    /* Style for Draft status */
-    color: #666;
+/* Status Classes */
+.status-badge.info {
+  color: #0056b3;
+  background-color: #e7f1ff;
 }
 
-.icon {
+.status-badge.warning {
+  color: #856404;
+  background-color: #fff3cd;
+}
+
+.status-badge.purple {
+  color: #6f42c1;
+  background-color: #f3e5f5;
+}
+
+.status-badge.success {
+  color: #155724;
+  background-color: #d4edda;
+}
+
+.status-badge.error {
+  color: #721c24;
+  background-color: #f8d7da;
+}
+
+.status-badge.gray {
   color: #666;
+  background-color: #e2e3e5;
+}
+
+.status-badge.dark {
+  color: #1b1e21;
+  background-color: #d6d8d9;
+}
+
+.status-badge.default {
+  color: #333;
 }
 </style>

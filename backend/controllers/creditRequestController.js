@@ -8,10 +8,13 @@ exports.createCreditRequest = async (req, res) => {
   }
 
   try {
-    // Check for existing Draft or Pending request for this customer
+    // Check for existing active request for this customer (Opened, Submitted, Reviewed)
+    // We only allow new request if previous is Approved, Rejected, Canceled, or Closed.
+    // Also, if we find an existing request, we should probably prefer the ACTIVE one to return, or the latest?
+    // The current logic returns ANY request matching the status.
     const existingSql = `
       SELECT * FROM CreditRequests 
-      WHERE customer_no = ? AND status IN ('Draft', 'Pending')
+      WHERE customer_no = ? AND status IN ('Opened', 'Submitted', 'Reviewed')
       LIMIT 1
     `;
     const { rows } = await db.query(existingSql, [customer_no]);
@@ -60,7 +63,7 @@ exports.createCreditRequest = async (req, res) => {
     }
 
     const txId = `${prefix}${runningNum.toString().padStart(3, '0')}`;
-    const status = 'Draft';
+    const status = 'Opened';
 
     const result = await db.runAsync(
       'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status) VALUES (?, ?, ?, ?)',

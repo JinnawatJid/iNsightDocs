@@ -97,6 +97,27 @@ exports.searchCustomers = async (req, res) => {
       let financialSummary = {};
       let suggestions = [];
 
+      // Fetch Credit History (Requests)
+      let history = [];
+      try {
+          // This should match CreditRequests table structure
+          // Map backend status to something the frontend history sidebar expects?
+          // The sidebar expects: { id, date, amount, status }
+          // We have: id, tx_id, customer_no, customer_name, status, created_at
+
+          const historySql = `SELECT * FROM CreditRequests WHERE customer_no = ? ORDER BY created_at DESC`;
+          const historyRes = await db.query(historySql, [row["No_"]]);
+
+          history = historyRes.rows.map(h => ({
+              id: h.id,
+              date: new Date(h.created_at).toLocaleDateString('th-TH'), // Simple date format
+              amount: h.tx_id, // Using TxID as 'amount' or identifier label for now as we don't have amount
+              status: h.status
+          }));
+      } catch (histErr) {
+          console.error(`Error fetching history for ${row["No_"]}:`, histErr);
+      }
+
       try {
           const accumSql = `SELECT * FROM "AY_ACCUM" WHERE "custcode" = ?`;
           const accumRes = await db.query(accumSql, [row["No_"]]);
@@ -170,7 +191,7 @@ exports.searchCustomers = async (req, res) => {
           province: row["County"],
           zipcode: row["Post Code"]
         },
-        history: [],
+        history: history,
         financial_summary: financialSummary,
         credit_score: {
              can_request_credit: true,

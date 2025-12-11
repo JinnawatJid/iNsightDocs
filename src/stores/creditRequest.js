@@ -15,7 +15,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     // New state for Request Status and Approval Chance
     requestId: null, // Displayed as TxId
-    requestStatus: null, // e.g. 'Draft'
+    requestStatus: null, // e.g. 'Opened'
     uploadedDocuments: {}, // Key: docName, Value: boolean (has file)
   }),
 

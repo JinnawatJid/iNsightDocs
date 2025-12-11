@@ -23,6 +23,13 @@
             <div class="amount">{{ item.amount }}</div>
           </div>
           <div class="item-status">
+             <!-- Active Statuses -->
+             <img v-if="['Opened', 'Submitted', 'Reviewed'].includes(item.status)" :src="clockIcon" :alt="item.status" width="24" height="24" />
+             <!-- Negative Statuses -->
+             <img v-if="['Rejected', 'Canceled'].includes(item.status)" :src="rejectedIcon" :alt="item.status" width="24" height="24" />
+             <!-- Positive/Final Statuses -->
+             <img v-if="['Approved', 'Closed'].includes(item.status)" :src="approvedIcon" :alt="item.status" width="24" height="24" />
+             <!-- Fallback for legacy data -->
              <img v-if="item.status === 'pending'" :src="clockIcon" alt="Pending" width="24" height="24" />
              <img v-if="item.status === 'rejected'" :src="rejectedIcon" alt="Rejected" width="24" height="24" />
              <img v-if="item.status === 'approved'" :src="approvedIcon" alt="Approved" width="24" height="24" />
