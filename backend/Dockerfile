@@ -1,5 +1,5 @@
-# Use Node.js 18 LTS on Alpine Linux
-FROM node:18-alpine
+# Use Node.js 22 LTS on Alpine Linux
+FROM node:22-alpine
 
 # Set working directory
 WORKDIR /app
