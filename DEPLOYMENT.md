@@ -26,31 +26,32 @@ This guide explains how to deploy the Credit Request System using Docker. It is 
     *   `credit-request-frontend.tar`
     *   `docker-compose.yml`
     *   `load_images.bat`
-    *   `.env` (Create this file, see below)
+    *   `.env.example` (renamed to `.env` on target)
 
 ---
 
 ## Part 2: Configuration (.env)
 
-Create a file named `.env` in the same folder as `docker-compose.yml`. This file tells the backend how to connect to your MSSQL database.
+Create a file named `.env` in the same folder as `docker-compose.yml`. You can copy `.env.example` and rename it.
 
-**Example `.env` content:**
+**Since your Database is on the SAME server:**
+
+Use `host.docker.internal` as the Server address. This is a special DNS name that lets the container talk to the Windows Host.
 
 ```ini
 # Database Configuration
 DB_TYPE=mssql
-DB_SERVER=192.168.1.100  # IP address of your MSSQL Server
+DB_SERVER=host.docker.internal
 DB_NAME=MyDatabaseName
 DB_USER=sa
 DB_PASSWORD=MySecurePassword
 ```
 
-### Important Network Note for Windows
-If your MSSQL database is running on the **host machine** (the same Windows Server running Docker), you generally cannot use `localhost` or `127.0.0.1` inside the container.
-
-Instead, use:
-*   `DB_SERVER=host.docker.internal` (If using Docker Desktop)
-*   OR use the **LAN IP address** of the server (e.g., `10.0.0.5`).
+### Critical Step: Windows Firewall & MSSQL Configuration
+By default, Windows might block the container from reaching MSSQL.
+1.  **Enable TCP/IP**: Open "Sql Server Configuration Manager" -> SQL Server Network Configuration -> Protocols -> Enable **TCP/IP**. Restart the SQL Server service.
+2.  **Allow Port 1433**: Ensure Windows Firewall has an Inbound Rule allowing TCP port **1433**.
+3.  **Authentication**: Ensure SQL Server is set to "SQL Server and Windows Authentication mode" (Mixed Mode), as Docker connects via username/password (`sa`), not Windows Auth.
 
 ---
 
@@ -66,14 +67,11 @@ Instead, use:
     ```
 5.  The system should now be running.
     *   **Frontend:** `http://localhost` (or the server's IP address).
-    *   **Backend:** Internal only (but reachable at port 3000 if needed for debugging).
+    *   **Backend:** Internal only.
 
 ## Troubleshooting
 
 *   **Database Connection Failed:**
-    *   Check your `.env` file credentials.
-    *   Ensure the firewall on the MSSQL Server port (default 1433) allows connections from the Docker subnet.
-    *   Try pinging the DB IP from inside the container:
-        `docker-compose exec backend ping <DB_IP>`
-*   **"Image not found":**
-    *   Re-run `load_images.bat` and ensure it completes successfully.
+    *   Check `.env` credentials.
+    *   **Check Firewall:** The most common issue. Temporarily turn off Windows Firewall to test. If it works, add an allow rule for port 1433.
+    *   **Ping Test:** `docker-compose exec backend ping host.docker.internal`
