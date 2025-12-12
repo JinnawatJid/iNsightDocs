@@ -54,7 +54,11 @@ exports.searchCustomers = async (req, res) => {
         "Address",
         "City",
         "County",
-        "Post Code"
+        "Post Code",
+        "residence_latitude",
+        "residence_longitude",
+        "store_latitude",
+        "store_longitude"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR
@@ -226,7 +230,12 @@ exports.searchCustomers = async (req, res) => {
           address: row["Address"],
           district: row["City"],
           province: row["County"],
-          zipcode: row["Post Code"]
+          zipcode: row["Post Code"],
+          // Coordinates
+          residence_latitude: row["residence_latitude"] || "",
+          residence_longitude: row["residence_longitude"] || "",
+          store_latitude: row["store_latitude"] || "",
+          store_longitude: row["store_longitude"] || ""
         },
         history: history,
         financial_summary: financialSummary,
@@ -305,5 +314,53 @@ exports.getSuggestions = async (req, res) => {
   } catch (err) {
     console.error("Database error in suggestions:", err);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+exports.updateCustomer = async (req, res) => {
+  const customerId = req.params.id;
+  const updates = req.body;
+
+  if (!customerId) {
+    return res.status(400).json({ error: "Customer ID is required" });
+  }
+
+  // Whitelist of allowed columns to update
+  const allowedColumns = [
+    'residence_latitude',
+    'residence_longitude',
+    'store_latitude',
+    'store_longitude'
+  ];
+
+  const keysToUpdate = Object.keys(updates).filter(key => allowedColumns.includes(key));
+
+  if (keysToUpdate.length === 0) {
+    return res.status(400).json({ error: "No valid fields to update" });
+  }
+
+  // Construct SQL dynamically
+  // Note: "No_" is the primary key (string)
+
+  let sql;
+  let params = [];
+
+  const setClause = keysToUpdate.map((key, index) => {
+    // For MSSQL we use @param, for SQLite ?
+    // But our db wrapper handles ? -> @p conversion mostly
+    // We will use ? for simplicity and rely on wrapper
+    params.push(updates[key]);
+    return `"${key}" = ?`;
+  }).join(', ');
+
+  sql = `UPDATE "Customers" SET ${setClause} WHERE "No_" = ?`;
+  params.push(customerId);
+
+  try {
+    await db.runAsync(sql, params);
+    res.json({ success: true, message: "Customer updated successfully" });
+  } catch (err) {
+    console.error("Error updating customer:", err);
+    res.status(500).json({ error: "Failed to update customer" });
   }
 };

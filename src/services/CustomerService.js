@@ -27,5 +27,15 @@ export default {
       console.error('Error fetching suggestions:', error);
       return []; // Return empty array on error to prevent UI breakage
     }
+  },
+
+  async updateCustomer(id, data) {
+    try {
+      const response = await axios.patch(`${API_URL}/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      throw error;
+    }
   }
 };

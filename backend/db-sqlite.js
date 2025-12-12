@@ -75,6 +75,27 @@ const initDB = async () => {
         // Initialize AY_ACCUM
         await createTableFromCSV('AY_ACCUM', path.resolve(__dirname, 'AY_ACCUM_rows.csv'), 'custcode');
 
+        // Ensure Coordinate columns exist in Customers table
+        const coordinateColumns = [
+            'residence_latitude',
+            'residence_longitude',
+            'store_latitude',
+            'store_longitude'
+        ];
+
+        for (const col of coordinateColumns) {
+            try {
+                // Try to add column. If it exists, SQLite will throw an error, which we catch.
+                await db.runAsync(`ALTER TABLE Customers ADD COLUMN ${col} TEXT`);
+                console.log(`Added column ${col} to Customers`);
+            } catch (err) {
+                // Ignore error if column already exists
+                if (!err.message.includes('duplicate column name')) {
+                     console.error(`Error adding column ${col}:`, err);
+                }
+            }
+        }
+
         // Create CreditRequests table manually
         db.run(`CREATE TABLE IF NOT EXISTS CreditRequests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

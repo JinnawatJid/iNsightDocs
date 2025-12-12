@@ -69,14 +69,14 @@
         <!-- Removed Edit button -->
       </div>
 
-      <!-- Map Placeholder -->
+      <!-- Map Component -->
       <div class="map-container">
-        <div class="map-placeholder">
-          <div class="map-content">
-            <img :src="iconMapPin" alt="Map Pin" width="48" height="48" />
-            <span>Google Map Area</span>
-          </div>
-        </div>
+        <CoordinateMap
+          :latitude="formData.latitude"
+          :longitude="formData.longitude"
+          :disabled="!isEditing"
+          @change="onCoordinatesChange"
+        />
       </div>
 
       <!-- Address Form -->
@@ -239,10 +239,10 @@
 import { reactive, computed, watch, ref } from 'vue';
 import { searchAddressByZipcode } from 'thai-address-database';
 import FileUploader from '@/components/shared/FileUploader.vue';
+import CoordinateMap from '@/components/shared/CoordinateMap.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 import iconImage from '@/assets/icons/image.svg';
-import iconMapPin from '@/assets/icons/map-pin.svg';
 
 const store = useCreditRequestStore();
 const { errors, validateField, restrictPhoneInput } = useFormValidation();
@@ -273,7 +273,9 @@ const formData = reactive({
   locationTypeSelect: '',
   locationTypeOther: '',
   ownershipSelect: '',
-  ownershipOther: ''
+  ownershipOther: '',
+  latitude: '',
+  longitude: ''
 });
 
 const isCompany = computed(() => {
@@ -304,6 +306,11 @@ watch(isSameAddress, (isSame) => {
     formData.phone = formatPhoneNumber(store.customer.phone || '');
     formData.email = store.customer.email || '';
     
+    // Coordinates for Store - if copying from residence, we might want to copy coords too?
+    // "sameAddress" logic implies store is at residence. So we copy residence coords.
+    formData.latitude = store.customer.residence_latitude || '';
+    formData.longitude = store.customer.residence_longitude || '';
+
     formData.subdistrict = '';
   } else {
     // Clear only if unchecking? Or keep? Usually clear if copying logic is off.
@@ -326,11 +333,20 @@ watch(formData, (newVal) => {
       district: newVal.district,
       province: newVal.city,
       phone: newVal.phone,
-      email: newVal.email
+      email: newVal.email,
+      store_latitude: newVal.latitude,
+      store_longitude: newVal.longitude
     };
     store.updateCustomerData(updates);
   }
 }, { deep: true });
+
+function onCoordinatesChange({ lat, long }) {
+  store.saveCustomerCoordinates({
+    store_latitude: lat,
+    store_longitude: long
+  });
+}
 
 // Watch postCode
 watch(() => formData.postCode, (newZip) => {

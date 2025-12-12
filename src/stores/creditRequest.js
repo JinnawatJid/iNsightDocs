@@ -109,6 +109,26 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       }
     },
 
+    // Action to persist coordinates to backend
+    async saveCustomerCoordinates(updates) {
+      if (!this.customer || !this.customer.id) return;
+
+      // Optimistically update state
+      this.updateCustomerData(updates);
+
+      try {
+        await CustomerService.updateCustomer(this.customer.id, updates);
+        // Optionally show success toast?
+      } catch (err) {
+        console.error("Failed to save coordinates:", err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to save coordinates.'
+        });
+      }
+    },
+
     resetState() {
       this.hasSearched = false;
       this.customer = {};
