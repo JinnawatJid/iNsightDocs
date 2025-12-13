@@ -316,8 +316,18 @@ watch(isSameAddress, (isSame) => {
 
     formData.subdistrict = '';
   } else {
-    // Clear only if unchecking? Or keep? Usually clear if copying logic is off.
-    // For now, let's clear to be safe, or user can edit.
+    // Revert to store coordinates if unchecked? Or clear?
+    // If we uncheck, we might want to see the stored "Store" coordinates if they exist.
+    if (store.customer) {
+       formData.mapCode = store.customer.store_map_code || '';
+       formData.landmark = store.customer.store_landmark || '';
+       formData.note = store.customer.store_note || '';
+    } else {
+       formData.mapCode = '';
+       formData.landmark = '';
+       formData.note = '';
+    }
+
     formData.houseAddress = '';
     formData.subdistrict = '';
     formData.postCode = '';
@@ -327,6 +337,20 @@ watch(isSameAddress, (isSame) => {
     formData.email = '';
   }
 });
+
+// Watch store.customer for initial load
+watch(() => store.customer, (newVal) => {
+  if (newVal) {
+    // Only populate if not "Same Address" (or if logic demands)
+    // For now, simple population. User can toggle same address if needed.
+
+    // Note: If we had a flag for "isSameAddress" saved in DB, we would use it.
+    // Without it, we default to loading Store data.
+    formData.mapCode = newVal.store_map_code || '';
+    formData.landmark = newVal.store_landmark || '';
+    formData.note = newVal.store_note || '';
+  }
+}, { immediate: true, deep: true });
 
 watch(formData, (newVal) => {
   if (isCompany.value) {

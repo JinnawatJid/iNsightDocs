@@ -2,24 +2,24 @@
   <div class="coordinate-map">
     <div class="map-container">
       <div class="inputs-section">
-        <!-- New Single Input for Map Code -->
-        <label>Google Map Code / Coordinates</label>
-        <div class="input-group">
-          <input
-            type="text"
-            class="form-control"
-            v-model="internalMapCode"
-            placeholder="ตัวอย่าง: RGFF+F74 Bangkok หรือ 13.75, 100.50"
-            @change="emitUpdate"
-            :disabled="disabled"
-          />
-        </div>
-        <p class="helper-text" v-if="!hasMapCode">
-          ระบุ Plus Code หรือพิกัด เพื่อสร้าง QR Code นำทาง
-        </p>
 
-        <!-- Landmark & Note inputs -->
-        <div class="extra-inputs">
+        <!-- Row 1: Map Code + Landmark (2 Columns) -->
+        <div class="form-row-2-col">
+           <div class="form-group">
+              <label>Google Map Code / Coordinates</label>
+              <input
+                type="text"
+                class="form-control"
+                v-model="internalMapCode"
+                placeholder="ตัวอย่าง: RGFF+F74 Bangkok หรือ 13.75, 100.50"
+                @change="emitUpdate"
+                :disabled="disabled"
+              />
+              <p class="helper-text" v-if="!hasMapCode">
+                ระบุ Plus Code หรือพิกัด เพื่อสร้าง QR Code นำทาง
+              </p>
+           </div>
+
            <div class="form-group">
               <label>จุดสังเกตใกล้เคียง (นำทาง)</label>
               <input
@@ -31,18 +31,21 @@
                 :disabled="disabled"
               />
            </div>
-           <div class="form-group">
-              <label>หมายเหตุจุดที่ตั้ง</label>
-              <input
-                type="text"
-                class="form-control"
-                v-model="internalNote"
-                placeholder="รายละเอียดเพิ่มเติม (เช่น บ้านสีเหลือง)"
-                @change="emitUpdate"
-                :disabled="disabled"
-              />
-           </div>
         </div>
+
+        <!-- Row 2: Note (Full Width) -->
+        <div class="form-group full-width">
+           <label>หมายเหตุจุดที่ตั้ง</label>
+           <input
+             type="text"
+             class="form-control"
+             v-model="internalNote"
+             placeholder="รายละเอียดเพิ่มเติม (เช่น บ้านสีเหลือง)"
+             @change="emitUpdate"
+             :disabled="disabled"
+           />
+        </div>
+
       </div>
 
       <div class="qr-section">
@@ -177,18 +180,29 @@ onMounted(() => {
 .inputs-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 15px; /* Spacing between rows */
 }
 
-.inputs-section label {
+.form-row-2-col {
+  display: flex;
+  gap: 15px;
+}
+
+.form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.form-group.full-width {
+  width: 100%;
+}
+
+.form-group label {
   font-size: 14px;
   font-weight: 600;
   color: #333;
-}
-
-.input-group {
-  display: flex;
-  gap: 10px;
 }
 
 .form-control {
@@ -214,23 +228,10 @@ onMounted(() => {
   opacity: 1;
 }
 
-.extra-inputs {
-    display: flex;
-    gap: 15px;
-    margin-top: 10px;
-}
-
-.form-group {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
 .helper-text {
   font-size: 12px;
   color: #666;
-  margin: 0;
+  margin: 2px 0 0 0;
 }
 
 .qr-section {
