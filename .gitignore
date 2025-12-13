@@ -26,3 +26,5 @@ dist-ssr
 # Backend Database
 backend/*.db
 backend/*.sqlite
+playwright-report/
+test-results/

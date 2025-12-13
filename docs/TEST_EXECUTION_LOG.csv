@@ -1,0 +1,13 @@
+Test Case ID,Scenario,Description,Expected Result,Tester,Status (Pass/Fail/Block),Date,Defect ID (if failed),Comments
+TS01-01,Happy Path,Search customer 01016AY,Dropdown appears with ID and Name,,,
+TS01-02,Happy Path,Select Customer,Form loads and sidebar populates,,,
+TS01-03,Happy Path,Fill General Tab,Fields accept data,,,
+TS01-04,Happy Path,Fill Residence Tab,Fields accept data,,,
+TS01-05,Happy Path,Upload Files,Files uploaded successfully,,,
+TS01-06,Happy Path,Submit Request,Success message appears,,,
+TS02-01,Validation,Empty Search,No action/alert,,,
+TS02-02,Validation,Invalid Customer ID,No results found,,,
+TS02-03,Validation,Submit Empty Form,Validation errors appear,,,
+TS02-04,Validation,Invalid Phone Format,Error message appears,,,
+TS03-01,UI,Tab Navigation,Tabs switch smoothly,,,
+TS03-02,UI,History Sidebar,Sidebar visible after search,,,

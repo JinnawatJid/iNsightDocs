@@ -1,0 +1,3 @@
+Defect ID,Title,Severity (Critical/Major/Minor),Steps to Reproduce,Expected Result,Actual Result,Status (Open/In Progress/Fixed),Tester,Assigned To
+BUG-001,Example: Submit button inactive,,1. Open form 2. Fill all fields 3. Button stays gray,,,,,
+BUG-002,,,,,,,,,
