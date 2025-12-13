@@ -34,8 +34,7 @@
       <!-- Map Component -->
       <div class="map-container">
         <CoordinateMap
-          :latitude="formData.latitude"
-          :longitude="formData.longitude"
+          :mapCode="formData.mapCode"
           :landmark="formData.landmark"
           :note="formData.note"
           :disabled="!isEditing"
@@ -240,8 +239,7 @@ const formData = reactive({
   locationTypeOther: '',
   ownershipSelect: '',
   ownershipOther: '',
-  latitude: '',
-  longitude: '',
+  mapCode: '',
   landmark: '',
   note: ''
 });
@@ -272,8 +270,7 @@ watch(() => store.customer, (newVal) => {
     formData.email = newVal.email || '';
     
     // Coordinates for Residence
-    formData.latitude = newVal.residence_latitude || '';
-    formData.longitude = newVal.residence_longitude || '';
+    formData.mapCode = newVal.residence_map_code || '';
     formData.landmark = newVal.residence_landmark || '';
     formData.note = newVal.residence_note || '';
 
@@ -301,19 +298,17 @@ watch(formData, (newVal) => {
 
     // Ensure we sync coordinates to store state even if not calling API directly here
     // But we use a separate method for coordinate saving to be explicit
-    residence_latitude: newVal.latitude,
-    residence_longitude: newVal.longitude,
+    residence_map_code: newVal.mapCode,
     residence_landmark: newVal.landmark,
     residence_note: newVal.note
   };
   store.updateCustomerData(updates);
 }, { deep: true });
 
-function onCoordinatesChange({ lat, long, landmark, note }) {
+function onCoordinatesChange({ mapCode, landmark, note }) {
   // Directly save coordinates when they change in the map component
   store.saveCustomerCoordinates({
-    residence_latitude: lat,
-    residence_longitude: long,
+    residence_map_code: mapCode,
     residence_landmark: landmark,
     residence_note: note
   });

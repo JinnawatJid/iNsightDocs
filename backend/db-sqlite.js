@@ -84,7 +84,9 @@ const initDB = async () => {
             'residence_landmark',
             'residence_note',
             'store_landmark',
-            'store_note'
+            'store_note',
+            'residence_map_code',
+            'store_map_code'
         ];
 
         for (const col of coordinateColumns) {

@@ -62,7 +62,9 @@ exports.searchCustomers = async (req, res) => {
         "residence_landmark",
         "residence_note",
         "store_landmark",
-        "store_note"
+        "store_note",
+        "residence_map_code",
+        "store_map_code"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR
@@ -243,7 +245,9 @@ exports.searchCustomers = async (req, res) => {
           residence_landmark: row["residence_landmark"] || "",
           residence_note: row["residence_note"] || "",
           store_landmark: row["store_landmark"] || "",
-          store_note: row["store_note"] || ""
+          store_note: row["store_note"] || "",
+          residence_map_code: row["residence_map_code"] || "",
+          store_map_code: row["store_map_code"] || ""
         },
         history: history,
         financial_summary: financialSummary,
@@ -342,7 +346,9 @@ exports.updateCustomer = async (req, res) => {
     'residence_landmark',
     'residence_note',
     'store_landmark',
-    'store_note'
+    'store_note',
+    'residence_map_code',
+    'store_map_code'
   ];
 
   const keysToUpdate = Object.keys(updates).filter(key => allowedColumns.includes(key));
