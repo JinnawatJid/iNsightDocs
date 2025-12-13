@@ -31,14 +31,14 @@
         <!-- Removed Edit button -->
       </div>
 
-      <!-- Map Placeholder -->
+      <!-- Map Component -->
       <div class="map-container">
-        <div class="map-placeholder">
-          <div class="map-content">
-            <img :src="iconMapPin" alt="Map Pin" width="48" height="48" />
-            <span>Google Map Area</span>
-          </div>
-        </div>
+        <CoordinateMap
+          :latitude="formData.latitude"
+          :longitude="formData.longitude"
+          :disabled="!isEditing"
+          @change="onCoordinatesChange"
+        />
       </div>
 
       <!-- Address Form -->
@@ -202,10 +202,10 @@
 import { reactive, watch, ref } from 'vue';
 import { searchAddressByZipcode } from 'thai-address-database';
 import FileUploader from '@/components/shared/FileUploader.vue';
+import CoordinateMap from '@/components/shared/CoordinateMap.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 import iconImage from '@/assets/icons/image.svg';
-import iconMapPin from '@/assets/icons/map-pin.svg';
 
 const store = useCreditRequestStore();
 const { errors, validateField, restrictPhoneInput } = useFormValidation();
@@ -237,7 +237,9 @@ const formData = reactive({
   locationTypeSelect: '',
   locationTypeOther: '',
   ownershipSelect: '',
-  ownershipOther: ''
+  ownershipOther: '',
+  latitude: '',
+  longitude: ''
 });
 
 function formatPhoneNumber(phone) {
@@ -265,6 +267,10 @@ watch(() => store.customer, (newVal) => {
     formData.phone = formatPhoneNumber(newVal.phone || '');
     formData.email = newVal.email || '';
     
+    // Coordinates for Residence
+    formData.latitude = newVal.residence_latitude || '';
+    formData.longitude = newVal.residence_longitude || '';
+
     // Ensure subdistrict is blank for manual entry
     formData.subdistrict = '';
   }
@@ -285,10 +291,23 @@ watch(formData, (newVal) => {
     // Wait, createCreditRequest uses customer_no and customer_name.
     // If other fields are saved later, they might need cleaning.
     // For now, syncing the form value is enough for client-side persistence.
-    email: newVal.email
+    email: newVal.email,
+
+    // Ensure we sync coordinates to store state even if not calling API directly here
+    // But we use a separate method for coordinate saving to be explicit
+    residence_latitude: newVal.latitude,
+    residence_longitude: newVal.longitude
   };
   store.updateCustomerData(updates);
 }, { deep: true });
+
+function onCoordinatesChange({ lat, long }) {
+  // Directly save coordinates when they change in the map component
+  store.saveCustomerCoordinates({
+    residence_latitude: lat,
+    residence_longitude: long
+  });
+}
 
 // Watch postCode for auto-completion
 watch(() => formData.postCode, (newZip) => {

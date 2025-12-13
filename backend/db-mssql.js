@@ -118,6 +118,33 @@ const initDB = async () => {
         // Initialize AY_ACCUM
         await createTableFromCSV('AY_ACCUM', path.resolve(__dirname, 'AY_ACCUM_rows.csv'), 'custcode');
 
+        // Ensure Coordinate columns exist in Customers table
+        const coordinateColumns = [
+            'residence_latitude',
+            'residence_longitude',
+            'store_latitude',
+            'store_longitude'
+        ];
+
+        for (const col of coordinateColumns) {
+            try {
+                // MSSQL check if column exists before adding
+                const checkSql = `
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns
+                        WHERE Name = '${col}' AND Object_ID = Object_ID('Customers')
+                    )
+                    BEGIN
+                        ALTER TABLE Customers ADD ${col} NVARCHAR(255)
+                    END
+                `;
+                await pool.request().query(checkSql);
+                console.log(`Ensured column ${col} in Customers`);
+            } catch (err) {
+                 console.error(`Error adding column ${col}:`, err);
+            }
+        }
+
         // Create CreditRequests table manually
         // MSSQL Schema: id INT IDENTITY(1,1), others...
         const createCreditRequestsSQL = `
