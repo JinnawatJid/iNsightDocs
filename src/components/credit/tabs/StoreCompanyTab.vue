@@ -74,6 +74,8 @@
         <CoordinateMap
           :latitude="formData.latitude"
           :longitude="formData.longitude"
+          :landmark="formData.landmark"
+          :note="formData.note"
           :disabled="!isEditing"
           @change="onCoordinatesChange"
         />
@@ -275,7 +277,9 @@ const formData = reactive({
   ownershipSelect: '',
   ownershipOther: '',
   latitude: '',
-  longitude: ''
+  longitude: '',
+  landmark: '',
+  note: ''
 });
 
 const isCompany = computed(() => {
@@ -310,6 +314,8 @@ watch(isSameAddress, (isSame) => {
     // "sameAddress" logic implies store is at residence. So we copy residence coords.
     formData.latitude = store.customer.residence_latitude || '';
     formData.longitude = store.customer.residence_longitude || '';
+    formData.landmark = store.customer.residence_landmark || '';
+    formData.note = store.customer.residence_note || '';
 
     formData.subdistrict = '';
   } else {
@@ -335,16 +341,20 @@ watch(formData, (newVal) => {
       phone: newVal.phone,
       email: newVal.email,
       store_latitude: newVal.latitude,
-      store_longitude: newVal.longitude
+      store_longitude: newVal.longitude,
+      store_landmark: newVal.landmark,
+      store_note: newVal.note
     };
     store.updateCustomerData(updates);
   }
 }, { deep: true });
 
-function onCoordinatesChange({ lat, long }) {
+function onCoordinatesChange({ lat, long, landmark, note }) {
   store.saveCustomerCoordinates({
     store_latitude: lat,
-    store_longitude: long
+    store_longitude: long,
+    store_landmark: landmark,
+    store_note: note
   });
 }
 
