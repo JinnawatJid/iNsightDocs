@@ -1,40 +1,39 @@
 <template>
   <div class="coordinate-map">
     <div class="map-container">
-      <div class="inputs-section">
+      <div class="coordinate-form-grid">
 
-        <!-- Row 1: Map Code + Landmark (2 Columns) -->
-        <div class="form-row-2-col">
-           <div class="form-group">
-              <label>Google Map Code / Coordinates</label>
-              <input
-                type="text"
-                class="form-control"
-                v-model="internalMapCode"
-                placeholder="ตัวอย่าง: RGFF+F74 Bangkok หรือ 13.75, 100.50"
-                @change="emitUpdate"
-                :disabled="disabled"
-              />
-              <p class="helper-text" v-if="!hasMapCode">
-                ระบุ Plus Code หรือพิกัด เพื่อสร้าง QR Code นำทาง
-              </p>
-           </div>
+        <!-- Row 1: Map Code -->
+        <div class="form-group">
+           <label>Google Map Code / Coordinates</label>
+           <input
+             type="text"
+             class="form-control"
+             v-model="internalMapCode"
+             placeholder="ตัวอย่าง: RGFF+F74 Bangkok หรือ 13.75, 100.50"
+             @change="emitUpdate"
+             :disabled="disabled"
+           />
+           <p class="helper-text" v-if="!hasMapCode">
+             ระบุ Plus Code หรือพิกัด เพื่อสร้าง QR Code นำทาง
+           </p>
+        </div>
 
-           <div class="form-group">
-              <label>จุดสังเกตใกล้เคียง (นำทาง)</label>
-              <input
-                type="text"
-                class="form-control"
-                v-model="internalLandmark"
-                placeholder="ระบุสถานที่ใกล้เคียง (เช่น Siam Paragon)"
-                @change="emitUpdate"
-                :disabled="disabled"
-              />
-           </div>
+        <!-- Row 1: Landmark -->
+        <div class="form-group">
+           <label>จุดสังเกตใกล้เคียง (นำทาง)</label>
+           <input
+             type="text"
+             class="form-control"
+             v-model="internalLandmark"
+             placeholder="ระบุสถานที่ใกล้เคียง (เช่น Siam Paragon)"
+             @change="emitUpdate"
+             :disabled="disabled"
+           />
         </div>
 
         <!-- Row 2: Note (Full Width) -->
-        <div class="form-group full-width">
+        <div class="form-group span-2">
            <label>หมายเหตุจุดที่ตั้ง</label>
            <input
              type="text"
@@ -177,26 +176,24 @@ onMounted(() => {
   gap: 20px;
 }
 
-.inputs-section {
-  display: flex;
-  flex-direction: column;
-  gap: 15px; /* Spacing between rows */
-}
-
-.form-row-2-col {
-  display: flex;
+/*
+   Refactored to use CSS Grid for consistent 2-column layout
+   with perfect alignment and gap control.
+*/
+.coordinate-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 15px;
 }
 
 .form-group {
-    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 5px;
 }
 
-.form-group.full-width {
-  width: 100%;
+.span-2 {
+  grid-column: span 2;
 }
 
 .form-group label {
@@ -216,6 +213,7 @@ onMounted(() => {
   border: 1px solid #ced4da;
   border-radius: 0.25rem;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  box-sizing: border-box; /* Ensure padding doesn't increase width */
 }
 
 .form-control:focus {
