@@ -2,30 +2,23 @@
   <div class="coordinate-map">
     <div class="map-container">
       <div class="inputs-section">
-        <label>พิกัด (ละติจูด, ลองจิจูด)</label>
+        <!-- New Single Input for Map Code -->
+        <label>Google Map Code / Coordinates</label>
         <div class="input-group">
           <input
             type="text"
             class="form-control"
-            v-model="internalLat"
-            placeholder="Latitude"
-            @change="emitUpdate"
-            :disabled="disabled"
-          />
-          <input
-            type="text"
-            class="form-control"
-            v-model="internalLong"
-            placeholder="Longitude"
+            v-model="internalMapCode"
+            placeholder="ตัวอย่าง: RGFF+F74 Bangkok หรือ 13.75, 100.50"
             @change="emitUpdate"
             :disabled="disabled"
           />
         </div>
-        <p class="helper-text" v-if="!hasCoordinates">
-          กรุณาระบุพิกัดเพื่อสร้าง QR Code นำทาง
+        <p class="helper-text" v-if="!hasMapCode">
+          ระบุ Plus Code หรือพิกัด เพื่อสร้าง QR Code นำทาง
         </p>
 
-        <!-- New Landmark & Note inputs -->
+        <!-- Landmark & Note inputs -->
         <div class="extra-inputs">
            <div class="form-group">
               <label>จุดสังเกตใกล้เคียง (นำทาง)</label>
@@ -59,7 +52,7 @@
           <div class="qr-box">
             <img v-if="findMeQr" :src="findMeQr" alt="Find Me QR" />
           </div>
-          <span class="qr-desc">สแกนเพื่อเปิด Google Maps บนมือถือ และปักหมุดเพื่อดูพิกัด</span>
+          <span class="qr-desc">สแกนเพื่อเปิด Google Maps บนมือถือ และปักหมุดเพื่อดู Code</span>
         </div>
 
         <!-- QR 2: Navigate -->
@@ -83,26 +76,24 @@ import { ref, watch, computed, onMounted } from 'vue';
 import QRCode from 'qrcode';
 
 const props = defineProps({
-  latitude: { type: [String, Number], default: '' },
-  longitude: { type: [String, Number], default: '' },
+  mapCode: { type: String, default: '' },
   landmark: { type: String, default: '' },
   note: { type: String, default: '' },
   disabled: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['update:latitude', 'update:longitude', 'update:landmark', 'update:note', 'change']);
+const emit = defineEmits(['update:mapCode', 'update:landmark', 'update:note', 'change']);
 
-const internalLat = ref(props.latitude);
-const internalLong = ref(props.longitude);
+const internalMapCode = ref(props.mapCode);
 const internalLandmark = ref(props.landmark);
 const internalNote = ref(props.note);
 
 const findMeQr = ref('');
 const navigateQr = ref('');
 
-const hasCoordinates = computed(() => !!(internalLat.value && internalLong.value));
+const hasMapCode = computed(() => !!internalMapCode.value);
 const hasLandmark = computed(() => !!internalLandmark.value);
-const canNavigate = computed(() => hasCoordinates.value || hasLandmark.value);
+const canNavigate = computed(() => hasMapCode.value || hasLandmark.value);
 
 const navigatePlaceholderText = computed(() => {
   if (canNavigate.value) return "Loading...";
@@ -110,25 +101,22 @@ const navigatePlaceholderText = computed(() => {
 });
 
 // Watch props
-watch(() => props.latitude, (v) => internalLat.value = v);
-watch(() => props.longitude, (v) => internalLong.value = v);
+watch(() => props.mapCode, (v) => internalMapCode.value = v);
 watch(() => props.landmark, (v) => internalLandmark.value = v);
 watch(() => props.note, (v) => internalNote.value = v);
 
 // Watch internal for updates
-watch([internalLat, internalLong, internalLandmark], async () => {
+watch([internalMapCode, internalLandmark], async () => {
   await generateNavigateQr();
 });
 
 const emitUpdate = () => {
-  emit('update:latitude', internalLat.value);
-  emit('update:longitude', internalLong.value);
+  emit('update:mapCode', internalMapCode.value);
   emit('update:landmark', internalLandmark.value);
   emit('update:note', internalNote.value);
 
   emit('change', {
-    lat: internalLat.value,
-    long: internalLong.value,
+    mapCode: internalMapCode.value,
     landmark: internalLandmark.value,
     note: internalNote.value
   });
@@ -148,10 +136,12 @@ const generateNavigateQr = async () => {
     navigateQr.value = '';
     let url = '';
 
-    if (hasCoordinates.value) {
-      url = `https://www.google.com/maps/dir/?api=1&destination=${internalLat.value},${internalLong.value}`;
+    if (hasMapCode.value) {
+      // Search for the code or coordinates
+      const query = encodeURIComponent(internalMapCode.value);
+      url = `https://www.google.com/maps/search/?api=1&query=${query}`;
     } else if (hasLandmark.value) {
-      // Encode landmark
+      // Search for landmark
       const query = encodeURIComponent(internalLandmark.value);
       url = `https://www.google.com/maps/search/?api=1&query=${query}`;
     } else {
@@ -172,11 +162,6 @@ onMounted(() => {
 
 <style scoped>
 .coordinate-map {
-  background: #fff; /* White background to match standard cards if needed, or stick to light gray */
-  /* Actually user screenshot showed white background for the whole section? */
-  /* The container in Tab is usually white. */
-  /* But here we use a light gray box to group coordinate stuff? */
-  /* User screenshot has a light gray border around the section. */
   background: #f9f9f9;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -205,10 +190,6 @@ onMounted(() => {
   display: flex;
   gap: 10px;
 }
-
-/* Use standard styling classes that match the app's other inputs if available */
-/* Assuming .form-control is globally available or defined in shared-styles.css */
-/* I will duplicate styles here just in case scope doesn't inherit, or rely on global */
 
 .form-control {
   width: 100%;

@@ -72,8 +72,7 @@
       <!-- Map Component -->
       <div class="map-container">
         <CoordinateMap
-          :latitude="formData.latitude"
-          :longitude="formData.longitude"
+          :mapCode="formData.mapCode"
           :landmark="formData.landmark"
           :note="formData.note"
           :disabled="!isEditing"
@@ -276,8 +275,7 @@ const formData = reactive({
   locationTypeOther: '',
   ownershipSelect: '',
   ownershipOther: '',
-  latitude: '',
-  longitude: '',
+  mapCode: '',
   landmark: '',
   note: ''
 });
@@ -312,8 +310,7 @@ watch(isSameAddress, (isSame) => {
     
     // Coordinates for Store - if copying from residence, we might want to copy coords too?
     // "sameAddress" logic implies store is at residence. So we copy residence coords.
-    formData.latitude = store.customer.residence_latitude || '';
-    formData.longitude = store.customer.residence_longitude || '';
+    formData.mapCode = store.customer.residence_map_code || '';
     formData.landmark = store.customer.residence_landmark || '';
     formData.note = store.customer.residence_note || '';
 
@@ -340,8 +337,7 @@ watch(formData, (newVal) => {
       province: newVal.city,
       phone: newVal.phone,
       email: newVal.email,
-      store_latitude: newVal.latitude,
-      store_longitude: newVal.longitude,
+      store_map_code: newVal.mapCode,
       store_landmark: newVal.landmark,
       store_note: newVal.note
     };
@@ -349,10 +345,9 @@ watch(formData, (newVal) => {
   }
 }, { deep: true });
 
-function onCoordinatesChange({ lat, long, landmark, note }) {
+function onCoordinatesChange({ mapCode, landmark, note }) {
   store.saveCustomerCoordinates({
-    store_latitude: lat,
-    store_longitude: long,
+    store_map_code: mapCode,
     store_landmark: landmark,
     store_note: note
   });
