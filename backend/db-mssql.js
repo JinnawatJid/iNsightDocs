@@ -118,12 +118,16 @@ const initDB = async () => {
         // Initialize AY_ACCUM
         await createTableFromCSV('AY_ACCUM', path.resolve(__dirname, 'AY_ACCUM_rows.csv'), 'custcode');
 
-        // Ensure Coordinate columns exist in Customers table
+        // Ensure Coordinate and Landmark columns exist in Customers table
         const coordinateColumns = [
             'residence_latitude',
             'residence_longitude',
             'store_latitude',
-            'store_longitude'
+            'store_longitude',
+            'residence_landmark',
+            'residence_note',
+            'store_landmark',
+            'store_note'
         ];
 
         for (const col of coordinateColumns) {
