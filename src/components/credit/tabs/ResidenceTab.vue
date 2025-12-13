@@ -31,17 +31,6 @@
         <!-- Removed Edit button -->
       </div>
 
-      <!-- Map Component -->
-      <div class="map-container">
-        <CoordinateMap
-          :mapCode="formData.mapCode"
-          :landmark="formData.landmark"
-          :note="formData.note"
-          :disabled="!isEditing"
-          @change="onCoordinatesChange"
-        />
-      </div>
-
       <!-- Address Form -->
       <div class="form-grid-complex">
         <div class="form-group span-2">
@@ -194,6 +183,20 @@
             />
           </div>
         </div>
+      </div>
+
+      <!-- Map Section -->
+      <div class="section-header" style="margin-top: 20px;">
+        <h3>แผนที่</h3>
+      </div>
+      <div class="map-container">
+        <CoordinateMap
+          :mapCode="formData.mapCode"
+          :landmark="formData.landmark"
+          :note="formData.note"
+          :disabled="!isEditing"
+          @change="onCoordinatesChange"
+        />
       </div>
     </div>
   </div>
