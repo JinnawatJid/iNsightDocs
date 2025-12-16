@@ -24,7 +24,7 @@
       </div>
 
       <div class="form-layout-columns">
-        <!-- Left Column: Company Name -->
+        <!-- Left Column: Company Name & Authorized Position -->
         <div class="column-layout">
           <div class="form-group">
             <label>ชื่อร้าน/บริษัท <span class="text-red-500">*</span></label>
@@ -40,9 +40,23 @@
             />
             <span v-if="errors.companyName" class="error-text">{{ errors.companyName }}</span>
           </div>
+          <div class="form-group">
+             <label>ตำแหน่ง <span class="text-red-500">*</span></label>
+            <input
+              type="text"
+              class="form-input"
+              :class="{ 'border-red-500': errors.authorizedPosition, 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              placeholder="เจ้าหน้าที่ใส่"
+              v-model="formData.authorizedPosition"
+              @input="validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text'])"
+              @blur="validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text'])"
+            />
+            <span v-if="errors.authorizedPosition" class="error-text">{{ errors.authorizedPosition }}</span>
+          </div>
         </div>
 
-        <!-- Right Column: Authorized Signatory Name -->
+        <!-- Right Column: Authorized Signatory Name & Credit Info -->
         <div class="column-layout">
            <div class="form-group">
             <label>ชื่อผู้มีอำนาจลงนาม <span class="text-red-500">*</span></label>
@@ -58,19 +72,33 @@
             />
             <span v-if="errors.authorizedName" class="error-text">{{ errors.authorizedName }}</span>
           </div>
-          <div class="form-group">
-             <label>ตำแหน่ง <span class="text-red-500">*</span></label>
-            <input
-              type="text"
-              class="form-input"
-              :class="{ 'border-red-500': errors.authorizedPosition, 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              placeholder="เจ้าหน้าที่ใส่"
-              v-model="formData.authorizedPosition"
-              @input="validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text'])"
-              @blur="validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text'])"
-            />
-            <span v-if="errors.authorizedPosition" class="error-text">{{ errors.authorizedPosition }}</span>
+          <div class="row-two-col">
+            <div class="form-group">
+              <label>วงเงินสินเชื่อที่ต้องการ <span class="text-red-500">*</span></label>
+              <input
+                type="text"
+                class="form-input"
+                :class="{ 'border-red-500': errors.creditAmount, 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                placeholder="เจ้าหน้าที่ใส่"
+                v-model="formData.creditAmount"
+                @input="(e) => { restrictCreditAmountInput(e); validateField('creditAmount', e.target.value, ['required', 'numeric']); }"
+                @blur="validateField('creditAmount', formData.creditAmount, ['required', 'numeric'])"
+              />
+              <span v-if="errors.creditAmount" class="error-text">{{ errors.creditAmount }}</span>
+            </div>
+            <div class="form-group">
+              <label>เหตุผลการขอเครดิต <span class="text-red-500">*</span></label>
+              <select
+                class="form-input"
+                :class="{ 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.creditReason"
+              >
+                  <option value="สต๊อคสินค้า">สต๊อคสินค้า</option>
+                  <option value="รับโปรเจค">รับโปรเจค</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -123,77 +151,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Credit Info Section (Reused existing logic layout for credit part, but separated visually if needed, though previously it was mixed) -->
-    <!-- The previous layout had Credit Amount and Reason in the Right Column. Now we moved Company Name to Left. -->
-    <!-- Where should Credit Amount/Reason go? The user request only specified the swap and the new section. -->
-    <!-- I will put Credit Amount and Reason in a new row under the Personal Info Section (first section) to keep balance, or under Contact Info? -->
-    <!-- Looking at the screenshot provided by user, the "Contact Info Check" section is NEW. The "Personal Info Check" section has the name/company fields. -->
-    <!-- The screenshot shows:
-         Checking Personal Info
-         Name | Company
-         Position | Credit Amount | Credit Reason (Wait, screenshot shows: Position (Left), Credit Amount (Right), Credit Reason (Right))
-    -->
-    <!-- Wait, let me look at the user screenshot again. -->
-    <!-- Screenshot:
-         Left: Name Surname
-         Left Below: Position
-
-         Right: Company Name
-         Right Below: Credit Amount | Credit Reason
-    -->
-    <!-- User request: "Switch position... make Company Name appear first in LEFT and Name Surname on RIGHT". -->
-    <!-- So Left: Company Name. Right: Authorized Name. -->
-    <!-- What about Position, Credit Amount, Reason? -->
-    <!-- User didn't explicitly say move them, but usually they follow the field. -->
-    <!-- "Position" was under "Name". So Authorized Position should be under Authorized Name (Right). -->
-    <!-- "Credit Amount/Reason" was under "Company Name". So it should be under Company Name (Left)? -->
-    <!-- Let's assume this symmetry. -->
-
-    <!-- Adjusted Layout based on logic: -->
-    <!-- Row 1: Left: Company Name, Right: Authorized Name -->
-    <!-- Row 2: Left: Credit Amount | Credit Reason, Right: Authorized Position -->
-    <!-- But wait, I put Authorized Position under Authorized Name in the code above. -->
-    <!-- Let's fix the layout to match this logic. -->
-
-    <div class="form-layout-columns" style="margin-top: 15px;">
-        <!-- Left Column -->
-        <div class="column-layout">
-           <div class="row-two-col">
-            <div class="form-group">
-              <label>วงเงินสินเชื่อที่ต้องการ <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                class="form-input"
-                :class="{ 'border-red-500': errors.creditAmount, 'disabled': !isEditing }"
-                :disabled="!isEditing"
-                placeholder="เจ้าหน้าที่ใส่"
-                v-model="formData.creditAmount"
-                @input="(e) => { restrictCreditAmountInput(e); validateField('creditAmount', e.target.value, ['required', 'numeric']); }"
-                @blur="validateField('creditAmount', formData.creditAmount, ['required', 'numeric'])"
-              />
-              <span v-if="errors.creditAmount" class="error-text">{{ errors.creditAmount }}</span>
-            </div>
-            <div class="form-group">
-              <label>เหตุผลการขอเครดิต <span class="text-red-500">*</span></label>
-              <select
-                class="form-input"
-                :class="{ 'disabled': !isEditing }"
-                :disabled="!isEditing"
-                v-model="formData.creditReason"
-              >
-                  <option value="สต๊อคสินค้า">สต๊อคสินค้า</option>
-                  <option value="รับโปรเจค">รับโปรเจค</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <!-- Right Column (Empty for now as Authorized Position is grouped with Name) -->
-        <div class="column-layout">
-           <!-- Spacer or empty -->
-        </div>
-    </div>
-
   </div>
 </template>
 
