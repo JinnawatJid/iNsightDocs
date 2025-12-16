@@ -24,39 +24,7 @@
       </div>
 
       <div class="form-layout-columns">
-        <!-- Left Column -->
-        <div class="column-layout">
-          <div class="form-group">
-            <label>ชื่อจริงและนามสกุล <span class="text-red-500">*</span></label>
-            <input
-              type="text"
-              class="form-input"
-              :class="{ 'border-red-500': errors.name, 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="formData.name"
-              placeholder="**ดึงข้อมูลจาก Dynamics**"
-              @input="validateField('name', formData.name, ['required', 'text'])"
-              @blur="validateField('name', formData.name, ['required', 'text'])"
-            />
-            <span v-if="errors.name" class="error-text">{{ errors.name }}</span>
-          </div>
-          <div class="form-group">
-            <label>ตำแหน่ง <span class="text-red-500">*</span></label>
-            <input
-              type="text"
-              class="form-input"
-              :class="{ 'border-red-500': errors.position, 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              placeholder="เจ้าหน้าที่ใส่"
-              v-model="formData.position"
-              @input="validateField('position', formData.position, ['required', 'text'])"
-              @blur="validateField('position', formData.position, ['required', 'text'])"
-            />
-            <span v-if="errors.position" class="error-text">{{ errors.position }}</span>
-          </div>
-        </div>
-
-        <!-- Right Column -->
+        <!-- Left Column: Company Name & Authorized Position -->
         <div class="column-layout">
           <div class="form-group">
             <label>ชื่อร้าน/บริษัท <span class="text-red-500">*</span></label>
@@ -71,6 +39,38 @@
               @blur="validateField('companyName', formData.companyName, ['required'])"
             />
             <span v-if="errors.companyName" class="error-text">{{ errors.companyName }}</span>
+          </div>
+          <div class="form-group">
+             <label>ตำแหน่ง <span class="text-red-500">*</span></label>
+            <input
+              type="text"
+              class="form-input"
+              :class="{ 'border-red-500': errors.authorizedPosition, 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              placeholder="เจ้าหน้าที่ใส่"
+              v-model="formData.authorizedPosition"
+              @input="validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text'])"
+              @blur="validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text'])"
+            />
+            <span v-if="errors.authorizedPosition" class="error-text">{{ errors.authorizedPosition }}</span>
+          </div>
+        </div>
+
+        <!-- Right Column: Authorized Signatory Name & Credit Info -->
+        <div class="column-layout">
+           <div class="form-group">
+            <label>ชื่อผู้มีอำนาจลงนาม <span class="text-red-500">*</span></label>
+            <input
+              type="text"
+              class="form-input"
+              :class="{ 'border-red-500': errors.authorizedName, 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              v-model="formData.authorizedName"
+              placeholder="**ดึงข้อมูลจาก Dynamics**"
+              @input="validateField('authorizedName', formData.authorizedName, ['required', 'text'])"
+              @blur="validateField('authorizedName', formData.authorizedName, ['required', 'text'])"
+            />
+            <span v-if="errors.authorizedName" class="error-text">{{ errors.authorizedName }}</span>
           </div>
           <div class="row-two-col">
             <div class="form-group">
@@ -103,6 +103,63 @@
         </div>
       </div>
     </div>
+
+    <!-- Contact Info Section (New) -->
+    <div class="personal-info-section">
+      <div class="section-header">
+        <h3>ตรวจสอบข้อมูลผู้ติดต่อ</h3>
+        <div class="checkbox-wrapper">
+          <input
+            type="checkbox"
+            id="sameAsAuthorized"
+            v-model="isSameAsAuthorized"
+            :disabled="!isEditing"
+          />
+          <label for="sameAsAuthorized">ข้อมูลเดียวกับผู้มีอำนาจลงนาม</label>
+        </div>
+      </div>
+      <div class="grid-three-col">
+        <div class="form-group">
+          <label>ชื่อผู้ติดต่อ <span class="text-red-500">*</span></label>
+          <input
+            type="text"
+            class="form-input"
+            :class="{ 'border-red-500': errors.contactName, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.contactName"
+            @input="validateField('contactName', formData.contactName, ['required', 'text'])"
+            @blur="validateField('contactName', formData.contactName, ['required', 'text'])"
+          />
+          <span v-if="errors.contactName" class="error-text">{{ errors.contactName }}</span>
+        </div>
+        <div class="form-group">
+          <label>ตำแหน่งผู้ติดต่อ <span class="text-red-500">*</span></label>
+           <input
+            type="text"
+            class="form-input"
+            :class="{ 'border-red-500': errors.contactPosition, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.contactPosition"
+            @input="validateField('contactPosition', formData.contactPosition, ['required', 'text'])"
+            @blur="validateField('contactPosition', formData.contactPosition, ['required', 'text'])"
+          />
+          <span v-if="errors.contactPosition" class="error-text">{{ errors.contactPosition }}</span>
+        </div>
+        <div class="form-group">
+          <label>เบอร์โทรผู้ติดต่อ <span class="text-red-500">*</span></label>
+           <input
+            type="text"
+            class="form-input"
+            :class="{ 'border-red-500': errors.contactPhone, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.contactPhone"
+            @input="validateField('contactPhone', formData.contactPhone, ['required', 'numeric'])"
+            @blur="validateField('contactPhone', formData.contactPhone, ['required', 'numeric'])"
+          />
+          <span v-if="errors.contactPhone" class="error-text">{{ errors.contactPhone }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -116,6 +173,7 @@ const store = useCreditRequestStore();
 const { errors, validateField, restrictCreditAmountInput } = useFormValidation();
 
 const isEditing = ref(true); // Editable by default
+const isSameAsAuthorized = ref(false);
 
 const files = reactive({
   idCard: null,
@@ -132,25 +190,68 @@ watch(() => files.homeReg, (newVal) => {
 });
 
 const formData = reactive({
-  name: '',
   companyName: '',
-  position: '',
+  authorizedName: '',
+  authorizedPosition: '',
+  contactName: '',
+  contactPosition: '',
+  contactPhone: '',
   creditAmount: '',
   creditReason: 'สต๊อคสินค้า'
+});
+
+// Helper to format phone similar to StoreCompanyTab/ResidenceTab
+function formatPhoneNumber(phone) {
+  if (!phone) return '';
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length === 10) {
+    return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+  } else if (cleaned.length === 9) {
+     if (cleaned.startsWith('02')) {
+       return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+     }
+     return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
+  }
+  return phone;
+}
+
+// Watch isSameAsAuthorized for toggling
+watch(isSameAsAuthorized, (isSame) => {
+  if (isSame) {
+    formData.contactName = formData.authorizedName;
+    formData.contactPosition = formData.authorizedPosition;
+
+    // Logic for phone: use store.customer.phone if available
+    if (store.customer) {
+        // Fallback logic for phone (same as backend usually): phone -> telex -> mobile
+        // But store.customer object returned from search usually has 'phone' property already normalized?
+        // Checking store.js or CustomerService...
+        // Backend maps: phone = Phone No_ (or fallback).
+        // So we can just use store.customer.phone
+        formData.contactPhone = formatPhoneNumber(store.customer.phone || '');
+    }
+  } else {
+    // If unchecked, maybe clear or leave as is?
+    // Typical pattern: leave as is or revert to original?
+    // Let's just leave as is to allow editing from that point, or better:
+    // Revert to what is in the store for 'contact_person' if we consider that "original"?
+    // But 'contact_person' is bound to 'contactName'.
+    // If we just uncheck, the user likely wants to Edit it.
+    // So we do nothing, just allow editing (which is always allowed unless disabled).
+  }
+});
+
+// Also watch authorized fields to sync if checkbox is checked
+watch(() => [formData.authorizedName, formData.authorizedPosition], ([newName, newPos]) => {
+    if (isSameAsAuthorized.value) {
+        formData.contactName = newName;
+        formData.contactPosition = newPos;
+    }
 });
 
 // Initialize from store
 watch(() => store.customer, (newVal) => {
   if (newVal) {
-    // UPDATED LOGIC:
-    // User confirmed: contact_person is Personal Name, name is Company Name.
-    // If contact_person is undefined or null, we default to empty string.
-    // We do NOT fallback to companyName for the personal name field anymore,
-    // to strictly separate Personal Name vs Company Name.
-
-    // Check if property exists.
-    // If contact_person is "", it stays "".
-    // If contact_person is undefined, we use "".
     const contact = (newVal.contact_person !== undefined && newVal.contact_person !== null)
       ? newVal.contact_person
       : '';
@@ -159,19 +260,20 @@ watch(() => store.customer, (newVal) => {
       ? newVal.name
       : '';
 
-    // Only update if formData is DIFFERENT to avoid loops or unnecessary updates?
-    // Actually, if we update formData, the watcher below triggers.
-    // If we receive update from store, we update formData.
-    // The watcher below updates store.
-    // Store update triggers this watcher.
-    // Loop?
-    // Store update (customer obj ref change) -> this watcher -> formData update -> formData watcher -> store update -> store (obj ref change or not?)
-    // If values are same, store might not trigger reactivity if object reference is same?
-    // But `this.customer = { ...this.customer, ...updates }` creates new reference.
-    // So we need to check equality before updating formData.
+    // Authorized Name Logic: Use authorized_person if available, else fallback to contact (for migration)
+    const authName = (newVal.authorized_person) ? newVal.authorized_person : contact;
 
-    if (formData.name !== contact) formData.name = contact;
+    // Contact Name Logic: Use contact_person
+    const contactName = contact;
+
     if (formData.companyName !== company) formData.companyName = company;
+
+    if (formData.authorizedName !== authName) formData.authorizedName = authName;
+    if (formData.authorizedPosition !== newVal.authorized_position) formData.authorizedPosition = newVal.authorized_position || '';
+
+    if (formData.contactName !== contactName) formData.contactName = contactName;
+    if (formData.contactPosition !== newVal.contact_position) formData.contactPosition = newVal.contact_position || '';
+    if (formData.contactPhone !== newVal.contact_phone_number) formData.contactPhone = newVal.contact_phone_number || '';
   }
 }, { immediate: true, deep: true });
 
@@ -179,12 +281,13 @@ watch(() => store.customer, (newVal) => {
 watch(formData, (newVal) => {
   const updates = {};
 
-  // Mapping confirmed by user:
-  // Personal Name (UI: name) -> contact_person (DB)
-  // Company Name (UI: companyName) -> name (DB)
-
-  updates.contact_person = newVal.name;
+  // Map fields back to DB columns
   updates.name = newVal.companyName;
+  updates.authorized_person = newVal.authorizedName;
+  updates.authorized_position = newVal.authorizedPosition;
+  updates.contact_person = newVal.contactName; // Updates existing contact_person column
+  updates.contact_position = newVal.contactPosition;
+  updates.contact_phone_number = newVal.contactPhone;
 
   store.updateCustomerData(updates);
 }, { deep: true });
@@ -204,6 +307,17 @@ function toggleEdit() {
 /* Personal Info Section */
 .personal-info-section {
   margin-top: 20px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.section-header h3 {
+  margin: 0;
 }
 
 .text-red-500 {
@@ -226,5 +340,12 @@ function toggleEdit() {
   background-color: #f5f5f5;
   color: #999;
   cursor: not-allowed;
+}
+
+.grid-three-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 15px;
+  margin-top: 15px;
 }
 </style>
