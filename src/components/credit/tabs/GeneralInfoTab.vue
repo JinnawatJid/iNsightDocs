@@ -108,6 +108,15 @@
     <div class="personal-info-section">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลผู้ติดต่อ</h3>
+        <div class="checkbox-wrapper">
+          <input
+            type="checkbox"
+            id="sameAsAuthorized"
+            v-model="isSameAsAuthorized"
+            :disabled="!isEditing"
+          />
+          <label for="sameAsAuthorized">ข้อมูลเดียวกับผู้มีอำนาจลงนาม</label>
+        </div>
       </div>
       <div class="grid-three-col">
         <div class="form-group">
@@ -124,7 +133,7 @@
           <span v-if="errors.contactName" class="error-text">{{ errors.contactName }}</span>
         </div>
         <div class="form-group">
-          <label>ตำแหน่ง <span class="text-red-500">*</span></label>
+          <label>ตำแหน่งผู้ติดต่อ <span class="text-red-500">*</span></label>
            <input
             type="text"
             class="form-input"
@@ -164,6 +173,7 @@ const store = useCreditRequestStore();
 const { errors, validateField, restrictCreditAmountInput } = useFormValidation();
 
 const isEditing = ref(true); // Editable by default
+const isSameAsAuthorized = ref(false);
 
 const files = reactive({
   idCard: null,
@@ -188,6 +198,55 @@ const formData = reactive({
   contactPhone: '',
   creditAmount: '',
   creditReason: 'สต๊อคสินค้า'
+});
+
+// Helper to format phone similar to StoreCompanyTab/ResidenceTab
+function formatPhoneNumber(phone) {
+  if (!phone) return '';
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length === 10) {
+    return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+  } else if (cleaned.length === 9) {
+     if (cleaned.startsWith('02')) {
+       return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+     }
+     return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
+  }
+  return phone;
+}
+
+// Watch isSameAsAuthorized for toggling
+watch(isSameAsAuthorized, (isSame) => {
+  if (isSame) {
+    formData.contactName = formData.authorizedName;
+    formData.contactPosition = formData.authorizedPosition;
+
+    // Logic for phone: use store.customer.phone if available
+    if (store.customer) {
+        // Fallback logic for phone (same as backend usually): phone -> telex -> mobile
+        // But store.customer object returned from search usually has 'phone' property already normalized?
+        // Checking store.js or CustomerService...
+        // Backend maps: phone = Phone No_ (or fallback).
+        // So we can just use store.customer.phone
+        formData.contactPhone = formatPhoneNumber(store.customer.phone || '');
+    }
+  } else {
+    // If unchecked, maybe clear or leave as is?
+    // Typical pattern: leave as is or revert to original?
+    // Let's just leave as is to allow editing from that point, or better:
+    // Revert to what is in the store for 'contact_person' if we consider that "original"?
+    // But 'contact_person' is bound to 'contactName'.
+    // If we just uncheck, the user likely wants to Edit it.
+    // So we do nothing, just allow editing (which is always allowed unless disabled).
+  }
+});
+
+// Also watch authorized fields to sync if checkbox is checked
+watch(() => [formData.authorizedName, formData.authorizedPosition], ([newName, newPos]) => {
+    if (isSameAsAuthorized.value) {
+        formData.contactName = newName;
+        formData.contactPosition = newPos;
+    }
 });
 
 // Initialize from store
@@ -250,6 +309,25 @@ function toggleEdit() {
   margin-top: 20px;
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.section-header h3 {
+  margin: 0;
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
 .text-red-500 {
   color: #ef4444;
 }
@@ -277,5 +355,10 @@ function toggleEdit() {
   grid-template-columns: 1fr 1fr 1fr;
   gap: 15px;
   margin-top: 15px;
+}
+
+/* Also disable checkbox if not editing */
+input[type="checkbox"]:disabled {
+  cursor: not-allowed;
 }
 </style>
