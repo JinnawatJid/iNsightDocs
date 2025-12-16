@@ -26,6 +26,7 @@ import ResidenceTab from './tabs/ResidenceTab.vue';
 import GeneralInfoTab from './tabs/GeneralInfoTab.vue';
 import StoreCompanyTab from './tabs/StoreCompanyTab.vue';
 import StoreStatementTab from './tabs/StoreStatementTab.vue';
+import { useCreditRequestStore } from '@/stores/creditRequest';
 
 export default {
   name: 'ApplicationTabs',
@@ -35,18 +36,36 @@ export default {
     StoreCompanyTab,
     StoreStatementTab
   },
+  setup() {
+    const creditRequestStore = useCreditRequestStore();
+    return { creditRequestStore };
+  },
   data() {
     return {
-      currentTab: 'general',
-      tabs: [
+      currentTab: 'general'
+    };
+  },
+  computed: {
+    tabs() {
+      const allTabs = [
         { id: 'general', label: 'ข้อมูลทั่วไป' },
         { id: 'residence', label: 'ที่อยู่อาศัย' },
         { id: 'store', label: 'ที่อยู่ร้านค้า/บริษัท' },
         { id: 'financial', label: 'เอกสารการเงิน' }
-      ]
-    };
-  },
-  computed: {
+      ];
+
+      // Logic: If tax_id is present (Company), hide the 'financial' tab.
+      // Otherwise (Individual or no tax_id), show it.
+      const hasTaxId = this.creditRequestStore.customer &&
+                       this.creditRequestStore.customer.tax_id &&
+                       this.creditRequestStore.customer.tax_id.trim().length > 0;
+
+      if (hasTaxId) {
+        return allTabs.filter(t => t.id !== 'financial');
+      }
+
+      return allTabs;
+    },
     currentTabComponent() {
       switch (this.currentTab) {
         case 'general':
