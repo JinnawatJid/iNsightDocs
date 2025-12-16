@@ -86,7 +86,12 @@ const initDB = async () => {
             'store_landmark',
             'store_note',
             'residence_map_code',
-            'store_map_code'
+            'store_map_code',
+            // New columns for Contact/Authorized Person
+            'authorized_person',
+            'authorized_position',
+            'contact_position',
+            'contact_phone_number'
         ];
 
         for (const col of coordinateColumns) {

@@ -24,39 +24,7 @@
       </div>
 
       <div class="form-layout-columns">
-        <!-- Left Column -->
-        <div class="column-layout">
-          <div class="form-group">
-            <label>ชื่อจริงและนามสกุล <span class="text-red-500">*</span></label>
-            <input
-              type="text"
-              class="form-input"
-              :class="{ 'border-red-500': errors.name, 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="formData.name"
-              placeholder="**ดึงข้อมูลจาก Dynamics**"
-              @input="validateField('name', formData.name, ['required', 'text'])"
-              @blur="validateField('name', formData.name, ['required', 'text'])"
-            />
-            <span v-if="errors.name" class="error-text">{{ errors.name }}</span>
-          </div>
-          <div class="form-group">
-            <label>ตำแหน่ง <span class="text-red-500">*</span></label>
-            <input
-              type="text"
-              class="form-input"
-              :class="{ 'border-red-500': errors.position, 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              placeholder="เจ้าหน้าที่ใส่"
-              v-model="formData.position"
-              @input="validateField('position', formData.position, ['required', 'text'])"
-              @blur="validateField('position', formData.position, ['required', 'text'])"
-            />
-            <span v-if="errors.position" class="error-text">{{ errors.position }}</span>
-          </div>
-        </div>
-
-        <!-- Right Column -->
+        <!-- Left Column: Company Name -->
         <div class="column-layout">
           <div class="form-group">
             <label>ชื่อร้าน/บริษัท <span class="text-red-500">*</span></label>
@@ -72,7 +40,126 @@
             />
             <span v-if="errors.companyName" class="error-text">{{ errors.companyName }}</span>
           </div>
-          <div class="row-two-col">
+        </div>
+
+        <!-- Right Column: Authorized Signatory Name -->
+        <div class="column-layout">
+           <div class="form-group">
+            <label>ชื่อผู้มีอำนาจลงนาม <span class="text-red-500">*</span></label>
+            <input
+              type="text"
+              class="form-input"
+              :class="{ 'border-red-500': errors.authorizedName, 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              v-model="formData.authorizedName"
+              placeholder="**ดึงข้อมูลจาก Dynamics**"
+              @input="validateField('authorizedName', formData.authorizedName, ['required', 'text'])"
+              @blur="validateField('authorizedName', formData.authorizedName, ['required', 'text'])"
+            />
+            <span v-if="errors.authorizedName" class="error-text">{{ errors.authorizedName }}</span>
+          </div>
+          <div class="form-group">
+             <label>ตำแหน่ง <span class="text-red-500">*</span></label>
+            <input
+              type="text"
+              class="form-input"
+              :class="{ 'border-red-500': errors.authorizedPosition, 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              placeholder="เจ้าหน้าที่ใส่"
+              v-model="formData.authorizedPosition"
+              @input="validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text'])"
+              @blur="validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text'])"
+            />
+            <span v-if="errors.authorizedPosition" class="error-text">{{ errors.authorizedPosition }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact Info Section (New) -->
+    <div class="personal-info-section">
+      <div class="section-header">
+        <h3>ตรวจสอบข้อมูลผู้ติดต่อ</h3>
+      </div>
+      <div class="grid-three-col">
+        <div class="form-group">
+          <label>ชื่อผู้ติดต่อ <span class="text-red-500">*</span></label>
+          <input
+            type="text"
+            class="form-input"
+            :class="{ 'border-red-500': errors.contactName, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.contactName"
+            @input="validateField('contactName', formData.contactName, ['required', 'text'])"
+            @blur="validateField('contactName', formData.contactName, ['required', 'text'])"
+          />
+          <span v-if="errors.contactName" class="error-text">{{ errors.contactName }}</span>
+        </div>
+        <div class="form-group">
+          <label>ตำแหน่ง <span class="text-red-500">*</span></label>
+           <input
+            type="text"
+            class="form-input"
+            :class="{ 'border-red-500': errors.contactPosition, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.contactPosition"
+            @input="validateField('contactPosition', formData.contactPosition, ['required', 'text'])"
+            @blur="validateField('contactPosition', formData.contactPosition, ['required', 'text'])"
+          />
+          <span v-if="errors.contactPosition" class="error-text">{{ errors.contactPosition }}</span>
+        </div>
+        <div class="form-group">
+          <label>เบอร์โทรผู้ติดต่อ <span class="text-red-500">*</span></label>
+           <input
+            type="text"
+            class="form-input"
+            :class="{ 'border-red-500': errors.contactPhone, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.contactPhone"
+            @input="validateField('contactPhone', formData.contactPhone, ['required', 'numeric'])"
+            @blur="validateField('contactPhone', formData.contactPhone, ['required', 'numeric'])"
+          />
+          <span v-if="errors.contactPhone" class="error-text">{{ errors.contactPhone }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credit Info Section (Reused existing logic layout for credit part, but separated visually if needed, though previously it was mixed) -->
+    <!-- The previous layout had Credit Amount and Reason in the Right Column. Now we moved Company Name to Left. -->
+    <!-- Where should Credit Amount/Reason go? The user request only specified the swap and the new section. -->
+    <!-- I will put Credit Amount and Reason in a new row under the Personal Info Section (first section) to keep balance, or under Contact Info? -->
+    <!-- Looking at the screenshot provided by user, the "Contact Info Check" section is NEW. The "Personal Info Check" section has the name/company fields. -->
+    <!-- The screenshot shows:
+         Checking Personal Info
+         Name | Company
+         Position | Credit Amount | Credit Reason (Wait, screenshot shows: Position (Left), Credit Amount (Right), Credit Reason (Right))
+    -->
+    <!-- Wait, let me look at the user screenshot again. -->
+    <!-- Screenshot:
+         Left: Name Surname
+         Left Below: Position
+
+         Right: Company Name
+         Right Below: Credit Amount | Credit Reason
+    -->
+    <!-- User request: "Switch position... make Company Name appear first in LEFT and Name Surname on RIGHT". -->
+    <!-- So Left: Company Name. Right: Authorized Name. -->
+    <!-- What about Position, Credit Amount, Reason? -->
+    <!-- User didn't explicitly say move them, but usually they follow the field. -->
+    <!-- "Position" was under "Name". So Authorized Position should be under Authorized Name (Right). -->
+    <!-- "Credit Amount/Reason" was under "Company Name". So it should be under Company Name (Left)? -->
+    <!-- Let's assume this symmetry. -->
+
+    <!-- Adjusted Layout based on logic: -->
+    <!-- Row 1: Left: Company Name, Right: Authorized Name -->
+    <!-- Row 2: Left: Credit Amount | Credit Reason, Right: Authorized Position -->
+    <!-- But wait, I put Authorized Position under Authorized Name in the code above. -->
+    <!-- Let's fix the layout to match this logic. -->
+
+    <div class="form-layout-columns" style="margin-top: 15px;">
+        <!-- Left Column -->
+        <div class="column-layout">
+           <div class="row-two-col">
             <div class="form-group">
               <label>วงเงินสินเชื่อที่ต้องการ <span class="text-red-500">*</span></label>
               <input
@@ -101,8 +188,12 @@
             </div>
           </div>
         </div>
-      </div>
+        <!-- Right Column (Empty for now as Authorized Position is grouped with Name) -->
+        <div class="column-layout">
+           <!-- Spacer or empty -->
+        </div>
     </div>
+
   </div>
 </template>
 
@@ -132,9 +223,12 @@ watch(() => files.homeReg, (newVal) => {
 });
 
 const formData = reactive({
-  name: '',
   companyName: '',
-  position: '',
+  authorizedName: '',
+  authorizedPosition: '',
+  contactName: '',
+  contactPosition: '',
+  contactPhone: '',
   creditAmount: '',
   creditReason: 'สต๊อคสินค้า'
 });
@@ -142,15 +236,6 @@ const formData = reactive({
 // Initialize from store
 watch(() => store.customer, (newVal) => {
   if (newVal) {
-    // UPDATED LOGIC:
-    // User confirmed: contact_person is Personal Name, name is Company Name.
-    // If contact_person is undefined or null, we default to empty string.
-    // We do NOT fallback to companyName for the personal name field anymore,
-    // to strictly separate Personal Name vs Company Name.
-
-    // Check if property exists.
-    // If contact_person is "", it stays "".
-    // If contact_person is undefined, we use "".
     const contact = (newVal.contact_person !== undefined && newVal.contact_person !== null)
       ? newVal.contact_person
       : '';
@@ -159,19 +244,20 @@ watch(() => store.customer, (newVal) => {
       ? newVal.name
       : '';
 
-    // Only update if formData is DIFFERENT to avoid loops or unnecessary updates?
-    // Actually, if we update formData, the watcher below triggers.
-    // If we receive update from store, we update formData.
-    // The watcher below updates store.
-    // Store update triggers this watcher.
-    // Loop?
-    // Store update (customer obj ref change) -> this watcher -> formData update -> formData watcher -> store update -> store (obj ref change or not?)
-    // If values are same, store might not trigger reactivity if object reference is same?
-    // But `this.customer = { ...this.customer, ...updates }` creates new reference.
-    // So we need to check equality before updating formData.
+    // Authorized Name Logic: Use authorized_person if available, else fallback to contact (for migration)
+    const authName = (newVal.authorized_person) ? newVal.authorized_person : contact;
 
-    if (formData.name !== contact) formData.name = contact;
+    // Contact Name Logic: Use contact_person
+    const contactName = contact;
+
     if (formData.companyName !== company) formData.companyName = company;
+
+    if (formData.authorizedName !== authName) formData.authorizedName = authName;
+    if (formData.authorizedPosition !== newVal.authorized_position) formData.authorizedPosition = newVal.authorized_position || '';
+
+    if (formData.contactName !== contactName) formData.contactName = contactName;
+    if (formData.contactPosition !== newVal.contact_position) formData.contactPosition = newVal.contact_position || '';
+    if (formData.contactPhone !== newVal.contact_phone_number) formData.contactPhone = newVal.contact_phone_number || '';
   }
 }, { immediate: true, deep: true });
 
@@ -179,12 +265,13 @@ watch(() => store.customer, (newVal) => {
 watch(formData, (newVal) => {
   const updates = {};
 
-  // Mapping confirmed by user:
-  // Personal Name (UI: name) -> contact_person (DB)
-  // Company Name (UI: companyName) -> name (DB)
-
-  updates.contact_person = newVal.name;
+  // Map fields back to DB columns
   updates.name = newVal.companyName;
+  updates.authorized_person = newVal.authorizedName;
+  updates.authorized_position = newVal.authorizedPosition;
+  updates.contact_person = newVal.contactName; // Updates existing contact_person column
+  updates.contact_position = newVal.contactPosition;
+  updates.contact_phone_number = newVal.contactPhone;
 
   store.updateCustomerData(updates);
 }, { deep: true });
@@ -226,5 +313,12 @@ function toggleEdit() {
   background-color: #f5f5f5;
   color: #999;
   cursor: not-allowed;
+}
+
+.grid-three-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 15px;
+  margin-top: 15px;
 }
 </style>
