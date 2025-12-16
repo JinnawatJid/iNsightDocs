@@ -320,14 +320,6 @@ function toggleEdit() {
   margin: 0;
 }
 
-.checkbox-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #333;
-}
-
 .text-red-500 {
   color: #ef4444;
 }
@@ -355,10 +347,5 @@ function toggleEdit() {
   grid-template-columns: 1fr 1fr 1fr;
   gap: 15px;
   margin-top: 15px;
-}
-
-/* Also disable checkbox if not editing */
-input[type="checkbox"]:disabled {
-  cursor: not-allowed;
 }
 </style>

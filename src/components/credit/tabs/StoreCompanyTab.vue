@@ -421,14 +421,6 @@ function toggleEdit() {
   margin: 0;
 }
 
-.checkbox-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #333;
-}
-
 .address-verification {
   margin-top: 30px;
 }
@@ -514,11 +506,6 @@ function toggleEdit() {
 .form-control.disabled {
   background-color: #f5f5f5;
   color: #999;
-  cursor: not-allowed;
-}
-
-/* Also disable checkbox if not editing */
-input[type="checkbox"]:disabled {
   cursor: not-allowed;
 }
 </style>
