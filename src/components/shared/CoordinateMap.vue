@@ -95,7 +95,7 @@ const navigateQr = ref('');
 
 const hasMapCode = computed(() => !!internalMapCode.value);
 const hasLandmark = computed(() => !!internalLandmark.value);
-const canNavigate = computed(() => hasMapCode.value || hasLandmark.value);
+const canNavigate = computed(() => hasMapCode.value);
 
 const navigatePlaceholderText = computed(() => {
   if (canNavigate.value) return "Loading...";
@@ -141,10 +141,6 @@ const generateNavigateQr = async () => {
     if (hasMapCode.value) {
       // Search for the code or coordinates
       const query = encodeURIComponent(internalMapCode.value);
-      url = `https://www.google.com/maps/search/?api=1&query=${query}`;
-    } else if (hasLandmark.value) {
-      // Search for landmark
-      const query = encodeURIComponent(internalLandmark.value);
       url = `https://www.google.com/maps/search/?api=1&query=${query}`;
     } else {
       return;
