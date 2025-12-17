@@ -39,6 +39,13 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       const totalDocs = 4;
       const count = Object.values(state.uploadedDocuments).filter(val => val).length;
       return Math.min(100, Math.round((count / totalDocs) * 100));
+    },
+
+    isCompany: (state) => {
+      if (!state.customer || !state.customer.name) return false;
+      const name = state.customer.name;
+      const keywords = ['บริษัท', 'ห้างหุ้นส่วนจำกัด', 'บ.', 'หจก.'];
+      return keywords.some(keyword => name.includes(keyword));
     }
   },
 

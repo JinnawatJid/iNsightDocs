@@ -54,13 +54,9 @@ export default {
         { id: 'financial', label: 'เอกสารการเงิน' }
       ];
 
-      // Logic: If tax_id is present (Company), hide the 'financial' tab.
-      // Otherwise (Individual or no tax_id), show it.
-      const hasTaxId = this.creditRequestStore.customer &&
-                       this.creditRequestStore.customer.tax_id &&
-                       this.creditRequestStore.customer.tax_id.trim().length > 0;
-
-      if (hasTaxId) {
+      // Logic: If isCompany is true (Company), hide the 'financial' tab.
+      // Otherwise (Individual), show it.
+      if (this.creditRequestStore.isCompany) {
         return allTabs.filter(t => t.id !== 'financial');
       }
 
