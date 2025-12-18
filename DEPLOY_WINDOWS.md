@@ -26,7 +26,8 @@ On your machine with internet access:
     ```cmd
     build_images.bat
     ```
-    This will pull the `node:18-nanoserver-1809` base image and build `credit-request-backend` and `credit-request-frontend`.
+    This will pull the `mcr.microsoft.com/windows/servercore:ltsc2019` base image and build `credit-request-backend` and `credit-request-frontend`.
+    *Note: The build process downloads Node.js v18.19.0 directly from nodejs.org, so internet access is required.*
 
 ## Step 2: Export Images (Online)
 
@@ -72,5 +73,5 @@ The application should now be accessible at `http://localhost` (or the server's 
 ## Notes
 
 - **Database**: The configuration assumes you are connecting to an MSSQL instance on the host machine (`host.docker.internal`). Ensure TCP/IP is enabled in SQL Server Configuration Manager and the firewall permits port 1433.
-- **Base Image**: The images are built on `node:18-nanoserver-1809`. This is strictly required for Windows Server 2019 process isolation.
+- **Base Image**: The images are built on `mcr.microsoft.com/windows/servercore:ltsc2019`. This is strictly required for Windows Server 2019 process isolation.
 - **Frontend Server**: The frontend uses a lightweight Node.js server (`static-server.js`) to serve files and proxy `/api` requests to the backend, replacing Nginx.
