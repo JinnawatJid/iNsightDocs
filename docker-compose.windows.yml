@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../Dockerfile.backend.windows
+    image: credit-request-backend
+    container_name: credit-request-backend
+    environment:
+      - PORT=3000
+      - DB_TYPE=mssql
+      - DB_SERVER=host.docker.internal
+      - DB_DATABASE=CreditRequestDB
+      # Add other necessary env vars here
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.windows
+    image: credit-request-frontend
+    container_name: credit-request-frontend
+    environment:
+      - PORT=80
+      - BACKEND_URL=http://backend:3000
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
