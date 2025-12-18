@@ -6,7 +6,8 @@ This guide describes how to deploy the application to an offline Windows Server 
 
 ### Online Machine (Development/Staging)
 - Windows 10/11 or Windows Server.
-- Docker Desktop (or Engine) configured to use **Windows Containers**.
+- Docker Desktop (or Engine) **MUST be configured to use Windows Containers**.
+    - *Right-click Docker tray icon -> Switch to Windows containers*.
 - Access to the repository code.
 
 ### Offline Machine (Target Server)
@@ -20,13 +21,13 @@ This guide describes how to deploy the application to an offline Windows Server 
 
 On your machine with internet access:
 
-1.  Switch Docker to **Windows Containers** mode.
+1.  **IMPORTANT:** Switch Docker to **Windows Containers** mode.
 2.  Open a command prompt in the project root.
 3.  Run the build script:
     ```cmd
     build_images.bat
     ```
-    This will pull the `mcr.microsoft.com/windows/servercore:ltsc2019` base image and build `credit-request-backend` and `credit-request-frontend`.
+    This script will first verify that Docker is running in Windows mode. It will then pull the `mcr.microsoft.com/windows/servercore:ltsc2019` base image and build `credit-request-backend` and `credit-request-frontend`.
     *Note: The build process downloads Node.js v18.19.0 directly from nodejs.org, so internet access is required.*
 
 ## Step 2: Export Images (Online)
