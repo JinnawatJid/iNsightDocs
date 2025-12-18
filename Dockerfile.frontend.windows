@@ -1,5 +1,5 @@
 # Stage 1: Build the Vue application
-FROM node:18-windowsservercore-1809 AS build-stage
+FROM node:18-nanoserver-1809 AS build-stage
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -7,7 +7,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Serve the application using a lightweight Node.js server
-FROM node:18-windowsservercore-1809 AS production-stage
+FROM node:18-nanoserver-1809 AS production-stage
 WORKDIR /app
 
 # Install express and http-proxy-middleware for the static server

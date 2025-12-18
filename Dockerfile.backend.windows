@@ -1,5 +1,5 @@
-# Use Node.js 18 on Windows Server Core 1809
-FROM node:18-windowsservercore-1809
+# Use Node.js 18 on Windows Nano Server 1809
+FROM node:18-nanoserver-1809
 
 # Set working directory
 WORKDIR /app
