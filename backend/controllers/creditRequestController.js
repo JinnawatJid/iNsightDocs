@@ -1,7 +1,10 @@
 const db = require('../db');
+const fs = require('fs-extra');
+const path = require('path');
 
 exports.createCreditRequest = async (req, res) => {
-  const { customer_no, customer_name } = req.body;
+  // When using multer, text fields are in req.body and files in req.files
+  const { customer_no, customer_name, request_amount, request_reason, snapshot_data } = req.body;
 
   if (!customer_name || !customer_no) {
     return res.status(400).json({ error: 'Customer name and Customer No (ID) are required' });
@@ -10,8 +13,6 @@ exports.createCreditRequest = async (req, res) => {
   try {
     // Check for existing active request for this customer (Opened, Submitted, Reviewed)
     // We only allow new request if previous is Approved, Rejected, Canceled, or Closed.
-    // Also, if we find an existing request, we should probably prefer the ACTIVE one to return, or the latest?
-    // The current logic returns ANY request matching the status.
     let existingSql;
     if (db.dbType === 'mssql') {
       existingSql = `
@@ -43,7 +44,8 @@ exports.createCreditRequest = async (req, res) => {
 
     // Generate TxId: AYCA[YY][MM]/[RunningNumber]
     const now = new Date();
-    const yy = now.getFullYear().toString().slice(-2);
+    const year = now.getFullYear();
+    const yy = year.toString().slice(-2);
     const mm = (now.getMonth() + 1).toString().padStart(2, '0');
     const prefix = `AYCA${yy}${mm}/`; // Branch (AY) + Type (CA) + Year + Month + /
 
@@ -82,10 +84,32 @@ exports.createCreditRequest = async (req, res) => {
     const txId = `${prefix}${runningNum.toString().padStart(3, '0')}`;
     const status = 'Opened';
 
+    // Insert Credit Request
     const result = await db.runAsync(
-      'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status) VALUES (?, ?, ?, ?)',
-      [txId, customer_no, customer_name, status]
+      'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, snapshot_data) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [txId, customer_no, customer_name, status, request_amount, request_reason, snapshot_data]
     );
+
+    // Handle File Uploads
+    if (req.files && req.files.length > 0) {
+        // Create target directory: backend/uploads/{YYYY}/{MM}/{TX_ID}/
+        const targetDir = path.join(__dirname, '../uploads', year.toString(), mm, txId);
+        await fs.ensureDir(targetDir);
+
+        for (const file of req.files) {
+            const finalPath = path.join(targetDir, file.originalname);
+
+            // Move from temp (multer) to target
+            await fs.move(file.path, finalPath, { overwrite: true });
+
+            // Insert into CreditRequestAttachments
+            // Multer fieldname is used as file_type (e.g. 'commercial_reg')
+            await db.runAsync(
+                'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name) VALUES (?, ?, ?, ?)',
+                [txId, file.fieldname, finalPath, file.originalname]
+            );
+        }
+    }
 
     res.status(201).json({
       message: 'Credit request created successfully',
@@ -99,6 +123,10 @@ exports.createCreditRequest = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating credit request:', error);
+    // Cleanup temp files if they exist and error occurred
+    if (req.files) {
+        req.files.forEach(f => fs.remove(f.path).catch(() => {}));
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 };

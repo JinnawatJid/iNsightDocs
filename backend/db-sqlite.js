@@ -114,7 +114,39 @@ const initDB = async () => {
             customer_no TEXT,
             customer_name TEXT,
             status TEXT,
+            request_amount REAL,
+            request_reason TEXT,
+            snapshot_data TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // Ensure new columns exist in CreditRequests table (for existing DBs)
+        const creditRequestColumns = [
+            { name: 'request_amount', type: 'REAL' },
+            { name: 'request_reason', type: 'TEXT' },
+            { name: 'snapshot_data', type: 'TEXT' }
+        ];
+
+        for (const col of creditRequestColumns) {
+            try {
+                await db.runAsync(`ALTER TABLE CreditRequests ADD COLUMN ${col.name} ${col.type}`);
+                console.log(`Added column ${col.name} to CreditRequests`);
+            } catch (err) {
+                 if (!err.message.includes('duplicate column name')) {
+                     console.error(`Error adding column ${col.name}:`, err);
+                }
+            }
+        }
+
+        // Create CreditRequestAttachments table
+        db.run(`CREATE TABLE IF NOT EXISTS CreditRequestAttachments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tx_id TEXT,
+            file_type TEXT,
+            file_path TEXT,
+            original_name TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
         )`);
 
         console.log('Database initialized (SQLite).');
