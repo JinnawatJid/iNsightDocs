@@ -1,15 +1,16 @@
-# Use Windows Server Core 2019 (LTSC2019) as the base image
+# Windows Server 2019 Offline Build
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
 
 # Set shell to PowerShell
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
-# Install Node.js
-ENV NODE_VERSION 18.19.0
-RUN Invoke-WebRequest -OutFile nodejs.zip -Uri "https://nodejs.org/dist/v$env:NODE_VERSION/node-v$env:NODE_VERSION-win-x64.zip"; \
-    Expand-Archive nodejs.zip -DestinationPath C:\; \
-    Rename-Item "C:\node-v$env:NODE_VERSION-win-x64" c:\nodejs; \
-    Remove-Item nodejs.zip
+# Copy local Node.js zip (Must be in build context)
+COPY nodejs.zip C:/nodejs.zip
+
+# Install Node.js from local zip
+RUN Expand-Archive C:\nodejs.zip -DestinationPath C:\; \
+    Rename-Item "C:\node-v18.19.0-win-x64" c:\nodejs; \
+    Remove-Item C:\nodejs.zip
 
 # Add Node.js to PATH
 RUN $env:PATH = 'C:\nodejs;' + $env:PATH; \
