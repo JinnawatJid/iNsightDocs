@@ -317,7 +317,7 @@ watch(isSameAddress, (isSame) => {
     formData.landmark = store.customer.residence_landmark || '';
     formData.note = store.customer.residence_note || '';
 
-    formData.subdistrict = '';
+    formData.subdistrict = store.customer.subdistrict || '';
   } else {
     // Revert to store coordinates if unchecked? Or clear?
     // If we uncheck, we might want to see the stored "Store" coordinates if they exist.
@@ -352,6 +352,10 @@ watch(() => store.customer, (newVal) => {
     formData.mapCode = newVal.store_map_code || '';
     formData.landmark = newVal.store_landmark || '';
     formData.note = newVal.store_note || '';
+
+    if (isSameAddress.value) {
+        formData.subdistrict = newVal.subdistrict || '';
+    }
   }
 }, { immediate: true, deep: true });
 
@@ -359,6 +363,7 @@ watch(formData, (newVal) => {
   if (isCompany.value) {
      const updates = {
       address: newVal.houseAddress,
+      subdistrict: newVal.subdistrict,
       zipcode: newVal.postCode,
       district: newVal.district,
       province: newVal.city,
