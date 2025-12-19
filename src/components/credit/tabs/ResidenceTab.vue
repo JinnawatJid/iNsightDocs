@@ -223,11 +223,11 @@ const files = reactive({
 
 // Watch for file changes to update store for Approval Chance logic
 watch(() => files.homePhoto, (newVal) => {
-  store.updateDocumentStatus('home_photo', !!newVal);
+  store.updateFile('home_photo', newVal);
 });
 
 watch(() => files.landTax, (newVal) => {
-  store.updateDocumentStatus('land_tax', !!newVal);
+  store.updateFile('land_tax', newVal);
 });
 
 const formData = reactive({

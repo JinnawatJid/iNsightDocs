@@ -112,6 +112,12 @@ const files = reactive({
   bankStatement: []
 });
 
+watch(() => files.bankStatement, (v) => {
+  // Since it's multiple, we might want to store it as 'bank_statement' (array) or handle differently.
+  // The store's `updateFile` expects a single value usually, but if we pass an array, we just need to handle it in FormData.
+  store.updateFile('bank_statement', v);
+});
+
 const formData = reactive({
   accountName: '',
   accountNumber: '',

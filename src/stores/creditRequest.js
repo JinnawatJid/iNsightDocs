@@ -17,17 +17,25 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     requestId: null, // Displayed as TxId
     requestStatus: null, // e.g. 'Opened'
     uploadedDocuments: {}, // Key: docName, Value: boolean (has file)
+    files: {}, // Store actual File objects
+
+    // Transaction Data (Separate from Customer Data)
+    transactionData: {
+      amount: '',
+      reason: 'สต๊อคสินค้า'
+    }
   }),
 
   getters: {
     uploadedDocumentCount: (state) => {
-      return Object.values(state.uploadedDocuments).filter(val => val).length;
+      // Use the files object to count, ensuring we have actual files
+      return Object.values(state.files).filter(f => !!f).length;
     },
 
     approvalChanceLevel: (state) => {
       // Total docs tracked = 4 (2 from GeneralInfo, 2 from Residence)
       const totalDocs = 4;
-      const count = Object.values(state.uploadedDocuments).filter(val => val).length;
+      const count = Object.values(state.files).filter(f => !!f).length;
       const ratio = count / totalDocs;
 
       if (ratio < 1/3) return 'Low';
@@ -37,7 +45,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     approvalChancePercent: (state) => {
       const totalDocs = 4;
-      const count = Object.values(state.uploadedDocuments).filter(val => val).length;
+      const count = Object.values(state.files).filter(f => !!f).length;
       return Math.min(100, Math.round((count / totalDocs) * 100));
     },
 
@@ -68,8 +76,11 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           this.creditScore = data.credit_score || {};
           this.hasSearched = true;
 
-          // Automatically create a credit request transaction
-          // Now passing ID as well
+          // Automatically create a credit request transaction (or fetch existing)
+          // We pass empty data initially, backend handles "Opened" creation or retrieval
+          // Note: createCreditRequestService usually creates.
+          // But here we want to just "Initialize" it.
+          // The current backend createCreditRequest returns existing if Opened.
           await this.createCreditRequest(this.customer.id, this.customer.name);
         } else {
           this.resetState();
@@ -94,14 +105,17 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     async createCreditRequest(customerNo, customerName) {
       try {
-        const result = await CreditRequestService.createCreditRequest(customerNo, customerName);
+        // Just a basic init call
+        const result = await CreditRequestService.createCreditRequest({
+            customer_no: customerNo,
+            customer_name: customerName
+        });
         if (result && result.data) {
           this.requestId = result.data.txId;
-          this.requestStatus = result.data.status; // Use status from backend (could be Draft or existing)
+          this.requestStatus = result.data.status;
         }
       } catch (err) {
         console.error('Failed to create credit request transaction', err);
-        // We don't block the UI flow, but maybe log it
       }
     },
 
@@ -109,11 +123,20 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.uploadedDocuments[docKey] = hasFile;
     },
 
+    updateFile(key, file) {
+      this.files[key] = file;
+      this.uploadedDocuments[key] = !!file;
+    },
+
     // Action to update customer data from form edits
     updateCustomerData(updates) {
       if (this.customer) {
         this.customer = { ...this.customer, ...updates };
       }
+    },
+
+    updateTransactionData(data) {
+        this.transactionData = { ...this.transactionData, ...data };
     },
 
     // Action to persist coordinates to backend
@@ -125,7 +148,6 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
       try {
         await CustomerService.updateCustomer(this.customer.id, updates);
-        // Optionally show success toast?
       } catch (err) {
         console.error("Failed to save coordinates:", err);
         Swal.fire({
@@ -146,6 +168,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.requestId = null;
       this.requestStatus = null;
       this.uploadedDocuments = {};
+      this.files = {};
     }
   }
 });

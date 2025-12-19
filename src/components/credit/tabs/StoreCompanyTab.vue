@@ -266,6 +266,14 @@ const files = reactive({
   storeLandTax: null,
 });
 
+watch(() => files.legalEntityCertificate, (v) => store.updateFile('legal_entity_certificate', v));
+watch(() => files.vatDocument, (v) => store.updateFile('vat_document', v));
+watch(() => files.companyPhoto, (v) => store.updateFile('company_photo', v));
+watch(() => files.companyLandTax, (v) => store.updateFile('company_land_tax', v));
+watch(() => files.storePhoto, (v) => store.updateFile('store_photo', v));
+watch(() => files.commercialReg, (v) => store.updateFile('commercial_reg', v));
+watch(() => files.storeLandTax, (v) => store.updateFile('store_land_tax', v));
+
 const formData = reactive({
   houseAddress: '',
   subdistrict: '',
