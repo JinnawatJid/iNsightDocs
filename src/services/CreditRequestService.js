@@ -3,12 +3,23 @@ import axios from 'axios';
 const API_URL = '/api/credit-requests';
 
 export default {
-  async createCreditRequest(customerNo, customerName) {
+  // Updated to accept an object (params) or distinct arguments, keeping backward compatibility if possible
+  async createCreditRequest(paramsOrCustomerNo, customerName) {
     try {
-      const response = await axios.post(`${API_URL}`, {
-        customer_no: customerNo,
-        customer_name: customerName
-      });
+      let payload = {};
+
+      if (typeof paramsOrCustomerNo === 'object') {
+        // New usage: pass object
+        payload = paramsOrCustomerNo;
+      } else {
+        // Old usage: pass customerNo, customerName
+        payload = {
+            customer_no: paramsOrCustomerNo,
+            customer_name: customerName
+        };
+      }
+
+      const response = await axios.post(`${API_URL}`, payload);
       return response.data;
     } catch (error) {
       console.error('Error creating credit request:', error);
