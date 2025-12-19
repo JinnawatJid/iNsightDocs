@@ -97,7 +97,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
