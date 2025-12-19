@@ -223,11 +223,11 @@ const files = reactive({
 
 // Watch for file changes to update store for Approval Chance logic
 watch(() => files.homePhoto, (newVal) => {
-  store.updateDocumentStatus('home_photo', !!newVal);
+  store.updateFile('home_photo', newVal);
 });
 
 watch(() => files.landTax, (newVal) => {
-  store.updateDocumentStatus('land_tax', !!newVal);
+  store.updateFile('land_tax', newVal);
 });
 
 const formData = reactive({
@@ -277,8 +277,8 @@ watch(() => store.customer, (newVal) => {
     formData.landmark = newVal.residence_landmark || '';
     formData.note = newVal.residence_note || '';
 
-    // Ensure subdistrict is blank for manual entry
-    formData.subdistrict = '';
+    // Ensure subdistrict is mapped
+    formData.subdistrict = newVal.subdistrict || '';
   }
 }, { immediate: true, deep: true });
 
@@ -286,6 +286,7 @@ watch(() => store.customer, (newVal) => {
 watch(formData, (newVal) => {
   const updates = {
     address: newVal.houseAddress,
+    subdistrict: newVal.subdistrict,
     zipcode: newVal.postCode,
     district: newVal.district,
     province: newVal.city,

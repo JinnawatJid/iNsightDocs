@@ -182,11 +182,11 @@ const files = reactive({
 
 // Watch for file changes to update store for Approval Chance logic
 watch(() => files.idCard, (newVal) => {
-  store.updateDocumentStatus('id_card', !!newVal);
+  store.updateFile('id_card', newVal);
 });
 
 watch(() => files.homeReg, (newVal) => {
-  store.updateDocumentStatus('home_reg', !!newVal);
+  store.updateFile('home_reg', newVal);
 });
 
 const formData = reactive({
@@ -290,6 +290,12 @@ watch(formData, (newVal) => {
   updates.contact_phone_number = newVal.contactPhone;
 
   store.updateCustomerData(updates);
+
+  // Update Transaction Data Separately
+  store.updateTransactionData({
+    amount: newVal.creditAmount,
+    reason: newVal.creditReason
+  });
 }, { deep: true });
 
 function toggleEdit() {

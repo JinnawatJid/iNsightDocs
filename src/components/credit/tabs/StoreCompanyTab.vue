@@ -266,6 +266,14 @@ const files = reactive({
   storeLandTax: null,
 });
 
+watch(() => files.legalEntityCertificate, (v) => store.updateFile('legal_entity_certificate', v));
+watch(() => files.vatDocument, (v) => store.updateFile('vat_document', v));
+watch(() => files.companyPhoto, (v) => store.updateFile('company_photo', v));
+watch(() => files.companyLandTax, (v) => store.updateFile('company_land_tax', v));
+watch(() => files.storePhoto, (v) => store.updateFile('store_photo', v));
+watch(() => files.commercialReg, (v) => store.updateFile('commercial_reg', v));
+watch(() => files.storeLandTax, (v) => store.updateFile('store_land_tax', v));
+
 const formData = reactive({
   houseAddress: '',
   subdistrict: '',
@@ -317,7 +325,7 @@ watch(isSameAddress, (isSame) => {
     formData.landmark = store.customer.residence_landmark || '';
     formData.note = store.customer.residence_note || '';
 
-    formData.subdistrict = '';
+    formData.subdistrict = store.customer.subdistrict || '';
   } else {
     // Revert to store coordinates if unchecked? Or clear?
     // If we uncheck, we might want to see the stored "Store" coordinates if they exist.
@@ -352,6 +360,10 @@ watch(() => store.customer, (newVal) => {
     formData.mapCode = newVal.store_map_code || '';
     formData.landmark = newVal.store_landmark || '';
     formData.note = newVal.store_note || '';
+
+    if (isSameAddress.value) {
+        formData.subdistrict = newVal.subdistrict || '';
+    }
   }
 }, { immediate: true, deep: true });
 
@@ -359,6 +371,7 @@ watch(formData, (newVal) => {
   if (isCompany.value) {
      const updates = {
       address: newVal.houseAddress,
+      subdistrict: newVal.subdistrict,
       zipcode: newVal.postCode,
       district: newVal.district,
       province: newVal.city,
