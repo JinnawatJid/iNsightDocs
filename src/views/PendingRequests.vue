@@ -70,6 +70,7 @@ import RequestSidebar from '@/components/credit/RequestSidebar.vue';
     border-radius: 8px;
     height: 100%;
     overflow: hidden;
+    border: 1px solid #e0e0e0;
 }
 
 /* Override sidebar container style if needed, but RequestSidebar has its own styles */
