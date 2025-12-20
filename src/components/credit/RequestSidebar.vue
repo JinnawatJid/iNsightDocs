@@ -162,17 +162,24 @@ onMounted(() => {
 .item-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 5px;
+  text-align: left;
 }
 
 .customer-name {
   font-weight: bold;
   color: #333;
+  flex: 1;
+  margin-right: 10px;
+  text-align: left;
 }
 
 .request-date {
   font-size: 12px;
   color: #888;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .item-body {
