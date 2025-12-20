@@ -155,3 +155,37 @@ exports.createCreditRequest = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+exports.getCreditRequests = async (req, res) => {
+  const { status } = req.query;
+
+  try {
+    let sql = `
+      SELECT id, tx_id, customer_no, customer_name, status, request_amount, created_at
+      FROM CreditRequests
+    `;
+    const params = [];
+
+    if (status) {
+      // Split status by comma if multiple statuses are provided (e.g. ?status=Submitted,Reviewed)
+      const statusList = status.split(',').map(s => s.trim());
+      if (statusList.length > 0) {
+        const placeholders = statusList.map(() => '?').join(',');
+        sql += ` WHERE status IN (${placeholders})`;
+        params.push(...statusList);
+      }
+    }
+
+    sql += ` ORDER BY created_at DESC`;
+
+    const { rows } = await db.query(sql, params);
+
+    res.status(200).json({
+      data: rows
+    });
+
+  } catch (error) {
+    console.error('Error fetching credit requests:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

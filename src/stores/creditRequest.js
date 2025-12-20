@@ -23,7 +23,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     transactionData: {
       amount: '',
       reason: 'สต๊อคสินค้า'
-    }
+    },
+
+    // List of requests (Pending/History)
+    requestsList: []
   }),
 
   getters: {
@@ -155,6 +158,24 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           title: 'Error',
           text: 'Failed to save coordinates.'
         });
+      }
+    },
+
+    async fetchRequests(status) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const response = await CreditRequestService.getCreditRequests(status);
+        if (response && response.data) {
+          this.requestsList = response.data;
+        } else {
+          this.requestsList = [];
+        }
+      } catch (err) {
+        console.error('Failed to fetch requests', err);
+        this.error = err;
+      } finally {
+        this.loading = false;
       }
     },
 
