@@ -116,6 +116,28 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         if (result && result.data) {
           this.requestId = result.data.txId;
           this.requestStatus = result.data.status;
+
+          // If snapshot data is returned (from existing request), populate form
+          if (result.data.snapshot_data) {
+            try {
+              let parsedSnapshot = result.data.snapshot_data;
+              if (typeof parsedSnapshot === 'string') {
+                parsedSnapshot = JSON.parse(parsedSnapshot);
+              }
+              // Merge into customer state
+              this.customer = { ...this.customer, ...parsedSnapshot };
+            } catch (e) {
+              console.error('Failed to parse snapshot data', e);
+            }
+          }
+
+          // Update transaction data (amount/reason) if present
+          if (result.data.request_amount || result.data.request_reason) {
+            this.transactionData = {
+              amount: result.data.request_amount || '',
+              reason: result.data.request_reason || 'สต๊อคสินค้า'
+            };
+          }
         }
       } catch (err) {
         console.error('Failed to create credit request transaction', err);

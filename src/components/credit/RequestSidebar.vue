@@ -60,8 +60,10 @@ const switchTab = (tab) => {
 
 const fetchData = () => {
   if (activeTab.value === 'pending') {
-    store.fetchRequests('Submitted,Reviewed');
+    // Include Opened (Draft), Submitted, and Reviewed in Pending list
+    store.fetchRequests('Opened,Submitted,Reviewed');
   } else {
+    // History includes all finalized statuses
     store.fetchRequests('Approved,Rejected,Closed,Canceled');
   }
 };
@@ -106,30 +108,37 @@ onMounted(() => {
   flex-direction: column;
 }
 
-/* Tab Styles - Pill Shape */
+/* Tab Styles - Pill Shape matched with ApplicationTabs */
 .tabs {
   display: flex;
   background-color: #999;
-  padding: 4px;
-  border-radius: 20px;
+  padding: 0;
+  border-radius: 52px;
   margin: 20px;
+  overflow: hidden;
 }
 
 .tab-item {
   flex: 1;
   text-align: center;
-  padding: 8px 0;
+  padding: 6px 0;
   cursor: pointer;
-  border-radius: 16px;
-  font-weight: bold;
+  border-radius: 50px;
+  font-weight: 500;
   color: #fff;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
 }
 
 .tab-item.active {
   background-color: white;
   color: #333;
+  font-weight: bold;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.tab-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* List Styles */
