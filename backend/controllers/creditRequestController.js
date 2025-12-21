@@ -182,7 +182,7 @@ exports.createCreditRequest = async (req, res) => {
 };
 
 exports.getCreditRequests = async (req, res) => {
-  const { status } = req.query;
+  const { status, search } = req.query;
 
   try {
     let sql = `
@@ -190,15 +190,25 @@ exports.getCreditRequests = async (req, res) => {
       FROM CreditRequests
     `;
     const params = [];
+    const conditions = [];
 
     if (status) {
       // Split status by comma if multiple statuses are provided (e.g. ?status=Submitted,Reviewed)
       const statusList = status.split(',').map(s => s.trim());
       if (statusList.length > 0) {
         const placeholders = statusList.map(() => '?').join(',');
-        sql += ` WHERE status IN (${placeholders})`;
+        conditions.push(`status IN (${placeholders})`);
         params.push(...statusList);
       }
+    }
+
+    if (search) {
+      conditions.push(`customer_name LIKE ?`);
+      params.push(`%${search}%`);
+    }
+
+    if (conditions.length > 0) {
+      sql += ` WHERE ${conditions.join(' AND ')}`;
     }
 
     sql += ` ORDER BY created_at DESC`;

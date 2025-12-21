@@ -1,22 +1,37 @@
 <template>
   <div class="request-sidebar">
+    <!-- Tabs -->
     <div class="tabs">
       <div
         class="tab-item"
         :class="{ active: activeTab === 'pending' }"
         @click="switchTab('pending')"
       >
-        รออนุมัติ
+        คำขอทั้งหมด
       </div>
       <div
         class="tab-item"
         :class="{ active: activeTab === 'history' }"
         @click="switchTab('history')"
       >
-        ประวัติ
+        ประวัติคำขอ
       </div>
     </div>
 
+    <!-- Search Box -->
+    <div class="search-container">
+      <div class="search-box">
+        <img src="@/assets/icons/search.svg" alt="Search" class="search-icon" />
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="ค้นหาข้อมูลลูกค้า"
+          class="search-input"
+        />
+      </div>
+    </div>
+
+    <!-- Request List -->
     <div class="request-list">
       <div v-if="loading" class="loading-state">
         Loading...
@@ -30,13 +45,15 @@
         :key="req.id"
         class="request-item"
       >
-        <div class="item-header">
-           <span class="customer-name">{{ req.customer_name }}</span>
-           <span class="request-date">{{ formatDate(req.created_at) }}</span>
-        </div>
-        <div class="item-body">
-           <span class="request-amount">{{ formatCurrency(req.request_amount) }} บาท</span>
-           <span class="status-badge" :class="getStatusClass(req.status)">{{ req.status }}</span>
+        <div class="item-content">
+           <div class="item-left">
+               <span class="customer-name">{{ req.customer_name }}</span>
+               <span class="request-date">{{ formatDate(req.created_at) }}</span>
+           </div>
+           <div class="item-right">
+               <span class="request-amount">{{ formatCurrency(req.request_amount) }} บาท</span>
+               <img :src="getStatusIcon(req.status)" class="status-icon" alt="status" />
+           </div>
         </div>
       </div>
     </div>
@@ -46,9 +63,16 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { debounce } from 'lodash';
+
+// Icons
+import clockIcon from '@/assets/icons/clock-orange.svg';
+import checkIcon from '@/assets/icons/check-circle-green.svg';
+import xIcon from '@/assets/icons/x-circle-red.svg';
 
 const store = useCreditRequestStore();
 const activeTab = ref('pending');
+const searchQuery = ref('');
 
 const requests = computed(() => store.requestsList);
 const loading = computed(() => store.loading);
@@ -59,19 +83,27 @@ const switchTab = (tab) => {
 };
 
 const fetchData = () => {
+  const query = searchQuery.value;
   if (activeTab.value === 'pending') {
-    // Include Opened (Draft), Submitted, and Reviewed in Pending list
-    store.fetchRequests('Opened,Submitted,Reviewed');
+    store.fetchRequests('Opened,Submitted,Reviewed', query);
   } else {
-    // History includes all finalized statuses
-    store.fetchRequests('Approved,Rejected,Closed,Canceled');
+    store.fetchRequests('Approved,Rejected,Closed,Canceled', query);
   }
 };
+
+// Debounce search input
+const debouncedSearch = debounce(() => {
+    fetchData();
+}, 500);
+
+watch(searchQuery, () => {
+    debouncedSearch();
+});
 
 const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('th-TH', {
+    return date.toLocaleDateString('en-GB', { // 10/10/2025 format
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
@@ -80,16 +112,23 @@ const formatDate = (dateString) => {
 
 const formatCurrency = (amount) => {
     if (amount === null || amount === undefined) return '0';
-    return Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return Number(amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
-const getStatusClass = (status) => {
+const getStatusIcon = (status) => {
     switch (status) {
-        case 'Submitted': return 'status-submitted';
-        case 'Reviewed': return 'status-reviewed';
-        case 'Approved': return 'status-approved';
-        case 'Rejected': return 'status-rejected';
-        default: return 'status-default';
+        case 'Opened':
+        case 'Submitted':
+        case 'Reviewed':
+            return clockIcon;
+        case 'Approved':
+        case 'Closed':
+            return checkIcon;
+        case 'Rejected':
+        case 'Canceled':
+            return xIcon;
+        default:
+            return clockIcon;
     }
 };
 
@@ -106,50 +145,81 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  border: 1px solid #e0e0e0;
 }
 
-/* Tab Styles - Pill Shape matched with ApplicationTabs */
+/* Tabs */
 .tabs {
   display: flex;
   background-color: #999;
   padding: 0;
   border-radius: 52px;
-  margin: 20px;
+  margin: 20px 20px 10px 20px; /* adjusted bottom margin */
   overflow: hidden;
+  border: 1px solid #999;
 }
 
 .tab-item {
   flex: 1;
   text-align: center;
-  padding: 6px 0;
+  padding: 8px 0;
   cursor: pointer;
   border-radius: 50px;
   font-weight: 500;
   color: #fff;
   transition: all 0.2s;
+  font-size: 14px;
 }
 
 .tab-item.active {
   background-color: white;
   color: #333;
   font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  border: 1px solid #e0e0e0;
+  border: 1px solid #999; /* Ensure visible separation */
 }
 
-.tab-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+/* Search Box */
+.search-container {
+    padding: 0 20px 15px 20px;
 }
 
-/* List Styles */
+.search-box {
+    display: flex;
+    align-items: center;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px; /* Standard input radius */
+    padding: 8px 12px;
+    background-color: #fff;
+}
+
+.search-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 10px;
+    opacity: 0.5;
+}
+
+.search-input {
+    border: none;
+    outline: none;
+    width: 100%;
+    font-size: 14px;
+    color: #333;
+}
+
+.search-input::placeholder {
+    color: #aaa;
+}
+
+/* List */
 .request-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 20px 20px;
+  padding: 0 0 20px 0; /* Remove side padding, handle in item */
 }
 
 .request-item {
-  padding: 15px;
+  padding: 15px 20px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -159,56 +229,52 @@ onMounted(() => {
   background-color: #f9f9f9;
 }
 
-.item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 5px;
-  text-align: left;
+.item-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* Center vertically relative to each other? Or top align? */
+    /* Design shows text on left (2 lines) and right (amount + icon) */
+}
+
+.item-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
 }
 
 .customer-name {
-  font-weight: bold;
-  color: #333;
-  flex: 1;
-  margin-right: 10px;
-  text-align: left;
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
 }
 
 .request-date {
-  font-size: 12px;
-  color: #888;
-  white-space: nowrap;
-  flex-shrink: 0;
+    color: #888;
+    font-size: 12px;
 }
 
-.item-body {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.item-right {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Spacing between amount and icon */
 }
 
 .request-amount {
-  font-weight: 500;
-  color: #333;
+    font-weight: 500;
+    color: #333;
+    font-size: 14px;
 }
 
-.status-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  color: white;
+.status-icon {
+    width: 24px;
+    height: 24px;
 }
-
-.status-submitted { background-color: #007bff; }
-.status-reviewed { background-color: #ffc107; color: #333; }
-.status-approved { background-color: #28a745; }
-.status-rejected { background-color: #dc3545; }
-.status-default { background-color: #6c757d; }
 
 .loading-state, .empty-state {
   text-align: center;
   padding: 20px;
   color: #888;
+  font-size: 14px;
 }
 </style>
