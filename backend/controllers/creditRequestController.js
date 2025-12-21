@@ -229,11 +229,6 @@ exports.cancelCreditRequest = async (req, res) => {
     } else {
       requestSql = 'SELECT * FROM CreditRequests WHERE tx_id = ? LIMIT 1';
     }
-    // Note: The param coming in might be tx_id (e.g. AYCA...) or internal ID.
-    // The previous frontend stores tx_id as requestId.
-    // Let's verify what frontend sends.
-    // In store.createCreditRequest: this.requestId = result.data.txId;
-    // So frontend sends TxId.
     const { rows } = await db.query(requestSql, [id]);
 
     if (!rows || rows.length === 0) {
@@ -242,12 +237,9 @@ exports.cancelCreditRequest = async (req, res) => {
 
     const request = rows[0];
 
-    // Check status: Allow cancel for Submitted or Reviewed (or Opened? User wants cancel to edit)
-    if (!['Submitted', 'Reviewed'].includes(request.status)) {
-       // If already Canceled or other status, maybe just return success?
-       // If Approved/Rejected/Closed, technically shouldn't cancel.
-       // But if Opened, cancelling just closes it?
-       // The requirement is mostly for Submitted/Reviewed.
+    // Check status: Allow cancel for Submitted, Reviewed, Opened
+    if (!['Submitted', 'Reviewed', 'Opened'].includes(request.status)) {
+        return res.status(400).json({ error: 'Cannot cancel request in current status' });
     }
 
     await db.runAsync(

@@ -8,16 +8,19 @@
           label="หนังสือรับรองนิติบุคคล"
           required
           v-model="files.legalEntityCertificate"
+          :disabled="!isEditing"
         />
         <FileUploader
           label="เอกสารภพ.20"
           required
           v-model="files.vatDocument"
+          :disabled="!isEditing"
         />
         <FileUploader
           label="รูปถ่ายบริษัท"
           required
           v-model="files.companyPhoto"
+          :disabled="!isEditing"
         >
           <template #icon>
             <img :src="iconImage" alt="Image" width="24" height="24" />
@@ -27,6 +30,7 @@
           label="เอกสารเสียภาษีที่ดินบริษัท"
           required
           v-model="files.companyLandTax"
+          :disabled="!isEditing"
         />
       </div>
       <!-- Individual/Store Uploads -->
@@ -35,6 +39,7 @@
           label="รูปร้านค้า"
           required
           v-model="files.storePhoto"
+          :disabled="!isEditing"
         >
           <template #icon>
              <img :src="iconImage" alt="Image" width="24" height="24" />
@@ -44,11 +49,13 @@
           label="ทะเบียนพาณิชย์"
           required
           v-model="files.commercialReg"
+          :disabled="!isEditing"
         />
         <FileUploader
           label="เอกสารเสียภาษีที่ดินร้านค้า"
           required
           v-model="files.storeLandTax"
+          :disabled="!isEditing"
         />
       </div>
     </div>
@@ -248,10 +255,15 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 import iconImage from '@/assets/icons/image.svg';
 
+const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
 const { errors, validateField, restrictPhoneInput } = useFormValidation();
 
-const isEditing = ref(true); // Editable by default
+const isEditing = ref(!props.readOnly);
+watch(() => props.readOnly, (val) => {
+  isEditing.value = !val;
+});
+
 const isSameAddress = ref(false);
 
 const files = reactive({

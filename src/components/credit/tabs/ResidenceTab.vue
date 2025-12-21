@@ -9,6 +9,7 @@
           required
           accept="image/*"
           v-model="files.homePhoto"
+          :disabled="!isEditing"
         >
           <template #icon>
              <img :src="iconImage" alt="Image" width="24" height="24" />
@@ -20,6 +21,7 @@
           label="เอกสารเสียภาษีที่ดิน"
           required
           v-model="files.landTax"
+          :disabled="!isEditing"
         />
       </div>
     </div>
@@ -211,10 +213,14 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 import iconImage from '@/assets/icons/image.svg';
 
+const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
 const { errors, validateField, restrictPhoneInput } = useFormValidation();
 
-const isEditing = ref(true); // Editable by default
+const isEditing = ref(!props.readOnly);
+watch(() => props.readOnly, (val) => {
+  isEditing.value = !val;
+});
 
 const files = reactive({
   homePhoto: null,

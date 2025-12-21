@@ -14,7 +14,7 @@ const routes = [
     component: CreateCreditRequest,
   },
   {
-    path: '/pending-request-old',
+    path: '/pending-requests',
     name: 'PendingRequests',
     component: PendingRequests,
   },

@@ -1,16 +1,24 @@
 <template>
   <div class="credit-request-form">
+    <!-- Read Only Warning Banner -->
+    <div v-if="isReadOnly" class="readonly-banner">
+      <div class="banner-content">
+        <span class="warning-icon">⚠️</span>
+        <span>Submitted - Read Only Mode. If you want to change the request data please cancel the request first.</span>
+      </div>
+    </div>
+
     <div class="unified-card">
       <div class="card-header">
         <h3>เอกสารประกอบการพิจารณา</h3>
       </div>
-      <ApplicationTabs />
+      <ApplicationTabs :readOnly="isReadOnly" />
     </div>
 
     <div class="form-footer">
       <div class="comment-section">
         <h3>ความคิดเห็นเพิ่มเติม</h3>
-        <input type="text" class="comment-input" placeholder="ความคิดเห็นเพิ่มเติม" />
+        <input type="text" class="comment-input" placeholder="ความคิดเห็นเพิ่มเติม" :disabled="isReadOnly" />
       </div>
 
       <div class="footer-info">
@@ -18,8 +26,13 @@
       </div>
 
       <div class="action-buttons">
-        <button class="btn-save">บันทึกแบบร่าง</button>
-        <button class="btn-submit" @click="submitCreditRequest">ส่งคำขอเครดิต</button>
+        <template v-if="!isReadOnly">
+            <button class="btn-save">บันทึกแบบร่าง</button>
+            <button class="btn-submit" @click="submitCreditRequest">ส่งคำขอเครดิต</button>
+        </template>
+        <template v-else>
+             <button class="btn-cancel" @click="handleCancel">Cancel Request</button>
+        </template>
       </div>
     </div>
   </div>
@@ -31,6 +44,7 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 import axios from 'axios';
+import { computed } from 'vue';
 
 export default {
   name: 'CreditRequestForm',
@@ -40,6 +54,31 @@ export default {
   setup() {
     const store = useCreditRequestStore();
     const router = useRouter();
+
+    const isReadOnly = computed(() => store.isReadOnly);
+
+    const handleCancel = async () => {
+        const result = await Swal.fire({
+            title: 'Cancel Request?',
+            text: 'Are you sure you want to cancel this request? You will be able to edit the data afterwards.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Cancel',
+            cancelButtonText: 'No',
+            confirmButtonColor: '#d33',
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await store.cancelRequest();
+                await Swal.fire('Canceled', 'The request has been canceled.', 'success');
+                // Reload to reset state and fetch new "Opened" status logic if applicable
+                window.location.reload();
+            } catch (e) {
+                Swal.fire('Error', 'Failed to cancel request.', 'error');
+            }
+        }
+    };
 
     const submitCreditRequest = async () => {
         // 1. Validation
@@ -169,7 +208,9 @@ export default {
     };
 
     return {
-        submitCreditRequest
+        submitCreditRequest,
+        isReadOnly,
+        handleCancel
     };
   }
 };
@@ -180,6 +221,22 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.readonly-banner {
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.banner-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
 }
 
 .unified-card {
@@ -273,5 +330,18 @@ export default {
 
 .btn-submit:hover {
   background-color: #0046cc;
+}
+
+.btn-cancel {
+    padding: 12px 30px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+}
+.btn-cancel:hover {
+    background-color: #c82333;
 }
 </style>

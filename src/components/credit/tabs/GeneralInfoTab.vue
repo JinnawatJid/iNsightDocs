@@ -7,11 +7,13 @@
           label="สำเนาบัตรประชาชน"
           required
           v-model="files.idCard"
+          :disabled="!isEditing"
         />
         <FileUploader
           label="สำเนาทะเบียนบ้าน"
           required
           v-model="files.homeReg"
+          :disabled="!isEditing"
         />
       </div>
     </div>
@@ -169,10 +171,15 @@ import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 
+const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
 const { errors, validateField, restrictCreditAmountInput } = useFormValidation();
 
-const isEditing = ref(true); // Editable by default
+const isEditing = ref(!props.readOnly);
+watch(() => props.readOnly, (val) => {
+  isEditing.value = !val;
+});
+
 const isSameAsAuthorized = ref(false);
 
 const files = reactive({

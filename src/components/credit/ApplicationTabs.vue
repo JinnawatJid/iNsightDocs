@@ -15,7 +15,7 @@
 
     <div class="tab-content">
       <keep-alive>
-        <component :is="currentTabComponent" />
+        <component :is="currentTabComponent" :readOnly="readOnly" />
       </keep-alive>
     </div>
   </div>
@@ -36,6 +36,7 @@ export default {
     StoreCompanyTab,
     StoreStatementTab
   },
+  props: ['readOnly'],
   setup() {
     const creditRequestStore = useCreditRequestStore();
     return { creditRequestStore };
