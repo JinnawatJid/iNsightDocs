@@ -140,10 +140,8 @@ onMounted(() => {
 .tabs {
   display: flex;
   background-color: #999;
-  padding: 0;
   border-radius: 52px;
   overflow: hidden;
-  border: 1px solid #999;
   /* Key changes for matching shape */
   width: 80%;
   margin: 20px auto 10px auto;
@@ -152,7 +150,7 @@ onMounted(() => {
 .tab-item {
   flex: 1;
   text-align: center;
-  padding: 4px 0; /* Reduced padding */
+  padding: 4px 0;
   cursor: pointer;
   border-radius: 50px;
   font-weight: 500;
@@ -165,7 +163,7 @@ onMounted(() => {
   background-color: white;
   color: #333;
   font-weight: bold;
-  border: 1px solid #999;
+  border: 1px solid #e0e0e0;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 

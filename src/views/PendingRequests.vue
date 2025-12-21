@@ -46,7 +46,7 @@ import RequestSidebar from '@/components/credit/RequestSidebar.vue';
 
 .main-grid {
   display: grid;
-  grid-template-columns: 350px 1fr 300px; /* Adjusted left column width for the list */
+  grid-template-columns: 300px 1fr 300px; /* Adjusted left column width for the list */
   gap: 20px;
   align-items: stretch;
   height: calc(100vh - 120px); /* Fill remaining height */
@@ -55,7 +55,7 @@ import RequestSidebar from '@/components/credit/RequestSidebar.vue';
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .main-grid {
-    grid-template-columns: 300px 1fr 250px;
+    grid-template-columns: 250px 1fr 250px;
   }
 }
 
