@@ -21,7 +21,7 @@
 
         <!-- Row 1: Landmark -->
         <div class="form-group">
-           <label>จุดสังเกตใกล้เคียง (นำทาง)</label>
+           <label>จุดสังเกตใกล้เคียง (Landmark)</label>
            <input
              type="text"
              class="form-control"
@@ -48,18 +48,11 @@
       </div>
 
       <div class="qr-section">
-        <!-- QR 1: Find Me -->
-        <div class="qr-item">
-          <span class="qr-label">1. ค้นหาพิกัด</span>
-          <div class="qr-box">
-            <img v-if="findMeQr" :src="findMeQr" alt="Find Me QR" />
-          </div>
-          <span class="qr-desc">สแกนเพื่อเปิด Google Maps บนมือถือ และปักหมุดเพื่อดู Code</span>
-        </div>
+        <!-- QR 1: Find Me (Display removed as per requirement, logic kept in script) -->
 
         <!-- QR 2: Navigate -->
         <div class="qr-item" :class="{ disabled: !canNavigate }">
-          <span class="qr-label">2. นำทาง</span>
+          <span class="qr-label">นำทาง</span>
           <div class="qr-box">
              <img v-if="canNavigate && navigateQr" :src="navigateQr" alt="Navigate QR" />
              <div v-else class="qr-placeholder">
@@ -124,6 +117,7 @@ const emitUpdate = () => {
   });
 };
 
+// Note: Logic retained but display removed as per user request
 const generateFindMeQr = async () => {
   try {
     const url = 'https://www.google.com/maps';
