@@ -119,81 +119,75 @@ const generateCreditRequestPDF = async (req, res) => {
       pageMargins: [40, 40, 40, 40],
       defaultStyle: {
         font: 'Sarabun',
-        fontSize: 12
+        fontSize: 10 // Reduced font size
       },
       content: [
         // --- PAGE 1: EXECUTIVE SUMMARY ---
         { text: 'สรุปคำขอสินเชื่อ (Credit Request Summary)', style: 'header', alignment: 'center', margin: [0, 0, 0, 20] },
 
-        // Section: Request Info
+        // Section: Request Info (Top Block)
         {
           style: 'tableExample',
           table: {
             widths: ['*', '*'],
             body: [
-              [{ text: 'เลขที่คำขอ (Request No.): ' + data.tx_id, bold: true }, { text: 'วันที่ (Date): ' + formatDate(data.created_at), alignment: 'right' }],
-              [{ text: 'สถานะ (Status): ' + data.status, colSpan: 2 }, {}]
+              // Row 1: ID and Date
+              [
+                { text: `เลขที่คำขอ: ${data.tx_id}`, bold: true },
+                { text: `วันที่: ${formatDate(data.created_at)}`, alignment: 'right' }
+              ],
+              // Row 2: Status
+              [
+                { text: `สถานะ: ${data.status}`, colSpan: 2, margin: [0, 5, 0, 0] },
+                {}
+              ]
             ]
           },
           layout: 'noBorders',
-          margin: [0, 0, 0, 10]
+          margin: [0, 0, 0, 15]
         },
 
-        { text: '', margin: [0, 5] }, // Spacer
-
-        // Section: Transaction Info
+        // Section: Credit Details
         { text: 'รายละเอียดการขอสินเชื่อ', style: 'subheader' },
         {
           table: {
-            widths: ['auto', '*'],
+            widths: ['auto', '*'], // Labels auto, value takes rest
             body: [
-              [{ text: 'วงเงินที่ขอ (Amount):', bold: true }, formatCurrency(data.request_amount) + ' บาท'],
-              [{ text: 'เหตุผล (Reason):', bold: true }, data.request_reason || '-']
+              [{ text: 'วงเงินที่ขอ:', bold: true }, formatCurrency(data.request_amount) + ' บาท'],
+              [{ text: 'เหตุผล:', bold: true }, data.request_reason || '-']
             ]
           },
           layout: 'lightHorizontalLines',
           margin: [0, 0, 0, 20]
         },
 
-        // Section: Customer Info
-        { text: 'ข้อมูลลูกค้า (Customer Information)', style: 'subheader' },
+        // Section: Customer Info (Merged with Auth/Contact)
+        { text: 'ข้อมูลลูกค้า', style: 'subheader' },
         {
           table: {
             widths: ['auto', '*'],
             body: [
-              [{ text: 'รหัสลูกค้า (ID):', bold: true }, customerNo],
-              [{ text: 'ชื่อลูกค้า/บริษัท (Name):', bold: true }, customerName],
-              [{ text: 'เลขประจำตัวผู้เสียภาษี (Tax ID):', bold: true }, taxId],
-              // [{ text: 'ประเภทธุรกิจ (Business Type):', bold: true }, customer.business_type || '-'], // Not available in current schema
-              [{ text: 'ที่อยู่ (Address):', bold: true }, fullAddress],
-              [{ text: 'โทรศัพท์ (Phone):', bold: true }, contactPhone]
+              [{ text: 'รหัสลูกค้า:', bold: true }, customerNo],
+              [{ text: 'ชื่อลูกค้า:', bold: true }, customerName],
+              [{ text: 'เลขเสียภาษี:', bold: true }, taxId],
+              [{ text: 'ที่อยู่:', bold: true }, fullAddress],
+              // Merged Authorized Person
+              [{ text: 'ผู้มีอำนาจ:', bold: true }, `${authName} (${authPos})`],
+              // Merged Contact Person
+              [{ text: 'ผู้ติดต่อ:', bold: true }, `${contactName} (${contactPos}) - ${contactPhone}`]
             ]
           },
           layout: 'lightHorizontalLines',
           margin: [0, 0, 0, 20]
-        },
-
-         // Section: Authorized Person
-         { text: 'ผู้มีอำนาจลงนาม / ผู้ติดต่อ (Authorized / Contact)', style: 'subheader' },
-         {
-           table: {
-             widths: ['auto', '*'],
-             body: [
-               [{ text: 'ผู้มีอำนาจลงนาม:', bold: true }, `${authName} (${authPos})`],
-               [{ text: 'ผู้ติดต่อ:', bold: true }, `${contactName} (${contactPos})`]
-             ]
-           },
-           layout: 'lightHorizontalLines',
-           margin: [0, 0, 0, 20]
-         }
+        }
       ],
       styles: {
         header: {
-          fontSize: 18,
+          fontSize: 16, // Reduced from 18
           bold: true
         },
         subheader: {
-          fontSize: 14,
+          fontSize: 14, // Reduced from 14 (kept same or slightly adjusted based on look)
           bold: true,
           margin: [0, 10, 0, 5]
         },
