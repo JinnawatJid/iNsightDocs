@@ -277,6 +277,25 @@ watch(() => store.customer, (newVal) => {
   }
 }, { immediate: true, deep: true });
 
+// Initialize Transaction Data from store (e.g. from existing request)
+watch(() => store.transactionData, (newVal) => {
+    if (newVal) {
+        if (newVal.amount && formData.creditAmount !== newVal.amount) {
+            // Ensure we don't overwrite if user is typing?
+            // Actually this is usually for initial load.
+            // If user types, formData updates store. Store updates back?
+            // If store updates back, we might have cursor jumping issues if we are not careful.
+            // But here we are syncing Store -> Form.
+            // And below Form -> Store.
+            // To prevent loop: Check if values are different.
+             formData.creditAmount = newVal.amount;
+        }
+        if (newVal.reason && formData.creditReason !== newVal.reason) {
+             formData.creditReason = newVal.reason;
+        }
+    }
+}, { immediate: true, deep: true });
+
 // Sync changes back to store
 watch(formData, (newVal) => {
   const updates = {};

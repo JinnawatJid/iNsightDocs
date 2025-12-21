@@ -30,6 +30,9 @@ exports.createCreditRequest = async (req, res) => {
     let txId;
     let requestId;
     let status;
+    let responseSnapshot = null;
+    let responseAmount = null;
+    let responseReason = null;
 
     if (rows && rows.length > 0) {
       const existing = rows[0];
@@ -45,13 +48,18 @@ exports.createCreditRequest = async (req, res) => {
               'UPDATE CreditRequests SET request_amount = ?, request_reason = ?, snapshot_data = ?, status = ? WHERE id = ?',
               [request_amount, request_reason, snapshot_data, status, requestId]
             );
+            // Will return the new data passed in body
         } else {
              // Just return existing Open request without changes
              status = 'Opened';
+             responseSnapshot = existing.snapshot_data;
+             responseAmount = existing.request_amount;
+             responseReason = existing.request_reason;
         }
 
       } else {
-        // If 'Submitted' or 'Reviewed', return existing
+        // If 'Submitted' or 'Reviewed', return existing.
+        // We include snapshot_data so the frontend can populate the form for viewing.
          return res.status(200).json({
           message: 'Existing credit request found',
           data: {
@@ -59,7 +67,10 @@ exports.createCreditRequest = async (req, res) => {
             txId: existing.tx_id,
             status: existing.status,
             customer_name: existing.customer_name,
-            customer_no: existing.customer_no
+            customer_no: existing.customer_no,
+            request_amount: existing.request_amount,
+            request_reason: existing.request_reason,
+            snapshot_data: existing.snapshot_data
           }
         });
       }
@@ -136,15 +147,29 @@ exports.createCreditRequest = async (req, res) => {
         }
     }
 
-    res.status(201).json({
-      message: status === 'Submitted' ? 'Credit request submitted successfully' : 'Credit request initialized/retrieved',
-      data: {
+    // Retrieve the existing data if it was an Opened request (which falls through here if not is_submit)
+    // Actually, if it was Opened and we didn't update, we still want to return the data.
+    // The logic above: if (existing.status === 'Opened') sets txId, requestId, status.
+    // We should probably fetch the data to return it in the response for Opened requests too.
+    // BUT, the `create` logic for Opened just sets local vars. It doesn't query the full row again.
+    // However, if we found `existing`, we have `existing`.
+
+    // Let's refine the response construction.
+    let responseData = {
         id: requestId,
         txId,
         status,
         customer_name,
-        customer_no
-      }
+        customer_no,
+        // For Opened requests (existing or new), return what we have
+        snapshot_data: responseSnapshot || snapshot_data,
+        request_amount: responseAmount || request_amount,
+        request_reason: responseReason || request_reason
+    };
+
+    res.status(201).json({
+      message: status === 'Submitted' ? 'Credit request submitted successfully' : 'Credit request initialized/retrieved',
+      data: responseData
     });
 
   } catch (error) {
@@ -152,6 +177,50 @@ exports.createCreditRequest = async (req, res) => {
     if (req.files) {
         req.files.forEach(f => fs.remove(f.path).catch(() => {}));
     }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+exports.getCreditRequests = async (req, res) => {
+  const { status, search } = req.query;
+
+  try {
+    let sql = `
+      SELECT id, tx_id, customer_no, customer_name, status, request_amount, created_at
+      FROM CreditRequests
+    `;
+    const params = [];
+    const conditions = [];
+
+    if (status) {
+      // Split status by comma if multiple statuses are provided (e.g. ?status=Submitted,Reviewed)
+      const statusList = status.split(',').map(s => s.trim());
+      if (statusList.length > 0) {
+        const placeholders = statusList.map(() => '?').join(',');
+        conditions.push(`status IN (${placeholders})`);
+        params.push(...statusList);
+      }
+    }
+
+    if (search) {
+      conditions.push(`customer_name LIKE ?`);
+      params.push(`%${search}%`);
+    }
+
+    if (conditions.length > 0) {
+      sql += ` WHERE ${conditions.join(' AND ')}`;
+    }
+
+    sql += ` ORDER BY created_at DESC`;
+
+    const { rows } = await db.query(sql, params);
+
+    res.status(200).json({
+      data: rows
+    });
+
+  } catch (error) {
+    console.error('Error fetching credit requests:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

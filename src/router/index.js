@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import PendingRequestOld from '../views/PendingRequestOld.vue';
+import PendingRequests from '../views/PendingRequests.vue';
 import CustomerSearch from '../views/CustomerSearch.vue';
 import CreateCreditRequest from '../views/CreateCreditRequest.vue';
 
@@ -15,8 +15,8 @@ const routes = [
   },
   {
     path: '/pending-request-old',
-    name: 'PendingRequestOld',
-    component: PendingRequestOld,
+    name: 'PendingRequests',
+    component: PendingRequests,
   },
   {
     path: '/customer-search',

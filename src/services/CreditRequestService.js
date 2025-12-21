@@ -25,5 +25,17 @@ export default {
       console.error('Error creating credit request:', error);
       throw error;
     }
+  },
+
+  async getCreditRequests(status) {
+    try {
+      const response = await axios.get(`${API_URL}`, {
+        params: { status }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching credit requests:', error);
+      throw error;
+    }
   }
 };

@@ -23,7 +23,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     transactionData: {
       amount: '',
       reason: 'สต๊อคสินค้า'
-    }
+    },
+
+    // List of requests (Pending/History)
+    requestsList: []
   }),
 
   getters: {
@@ -113,6 +116,28 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         if (result && result.data) {
           this.requestId = result.data.txId;
           this.requestStatus = result.data.status;
+
+          // If snapshot data is returned (from existing request), populate form
+          if (result.data.snapshot_data) {
+            try {
+              let parsedSnapshot = result.data.snapshot_data;
+              if (typeof parsedSnapshot === 'string') {
+                parsedSnapshot = JSON.parse(parsedSnapshot);
+              }
+              // Merge into customer state
+              this.customer = { ...this.customer, ...parsedSnapshot };
+            } catch (e) {
+              console.error('Failed to parse snapshot data', e);
+            }
+          }
+
+          // Update transaction data (amount/reason) if present
+          if (result.data.request_amount || result.data.request_reason) {
+            this.transactionData = {
+              amount: result.data.request_amount || '',
+              reason: result.data.request_reason || 'สต๊อคสินค้า'
+            };
+          }
         }
       } catch (err) {
         console.error('Failed to create credit request transaction', err);
@@ -155,6 +180,24 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           title: 'Error',
           text: 'Failed to save coordinates.'
         });
+      }
+    },
+
+    async fetchRequests(status) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const response = await CreditRequestService.getCreditRequests(status);
+        if (response && response.data) {
+          this.requestsList = response.data;
+        } else {
+          this.requestsList = [];
+        }
+      } catch (err) {
+        console.error('Failed to fetch requests', err);
+        this.error = err;
+      } finally {
+        this.loading = false;
       }
     },
 
