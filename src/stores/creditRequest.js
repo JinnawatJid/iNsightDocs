@@ -210,8 +210,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.error = null;
       try {
         const response = await CreditRequestService.getCreditRequests(status);
-        if (response && response.data) {
-          this.requestsList = response.data;
+        if (response && response.data && response.data.data) {
+          this.requestsList = response.data.data;
         } else {
           this.requestsList = [];
         }
