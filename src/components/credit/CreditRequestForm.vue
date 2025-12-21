@@ -261,6 +261,7 @@ export default {
   border-radius: 4px;
   background-color: #f5f6f8;
   box-sizing: border-box;
+  color: black;
 }
 
 .footer-info {
