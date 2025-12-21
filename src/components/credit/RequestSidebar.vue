@@ -7,14 +7,14 @@
         :class="{ active: activeTab === 'pending' }"
         @click="switchTab('pending')"
       >
-        คำขอทั้งหมด
+        รออนุมัติ
       </div>
       <div
         class="tab-item"
         :class="{ active: activeTab === 'history' }"
         @click="switchTab('history')"
       >
-        ประวัติคำขอ
+        ประวัติ
       </div>
     </div>
 
@@ -45,15 +45,13 @@
         :key="req.id"
         class="request-item"
       >
-        <div class="item-content">
-           <div class="item-left">
-               <span class="customer-name">{{ req.customer_name }}</span>
-               <span class="request-date">{{ formatDate(req.created_at) }}</span>
-           </div>
-           <div class="item-right">
-               <span class="request-amount">{{ formatCurrency(req.request_amount) }} บาท</span>
-               <img :src="getStatusIcon(req.status)" class="status-icon" alt="status" />
-           </div>
+        <div class="item-header">
+           <span class="customer-name">{{ req.customer_name }}</span>
+           <span class="request-date">{{ formatDate(req.created_at) }}</span>
+        </div>
+        <div class="item-body">
+           <span class="request-amount">{{ formatCurrency(req.request_amount) }} บาท</span>
+           <span class="status-badge" :class="getStatusClass(req.status)">{{ req.status }}</span>
         </div>
       </div>
     </div>
@@ -64,11 +62,6 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { debounce } from 'lodash';
-
-// Icons
-import clockIcon from '@/assets/icons/clock-orange.svg';
-import checkIcon from '@/assets/icons/check-circle-green.svg';
-import xIcon from '@/assets/icons/x-circle-red.svg';
 
 const store = useCreditRequestStore();
 const activeTab = ref('pending');
@@ -103,7 +96,7 @@ watch(searchQuery, () => {
 const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', { // 10/10/2025 format
+    return date.toLocaleDateString('en-GB', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
@@ -112,23 +105,18 @@ const formatDate = (dateString) => {
 
 const formatCurrency = (amount) => {
     if (amount === null || amount === undefined) return '0';
-    return Number(amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const getStatusIcon = (status) => {
+const getStatusClass = (status) => {
     switch (status) {
-        case 'Opened':
-        case 'Submitted':
-        case 'Reviewed':
-            return clockIcon;
-        case 'Approved':
-        case 'Closed':
-            return checkIcon;
-        case 'Rejected':
-        case 'Canceled':
-            return xIcon;
-        default:
-            return clockIcon;
+        case 'Submitted': return 'status-submitted';
+        case 'Reviewed': return 'status-reviewed';
+        case 'Approved': return 'status-approved';
+        case 'Rejected': return 'status-rejected';
+        case 'Opened': return 'status-opened';
+        case 'Closed': return 'status-closed';
+        default: return 'status-default';
     }
 };
 
@@ -154,7 +142,7 @@ onMounted(() => {
   background-color: #999;
   padding: 0;
   border-radius: 52px;
-  margin: 20px 20px 10px 20px; /* adjusted bottom margin */
+  margin: 20px 20px 10px 20px;
   overflow: hidden;
   border: 1px solid #999;
 }
@@ -175,7 +163,7 @@ onMounted(() => {
   background-color: white;
   color: #333;
   font-weight: bold;
-  border: 1px solid #999; /* Ensure visible separation */
+  border: 1px solid #999;
 }
 
 /* Search Box */
@@ -187,7 +175,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     border: 1px solid #e0e0e0;
-    border-radius: 8px; /* Standard input radius */
+    border-radius: 8px;
     padding: 8px 12px;
     background-color: #fff;
 }
@@ -215,7 +203,7 @@ onMounted(() => {
 .request-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 0 20px 0; /* Remove side padding, handle in item */
+  padding: 0 0 20px 0;
 }
 
 .request-item {
@@ -229,47 +217,61 @@ onMounted(() => {
   background-color: #f9f9f9;
 }
 
-.item-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center; /* Center vertically relative to each other? Or top align? */
-    /* Design shows text on left (2 lines) and right (amount + icon) */
-}
-
-.item-left {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px; /* Spacing between rows */
+  text-align: left;
 }
 
 .customer-name {
-    font-weight: bold;
-    color: #333;
-    font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+  margin-right: 10px;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .request-date {
-    color: #888;
-    font-size: 12px;
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.item-right {
-    display: flex;
-    align-items: center;
-    gap: 15px; /* Spacing between amount and icon */
+.item-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .request-amount {
-    font-weight: 500;
-    color: #333;
-    font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
 }
 
-.status-icon {
-    width: 24px;
-    height: 24px;
+/* Status Badges */
+.status-badge {
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 12px; /* Pill shape */
+  color: white;
+  font-weight: 500;
+  min-width: 80px;
+  text-align: center;
 }
+
+.status-submitted { background-color: #007bff; } /* Blue */
+.status-reviewed { background-color: #ffc107; color: #333; } /* Yellow */
+.status-approved { background-color: #28a745; } /* Green */
+.status-rejected { background-color: #dc3545; } /* Red */
+.status-opened { background-color: #6c757d; } /* Grey */
+.status-closed { background-color: #343a40; } /* Dark Grey */
+.status-default { background-color: #6c757d; }
 
 .loading-state, .empty-state {
   text-align: center;
