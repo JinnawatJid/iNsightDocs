@@ -35,6 +35,6 @@ export default {
   },
 
   async cancelCreditRequest(id) {
-    return axios.patch(`${API_URL}/${id}/cancel`);
+    return axios.patch(`${API_URL}/${encodeURIComponent(id)}/cancel`);
   }
 };
