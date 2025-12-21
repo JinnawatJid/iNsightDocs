@@ -77,7 +77,7 @@ export default {
   computed: {
     showExportButton() {
       // Show button if status is Submitted or later
-      const status = this.creditStore.status;
+      const status = this.creditStore.requestStatus;
       const validStatuses = ['Submitted', 'Reviewed', 'Approved', 'Rejected', 'Closed', 'Canceled'];
       return validStatuses.includes(status);
     }
