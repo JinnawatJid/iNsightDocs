@@ -25,6 +25,14 @@
         />
         <button class="btn-search" @click="performSearch">ค้นหา</button>
 
+        <button
+          v-if="showExportButton"
+          class="btn-export"
+          @click="exportPDF"
+        >
+          Export PDF
+        </button>
+
         <!-- Dropdown Suggestions -->
         <div v-if="showDropdown" class="suggestions-dropdown">
            <div v-if="suggestions.length === 0" class="no-results">
@@ -49,9 +57,14 @@
 import debounce from 'lodash/debounce';
 import CustomerService from '@/services/CustomerService';
 import iconSearchBi from '@/assets/icons/search-bi.svg';
+import { useCreditRequestStore } from '@/stores/creditRequest';
 
 export default {
   name: 'CreditRequestHeader',
+  setup() {
+    const creditStore = useCreditRequestStore();
+    return { creditStore };
+  },
   data() {
     return {
       iconSearchBi,
@@ -60,6 +73,14 @@ export default {
       suggestions: [],
       showDropdown: false,
     };
+  },
+  computed: {
+    showExportButton() {
+      // Show button if status is Submitted or later
+      const status = this.creditStore.status;
+      const validStatuses = ['Submitted', 'Reviewed', 'Approved', 'Rejected', 'Closed', 'Canceled'];
+      return validStatuses.includes(status);
+    }
   },
   created() {
     this.debouncedFetchSuggestions = debounce(this.fetchSuggestions, 300);
@@ -131,6 +152,13 @@ export default {
     performSearch() {
       this.showDropdown = false;
       this.$emit('search', this.searchQuery);
+    },
+    exportPDF() {
+      const txId = this.creditStore.transactionId;
+      if (!txId) return;
+
+      const encodedId = encodeURIComponent(txId);
+      window.open(`/api/credit-requests/${encodedId}/pdf`, '_blank');
     },
     handleClickOutside(event) {
       const container = this.$refs.searchContainer;
@@ -221,6 +249,23 @@ label {
 
 .btn-search:hover {
   background-color: #0046cc;
+}
+
+.btn-export {
+  padding: 10px 0;
+  width: 120px;
+  background-color: white;
+  color: #0056FF;
+  border: 1px solid #0056FF;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  text-align: center;
+  margin-left: 10px;
+}
+
+.btn-export:hover {
+  background-color: #f0f5ff;
 }
 
 /* Dropdown Styles */
