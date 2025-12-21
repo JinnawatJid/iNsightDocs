@@ -17,64 +17,51 @@ const printer = new PdfPrinter(fonts);
 
 /**
  * Generate PDF Summary for a Credit Request
- *
- * --- Developer Guide: How to Add New Fields ---
- *
- * To add more information to this PDF summary:
- *
- * 1. Ensure the data is available in the SQL query (requestQuery).
- *    - Add the new column name to the SELECT statement.
- *
- * 2. Locate the `docDefinition` object inside `generateCreditRequestPDF`.
- *
- * 3. Find the appropriate table section (e.g., "Customer Information").
- *    - The `body` array contains rows.
- *    - Each row is an array of columns: `[{ text: 'Label', bold: true }, 'Value']`
- *
- * 4. Append a new row to the table body:
- *    ```javascript
- *    // Example: Adding "Email" field
- *    [{ text: 'อีเมล (Email):', bold: true }, customer.email || '-'],
- *    ```
- *
- * 5. If adding a new section, create a new object in the `content` array:
- *    ```javascript
- *    { text: 'New Section Title', style: 'subheader' },
- *    {
- *      table: {
- *        widths: ['auto', '*'],
- *        body: [ ... ]
- *      },
- *      layout: 'lightHorizontalLines'
- *    }
- *    ```
  */
 const generateCreditRequestPDF = async (req, res) => {
   const { id } = req.params; // Transaction ID (e.g., AYCA2312/001)
 
   try {
     // 1. Fetch Credit Request Data
-    // We need to join with Customers table to get customer details
+    // Join with Customers table using "No_" as the key
+    // Map standard column names to readable aliases for easier JS usage where possible,
+    // or access them directly via their specific names.
     const requestQuery = `
       SELECT
         cr.*,
-        c.customer_name, c.customer_no, c.vat_registration_no, c.address, c.subdistrict, c.district, c.province, c.zipcode,
-        c.contact_person, c.contact_position, c.contact_phone_number,
-        c.authorized_person, c.authorized_position,
-        c.residence_map_code, c.residence_landmark, c.residence_note,
-        c.store_map_code, c.store_landmark, c.store_note
+        c."Name" as db_customer_name,
+        c."No_" as db_customer_no,
+        c."VAT Registration No_" as db_vat_registration_no,
+        c."Address" as db_address,
+        c."City" as db_district,
+        c."County" as db_province,
+        c."Post Code" as db_zipcode,
+        c."Contact" as db_contact_person,
+        c."Phone No_" as db_phone_no,
+        c.contact_position,
+        c.contact_phone_number,
+        c.authorized_person,
+        c.authorized_position,
+        c.residence_map_code,
+        c.residence_landmark,
+        c.residence_note,
+        c.store_map_code,
+        c.store_landmark,
+        c.store_note
       FROM CreditRequests cr
-      JOIN Customers c ON cr.customer_id = c.id
+      JOIN Customers c ON cr.customer_no = c."No_"
       WHERE cr.tx_id = ?
     `;
 
     const requests = await db.query(requestQuery, [id]);
 
-    if (!requests || requests.length === 0) {
+    if (!requests || requests.rows.length === 0) {
+      // Fallback: If joined query fails (maybe customer deleted?), try fetching just credit request
+      // But for now, let's assume consistency.
       return res.status(404).send('Credit Request not found');
     }
 
-    const data = requests[0];
+    const data = requests.rows[0];
     let snapshot = {};
     try {
       snapshot = JSON.parse(data.snapshot_data || '{}');
@@ -82,13 +69,37 @@ const generateCreditRequestPDF = async (req, res) => {
       console.error('Error parsing snapshot data', e);
     }
 
-    // Merge snapshot data if available
-    const customer = { ...data, ...snapshot.customer };
-    const files = snapshot.files || [];
+    // Merge snapshot data (priority) with DB data (fallback)
+    // The snapshot.customer usually has keys like: company_name, authorized_person, etc.
+    const snapCust = snapshot.customer || {};
+
+    const customerName = snapCust.company_name || snapCust.name || data.db_customer_name || '-';
+    const customerNo = snapCust.id || data.db_customer_no || '-';
+    const taxId = snapCust.tax_id || snapCust.vat_registration_no || data.db_vat_registration_no || '-';
+
+    // Address Logic
+    const address = snapCust.address || data.db_address || '';
+    const subdistrict = snapCust.subdistrict || ''; // Usually manual input, not always in DB mapped to this
+    const district = snapCust.district || data.db_district || '';
+    const province = snapCust.province || data.db_province || '';
+    const zipcode = snapCust.zipcode || data.db_zipcode || '';
+
+    const fullAddress = `${address} ${subdistrict} ${district} ${province} ${zipcode}`.trim();
+
+    // Contact Logic
+    const contactName = snapCust.contact_person || data.db_contact_person || '-';
+    const contactPos = snapCust.contact_position || data.contact_position || '-';
+    // Phone: Preference to manually entered contact phone, then DB contact phone, then general DB phone
+    const contactPhone = snapCust.contact_phone_number || data.contact_phone_number || data.db_phone_no || '-';
+
+    // Authorized Person Logic
+    const authName = snapCust.authorized_person || data.authorized_person || '-';
+    const authPos = snapCust.authorized_position || data.authorized_position || '-';
 
     // Fetch Attachments to find images
     const attachmentsQuery = `SELECT * FROM CreditRequestAttachments WHERE tx_id = ?`;
-    const attachments = await db.query(attachmentsQuery, [id]);
+    const attachmentsRes = await db.query(attachmentsQuery, [id]);
+    const attachments = attachmentsRes.rows || [];
 
     // Helper to format currency
     const formatCurrency = (val) => {
@@ -150,12 +161,12 @@ const generateCreditRequestPDF = async (req, res) => {
           table: {
             widths: ['auto', '*'],
             body: [
-              [{ text: 'รหัสลูกค้า (ID):', bold: true }, customer.customer_no || '-'],
-              [{ text: 'ชื่อลูกค้า/บริษัท (Name):', bold: true }, customer.customer_name || '-'],
-              [{ text: 'เลขประจำตัวผู้เสียภาษี (Tax ID):', bold: true }, customer.vat_registration_no || '-'],
-              [{ text: 'ประเภทธุรกิจ (Business Type):', bold: true }, customer.business_type || '-'],
-              [{ text: 'ที่อยู่ (Address):', bold: true }, `${customer.address || ''} ${customer.subdistrict || ''} ${customer.district || ''} ${customer.province || ''} ${customer.zipcode || ''}`],
-              [{ text: 'โทรศัพท์ (Phone):', bold: true }, customer.phone_number || customer.contact_phone_number || '-']
+              [{ text: 'รหัสลูกค้า (ID):', bold: true }, customerNo],
+              [{ text: 'ชื่อลูกค้า/บริษัท (Name):', bold: true }, customerName],
+              [{ text: 'เลขประจำตัวผู้เสียภาษี (Tax ID):', bold: true }, taxId],
+              // [{ text: 'ประเภทธุรกิจ (Business Type):', bold: true }, customer.business_type || '-'], // Not available in current schema
+              [{ text: 'ที่อยู่ (Address):', bold: true }, fullAddress],
+              [{ text: 'โทรศัพท์ (Phone):', bold: true }, contactPhone]
             ]
           },
           layout: 'lightHorizontalLines',
@@ -168,8 +179,8 @@ const generateCreditRequestPDF = async (req, res) => {
            table: {
              widths: ['auto', '*'],
              body: [
-               [{ text: 'ผู้มีอำนาจลงนาม:', bold: true }, `${customer.authorized_person || '-'} (${customer.authorized_position || '-'})`],
-               [{ text: 'ผู้ติดต่อ:', bold: true }, `${customer.contact_person || '-'} (${customer.contact_position || '-'})`]
+               [{ text: 'ผู้มีอำนาจลงนาม:', bold: true }, `${authName} (${authPos})`],
+               [{ text: 'ผู้ติดต่อ:', bold: true }, `${contactName} (${contactPos})`]
              ]
            },
            layout: 'lightHorizontalLines',
@@ -226,14 +237,14 @@ const generateCreditRequestPDF = async (req, res) => {
 
     // Set headers
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${id}_summary.pdf"`);
+    res.setHeader('Content-Disposition', `inline; filename="${data.tx_id}_summary.pdf"`);
 
     pdfDoc.pipe(res);
     pdfDoc.end();
 
   } catch (error) {
     console.error('Error generating PDF:', error);
-    res.status(500).send('Error generating PDF');
+    res.status(500).send('Error generating PDF: ' + error.message);
   }
 };
 
