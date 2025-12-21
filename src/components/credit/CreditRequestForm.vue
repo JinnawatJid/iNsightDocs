@@ -4,7 +4,7 @@
     <div v-if="isReadOnly" class="readonly-banner">
       <div class="banner-content">
         <span class="warning-icon">⚠️</span>
-        <span>Submitted - Read Only Mode. If you want to change the request data please cancel the request first.</span>
+        <span>คำขอถูกส่งเรียบร้อยแล้ว (Read Only) หากต้องการแก้ไขข้อมูล กรุณายกเลิกคำขอก่อน</span>
       </div>
     </div>
 
@@ -31,7 +31,7 @@
             <button class="btn-submit" @click="submitCreditRequest">ส่งคำขอเครดิต</button>
         </template>
         <template v-else>
-             <button class="btn-cancel" @click="handleCancel">Cancel Request</button>
+             <button class="btn-cancel" @click="handleCancel">ยกเลิกคำขอ</button>
         </template>
       </div>
     </div>
@@ -71,9 +71,8 @@ export default {
         if (result.isConfirmed) {
             try {
                 await store.cancelRequest();
-                await Swal.fire('Canceled', 'The request has been canceled.', 'success');
-                // Reload to reset state and fetch new "Opened" status logic if applicable
-                window.location.reload();
+                await Swal.fire('Canceled', 'The request has been canceled. You can now edit the data.', 'success');
+                // Removed reload to allow immediate editing
             } catch (e) {
                 Swal.fire('Error', 'Failed to cancel request.', 'error');
             }
@@ -133,31 +132,6 @@ export default {
             formData.append('customer_no', store.customer.id);
             formData.append('customer_name', store.customer.name);
 
-            // From Form (assuming store has latest data synced from tabs)
-            // Wait, amount and reason are in GeneralInfoTab which syncs to store.customer?
-            // Actually, GeneralInfoTab doesn't sync amount/reason to store.customer *columns* that exist in Customers table?
-            // Let's check GeneralInfoTab again.
-            // It syncs: name, authorized_person, authorized_position, contact_person, contact_position, contact_phone_number.
-            // It DOES NOT sync 'request_amount' or 'request_reason' to store.customer because those are transaction specific.
-            // Oops. I need to access them.
-            // The user wants "Full Snapshot".
-
-            // Workaround: We can't easily access the component state of GeneralInfoTab from here.
-            // Solution: We should add 'request_amount' and 'request_reason' to the Store state explicitly,
-            // OR bind them in the store.customer object temporarily?
-            // Let's check GeneralInfoTab again.
-            // The `formData` in GeneralInfoTab has `creditAmount` and `creditReason`.
-            // But it doesn't sync them to `store.customer`.
-
-            // I will update GeneralInfoTab to sync these to store.customer as well (even if they aren't strictly customer columns,
-            // they are part of the "Current Request Context").
-            // Alternatively, I can use a separate store property.
-
-            // For now, assuming they are in store.customer (I will update GeneralInfoTab in next step or use what's there).
-            // Actually, I should check GeneralInfoTab.vue content again.
-
-            // Update: I will modify GeneralInfoTab to sync creditAmount/Reason to store.customer temporarily for submission.
-
             formData.append('request_amount', store.transactionData.amount || '');
             formData.append('request_reason', store.transactionData.reason || '');
 
@@ -179,9 +153,6 @@ export default {
             }
 
             // 4. API Call
-            // Use axios directly or service. Service method expects args.
-            // I'll use axios here for FormData or update service.
-            // Let's use axios directly to match the FormData requirement easily.
             const response = await axios.post('/api/credit-requests', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
