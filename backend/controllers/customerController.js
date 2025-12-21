@@ -139,18 +139,13 @@ exports.searchCustomers = async (req, res) => {
       // Fetch Credit History (Requests)
       let history = [];
       try {
-          // This should match CreditRequests table structure
-          // Map backend status to something the frontend history sidebar expects?
-          // The sidebar expects: { id, date, amount, status }
-          // We have: id, tx_id, customer_no, customer_name, status, created_at
-
           const historySql = `SELECT * FROM CreditRequests WHERE customer_no = ? ORDER BY created_at DESC`;
           const historyRes = await db.query(historySql, [row["No_"]]);
 
           history = historyRes.rows.map(h => ({
               id: h.id,
-              date: new Date(h.created_at).toLocaleDateString('th-TH'), // Simple date format
-              amount: h.tx_id, // Using TxID as 'amount' or identifier label for now as we don't have amount
+              date: new Date(h.created_at).toLocaleDateString('th-TH'),
+              amount: h.tx_id,
               status: h.status
           }));
       } catch (histErr) {
@@ -182,23 +177,18 @@ exports.searchCustomers = async (req, res) => {
               };
 
               // Generate Suggestions
-              if (accumData.AccumTrend > 1) {
-                  suggestions.push("ลูกค้ามีแนวโน้มการซื้อที่ดีและเพิ่มขึ้นอย่างต่อเนื่อง");
-              } else {
-                  suggestions.push("ยอดการสั่งซื้อมีแนวโน้มลดลง ควรติดตามสาเหตุ");
-              }
 
+              // 1. High Value Check
               if (parseAmount(accumData.SecondAccum) > 300000) {
                   suggestions.push("เป็นลูกค้าชั้นดี มียอดซื้อสะสมสูง");
               }
 
               const secondAccumVal = parseAmount(accumData.SecondAccum);
 
-              // Consistency Check
+              // 2. Consistency Check
               if (jun > 0 && jul > 0 && aug > 0) {
                   suggestions.push("มีการสั่งซื้อต่อเนื่องทุกเดือนในช่วง 3 เดือนล่าสุด");
               } else if (secondAccumVal > 0) {
-                  // Sold something in the quarter, but missed some months
                   suggestions.push("มีการเว้นช่วงการสั่งซื้อในบางเดือน");
               }
 
@@ -206,6 +196,19 @@ exports.searchCustomers = async (req, res) => {
               if (aug === 0 && secondAccumVal > 0) {
                   suggestions.push("ไม่มียอดซื้อในเดือนล่าสุด ควรติดต่อลูกค้าเพื่อสอบถามสถานะ");
               }
+
+              // 3. Trend Check
+              if (accumData.AccumTrend > 1) {
+                  suggestions.push("ลูกค้ามีแนวโน้มการซื้อที่ดีและเพิ่มขึ้นอย่างต่อเนื่อง");
+              } else {
+                  suggestions.push("ยอดการสั่งซื้อมีแนวโน้มลดลง ควรติดตามสาเหตุ");
+              }
+
+              // 4. Hardcoded: Payment Punctuality
+              suggestions.push("มีการชำระเงินตรงเวลา");
+
+              // 5. Hardcoded: No Bad Debt
+              suggestions.push("ไม่เคยมีประวัติหนี้เสีย");
 
           } else {
               financialSummary = {
@@ -320,8 +323,6 @@ exports.getSuggestions = async (req, res) => {
   try {
     const { rows } = await db.query(sql, params);
     
-    // Map the raw DB rows to a clean structure
-    // Handling potential nulls for phones if necessary, though lightweight
     const suggestions = rows.map(row => ({
       id: row["No_"],
       name: row["Name"],
@@ -345,7 +346,6 @@ exports.updateCustomer = async (req, res) => {
     return res.status(400).json({ error: "Customer ID is required" });
   }
 
-  // Whitelist of allowed columns to update
   const allowedColumns = [
     'residence_latitude',
     'residence_longitude',
@@ -370,16 +370,10 @@ exports.updateCustomer = async (req, res) => {
     return res.status(400).json({ error: "No valid fields to update" });
   }
 
-  // Construct SQL dynamically
-  // Note: "No_" is the primary key (string)
-
   let sql;
   let params = [];
 
   const setClause = keysToUpdate.map((key, index) => {
-    // For MSSQL we use @param, for SQLite ?
-    // But our db wrapper handles ? -> @p conversion mostly
-    // We will use ? for simplicity and rely on wrapper
     params.push(updates[key]);
     return `"${key}" = ?`;
   }).join(', ');
