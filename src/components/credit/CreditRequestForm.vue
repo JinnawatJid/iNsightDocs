@@ -59,22 +59,22 @@ export default {
 
     const handleCancel = async () => {
         const result = await Swal.fire({
-            title: 'Cancel Request?',
-            text: 'Are you sure you want to cancel this request? You will be able to edit the data afterwards.',
+            title: 'ยกเลิกคำขอ?',
+            text: 'คุณแน่ใจหรือไม่ที่จะยกเลิกคำขอนี้? คุณจะสามารถแก้ไขข้อมูลได้หลังจากยกเลิก',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, Cancel',
-            cancelButtonText: 'No',
+            confirmButtonText: 'ใช่, ยกเลิก',
+            cancelButtonText: 'ไม่',
             confirmButtonColor: '#d33',
         });
 
         if (result.isConfirmed) {
             try {
                 await store.cancelRequest();
-                await Swal.fire('Canceled', 'The request has been canceled. You can now edit the data.', 'success');
+                await Swal.fire('ยกเลิกสำเร็จ', 'คำขอถูกยกเลิกแล้ว คุณสามารถแก้ไขข้อมูลได้ทันที', 'success');
                 // Removed reload to allow immediate editing
             } catch (e) {
-                Swal.fire('Error', 'Failed to cancel request.', 'error');
+                Swal.fire('Error', 'ไม่สามารถยกเลิกคำขอได้', 'error');
             }
         }
     };
@@ -108,7 +108,7 @@ export default {
         if (missing.length > 0) {
              Swal.fire({
                 icon: 'warning',
-                title: 'Incomplete',
+                title: 'เอกสารไม่ครบ',
                 text: 'กรุณาอัปโหลดเอกสารให้ครบถ้วน'
              });
              return;
@@ -116,12 +116,12 @@ export default {
 
         // 2. Confirm Action
         const confirm = await Swal.fire({
-            title: 'Confirm Action?',
+            title: 'ยืนยันการส่งคำขอ?',
             text: 'คุณต้องการส่งคำขอเครดิตใช่หรือไม่?',
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Yes, Submit',
-            cancelButtonText: 'No'
+            confirmButtonText: 'ใช่, ส่งคำขอ',
+            cancelButtonText: 'ยกเลิก'
         });
 
         if (!confirm.isConfirmed) return;
@@ -159,7 +159,7 @@ export default {
 
             // 5. Success
             await Swal.fire({
-                title: 'Success: Request Sent',
+                title: 'ส่งคำขอสำเร็จ',
                 text: 'บันทึกคำขอเครดิตเรียบร้อยแล้ว',
                 icon: 'success'
             });
@@ -171,7 +171,7 @@ export default {
         } catch (error) {
             console.error(error);
              Swal.fire({
-                title: 'Error',
+                title: 'เกิดข้อผิดพลาด',
                 text: 'เกิดข้อผิดพลาดในการส่งคำขอ',
                 icon: 'error'
             });
