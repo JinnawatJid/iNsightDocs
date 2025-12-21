@@ -30,7 +30,7 @@
           class="btn-export"
           @click="exportPDF"
         >
-          Export PDF
+          ดาวน์โหลด PDF
         </button>
 
         <!-- Dropdown Suggestions -->
@@ -154,11 +154,20 @@ export default {
       this.$emit('search', this.searchQuery);
     },
     exportPDF() {
-      const txId = this.creditStore.transactionId;
-      if (!txId) return;
+      // Fixed: use requestId instead of non-existent transactionId
+      const txId = this.creditStore.requestId;
+
+      console.log('Exporting PDF for txId:', txId);
+
+      if (!txId) {
+        console.warn('Cannot export PDF: Missing Transaction ID (requestId is null)');
+        return;
+      }
 
       const encodedId = encodeURIComponent(txId);
-      window.open(`/api/credit-requests/${encodedId}/pdf`, '_blank');
+      const url = `/api/credit-requests/${encodedId}/pdf`;
+      console.log('PDF URL:', url);
+      window.open(url, '_blank');
     },
     handleClickOutside(event) {
       const container = this.$refs.searchContainer;
@@ -205,7 +214,7 @@ label {
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 14px;
-  width: 220px;
+  width: 180px; /* Reduced from 220px to fit layout */
   background-color: #f9f9f9;
   color: black;
 }
@@ -231,7 +240,7 @@ label {
   font-size: 14px;
   background-color: #ffffff;
   color: #000;
-  width: 340px;
+  width: 260px; /* Reduced from 340px to fit layout */
   margin-right: 16px;
 }
 
