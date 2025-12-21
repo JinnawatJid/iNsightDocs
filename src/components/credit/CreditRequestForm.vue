@@ -72,7 +72,7 @@ export default {
             try {
                 await store.cancelRequest();
                 await Swal.fire('ยกเลิกสำเร็จ', 'คำขอถูกยกเลิกแล้ว คุณสามารถแก้ไขข้อมูลได้ทันที', 'success');
-                // Removed reload to allow immediate editing
+                window.location.reload();
             } catch (e) {
                 Swal.fire('Error', 'ไม่สามารถยกเลิกคำขอได้', 'error');
             }
