@@ -176,6 +176,7 @@ onMounted(() => {
 /* Search Box */
 .search-container {
     padding: 0 20px 15px 20px;
+    margin-top: 10px;
 }
 
 .search-box {
