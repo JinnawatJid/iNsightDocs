@@ -7,6 +7,7 @@
         required
         multiple
         v-model="files.bankStatement"
+        :disabled="!isEditing"
       >
         <template #icon>
            <img :src="iconUploadMulti" alt="Upload" width="48" height="48" />
@@ -103,10 +104,14 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 
+const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
 const { errors, validateField, restrictPhoneInput } = useFormValidation();
 
-const isEditing = ref(true); // Editable by default
+const isEditing = ref(!props.readOnly);
+watch(() => props.readOnly, (val) => {
+  isEditing.value = !val;
+});
 
 const files = reactive({
   bankStatement: []

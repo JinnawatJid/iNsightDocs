@@ -57,6 +57,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       const name = state.customer.name;
       const keywords = ['บริษัท', 'ห้างหุ้นส่วนจำกัด', 'บ.', 'หจก.'];
       return keywords.some(keyword => name.includes(keyword));
+    },
+
+    isReadOnly: (state) => {
+      return ['Submitted', 'Reviewed'].includes(state.requestStatus);
     }
   },
 
@@ -113,14 +117,15 @@ export const useCreditRequestStore = defineStore('creditRequest', {
             customer_no: customerNo,
             customer_name: customerName
         });
-        if (result && result.data) {
-          this.requestId = result.data.txId;
-          this.requestStatus = result.data.status;
+        if (result && result.data && result.data.data) {
+          const resData = result.data.data;
+          this.requestId = resData.txId;
+          this.requestStatus = resData.status;
 
           // If snapshot data is returned (from existing request), populate form
-          if (result.data.snapshot_data) {
+          if (resData.snapshot_data) {
             try {
-              let parsedSnapshot = result.data.snapshot_data;
+              let parsedSnapshot = resData.snapshot_data;
               if (typeof parsedSnapshot === 'string') {
                 parsedSnapshot = JSON.parse(parsedSnapshot);
               }
@@ -132,15 +137,29 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           }
 
           // Update transaction data (amount/reason) if present
-          if (result.data.request_amount || result.data.request_reason) {
+          if (resData.request_amount || resData.request_reason) {
             this.transactionData = {
-              amount: result.data.request_amount || '',
-              reason: result.data.request_reason || 'สต๊อคสินค้า'
+              amount: resData.request_amount || '',
+              reason: resData.request_reason || 'สต๊อคสินค้า'
             };
           }
         }
       } catch (err) {
         console.error('Failed to create credit request transaction', err);
+      }
+    },
+
+    async cancelRequest() {
+      if (!this.requestId) return;
+      try {
+        await CreditRequestService.cancelCreditRequest(this.requestId);
+        this.requestStatus = 'Canceled';
+        // Reset state or handle navigation
+        // For this flow, we might want to reset to allow new creation
+        this.resetState();
+      } catch (err) {
+        console.error('Failed to cancel request', err);
+        throw err;
       }
     },
 

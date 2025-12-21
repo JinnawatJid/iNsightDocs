@@ -1,7 +1,7 @@
 <template>
   <div class="upload-item" :class="{ 'upload-item-large': multiple }">
     <label>{{ label }} <span v-if="required" class="required">*</span></label>
-    <div class="upload-box" :class="{ 'upload-box-large': multiple }" @click="triggerUpload">
+    <div class="upload-box" :class="{ 'upload-box-large': multiple, 'disabled': disabled }" @click="triggerUpload">
       <input
         type="file"
         ref="fileInput"
@@ -31,14 +31,14 @@
         <!-- Single File Preview -->
         <div v-if="!multiple" class="file-preview">
           <span class="file-name">{{ file.name }}</span>
-          <button class="remove-btn" @click.stop="removeFile()">×</button>
+          <button v-if="!disabled" class="remove-btn" @click.stop="removeFile()">×</button>
         </div>
 
         <!-- Multiple Files List -->
         <ul v-else class="file-list">
             <li v-for="(f, index) in file" :key="index" class="file-list-item">
                 <span class="file-name">{{ f.name }}</span>
-                <button class="remove-btn" @click.stop="removeFile(index)">×</button>
+                <button v-if="!disabled" class="remove-btn" @click.stop="removeFile(index)">×</button>
             </li>
         </ul>
       </div>
@@ -79,6 +79,10 @@ export default {
     multiple: {
       type: Boolean,
       default: false
+    },
+    disabled: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:modelValue', 'file-selected', 'file-removed'],
@@ -89,6 +93,7 @@ export default {
   },
   methods: {
     triggerUpload() {
+      if (this.disabled) return;
       this.$refs.fileInput.click();
     },
     handleFileChange(event) {
@@ -171,6 +176,12 @@ label {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.upload-box.disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  border-style: solid;
 }
 
 .upload-box-large {
