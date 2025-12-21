@@ -60,7 +60,9 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     isReadOnly: (state) => {
-      return ['Submitted', 'Reviewed'].includes(state.requestStatus);
+      // Submitted, Reviewed, Approved, Rejected, Closed -> Read Only
+      // Opened, Canceled -> Editable
+      return ['Submitted', 'Reviewed', 'Approved', 'Rejected', 'Closed'].includes(state.requestStatus);
     }
   },
 
@@ -153,10 +155,11 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       if (!this.requestId) return;
       try {
         await CreditRequestService.cancelCreditRequest(this.requestId);
+
+        // Update local status to Canceled so it becomes editable (since Canceled is not in isReadOnly)
+        // We do NOT reset state, so the user keeps their data to edit.
         this.requestStatus = 'Canceled';
-        // Reset state or handle navigation
-        // For this flow, we might want to reset to allow new creation
-        this.resetState();
+
       } catch (err) {
         console.error('Failed to cancel request', err);
         throw err;
