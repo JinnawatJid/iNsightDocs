@@ -42,7 +42,13 @@
     <div class="suggestion-section">
       <h3>คำแนะนำ</h3>
       <ul>
-        <li v-for="(suggestion, index) in suggestions" :key="index">{{ suggestion }}</li>
+        <li
+          v-for="(suggestion, index) in suggestions"
+          :key="index"
+          :class="{ 'suggestion-positive': isPositiveSuggestion(suggestion) }"
+        >
+          {{ suggestion }}
+        </li>
       </ul>
     </div>
   </div>
@@ -84,6 +90,10 @@ export default {
           if (trendString.includes('เพิ่มขึ้น')) return 'up'; // Increase
           if (trendString.includes('ลดลง')) return 'down'; // Decrease
           return 'neutral';
+      },
+      isPositiveSuggestion(text) {
+        // Highlight "Never had bad debt history" as requested
+        return text === 'ไม่เคยมีประวัติหนี้เสีย';
       }
   }
 };
@@ -194,11 +204,6 @@ h3 {
     color: #6c757d;
 }
 
-/* User asked for format "like the AccumTrend" for the second trend, which implies green/blue is less important than consistency.
-   However, typically 'up' is green, 'down' is red. I used getTrendClass to handle this dynamically.
-   The original code had .text-blue for the second one, but I'll stick to semantic colors (up=green, down=red) unless forced otherwise.
-*/
-
 .suggestion-section {
   text-align: left;
 }
@@ -211,6 +216,11 @@ h3 {
 .suggestion-section li {
   margin-bottom: 8px;
   font-size: 14px;
+}
+
+.suggestion-positive {
+  color: #28a745; /* Green */
+  font-weight: bold;
 }
 
 .summary-section {
