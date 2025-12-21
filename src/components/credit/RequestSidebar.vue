@@ -136,21 +136,23 @@ onMounted(() => {
   border: 1px solid #e0e0e0;
 }
 
-/* Tabs */
+/* Tabs - Matching ApplicationTabs.vue */
 .tabs {
   display: flex;
   background-color: #999;
   padding: 0;
   border-radius: 52px;
-  margin: 20px 20px 10px 20px;
   overflow: hidden;
   border: 1px solid #999;
+  /* Key changes for matching shape */
+  width: 80%;
+  margin: 20px auto 10px auto;
 }
 
 .tab-item {
   flex: 1;
   text-align: center;
-  padding: 8px 0;
+  padding: 4px 0; /* Reduced padding */
   cursor: pointer;
   border-radius: 50px;
   font-weight: 500;
@@ -164,6 +166,11 @@ onMounted(() => {
   color: #333;
   font-weight: bold;
   border: 1px solid #999;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.tab-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Search Box */
@@ -177,7 +184,7 @@ onMounted(() => {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     padding: 8px 12px;
-    background-color: #fff;
+    background-color: #fff; /* Ensure white background */
 }
 
 .search-icon {
@@ -193,6 +200,11 @@ onMounted(() => {
     width: 100%;
     font-size: 14px;
     color: #333;
+    background-color: transparent; /* Fix grey background */
+    height: 24px; /* Fix vertical alignment */
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
 }
 
 .search-input::placeholder {
