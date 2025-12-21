@@ -17,6 +17,37 @@ const printer = new PdfPrinter(fonts);
 
 /**
  * Generate PDF Summary for a Credit Request
+ *
+ * --- Developer Guide: How to Add New Fields ---
+ *
+ * To add more information to this PDF summary:
+ *
+ * 1. Ensure the data is available in the SQL query (requestQuery).
+ *    - Add the new column name to the SELECT statement.
+ *
+ * 2. Locate the `docDefinition` object inside `generateCreditRequestPDF`.
+ *
+ * 3. Find the appropriate table section (e.g., "Customer Information").
+ *    - The `body` array contains rows.
+ *    - Each row is an array of columns: `[{ text: 'Label', bold: true }, 'Value']`
+ *
+ * 4. Append a new row to the table body:
+ *    ```javascript
+ *    // Example: Adding "Email" field
+ *    [{ text: 'อีเมล (Email):', bold: true }, customer.email || '-'],
+ *    ```
+ *
+ * 5. If adding a new section, create a new object in the `content` array:
+ *    ```javascript
+ *    { text: 'New Section Title', style: 'subheader' },
+ *    {
+ *      table: {
+ *        widths: ['auto', '*'],
+ *        body: [ ... ]
+ *      },
+ *      layout: 'lightHorizontalLines'
+ *    }
+ *    ```
  */
 const generateCreditRequestPDF = async (req, res) => {
   const { id } = req.params; // Transaction ID (e.g., AYCA2312/001)
