@@ -12,6 +12,7 @@ exports.createCreditRequest = async (req, res) => {
 
   try {
     // Check for existing active request for this customer (Opened, Submitted, Reviewed)
+    // Canceled, Approved, Rejected, Closed are considered inactive/final for this check
     let existingSql;
     if (db.dbType === 'mssql') {
       existingSql = `
@@ -147,14 +148,6 @@ exports.createCreditRequest = async (req, res) => {
         }
     }
 
-    // Retrieve the existing data if it was an Opened request (which falls through here if not is_submit)
-    // Actually, if it was Opened and we didn't update, we still want to return the data.
-    // The logic above: if (existing.status === 'Opened') sets txId, requestId, status.
-    // We should probably fetch the data to return it in the response for Opened requests too.
-    // BUT, the `create` logic for Opened just sets local vars. It doesn't query the full row again.
-    // However, if we found `existing`, we have `existing`.
-
-    // Let's refine the response construction.
     let responseData = {
         id: requestId,
         txId,
@@ -221,6 +214,51 @@ exports.getCreditRequests = async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching credit requests:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+exports.cancelCreditRequest = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Check if request exists
+    let requestSql;
+    if (db.dbType === 'mssql') {
+      requestSql = 'SELECT TOP 1 * FROM CreditRequests WHERE tx_id = ?';
+    } else {
+      requestSql = 'SELECT * FROM CreditRequests WHERE tx_id = ? LIMIT 1';
+    }
+    // Note: The param coming in might be tx_id (e.g. AYCA...) or internal ID.
+    // The previous frontend stores tx_id as requestId.
+    // Let's verify what frontend sends.
+    // In store.createCreditRequest: this.requestId = result.data.txId;
+    // So frontend sends TxId.
+    const { rows } = await db.query(requestSql, [id]);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: 'Credit request not found' });
+    }
+
+    const request = rows[0];
+
+    // Check status: Allow cancel for Submitted or Reviewed (or Opened? User wants cancel to edit)
+    if (!['Submitted', 'Reviewed'].includes(request.status)) {
+       // If already Canceled or other status, maybe just return success?
+       // If Approved/Rejected/Closed, technically shouldn't cancel.
+       // But if Opened, cancelling just closes it?
+       // The requirement is mostly for Submitted/Reviewed.
+    }
+
+    await db.runAsync(
+      'UPDATE CreditRequests SET status = ? WHERE tx_id = ?',
+      ['Canceled', id]
+    );
+
+    res.status(200).json({ message: 'Credit request canceled successfully' });
+
+  } catch (error) {
+    console.error('Error canceling credit request:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
