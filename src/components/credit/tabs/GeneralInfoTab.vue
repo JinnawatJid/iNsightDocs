@@ -57,11 +57,9 @@
       </div>
     </div>
 
-    <!-- Authorized Signatories Section -->
+    <!-- Authorized Signatories Section (Header removed) -->
     <div class="personal-info-section">
-      <div class="section-header">
-        <h3>ผู้มีอำนาจลงนามและข้อมูลธุรกิจ</h3>
-      </div>
+      <!-- Header removed -->
 
       <!-- Signatory 1 -->
       <div class="form-layout-columns">
@@ -178,46 +176,6 @@
       </div>
     </div>
 
-    <!-- Credit Details Section (New) -->
-    <div class="personal-info-section">
-      <div class="section-header">
-        <h3>รายละเอียดการขอเครดิต</h3>
-      </div>
-      <div class="form-layout-columns">
-         <div class="column-layout">
-            <div class="form-group">
-              <label>วงเงินสินเชื่อที่ต้องการ <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                class="form-input"
-                :class="{ 'border-red-500': errors.creditAmount, 'disabled': !isEditing }"
-                :disabled="!isEditing"
-                placeholder="เจ้าหน้าที่ใส่"
-                v-model="formData.creditAmount"
-                @input="(e) => { restrictCreditAmountInput(e); validateField('creditAmount', e.target.value, ['required', 'numeric']); }"
-                @blur="handleBlur('creditAmount')"
-              />
-              <span v-if="errors.creditAmount" class="error-text">{{ errors.creditAmount }}</span>
-            </div>
-         </div>
-         <div class="column-layout">
-            <div class="form-group">
-              <label>เหตุผลการขอเครดิต <span class="text-red-500">*</span></label>
-              <select
-                class="form-input"
-                :class="{ 'disabled': !isEditing }"
-                :disabled="!isEditing"
-                v-model="formData.creditReason"
-                @change="saveToBackend"
-              >
-                  <option value="สต๊อคสินค้า">สต๊อคสินค้า</option>
-                  <option value="รับโปรเจค">รับโปรเจค</option>
-              </select>
-            </div>
-         </div>
-      </div>
-    </div>
-
     <!-- Contact Info Section -->
     <div class="personal-info-section">
       <div class="section-header">
@@ -272,6 +230,46 @@
           />
           <span v-if="errors.contactPhone" class="error-text">{{ errors.contactPhone }}</span>
         </div>
+      </div>
+    </div>
+
+    <!-- Credit Details Section (Moved to bottom) -->
+    <div class="personal-info-section">
+      <div class="section-header">
+        <h3>รายละเอียดการขอเครดิต</h3>
+      </div>
+      <div class="form-layout-columns">
+         <div class="column-layout">
+            <div class="form-group">
+              <label>วงเงินสินเชื่อที่ต้องการ <span class="text-red-500">*</span></label>
+              <input
+                type="text"
+                class="form-input"
+                :class="{ 'border-red-500': errors.creditAmount, 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                placeholder="เจ้าหน้าที่ใส่"
+                v-model="formData.creditAmount"
+                @input="(e) => { restrictCreditAmountInput(e); validateField('creditAmount', e.target.value, ['required', 'numeric']); }"
+                @blur="handleBlur('creditAmount')"
+              />
+              <span v-if="errors.creditAmount" class="error-text">{{ errors.creditAmount }}</span>
+            </div>
+         </div>
+         <div class="column-layout">
+            <div class="form-group">
+              <label>เหตุผลการขอเครดิต <span class="text-red-500">*</span></label>
+              <select
+                class="form-input"
+                :class="{ 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.creditReason"
+                @change="saveToBackend"
+              >
+                  <option value="สต๊อคสินค้า">สต๊อคสินค้า</option>
+                  <option value="รับโปรเจค">รับโปรเจค</option>
+              </select>
+            </div>
+         </div>
       </div>
     </div>
   </div>

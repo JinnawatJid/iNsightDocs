@@ -2,42 +2,9 @@
 > credit-request-backend@1.0.0 start
 > node server.js
 
-[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
 Loading database module for: sqlite
 Table Customers ensured.
-Imported 8655 rows into Customers
 Table AY_ACCUM ensured.
-Imported 1208 rows into AY_ACCUM
-Added column residence_latitude to Customers
-Added column residence_longitude to Customers
-Added column store_latitude to Customers
-Added column store_longitude to Customers
-Added column residence_landmark to Customers
-Added column residence_note to Customers
-Added column store_landmark to Customers
-Added column store_note to Customers
-Added column residence_map_code to Customers
-Added column store_map_code to Customers
-Added column authorized_person to Customers
-Added column authorized_position to Customers
-Added column contact_position to Customers
-Added column contact_phone_number to Customers
-Added column residence_location_type to Customers
-Added column residence_location_type_other to Customers
-Added column residence_ownership to Customers
-Added column residence_ownership_other to Customers
-Added column store_location_type to Customers
-Added column store_location_type_other to Customers
-Added column store_ownership to Customers
-Added column store_ownership_other to Customers
-Added column authorized_person_2 to Customers
-Added column authorized_position_2 to Customers
-Added column business_type to Customers
-Added column main_products to Customers
-Added column years_in_business to Customers
-Error adding column request_amount: [Error: SQLITE_ERROR: no such table: CreditRequests] {
-  errno: 1,
-  code: 'SQLITE_ERROR'
-}
 Database initialized (SQLite).
 Server is running on http://localhost:3000
