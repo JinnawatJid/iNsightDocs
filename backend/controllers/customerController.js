@@ -258,7 +258,15 @@ exports.searchCustomers = async (req, res) => {
           authorized_person: row["authorized_person"] || "",
           authorized_position: row["authorized_position"] || "",
           contact_position: row["contact_position"] || "",
-          contact_phone_number: row["contact_phone_number"] || ""
+          contact_phone_number: row["contact_phone_number"] || "",
+          residence_location_type: row["residence_location_type"] || "",
+          residence_location_type_other: row["residence_location_type_other"] || "",
+          residence_ownership: row["residence_ownership"] || "",
+          residence_ownership_other: row["residence_ownership_other"] || "",
+          store_location_type: row["store_location_type"] || "",
+          store_location_type_other: row["store_location_type_other"] || "",
+          store_ownership: row["store_ownership"] || "",
+          store_ownership_other: row["store_ownership_other"] || ""
         },
         history: history,
         financial_summary: financialSummary,
@@ -361,7 +369,15 @@ exports.updateCustomer = async (req, res) => {
     'authorized_position',
     'contact_position',
     'contact_phone_number',
-    'contact_person'
+    'contact_person',
+    'residence_location_type',
+    'residence_location_type_other',
+    'residence_ownership',
+    'residence_ownership_other',
+    'store_location_type',
+    'store_location_type_other',
+    'store_ownership',
+    'store_ownership_other'
   ];
 
   const keysToUpdate = Object.keys(updates).filter(key => allowedColumns.includes(key));

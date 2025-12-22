@@ -136,54 +136,69 @@
             placeholder="example@email.com"
           />
         </div>
+
+        <!-- Location Type Split -->
         <div class="form-group">
-          <label>ลักษณะที่ตั้ง <span class="text-red-500">*</span></label>
-           <div class="custom-select-group">
-            <select
-              class="form-control"
-              :class="{ 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="formData.locationTypeSelect"
-            >
-              <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
-              <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
-              <option value="สำนักงานบนอาคารชุด">สำนักงานบนอาคารชุด</option>
-              <option value="บ้าน">บ้าน</option>
-              <option value="โรงงาน">โรงงาน</option>
-            </select>
-            <!-- Hybrid text input always enabled if isEditing is true -->
-            <input
-              type="text"
-              class="form-control"
-              :class="{ 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="formData.locationTypeOther"
-              placeholder="ระบุ..."
-            />
+          <div class="split-form-group">
+            <div class="half-width">
+               <label>ลักษณะที่ตั้ง <span class="text-red-500">*</span></label>
+               <select
+                  class="form-control"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.locationTypeSelect"
+                >
+                  <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
+                  <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
+                  <option value="สำนักงานบนอาคารชุด">สำนักงานบนอาคารชุด</option>
+                  <option value="บ้าน">บ้าน</option>
+                  <option value="โรงงาน">โรงงาน</option>
+                </select>
+            </div>
+             <div class="half-width">
+                <label>คำอธิบายเพิ่มเติม</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.locationTypeOther"
+                  placeholder="ระบุ..."
+                />
+             </div>
           </div>
         </div>
+
+        <!-- Ownership Split -->
         <div class="form-group">
-          <label>กรรมสิทธิ์ทรัพย์สิน <span class="text-red-500">*</span></label>
-           <div class="custom-select-group">
-            <select
-              class="form-control"
-              :class="{ 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="formData.ownershipSelect"
-            >
-              <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
-              <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
-              <option value="เช่า">เช่า</option>
-            </select>
-            <input
-              type="text"
-              class="form-control"
-              :class="{ 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="formData.ownershipOther"
-              placeholder="ระบุ..."
-            />
-          </div>
+           <div class="split-form-group">
+             <div class="half-width">
+               <label>กรรมสิทธิ์ทรัพย์สิน <span class="text-red-500">*</span></label>
+               <select
+                  class="form-control"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.ownershipSelect"
+                >
+                  <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
+                  <option value="บ้านตนเอง">บ้านตนเอง</option>
+                  <option value="บ้านญาติ">บ้านญาติ</option>
+                  <option value="บ้านเช่า">บ้านเช่า</option>
+                  <option value="บ้านบิดา/มารดา">บ้านบิดา/มารดา</option>
+                </select>
+             </div>
+             <div class="half-width">
+                <label>{{ ownershipLabel }}</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.ownershipOther"
+                  placeholder="ระบุ..."
+                />
+             </div>
+           </div>
         </div>
       </div>
 
@@ -205,7 +220,7 @@
 </template>
 
 <script setup>
-import { reactive, watch, ref } from 'vue';
+import { reactive, watch, ref, computed } from 'vue';
 import { searchAddressByZipcode } from 'thai-address-database';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import CoordinateMap from '@/components/shared/CoordinateMap.vue';
@@ -253,6 +268,13 @@ const formData = reactive({
   note: ''
 });
 
+const ownershipLabel = computed(() => {
+  if (formData.ownershipSelect === 'บ้านเช่า') {
+    return 'เช่า เดือนละ';
+  }
+  return 'มูลค่า';
+});
+
 function formatPhoneNumber(phone) {
   if (!phone) return '';
   const cleaned = phone.replace(/\D/g, '');
@@ -285,6 +307,12 @@ watch(() => store.customer, (newVal) => {
 
     // Ensure subdistrict is mapped
     formData.subdistrict = newVal.subdistrict || '';
+
+    // Location Type and Ownership
+    formData.locationTypeSelect = newVal.residence_location_type || '';
+    formData.locationTypeOther = newVal.residence_location_type_other || '';
+    formData.ownershipSelect = newVal.residence_ownership || '';
+    formData.ownershipOther = newVal.residence_ownership_other || '';
   }
 }, { immediate: true, deep: true });
 
@@ -296,21 +324,20 @@ watch(formData, (newVal) => {
     zipcode: newVal.postCode,
     district: newVal.district,
     province: newVal.city,
-    phone: newVal.phone, // We store formatted or cleaned? Store keeps what is passed.
-    // Phone logic in backend likely expects digits, but formatPhoneNumber adds dashes.
-    // If backend expects raw digits, we should clean it.
-    // But formatPhoneNumber is used for display.
-    // Let's store what is in the input.
-    // Wait, createCreditRequest uses customer_no and customer_name.
-    // If other fields are saved later, they might need cleaning.
-    // For now, syncing the form value is enough for client-side persistence.
+    phone: newVal.phone,
     email: newVal.email,
 
     // Ensure we sync coordinates to store state even if not calling API directly here
     // But we use a separate method for coordinate saving to be explicit
     residence_map_code: newVal.mapCode,
     residence_landmark: newVal.landmark,
-    residence_note: newVal.note
+    residence_note: newVal.note,
+
+    // New Fields
+    residence_location_type: newVal.locationTypeSelect,
+    residence_location_type_other: newVal.locationTypeOther,
+    residence_ownership: newVal.ownershipSelect,
+    residence_ownership_other: newVal.ownershipOther
   };
   store.updateCustomerData(updates);
 }, { deep: true });
@@ -393,6 +420,17 @@ function toggleEdit() {
 .form-group.span-2 {
   grid-column: span 2;
 }
+
+/* Split Form Group */
+.split-form-group {
+    display: flex;
+    gap: 10px;
+}
+
+.half-width {
+    flex: 1;
+}
+
 .custom-select-group {
   display: flex;
   gap: 10px;
