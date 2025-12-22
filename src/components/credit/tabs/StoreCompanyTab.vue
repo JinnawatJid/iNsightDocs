@@ -179,52 +179,66 @@
             placeholder="example@email.com"
           />
         </div>
+
+        <!-- Location Type Split -->
         <div class="form-group">
-          <label>ลักษณะที่ตั้ง <span class="text-red-500">*</span></label>
-          <div class="custom-select-group">
-            <select
-              class="form-control"
-              :class="{ 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="formData.locationTypeSelect"
-            >
-              <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
-              <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
-              <option value="สำนักงานบนอาคารชุด">สำนักงานบนอาคารชุด</option>
-              <option value="บ้าน">บ้าน</option>
-              <option value="โรงงาน">โรงงาน</option>
-            </select>
-            <input
-              type="text"
-              class="form-control"
-              :class="{ 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="formData.locationTypeOther"
-              placeholder="ระบุ..."
-            />
+          <div class="split-form-group">
+            <div class="half-width">
+               <label>ลักษณะที่ตั้ง <span class="text-red-500">*</span></label>
+               <select
+                  class="form-control"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.locationTypeSelect"
+                >
+                  <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
+                  <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
+                  <option value="สำนักงานบนอาคารชุด">สำนักงานบนอาคารชุด</option>
+                  <option value="บ้าน">บ้าน</option>
+                  <option value="โรงงาน">โรงงาน</option>
+                </select>
+            </div>
+             <div class="half-width">
+                <label>คำอธิบายเพิ่มเติม</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.locationTypeOther"
+                  placeholder="ระบุ..."
+                />
+             </div>
           </div>
         </div>
+
+        <!-- Ownership Split -->
         <div class="form-group">
-          <label>กรรมสิทธิ์ทรัพย์สิน <span class="text-red-500">*</span></label>
-          <div class="custom-select-group">
-            <select
-              class="form-control"
-              :class="{ 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="formData.ownershipSelect"
-            >
-              <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
-              <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
-              <option value="เช่า">เช่า</option>
-            </select>
-            <input
-              type="text"
-              class="form-control"
-              :class="{ 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="formData.ownershipOther"
-              placeholder="ระบุ..."
-            />
+          <div class="split-form-group">
+             <div class="half-width">
+               <label>กรรมสิทธิ์ทรัพย์สิน <span class="text-red-500">*</span></label>
+               <select
+                  class="form-control"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.ownershipSelect"
+                >
+                  <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
+                  <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
+                  <option value="เช่าซื้อ">เช่าซื้อ</option>
+                </select>
+             </div>
+             <div class="half-width">
+                <label>{{ ownershipLabel }}</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.ownershipOther"
+                  placeholder="ระบุ..."
+                />
+             </div>
           </div>
         </div>
       </div>
@@ -307,6 +321,13 @@ const isCompany = computed(() => {
   return !!(store.customer && store.customer['VAT Registration No_']);
 });
 
+const ownershipLabel = computed(() => {
+  if (formData.ownershipSelect === 'เช่าซื้อ') {
+    return 'เช่าซื้อ เดือนละ';
+  }
+  return 'มูลค่า';
+});
+
 function formatPhoneNumber(phone) {
   if (!phone) return '';
   const cleaned = phone.replace(/\D/g, '');
@@ -331,24 +352,39 @@ watch(isSameAddress, (isSame) => {
     formData.phone = formatPhoneNumber(store.customer.phone || '');
     formData.email = store.customer.email || '';
     
-    // Coordinates for Store - if copying from residence, we might want to copy coords too?
-    // "sameAddress" logic implies store is at residence. So we copy residence coords.
+    // Coordinates for Store - if copying from residence
     formData.mapCode = store.customer.residence_map_code || '';
     formData.landmark = store.customer.residence_landmark || '';
     formData.note = store.customer.residence_note || '';
 
     formData.subdistrict = store.customer.subdistrict || '';
+
+    // Copy Location Type and Ownership from Residence
+    formData.locationTypeSelect = store.customer.residence_location_type || '';
+    formData.locationTypeOther = store.customer.residence_location_type_other || '';
+    formData.ownershipSelect = store.customer.residence_ownership || '';
+    formData.ownershipOther = store.customer.residence_ownership_other || '';
+
   } else {
-    // Revert to store coordinates if unchecked? Or clear?
-    // If we uncheck, we might want to see the stored "Store" coordinates if they exist.
+    // Revert to store values if unchecked
     if (store.customer) {
        formData.mapCode = store.customer.store_map_code || '';
        formData.landmark = store.customer.store_landmark || '';
        formData.note = store.customer.store_note || '';
+
+       formData.locationTypeSelect = store.customer.store_location_type || '';
+       formData.locationTypeOther = store.customer.store_location_type_other || '';
+       formData.ownershipSelect = store.customer.store_ownership || '';
+       formData.ownershipOther = store.customer.store_ownership_other || '';
     } else {
        formData.mapCode = '';
        formData.landmark = '';
        formData.note = '';
+
+       formData.locationTypeSelect = '';
+       formData.locationTypeOther = '';
+       formData.ownershipSelect = '';
+       formData.ownershipOther = '';
     }
 
     formData.houseAddress = '';
@@ -367,11 +403,20 @@ watch(() => store.customer, (newVal) => {
     // Only populate if not "Same Address" (or if logic demands)
     // For now, simple population. User can toggle same address if needed.
 
-    // Note: If we had a flag for "isSameAddress" saved in DB, we would use it.
-    // Without it, we default to loading Store data.
-    formData.mapCode = newVal.store_map_code || '';
-    formData.landmark = newVal.store_landmark || '';
-    formData.note = newVal.store_note || '';
+    if (isSameAddress.value) {
+         // Should stay synced with residence
+         // But here we might just want to load stored STORE values if isSameAddress is false
+         // Since isSameAddress defaults to false (ref(false)), we usually load store values first
+    } else {
+        formData.mapCode = newVal.store_map_code || '';
+        formData.landmark = newVal.store_landmark || '';
+        formData.note = newVal.store_note || '';
+
+        formData.locationTypeSelect = newVal.store_location_type || '';
+        formData.locationTypeOther = newVal.store_location_type_other || '';
+        formData.ownershipSelect = newVal.store_ownership || '';
+        formData.ownershipOther = newVal.store_ownership_other || '';
+    }
 
     if (isSameAddress.value) {
         formData.subdistrict = newVal.subdistrict || '';
@@ -391,7 +436,11 @@ watch(formData, (newVal) => {
       email: newVal.email,
       store_map_code: newVal.mapCode,
       store_landmark: newVal.landmark,
-      store_note: newVal.note
+      store_note: newVal.note,
+      store_location_type: newVal.locationTypeSelect,
+      store_location_type_other: newVal.locationTypeOther,
+      store_ownership: newVal.ownershipSelect,
+      store_ownership_other: newVal.ownershipOther
     };
     store.updateCustomerData(updates);
   }
@@ -488,6 +537,16 @@ function toggleEdit() {
 
 .form-group.span-2 {
   grid-column: span 2;
+}
+
+/* Split Form Group for Side-by-Side Label/Inputs */
+.split-form-group {
+    display: flex;
+    gap: 10px;
+}
+
+.half-width {
+    flex: 1;
 }
 
 .custom-select-group {

@@ -134,7 +134,16 @@ const initDB = async () => {
             'authorized_person',
             'authorized_position',
             'contact_position',
-            'contact_phone_number'
+            'contact_phone_number',
+            // New columns for Location Type and Ownership
+            'residence_location_type',
+            'residence_location_type_other',
+            'residence_ownership',
+            'residence_ownership_other',
+            'store_location_type',
+            'store_location_type_other',
+            'store_ownership',
+            'store_ownership_other'
         ];
 
         for (const col of coordinateColumns) {
