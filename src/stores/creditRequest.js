@@ -145,6 +145,55 @@ export const useCreditRequestStore = defineStore('creditRequest', {
               reason: resData.request_reason || 'สต๊อคสินค้า'
             };
           }
+
+          // Handle existing files
+          if (resData.files && Array.isArray(resData.files)) {
+            // We need to group by file_type because some might be arrays (multiple)
+            // But currently files state is key -> File object or key -> [File objects]
+            // file_type is e.g. 'bank_statement' or 'bank_statement' (if multiple)
+
+            // First, reset files to avoid stale data
+            // Actually, we shouldn't reset blindly if we want to support accumulation,
+            // but for initialization it's safe.
+            this.files = {};
+            this.uploadedDocuments = {};
+
+            const groupedFiles = {};
+
+            resData.files.forEach(f => {
+                const key = f.file_type;
+                const mockFile = {
+                    name: f.original_name,
+                    // specific flag to identify server-side file
+                    __isServerFile: true
+                };
+
+                if (!groupedFiles[key]) {
+                    groupedFiles[key] = [];
+                }
+                groupedFiles[key].push(mockFile);
+            });
+
+            // Now map to state.files
+            // We need to know if a field supports multiple or single.
+            // However, the backend doesn't explicitly tell us.
+            // But we can infer: if we have multiple files for a key, it's array.
+            // If single, it might be single object OR array of 1.
+            // FileUploader expects Array for multiple=true, Object for multiple=false.
+            // We don't strictly know which fields are 'multiple' here without hardcoding list.
+            // Hardcoded list of multiple fields:
+            const multipleFields = ['bank_statement']; // Add others if needed
+
+            for (const [key, files] of Object.entries(groupedFiles)) {
+                if (multipleFields.includes(key) || files.length > 1) {
+                    this.files[key] = files;
+                    this.uploadedDocuments[key] = true;
+                } else {
+                    this.files[key] = files[0];
+                    this.uploadedDocuments[key] = true;
+                }
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to create credit request transaction', err);

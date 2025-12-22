@@ -145,9 +145,17 @@ export default {
             for (const [key, file] of Object.entries(store.files)) {
                 if (file) {
                     if (Array.isArray(file)) {
-                        file.forEach(f => formData.append(key, f));
+                        // Filter out server-side files (mock objects)
+                        file.forEach(f => {
+                            if (!f.__isServerFile) {
+                                formData.append(key, f);
+                            }
+                        });
                     } else {
-                        formData.append(key, file);
+                        // If it's a single file, only append if it's NOT a server file
+                        if (!file.__isServerFile) {
+                            formData.append(key, file);
+                        }
                     }
                 }
             }

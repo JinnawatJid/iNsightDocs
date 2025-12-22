@@ -123,6 +123,13 @@ watch(() => files.bankStatement, (v) => {
   store.updateFile('bank_statement', v);
 });
 
+// Watch store files to sync existing data
+watch(() => store.files, (newVal) => {
+  if (newVal) {
+    if (newVal.bank_statement) files.bankStatement = newVal.bank_statement;
+  }
+}, { immediate: true, deep: true });
+
 const formData = reactive({
   accountName: '',
   accountNumber: '',

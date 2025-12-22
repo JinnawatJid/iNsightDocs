@@ -196,6 +196,14 @@ watch(() => files.homeReg, (newVal) => {
   store.updateFile('home_reg', newVal);
 });
 
+// Watch store files to sync existing data
+watch(() => store.files, (newVal) => {
+  if (newVal) {
+    if (newVal.id_card) files.idCard = newVal.id_card;
+    if (newVal.home_reg) files.homeReg = newVal.home_reg;
+  }
+}, { immediate: true, deep: true });
+
 const formData = reactive({
   companyName: '',
   authorizedName: '',

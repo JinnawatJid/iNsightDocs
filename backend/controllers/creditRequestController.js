@@ -34,9 +34,16 @@ exports.createCreditRequest = async (req, res) => {
     let responseSnapshot = null;
     let responseAmount = null;
     let responseReason = null;
+    let existingAttachments = [];
 
     if (rows && rows.length > 0) {
       const existing = rows[0];
+
+      const { rows: attachments } = await db.query(
+        'SELECT file_type, original_name FROM CreditRequestAttachments WHERE tx_id = ?',
+        [existing.tx_id]
+      );
+      existingAttachments = attachments || [];
 
       // If status is 'Opened', we update it with new data ONLY if is_submit is true
       if (existing.status === 'Opened') {
@@ -71,7 +78,8 @@ exports.createCreditRequest = async (req, res) => {
             customer_no: existing.customer_no,
             request_amount: existing.request_amount,
             request_reason: existing.request_reason,
-            snapshot_data: existing.snapshot_data
+            snapshot_data: existing.snapshot_data,
+            files: existingAttachments
           }
         });
       }
@@ -157,7 +165,8 @@ exports.createCreditRequest = async (req, res) => {
         // For Opened requests (existing or new), return what we have
         snapshot_data: responseSnapshot || snapshot_data,
         request_amount: responseAmount || request_amount,
-        request_reason: responseReason || request_reason
+        request_reason: responseReason || request_reason,
+        files: existingAttachments
     };
 
     res.status(201).json({

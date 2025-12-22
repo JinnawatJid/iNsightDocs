@@ -12,6 +12,7 @@
     "axios": "^1.13.2",
     "lodash": "^4.17.21",
     "pinia": "^3.0.4",
+    "playwright": "^1.57.0",
     "qrcode": "^1.5.4",
     "sweetalert2": "^11.26.3",
     "thai-address-database": "^0.0.30",

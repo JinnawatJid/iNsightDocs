@@ -236,6 +236,14 @@ watch(() => files.landTax, (newVal) => {
   store.updateFile('land_tax', newVal);
 });
 
+// Watch store files to sync existing data
+watch(() => store.files, (newVal) => {
+  if (newVal) {
+    if (newVal.home_photo) files.homePhoto = newVal.home_photo;
+    if (newVal.land_tax) files.landTax = newVal.land_tax;
+  }
+}, { immediate: true, deep: true });
+
 const formData = reactive({
   houseAddress: '',
   subdistrict: '',

@@ -286,6 +286,19 @@ watch(() => files.storePhoto, (v) => store.updateFile('store_photo', v));
 watch(() => files.commercialReg, (v) => store.updateFile('commercial_reg', v));
 watch(() => files.storeLandTax, (v) => store.updateFile('store_land_tax', v));
 
+// Watch store files to sync existing data
+watch(() => store.files, (newVal) => {
+  if (newVal) {
+    if (newVal.store_photo) files.storePhoto = newVal.store_photo;
+    if (newVal.commercial_reg) files.commercialReg = newVal.commercial_reg;
+    if (newVal.store_land_tax) files.storeLandTax = newVal.store_land_tax;
+    if (newVal.legal_entity_certificate) files.legalEntityCert = newVal.legal_entity_certificate;
+    if (newVal.vat_document) files.vatDoc = newVal.vat_document;
+    if (newVal.company_photo) files.companyPhoto = newVal.company_photo;
+    if (newVal.company_land_tax) files.companyLandTax = newVal.company_land_tax;
+  }
+}, { immediate: true, deep: true });
+
 const formData = reactive({
   houseAddress: '',
   subdistrict: '',
