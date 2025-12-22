@@ -188,6 +188,11 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     // Action to persist coordinates to backend
     async saveCustomerCoordinates(updates) {
+       await this.saveCustomerData(updates);
+    },
+
+    // Generic action to persist customer data to backend
+    async saveCustomerData(updates) {
       if (!this.customer || !this.customer.id) return;
 
       // Optimistically update state
@@ -196,11 +201,11 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       try {
         await CustomerService.updateCustomer(this.customer.id, updates);
       } catch (err) {
-        console.error("Failed to save coordinates:", err);
+        console.error("Failed to save customer data:", err);
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: 'Failed to save coordinates.'
+          text: 'Failed to save customer data.'
         });
       }
     },
