@@ -2,7 +2,7 @@
 > credit-request-backend@1.0.0 start
 > node server.js
 
-[dotenv@17.2.3] injecting env (0) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
 Loading database module for: sqlite
 Table Customers ensured.
 Table AY_ACCUM ensured.

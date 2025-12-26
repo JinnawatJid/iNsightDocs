@@ -3,15 +3,7 @@
 > vite
 
 
-  VITE v7.3.0  ready in 784 ms
+  VITE v7.3.0  ready in 881 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
-7:51:03 AM [vite] http proxy error: /api/customers/suggestions?q=01016AY
-AggregateError [ECONNREFUSED]:
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)
-7:51:05 AM [vite] http proxy error: /api/customers/search?q=01016AY
-AggregateError [ECONNREFUSED]:
-    at internalConnectMultiple (node:net:1134:18)
-    at afterConnectMultiple (node:net:1715:7)

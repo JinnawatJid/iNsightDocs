@@ -388,7 +388,6 @@ exports.updateCustomer = async (req, res) => {
     'authorized_position',
     'contact_position',
     'contact_phone_number',
-    'contact_person',
     'residence_location_type',
     'residence_location_type_other',
     'residence_ownership',
@@ -407,17 +406,38 @@ exports.updateCustomer = async (req, res) => {
 
   const keysToUpdate = Object.keys(updates).filter(key => allowedColumns.includes(key));
 
+  // Check for mapped columns
+  if (updates.contact_person !== undefined) keysToUpdate.push('contact_person');
+  if (updates.name !== undefined) keysToUpdate.push('name');
+
   if (keysToUpdate.length === 0) {
     return res.status(400).json({ error: "No valid fields to update" });
   }
 
   let sql;
   let params = [];
+  let clauses = [];
 
-  const setClause = keysToUpdate.map((key, index) => {
-    params.push(updates[key]);
-    return `"${key}" = ?`;
-  }).join(', ');
+  // Handle standard allowed columns
+  allowedColumns.forEach(key => {
+    if (updates[key] !== undefined) {
+      clauses.push(`"${key}" = ?`);
+      params.push(updates[key]);
+    }
+  });
+
+  // Handle mapped columns
+  if (updates.contact_person !== undefined) {
+    clauses.push(`"Contact" = ?`);
+    params.push(updates.contact_person);
+  }
+
+  if (updates.name !== undefined) {
+     clauses.push(`"Name" = ?`);
+     params.push(updates.name);
+  }
+
+  const setClause = clauses.join(', ');
 
   sql = `UPDATE "Customers" SET ${setClause} WHERE "No_" = ?`;
   params.push(customerId);
