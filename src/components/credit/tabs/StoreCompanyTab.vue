@@ -196,10 +196,9 @@
         </div>
       </div>
 
-        <!-- Location Type Split -->
-        <div class="form-group">
-          <div class="split-form-group">
-            <div class="half-width">
+        <!-- Location Type and Ownership Grid -->
+        <div class="form-grid-four-columns">
+            <div class="form-group">
                <label>ลักษณะที่ตั้ง <span class="text-red-500">*</span></label>
                <select
                   class="form-control"
@@ -214,7 +213,7 @@
                   <option value="โรงงาน">โรงงาน</option>
                 </select>
             </div>
-             <div class="half-width">
+             <div class="form-group">
                 <label>คำอธิบายเพิ่มเติม</label>
                 <input
                   type="text"
@@ -225,13 +224,7 @@
                   placeholder="ระบุ..."
                 />
              </div>
-          </div>
-        </div>
-
-        <!-- Ownership Split -->
-        <div class="form-group">
-          <div class="split-form-group">
-             <div class="half-width">
+             <div class="form-group">
                <label>กรรมสิทธิ์ทรัพย์สิน <span class="text-red-500">*</span></label>
                <select
                   class="form-control"
@@ -244,7 +237,7 @@
                   <option value="เช่าซื้อ">เช่าซื้อ</option>
                 </select>
              </div>
-             <div class="half-width">
+             <div class="form-group">
                 <label>{{ ownershipLabel }}</label>
                 <input
                   type="text"
@@ -255,7 +248,6 @@
                   placeholder="ระบุ..."
                 />
              </div>
-          </div>
         </div>
 
       <!-- Map Section -->
