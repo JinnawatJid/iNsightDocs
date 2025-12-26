@@ -48,6 +48,10 @@ exports.searchCustomers = async (req, res) => {
         "Name",
         "Contact",
         "Phone No_",
+        "Fax No_",
+        "E-Mail",
+        "Fax No_",
+        "E-Mail",
         "Telex No_",
         "Mobile Phone No_",
         "VAT Registration No_",
@@ -249,6 +253,8 @@ exports.searchCustomers = async (req, res) => {
           name: row["Name"],
           contact_person: row["Contact"],
           phone: finalPhone,
+          fax: row["Fax No_"],
+          email: row["E-Mail"],
           tax_id: row["VAT Registration No_"],
           type: customerType,
           address_residential: fullAddress,
@@ -401,7 +407,10 @@ exports.updateCustomer = async (req, res) => {
     'business_type',
     'main_products',
     'years_in_business',
-    'VAT Registration No_'
+    'VAT Registration No_',
+    'Phone No_',
+    'Fax No_',
+    'E-Mail'
   ];
 
   const keysToUpdate = Object.keys(updates).filter(key => allowedColumns.includes(key));
@@ -409,6 +418,9 @@ exports.updateCustomer = async (req, res) => {
   // Check for mapped columns
   if (updates.contact_person !== undefined) keysToUpdate.push('contact_person');
   if (updates.name !== undefined) keysToUpdate.push('name');
+  if (updates.phone !== undefined) keysToUpdate.push('phone');
+  if (updates.fax !== undefined) keysToUpdate.push('fax');
+  if (updates.email !== undefined) keysToUpdate.push('email');
 
   if (keysToUpdate.length === 0) {
     return res.status(400).json({ error: "No valid fields to update" });
@@ -435,6 +447,21 @@ exports.updateCustomer = async (req, res) => {
   if (updates.name !== undefined) {
      clauses.push(`"Name" = ?`);
      params.push(updates.name);
+  }
+
+  if (updates.phone !== undefined) {
+     clauses.push(`"Phone No_" = ?`);
+     params.push(updates.phone);
+  }
+
+  if (updates.fax !== undefined) {
+     clauses.push(`"Fax No_" = ?`);
+     params.push(updates.fax);
+  }
+
+  if (updates.email !== undefined) {
+     clauses.push(`"E-Mail" = ?`);
+     params.push(updates.email);
   }
 
   const setClause = clauses.join(', ');

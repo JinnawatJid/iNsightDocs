@@ -106,7 +106,9 @@
           <span v-if="errors.city" class="error-text">{{ errors.city }}</span>
         </div>
       </div>
-       <div class="bottom-grid">
+      
+      <!-- Phone | Fax | Email Grid -->
+       <div class="form-grid-complex">
          <div class="form-group">
           <label>
             เบอร์โทรศัพท์ 
@@ -121,12 +123,24 @@
             v-model="formData.phone"
             placeholder="0XX-XXX-XXXX"
             @input="(e) => { restrictPhoneInput(e); validateField('phone', e.target.value, ['required', 'phone']); }"
-            @blur="validateField('phone', formData.phone, ['required', 'phone'])"
+            @blur="validateField('phone', formData.phone, ['required', 'phone']); saveData('phone', formData.phone)"
           />
           <span v-if="errors.phone" class="error-text">{{ errors.phone }}</span>
         </div>
         <div class="form-group">
-          <label>แฟกซ์/อีเมล</label>
+          <label>แฟกซ์</label>
+          <input
+            type="text"
+            class="form-control"
+            :class="{ 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.fax"
+            placeholder="ระบุเบอร์แฟกซ์"
+            @blur="saveData('fax', formData.fax)"
+          />
+        </div>
+        <div class="form-group">
+          <label>อีเมล</label>
           <input
             type="text"
             class="form-control"
@@ -134,8 +148,10 @@
             :disabled="!isEditing"
             v-model="formData.email"
             placeholder="example@email.com"
+            @blur="saveData('email', formData.email)"
           />
         </div>
+       </div>
 
         <!-- Location Type Split -->
         <div class="form-group">
@@ -200,7 +216,6 @@
              </div>
            </div>
         </div>
-      </div>
 
       <!-- Map Section -->
       <div class="section-header" style="margin-top: 20px;">
@@ -258,6 +273,7 @@ const formData = reactive({
   district: '',
   city: '',
   phone: '',
+  fax: '',
   email: '',
   locationTypeSelect: '',
   locationTypeOther: '',
@@ -298,6 +314,7 @@ watch(() => store.customer, (newVal) => {
     formData.district = newVal.district || '';
     formData.city = newVal.province || '';
     formData.phone = formatPhoneNumber(newVal.phone || '');
+    formData.fax = newVal.fax || '';
     formData.email = newVal.email || '';
     
     // Coordinates for Residence
@@ -325,6 +342,7 @@ watch(formData, (newVal) => {
     district: newVal.district,
     province: newVal.city,
     phone: newVal.phone,
+    fax: newVal.fax,
     email: newVal.email,
 
     // Ensure we sync coordinates to store state even if not calling API directly here
@@ -349,6 +367,12 @@ function onCoordinatesChange({ mapCode, landmark, note }) {
     residence_landmark: landmark,
     residence_note: note
   });
+}
+
+function saveData(key, value) {
+  const updates = {};
+  updates[key] = value;
+  store.saveCustomerData(updates);
 }
 
 // Watch postCode for auto-completion
