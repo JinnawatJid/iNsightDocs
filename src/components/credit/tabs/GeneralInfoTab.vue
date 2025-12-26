@@ -18,15 +18,12 @@
       </div>
     </div>
 
-    <!-- Personal Info Section -->
+    <!-- Company Info Section -->
     <div class="personal-info-section">
       <div class="section-header">
-        <h3>ตรวจสอบข้อมูลส่วนตัว</h3>
-        <!-- Removed "Edit" button as per user request -->
+        <h3>ตรวจสอบข้อมูลบริษัท</h3>
       </div>
-
       <div class="form-layout-columns">
-        <!-- Left Column: Company Name & Authorized Position -->
         <div class="column-layout">
           <div class="form-group">
             <label>ชื่อร้าน/บริษัท <span class="text-red-500">*</span></label>
@@ -38,11 +35,52 @@
               v-model="formData.companyName"
               placeholder="**ดึงข้อมูลจาก Dynamics**"
               @input="validateField('companyName', formData.companyName, ['required'])"
-              @blur="validateField('companyName', formData.companyName, ['required'])"
+              @blur="handleBlur('companyName')"
             />
             <span v-if="errors.companyName" class="error-text">{{ errors.companyName }}</span>
           </div>
+        </div>
+        <div class="column-layout">
           <div class="form-group">
+            <label>เลขประจำตัวผู้เสียภาษี</label>
+            <input
+              type="text"
+              class="form-input"
+              :class="{ 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              v-model="formData.taxId"
+              placeholder="ระบุเลขผู้เสียภาษี"
+              @blur="saveToBackend"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Authorized Signatories Section (Header removed) -->
+    <div class="personal-info-section">
+      <!-- Header removed -->
+
+      <!-- Signatory 1 -->
+      <div class="form-layout-columns">
+         <div class="column-layout">
+           <div class="form-group">
+            <label>ชื่อผู้มีอำนาจลงนาม 1 <span class="text-red-500">*</span></label>
+            <input
+              type="text"
+              class="form-input"
+              :class="{ 'border-red-500': errors.authorizedName, 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              v-model="formData.authorizedName"
+              placeholder="**ดึงข้อมูลจาก Dynamics**"
+              @input="validateField('authorizedName', formData.authorizedName, ['required', 'text'])"
+              @blur="handleBlur('authorizedName')"
+            />
+            <span v-if="errors.authorizedName" class="error-text">{{ errors.authorizedName }}</span>
+          </div>
+         </div>
+         <div class="column-layout">
+            <div class="form-group">
              <label>ตำแหน่ง <span class="text-red-500">*</span></label>
             <input
               type="text"
@@ -52,61 +90,93 @@
               placeholder="เจ้าหน้าที่ใส่"
               v-model="formData.authorizedPosition"
               @input="validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text'])"
-              @blur="validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text'])"
+              @blur="handleBlur('authorizedPosition')"
             />
             <span v-if="errors.authorizedPosition" class="error-text">{{ errors.authorizedPosition }}</span>
           </div>
-        </div>
+         </div>
+      </div>
 
-        <!-- Right Column: Authorized Signatory Name & Credit Info -->
-        <div class="column-layout">
+      <!-- Signatory 2 -->
+      <div class="form-layout-columns" style="margin-top: 15px;">
+         <div class="column-layout">
            <div class="form-group">
-            <label>ชื่อผู้มีอำนาจลงนาม <span class="text-red-500">*</span></label>
+            <label>ชื่อผู้มีอำนาจลงนาม 2</label>
             <input
               type="text"
               class="form-input"
-              :class="{ 'border-red-500': errors.authorizedName, 'disabled': !isEditing }"
+              :class="{ 'disabled': !isEditing }"
               :disabled="!isEditing"
-              v-model="formData.authorizedName"
-              placeholder="**ดึงข้อมูลจาก Dynamics**"
-              @input="validateField('authorizedName', formData.authorizedName, ['required', 'text'])"
-              @blur="validateField('authorizedName', formData.authorizedName, ['required', 'text'])"
+              v-model="formData.authorizedName2"
+              placeholder="ระบุชื่อ"
+              @blur="saveToBackend"
             />
-            <span v-if="errors.authorizedName" class="error-text">{{ errors.authorizedName }}</span>
           </div>
-          <div class="row-two-col">
+         </div>
+         <div class="column-layout">
             <div class="form-group">
-              <label>วงเงินสินเชื่อที่ต้องการ <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                class="form-input"
-                :class="{ 'border-red-500': errors.creditAmount, 'disabled': !isEditing }"
-                :disabled="!isEditing"
-                placeholder="เจ้าหน้าที่ใส่"
-                v-model="formData.creditAmount"
-                @input="(e) => { restrictCreditAmountInput(e); validateField('creditAmount', e.target.value, ['required', 'numeric']); }"
-                @blur="validateField('creditAmount', formData.creditAmount, ['required', 'numeric'])"
-              />
-              <span v-if="errors.creditAmount" class="error-text">{{ errors.creditAmount }}</span>
-            </div>
-            <div class="form-group">
-              <label>เหตุผลการขอเครดิต <span class="text-red-500">*</span></label>
-              <select
+             <label>ตำแหน่ง</label>
+            <input
+              type="text"
+              class="form-input"
+              :class="{ 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              placeholder="ระบุตำแหน่ง"
+              v-model="formData.authorizedPosition2"
+              @blur="saveToBackend"
+            />
+          </div>
+         </div>
+      </div>
+
+      <!-- Business Details -->
+      <div class="grid-three-col" style="margin-top: 15px;">
+          <div class="form-group">
+             <label>ประเภทกิจการ</label>
+             <select
                 class="form-input"
                 :class="{ 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="formData.creditReason"
+                v-model="formData.businessType"
+                @change="saveToBackend"
               >
-                  <option value="สต๊อคสินค้า">สต๊อคสินค้า</option>
-                  <option value="รับโปรเจค">รับโปรเจค</option>
+                  <option value="" disabled selected>เลือกประเภท</option>
+                  <option value="ซื้อมา-ขายไป">ซื้อมา-ขายไป</option>
+                  <option value="บริการ">บริการ</option>
+                  <option value="ผลิต">ผลิต</option>
+                  <option value="รับเหมาก่อสร้าง">รับเหมาก่อสร้าง</option>
+                  <option value="อื่นๆ">อื่นๆ</option>
               </select>
-            </div>
           </div>
-        </div>
+          <div class="form-group">
+             <label>ระบุสินค้าหลัก</label>
+             <input
+              type="text"
+              class="form-input"
+              :class="{ 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              v-model="formData.mainProducts"
+              placeholder="ระบุสินค้า"
+              @blur="saveToBackend"
+            />
+          </div>
+          <div class="form-group">
+             <label>ดำเนินธุรกิจ (ปี)</label>
+             <input
+              type="text"
+              class="form-input"
+              :class="{ 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              v-model="formData.yearsInBusiness"
+              placeholder="ระบุจำนวนปี"
+              @input="(e) => restrictNumeric(e)"
+              @blur="saveToBackend"
+            />
+          </div>
       </div>
     </div>
 
-    <!-- Contact Info Section (New) -->
+    <!-- Contact Info Section -->
     <div class="personal-info-section">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลผู้ติดต่อ</h3>
@@ -130,7 +200,7 @@
             :disabled="!isEditing"
             v-model="formData.contactName"
             @input="validateField('contactName', formData.contactName, ['required', 'text'])"
-            @blur="validateField('contactName', formData.contactName, ['required', 'text'])"
+            @blur="handleBlur('contactName')"
           />
           <span v-if="errors.contactName" class="error-text">{{ errors.contactName }}</span>
         </div>
@@ -143,7 +213,7 @@
             :disabled="!isEditing"
             v-model="formData.contactPosition"
             @input="validateField('contactPosition', formData.contactPosition, ['required', 'text'])"
-            @blur="validateField('contactPosition', formData.contactPosition, ['required', 'text'])"
+            @blur="handleBlur('contactPosition')"
           />
           <span v-if="errors.contactPosition" class="error-text">{{ errors.contactPosition }}</span>
         </div>
@@ -156,10 +226,50 @@
             :disabled="!isEditing"
             v-model="formData.contactPhone"
             @input="validateField('contactPhone', formData.contactPhone, ['required', 'numeric'])"
-            @blur="validateField('contactPhone', formData.contactPhone, ['required', 'numeric'])"
+            @blur="handleBlur('contactPhone')"
           />
           <span v-if="errors.contactPhone" class="error-text">{{ errors.contactPhone }}</span>
         </div>
+      </div>
+    </div>
+
+    <!-- Credit Details Section (Moved to bottom) -->
+    <div class="personal-info-section">
+      <div class="section-header">
+        <h3>รายละเอียดการขอเครดิต</h3>
+      </div>
+      <div class="form-layout-columns">
+         <div class="column-layout">
+            <div class="form-group">
+              <label>วงเงินสินเชื่อที่ต้องการ <span class="text-red-500">*</span></label>
+              <input
+                type="text"
+                class="form-input"
+                :class="{ 'border-red-500': errors.creditAmount, 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                placeholder="เจ้าหน้าที่ใส่"
+                v-model="formData.creditAmount"
+                @input="(e) => { restrictCreditAmountInput(e); validateField('creditAmount', e.target.value, ['required', 'numeric']); }"
+                @blur="handleBlur('creditAmount')"
+              />
+              <span v-if="errors.creditAmount" class="error-text">{{ errors.creditAmount }}</span>
+            </div>
+         </div>
+         <div class="column-layout">
+            <div class="form-group">
+              <label>เหตุผลการขอเครดิต <span class="text-red-500">*</span></label>
+              <select
+                class="form-input"
+                :class="{ 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.creditReason"
+                @change="saveToBackend"
+              >
+                  <option value="สต๊อคสินค้า">สต๊อคสินค้า</option>
+                  <option value="รับโปรเจค">รับโปรเจค</option>
+              </select>
+            </div>
+         </div>
       </div>
     </div>
   </div>
@@ -198,14 +308,27 @@ watch(() => files.homeReg, (newVal) => {
 
 const formData = reactive({
   companyName: '',
+  taxId: '',
   authorizedName: '',
   authorizedPosition: '',
+  authorizedName2: '',
+  authorizedPosition2: '',
+  businessType: '',
+  mainProducts: '',
+  yearsInBusiness: '',
   contactName: '',
   contactPosition: '',
   contactPhone: '',
   creditAmount: '',
   creditReason: 'สต๊อคสินค้า'
 });
+
+function restrictNumeric(e) {
+  let val = e.target.value;
+  val = val.replace(/[^0-9]/g, '');
+  e.target.value = val;
+  formData.yearsInBusiness = val;
+}
 
 // Helper to format phone similar to StoreCompanyTab/ResidenceTab
 function formatPhoneNumber(phone) {
@@ -228,23 +351,9 @@ watch(isSameAsAuthorized, (isSame) => {
     formData.contactName = formData.authorizedName;
     formData.contactPosition = formData.authorizedPosition;
 
-    // Logic for phone: use store.customer.phone if available
     if (store.customer) {
-        // Fallback logic for phone (same as backend usually): phone -> telex -> mobile
-        // But store.customer object returned from search usually has 'phone' property already normalized?
-        // Checking store.js or CustomerService...
-        // Backend maps: phone = Phone No_ (or fallback).
-        // So we can just use store.customer.phone
         formData.contactPhone = formatPhoneNumber(store.customer.phone || '');
     }
-  } else {
-    // If unchecked, maybe clear or leave as is?
-    // Typical pattern: leave as is or revert to original?
-    // Let's just leave as is to allow editing from that point, or better:
-    // Revert to what is in the store for 'contact_person' if we consider that "original"?
-    // But 'contact_person' is bound to 'contactName'.
-    // If we just uncheck, the user likely wants to Edit it.
-    // So we do nothing, just allow editing (which is always allowed unless disabled).
   }
 });
 
@@ -267,16 +376,23 @@ watch(() => store.customer, (newVal) => {
       ? newVal.name
       : '';
 
-    // Authorized Name Logic: Use authorized_person if available, else fallback to contact (for migration)
     const authName = (newVal.authorized_person) ? newVal.authorized_person : contact;
-
-    // Contact Name Logic: Use contact_person
     const contactName = contact;
 
     if (formData.companyName !== company) formData.companyName = company;
 
+    // Tax ID
+    if (formData.taxId !== newVal.tax_id) formData.taxId = newVal.tax_id || '';
+
     if (formData.authorizedName !== authName) formData.authorizedName = authName;
     if (formData.authorizedPosition !== newVal.authorized_position) formData.authorizedPosition = newVal.authorized_position || '';
+
+    // New Fields
+    if (formData.authorizedName2 !== newVal.authorized_person_2) formData.authorizedName2 = newVal.authorized_person_2 || '';
+    if (formData.authorizedPosition2 !== newVal.authorized_position_2) formData.authorizedPosition2 = newVal.authorized_position_2 || '';
+    if (formData.businessType !== newVal.business_type) formData.businessType = newVal.business_type || '';
+    if (formData.mainProducts !== newVal.main_products) formData.mainProducts = newVal.main_products || '';
+    if (formData.yearsInBusiness !== newVal.years_in_business) formData.yearsInBusiness = newVal.years_in_business || '';
 
     if (formData.contactName !== contactName) formData.contactName = contactName;
     if (formData.contactPosition !== newVal.contact_position) formData.contactPosition = newVal.contact_position || '';
@@ -288,13 +404,6 @@ watch(() => store.customer, (newVal) => {
 watch(() => store.transactionData, (newVal) => {
     if (newVal) {
         if (newVal.amount && formData.creditAmount !== newVal.amount) {
-            // Ensure we don't overwrite if user is typing?
-            // Actually this is usually for initial load.
-            // If user types, formData updates store. Store updates back?
-            // If store updates back, we might have cursor jumping issues if we are not careful.
-            // But here we are syncing Store -> Form.
-            // And below Form -> Store.
-            // To prevent loop: Check if values are different.
              formData.creditAmount = newVal.amount;
         }
         if (newVal.reason && formData.creditReason !== newVal.reason) {
@@ -303,26 +412,74 @@ watch(() => store.transactionData, (newVal) => {
     }
 }, { immediate: true, deep: true });
 
-// Sync changes back to store
+// Sync changes locally to store on change
 watch(formData, (newVal) => {
   const updates = {};
-
-  // Map fields back to DB columns
   updates.name = newVal.companyName;
+  updates['VAT Registration No_'] = newVal.taxId;
   updates.authorized_person = newVal.authorizedName;
   updates.authorized_position = newVal.authorizedPosition;
-  updates.contact_person = newVal.contactName; // Updates existing contact_person column
+
+  updates.authorized_person_2 = newVal.authorizedName2;
+  updates.authorized_position_2 = newVal.authorizedPosition2;
+  updates.business_type = newVal.businessType;
+  updates.main_products = newVal.mainProducts;
+  updates.years_in_business = newVal.yearsInBusiness;
+
+  updates.contact_person = newVal.contactName;
   updates.contact_position = newVal.contactPosition;
   updates.contact_phone_number = newVal.contactPhone;
 
+  // Update store ONLY (no API call)
   store.updateCustomerData(updates);
 
-  // Update Transaction Data Separately
   store.updateTransactionData({
     amount: newVal.creditAmount,
     reason: newVal.creditReason
   });
 }, { deep: true });
+
+// Handle Blur to Save to Backend + Validate
+function handleBlur(field) {
+    if (field === 'creditAmount') {
+        validateField('creditAmount', formData.creditAmount, ['required', 'numeric']);
+    } else if (field === 'companyName') {
+        validateField('companyName', formData.companyName, ['required']);
+    } else if (field === 'authorizedName') {
+        validateField('authorizedName', formData.authorizedName, ['required', 'text']);
+    } else if (field === 'authorizedPosition') {
+        validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text']);
+    } else if (field === 'contactName') {
+        validateField('contactName', formData.contactName, ['required', 'text']);
+    } else if (field === 'contactPosition') {
+        validateField('contactPosition', formData.contactPosition, ['required', 'text']);
+    } else if (field === 'contactPhone') {
+        validateField('contactPhone', formData.contactPhone, ['required', 'numeric']);
+    }
+
+    saveToBackend();
+}
+
+function saveToBackend() {
+    const updates = {};
+    updates.name = formData.companyName;
+    updates['VAT Registration No_'] = formData.taxId;
+    updates.authorized_person = formData.authorizedName;
+    updates.authorized_position = formData.authorizedPosition;
+
+    updates.authorized_person_2 = formData.authorizedName2;
+    updates.authorized_position_2 = formData.authorizedPosition2;
+    updates.business_type = formData.businessType;
+    updates.main_products = formData.mainProducts;
+    updates.years_in_business = formData.yearsInBusiness;
+
+    updates.contact_person = formData.contactName;
+    updates.contact_position = formData.contactPosition;
+    updates.contact_phone_number = formData.contactPhone;
+
+    // Call generic action to save to DB
+    store.saveCustomerData(updates);
+}
 
 function toggleEdit() {
   isEditing.value = !isEditing.value;

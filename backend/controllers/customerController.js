@@ -68,7 +68,12 @@ exports.searchCustomers = async (req, res) => {
         "authorized_person",
         "authorized_position",
         "contact_position",
-        "contact_phone_number"
+        "contact_phone_number",
+        "authorized_person_2",
+        "authorized_position_2",
+        "business_type",
+        "main_products",
+        "years_in_business"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR
@@ -90,7 +95,16 @@ exports.searchCustomers = async (req, res) => {
         "Address",
         "City",
         "County",
-        "Post Code"
+        "Post Code",
+        "authorized_person",
+        "authorized_position",
+        "contact_position",
+        "contact_phone_number",
+        "authorized_person_2",
+        "authorized_position_2",
+        "business_type",
+        "main_products",
+        "years_in_business"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR
@@ -266,7 +280,12 @@ exports.searchCustomers = async (req, res) => {
           store_location_type: row["store_location_type"] || "",
           store_location_type_other: row["store_location_type_other"] || "",
           store_ownership: row["store_ownership"] || "",
-          store_ownership_other: row["store_ownership_other"] || ""
+          store_ownership_other: row["store_ownership_other"] || "",
+          authorized_person_2: row["authorized_person_2"] || "",
+          authorized_position_2: row["authorized_position_2"] || "",
+          business_type: row["business_type"] || "",
+          main_products: row["main_products"] || "",
+          years_in_business: row["years_in_business"] || ""
         },
         history: history,
         financial_summary: financialSummary,
@@ -377,7 +396,13 @@ exports.updateCustomer = async (req, res) => {
     'store_location_type',
     'store_location_type_other',
     'store_ownership',
-    'store_ownership_other'
+    'store_ownership_other',
+    'authorized_person_2',
+    'authorized_position_2',
+    'business_type',
+    'main_products',
+    'years_in_business',
+    'VAT Registration No_'
   ];
 
   const keysToUpdate = Object.keys(updates).filter(key => allowedColumns.includes(key));

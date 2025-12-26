@@ -100,7 +100,13 @@ const initDB = async () => {
             'store_location_type',
             'store_location_type_other',
             'store_ownership',
-            'store_ownership_other'
+            'store_ownership_other',
+            // New columns for Signatory 2 and Business Info
+            'authorized_person_2',
+            'authorized_position_2',
+            'business_type',
+            'main_products',
+            'years_in_business'
         ];
 
         for (const col of coordinateColumns) {
