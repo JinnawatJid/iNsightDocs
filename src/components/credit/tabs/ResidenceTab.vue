@@ -153,67 +153,59 @@
         </div>
        </div>
 
-        <!-- Location Type Split -->
-        <div class="form-group">
-          <div class="split-form-group">
-            <div class="half-width">
-               <label>ลักษณะที่ตั้ง <span class="text-red-500">*</span></label>
-               <select
-                  class="form-control"
-                  :class="{ 'disabled': !isEditing }"
-                  :disabled="!isEditing"
-                  v-model="formData.locationTypeSelect"
-                >
-                  <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
-                  <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
-                  <option value="สำนักงานบนอาคารชุด">สำนักงานบนอาคารชุด</option>
-                  <option value="บ้าน">บ้าน</option>
-                  <option value="โรงงาน">โรงงาน</option>
-                </select>
-            </div>
-             <div class="half-width">
-                <label>คำอธิบายเพิ่มเติม</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  :class="{ 'disabled': !isEditing }"
-                  :disabled="!isEditing"
-                  v-model="formData.locationTypeOther"
-                  placeholder="ระบุ..."
-                />
-             </div>
+        <!-- Location Type and Ownership Grid -->
+        <div class="form-grid-four">
+          <div class="form-group">
+             <label>ลักษณะที่ตั้ง <span class="text-red-500">*</span></label>
+             <select
+                class="form-control"
+                :class="{ 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.locationTypeSelect"
+              >
+                <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
+                <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
+                <option value="สำนักงานบนอาคารชุด">สำนักงานบนอาคารชุด</option>
+                <option value="บ้าน">บ้าน</option>
+                <option value="โรงงาน">โรงงาน</option>
+              </select>
           </div>
-        </div>
-
-        <!-- Ownership Split -->
-        <div class="form-group">
-           <div class="split-form-group">
-             <div class="half-width">
-               <label>กรรมสิทธิ์ทรัพย์สิน <span class="text-red-500">*</span></label>
-               <select
-                  class="form-control"
-                  :class="{ 'disabled': !isEditing }"
-                  :disabled="!isEditing"
-                  v-model="formData.ownershipSelect"
-                >
-                  <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
-                  <option value="บ้านตนเอง">บ้านตนเอง</option>
-                  <option value="บ้านญาติ">บ้านญาติ</option>
-                  <option value="บ้านเช่า">บ้านเช่า</option>
-                  <option value="บ้านบิดา/มารดา">บ้านบิดา/มารดา</option>
-                </select>
-             </div>
-             <div class="half-width">
-                <label>{{ ownershipLabel }}</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  :class="{ 'disabled': !isEditing }"
-                  :disabled="!isEditing"
-                  v-model="formData.ownershipOther"
-                  placeholder="ระบุ..."
-                />
-             </div>
+           <div class="form-group">
+              <label>คำอธิบายเพิ่มเติม</label>
+              <input
+                type="text"
+                class="form-control"
+                :class="{ 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.locationTypeOther"
+                placeholder="ระบุ..."
+              />
+           </div>
+           <div class="form-group">
+             <label>กรรมสิทธิ์ทรัพย์สิน <span class="text-red-500">*</span></label>
+             <select
+                class="form-control"
+                :class="{ 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.ownershipSelect"
+              >
+                <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
+                <option value="บ้านตนเอง">บ้านตนเอง</option>
+                <option value="บ้านญาติ">บ้านญาติ</option>
+                <option value="บ้านเช่า">บ้านเช่า</option>
+                <option value="บ้านบิดา/มารดา">บ้านบิดา/มารดา</option>
+              </select>
+           </div>
+           <div class="form-group">
+              <label>{{ ownershipLabel }}</label>
+              <input
+                type="text"
+                class="form-control"
+                :class="{ 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.ownershipOther"
+                placeholder="ระบุ..."
+              />
            </div>
         </div>
 
@@ -431,6 +423,25 @@ function toggleEdit() {
 .form-grid-complex {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+@media (max-width: 1024px) {
+  .form-grid-four {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .form-grid-four {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-grid-four {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 15px;
   margin-bottom: 15px;
 }
