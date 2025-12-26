@@ -57,10 +57,8 @@
       </div>
     </div>
 
-    <!-- Authorized Signatories Section (Header removed) -->
+    <!-- Authorized Signatories Section -->
     <div class="personal-info-section">
-      <!-- Header removed -->
-
       <!-- Signatory 1 -->
       <div class="form-layout-columns">
          <div class="column-layout">
@@ -183,103 +181,6 @@
           </div>
       </div>
     </div>
-
-    <!-- Contact Info Section -->
-    <div class="personal-info-section">
-      <div class="section-header">
-        <h3>ตรวจสอบข้อมูลผู้ติดต่อ</h3>
-        <div class="checkbox-wrapper">
-          <input
-            type="checkbox"
-            id="sameAsAuthorized"
-            v-model="isSameAsAuthorized"
-            :disabled="!isEditing"
-          />
-          <label for="sameAsAuthorized">ข้อมูลเดียวกับผู้มีอำนาจลงนาม</label>
-        </div>
-      </div>
-      <div class="grid-three-col">
-        <div class="form-group">
-          <label>ชื่อผู้ติดต่อ <span class="text-red-500">*</span></label>
-          <input
-            type="text"
-            class="form-input"
-            :class="{ 'border-red-500': errors.contactName, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="formData.contactName"
-            @input="validateField('contactName', formData.contactName, ['required', 'text'])"
-            @blur="handleBlur('contactName')"
-          />
-          <span v-if="errors.contactName" class="error-text">{{ errors.contactName }}</span>
-        </div>
-        <div class="form-group">
-          <label>ตำแหน่งผู้ติดต่อ <span class="text-red-500">*</span></label>
-           <input
-            type="text"
-            class="form-input"
-            :class="{ 'border-red-500': errors.contactPosition, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="formData.contactPosition"
-            @input="validateField('contactPosition', formData.contactPosition, ['required', 'text'])"
-            @blur="handleBlur('contactPosition')"
-          />
-          <span v-if="errors.contactPosition" class="error-text">{{ errors.contactPosition }}</span>
-        </div>
-        <div class="form-group">
-          <label>เบอร์โทรผู้ติดต่อ <span class="text-red-500">*</span></label>
-           <input
-            type="text"
-            class="form-input"
-            :class="{ 'border-red-500': errors.contactPhone, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="formData.contactPhone"
-            @input="validateField('contactPhone', formData.contactPhone, ['required', 'numeric'])"
-            @blur="handleBlur('contactPhone')"
-          />
-          <span v-if="errors.contactPhone" class="error-text">{{ errors.contactPhone }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Credit Details Section (Moved to bottom) -->
-    <div class="personal-info-section">
-      <div class="section-header">
-        <h3>รายละเอียดการขอเครดิต</h3>
-      </div>
-      <div class="form-layout-columns">
-         <div class="column-layout">
-            <div class="form-group">
-              <label>วงเงินสินเชื่อที่ต้องการ <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                class="form-input"
-                :class="{ 'border-red-500': errors.creditAmount, 'disabled': !isEditing }"
-                :disabled="!isEditing"
-                placeholder="เจ้าหน้าที่ใส่"
-                v-model="formData.creditAmount"
-                @input="(e) => { restrictCreditAmountInput(e); validateField('creditAmount', e.target.value, ['required', 'numeric']); }"
-                @blur="handleBlur('creditAmount')"
-              />
-              <span v-if="errors.creditAmount" class="error-text">{{ errors.creditAmount }}</span>
-            </div>
-         </div>
-         <div class="column-layout">
-            <div class="form-group">
-              <label>เหตุผลการขอเครดิต <span class="text-red-500">*</span></label>
-              <select
-                class="form-input"
-                :class="{ 'disabled': !isEditing }"
-                :disabled="!isEditing"
-                v-model="formData.creditReason"
-                @change="saveToBackend"
-              >
-                  <option value="สต๊อคสินค้า">สต๊อคสินค้า</option>
-                  <option value="รับโปรเจค">รับโปรเจค</option>
-              </select>
-            </div>
-         </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -291,14 +192,12 @@ import { useFormValidation } from '@/composables/useFormValidation';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
-const { errors, validateField, restrictCreditAmountInput } = useFormValidation();
+const { errors, validateField } = useFormValidation();
 
 const isEditing = ref(!props.readOnly);
 watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
-
-const isSameAsAuthorized = ref(false);
 
 const validBusinessTypes = [
   'ผู้ติดตั้งรายใหญ่',
@@ -333,12 +232,7 @@ const formData = reactive({
   businessType: '',
   businessTypeOther: '',
   mainProducts: '',
-  yearsInBusiness: '',
-  contactName: '',
-  contactPosition: '',
-  contactPhone: '',
-  creditAmount: '',
-  creditReason: 'สต๊อคสินค้า'
+  yearsInBusiness: ''
 });
 
 function restrictNumeric(e) {
@@ -347,41 +241,6 @@ function restrictNumeric(e) {
   e.target.value = val;
   formData.yearsInBusiness = val;
 }
-
-// Helper to format phone similar to StoreCompanyTab/ResidenceTab
-function formatPhoneNumber(phone) {
-  if (!phone) return '';
-  const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.length === 10) {
-    return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-  } else if (cleaned.length === 9) {
-     if (cleaned.startsWith('02')) {
-       return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
-     }
-     return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
-  }
-  return phone;
-}
-
-// Watch isSameAsAuthorized for toggling
-watch(isSameAsAuthorized, (isSame) => {
-  if (isSame) {
-    formData.contactName = formData.authorizedName;
-    formData.contactPosition = formData.authorizedPosition;
-
-    if (store.customer) {
-        formData.contactPhone = formatPhoneNumber(store.customer.phone || '');
-    }
-  }
-});
-
-// Also watch authorized fields to sync if checkbox is checked
-watch(() => [formData.authorizedName, formData.authorizedPosition], ([newName, newPos]) => {
-    if (isSameAsAuthorized.value) {
-        formData.contactName = newName;
-        formData.contactPosition = newPos;
-    }
-});
 
 // Initialize from store
 watch(() => store.customer, (newVal, oldVal) => {
@@ -398,7 +257,6 @@ watch(() => store.customer, (newVal, oldVal) => {
       : '';
 
     const authName = (newVal.authorized_person) ? newVal.authorized_person : contact;
-    const contactName = contact;
 
     if (formData.companyName !== company) formData.companyName = company;
 
@@ -421,9 +279,6 @@ watch(() => store.customer, (newVal, oldVal) => {
         formData.businessType = 'อื่นๆ';
         formData.businessTypeOther = businessVal;
     } else {
-        // Only reset if it's a new customer OR if we aren't currently editing 'Other'
-        // This prevents the empty value from the store (due to initial save of empty string)
-        // from resetting the dropdown while we are trying to type in the 'Other' input.
         if (isNewCustomer || formData.businessType !== 'อื่นๆ') {
             formData.businessType = '';
             formData.businessTypeOther = '';
@@ -432,24 +287,9 @@ watch(() => store.customer, (newVal, oldVal) => {
 
     if (formData.mainProducts !== newVal.main_products) formData.mainProducts = newVal.main_products || '';
     if (formData.yearsInBusiness !== newVal.years_in_business) formData.yearsInBusiness = newVal.years_in_business || '';
-
-    if (formData.contactName !== contactName) formData.contactName = contactName;
-    if (formData.contactPosition !== newVal.contact_position) formData.contactPosition = newVal.contact_position || '';
-    if (formData.contactPhone !== newVal.contact_phone_number) formData.contactPhone = newVal.contact_phone_number || '';
   }
 }, { immediate: true, deep: true });
 
-// Initialize Transaction Data from store (e.g. from existing request)
-watch(() => store.transactionData, (newVal) => {
-    if (newVal) {
-        if (newVal.amount && formData.creditAmount !== newVal.amount) {
-             formData.creditAmount = newVal.amount;
-        }
-        if (newVal.reason && formData.creditReason !== newVal.reason) {
-             formData.creditReason = newVal.reason;
-        }
-    }
-}, { immediate: true, deep: true });
 
 // Sync changes locally to store on change
 watch(formData, (newVal) => {
@@ -468,35 +308,18 @@ watch(formData, (newVal) => {
   updates.main_products = newVal.mainProducts;
   updates.years_in_business = newVal.yearsInBusiness;
 
-  updates.contact_person = newVal.contactName;
-  updates.contact_position = newVal.contactPosition;
-  updates.contact_phone_number = newVal.contactPhone;
-
   // Update store ONLY (no API call)
   store.updateCustomerData(updates);
-
-  store.updateTransactionData({
-    amount: newVal.creditAmount,
-    reason: newVal.creditReason
-  });
 }, { deep: true });
 
 // Handle Blur to Save to Backend + Validate
 function handleBlur(field) {
-    if (field === 'creditAmount') {
-        validateField('creditAmount', formData.creditAmount, ['required', 'numeric']);
-    } else if (field === 'companyName') {
+    if (field === 'companyName') {
         validateField('companyName', formData.companyName, ['required']);
     } else if (field === 'authorizedName') {
         validateField('authorizedName', formData.authorizedName, ['required', 'text']);
     } else if (field === 'authorizedPosition') {
         validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text']);
-    } else if (field === 'contactName') {
-        validateField('contactName', formData.contactName, ['required', 'text']);
-    } else if (field === 'contactPosition') {
-        validateField('contactPosition', formData.contactPosition, ['required', 'text']);
-    } else if (field === 'contactPhone') {
-        validateField('contactPhone', formData.contactPhone, ['required', 'numeric']);
     }
 
     saveToBackend();
@@ -517,10 +340,6 @@ function saveToBackend() {
 
     updates.main_products = formData.mainProducts;
     updates.years_in_business = formData.yearsInBusiness;
-
-    updates.contact_person = formData.contactName;
-    updates.contact_position = formData.contactPosition;
-    updates.contact_phone_number = formData.contactPhone;
 
     // Call generic action to save to DB
     store.saveCustomerData(updates);

@@ -26,6 +26,7 @@ import ResidenceTab from './tabs/ResidenceTab.vue';
 import GeneralInfoTab from './tabs/GeneralInfoTab.vue';
 import StoreCompanyTab from './tabs/StoreCompanyTab.vue';
 import StoreStatementTab from './tabs/StoreStatementTab.vue';
+import RequestInfoTab from './tabs/RequestInfoTab.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 export default {
@@ -34,7 +35,8 @@ export default {
     ResidenceTab,
     GeneralInfoTab,
     StoreCompanyTab,
-    StoreStatementTab
+    StoreStatementTab,
+    RequestInfoTab
   },
   props: ['readOnly'],
   setup() {
@@ -43,12 +45,13 @@ export default {
   },
   data() {
     return {
-      currentTab: 'general'
+      currentTab: 'requestInfo'
     };
   },
   computed: {
     tabs() {
       const allTabs = [
+        { id: 'requestInfo', label: 'ข้อมูลคำขอ' },
         { id: 'general', label: 'ข้อมูลทั่วไป' },
         { id: 'residence', label: 'ที่อยู่อาศัย' },
         { id: 'store', label: 'ที่อยู่ร้านค้า/บริษัท' },
@@ -65,6 +68,8 @@ export default {
     },
     currentTabComponent() {
       switch (this.currentTab) {
+        case 'requestInfo':
+          return 'RequestInfoTab';
         case 'general':
           return 'GeneralInfoTab';
         case 'residence':
@@ -74,7 +79,7 @@ export default {
         case 'financial':
           return 'StoreStatementTab';
         default:
-          return 'GeneralInfoTab';
+          return 'RequestInfoTab';
       }
     }
   }
