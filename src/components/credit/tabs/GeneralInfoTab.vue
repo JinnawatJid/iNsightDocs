@@ -141,12 +141,20 @@
                 @change="saveToBackend"
               >
                   <option value="" disabled selected>เลือกประเภท</option>
-                  <option value="ซื้อมา-ขายไป">ซื้อมา-ขายไป</option>
-                  <option value="บริการ">บริการ</option>
-                  <option value="ผลิต">ผลิต</option>
-                  <option value="รับเหมาก่อสร้าง">รับเหมาก่อสร้าง</option>
+                  <option v-for="type in validBusinessTypes" :key="type" :value="type">{{ type }}</option>
                   <option value="อื่นๆ">อื่นๆ</option>
               </select>
+              <input
+                v-if="formData.businessType === 'อื่นๆ'"
+                type="text"
+                class="form-input"
+                style="margin-top: 10px;"
+                :class="{ 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.businessTypeOther"
+                placeholder="ระบุประเภทกิจการ"
+                @blur="saveToBackend"
+              />
           </div>
           <div class="form-group">
              <label>ระบุสินค้าหลัก</label>
@@ -292,6 +300,15 @@ watch(() => props.readOnly, (val) => {
 
 const isSameAsAuthorized = ref(false);
 
+const validBusinessTypes = [
+  'ผู้ติดตั้งรายใหญ่',
+  'ผู้ติดตั้งรายย่อย',
+  'ซื้อมาขายไป',
+  'โรงงานอุตสาหกรรม',
+  'รับเหมาก่อสร้าง',
+  'ร้านทำกรอบรูป'
+];
+
 const files = reactive({
   idCard: null,
   homeReg: null
@@ -314,6 +331,7 @@ const formData = reactive({
   authorizedName2: '',
   authorizedPosition2: '',
   businessType: '',
+  businessTypeOther: '',
   mainProducts: '',
   yearsInBusiness: '',
   contactName: '',
@@ -366,8 +384,11 @@ watch(() => [formData.authorizedName, formData.authorizedPosition], ([newName, n
 });
 
 // Initialize from store
-watch(() => store.customer, (newVal) => {
+watch(() => store.customer, (newVal, oldVal) => {
   if (newVal) {
+    // Check if it's a new customer search (ID changed)
+    const isNewCustomer = !oldVal || (newVal.id !== oldVal.id);
+
     const contact = (newVal.contact_person !== undefined && newVal.contact_person !== null)
       ? newVal.contact_person
       : '';
@@ -390,7 +411,25 @@ watch(() => store.customer, (newVal) => {
     // New Fields
     if (formData.authorizedName2 !== newVal.authorized_person_2) formData.authorizedName2 = newVal.authorized_person_2 || '';
     if (formData.authorizedPosition2 !== newVal.authorized_position_2) formData.authorizedPosition2 = newVal.authorized_position_2 || '';
-    if (formData.businessType !== newVal.business_type) formData.businessType = newVal.business_type || '';
+
+    // Business Type Logic
+    const businessVal = newVal.business_type || '';
+    if (validBusinessTypes.includes(businessVal)) {
+        formData.businessType = businessVal;
+        formData.businessTypeOther = '';
+    } else if (businessVal) {
+        formData.businessType = 'อื่นๆ';
+        formData.businessTypeOther = businessVal;
+    } else {
+        // Only reset if it's a new customer OR if we aren't currently editing 'Other'
+        // This prevents the empty value from the store (due to initial save of empty string)
+        // from resetting the dropdown while we are trying to type in the 'Other' input.
+        if (isNewCustomer || formData.businessType !== 'อื่นๆ') {
+            formData.businessType = '';
+            formData.businessTypeOther = '';
+        }
+    }
+
     if (formData.mainProducts !== newVal.main_products) formData.mainProducts = newVal.main_products || '';
     if (formData.yearsInBusiness !== newVal.years_in_business) formData.yearsInBusiness = newVal.years_in_business || '';
 
@@ -422,7 +461,10 @@ watch(formData, (newVal) => {
 
   updates.authorized_person_2 = newVal.authorizedName2;
   updates.authorized_position_2 = newVal.authorizedPosition2;
-  updates.business_type = newVal.businessType;
+
+  // Combine Business Type
+  updates.business_type = newVal.businessType === 'อื่นๆ' ? newVal.businessTypeOther : newVal.businessType;
+
   updates.main_products = newVal.mainProducts;
   updates.years_in_business = newVal.yearsInBusiness;
 
@@ -469,7 +511,10 @@ function saveToBackend() {
 
     updates.authorized_person_2 = formData.authorizedName2;
     updates.authorized_position_2 = formData.authorizedPosition2;
-    updates.business_type = formData.businessType;
+
+    // Combine Business Type
+    updates.business_type = formData.businessType === 'อื่นๆ' ? formData.businessTypeOther : formData.businessType;
+
     updates.main_products = formData.mainProducts;
     updates.years_in_business = formData.yearsInBusiness;
 
