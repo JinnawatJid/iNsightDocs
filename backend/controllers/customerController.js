@@ -77,7 +77,9 @@ exports.searchCustomers = async (req, res) => {
         "authorized_position_2",
         "business_type",
         "main_products",
-        "years_in_business"
+        "years_in_business",
+        "contact_department",
+        "contact_division"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR
@@ -108,7 +110,9 @@ exports.searchCustomers = async (req, res) => {
         "authorized_position_2",
         "business_type",
         "main_products",
-        "years_in_business"
+        "years_in_business",
+        "contact_department",
+        "contact_division"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR
@@ -291,7 +295,9 @@ exports.searchCustomers = async (req, res) => {
           authorized_position_2: row["authorized_position_2"] || "",
           business_type: row["business_type"] || "",
           main_products: row["main_products"] || "",
-          years_in_business: row["years_in_business"] || ""
+          years_in_business: row["years_in_business"] || "",
+          contact_department: row["contact_department"] || "",
+          contact_division: row["contact_division"] || ""
         },
         history: history,
         financial_summary: financialSummary,
@@ -407,6 +413,8 @@ exports.updateCustomer = async (req, res) => {
     'business_type',
     'main_products',
     'years_in_business',
+    'contact_department',
+    'contact_division',
     'VAT Registration No_',
     'Phone No_',
     'Fax No_',

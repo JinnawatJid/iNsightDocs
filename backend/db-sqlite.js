@@ -106,7 +106,10 @@ const initDB = async () => {
             'authorized_position_2',
             'business_type',
             'main_products',
-            'years_in_business'
+            'years_in_business',
+            // New columns for Contact Department and Division
+            'contact_department',
+            'contact_division'
         ];
 
         for (const col of coordinateColumns) {
