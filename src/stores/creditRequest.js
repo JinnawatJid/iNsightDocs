@@ -36,8 +36,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     approvalChanceLevel: (state) => {
-      // Total docs tracked = 4 (2 from GeneralInfo, 2 from Residence)
-      const totalDocs = 4;
+      // Total docs tracked = 5 (2 from GeneralInfo, 2 from Residence, 1 from RequestInfo)
+      const totalDocs = 5;
       const count = Object.values(state.files).filter(f => !!f).length;
       const ratio = count / totalDocs;
 
@@ -47,7 +47,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     approvalChancePercent: (state) => {
-      const totalDocs = 4;
+      const totalDocs = 5;
       const count = Object.values(state.files).filter(f => !!f).length;
       return Math.min(100, Math.round((count / totalDocs) * 100));
     },

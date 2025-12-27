@@ -87,7 +87,7 @@ export default {
         }
 
         // Check if mandatory files are present
-        const commonFiles = ['id_card', 'home_reg', 'home_photo', 'land_tax'];
+        const commonFiles = ['id_card', 'home_reg', 'home_photo', 'land_tax', 'credit_application_doc'];
         let requiredFiles = [...commonFiles];
 
         if (store.isCompany) {

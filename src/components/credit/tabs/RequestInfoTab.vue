@@ -1,5 +1,27 @@
 <template>
   <div class="request-info-tab">
+    <!-- Upload Section -->
+    <div class="upload-section">
+      <div class="upload-grid">
+        <FileUploader
+          label="เอกสารขอเปิดเครดิต"
+          required
+          v-model="files.creditApp"
+          :disabled="!isEditing"
+        />
+        <FileUploader
+          label="ใบเสนอราคา (ถ้ามี)"
+          v-model="files.quotation"
+          :disabled="!isEditing"
+        />
+        <FileUploader
+          label="Bank Guarantee (ถ้ามี)"
+          v-model="files.bankGuarantee"
+          :disabled="!isEditing"
+        />
+      </div>
+    </div>
+
     <!-- Contact Info Section -->
     <div class="personal-info-section">
       <div class="section-header">
@@ -102,6 +124,7 @@
 
 <script setup>
 import { reactive, watch, ref } from 'vue';
+import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 
@@ -116,6 +139,34 @@ watch(() => props.readOnly, (val) => {
 
 // Checkbox logic (kept but unused/hidden for now)
 const isSameAsAuthorized = ref(false);
+
+const files = reactive({
+  creditApp: null,
+  quotation: null,
+  bankGuarantee: null
+});
+
+// Watch for file changes to update store
+watch(() => files.creditApp, (newVal) => {
+  store.updateFile('credit_application_doc', newVal);
+});
+
+watch(() => files.quotation, (newVal) => {
+  store.updateFile('quotation_doc', newVal);
+});
+
+watch(() => files.bankGuarantee, (newVal) => {
+  store.updateFile('bank_guarantee_doc', newVal);
+});
+
+// Initialize files from store (to support Edit mode or tab switching)
+watch(() => store.files, (newVal) => {
+  if (newVal) {
+    if (newVal.credit_application_doc !== undefined) files.creditApp = newVal.credit_application_doc;
+    if (newVal.quotation_doc !== undefined) files.quotation = newVal.quotation_doc;
+    if (newVal.bank_guarantee_doc !== undefined) files.bankGuarantee = newVal.bank_guarantee_doc;
+  }
+}, { immediate: true, deep: true });
 
 const formData = reactive({
   contactName: '',
@@ -240,5 +291,12 @@ function saveToBackend() {
   grid-template-columns: 1fr 1fr 1fr;
   gap: 15px;
   margin-top: 15px;
+}
+
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 40px;
 }
 </style>
