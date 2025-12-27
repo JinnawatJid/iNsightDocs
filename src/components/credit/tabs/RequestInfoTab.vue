@@ -55,7 +55,7 @@
           <span v-if="errors.contactName" class="error-text">{{ errors.contactName }}</span>
         </div>
         <div class="form-group">
-          <label>ตำแหน่งผู้ติดต่อ <span class="text-red-500">*</span></label>
+          <label>ตำแหน่ง <span class="text-red-500">*</span></label>
            <input
             type="text"
             class="form-input"
@@ -68,7 +68,7 @@
           <span v-if="errors.contactPosition" class="error-text">{{ errors.contactPosition }}</span>
         </div>
         <div class="form-group">
-          <label>แผนก (Department)</label>
+          <label>แผนก</label>
            <input
             type="text"
             class="form-input"
@@ -83,7 +83,7 @@
 
         <!-- Row 2 -->
         <div class="form-group">
-          <label>ฝ่าย (Division)</label>
+          <label>ฝ่าย</label>
            <input
             type="text"
             class="form-input"
