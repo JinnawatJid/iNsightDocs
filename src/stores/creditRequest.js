@@ -22,6 +22,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     // Transaction Data (Separate from Customer Data)
     transactionData: {
       amount: '',
+      creditTerm: '',
       reason: 'สต๊อคสินค้า'
     },
 
@@ -139,9 +140,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           }
 
           // Update transaction data (amount/reason) if present
-          if (resData.request_amount || resData.request_reason) {
+          if (resData.request_amount || resData.request_reason || resData.request_credit_term) {
             this.transactionData = {
               amount: resData.request_amount || '',
+              creditTerm: resData.request_credit_term || '',
               reason: resData.request_reason || 'สต๊อคสินค้า'
             };
           }

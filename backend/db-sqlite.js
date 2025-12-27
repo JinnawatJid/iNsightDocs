@@ -134,6 +134,7 @@ const initDB = async () => {
             status TEXT,
             request_amount REAL,
             request_reason TEXT,
+            request_credit_term REAL,
             snapshot_data TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
@@ -142,6 +143,7 @@ const initDB = async () => {
         const creditRequestColumns = [
             { name: 'request_amount', type: 'REAL' },
             { name: 'request_reason', type: 'TEXT' },
+            { name: 'request_credit_term', type: 'REAL' },
             { name: 'snapshot_data', type: 'TEXT' }
         ];
 
