@@ -37,7 +37,10 @@
           <label for="sameAsAuthorized">ข้อมูลเดียวกับผู้มีอำนาจลงนาม</label>
         </div>
       </div>
-      <div class="grid-three-col">
+
+      <!-- New Layout: 2 Rows -->
+      <div class="contact-grid-layout">
+        <!-- Row 1 -->
         <div class="form-group">
           <label>ชื่อผู้ติดต่อ <span class="text-red-500">*</span></label>
           <input
@@ -52,7 +55,7 @@
           <span v-if="errors.contactName" class="error-text">{{ errors.contactName }}</span>
         </div>
         <div class="form-group">
-          <label>ตำแหน่งผู้ติดต่อ <span class="text-red-500">*</span></label>
+          <label>ตำแหน่ง <span class="text-red-500">*</span></label>
            <input
             type="text"
             class="form-input"
@@ -63,6 +66,34 @@
             @blur="handleBlur('contactPosition')"
           />
           <span v-if="errors.contactPosition" class="error-text">{{ errors.contactPosition }}</span>
+        </div>
+        <div class="form-group">
+          <label>แผนก</label>
+           <input
+            type="text"
+            class="form-input"
+            :class="{ 'border-red-500': errors.contactDepartment, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.contactDepartment"
+            @input="validateField('contactDepartment', formData.contactDepartment, ['text'])"
+            @blur="handleBlur('contactDepartment')"
+          />
+          <span v-if="errors.contactDepartment" class="error-text">{{ errors.contactDepartment }}</span>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="form-group">
+          <label>ฝ่าย</label>
+           <input
+            type="text"
+            class="form-input"
+            :class="{ 'border-red-500': errors.contactDivision, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.contactDivision"
+            @input="validateField('contactDivision', formData.contactDivision, ['text'])"
+            @blur="handleBlur('contactDivision')"
+          />
+          <span v-if="errors.contactDivision" class="error-text">{{ errors.contactDivision }}</span>
         </div>
         <div class="form-group">
           <label>เบอร์โทรผู้ติดต่อ <span class="text-red-500">*</span></label>
@@ -77,6 +108,7 @@
           />
           <span v-if="errors.contactPhone" class="error-text">{{ errors.contactPhone }}</span>
         </div>
+        <div class="form-group"></div> <!-- Empty Placeholder -->
       </div>
     </div>
 
@@ -171,6 +203,8 @@ watch(() => store.files, (newVal) => {
 const formData = reactive({
   contactName: '',
   contactPosition: '',
+  contactDepartment: '',
+  contactDivision: '',
   contactPhone: '',
   creditAmount: '',
   creditReason: 'สต๊อคสินค้า'
@@ -186,6 +220,8 @@ watch(() => store.customer, (newVal) => {
     if (formData.contactName !== contact) formData.contactName = contact;
     if (formData.contactPosition !== newVal.contact_position) formData.contactPosition = newVal.contact_position || '';
     if (formData.contactPhone !== newVal.contact_phone_number) formData.contactPhone = newVal.contact_phone_number || '';
+    if (formData.contactDepartment !== newVal.contact_department) formData.contactDepartment = newVal.contact_department || '';
+    if (formData.contactDivision !== newVal.contact_division) formData.contactDivision = newVal.contact_division || '';
   }
 }, { immediate: true, deep: true });
 
@@ -207,6 +243,8 @@ watch(formData, (newVal) => {
   updates.contact_person = newVal.contactName;
   updates.contact_position = newVal.contactPosition;
   updates.contact_phone_number = newVal.contactPhone;
+  updates.contact_department = newVal.contactDepartment;
+  updates.contact_division = newVal.contactDivision;
 
   // Update store
   store.updateCustomerData(updates);
@@ -226,6 +264,10 @@ function handleBlur(field) {
         validateField('contactPhone', formData.contactPhone, ['required', 'numeric']);
     } else if (field === 'creditAmount') {
         validateField('creditAmount', formData.creditAmount, ['required', 'numeric']);
+    } else if (field === 'contactDepartment') {
+        validateField('contactDepartment', formData.contactDepartment, ['text']);
+    } else if (field === 'contactDivision') {
+        validateField('contactDivision', formData.contactDivision, ['text']);
     }
 
     saveToBackend();
@@ -236,6 +278,8 @@ function saveToBackend() {
     updates.contact_person = formData.contactName;
     updates.contact_position = formData.contactPosition;
     updates.contact_phone_number = formData.contactPhone;
+    updates.contact_department = formData.contactDepartment;
+    updates.contact_division = formData.contactDivision;
 
     store.saveCustomerData(updates);
 }
@@ -286,7 +330,8 @@ function saveToBackend() {
   cursor: not-allowed;
 }
 
-.grid-three-col {
+/* Updated Grid for 2 Rows */
+.contact-grid-layout {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 15px;
