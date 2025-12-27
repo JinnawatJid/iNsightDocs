@@ -2,7 +2,7 @@
   <div class="request-info-tab">
     <!-- Upload Section -->
     <div class="upload-section">
-      <div class="upload-grid-three">
+      <div class="upload-grid">
         <FileUploader
           label="เอกสารขอเปิดเครดิต"
           required
@@ -15,7 +15,7 @@
           :disabled="!isEditing"
         />
         <FileUploader
-          label="Bank Gurantee (ถ้ามี)"
+          label="Bank Guarantee (ถ้ามี)"
           v-model="files.bankGuarantee"
           :disabled="!isEditing"
         />
@@ -293,22 +293,10 @@ function saveToBackend() {
   margin-top: 15px;
 }
 
-.upload-grid-three {
+.upload-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
   margin-bottom: 40px;
-}
-
-@media (max-width: 1024px) {
-  .upload-grid-three {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 600px) {
-  .upload-grid-three {
-    grid-template-columns: 1fr;
-  }
 }
 </style>
