@@ -167,7 +167,7 @@
       <!-- Billing Information Section -->
       <div class="billing-info-section">
         <div class="form-group full-width">
-           <label class="section-label">1. ต้องมีการวางบิลหรือไม่</label>
+           <label class="section-label">ต้องมีการวางบิลหรือไม่</label>
            <div class="radio-group">
               <div class="checkbox-wrapper">
                   <input type="radio" id="billingReqYes" value="required" v-model="formData.billingRequirement" :disabled="!isEditing" @change="saveToBackend">
@@ -180,22 +180,23 @@
               <div class="checkbox-wrapper other-wrapper">
                   <input type="radio" id="billingReqOther" value="other" v-model="formData.billingRequirement" :disabled="!isEditing" @change="saveToBackend">
                   <label for="billingReqOther">อื่นๆ (ระบุ)</label>
-                  <input
-                    type="text"
-                    class="form-input inline-input"
-                    v-model="formData.billingRequirementNote"
-                    :disabled="!isEditing || formData.billingRequirement !== 'other'"
-                    @blur="saveToBackend"
-                  >
-                  <span>(ถ้ามี)</span>
+                  <div v-if="formData.billingRequirement === 'other'" class="flex items-center">
+                    <input
+                        type="text"
+                        class="form-input inline-input"
+                        v-model="formData.billingRequirementNote"
+                        :disabled="!isEditing"
+                        @blur="saveToBackend"
+                    >
+                    <span style="margin-left: 5px;">(ถ้ามี)</span>
+                  </div>
               </div>
            </div>
         </div>
 
         <div class="form-group full-width" v-if="formData.billingRequirement === 'required'">
            <label class="section-label">กรณีต้องวางบิลขอให้เลือกวิธีวางบิล ดังนี้</label>
-           <div class="radio-group vertical-group">
-             <div class="radio-row">
+           <div class="radio-group horizontal-group">
                 <div class="checkbox-wrapper">
                     <input type="radio" id="billingMethodDelivery" value="delivery" v-model="formData.billingMethod" :disabled="!isEditing" @change="saveToBackend">
                     <label for="billingMethodDelivery">พร้อมการส่งมอบสินค้า</label>
@@ -204,8 +205,6 @@
                     <input type="radio" id="billingMethodMail" value="mail" v-model="formData.billingMethod" :disabled="!isEditing" @change="saveToBackend">
                     <label for="billingMethodMail">ทางไปรษณีย์</label>
                 </div>
-             </div>
-             <div class="radio-row">
                 <div class="checkbox-wrapper">
                     <input type="radio" id="billingMethodCompany" value="company" v-model="formData.billingMethod" :disabled="!isEditing" @change="saveToBackend">
                     <label for="billingMethodCompany">ที่บริษัท ร้านค้า</label>
@@ -214,24 +213,20 @@
                     <input type="radio" id="billingMethodOther" value="other" v-model="formData.billingMethod" :disabled="!isEditing" @change="saveToBackend">
                     <label for="billingMethodOther">อื่นๆ</label>
                     <input
+                      v-if="formData.billingMethod === 'other'"
                       type="text"
                       class="form-input inline-input"
                       v-model="formData.billingMethodNote"
-                      :disabled="!isEditing || formData.billingMethod !== 'other'"
+                      :disabled="!isEditing"
                       @blur="saveToBackend"
                     >
                 </div>
-             </div>
            </div>
-        </div>
-
-        <div class="billing-warning">
-           ** กรุณาแนบระเบียบการวางบิล/เก็บเช็คมาพร้อมกับเอกสารขออนุมัติเครดิตเพื่อความรวดเร็วในการพิจารณา **
         </div>
 
         <div class="billing-details-grid">
              <div class="form-group full-width">
-                <label>2. กำหนดวัน-เวลาวางบิล</label>
+                <label>กำหนดวัน-เวลาวางบิล</label>
                 <input
                   type="text"
                   class="form-input"
@@ -571,16 +566,14 @@ function saveToBackend() {
   flex-wrap: wrap;
 }
 
-.vertical-group {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+.horizontal-group {
+    flex-direction: row;
+    gap: 20px;
 }
 
-.radio-row {
-    display: flex;
-    gap: 20px;
-    align-items: center;
+/* Fix margin for radio labels as requested */
+:deep(.checkbox-wrapper label) {
+  margin-bottom: 0 !important;
 }
 
 .other-wrapper {
@@ -592,13 +585,6 @@ function saveToBackend() {
 .inline-input {
   width: 200px !important;
   margin-left: 5px;
-}
-
-.billing-warning {
-  color: red;
-  font-weight: bold;
-  text-align: center;
-  margin: 15px 0;
 }
 
 .billing-details-grid {
