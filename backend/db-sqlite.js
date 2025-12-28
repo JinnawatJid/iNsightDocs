@@ -157,7 +157,11 @@ const initDB = async () => {
             { name: 'request_amount', type: 'REAL' },
             { name: 'request_reason', type: 'TEXT' },
             { name: 'request_credit_term', type: 'REAL' },
-            { name: 'snapshot_data', type: 'TEXT' }
+            { name: 'snapshot_data', type: 'TEXT' },
+            { name: 'payment_method', type: 'TEXT' },
+            { name: 'payment_bank', type: 'TEXT' },
+            { name: 'payment_branch', type: 'TEXT' },
+            { name: 'payment_account_no', type: 'TEXT' }
         ];
 
         for (const col of creditRequestColumns) {
