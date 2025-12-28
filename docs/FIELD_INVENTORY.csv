@@ -1,0 +1,72 @@
+Tab,Section,Field Name,Type,Visual (*),Logic Enforced,Notes
+Request Info,File Attachments,Credit Application Document,File Upload,Yes,Yes (Submit),credit_application_doc
+Request Info,File Attachments,Quotation,File Upload,No,No,quotation
+Request Info,File Attachments,Bank Guarantee,File Upload,No,No,bank_guarantee_doc
+Request Info,File Attachments,Letter of Guarantee,File Upload,No,No,letter_guarantee_doc
+Request Info,Contact Information,Contact Name,Text,Yes,Local,contact_person
+Request Info,Contact Information,Position,Text,Yes,Local,contact_position
+Request Info,Contact Information,Department,Text,No,No,contact_department
+Request Info,Contact Information,Division,Text,No,No,contact_division
+Request Info,Contact Information,Phone,Number,Yes,Local,contact_phone_number
+Request Info,Credit Request Details,Credit Limit (Amount),Number,Yes,Local,request_amount
+Request Info,Credit Request Details,Credit Term (Days),Number,No,No,request_credit_term
+Request Info,Credit Request Details,Credit Reason,Dropdown,Yes,Local,Defaults to 'Stock Goods'
+Request Info,Billing Information,Billing Requirement,Dropdown,No,No,Default: Not Required
+Request Info,Billing Information,Billing Method,Dropdown,No,No,Conditional
+Request Info,Billing Information,Billing Schedule,Text,No,No,Conditional
+Request Info,Billing Information,Billing Contact Name,Text,No,No,Conditional
+Request Info,Billing Information,Billing Department,Text,No,No,Conditional
+Request Info,Billing Information,Billing Phone,Text,No,No,Conditional
+Request Info,Billing Information,Billing Mobile,Text,No,No,Conditional
+Request Info,Billing Information,Billing Email,Text,No,No,Conditional
+Request Info,Existing Credit Information,Company Name,Text,No,No,Dynamic List
+Request Info,Existing Credit Information,Goods,Text,No,No,Dynamic List
+Request Info,Existing Credit Information,Term,Text,No,No,Dynamic List
+Request Info,Existing Credit Information,Limit,Text,No,No,Dynamic List
+General Info,File Attachments,ID Card Copy,File Upload,Yes,Yes (Submit),id_card
+General Info,File Attachments,Home Registration Copy,File Upload,Yes,Yes (Submit),home_reg
+General Info,Company Information,Company Name,Text,Yes,Local,name
+General Info,Company Information,Tax ID,Text,No,No,VAT Registration No_
+General Info,Authorized Signatories,Signatory Name 1,Text,Yes,Local,authorized_person
+General Info,Authorized Signatories,Position 1,Text,Yes,Local,authorized_position
+General Info,Authorized Signatories,Signatory Name 2,Text,No,No,authorized_person_2
+General Info,Authorized Signatories,Position 2,Text,No,No,authorized_position_2
+General Info,Business Details,Business Type,Dropdown,No,No,business_type
+General Info,Business Details,Main Products,Text,No,No,main_products
+General Info,Business Details,Years in Business,Number,No,No,years_in_business
+Residence,File Attachments,Home Photo,File Upload,Yes,Yes (Submit),home_photo
+Residence,File Attachments,Land Tax Document,File Upload,Yes,Yes (Submit),land_tax
+Residence,Address Verification,Address (No/Street),Text,Yes,Local,address
+Residence,Address Verification,Subdistrict,Text,Yes,Local,subdistrict
+Residence,Address Verification,Post Code,Number,Yes,Local,zipcode
+Residence,Address Verification,District,Text,Yes,Local,district
+Residence,Address Verification,Province,Text,Yes,Local,province
+Residence,Address Verification,Phone,Number,Yes,Local,phone
+Residence,Address Verification,Fax,Text,No,No,fax
+Residence,Address Verification,Email,Text,No,No,email
+Residence,Property Details,Location Type,Dropdown,Yes,Local,residence_location_type
+Residence,Property Details,Ownership,Dropdown,Yes,Local,residence_ownership
+Residence,Property Details,Location Other,Text,No,No,Conditional
+Residence,Property Details,Ownership Value/Rent,Text,No,No,Conditional
+Residence,Map,Google Map Code,Text,No,No,residence_map_code
+Residence,Map,Landmark,Text,No,No,residence_landmark
+Residence,Map,Note,Text,No,No,residence_note
+Store / Company Address,File Attachments (Company),Certificate,File Upload,Yes,Yes (Submit),legal_entity_certificate
+Store / Company Address,File Attachments (Company),VAT P.P.20,File Upload,Yes,Yes (Submit),vat_document
+Store / Company Address,File Attachments (Company),Company Photo,File Upload,Yes,Yes (Submit),company_photo
+Store / Company Address,File Attachments (Company),Land Tax/Lease,File Upload,Yes,Yes (Submit),company_land_tax
+Store / Company Address,File Attachments (Individual),Commercial Reg.,File Upload,Yes,Yes (Submit),commercial_reg
+Store / Company Address,File Attachments (Individual),Store Photo,File Upload,Yes,Yes (Submit),store_photo
+Store / Company Address,File Attachments (Individual),Land Tax/Lease,File Upload,Yes,Yes (Submit),store_land_tax
+Store / Company Address,Address Verification,Address,Text,Yes,Local,address
+Store / Company Address,Address Verification,Subdistrict,Text,Yes,Local,subdistrict
+Store / Company Address,Address Verification,Post Code,Number,Yes,Local,zipcode
+Store / Company Address,Address Verification,District,Text,Yes,Local,district
+Store / Company Address,Address Verification,Province,Text,Yes,Local,province
+Store / Company Address,Address Verification,Phone,Number,Yes,Local,phone
+Store / Company Address,Address Verification,Location Type,Dropdown,Yes,Local,location_type
+Store / Company Address,Address Verification,Ownership,Dropdown,Yes,Local,ownership
+Financial,File Attachments,Bank Statement,File Upload,Yes,Yes (Submit),bank_statement
+Financial,Payment Details,Payment Method,Dropdown,Yes,Local,payment_method
+Financial,Payment Details,Bank Name,Dropdown,No,No,Conditional (if Transfer/Cheque)
+Financial,Payment Details,Branch,Text,No,No,Conditional (if Transfer/Cheque)
