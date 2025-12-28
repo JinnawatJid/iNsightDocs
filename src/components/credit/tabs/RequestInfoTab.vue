@@ -164,8 +164,8 @@
       <!-- Billing Information Section -->
       <div class="billing-info-section">
 
-        <!-- New Dropdown Row -->
-        <div class="billing-dropdown-grid">
+        <!-- New 3-Column Grid for Requirement, Method, and Schedule -->
+        <div class="form-grid-three-columns">
             <div class="form-group">
                <label>ต้องมีการวางบิลหรือไม่</label>
                <select
@@ -218,22 +218,22 @@
                     >
                 </div>
             </div>
-            <!-- Empty column if not required, to keep alignment if needed, or simply let the first col be alone -->
-            <div class="form-group" v-else></div>
+
+            <!-- Billing Schedule (Moved here, ensuring 3rd slot) -->
+            <div class="form-group" v-if="formData.billingRequirement !== 'not_required'">
+                <label>กำหนดวัน-เวลาวางบิล</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  v-model="formData.billingSchedule"
+                  :disabled="!isEditing"
+                  @blur="saveToBackend"
+                >
+             </div>
         </div>
 
         <div v-if="formData.billingRequirement !== 'not_required'">
             <div class="billing-details-grid">
-                 <div class="form-group full-width">
-                    <label>กำหนดวัน-เวลาวางบิล</label>
-                    <input
-                      type="text"
-                      class="form-input"
-                      v-model="formData.billingSchedule"
-                      :disabled="!isEditing"
-                      @blur="saveToBackend"
-                    >
-                 </div>
                  <div class="form-group full-width">
                     <label>ชื่อผู้ติดต่อรับวางบิล</label>
                     <input
@@ -546,15 +546,11 @@ function saveToBackend() {
   margin-top: 20px; /* Add margin-top since divider is gone */
 }
 
-.billing-dropdown-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
+/* Removed old .billing-dropdown-grid since we use .form-grid-three-columns now */
 
 .billing-details-grid {
     display: grid;
-    grid-template-columns: 1.5fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr; /* Adjusted for 2 items */
     gap: 15px;
 }
 
