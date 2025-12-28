@@ -160,6 +160,137 @@
               </select>
             </div>
       </div>
+
+      <!-- Billing Information Section -->
+      <div class="billing-info-section">
+
+        <!-- New 3-Column Grid for Requirement, Method, and Schedule -->
+        <div class="form-grid-three-columns">
+            <div class="form-group">
+               <label>ต้องมีการวางบิลหรือไม่</label>
+               <select
+                  class="form-input"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.billingRequirement"
+                  @change="saveToBackend"
+                >
+                    <option value="required">ต้องการ</option>
+                    <option value="not_required">ไม่ต้องการ</option>
+                    <option value="other">อื่นๆ (ระบุ)</option>
+                </select>
+                <!-- Other Input for Requirement -->
+                <div v-if="formData.billingRequirement === 'other'" style="margin-top: 10px;">
+                    <input
+                        type="text"
+                        class="form-input"
+                        placeholder="ระบุ (ถ้ามี)"
+                        v-model="formData.billingRequirementNote"
+                        :disabled="!isEditing"
+                        @blur="saveToBackend"
+                    >
+                </div>
+            </div>
+
+            <div class="form-group" v-if="formData.billingRequirement === 'required'">
+               <label>กรณีต้องวางบิลขอให้เลือกวิธีวางบิล</label>
+               <select
+                  class="form-input"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.billingMethod"
+                  @change="saveToBackend"
+                >
+                    <option value="delivery">พร้อมการส่งมอบสินค้า</option>
+                    <option value="mail">ทางไปรษณีย์</option>
+                    <option value="company">ที่บริษัท ร้านค้า</option>
+                    <option value="other">อื่นๆ</option>
+                </select>
+                 <!-- Other Input for Method -->
+                 <div v-if="formData.billingMethod === 'other'" style="margin-top: 10px;">
+                    <input
+                        type="text"
+                        class="form-input"
+                        placeholder="ระบุ"
+                        v-model="formData.billingMethodNote"
+                        :disabled="!isEditing"
+                        @blur="saveToBackend"
+                    >
+                </div>
+            </div>
+
+            <!-- Billing Schedule (Moved here, ensuring 3rd slot) -->
+            <div class="form-group" v-if="formData.billingRequirement !== 'not_required'">
+                <label>กำหนดวัน-เวลาวางบิล</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  v-model="formData.billingSchedule"
+                  :disabled="!isEditing"
+                  @blur="saveToBackend"
+                >
+             </div>
+        </div>
+
+        <div v-if="formData.billingRequirement !== 'not_required'">
+            <div class="billing-details-grid">
+                 <div class="form-group full-width">
+                    <label>ชื่อผู้ติดต่อรับวางบิล</label>
+                    <input
+                      type="text"
+                      class="form-input"
+                      v-model="formData.billingContact"
+                      :disabled="!isEditing"
+                      @blur="saveToBackend"
+                    >
+                 </div>
+                 <div class="form-group full-width">
+                    <label>แผนก</label>
+                    <input
+                      type="text"
+                      class="form-input"
+                      v-model="formData.billingDepartment"
+                      :disabled="!isEditing"
+                      @blur="saveToBackend"
+                    >
+                 </div>
+            </div>
+
+            <div class="billing-contact-grid">
+                 <div class="form-group">
+                    <label>โทรศัพท์</label>
+                    <input
+                      type="text"
+                      class="form-input"
+                      v-model="formData.billingPhone"
+                      :disabled="!isEditing"
+                      @blur="saveToBackend"
+                    >
+                 </div>
+                 <div class="form-group">
+                    <label>มือถือ</label>
+                    <input
+                      type="text"
+                      class="form-input"
+                      v-model="formData.billingMobile"
+                      :disabled="!isEditing"
+                      @blur="saveToBackend"
+                    >
+                 </div>
+                 <div class="form-group">
+                    <label>อีเมล</label>
+                    <input
+                      type="text"
+                      class="form-input"
+                      v-model="formData.billingEmail"
+                      :disabled="!isEditing"
+                      @blur="saveToBackend"
+                    >
+                 </div>
+            </div>
+        </div>
+
+      </div>
     </div>
   </div>
 </template>
@@ -218,7 +349,18 @@ const formData = reactive({
   contactPhone: '',
   creditAmount: '',
   creditTerm: '',
-  creditReason: 'สต๊อคสินค้า'
+  creditReason: 'สต๊อคสินค้า',
+  // Billing Info
+  billingRequirement: 'not_required', // default
+  billingRequirementNote: '',
+  billingMethod: '',
+  billingMethodNote: '',
+  billingSchedule: '',
+  billingContact: '',
+  billingDepartment: '',
+  billingPhone: '',
+  billingMobile: '',
+  billingEmail: ''
 });
 
 // Initialize from store
@@ -233,6 +375,18 @@ watch(() => store.customer, (newVal) => {
     if (formData.contactPhone !== newVal.contact_phone_number) formData.contactPhone = newVal.contact_phone_number || '';
     if (formData.contactDepartment !== newVal.contact_department) formData.contactDepartment = newVal.contact_department || '';
     if (formData.contactDivision !== newVal.contact_division) formData.contactDivision = newVal.contact_division || '';
+
+    // Billing Info Initialization
+    if (formData.billingRequirement !== newVal.billing_requirement && newVal.billing_requirement) formData.billingRequirement = newVal.billing_requirement;
+    if (formData.billingRequirementNote !== newVal.billing_requirement_note) formData.billingRequirementNote = newVal.billing_requirement_note || '';
+    if (formData.billingMethod !== newVal.billing_method) formData.billingMethod = newVal.billing_method || '';
+    if (formData.billingMethodNote !== newVal.billing_method_note) formData.billingMethodNote = newVal.billing_method_note || '';
+    if (formData.billingSchedule !== newVal.billing_schedule) formData.billingSchedule = newVal.billing_schedule || '';
+    if (formData.billingContact !== newVal.billing_contact) formData.billingContact = newVal.billing_contact || '';
+    if (formData.billingDepartment !== newVal.billing_department) formData.billingDepartment = newVal.billing_department || '';
+    if (formData.billingPhone !== newVal.billing_phone) formData.billingPhone = newVal.billing_phone || '';
+    if (formData.billingMobile !== newVal.billing_mobile) formData.billingMobile = newVal.billing_mobile || '';
+    if (formData.billingEmail !== newVal.billing_email) formData.billingEmail = newVal.billing_email || '';
   }
 }, { immediate: true, deep: true });
 
@@ -259,6 +413,18 @@ watch(formData, (newVal) => {
   updates.contact_phone_number = newVal.contactPhone;
   updates.contact_department = newVal.contactDepartment;
   updates.contact_division = newVal.contactDivision;
+
+  // Billing Info Updates
+  updates.billing_requirement = newVal.billingRequirement;
+  updates.billing_requirement_note = newVal.billingRequirementNote;
+  updates.billing_method = newVal.billingMethod;
+  updates.billing_method_note = newVal.billingMethodNote;
+  updates.billing_schedule = newVal.billingSchedule;
+  updates.billing_contact = newVal.billingContact;
+  updates.billing_department = newVal.billingDepartment;
+  updates.billing_phone = newVal.billingPhone;
+  updates.billing_mobile = newVal.billingMobile;
+  updates.billing_email = newVal.billingEmail;
 
   // Update store
   store.updateCustomerData(updates);
@@ -295,6 +461,18 @@ function saveToBackend() {
     updates.contact_phone_number = formData.contactPhone;
     updates.contact_department = formData.contactDepartment;
     updates.contact_division = formData.contactDivision;
+
+    // Billing Info Save
+    updates.billing_requirement = formData.billingRequirement;
+    updates.billing_requirement_note = formData.billingRequirementNote;
+    updates.billing_method = formData.billingMethod;
+    updates.billing_method_note = formData.billingMethodNote;
+    updates.billing_schedule = formData.billingSchedule;
+    updates.billing_contact = formData.billingContact;
+    updates.billing_department = formData.billingDepartment;
+    updates.billing_phone = formData.billingPhone;
+    updates.billing_mobile = formData.billingMobile;
+    updates.billing_email = formData.billingEmail;
 
     store.saveCustomerData(updates);
 }
@@ -358,5 +536,32 @@ function saveToBackend() {
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   margin-bottom: 40px;
+}
+
+/* Billing Info Styles */
+.billing-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  /* Removed margin-top: 20px as requested */
+}
+
+/* Removed old .billing-dropdown-grid since we use .form-grid-three-columns now */
+
+.billing-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Adjusted for 2 items */
+    gap: 15px;
+}
+
+.billing-contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin-top: 15px; /* Added margin as requested */
+}
+
+.full-width {
+    width: 100%;
 }
 </style>

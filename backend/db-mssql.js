@@ -143,7 +143,27 @@ const initDB = async () => {
             'store_location_type',
             'store_location_type_other',
             'store_ownership',
-            'store_ownership_other'
+            'store_ownership_other',
+             // New columns for Signatory 2 and Business Info
+            'authorized_person_2',
+            'authorized_position_2',
+            'business_type',
+            'main_products',
+            'years_in_business',
+            // New columns for Contact Department and Division
+            'contact_department',
+            'contact_division',
+             // New columns for Billing Information
+            'billing_requirement',
+            'billing_requirement_note',
+            'billing_method',
+            'billing_method_note',
+            'billing_schedule',
+            'billing_contact',
+            'billing_department',
+            'billing_phone',
+            'billing_mobile',
+            'billing_email'
         ];
 
         for (const col of coordinateColumns) {
@@ -179,6 +199,47 @@ const initDB = async () => {
             )
         `;
         await pool.request().query(createCreditRequestsSQL);
+
+        // Ensure new columns exist in CreditRequests table (for existing DBs)
+        const creditRequestColumns = [
+            { name: 'request_amount', type: 'REAL' },
+            { name: 'request_reason', type: 'NVARCHAR(MAX)' },
+            { name: 'request_credit_term', type: 'REAL' },
+            { name: 'snapshot_data', type: 'NVARCHAR(MAX)' }
+        ];
+
+        for (const col of creditRequestColumns) {
+            try {
+                 const checkSql = `
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns
+                        WHERE Name = '${col.name}' AND Object_ID = Object_ID('CreditRequests')
+                    )
+                    BEGIN
+                        ALTER TABLE CreditRequests ADD ${col.name} ${col.type}
+                    END
+                `;
+                await pool.request().query(checkSql);
+                console.log(`Added column ${col.name} to CreditRequests`);
+            } catch (err) {
+                 console.error(`Error adding column ${col.name}:`, err);
+            }
+        }
+
+         // Create CreditRequestAttachments table
+        const createCreditRequestAttachmentsSQL = `
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='CreditRequestAttachments' and xtype='U')
+            CREATE TABLE CreditRequestAttachments (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                tx_id NVARCHAR(255),
+                file_type NVARCHAR(255),
+                file_path NVARCHAR(MAX),
+                original_name NVARCHAR(255),
+                created_at DATETIME DEFAULT GETDATE(),
+                FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
+            )
+        `;
+        await pool.request().query(createCreditRequestAttachmentsSQL);
 
         console.log('Database initialized (MSSQL).');
     } catch (error) {

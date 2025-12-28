@@ -109,7 +109,18 @@ const initDB = async () => {
             'years_in_business',
             // New columns for Contact Department and Division
             'contact_department',
-            'contact_division'
+            'contact_division',
+            // New columns for Billing Information
+            'billing_requirement',
+            'billing_requirement_note',
+            'billing_method',
+            'billing_method_note',
+            'billing_schedule',
+            'billing_contact',
+            'billing_department',
+            'billing_phone',
+            'billing_mobile',
+            'billing_email'
         ];
 
         for (const col of coordinateColumns) {
