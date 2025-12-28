@@ -166,62 +166,63 @@
 
       <!-- Billing Information Section -->
       <div class="billing-info-section">
-        <div class="form-group full-width">
-           <label class="section-label">ต้องมีการวางบิลหรือไม่</label>
-           <div class="radio-group">
-              <div class="checkbox-wrapper">
-                  <input type="radio" id="billingReqYes" value="required" v-model="formData.billingRequirement" :disabled="!isEditing" @change="saveToBackend">
-                  <label for="billingReqYes">ต้องการ</label>
-              </div>
-              <div class="checkbox-wrapper">
-                  <input type="radio" id="billingReqNo" value="not_required" v-model="formData.billingRequirement" :disabled="!isEditing" @change="saveToBackend">
-                  <label for="billingReqNo">ไม่ต้องการ</label>
-              </div>
-              <div class="checkbox-wrapper other-wrapper">
-                  <input type="radio" id="billingReqOther" value="other" v-model="formData.billingRequirement" :disabled="!isEditing" @change="saveToBackend">
-                  <label for="billingReqOther">อื่นๆ (ระบุ)</label>
-                  <div v-if="formData.billingRequirement === 'other'" class="flex items-center">
+
+        <!-- New Dropdown Row -->
+        <div class="billing-dropdown-grid">
+            <div class="form-group">
+               <label>ต้องมีการวางบิลหรือไม่</label>
+               <select
+                  class="form-input"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.billingRequirement"
+                  @change="saveToBackend"
+                >
+                    <option value="required">ต้องการ</option>
+                    <option value="not_required">ไม่ต้องการ</option>
+                    <option value="other">อื่นๆ (ระบุ)</option>
+                </select>
+                <!-- Other Input for Requirement -->
+                <div v-if="formData.billingRequirement === 'other'" style="margin-top: 10px;">
                     <input
                         type="text"
-                        class="form-input inline-input"
+                        class="form-input"
+                        placeholder="ระบุ (ถ้ามี)"
                         v-model="formData.billingRequirementNote"
                         :disabled="!isEditing"
                         @blur="saveToBackend"
                     >
-                    <span style="margin-left: 5px;">(ถ้ามี)</span>
-                  </div>
-              </div>
-           </div>
-        </div>
+                </div>
+            </div>
 
-        <div class="form-group full-width" v-if="formData.billingRequirement === 'required'">
-           <label class="section-label">กรณีต้องวางบิลขอให้เลือกวิธีวางบิล ดังนี้</label>
-           <div class="radio-group horizontal-group">
-                <div class="checkbox-wrapper">
-                    <input type="radio" id="billingMethodDelivery" value="delivery" v-model="formData.billingMethod" :disabled="!isEditing" @change="saveToBackend">
-                    <label for="billingMethodDelivery">พร้อมการส่งมอบสินค้า</label>
-                </div>
-                <div class="checkbox-wrapper">
-                    <input type="radio" id="billingMethodMail" value="mail" v-model="formData.billingMethod" :disabled="!isEditing" @change="saveToBackend">
-                    <label for="billingMethodMail">ทางไปรษณีย์</label>
-                </div>
-                <div class="checkbox-wrapper">
-                    <input type="radio" id="billingMethodCompany" value="company" v-model="formData.billingMethod" :disabled="!isEditing" @change="saveToBackend">
-                    <label for="billingMethodCompany">ที่บริษัท ร้านค้า</label>
-                </div>
-                <div class="checkbox-wrapper other-wrapper">
-                    <input type="radio" id="billingMethodOther" value="other" v-model="formData.billingMethod" :disabled="!isEditing" @change="saveToBackend">
-                    <label for="billingMethodOther">อื่นๆ</label>
+            <div class="form-group" v-if="formData.billingRequirement === 'required'">
+               <label>กรณีต้องวางบิลขอให้เลือกวิธีวางบิล</label>
+               <select
+                  class="form-input"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.billingMethod"
+                  @change="saveToBackend"
+                >
+                    <option value="delivery">พร้อมการส่งมอบสินค้า</option>
+                    <option value="mail">ทางไปรษณีย์</option>
+                    <option value="company">ที่บริษัท ร้านค้า</option>
+                    <option value="other">อื่นๆ</option>
+                </select>
+                 <!-- Other Input for Method -->
+                 <div v-if="formData.billingMethod === 'other'" style="margin-top: 10px;">
                     <input
-                      v-if="formData.billingMethod === 'other'"
-                      type="text"
-                      class="form-input inline-input"
-                      v-model="formData.billingMethodNote"
-                      :disabled="!isEditing"
-                      @blur="saveToBackend"
+                        type="text"
+                        class="form-input"
+                        placeholder="ระบุ"
+                        v-model="formData.billingMethodNote"
+                        :disabled="!isEditing"
+                        @blur="saveToBackend"
                     >
                 </div>
-           </div>
+            </div>
+            <!-- Empty column if not required, to keep alignment if needed, or simply let the first col be alone -->
+            <div class="form-group" v-else></div>
         </div>
 
         <div class="billing-details-grid">
@@ -553,38 +554,10 @@ function saveToBackend() {
   gap: 20px;
 }
 
-.section-label {
-  font-weight: 600;
-  margin-bottom: 10px;
-  display: block;
-}
-
-.radio-group {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.horizontal-group {
-    flex-direction: row;
-    gap: 20px;
-}
-
-/* Fix margin for radio labels as requested */
-:deep(.checkbox-wrapper label) {
-  margin-bottom: 0 !important;
-}
-
-.other-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.inline-input {
-  width: 200px !important;
-  margin-left: 5px;
+.billing-dropdown-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
 }
 
 .billing-details-grid {
