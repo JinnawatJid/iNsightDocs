@@ -1,176 +1,176 @@
-# System-As-Built Field Inventory
+# รายการฟิลด์ในระบบ (System-As-Built Field Inventory)
 
-This document provides a comprehensive inventory of all input fields and file uploads currently implemented in the Credit Request creation flow. It is intended to verify system completeness against user requirements.
+เอกสารนี้รวบรวมรายการอินพุตฟิลด์และไฟล์แนบทั้งหมดที่มีอยู่ในหน้าสร้างคำขอเครดิต (Credit Request) เพื่อใช้สำหรับตรวจสอบความครบถ้วนของระบบเทียบกับความต้องการของผู้ใช้งาน
 
-**Legend:**
-- **Visual (*):** A red asterisk is displayed in the UI.
-- **Logic Enforced:**
-    - **API/Submit:** The "Submit" button block the request if this is missing.
-    - **Local:** Input shows a red border/error text if empty (but might not strictly block submit unless noted).
-
----
-
-## 1. Request Info Tab (`RequestInfoTab.vue`)
-
-**Section: File Attachments**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
-| :--- | :--- | :---: | :---: | :--- |
-| **Credit Application Document** | File Upload | **Yes** | **Yes (Submit)** | `credit_application_doc` |
-| Quotation | File Upload | No | No | `quotation` |
-| Bank Guarantee | File Upload | No | No | `bank_guarantee_doc` |
-| Letter of Guarantee | File Upload | No | No | `letter_guarantee_doc` |
-
-**Section: Contact Information**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
-| :--- | :--- | :---: | :---: | :--- |
-| **Contact Name** | Text | **Yes** | Local | `contact_person` |
-| **Position** | Text | **Yes** | Local | `contact_position` |
-| Department | Text | No | No | `contact_department` |
-| Division | Text | No | No | `contact_division` |
-| **Phone** | Number | **Yes** | Local | `contact_phone_number` |
-
-**Section: Credit Request Details**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
-| :--- | :--- | :---: | :---: | :--- |
-| **Credit Limit (Amount)** | Number | **Yes** | Local | `request_amount` |
-| Credit Term (Days) | Number | No | No | `request_credit_term` |
-| **Credit Reason** | Dropdown | **Yes** | Local | Defaults to 'Stock Goods' |
-
-**Section: Billing Information**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
-| :--- | :--- | :---: | :---: | :--- |
-| Billing Requirement | Dropdown | No | No | Default: Not Required |
-| Billing Method | Dropdown | No | No | Conditional |
-| Billing Schedule | Text | No | No | Conditional |
-| Billing Contact Name | Text | No | No | Conditional |
-| Billing Department | Text | No | No | Conditional |
-| Billing Phone | Text | No | No | Conditional |
-| Billing Mobile | Text | No | No | Conditional |
-| Billing Email | Text | No | No | Conditional |
-
-**Section: Existing Credit Information**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
-| :--- | :--- | :---: | :---: | :--- |
-| Company Name | Text | No | No | Dynamic List |
-| Goods | Text | No | No | Dynamic List |
-| Term | Text | No | No | Dynamic List |
-| Limit | Text | No | No | Dynamic List |
+**คำอธิบายสัญลักษณ์ (Legend):**
+- **แสดงผล (*):** มีดอกจันสีแดงแสดงในหน้าจอ (Visual UI)
+- **การบังคับ (Logic Enforced):**
+    - **บังคับ (กดส่ง):** ปุ่ม "ส่งคำขอ" จะบล็อกไม่ให้ส่งหากไม่มีข้อมูลนี้ (Server/Submit Guard)
+    - **เตือนหน้าบ้าน:** ช่องกรอกข้อมูลจะขึ้นขอบแดงหรือข้อความเตือนเมื่อว่าง (Client-side Validation) แต่ไม่ได้บล็อกปุ่มส่งเสมอไป
 
 ---
 
-## 2. General Info Tab (`GeneralInfoTab.vue`)
+## 1. แท็บข้อมูลคำขอ (Request Info Tab)
 
-**Section: File Attachments**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
+**ส่วน: เอกสารแนบ (File Attachments)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
 | :--- | :--- | :---: | :---: | :--- |
-| **ID Card Copy** | File Upload | **Yes** | **Yes (Submit)** | `id_card` |
-| **Home Registration Copy** | File Upload | **Yes** | **Yes (Submit)** | `home_reg` |
+| **เอกสารขอเปิดเครดิต** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `credit_application_doc` |
+| ใบเสนอราคา | อัปโหลดไฟล์ | ไม่มี | ไม่บังคับ | `quotation` |
+| Bank Guarantee | อัปโหลดไฟล์ | ไม่มี | ไม่บังคับ | `bank_guarantee_doc` |
+| หนังสือค้ำประกัน | อัปโหลดไฟล์ | ไม่มี | ไม่บังคับ | `letter_guarantee_doc` |
 
-**Section: Company Information**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
+**ส่วน: ข้อมูลผู้ติดต่อ (Contact Information)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
 | :--- | :--- | :---: | :---: | :--- |
-| **Company Name** | Text | **Yes** | Local | `name` |
-| Tax ID | Text | No | No | `VAT Registration No_` |
+| **ชื่อผู้ติดต่อ** | ข้อความ | **มี** | เตือนหน้าบ้าน | `contact_person` |
+| **ตำแหน่ง** | ข้อความ | **มี** | เตือนหน้าบ้าน | `contact_position` |
+| แผนก | ข้อความ | ไม่มี | ไม่บังคับ | `contact_department` |
+| ฝ่าย | ข้อความ | ไม่มี | ไม่บังคับ | `contact_division` |
+| **เบอร์โทรศัพท์** | ตัวเลข | **มี** | เตือนหน้าบ้าน | `contact_phone_number` |
 
-**Section: Authorized Signatories**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
+**ส่วน: รายละเอียดคำขอเครดิต (Credit Request Details)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
 | :--- | :--- | :---: | :---: | :--- |
-| **Signatory Name 1** | Text | **Yes** | Local | `authorized_person` |
-| **Position 1** | Text | **Yes** | Local | `authorized_position` |
-| Signatory Name 2 | Text | No | No | `authorized_person_2` |
-| Position 2 | Text | No | No | `authorized_position_2` |
+| **วงเงินเครดิตที่ต้องการ** | ตัวเลข | **มี** | เตือนหน้าบ้าน | `request_amount` |
+| ระยะเวลาเครดิต (วัน) | ตัวเลข | ไม่มี | ไม่บังคับ | `request_credit_term` |
+| **เหตุผลการขอเครดิต** | ตัวเลือก | **มี** | เตือนหน้าบ้าน | ค่าเริ่มต้น 'สต๊อคสินค้า' |
 
-**Section: Business Details**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
+**ส่วน: ข้อมูลการวางบิล (Billing Information)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
 | :--- | :--- | :---: | :---: | :--- |
-| Business Type | Dropdown | No | No | `business_type` |
-| Main Products | Text | No | No | `main_products` |
-| Years in Business | Number | No | No | `years_in_business` |
+| ความต้องการวางบิล | ตัวเลือก | ไม่มี | ไม่บังคับ | ค่าเริ่มต้น: ไม่ต้องการ |
+| วิธีการวางบิล | ตัวเลือก | ไม่มี | ไม่บังคับ | ตามเงื่อนไข |
+| กำหนดวัน-เวลาวางบิล | ข้อความ | ไม่มี | ไม่บังคับ | ตามเงื่อนไข |
+| ชื่อผู้ติดต่อรับวางบิล | ข้อความ | ไม่มี | ไม่บังคับ | ตามเงื่อนไข |
+| แผนกรับวางบิล | ข้อความ | ไม่มี | ไม่บังคับ | ตามเงื่อนไข |
+| โทรศัพท์ | ข้อความ | ไม่มี | ไม่บังคับ | ตามเงื่อนไข |
+| มือถือ | ข้อความ | ไม่มี | ไม่บังคับ | ตามเงื่อนไข |
+| อีเมล | ข้อความ | ไม่มี | ไม่บังคับ | ตามเงื่อนไข |
+
+**ส่วน: ข้อมูลเครดิตที่มีอยู่ (Existing Credit Information)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
+| :--- | :--- | :---: | :---: | :--- |
+| ชื่อบริษัท | ข้อความ | ไม่มี | ไม่บังคับ | รายการไดนามิก |
+| สินค้าที่ซื้อ | ข้อความ | ไม่มี | ไม่บังคับ | รายการไดนามิก |
+| เครดิต (วัน) | ข้อความ | ไม่มี | ไม่บังคับ | รายการไดนามิก |
+| วงเงิน (บาท) | ข้อความ | ไม่มี | ไม่บังคับ | รายการไดนามิก |
 
 ---
 
-## 3. Residence Tab (`ResidenceTab.vue`)
+## 2. แท็บข้อมูลทั่วไป (General Info Tab)
 
-**Section: File Attachments**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
+**ส่วน: เอกสารแนบ (File Attachments)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
 | :--- | :--- | :---: | :---: | :--- |
-| **Home Photo** | File Upload | **Yes** | **Yes (Submit)** | `home_photo` |
-| **Land Tax Document** | File Upload | **Yes** | **Yes (Submit)** | `land_tax` |
+| **สำเนาบัตรประชาชน** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `id_card` |
+| **สำเนาทะเบียนบ้าน** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `home_reg` |
 
-**Section: Address Verification**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
+**ส่วน: ข้อมูลบริษัท (Company Information)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
 | :--- | :--- | :---: | :---: | :--- |
-| **Address (No/Street)** | Text | **Yes** | Local | `address` |
-| **Subdistrict** | Text | **Yes** | Local | `subdistrict` |
-| **Post Code** | Number | **Yes** | Local | `zipcode` |
-| **District** | Text | **Yes** | Local | `district` |
-| **Province** | Text | **Yes** | Local | `province` |
-| **Phone** | Number | **Yes** | Local | `phone` |
-| Fax | Text | No | No | `fax` |
-| Email | Text | No | No | `email` |
+| **ชื่อร้าน/บริษัท** | ข้อความ | **มี** | เตือนหน้าบ้าน | `name` |
+| เลขประจำตัวผู้เสียภาษี | ข้อความ | ไม่มี | ไม่บังคับ | `VAT Registration No_` |
 
-**Section: Property Details**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
+**ส่วน: ผู้มีอำนาจลงนาม (Authorized Signatories)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
 | :--- | :--- | :---: | :---: | :--- |
-| **Location Type** | Dropdown | **Yes** | Local | `residence_location_type` |
-| **Ownership** | Dropdown | **Yes** | Local | `residence_ownership` |
-| Location Other | Text | No | No | Conditional |
-| Ownership Value/Rent | Text | No | No | Conditional |
+| **ชื่อผู้มีอำนาจลงนาม 1** | ข้อความ | **มี** | เตือนหน้าบ้าน | `authorized_person` |
+| **ตำแหน่ง 1** | ข้อความ | **มี** | เตือนหน้าบ้าน | `authorized_position` |
+| ชื่อผู้มีอำนาจลงนาม 2 | ข้อความ | ไม่มี | ไม่บังคับ | `authorized_person_2` |
+| ตำแหน่ง 2 | ข้อความ | ไม่มี | ไม่บังคับ | `authorized_position_2` |
 
-**Section: Map**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
+**ส่วน: รายละเอียดธุรกิจ (Business Details)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
 | :--- | :--- | :---: | :---: | :--- |
-| Google Map Code | Text | No | No | `residence_map_code` |
-| Landmark | Text | No | No | `residence_landmark` |
-| Note | Text | No | No | `residence_note` |
+| ประเภทกิจการ | ตัวเลือก | ไม่มี | ไม่บังคับ | `business_type` |
+| สินค้าหลัก | ข้อความ | ไม่มี | ไม่บังคับ | `main_products` |
+| ดำเนินธุรกิจ (ปี) | ตัวเลข | ไม่มี | ไม่บังคับ | `years_in_business` |
 
 ---
 
-## 4. Store / Company Address Tab (`StoreCompanyTab.vue`)
+## 3. แท็บที่อยู่อาศัย (Residence Tab)
 
-**Section: File Attachments (Conditional)**
-*Logic Check: The system enforces distinct sets based on Customer Type.*
-
-**If Company:**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
+**ส่วน: เอกสารแนบ (File Attachments)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
 | :--- | :--- | :---: | :---: | :--- |
-| **Certificate** | File Upload | **Yes** | **Yes (Submit)** | `legal_entity_certificate` |
-| **VAT P.P.20** | File Upload | **Yes** | **Yes (Submit)** | `vat_document` |
-| **Company Photo** | File Upload | **Yes** | **Yes (Submit)** | `company_photo` |
-| **Land Tax/Lease** | File Upload | **Yes** | **Yes (Submit)** | `company_land_tax` |
+| **รูปถ่ายบ้าน** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `home_photo` |
+| **เอกสารเสียภาษีที่ดิน** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `land_tax` |
 
-**If Individual:**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
+**ส่วน: ตรวจสอบที่อยู่ (Address Verification)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
 | :--- | :--- | :---: | :---: | :--- |
-| **Commercial Reg.** | File Upload | **Yes** | **Yes (Submit)** | `commercial_reg` |
-| **Store Photo** | File Upload | **Yes** | **Yes (Submit)** | `store_photo` |
-| **Land Tax/Lease** | File Upload | **Yes** | **Yes (Submit)** | `store_land_tax` |
+| **ที่อยู่ (บ้านเลขที่, ถนน)** | ข้อความ | **มี** | เตือนหน้าบ้าน | `address` |
+| **ตำบล/แขวง** | ข้อความ | **มี** | เตือนหน้าบ้าน | `subdistrict` |
+| **รหัสไปรษณีย์** | ตัวเลข | **มี** | เตือนหน้าบ้าน | `zipcode` |
+| **อำเภอ/เขต** | ข้อความ | **มี** | เตือนหน้าบ้าน | `district` |
+| **จังหวัด** | ข้อความ | **มี** | เตือนหน้าบ้าน | `province` |
+| **เบอร์โทรศัพท์** | ตัวเลข | **มี** | เตือนหน้าบ้าน | `phone` |
+| แฟกซ์ | ข้อความ | ไม่มี | ไม่บังคับ | `fax` |
+| อีเมล | ข้อความ | ไม่มี | ไม่บังคับ | `email` |
 
-**Section: Address Verification**
-*(Fields match Residence Tab structure)*
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
+**ส่วน: รายละเอียดทรัพย์สิน (Property Details)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
 | :--- | :--- | :---: | :---: | :--- |
-| **Address** | Text | **Yes** | Local | `address` |
-| **Subdistrict** | Text | **Yes** | Local | `subdistrict` |
-| **Post Code** | Number | **Yes** | Local | `zipcode` |
-| **District** | Text | **Yes** | Local | `district` |
-| **Province** | Text | **Yes** | Local | `province` |
-| **Phone** | Number | **Yes** | Local | `phone` |
-| **Location Type** | Dropdown | **Yes** | Local | `location_type` |
-| **Ownership** | Dropdown | **Yes** | Local | `ownership` |
+| **ลักษณะที่ตั้ง** | ตัวเลือก | **มี** | เตือนหน้าบ้าน | `residence_location_type` |
+| **กรรมสิทธิ์ทรัพย์สิน** | ตัวเลือก | **มี** | เตือนหน้าบ้าน | `residence_ownership` |
+| คำอธิบายเพิ่มเติม (ที่ตั้ง) | ข้อความ | ไม่มี | ไม่บังคับ | ตามเงื่อนไข |
+| มูลค่า/ค่าเช่า | ข้อความ | ไม่มี | ไม่บังคับ | ตามเงื่อนไข |
+
+**ส่วน: แผนที่ (Map)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
+| :--- | :--- | :---: | :---: | :--- |
+| Google Map Code | ข้อความ | ไม่มี | ไม่บังคับ | `residence_map_code` |
+| จุดสังเกต (Landmark) | ข้อความ | ไม่มี | ไม่บังคับ | `residence_landmark` |
+| หมายเหตุ | ข้อความ | ไม่มี | ไม่บังคับ | `residence_note` |
 
 ---
 
-## 5. Financial / Statement Tab (`StoreStatementTab.vue`)
+## 4. แท็บที่อยู่ร้านค้า / บริษัท (Store / Company Address Tab)
 
-**Section: File Attachments**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
-| :--- | :--- | :---: | :---: | :--- |
-| **Bank Statement** | File Upload | **Yes** | **Yes (Submit)** | `bank_statement` |
+**ส่วน: เอกสารแนบ (File Attachments)**
+*ตรวจสอบ: ระบบแยกประเภทเอกสารตามประเภทลูกค้า*
 
-**Section: Payment Details**
-| Field Name | Type | Visual (*) | Logic Enforced | Notes |
+**กรณีบริษัท (Company):**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
 | :--- | :--- | :---: | :---: | :--- |
-| **Payment Method** | Dropdown | **Yes** | Local | `payment_method` |
-| Bank Name | Dropdown | No | No | Conditional (if Transfer/Cheque) |
-| Branch | Text | No | No | Conditional (if Transfer/Cheque) |
+| **หนังสือรับรอง** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `legal_entity_certificate` |
+| **ภ.พ.20** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `vat_document` |
+| **รูปถ่ายบริษัท** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `company_photo` |
+| **เอกสารเสียภาษีที่ดิน/สัญญาเช่า** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `company_land_tax` |
+
+**กรณีบุคคลธรรมดา (Individual):**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
+| :--- | :--- | :---: | :---: | :--- |
+| **ทะเบียนพาณิชย์** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `commercial_reg` |
+| **รูปถ่ายร้านค้า** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `store_photo` |
+| **เอกสารเสียภาษีที่ดิน/สัญญาเช่า** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `store_land_tax` |
+
+**ส่วน: ตรวจสอบที่อยู่ (Address Verification)**
+*(โครงสร้างเหมือนแท็บที่อยู่อาศัย)*
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
+| :--- | :--- | :---: | :---: | :--- |
+| **ที่อยู่** | ข้อความ | **มี** | เตือนหน้าบ้าน | `address` |
+| **ตำบล/แขวง** | ข้อความ | **มี** | เตือนหน้าบ้าน | `subdistrict` |
+| **รหัสไปรษณีย์** | ตัวเลข | **มี** | เตือนหน้าบ้าน | `zipcode` |
+| **อำเภอ/เขต** | ข้อความ | **มี** | เตือนหน้าบ้าน | `district` |
+| **จังหวัด** | ข้อความ | **มี** | เตือนหน้าบ้าน | `province` |
+| **เบอร์โทรศัพท์** | ตัวเลข | **มี** | เตือนหน้าบ้าน | `phone` |
+| **ลักษณะที่ตั้ง** | ตัวเลือก | **มี** | เตือนหน้าบ้าน | `location_type` |
+| **กรรมสิทธิ์ทรัพย์สิน** | ตัวเลือก | **มี** | เตือนหน้าบ้าน | `ownership` |
+
+---
+
+## 5. แท็บเอกสารการเงิน (Financial Tab)
+
+**ส่วน: เอกสารแนบ (File Attachments)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
+| :--- | :--- | :---: | :---: | :--- |
+| **Bank Statement** | อัปโหลดไฟล์ | **มี** | **บังคับ (กดส่ง)** | `bank_statement` |
+
+**ส่วน: รายละเอียดการชำระเงิน (Payment Details)**
+| ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | หมายเหตุ |
+| :--- | :--- | :---: | :---: | :--- |
+| **วิธีการชำระเงิน** | ตัวเลือก | **มี** | เตือนหน้าบ้าน | `payment_method` |
+| ชื่อธนาคาร | ตัวเลือก | ไม่มี | ไม่บังคับ | ตามเงื่อนไข (กรณีโอน/เช็ค) |
+| สาขา | ข้อความ | ไม่มี | ไม่บังคับ | ตามเงื่อนไข (กรณีโอน/เช็ค) |
