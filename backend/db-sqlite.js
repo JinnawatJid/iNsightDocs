@@ -120,7 +120,9 @@ const initDB = async () => {
             'billing_department',
             'billing_phone',
             'billing_mobile',
-            'billing_email'
+            'billing_email',
+            // New column for Existing Credits
+            'existing_credits'
         ];
 
         for (const col of coordinateColumns) {
