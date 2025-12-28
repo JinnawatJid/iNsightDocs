@@ -295,6 +295,7 @@
 
     <!-- Existing Credit Info Section -->
     <div class="personal-info-section">
+      <div class="section-separator"></div>
       <div class="section-header">
         <h3>ข้อมูลบริษัทที่ท่านมีเครดิตอยู่</h3>
       </div>
@@ -681,6 +682,13 @@ function restrictLocalCreditInput(e, item, field) {
 
 .full-width {
     width: 100%;
+}
+
+/* Section Separator */
+.section-separator {
+  border-top: 1px solid #e0e0e0;
+  margin: 30px 0 20px 0;
+  width: 100%;
 }
 
 /* Existing Credits Styles */
