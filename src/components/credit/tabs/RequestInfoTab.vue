@@ -160,6 +160,142 @@
               </select>
             </div>
       </div>
+
+      <!-- Separator -->
+      <hr class="section-divider" />
+
+      <!-- Billing Information Section -->
+      <div class="billing-info-section">
+        <div class="form-group full-width">
+           <label class="section-label">1. ต้องมีการวางบิลหรือไม่</label>
+           <div class="radio-group">
+              <div class="checkbox-wrapper">
+                  <input type="radio" id="billingReqYes" value="required" v-model="formData.billingRequirement" :disabled="!isEditing" @change="saveToBackend">
+                  <label for="billingReqYes">ต้องการ</label>
+              </div>
+              <div class="checkbox-wrapper">
+                  <input type="radio" id="billingReqNo" value="not_required" v-model="formData.billingRequirement" :disabled="!isEditing" @change="saveToBackend">
+                  <label for="billingReqNo">ไม่ต้องการ</label>
+              </div>
+              <div class="checkbox-wrapper other-wrapper">
+                  <input type="radio" id="billingReqOther" value="other" v-model="formData.billingRequirement" :disabled="!isEditing" @change="saveToBackend">
+                  <label for="billingReqOther">อื่นๆ (ระบุ)</label>
+                  <input
+                    type="text"
+                    class="form-input inline-input"
+                    v-model="formData.billingRequirementNote"
+                    :disabled="!isEditing || formData.billingRequirement !== 'other'"
+                    @blur="saveToBackend"
+                  >
+                  <span>(ถ้ามี)</span>
+              </div>
+           </div>
+        </div>
+
+        <div class="form-group full-width" v-if="formData.billingRequirement === 'required'">
+           <label class="section-label">กรณีต้องวางบิลขอให้เลือกวิธีวางบิล ดังนี้</label>
+           <div class="radio-group vertical-group">
+             <div class="radio-row">
+                <div class="checkbox-wrapper">
+                    <input type="radio" id="billingMethodDelivery" value="delivery" v-model="formData.billingMethod" :disabled="!isEditing" @change="saveToBackend">
+                    <label for="billingMethodDelivery">พร้อมการส่งมอบสินค้า</label>
+                </div>
+                <div class="checkbox-wrapper">
+                    <input type="radio" id="billingMethodMail" value="mail" v-model="formData.billingMethod" :disabled="!isEditing" @change="saveToBackend">
+                    <label for="billingMethodMail">ทางไปรษณีย์</label>
+                </div>
+             </div>
+             <div class="radio-row">
+                <div class="checkbox-wrapper">
+                    <input type="radio" id="billingMethodCompany" value="company" v-model="formData.billingMethod" :disabled="!isEditing" @change="saveToBackend">
+                    <label for="billingMethodCompany">ที่บริษัท ร้านค้า</label>
+                </div>
+                <div class="checkbox-wrapper other-wrapper">
+                    <input type="radio" id="billingMethodOther" value="other" v-model="formData.billingMethod" :disabled="!isEditing" @change="saveToBackend">
+                    <label for="billingMethodOther">อื่นๆ</label>
+                    <input
+                      type="text"
+                      class="form-input inline-input"
+                      v-model="formData.billingMethodNote"
+                      :disabled="!isEditing || formData.billingMethod !== 'other'"
+                      @blur="saveToBackend"
+                    >
+                </div>
+             </div>
+           </div>
+        </div>
+
+        <div class="billing-warning">
+           ** กรุณาแนบระเบียบการวางบิล/เก็บเช็คมาพร้อมกับเอกสารขออนุมัติเครดิตเพื่อความรวดเร็วในการพิจารณา **
+        </div>
+
+        <div class="billing-details-grid">
+             <div class="form-group full-width">
+                <label>2. กำหนดวัน-เวลาวางบิล</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  v-model="formData.billingSchedule"
+                  :disabled="!isEditing"
+                  @blur="saveToBackend"
+                >
+             </div>
+             <div class="form-group full-width">
+                <label>ชื่อผู้ติดต่อรับวางบิล</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  v-model="formData.billingContact"
+                  :disabled="!isEditing"
+                  @blur="saveToBackend"
+                >
+             </div>
+             <div class="form-group full-width">
+                <label>แผนก</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  v-model="formData.billingDepartment"
+                  :disabled="!isEditing"
+                  @blur="saveToBackend"
+                >
+             </div>
+        </div>
+
+        <div class="billing-contact-grid">
+             <div class="form-group">
+                <label>โทรศัพท์</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  v-model="formData.billingPhone"
+                  :disabled="!isEditing"
+                  @blur="saveToBackend"
+                >
+             </div>
+             <div class="form-group">
+                <label>มือถือ</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  v-model="formData.billingMobile"
+                  :disabled="!isEditing"
+                  @blur="saveToBackend"
+                >
+             </div>
+             <div class="form-group">
+                <label>อีเมล</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  v-model="formData.billingEmail"
+                  :disabled="!isEditing"
+                  @blur="saveToBackend"
+                >
+             </div>
+        </div>
+
+      </div>
     </div>
   </div>
 </template>
@@ -218,7 +354,18 @@ const formData = reactive({
   contactPhone: '',
   creditAmount: '',
   creditTerm: '',
-  creditReason: 'สต๊อคสินค้า'
+  creditReason: 'สต๊อคสินค้า',
+  // Billing Info
+  billingRequirement: 'not_required', // default
+  billingRequirementNote: '',
+  billingMethod: '',
+  billingMethodNote: '',
+  billingSchedule: '',
+  billingContact: '',
+  billingDepartment: '',
+  billingPhone: '',
+  billingMobile: '',
+  billingEmail: ''
 });
 
 // Initialize from store
@@ -233,6 +380,18 @@ watch(() => store.customer, (newVal) => {
     if (formData.contactPhone !== newVal.contact_phone_number) formData.contactPhone = newVal.contact_phone_number || '';
     if (formData.contactDepartment !== newVal.contact_department) formData.contactDepartment = newVal.contact_department || '';
     if (formData.contactDivision !== newVal.contact_division) formData.contactDivision = newVal.contact_division || '';
+
+    // Billing Info Initialization
+    if (formData.billingRequirement !== newVal.billing_requirement && newVal.billing_requirement) formData.billingRequirement = newVal.billing_requirement;
+    if (formData.billingRequirementNote !== newVal.billing_requirement_note) formData.billingRequirementNote = newVal.billing_requirement_note || '';
+    if (formData.billingMethod !== newVal.billing_method) formData.billingMethod = newVal.billing_method || '';
+    if (formData.billingMethodNote !== newVal.billing_method_note) formData.billingMethodNote = newVal.billing_method_note || '';
+    if (formData.billingSchedule !== newVal.billing_schedule) formData.billingSchedule = newVal.billing_schedule || '';
+    if (formData.billingContact !== newVal.billing_contact) formData.billingContact = newVal.billing_contact || '';
+    if (formData.billingDepartment !== newVal.billing_department) formData.billingDepartment = newVal.billing_department || '';
+    if (formData.billingPhone !== newVal.billing_phone) formData.billingPhone = newVal.billing_phone || '';
+    if (formData.billingMobile !== newVal.billing_mobile) formData.billingMobile = newVal.billing_mobile || '';
+    if (formData.billingEmail !== newVal.billing_email) formData.billingEmail = newVal.billing_email || '';
   }
 }, { immediate: true, deep: true });
 
@@ -259,6 +418,18 @@ watch(formData, (newVal) => {
   updates.contact_phone_number = newVal.contactPhone;
   updates.contact_department = newVal.contactDepartment;
   updates.contact_division = newVal.contactDivision;
+
+  // Billing Info Updates
+  updates.billing_requirement = newVal.billingRequirement;
+  updates.billing_requirement_note = newVal.billingRequirementNote;
+  updates.billing_method = newVal.billingMethod;
+  updates.billing_method_note = newVal.billingMethodNote;
+  updates.billing_schedule = newVal.billingSchedule;
+  updates.billing_contact = newVal.billingContact;
+  updates.billing_department = newVal.billingDepartment;
+  updates.billing_phone = newVal.billingPhone;
+  updates.billing_mobile = newVal.billingMobile;
+  updates.billing_email = newVal.billingEmail;
 
   // Update store
   store.updateCustomerData(updates);
@@ -295,6 +466,18 @@ function saveToBackend() {
     updates.contact_phone_number = formData.contactPhone;
     updates.contact_department = formData.contactDepartment;
     updates.contact_division = formData.contactDivision;
+
+    // Billing Info Save
+    updates.billing_requirement = formData.billingRequirement;
+    updates.billing_requirement_note = formData.billingRequirementNote;
+    updates.billing_method = formData.billingMethod;
+    updates.billing_method_note = formData.billingMethodNote;
+    updates.billing_schedule = formData.billingSchedule;
+    updates.billing_contact = formData.billingContact;
+    updates.billing_department = formData.billingDepartment;
+    updates.billing_phone = formData.billingPhone;
+    updates.billing_mobile = formData.billingMobile;
+    updates.billing_email = formData.billingEmail;
 
     store.saveCustomerData(updates);
 }
@@ -358,5 +541,79 @@ function saveToBackend() {
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   margin-bottom: 40px;
+}
+
+/* Separator */
+.section-divider {
+  margin-top: 30px;
+  margin-bottom: 30px;
+  border: 0;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Billing Info Styles */
+.billing-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section-label {
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.radio-group {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.vertical-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.radio-row {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.other-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inline-input {
+  width: 200px !important;
+  margin-left: 5px;
+}
+
+.billing-warning {
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  margin: 15px 0;
+}
+
+.billing-details-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    gap: 15px;
+}
+
+.billing-contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+}
+
+.full-width {
+    width: 100%;
 }
 </style>

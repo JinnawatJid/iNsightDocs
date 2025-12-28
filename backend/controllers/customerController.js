@@ -79,7 +79,17 @@ exports.searchCustomers = async (req, res) => {
         "main_products",
         "years_in_business",
         "contact_department",
-        "contact_division"
+        "contact_division",
+        "billing_requirement",
+        "billing_requirement_note",
+        "billing_method",
+        "billing_method_note",
+        "billing_schedule",
+        "billing_contact",
+        "billing_department",
+        "billing_phone",
+        "billing_mobile",
+        "billing_email"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR
@@ -112,7 +122,17 @@ exports.searchCustomers = async (req, res) => {
         "main_products",
         "years_in_business",
         "contact_department",
-        "contact_division"
+        "contact_division",
+        "billing_requirement",
+        "billing_requirement_note",
+        "billing_method",
+        "billing_method_note",
+        "billing_schedule",
+        "billing_contact",
+        "billing_department",
+        "billing_phone",
+        "billing_mobile",
+        "billing_email"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR
@@ -297,7 +317,18 @@ exports.searchCustomers = async (req, res) => {
           main_products: row["main_products"] || "",
           years_in_business: row["years_in_business"] || "",
           contact_department: row["contact_department"] || "",
-          contact_division: row["contact_division"] || ""
+          contact_division: row["contact_division"] || "",
+          // Billing Information
+          billing_requirement: row["billing_requirement"] || "",
+          billing_requirement_note: row["billing_requirement_note"] || "",
+          billing_method: row["billing_method"] || "",
+          billing_method_note: row["billing_method_note"] || "",
+          billing_schedule: row["billing_schedule"] || "",
+          billing_contact: row["billing_contact"] || "",
+          billing_department: row["billing_department"] || "",
+          billing_phone: row["billing_phone"] || "",
+          billing_mobile: row["billing_mobile"] || "",
+          billing_email: row["billing_email"] || ""
         },
         history: history,
         financial_summary: financialSummary,
@@ -418,7 +449,18 @@ exports.updateCustomer = async (req, res) => {
     'VAT Registration No_',
     'Phone No_',
     'Fax No_',
-    'E-Mail'
+    'E-Mail',
+    // Billing Information
+    'billing_requirement',
+    'billing_requirement_note',
+    'billing_method',
+    'billing_method_note',
+    'billing_schedule',
+    'billing_contact',
+    'billing_department',
+    'billing_phone',
+    'billing_mobile',
+    'billing_email'
   ];
 
   const keysToUpdate = Object.keys(updates).filter(key => allowedColumns.includes(key));
