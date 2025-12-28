@@ -23,7 +23,11 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     transactionData: {
       amount: '',
       creditTerm: '',
-      reason: 'สต๊อคสินค้า'
+      reason: 'สต๊อคสินค้า',
+      paymentMethod: '',
+      paymentBank: '',
+      paymentBranch: '',
+      paymentAccountNo: ''
     },
 
     // List of requests (Pending/History)
@@ -139,14 +143,17 @@ export const useCreditRequestStore = defineStore('creditRequest', {
             }
           }
 
-          // Update transaction data (amount/reason) if present
-          if (resData.request_amount || resData.request_reason || resData.request_credit_term) {
-            this.transactionData = {
-              amount: resData.request_amount || '',
-              creditTerm: resData.request_credit_term || '',
-              reason: resData.request_reason || 'สต๊อคสินค้า'
-            };
-          }
+          // Update transaction data (amount/reason/payment) if present
+          // Even if not present, we initialize them to ensure reactivity
+          this.transactionData = {
+            amount: resData.request_amount || '',
+            creditTerm: resData.request_credit_term || '',
+            reason: resData.request_reason || 'สต๊อคสินค้า',
+            paymentMethod: resData.payment_method || '',
+            paymentBank: resData.payment_bank || '',
+            paymentBranch: resData.payment_branch || '',
+            paymentAccountNo: resData.payment_account_no || ''
+          };
         }
       } catch (err) {
         console.error('Failed to create credit request transaction', err);

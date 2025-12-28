@@ -135,6 +135,12 @@ export default {
             formData.append('request_amount', store.transactionData.amount || '');
             formData.append('request_reason', store.transactionData.reason || '');
 
+            // Payment Details
+            formData.append('payment_method', store.transactionData.paymentMethod || '');
+            formData.append('payment_bank', store.transactionData.paymentBank || '');
+            formData.append('payment_branch', store.transactionData.paymentBranch || '');
+            formData.append('payment_account_no', store.transactionData.paymentAccountNo || '');
+
             // Full Snapshot
             formData.append('snapshot_data', JSON.stringify(store.customer));
 
