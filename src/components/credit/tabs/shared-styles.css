@@ -192,6 +192,13 @@ select.form-control {
     color: #000000; /* Ensure text is black */
 }
 
+.form-grid-three-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
 .form-grid-four-columns {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

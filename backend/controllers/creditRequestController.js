@@ -4,7 +4,7 @@ const path = require('path');
 
 exports.createCreditRequest = async (req, res) => {
   // When using multer, text fields are in req.body and files in req.files
-  const { customer_no, customer_name, request_amount, request_reason, snapshot_data, is_submit } = req.body;
+  const { customer_no, customer_name, request_amount, request_reason, request_credit_term, snapshot_data, is_submit } = req.body;
 
   if (!customer_name || !customer_no) {
     return res.status(400).json({ error: 'Customer name and Customer No (ID) are required' });
@@ -35,6 +35,8 @@ exports.createCreditRequest = async (req, res) => {
     let responseAmount = null;
     let responseReason = null;
 
+    let responseCreditTerm = null;
+
     if (rows && rows.length > 0) {
       const existing = rows[0];
 
@@ -46,8 +48,8 @@ exports.createCreditRequest = async (req, res) => {
         if (is_submit === 'true' || is_submit === true) {
             status = 'Submitted';
             await db.runAsync(
-              'UPDATE CreditRequests SET request_amount = ?, request_reason = ?, snapshot_data = ?, status = ? WHERE id = ?',
-              [request_amount, request_reason, snapshot_data, status, requestId]
+              'UPDATE CreditRequests SET request_amount = ?, request_reason = ?, request_credit_term = ?, snapshot_data = ?, status = ? WHERE id = ?',
+              [request_amount, request_reason, request_credit_term, snapshot_data, status, requestId]
             );
             // Will return the new data passed in body
         } else {
@@ -56,6 +58,7 @@ exports.createCreditRequest = async (req, res) => {
              responseSnapshot = existing.snapshot_data;
              responseAmount = existing.request_amount;
              responseReason = existing.request_reason;
+             responseCreditTerm = existing.request_credit_term;
         }
 
       } else {
@@ -71,6 +74,7 @@ exports.createCreditRequest = async (req, res) => {
             customer_no: existing.customer_no,
             request_amount: existing.request_amount,
             request_reason: existing.request_reason,
+            request_credit_term: existing.request_credit_term,
             snapshot_data: existing.snapshot_data
           }
         });
@@ -122,8 +126,8 @@ exports.createCreditRequest = async (req, res) => {
       status = (is_submit === 'true' || is_submit === true) ? 'Submitted' : 'Opened';
 
       const result = await db.runAsync(
-        'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, snapshot_data) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [txId, customer_no, customer_name, status, request_amount, request_reason, snapshot_data]
+        'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, snapshot_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [txId, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, snapshot_data]
       );
       requestId = result.id;
     }
@@ -157,7 +161,8 @@ exports.createCreditRequest = async (req, res) => {
         // For Opened requests (existing or new), return what we have
         snapshot_data: responseSnapshot || snapshot_data,
         request_amount: responseAmount || request_amount,
-        request_reason: responseReason || request_reason
+        request_reason: responseReason || request_reason,
+        request_credit_term: responseCreditTerm || request_credit_term
     };
 
     res.status(201).json({

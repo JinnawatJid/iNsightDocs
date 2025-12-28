@@ -34,7 +34,7 @@
       </div>
 
       <!-- Address Form -->
-      <div class="form-grid-complex">
+      <div class="form-grid-three-columns">
         <div class="form-group span-2">
           <label>ที่อยู่ (บ้านเลขที่, ถนน) <span class="text-red-500">*</span></label>
           <input
@@ -108,7 +108,7 @@
       </div>
       
       <!-- Phone | Fax | Email Grid -->
-       <div class="form-grid-complex">
+       <div class="form-grid-three-columns">
          <div class="form-group">
           <label>
             เบอร์โทรศัพท์ 
@@ -418,13 +418,6 @@ function toggleEdit() {
   color: #999;
   font-size: 14px;
   gap: 10px;
-}
-
-.form-grid-complex {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  margin-bottom: 15px;
 }
 
 .bottom-grid {

@@ -117,10 +117,9 @@
       <div class="section-header">
         <h3>รายละเอียดคำขอเครดิต</h3>
       </div>
-      <div class="form-layout-columns">
-         <div class="column-layout">
+      <div class="form-grid-three-columns">
             <div class="form-group">
-              <label>วงเงินสินเชื่อที่ต้องการ <span class="text-red-500">*</span></label>
+              <label>วงเงินเครดิตทีต้องการ (บาท) <span class="text-red-500">*</span></label>
               <input
                 type="text"
                 class="form-input"
@@ -133,8 +132,20 @@
               />
               <span v-if="errors.creditAmount" class="error-text">{{ errors.creditAmount }}</span>
             </div>
-         </div>
-         <div class="column-layout">
+
+            <div class="form-group">
+               <label>ระยะเวลาเครดิต (วัน)</label>
+               <input
+                type="text"
+                class="form-input"
+                :class="{ 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.creditTerm"
+                @input="(e) => { e.target.value = e.target.value.replace(/\D/g, ''); formData.creditTerm = e.target.value; }"
+                @blur="saveToBackend"
+              />
+            </div>
+
             <div class="form-group">
               <label>เหตุผลการขอเครดิต <span class="text-red-500">*</span></label>
               <select
@@ -148,7 +159,6 @@
                   <option value="รับโปรเจค">รับโปรเจค</option>
               </select>
             </div>
-         </div>
       </div>
     </div>
   </div>
@@ -207,6 +217,7 @@ const formData = reactive({
   contactDivision: '',
   contactPhone: '',
   creditAmount: '',
+  creditTerm: '',
   creditReason: 'สต๊อคสินค้า'
 });
 
@@ -234,6 +245,9 @@ watch(() => store.transactionData, (newVal) => {
         if (newVal.reason && formData.creditReason !== newVal.reason) {
              formData.creditReason = newVal.reason;
         }
+        if (newVal.creditTerm && formData.creditTerm !== newVal.creditTerm) {
+             formData.creditTerm = newVal.creditTerm;
+        }
     }
 }, { immediate: true, deep: true });
 
@@ -251,7 +265,8 @@ watch(formData, (newVal) => {
 
   store.updateTransactionData({
     amount: newVal.creditAmount,
-    reason: newVal.creditReason
+    reason: newVal.creditReason,
+    creditTerm: newVal.creditTerm
   });
 }, { deep: true });
 
