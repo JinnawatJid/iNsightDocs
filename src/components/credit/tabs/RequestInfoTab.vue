@@ -161,9 +161,6 @@
             </div>
       </div>
 
-      <!-- Separator -->
-      <hr class="section-divider" />
-
       <!-- Billing Information Section -->
       <div class="billing-info-section">
 
@@ -541,19 +538,12 @@ function saveToBackend() {
   margin-bottom: 40px;
 }
 
-/* Separator */
-.section-divider {
-  margin-top: 30px;
-  margin-bottom: 30px;
-  border: 0;
-  border-top: 1px solid #e0e0e0;
-}
-
 /* Billing Info Styles */
 .billing-info-section {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  margin-top: 20px; /* Add margin-top since divider is gone */
 }
 
 .billing-dropdown-grid {
