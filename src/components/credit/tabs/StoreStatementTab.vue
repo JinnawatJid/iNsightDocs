@@ -15,82 +15,72 @@
       </FileUploader>
     </div>
 
-    <!-- Details Section -->
+    <!-- Payment Details Section -->
     <div class="details-section">
       <div class="section-header">
-        <h3>รายละเอียด</h3>
-        <!-- Removed Edit button -->
+        <h3>รายละเอียดการชำระเงิน</h3>
       </div>
-      <div class="form-grid">
+
+      <!-- Payment Method Dropdown -->
+      <div class="form-group" style="max-width: 300px; margin-bottom: 20px;">
+        <label>ชำระเงินโดย <span class="text-red-500">*</span></label>
+        <select
+          class="form-control"
+          :class="{ 'border-red-500': errors.paymentMethod, 'disabled': !isEditing }"
+          :disabled="!isEditing"
+          v-model="formData.paymentMethod"
+          @change="onPaymentMethodChange"
+        >
+          <option value="" disabled>เลือกวิธีการชำระเงิน</option>
+          <option value="โอนเงิน">โอนเงิน</option>
+          <option value="รับเช็ค">รับเช็ค</option>
+        </select>
+        <span v-if="errors.paymentMethod" class="error-text">{{ errors.paymentMethod }}</span>
+      </div>
+
+      <!-- Bank Details Grid (Visible only when method is selected) -->
+      <div v-if="formData.paymentMethod" class="form-grid-three-columns">
         <div class="form-group">
-          <label>ชื่อบัญชี <span class="text-red-500">*</span></label>
+          <label>จากบัญชีธนาคาร <span class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
-            :class="{ 'border-red-500': errors.accountName, 'disabled': !isEditing }"
+            :class="{ 'border-red-500': errors.paymentBankName, 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.accountName"
-            placeholder="ระบุชื่อบัญชี"
-            @input="validateField('accountName', formData.accountName, ['required'])"
-            @blur="validateField('accountName', formData.accountName, ['required'])"
+            v-model="formData.paymentBankName"
+            placeholder="ระบุชื่อธนาคาร"
+            @input="validateField('paymentBankName', formData.paymentBankName, ['required'])"
+            @blur="validateField('paymentBankName', formData.paymentBankName, ['required'])"
           />
-          <span v-if="errors.accountName" class="error-text">{{ errors.accountName }}</span>
-        </div>
-        <div class="form-group">
-          <label>เลขที่บัญชี <span class="text-red-500">*</span></label>
-          <input
-            type="text"
-            class="form-control"
-            :class="{ 'border-red-500': errors.accountNumber, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="formData.accountNumber"
-            placeholder="ระบุเลขที่บัญชี"
-            @input="(e) => { restrictPhoneInput(e); validateField('accountNumber', e.target.value, ['required', 'numeric']); }"
-            @blur="validateField('accountNumber', formData.accountNumber, ['required', 'numeric'])"
-          />
-          <span v-if="errors.accountNumber" class="error-text">{{ errors.accountNumber }}</span>
-        </div>
-        <div class="form-group">
-          <label>ธนาคาร <span class="text-red-500">*</span></label>
-          <input
-            type="text"
-            class="form-control"
-            :class="{ 'border-red-500': errors.bank, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="formData.bank"
-            placeholder="ระบุธนาคาร"
-            @input="validateField('bank', formData.bank, ['required'])"
-            @blur="validateField('bank', formData.bank, ['required'])"
-          />
-          <span v-if="errors.bank" class="error-text">{{ errors.bank }}</span>
+          <span v-if="errors.paymentBankName" class="error-text">{{ errors.paymentBankName }}</span>
         </div>
         <div class="form-group">
           <label>สาขา <span class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
-            :class="{ 'border-red-500': errors.branch, 'disabled': !isEditing }"
+            :class="{ 'border-red-500': errors.paymentBankBranch, 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.branch"
+            v-model="formData.paymentBankBranch"
             placeholder="ระบุสาขา"
-            @input="validateField('branch', formData.branch, ['required'])"
-            @blur="validateField('branch', formData.branch, ['required'])"
+            @input="validateField('paymentBankBranch', formData.paymentBankBranch, ['required'])"
+            @blur="validateField('paymentBankBranch', formData.paymentBankBranch, ['required'])"
           />
-          <span v-if="errors.branch" class="error-text">{{ errors.branch }}</span>
+          <span v-if="errors.paymentBankBranch" class="error-text">{{ errors.paymentBankBranch }}</span>
         </div>
         <div class="form-group">
-          <label>ประเภทบัญชี <span class="text-red-500">*</span></label>
+          <label>เลขที่บัญชี <span class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
-            :class="{ 'border-red-500': errors.accountType, 'disabled': !isEditing }"
+            :class="{ 'border-red-500': errors.paymentAccountNo, 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.accountType"
-            placeholder="ระบุประเภทบัญชี"
-            @input="validateField('accountType', formData.accountType, ['required'])"
-            @blur="validateField('accountType', formData.accountType, ['required'])"
+            v-model="formData.paymentAccountNo"
+            placeholder="ระบุเลขที่บัญชี"
+            @input="(e) => { restrictPhoneInput(e); validateField('paymentAccountNo', e.target.value, ['required', 'numeric']); }"
+            @blur="validateField('paymentAccountNo', formData.paymentAccountNo, ['required', 'numeric'])"
           />
-          <span v-if="errors.accountType" class="error-text">{{ errors.accountType }}</span>
+          <span v-if="errors.paymentAccountNo" class="error-text">{{ errors.paymentAccountNo }}</span>
         </div>
       </div>
     </div>
@@ -118,21 +108,46 @@ const files = reactive({
 });
 
 watch(() => files.bankStatement, (v) => {
-  // Since it's multiple, we might want to store it as 'bank_statement' (array) or handle differently.
-  // The store's `updateFile` expects a single value usually, but if we pass an array, we just need to handle it in FormData.
   store.updateFile('bank_statement', v);
 });
 
 const formData = reactive({
-  accountName: '',
-  accountNumber: '',
-  bank: '',
-  branch: '',
-  accountType: ''
+  paymentMethod: '',
+  paymentBankName: '',
+  paymentBankBranch: '',
+  paymentAccountNo: ''
 });
 
-function toggleEdit() {
-  isEditing.value = !isEditing.value;
+// Watch store.customer to load initial data
+watch(() => store.customer, (newVal) => {
+  if (newVal) {
+    formData.paymentMethod = newVal.payment_method || '';
+    formData.paymentBankName = newVal.payment_bank_name || '';
+    formData.paymentBankBranch = newVal.payment_bank_branch || '';
+    formData.paymentAccountNo = newVal.payment_account_no || '';
+  }
+}, { immediate: true });
+
+function onPaymentMethodChange() {
+  validateField('paymentMethod', formData.paymentMethod, ['required']);
+  saveData('payment_method', formData.paymentMethod);
+}
+
+// Watchers for other fields to save data
+watch(() => formData.paymentBankName, (val) => {
+  saveData('payment_bank_name', val);
+});
+watch(() => formData.paymentBankBranch, (val) => {
+  saveData('payment_bank_branch', val);
+});
+watch(() => formData.paymentAccountNo, (val) => {
+  saveData('payment_account_no', val);
+});
+
+function saveData(key, value) {
+  const updates = {};
+  updates[key] = value;
+  store.saveCustomerData(updates);
 }
 </script>
 

@@ -165,7 +165,12 @@ const initDB = async () => {
             'billing_mobile',
             'billing_email',
             // New column for Existing Credits
-            'existing_credits'
+            'existing_credits',
+            // Payment Details
+            'payment_method',
+            'payment_bank_name',
+            'payment_bank_branch',
+            'payment_account_no'
         ];
 
         for (const col of coordinateColumns) {
