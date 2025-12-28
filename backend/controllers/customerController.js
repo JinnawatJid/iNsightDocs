@@ -461,7 +461,12 @@ exports.updateCustomer = async (req, res) => {
     'billing_phone',
     'billing_mobile',
     'billing_email',
-    'existing_credits'
+    'existing_credits',
+    // Payment Details
+    'payment_method',
+    'payment_bank_name',
+    'payment_bank_branch',
+    'payment_account_no'
   ];
 
   const keysToUpdate = Object.keys(updates).filter(key => allowedColumns.includes(key));

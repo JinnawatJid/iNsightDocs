@@ -50,21 +50,15 @@ export default {
   },
   computed: {
     tabs() {
-      const allTabs = [
+      const storeLabel = this.creditRequestStore.isCompany ? 'ที่อยู่บริษัท' : 'ที่อยู่ร้านค้า';
+
+      return [
         { id: 'requestInfo', label: 'ข้อมูลคำขอ' },
         { id: 'general', label: 'ข้อมูลทั่วไป' },
         { id: 'residence', label: 'ที่อยู่อาศัย' },
-        { id: 'store', label: 'ที่อยู่ร้านค้า/บริษัท' },
+        { id: 'store', label: storeLabel },
         { id: 'financial', label: 'เอกสารการเงิน' }
       ];
-
-      // Logic: If isCompany is true (Company), hide the 'financial' tab.
-      // Otherwise (Individual), show it.
-      if (this.creditRequestStore.isCompany) {
-        return allTabs.filter(t => t.id !== 'financial');
-      }
-
-      return allTabs;
     },
     currentTabComponent() {
       switch (this.currentTab) {
