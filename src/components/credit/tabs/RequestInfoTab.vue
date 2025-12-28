@@ -543,7 +543,7 @@ function saveToBackend() {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  margin-top: 20px; /* Add margin-top since divider is gone */
+  /* Removed margin-top: 20px as requested */
 }
 
 /* Removed old .billing-dropdown-grid since we use .form-grid-three-columns now */
@@ -558,6 +558,7 @@ function saveToBackend() {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 15px;
+    margin-top: 15px; /* Added margin as requested */
 }
 
 .full-width {
