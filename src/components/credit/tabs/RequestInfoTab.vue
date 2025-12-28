@@ -225,70 +225,72 @@
             <div class="form-group" v-else></div>
         </div>
 
-        <div class="billing-details-grid">
-             <div class="form-group full-width">
-                <label>กำหนดวัน-เวลาวางบิล</label>
-                <input
-                  type="text"
-                  class="form-input"
-                  v-model="formData.billingSchedule"
-                  :disabled="!isEditing"
-                  @blur="saveToBackend"
-                >
-             </div>
-             <div class="form-group full-width">
-                <label>ชื่อผู้ติดต่อรับวางบิล</label>
-                <input
-                  type="text"
-                  class="form-input"
-                  v-model="formData.billingContact"
-                  :disabled="!isEditing"
-                  @blur="saveToBackend"
-                >
-             </div>
-             <div class="form-group full-width">
-                <label>แผนก</label>
-                <input
-                  type="text"
-                  class="form-input"
-                  v-model="formData.billingDepartment"
-                  :disabled="!isEditing"
-                  @blur="saveToBackend"
-                >
-             </div>
-        </div>
+        <div v-if="formData.billingRequirement !== 'not_required'">
+            <div class="billing-details-grid">
+                 <div class="form-group full-width">
+                    <label>กำหนดวัน-เวลาวางบิล</label>
+                    <input
+                      type="text"
+                      class="form-input"
+                      v-model="formData.billingSchedule"
+                      :disabled="!isEditing"
+                      @blur="saveToBackend"
+                    >
+                 </div>
+                 <div class="form-group full-width">
+                    <label>ชื่อผู้ติดต่อรับวางบิล</label>
+                    <input
+                      type="text"
+                      class="form-input"
+                      v-model="formData.billingContact"
+                      :disabled="!isEditing"
+                      @blur="saveToBackend"
+                    >
+                 </div>
+                 <div class="form-group full-width">
+                    <label>แผนก</label>
+                    <input
+                      type="text"
+                      class="form-input"
+                      v-model="formData.billingDepartment"
+                      :disabled="!isEditing"
+                      @blur="saveToBackend"
+                    >
+                 </div>
+            </div>
 
-        <div class="billing-contact-grid">
-             <div class="form-group">
-                <label>โทรศัพท์</label>
-                <input
-                  type="text"
-                  class="form-input"
-                  v-model="formData.billingPhone"
-                  :disabled="!isEditing"
-                  @blur="saveToBackend"
-                >
-             </div>
-             <div class="form-group">
-                <label>มือถือ</label>
-                <input
-                  type="text"
-                  class="form-input"
-                  v-model="formData.billingMobile"
-                  :disabled="!isEditing"
-                  @blur="saveToBackend"
-                >
-             </div>
-             <div class="form-group">
-                <label>อีเมล</label>
-                <input
-                  type="text"
-                  class="form-input"
-                  v-model="formData.billingEmail"
-                  :disabled="!isEditing"
-                  @blur="saveToBackend"
-                >
-             </div>
+            <div class="billing-contact-grid">
+                 <div class="form-group">
+                    <label>โทรศัพท์</label>
+                    <input
+                      type="text"
+                      class="form-input"
+                      v-model="formData.billingPhone"
+                      :disabled="!isEditing"
+                      @blur="saveToBackend"
+                    >
+                 </div>
+                 <div class="form-group">
+                    <label>มือถือ</label>
+                    <input
+                      type="text"
+                      class="form-input"
+                      v-model="formData.billingMobile"
+                      :disabled="!isEditing"
+                      @blur="saveToBackend"
+                    >
+                 </div>
+                 <div class="form-group">
+                    <label>อีเมล</label>
+                    <input
+                      type="text"
+                      class="form-input"
+                      v-model="formData.billingEmail"
+                      :disabled="!isEditing"
+                      @blur="saveToBackend"
+                    >
+                 </div>
+            </div>
         </div>
 
       </div>
