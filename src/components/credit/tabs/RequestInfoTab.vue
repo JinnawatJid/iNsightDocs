@@ -292,6 +292,70 @@
 
       </div>
     </div>
+
+    <!-- Existing Credit Info Section -->
+    <div class="personal-info-section">
+      <div class="section-header">
+        <h3>ข้อมูลบริษัทที่ท่านมีเครดิตอยู่</h3>
+      </div>
+
+      <div class="credit-history-container">
+        <div v-for="(item, index) in existingCredits" :key="index" class="credit-history-row">
+            <div class="row-index">{{ index + 1 }}.</div>
+            <div class="form-group flex-grow">
+                <label>ชื่อบริษัท</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  v-model="item.companyName"
+                  :disabled="!isEditing"
+                  @blur="saveExistingCredits"
+                />
+            </div>
+            <div class="form-group flex-grow">
+                <label>สินค้าที่ซื้อ</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  v-model="item.goods"
+                  :disabled="!isEditing"
+                  @blur="saveExistingCredits"
+                />
+            </div>
+            <div class="form-group small-width">
+                <label>เครดิต (วัน)</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  v-model="item.term"
+                  :disabled="!isEditing"
+                  @blur="saveExistingCredits"
+                  @input="(e) => { e.target.value = e.target.value.replace(/\D/g, ''); item.term = e.target.value; }"
+                />
+            </div>
+            <div class="form-group medium-width">
+                <label>วงเงิน (บาท)</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  v-model="item.limit"
+                  :disabled="!isEditing"
+                  @blur="saveExistingCredits"
+                  @input="(e) => { restrictLocalCreditInput(e, item, 'limit'); }"
+                />
+            </div>
+            <div class="action-col" v-if="isEditing">
+               <button class="delete-btn" @click="removeCreditRow(index)" title="ลบรายการ">
+                 <img src="@/assets/icons/x-circle-red.svg" alt="Delete" style="width: 16px; height: 16px;">
+               </button>
+            </div>
+        </div>
+      </div>
+
+      <div class="add-row-section" v-if="isEditing">
+          <button class="add-btn" @click="addCreditRow">+ เพิ่มรายการ</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -363,9 +427,33 @@ const formData = reactive({
   billingEmail: ''
 });
 
+const existingCredits = ref([
+  { companyName: '', goods: '', term: '', limit: '' }
+]);
+
 // Initialize from store
 watch(() => store.customer, (newVal) => {
   if (newVal) {
+    // Existing Credits Init
+    if (newVal.existing_credits) {
+       // If it's already an array (parsed by backend logic)
+       if (Array.isArray(newVal.existing_credits)) {
+           existingCredits.value = newVal.existing_credits.length > 0 ? newVal.existing_credits : [{ companyName: '', goods: '', term: '', limit: '' }];
+       } else if (typeof newVal.existing_credits === 'string') {
+           // Fallback if string
+           try {
+               const parsed = JSON.parse(newVal.existing_credits);
+               existingCredits.value = parsed.length > 0 ? parsed : [{ companyName: '', goods: '', term: '', limit: '' }];
+           } catch (e) {
+               console.error("Failed to parse existing_credits", e);
+               existingCredits.value = [{ companyName: '', goods: '', term: '', limit: '' }];
+           }
+       }
+    } else {
+        // Default state if nothing in store
+        existingCredits.value = [{ companyName: '', goods: '', term: '', limit: '' }];
+    }
+
     const contact = (newVal.contact_person !== undefined && newVal.contact_person !== null)
       ? newVal.contact_person
       : '';
@@ -476,6 +564,36 @@ function saveToBackend() {
 
     store.saveCustomerData(updates);
 }
+
+function addCreditRow() {
+    existingCredits.value.push({ companyName: '', goods: '', term: '', limit: '' });
+}
+
+function removeCreditRow(index) {
+    if (existingCredits.value.length > 1) {
+        existingCredits.value.splice(index, 1);
+        saveExistingCredits();
+    } else {
+        // If only 1 row, just clear it
+        existingCredits.value[0] = { companyName: '', goods: '', term: '', limit: '' };
+        saveExistingCredits();
+    }
+}
+
+function saveExistingCredits() {
+    // We send the array; the controller or save logic handles stringification if needed,
+    // but based on my controller update, I should send an object/array and let controller stringify.
+    store.saveCustomerData({ existing_credits: existingCredits.value });
+}
+
+// Helper for number input in loop
+function restrictLocalCreditInput(e, item, field) {
+    let value = e.target.value.replace(/[^0-9.]/g, '');
+    const parts = value.split('.');
+    if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
+    e.target.value = value;
+    item[field] = value;
+}
 </script>
 
 <style scoped>
@@ -563,5 +681,92 @@ function saveToBackend() {
 
 .full-width {
     width: 100%;
+}
+
+/* Existing Credits Styles */
+.credit-history-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.credit-history-row {
+    display: flex;
+    align-items: flex-end; /* Align inputs to bottom */
+    gap: 10px;
+}
+
+.row-index {
+    font-weight: bold;
+    padding-bottom: 10px; /* Align with input text */
+    min-width: 20px;
+}
+
+.flex-grow {
+    flex-grow: 1;
+}
+
+.small-width {
+    width: 100px;
+    flex-shrink: 0;
+}
+
+.medium-width {
+    width: 150px;
+    flex-shrink: 0;
+}
+
+.action-col {
+    padding-bottom: 5px;
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ef4444;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-btn:hover {
+    background-color: #fee2e2;
+    border-radius: 4px;
+}
+
+.add-row-section {
+    margin-top: 15px;
+}
+
+.add-btn {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.add-btn:hover {
+    background-color: #f9f9f9;
+    border-color: #ccc;
+    color: #333;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .credit-history-row {
+        flex-wrap: wrap;
+    }
+    .small-width, .medium-width {
+        width: 45%;
+    }
+    .flex-grow {
+        width: 100%;
+    }
 }
 </style>

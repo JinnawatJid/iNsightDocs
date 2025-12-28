@@ -460,7 +460,8 @@ exports.updateCustomer = async (req, res) => {
     'billing_department',
     'billing_phone',
     'billing_mobile',
-    'billing_email'
+    'billing_email',
+    'existing_credits'
   ];
 
   const keysToUpdate = Object.keys(updates).filter(key => allowedColumns.includes(key));
@@ -484,7 +485,12 @@ exports.updateCustomer = async (req, res) => {
   allowedColumns.forEach(key => {
     if (updates[key] !== undefined) {
       clauses.push(`"${key}" = ?`);
-      params.push(updates[key]);
+      // If existing_credits is an object/array, stringify it
+      if (key === 'existing_credits' && typeof updates[key] === 'object') {
+          params.push(JSON.stringify(updates[key]));
+      } else {
+          params.push(updates[key]);
+      }
     }
   });
 
