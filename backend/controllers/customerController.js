@@ -89,7 +89,18 @@ exports.searchCustomers = async (req, res) => {
         "billing_department",
         "billing_phone",
         "billing_mobile",
-        "billing_email"
+        "billing_email",
+        "payment_method",
+        "payment_condition",
+        "payment_bank_name",
+        "payment_bank_branch",
+        "payment_account_no"
+        "billing_email",
+        "payment_method",
+        "payment_condition",
+        "payment_bank_name",
+        "payment_bank_branch",
+        "payment_account_no"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR
@@ -328,7 +339,12 @@ exports.searchCustomers = async (req, res) => {
           billing_department: row["billing_department"] || "",
           billing_phone: row["billing_phone"] || "",
           billing_mobile: row["billing_mobile"] || "",
-          billing_email: row["billing_email"] || ""
+          billing_email: row["billing_email"] || "",
+          payment_method: row["payment_method"] || "",
+          payment_condition: row["payment_condition"] || "",
+          payment_bank_name: row["payment_bank_name"] || "",
+          payment_bank_branch: row["payment_bank_branch"] || "",
+          payment_account_no: row["payment_account_no"] || ""
         },
         history: history,
         financial_summary: financialSummary,
@@ -464,6 +480,7 @@ exports.updateCustomer = async (req, res) => {
     'existing_credits',
     // Payment Details
     'payment_method',
+    'payment_condition',
     'payment_bank_name',
     'payment_bank_branch',
     'payment_account_no'

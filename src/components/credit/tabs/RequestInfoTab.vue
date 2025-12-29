@@ -294,21 +294,34 @@
             <h3>รายละเอียดการชำระเงิน</h3>
         </div>
 
-        <!-- Payment Method Dropdown -->
-        <div class="form-group" style="max-width: 300px; margin-bottom: 20px;">
-            <label>ชำระเงินโดย </label>
-            <select
-            class="form-input"
-            :class="{ 'border-red-500': errors.paymentMethod, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="formData.paymentMethod"
-            @change="onPaymentMethodChange"
-            >
-            <option value="" disabled>เลือกวิธีการชำระเงิน</option>
-            <option value="โอนเงิน">โอนเงิน</option>
-            <option value="รับเช็ค">รับเช็ค</option>
-            </select>
-            <span v-if="errors.paymentMethod" class="error-text">{{ errors.paymentMethod }}</span>
+        <!-- Payment Method and Condition Grid -->
+        <div class="payment-method-grid" style="margin-bottom: 20px;">
+            <div class="form-group">
+                <label>ชำระเงินโดย </label>
+                <select
+                class="form-input"
+                :class="{ 'border-red-500': errors.paymentMethod, 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.paymentMethod"
+                @change="onPaymentMethodChange"
+                >
+                <option value="" disabled>เลือกวิธีการชำระเงิน</option>
+                <option value="โอนเงิน">โอนเงิน</option>
+                <option value="รับเช็ค">รับเช็ค</option>
+                </select>
+                <span v-if="errors.paymentMethod" class="error-text">{{ errors.paymentMethod }}</span>
+            </div>
+
+            <div class="form-group" v-if="formData.paymentMethod">
+                 <label>{{ formData.paymentMethod === 'โอนเงิน' ? 'เงื่อนไขการโอนเงิน' : 'เงื่อนไขการรับเช็ค' }}</label>
+                 <input
+                    type="text"
+                    class="form-input"
+                    v-model="formData.paymentCondition"
+                    :disabled="!isEditing"
+                    @blur="saveToBackend"
+                 >
+            </div>
         </div>
 
         <!-- Bank Details Grid (Visible only when method is selected) -->
@@ -489,6 +502,7 @@ const formData = reactive({
   billingEmail: '',
   // Payment Details
   paymentMethod: '',
+  paymentCondition: '',
   paymentBankName: '',
   paymentBankBranch: '',
   paymentAccountNo: ''
@@ -545,6 +559,7 @@ watch(() => store.customer, (newVal) => {
 
     // Payment Info Initialization
     if (formData.paymentMethod !== newVal.payment_method) formData.paymentMethod = newVal.payment_method || '';
+    if (formData.paymentCondition !== newVal.payment_condition) formData.paymentCondition = newVal.payment_condition || '';
     if (formData.paymentBankName !== newVal.payment_bank_name) formData.paymentBankName = newVal.payment_bank_name || '';
     if (formData.paymentBankBranch !== newVal.payment_bank_branch) formData.paymentBankBranch = newVal.payment_bank_branch || '';
     if (formData.paymentAccountNo !== newVal.payment_account_no) formData.paymentAccountNo = newVal.payment_account_no || '';
@@ -589,6 +604,7 @@ watch(formData, (newVal) => {
 
   // Payment Info Updates
   updates.payment_method = newVal.paymentMethod;
+  updates.payment_condition = newVal.paymentCondition;
   updates.payment_bank_name = newVal.paymentBankName;
   updates.payment_bank_branch = newVal.paymentBankBranch;
   updates.payment_account_no = newVal.paymentAccountNo;
@@ -643,6 +659,7 @@ function saveToBackend() {
 
     // Payment Info Save
     updates.payment_method = formData.paymentMethod;
+    updates.payment_condition = formData.paymentCondition;
     updates.payment_bank_name = formData.paymentBankName;
     updates.payment_bank_branch = formData.paymentBankBranch;
     updates.payment_account_no = formData.paymentAccountNo;
@@ -750,8 +767,13 @@ function restrictLocalCreditInput(e, item, field) {
 .billing-info-section {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  /* Removed margin-top: 20px as requested */
+  /* Removed gap: 20px as requested */
+}
+
+.payment-method-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
 }
 
 /* Removed old .billing-dropdown-grid since we use .form-grid-three-columns now */
