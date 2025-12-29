@@ -1,5 +1,19 @@
 <template>
   <div class="store-statement-tab">
+    <!-- Guarantee Docs Section (Moved from Request Info) -->
+    <div class="upload-grid-small">
+        <FileUploader
+          label="Bank Guarantee (ถ้ามี)"
+          v-model="files.bankGuarantee"
+          :disabled="!isEditing"
+        />
+        <FileUploader
+          label="หนังสือค้ำประกัน (ถ้ามี)"
+          v-model="files.letterGuarantee"
+          :disabled="!isEditing"
+        />
+    </div>
+
     <!-- Main Upload Section -->
     <div class="upload-section-large">
       <FileUploader
@@ -104,12 +118,30 @@ watch(() => props.readOnly, (val) => {
 });
 
 const files = reactive({
-  bankStatement: []
+  bankStatement: [],
+  bankGuarantee: null,
+  letterGuarantee: null
 });
 
 watch(() => files.bankStatement, (v) => {
   store.updateFile('bank_statement', v);
 });
+
+watch(() => files.bankGuarantee, (newVal) => {
+  store.updateFile('bank_guarantee_doc', newVal);
+});
+
+watch(() => files.letterGuarantee, (newVal) => {
+  store.updateFile('letter_guarantee_doc', newVal);
+});
+
+// Initialize files from store
+watch(() => store.files, (newVal) => {
+  if (newVal) {
+    if (newVal.bank_guarantee_doc !== undefined) files.bankGuarantee = newVal.bank_guarantee_doc;
+    if (newVal.letter_guarantee_doc !== undefined) files.letterGuarantee = newVal.letter_guarantee_doc;
+  }
+}, { immediate: true, deep: true });
 
 const formData = reactive({
   paymentMethod: '',
@@ -160,6 +192,13 @@ function saveData(key, value) {
 
 .upload-section-large {
   margin-bottom: 30px;
+}
+
+.upload-grid-small {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
 .details-section {

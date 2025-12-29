@@ -14,16 +14,6 @@
           v-model="files.quotation"
           :disabled="!isEditing"
         />
-        <FileUploader
-          label="Bank Guarantee (ถ้ามี)"
-          v-model="files.bankGuarantee"
-          :disabled="!isEditing"
-        />
-        <FileUploader
-          label="หนังสือค้ำประกัน (ถ้ามี)"
-          v-model="files.letterGuarantee"
-          :disabled="!isEditing"
-        />
       </div>
     </div>
 
@@ -388,9 +378,7 @@ const isSameAsAuthorized = ref(false);
 
 const files = reactive({
   creditApp: null,
-  quotation: null,
-  bankGuarantee: null,
-  letterGuarantee: null
+  quotation: null
 });
 
 // Watch for file changes to update store
@@ -402,21 +390,11 @@ watch(() => files.quotation, (newVal) => {
   store.updateFile('quotation_doc', newVal);
 });
 
-watch(() => files.bankGuarantee, (newVal) => {
-  store.updateFile('bank_guarantee_doc', newVal);
-});
-
-watch(() => files.letterGuarantee, (newVal) => {
-  store.updateFile('letter_guarantee_doc', newVal);
-});
-
 // Initialize files from store (to support Edit mode or tab switching)
 watch(() => store.files, (newVal) => {
   if (newVal) {
     if (newVal.credit_application_doc !== undefined) files.creditApp = newVal.credit_application_doc;
     if (newVal.quotation_doc !== undefined) files.quotation = newVal.quotation_doc;
-    if (newVal.bank_guarantee_doc !== undefined) files.bankGuarantee = newVal.bank_guarantee_doc;
-    if (newVal.letter_guarantee_doc !== undefined) files.letterGuarantee = newVal.letter_guarantee_doc;
   }
 }, { immediate: true, deep: true });
 
