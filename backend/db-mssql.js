@@ -168,6 +168,7 @@ const initDB = async () => {
             'existing_credits',
             // Payment Details
             'payment_method',
+            'payment_condition',
             'payment_bank_name',
             'payment_bank_branch',
             'payment_account_no'
