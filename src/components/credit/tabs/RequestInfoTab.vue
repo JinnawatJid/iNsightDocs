@@ -288,6 +288,75 @@
             </div>
         </div>
 
+        <!-- Payment Details Section (Moved from Store Statement) -->
+        <div class="section-separator"></div>
+        <div class="section-header">
+            <h3>รายละเอียดการชำระเงิน</h3>
+        </div>
+
+        <!-- Payment Method Dropdown -->
+        <div class="form-group" style="max-width: 300px; margin-bottom: 20px;">
+            <label>ชำระเงินโดย </label>
+            <select
+            class="form-input"
+            :class="{ 'border-red-500': errors.paymentMethod, 'disabled': !isEditing }"
+            :disabled="!isEditing"
+            v-model="formData.paymentMethod"
+            @change="onPaymentMethodChange"
+            >
+            <option value="" disabled>เลือกวิธีการชำระเงิน</option>
+            <option value="โอนเงิน">โอนเงิน</option>
+            <option value="รับเช็ค">รับเช็ค</option>
+            </select>
+            <span v-if="errors.paymentMethod" class="error-text">{{ errors.paymentMethod }}</span>
+        </div>
+
+        <!-- Bank Details Grid (Visible only when method is selected) -->
+        <div v-if="formData.paymentMethod" class="form-grid-three-columns">
+            <div class="form-group">
+            <label>จากบัญชีธนาคาร </label>
+            <input
+                type="text"
+                class="form-input"
+                :class="{ 'border-red-500': errors.paymentBankName, 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.paymentBankName"
+                placeholder="ระบุชื่อธนาคาร"
+                @input="validateField('paymentBankName', formData.paymentBankName, ['required'])"
+                @blur="saveToBackend(); validateField('paymentBankName', formData.paymentBankName, ['required'])"
+            />
+            <span v-if="errors.paymentBankName" class="error-text">{{ errors.paymentBankName }}</span>
+            </div>
+            <div class="form-group">
+            <label>สาขา </label>
+            <input
+                type="text"
+                class="form-input"
+                :class="{ 'border-red-500': errors.paymentBankBranch, 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.paymentBankBranch"
+                placeholder="ระบุสาขา"
+                @input="validateField('paymentBankBranch', formData.paymentBankBranch, ['required'])"
+                @blur="saveToBackend(); validateField('paymentBankBranch', formData.paymentBankBranch, ['required'])"
+            />
+            <span v-if="errors.paymentBankBranch" class="error-text">{{ errors.paymentBankBranch }}</span>
+            </div>
+            <div class="form-group">
+            <label>เลขที่บัญชี </label>
+            <input
+                type="text"
+                class="form-input"
+                :class="{ 'border-red-500': errors.paymentAccountNo, 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="formData.paymentAccountNo"
+                placeholder="ระบุเลขที่บัญชี"
+                @input="(e) => { restrictPhoneInput(e); validateField('paymentAccountNo', e.target.value, ['required', 'numeric']); }"
+                @blur="saveToBackend(); validateField('paymentAccountNo', formData.paymentAccountNo, ['required', 'numeric'])"
+            />
+            <span v-if="errors.paymentAccountNo" class="error-text">{{ errors.paymentAccountNo }}</span>
+            </div>
+        </div>
+
       </div>
     </div>
 
@@ -366,7 +435,7 @@ import { useFormValidation } from '@/composables/useFormValidation';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
-const { errors, validateField, restrictCreditAmountInput } = useFormValidation();
+const { errors, validateField, restrictCreditAmountInput, restrictPhoneInput } = useFormValidation();
 
 const isEditing = ref(!props.readOnly);
 watch(() => props.readOnly, (val) => {
@@ -417,7 +486,12 @@ const formData = reactive({
   billingDepartment: '',
   billingPhone: '',
   billingMobile: '',
-  billingEmail: ''
+  billingEmail: '',
+  // Payment Details
+  paymentMethod: '',
+  paymentBankName: '',
+  paymentBankBranch: '',
+  paymentAccountNo: ''
 });
 
 const existingCredits = ref([
@@ -468,6 +542,12 @@ watch(() => store.customer, (newVal) => {
     if (formData.billingPhone !== newVal.billing_phone) formData.billingPhone = newVal.billing_phone || '';
     if (formData.billingMobile !== newVal.billing_mobile) formData.billingMobile = newVal.billing_mobile || '';
     if (formData.billingEmail !== newVal.billing_email) formData.billingEmail = newVal.billing_email || '';
+
+    // Payment Info Initialization
+    if (formData.paymentMethod !== newVal.payment_method) formData.paymentMethod = newVal.payment_method || '';
+    if (formData.paymentBankName !== newVal.payment_bank_name) formData.paymentBankName = newVal.payment_bank_name || '';
+    if (formData.paymentBankBranch !== newVal.payment_bank_branch) formData.paymentBankBranch = newVal.payment_bank_branch || '';
+    if (formData.paymentAccountNo !== newVal.payment_account_no) formData.paymentAccountNo = newVal.payment_account_no || '';
   }
 }, { immediate: true, deep: true });
 
@@ -506,6 +586,12 @@ watch(formData, (newVal) => {
   updates.billing_phone = newVal.billingPhone;
   updates.billing_mobile = newVal.billingMobile;
   updates.billing_email = newVal.billingEmail;
+
+  // Payment Info Updates
+  updates.payment_method = newVal.paymentMethod;
+  updates.payment_bank_name = newVal.paymentBankName;
+  updates.payment_bank_branch = newVal.paymentBankBranch;
+  updates.payment_account_no = newVal.paymentAccountNo;
 
   // Update store
   store.updateCustomerData(updates);
@@ -555,7 +641,18 @@ function saveToBackend() {
     updates.billing_mobile = formData.billingMobile;
     updates.billing_email = formData.billingEmail;
 
+    // Payment Info Save
+    updates.payment_method = formData.paymentMethod;
+    updates.payment_bank_name = formData.paymentBankName;
+    updates.payment_bank_branch = formData.paymentBankBranch;
+    updates.payment_account_no = formData.paymentAccountNo;
+
     store.saveCustomerData(updates);
+}
+
+function onPaymentMethodChange() {
+  validateField('paymentMethod', formData.paymentMethod, ['required']);
+  saveToBackend();
 }
 
 function addCreditRow() {
