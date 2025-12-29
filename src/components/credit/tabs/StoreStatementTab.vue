@@ -23,7 +23,7 @@
 
       <!-- Payment Method Dropdown -->
       <div class="form-group" style="max-width: 300px; margin-bottom: 20px;">
-        <label>ชำระเงินโดย <span class="text-red-500">*</span></label>
+        <label>ชำระเงินโดย </label>
         <select
           class="form-control"
           :class="{ 'border-red-500': errors.paymentMethod, 'disabled': !isEditing }"
@@ -41,7 +41,7 @@
       <!-- Bank Details Grid (Visible only when method is selected) -->
       <div v-if="formData.paymentMethod" class="form-grid-three-columns">
         <div class="form-group">
-          <label>จากบัญชีธนาคาร <span class="text-red-500">*</span></label>
+          <label>จากบัญชีธนาคาร </label>
           <input
             type="text"
             class="form-control"
@@ -55,7 +55,7 @@
           <span v-if="errors.paymentBankName" class="error-text">{{ errors.paymentBankName }}</span>
         </div>
         <div class="form-group">
-          <label>สาขา <span class="text-red-500">*</span></label>
+          <label>สาขา </label>
           <input
             type="text"
             class="form-control"
@@ -69,7 +69,7 @@
           <span v-if="errors.paymentBankBranch" class="error-text">{{ errors.paymentBankBranch }}</span>
         </div>
         <div class="form-group">
-          <label>เลขที่บัญชี <span class="text-red-500">*</span></label>
+          <label>เลขที่บัญชี </label>
           <input
             type="text"
             class="form-control"

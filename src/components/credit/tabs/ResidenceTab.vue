@@ -36,7 +36,7 @@
       <!-- Address Form -->
       <div class="form-grid-three-columns">
         <div class="form-group span-2">
-          <label>ที่อยู่ (บ้านเลขที่, ถนน) <span class="text-red-500">*</span></label>
+          <label>ที่อยู่ (บ้านเลขที่, ถนน) </label>
           <input
             type="text"
             class="form-control"
@@ -50,7 +50,7 @@
           <span v-if="errors.houseAddress" class="error-text">{{ errors.houseAddress }}</span>
         </div>
         <div class="form-group">
-          <label>ตำบล/แขวง <span class="text-red-500">*</span></label>
+          <label>ตำบล/แขวง </label>
           <input
             type="text"
             class="form-control"
@@ -64,7 +64,7 @@
           <span v-if="errors.subdistrict" class="error-text">{{ errors.subdistrict }}</span>
         </div>
         <div class="form-group">
-          <label>รหัสไปรษณีย์ <span class="text-red-500">*</span></label>
+          <label>รหัสไปรษณีย์ </label>
           <input
             type="text"
             class="form-control"
@@ -78,7 +78,7 @@
           <span v-if="errors.postCode" class="error-text">{{ errors.postCode }}</span>
         </div>
         <div class="form-group">
-          <label>อำเภอ/เขต <span class="text-red-500">*</span></label>
+          <label>อำเภอ/เขต </label>
           <input
             type="text"
             class="form-control"
@@ -92,7 +92,7 @@
           <span v-if="errors.district" class="error-text">{{ errors.district }}</span>
         </div>
         <div class="form-group">
-          <label>จังหวัด <span class="text-red-500">*</span></label>
+          <label>จังหวัด </label>
           <input
             type="text"
             class="form-control"
@@ -112,7 +112,6 @@
          <div class="form-group">
           <label>
             เบอร์โทรศัพท์ 
-            <span class="text-red-500">*</span>
             <span v-if="!formData.phone" class="no-data-alert">ไม่พบข้อมูล</span>
           </label>
           <input
@@ -156,7 +155,7 @@
         <!-- Location Type and Ownership Grid -->
         <div class="form-grid-four-columns">
             <div class="form-group">
-               <label>ลักษณะที่ตั้ง <span class="text-red-500">*</span></label>
+               <label>ลักษณะที่ตั้ง </label>
                <select
                   class="form-control"
                   :class="{ 'disabled': !isEditing }"
@@ -182,7 +181,7 @@
                 />
              </div>
              <div class="form-group">
-               <label>กรรมสิทธิ์ทรัพย์สิน <span class="text-red-500">*</span></label>
+               <label>กรรมสิทธิ์ทรัพย์สิน </label>
                <select
                   class="form-control"
                   :class="{ 'disabled': !isEditing }"
