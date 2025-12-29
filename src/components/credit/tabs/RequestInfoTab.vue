@@ -47,7 +47,7 @@
       <div class="contact-grid-layout">
         <!-- Row 1 -->
         <div class="form-group">
-          <label>ชื่อผู้ติดต่อ <span class="text-red-500">*</span></label>
+          <label>ชื่อผู้ติดต่อ </label>
           <input
             type="text"
             class="form-input"
@@ -60,7 +60,7 @@
           <span v-if="errors.contactName" class="error-text">{{ errors.contactName }}</span>
         </div>
         <div class="form-group">
-          <label>ตำแหน่ง <span class="text-red-500">*</span></label>
+          <label>ตำแหน่ง </label>
            <input
             type="text"
             class="form-input"
@@ -101,7 +101,7 @@
           <span v-if="errors.contactDivision" class="error-text">{{ errors.contactDivision }}</span>
         </div>
         <div class="form-group">
-          <label>เบอร์โทรผู้ติดต่อ <span class="text-red-500">*</span></label>
+          <label>เบอร์โทรผู้ติดต่อ </label>
            <input
             type="text"
             class="form-input"
@@ -124,7 +124,7 @@
       </div>
       <div class="form-grid-three-columns">
             <div class="form-group">
-              <label>วงเงินเครดิตทีต้องการ (บาท) <span class="text-red-500">*</span></label>
+              <label>วงเงินเครดิตที่ต้องการ (บาท) </label>
               <input
                 type="text"
                 class="form-input"
@@ -152,7 +152,7 @@
             </div>
 
             <div class="form-group">
-              <label>เหตุผลการขอเครดิต <span class="text-red-500">*</span></label>
+              <label>เหตุผลการขอเครดิต </label>
               <select
                 class="form-input"
                 :class="{ 'disabled': !isEditing }"

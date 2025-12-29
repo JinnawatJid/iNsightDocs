@@ -26,7 +26,7 @@
       <div class="form-layout-columns">
         <div class="column-layout">
           <div class="form-group">
-            <label>ชื่อร้าน/บริษัท <span class="text-red-500">*</span></label>
+            <label>ชื่อร้าน/บริษัท </label>
             <input
               type="text"
               class="form-input"
@@ -63,7 +63,7 @@
       <div class="form-layout-columns">
          <div class="column-layout">
            <div class="form-group">
-            <label>ชื่อผู้มีอำนาจลงนาม 1 <span class="text-red-500">*</span></label>
+            <label>ชื่อผู้มีอำนาจลงนาม 1 </label>
             <input
               type="text"
               class="form-input"
@@ -79,7 +79,7 @@
          </div>
          <div class="column-layout">
             <div class="form-group">
-             <label>ตำแหน่ง <span class="text-red-500">*</span></label>
+             <label>ตำแหน่ง </label>
             <input
               type="text"
               class="form-input"
