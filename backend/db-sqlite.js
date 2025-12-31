@@ -188,6 +188,16 @@ const initDB = async () => {
             FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
         )`);
 
+        // Create RequestComments table
+        db.run(`CREATE TABLE IF NOT EXISTS RequestComments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tx_id TEXT,
+            actor_role TEXT,
+            comment_text TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
+        )`);
+
         console.log('Database initialized (SQLite).');
     } catch (error) {
         console.error('Database initialization failed (SQLite):', error);

@@ -36,5 +36,9 @@ export default {
 
   async cancelCreditRequest(id) {
     return axios.patch(`${API_URL}/${encodeURIComponent(id)}/cancel`);
+  },
+
+  async getComments(txId) {
+    return axios.get(`${API_URL}/${encodeURIComponent(txId)}/comments`);
   }
 };

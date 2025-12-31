@@ -27,10 +27,25 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     // List of requests (Pending/History)
-    requestsList: []
+    requestsList: [],
+
+    // Comments
+    comments: []
   }),
 
   getters: {
+    currentRole: (state) => {
+      // Logic to determine role based on status
+      const s = state.requestStatus;
+      if (!s || s === 'Draft') return 'หัวหน้าสำนักงาน';
+      if (s === 'Opened') return 'ผู้จัดการสาขา';
+      if (s === 'Submitted') return 'ผู้จัดการฝ่ายขาย (HO)';
+      if (s === 'PendingSales (ชั่วคราว)') return 'เลขานุการฝ่ายการเงิน';
+      if (s === 'Reviewed') return 'ผู้จัดการฝ่ายการเงิน'; // or Committee if > 300k, handled in logic
+      if (s === 'PendingFinance (ชั่วคราว)') return 'กรรมการเครดิต';
+      return '';
+    },
+
     uploadedDocumentCount: (state) => {
       // Use the files object to count, ensuring we have actual files
       return Object.values(state.files).filter(f => !!f).length;
@@ -61,13 +76,35 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     isReadOnly: (state) => {
-      // Submitted, Reviewed, Approved, Rejected, Closed -> Read Only
-      // Opened, Canceled -> Editable
-      return ['Submitted', 'Reviewed', 'Approved', 'Rejected', 'Closed'].includes(state.requestStatus);
+      // With new flow, "Read Only" is tricky. Each role can edit in their turn?
+      // Assuming existing logic: Only Head Office roles might be ReadOnly on form data, but can comment/approve.
+      // For now, let's keep form editable for active actors, or follow user existing requirement:
+      // "Read Only" logic was: Opened/Canceled = Editable. Others = ReadOnly.
+      // We should probably allow editing for the active actor?
+      // User said: "ผู้จัดการสาขา -> which review and edit the request data". So Submitted -> Sales Manager should also edit?
+      // Let's assume Active Status = Editable by Current Actor.
+      // But for simplicity/safety, let's keep the user's previous "Read Only" list but update it.
+      // Actually, if I am the "Sales Manager", I am reviewing "Submitted" request. I might need to edit.
+      // Let's NOT block editing based on status for now, unless it's Final (Approved/Rejected/Closed/Canceled).
+
+      const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled'];
+      return finalStatuses.includes(state.requestStatus);
     }
   },
 
   actions: {
+    async fetchComments() {
+        if (!this.requestId) return;
+        try {
+            const res = await CreditRequestService.getComments(this.requestId);
+            if (res.data && res.data.data) {
+                this.comments = res.data.data;
+            }
+        } catch (e) {
+            console.error('Failed to fetch comments', e);
+        }
+    },
+
     async searchCustomer(query) {
       if (!query) return;
 
@@ -92,6 +129,9 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           // But here we want to just "Initialize" it.
           // The current backend createCreditRequest returns existing if Opened.
           await this.createCreditRequest(this.customer.id, this.customer.name);
+
+          // Fetch comments
+          await this.fetchComments();
         } else {
           this.resetState();
           Swal.fire({
@@ -241,6 +281,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.requestStatus = null;
       this.uploadedDocuments = {};
       this.files = {};
+      this.comments = [];
     }
   }
 });
