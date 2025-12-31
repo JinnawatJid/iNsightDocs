@@ -211,11 +211,18 @@ exports.searchCustomers = async (req, res) => {
               const totalPurchaseGrowth = formatTrend(accumData.AccumTrend);
               const avgMonthlyTrend = formatTrend(accumData.SecondAvgTrend);
 
+              const monthlyHistory = [
+                  { label: 'มิ.ย.', value: formatCurrency(jun) },
+                  { label: 'ก.ค.', value: formatCurrency(jul) },
+                  { label: 'ส.ค.', value: formatCurrency(aug) }
+              ];
+
               financialSummary = {
                   total_purchase_3_months: formatCurrency(accumData.SecondAccum),
                   total_purchase_growth: totalPurchaseGrowth,
                   avg_monthly: avgMonthly,
-                  avg_monthly_trend: avgMonthlyTrend
+                  avg_monthly_trend: avgMonthlyTrend,
+                  monthly_history: monthlyHistory
               };
 
               // Generate Suggestions
@@ -257,7 +264,8 @@ exports.searchCustomers = async (req, res) => {
                   total_purchase_3_months: "0",
                   total_purchase_growth: null,
                   avg_monthly: "0",
-                  avg_monthly_trend: null
+                  avg_monthly_trend: null,
+                  monthly_history: []
               };
               suggestions = ["ไม่พบข้อมูลประวัติการซื้อ"];
           }
@@ -267,7 +275,8 @@ exports.searchCustomers = async (req, res) => {
               total_purchase_3_months: "0",
               total_purchase_growth: null,
               avg_monthly: "0",
-              avg_monthly_trend: null
+              avg_monthly_trend: null,
+              monthly_history: []
           };
       }
 
