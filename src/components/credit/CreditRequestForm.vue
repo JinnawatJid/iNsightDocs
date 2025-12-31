@@ -17,21 +17,68 @@
 
     <div class="form-footer">
       <div class="comment-section">
-        <h3>ความคิดเห็นเพิ่มเติม</h3>
-        <input type="text" class="comment-input" placeholder="ความคิดเห็นเพิ่มเติม" :disabled="isReadOnly" />
+        <CommentHistory :comments="comments" />
+
+        <h3>ความคิดเห็น: {{ currentRoleLabel }}</h3>
+        <textarea
+            class="comment-input"
+            placeholder="กรอกความคิดเห็น..."
+            v-model="newComment"
+            rows="5"
+            :disabled="isReadOnly"
+        ></textarea>
       </div>
 
       <div class="footer-info">
-         <span class="author">AY: จิณณวัฒน์ จิตเสนาะ</span>
+         <span class="author">Current Role: {{ currentRoleLabel }}</span>
       </div>
 
       <div class="action-buttons">
-        <template v-if="!isReadOnly">
-            <button class="btn-save">บันทึกแบบร่าง</button>
-            <button class="btn-submit" @click="submitCreditRequest">ส่งคำขอเครดิต</button>
+        <!-- Dynamic Buttons based on Status -->
+
+        <!-- Draft -> Opened -->
+        <template v-if="requestStatus === 'Draft' || !requestStatus">
+             <button class="btn-save" @click="saveDraft">บันทึกแบบร่าง</button>
+             <button class="btn-submit" @click="submitAction('Opened', 'ส่งคำขอให้ผู้จัดการสาขา')">ส่งให้ผู้จัดการสาขา</button>
         </template>
+
+        <!-- Opened -> Submitted -->
+        <template v-else-if="requestStatus === 'Opened'">
+             <button class="btn-submit" @click="submitAction('Submitted', 'ส่งคำขอให้ฝ่ายขาย (HO)')">ส่งให้ฝ่ายขาย (HO)</button>
+        </template>
+
+        <!-- Submitted -> PendingSales or Rejected -->
+        <template v-else-if="requestStatus === 'Submitted'">
+             <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
+             <button class="btn-submit" @click="submitAction('PendingSales (ชั่วคราว)', 'ส่งต่อให้ฝ่ายการเงิน')">ส่งต่อให้ฝ่ายการเงิน</button>
+        </template>
+
+        <!-- PendingSales -> Reviewed or Rejected -->
+        <template v-else-if="requestStatus === 'PendingSales (ชั่วคราว)'">
+             <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
+             <button class="btn-submit" @click="submitAction('Reviewed', 'ส่งต่อให้ผู้จัดการฝ่ายการเงิน')">ส่งต่อให้ผู้จัดการฝ่ายการเงิน</button>
+        </template>
+
+        <!-- Reviewed -> Approved or PendingFinance or Rejected -->
+        <template v-else-if="requestStatus === 'Reviewed'">
+             <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
+             <template v-if="isHighValue">
+                 <button class="btn-submit" @click="submitAction('PendingFinance (ชั่วคราว)', 'ส่งต่อให้กรรมการเครดิต')">ส่งต่อให้กรรมการเครดิต</button>
+             </template>
+             <template v-else>
+                 <button class="btn-approve" @click="submitAction('Approved', 'อนุมัติคำขอ')">อนุมัติคำขอ</button>
+             </template>
+        </template>
+
+        <!-- PendingFinance -> Approved or Rejected -->
+        <template v-else-if="requestStatus === 'PendingFinance (ชั่วคราว)'">
+             <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
+             <button class="btn-approve" @click="submitAction('Approved', 'อนุมัติคำขอ')">อนุมัติคำขอ</button>
+        </template>
+
+        <!-- Final Statuses -->
         <template v-else>
-             <button class="btn-cancel" @click="handleCancel">ยกเลิกคำขอ</button>
+             <button class="btn-cancel" @click="handleCancel" v-if="requestStatus !== 'Canceled'">ยกเลิกคำขอ</button>
         </template>
       </div>
     </div>
@@ -40,27 +87,41 @@
 
 <script>
 import ApplicationTabs from './ApplicationTabs.vue';
+import CommentHistory from './CommentHistory.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 import axios from 'axios';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 export default {
   name: 'CreditRequestForm',
   components: {
-    ApplicationTabs
+    ApplicationTabs,
+    CommentHistory
   },
   setup() {
     const store = useCreditRequestStore();
     const router = useRouter();
 
     const isReadOnly = computed(() => store.isReadOnly);
+    const comments = computed(() => store.comments);
+    const requestStatus = computed(() => store.requestStatus);
+    const currentRoleLabel = computed(() => store.currentRole);
+
+    // Parse amount to check for > 300,000
+    const isHighValue = computed(() => {
+        const amtStr = store.transactionData.amount || '0';
+        const amt = parseFloat(amtStr.replace(/,/g, ''));
+        return amt > 300000;
+    });
+
+    const newComment = ref('');
 
     const handleCancel = async () => {
         const result = await Swal.fire({
             title: 'ยกเลิกคำขอ?',
-            text: 'คุณแน่ใจหรือไม่ที่จะยกเลิกคำขอนี้? คุณจะสามารถแก้ไขข้อมูลได้หลังจากยกเลิก',
+            text: 'คุณแน่ใจหรือไม่ที่จะยกเลิกคำขอนี้?',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'ใช่, ยกเลิก',
@@ -71,7 +132,7 @@ export default {
         if (result.isConfirmed) {
             try {
                 await store.cancelRequest();
-                await Swal.fire('ยกเลิกสำเร็จ', 'คำขอถูกยกเลิกแล้ว คุณสามารถแก้ไขข้อมูลได้ทันที', 'success');
+                await Swal.fire('ยกเลิกสำเร็จ', 'คำขอถูกยกเลิกแล้ว', 'success');
                 window.location.reload();
             } catch (e) {
                 Swal.fire('Error', 'ไม่สามารถยกเลิกคำขอได้', 'error');
@@ -79,67 +140,77 @@ export default {
         }
     };
 
-    const submitCreditRequest = async () => {
-        // 1. Validation
+    const saveDraft = async () => {
+        await submitBase('Draft', 'บันทึกแบบร่างสำเร็จ', false);
+    };
+
+    const submitAction = async (targetStatus, confirmText) => {
+         // Validation checks first
         if (!store.customer || !store.customer.id) {
             Swal.fire('Error', 'กรุณาค้นหาลูกค้าก่อนทำรายการ', 'error');
             return;
         }
 
-        // Check if mandatory files are present
-        const commonFiles = ['id_card', 'home_reg', 'home_photo', 'land_tax', 'credit_application_doc'];
-        let requiredFiles = [...commonFiles];
+        // Check if mandatory files are present (Only for initial submission, maybe?)
+        // Let's keep file check strict for "Submitted" step (Opened -> Submitted)
+        if (targetStatus === 'Submitted') {
+            const commonFiles = ['id_card', 'home_reg', 'home_photo', 'land_tax', 'credit_application_doc'];
+            let requiredFiles = [...commonFiles];
 
-        if (store.isCompany) {
-            requiredFiles.push('legal_entity_certificate', 'vat_document', 'company_photo', 'company_land_tax');
-        } else {
-            requiredFiles.push('store_photo', 'commercial_reg', 'store_land_tax');
+            if (store.isCompany) {
+                requiredFiles.push('legal_entity_certificate', 'vat_document', 'company_photo', 'company_land_tax');
+            } else {
+                requiredFiles.push('store_photo', 'commercial_reg', 'store_land_tax');
+            }
+            requiredFiles.push('bank_statement');
+
+            const missing = requiredFiles.filter(key => {
+                const val = store.files[key];
+                if (Array.isArray(val)) return val.length === 0;
+                return !val;
+            });
+
+            if (missing.length > 0) {
+                 Swal.fire({
+                    icon: 'warning',
+                    title: 'เอกสารไม่ครบ',
+                    text: 'กรุณาอัปโหลดเอกสารให้ครบถ้วน'
+                 });
+                 return;
+            }
         }
 
-        // Bank Statement is common
-        requiredFiles.push('bank_statement');
-
-        const missing = requiredFiles.filter(key => {
-            const val = store.files[key];
-            if (Array.isArray(val)) return val.length === 0;
-            return !val;
-        });
-
-        if (missing.length > 0) {
-             Swal.fire({
-                icon: 'warning',
-                title: 'เอกสารไม่ครบ',
-                text: 'กรุณาอัปโหลดเอกสารให้ครบถ้วน'
-             });
-             return;
-        }
-
-        // 2. Confirm Action
         const confirm = await Swal.fire({
-            title: 'ยืนยันการส่งคำขอ?',
-            text: 'คุณต้องการส่งคำขอเครดิตใช่หรือไม่?',
+            title: 'ยืนยันการทำรายการ?',
+            text: `คุณต้องการ "${confirmText}" ใช่หรือไม่?`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'ใช่, ส่งคำขอ',
+            confirmButtonText: 'ใช่',
             cancelButtonText: 'ยกเลิก'
         });
 
         if (!confirm.isConfirmed) return;
 
-        // 3. Prepare Payload
-        try {
+        await submitBase(targetStatus, 'ทำรายการสำเร็จ', true);
+    };
+
+    const submitBase = async (status, successMessage, isSubmitFlag) => {
+         try {
             const formData = new FormData();
             formData.append('customer_no', store.customer.id);
             formData.append('customer_name', store.customer.name);
-
             formData.append('request_amount', store.transactionData.amount || '');
             formData.append('request_reason', store.transactionData.reason || '');
-
-            // Full Snapshot
             formData.append('snapshot_data', JSON.stringify(store.customer));
 
-            // Submission Flag
-            formData.append('is_submit', 'true');
+            // Critical: Pass Status and Comment
+            formData.append('status', status);
+            formData.append('is_submit', isSubmitFlag ? 'true' : 'false');
+
+            if (newComment.value.trim()) {
+                formData.append('comment', newComment.value.trim());
+                formData.append('actor_role', currentRoleLabel.value);
+            }
 
             // Files
             for (const [key, file] of Object.entries(store.files)) {
@@ -152,20 +223,16 @@ export default {
                 }
             }
 
-            // 4. API Call
-            const response = await axios.post('/api/credit-requests', formData, {
+            await axios.post('/api/credit-requests', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            // 5. Success
             await Swal.fire({
-                title: 'ส่งคำขอสำเร็จ',
-                text: 'บันทึกคำขอเครดิตเรียบร้อยแล้ว',
+                title: 'สำเร็จ',
+                text: successMessage,
                 icon: 'success'
             });
 
-            // 6. Redirect
-            // Refresh page or redirect to same route to reset
             window.location.reload();
 
         } catch (error) {
@@ -179,9 +246,15 @@ export default {
     };
 
     return {
-        submitCreditRequest,
+        submitAction,
+        saveDraft,
         isReadOnly,
-        handleCancel
+        handleCancel,
+        comments,
+        requestStatus,
+        currentRoleLabel,
+        newComment,
+        isHighValue
     };
   }
 };
@@ -262,6 +335,8 @@ export default {
   background-color: #f5f6f8;
   box-sizing: border-box;
   color: black;
+  font-family: inherit;
+  resize: vertical;
 }
 
 .footer-info {
@@ -290,7 +365,7 @@ export default {
   cursor: pointer;
 }
 
-.btn-submit {
+.btn-submit, .btn-approve {
   padding: 12px 30px;
   background-color: #0056FF;
   color: white;
@@ -300,11 +375,18 @@ export default {
   cursor: pointer;
 }
 
+.btn-approve {
+    background-color: #28a745;
+}
+.btn-approve:hover {
+    background-color: #218838;
+}
+
 .btn-submit:hover {
   background-color: #0046cc;
 }
 
-.btn-cancel {
+.btn-cancel, .btn-reject {
     padding: 12px 30px;
     background-color: #dc3545;
     color: white;
@@ -313,7 +395,7 @@ export default {
     font-size: 16px;
     cursor: pointer;
 }
-.btn-cancel:hover {
+.btn-cancel:hover, .btn-reject:hover {
     background-color: #c82333;
 }
 </style>

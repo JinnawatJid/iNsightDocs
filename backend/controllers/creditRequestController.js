@@ -11,22 +11,26 @@ exports.createCreditRequest = async (req, res) => {
   }
 
   try {
-    // Check for existing active request for this customer (Opened, Submitted, Reviewed)
+    // Check for existing active request for this customer (Draft, Opened, Submitted, Reviewed, PendingSales, PendingFinance)
     // Canceled, Approved, Rejected, Closed are considered inactive/final for this check
+    // We expanded the list of active statuses
+    const activeStatuses = ['Draft', 'Opened', 'Submitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'];
+    const statusPlaceholders = activeStatuses.map(() => '?').join(',');
+
     let existingSql;
     if (db.dbType === 'mssql') {
       existingSql = `
         SELECT TOP 1 * FROM CreditRequests
-        WHERE customer_no = ? AND status IN ('Opened', 'Submitted', 'Reviewed')
+        WHERE customer_no = ? AND status IN (${statusPlaceholders})
       `;
     } else {
       existingSql = `
         SELECT * FROM CreditRequests
-        WHERE customer_no = ? AND status IN ('Opened', 'Submitted', 'Reviewed')
+        WHERE customer_no = ? AND status IN (${statusPlaceholders})
         LIMIT 1
       `;
     }
-    const { rows } = await db.query(existingSql, [customer_no]);
+    const { rows } = await db.query(existingSql, [customer_no, ...activeStatuses]);
 
     let txId;
     let requestId;
@@ -34,51 +38,57 @@ exports.createCreditRequest = async (req, res) => {
     let responseSnapshot = null;
     let responseAmount = null;
     let responseReason = null;
-
     let responseCreditTerm = null;
 
     if (rows && rows.length > 0) {
       const existing = rows[0];
 
-      // If status is 'Opened', we update it with new data ONLY if is_submit is true
-      if (existing.status === 'Opened') {
-        txId = existing.tx_id;
-        requestId = existing.id;
+      // EXISTING REQUEST FOUND
+      txId = existing.tx_id;
+      requestId = existing.id;
 
-        if (is_submit === 'true' || is_submit === true) {
-            status = 'Submitted';
-            await db.runAsync(
-              'UPDATE CreditRequests SET request_amount = ?, request_reason = ?, request_credit_term = ?, snapshot_data = ?, status = ? WHERE id = ?',
-              [request_amount, request_reason, request_credit_term, snapshot_data, status, requestId]
-            );
-            // Will return the new data passed in body
-        } else {
-             // Just return existing Open request without changes
-             status = 'Opened';
-             responseSnapshot = existing.snapshot_data;
-             responseAmount = existing.request_amount;
-             responseReason = existing.request_reason;
-             responseCreditTerm = existing.request_credit_term;
+      // If is_submit is true, we update the data and possibly the status
+      // We also handle "status" passed explicitly in the body for status transitions
+      if (is_submit === 'true' || is_submit === true || req.body.status) {
+
+        // If status is passed explicitly, use it. Otherwise, default logic:
+        // Draft -> Opened (if submitted)
+        // Opened -> Submitted (if submitted)
+        // But the frontend should control the status now.
+
+        // Use provided status or keep existing if not provided (just save)
+        let newStatus = req.body.status || existing.status;
+
+        // Fallback legacy logic: if submitting from Opened, go to Submitted?
+        // No, let's strictly rely on frontend passing the correct status for transitions.
+        // If simply "Saving Draft" (is_submit=false), we keep status.
+
+        // Logic for "Draft" -> "Opened" is managed by frontend passing status='Opened'
+
+        status = newStatus;
+
+        await db.runAsync(
+          'UPDATE CreditRequests SET request_amount = ?, request_reason = ?, request_credit_term = ?, snapshot_data = ?, status = ? WHERE id = ?',
+          [request_amount, request_reason, request_credit_term, snapshot_data, status, requestId]
+        );
+
+        // Handle Comment insertion if provided
+        if (req.body.comment && req.body.actor_role) {
+             await db.runAsync(
+                'INSERT INTO RequestComments (tx_id, actor_role, comment_text) VALUES (?, ?, ?)',
+                [txId, req.body.actor_role, req.body.comment]
+             );
         }
 
       } else {
-        // If 'Submitted' or 'Reviewed', return existing.
-        // We include snapshot_data so the frontend can populate the form for viewing.
-         return res.status(200).json({
-          message: 'Existing credit request found',
-          data: {
-            id: existing.id,
-            txId: existing.tx_id,
-            status: existing.status,
-            customer_name: existing.customer_name,
-            customer_no: existing.customer_no,
-            request_amount: existing.request_amount,
-            request_reason: existing.request_reason,
-            request_credit_term: existing.request_credit_term,
-            snapshot_data: existing.snapshot_data
-          }
-        });
+        // Just return existing request without changes
+        status = existing.status;
+        responseSnapshot = existing.snapshot_data;
+        responseAmount = existing.request_amount;
+        responseReason = existing.request_reason;
+        responseCreditTerm = existing.request_credit_term;
       }
+
     } else {
       // Create NEW Request
       // Generate TxId: AYCA[YY][MM]/[RunningNumber]
@@ -122,8 +132,8 @@ exports.createCreditRequest = async (req, res) => {
 
       txId = `${prefix}${runningNum.toString().padStart(3, '0')}`;
 
-      // If submitting, set to Submitted, else Opened
-      status = (is_submit === 'true' || is_submit === true) ? 'Submitted' : 'Opened';
+      // New requests start as Draft
+      status = 'Draft';
 
       const result = await db.runAsync(
         'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, snapshot_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -240,10 +250,11 @@ exports.cancelCreditRequest = async (req, res) => {
       return res.status(404).json({ error: 'Credit request not found' });
     }
 
+    // Allow cancel for any active status
+    const activeStatuses = ['Draft', 'Opened', 'Submitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'];
     const request = rows[0];
 
-    // Check status: Allow cancel for Submitted, Reviewed, Opened
-    if (!['Submitted', 'Reviewed', 'Opened'].includes(request.status)) {
+    if (!activeStatuses.includes(request.status)) {
         return res.status(400).json({ error: 'Cannot cancel request in current status' });
     }
 
@@ -258,4 +269,16 @@ exports.cancelCreditRequest = async (req, res) => {
     console.error('Error canceling credit request:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+};
+
+exports.getComments = async (req, res) => {
+    const { id } = req.params; // tx_id
+    try {
+        let sql = `SELECT * FROM RequestComments WHERE tx_id = ? ORDER BY created_at ASC`;
+        const { rows } = await db.query(sql, [id]);
+        res.status(200).json({ data: rows });
+    } catch (error) {
+        console.error('Error fetching comments:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 };

@@ -9,5 +9,6 @@ router.post('/', upload.any(), creditRequestController.createCreditRequest);
 router.get('/', creditRequestController.getCreditRequests);
 router.get('/:id/pdf', pdfController.generateCreditRequestPDF);
 router.patch('/:id/cancel', creditRequestController.cancelCreditRequest);
+router.get('/:id/comments', creditRequestController.getComments);
 
 module.exports = router;
