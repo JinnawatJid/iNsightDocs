@@ -17,13 +17,25 @@
       <h3>พฤติกรรมการซื้อ</h3>
 
       <div class="stat-item">
-        <div class="stat-icon">
-          <img :src="iconShoppingCart" alt="Cart" width="20" height="20" />
-          <span>ยอดซื้อรวม 3 เดือน</span>
+        <div class="stat-icon-row">
+          <div class="stat-icon">
+            <img :src="iconShoppingCart" alt="Cart" width="20" height="20" />
+            <span>ยอดซื้อรวม 3 เดือน</span>
+          </div>
+          <button class="toggle-btn" @click="toggleMonthlyDetails" v-if="financial.monthly_history && financial.monthly_history.length > 0">
+            {{ showMonthlyDetails ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด' }}
+          </button>
         </div>
         <div class="stat-value highlight">{{ financial.total_purchase_3_months }} บาท</div>
         <div class="stat-trend" :class="getTrendClass(financial.total_purchase_growth)" v-if="financial.total_purchase_growth">
             {{ financial.total_purchase_growth }}
+        </div>
+
+        <div v-if="showMonthlyDetails" class="monthly-breakdown">
+          <div v-for="(month, index) in financial.monthly_history" :key="index" class="month-row">
+            <span class="month-label">{{ month.label }}</span>
+            <span class="month-value">{{ month.value }} บาท</span>
+          </div>
         </div>
       </div>
 
@@ -63,7 +75,8 @@ export default {
   data() {
     return {
       iconCheckCircle,
-      iconShoppingCart
+      iconShoppingCart,
+      showMonthlyDetails: false
     };
   },
   props: {
@@ -94,6 +107,9 @@ export default {
       isPositiveSuggestion(text) {
         // Highlight "Never had bad debt history" as requested
         return text === 'ไม่เคยมีประวัติหนี้เสีย';
+      },
+      toggleMonthlyDetails() {
+        this.showMonthlyDetails = !this.showMonthlyDetails;
       }
   }
 };
@@ -159,13 +175,62 @@ h3 {
   margin-bottom: 20px;
 }
 
+.stat-icon-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
 .stat-icon {
   display: flex;
   align-items: center;
   gap: 8px;
   color: #000;
   font-weight: bold;
+}
+
+.toggle-btn {
+  background: none;
+  border: none;
+  color: #007BFF;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.toggle-btn:hover {
+  color: #0056b3;
+}
+
+.monthly-breakdown {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
+
+.month-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
   margin-bottom: 5px;
+}
+
+.month-row:last-child {
+  margin-bottom: 0;
+}
+
+.month-label {
+  color: #666;
+  font-weight: 500;
+}
+
+.month-value {
+  color: #333;
+  font-weight: bold;
 }
 
 .currency-symbol {
