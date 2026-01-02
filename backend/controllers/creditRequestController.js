@@ -282,3 +282,76 @@ exports.getComments = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+exports.getCreditRequestDetail = async (req, res) => {
+  const { id } = req.params; // tx_id
+
+  try {
+    // 1. Get Request Details
+    let requestSql;
+    if (db.dbType === 'mssql') {
+      requestSql = 'SELECT TOP 1 * FROM CreditRequests WHERE tx_id = ?';
+    } else {
+      requestSql = 'SELECT * FROM CreditRequests WHERE tx_id = ? LIMIT 1';
+    }
+    const { rows: requestRows } = await db.query(requestSql, [id]);
+
+    if (!requestRows || requestRows.length === 0) {
+      return res.status(404).json({ error: 'Credit request not found' });
+    }
+    const request = requestRows[0];
+
+    // 2. Get Attachments
+    const attachmentSql = 'SELECT * FROM CreditRequestAttachments WHERE tx_id = ?';
+    const { rows: attachmentRows } = await db.query(attachmentSql, [id]);
+
+    // 3. Get Comments
+    const commentSql = 'SELECT * FROM RequestComments WHERE tx_id = ? ORDER BY created_at ASC';
+    const { rows: commentRows } = await db.query(commentSql, [id]);
+
+    const responseData = {
+        ...request,
+        attachments: attachmentRows,
+        comments: commentRows
+    };
+
+    res.status(200).json({ data: responseData });
+
+  } catch (error) {
+    console.error('Error fetching credit request detail:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+exports.getAttachment = async (req, res) => {
+    const { id, fileId } = req.params; // tx_id, file_id (attachment id)
+
+    try {
+        // Find file record
+        let sql;
+        if (db.dbType === 'mssql') {
+             sql = 'SELECT TOP 1 * FROM CreditRequestAttachments WHERE id = ? AND tx_id = ?';
+        } else {
+             sql = 'SELECT * FROM CreditRequestAttachments WHERE id = ? AND tx_id = ? LIMIT 1';
+        }
+
+        const { rows } = await db.query(sql, [fileId, id]);
+
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+
+        const fileRecord = rows[0];
+        const filePath = fileRecord.file_path;
+
+        if (!await fs.pathExists(filePath)) {
+            return res.status(404).json({ error: 'File on disk not found' });
+        }
+
+        res.download(filePath, fileRecord.original_name);
+
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
