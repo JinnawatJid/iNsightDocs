@@ -1,291 +1,331 @@
 <template>
-  <div class="upload-item" :class="{ 'upload-item-large': multiple }">
-    <label>{{ label }} </label>
-    <div class="upload-box" :class="{ 'upload-box-large': multiple, 'disabled': disabled }" @click="triggerUpload">
+  <div class="file-uploader">
+    <div class="label-container">
+      <label class="upload-label">
+        {{ label }} <span v-if="required" class="required">*</span>
+      </label>
+      <span class="file-count" v-if="hasFile">
+        (มีไฟล์แล้ว)
+      </span>
+    </div>
+
+    <div class="upload-area"
+         :class="{ 'has-file': hasFile, 'drag-active': isDragActive, 'disabled': disabled }"
+         @dragover.prevent="onDragOver"
+         @dragleave.prevent="onDragLeave"
+         @drop.prevent="onDrop"
+         @click="triggerFileInput">
+
       <input
         type="file"
         ref="fileInput"
         class="hidden-input"
-        @change="handleFileChange"
+        @change="onFileChange"
         :accept="accept"
-        :multiple="multiple"
+        :disabled="disabled"
       />
 
-      <!-- Placeholder State -->
-      <div v-if="isEmpty" class="upload-placeholder">
-        <div class="icon-wrapper" :class="{ 'icon-large': multiple }">
-          <slot name="icon">
-             <!-- Default Icon -->
-             <img v-if="!multiple" :src="iconFileBlue" alt="File" width="24" height="24" />
-             <img v-else :src="iconUploadMulti" alt="Upload" width="48" height="48" />
-          </slot>
-        </div>
-        <p>Drop your files here or <span class="link">Click to upload</span></p>
-        <span class="info">
-            {{ multiple ? 'Can add multiple files' : 'SVG, PNG, JPG or GIF (max. 800x400px)' }}
-        </span>
-      </div>
+      <div class="upload-content">
+        <template v-if="!hasFile">
+          <img src="@/assets/icons/upload-cloud.svg" alt="Upload" class="upload-icon" />
+          <span class="upload-text" v-if="!disabled">Click or Drag file here</span>
+          <span class="upload-text" v-else>No file uploaded</span>
+        </template>
 
-      <!-- Preview State -->
-      <div v-else class="file-preview-container">
-        <!-- Single File Preview -->
-        <div v-if="!multiple" class="file-preview">
-          <span class="file-name">{{ file.name }}</span>
-          <button v-if="!disabled" class="remove-btn" @click.stop="removeFile()">×</button>
-        </div>
+        <template v-else>
+           <div class="file-info">
+             <img src="@/assets/icons/file-text.svg" alt="File" class="file-icon" />
+             <span class="file-name">{{ fileName }}</span>
 
-        <!-- Multiple Files List -->
-        <ul v-else class="file-list">
-            <li v-for="(f, index) in file" :key="index" class="file-list-item">
-                <span class="file-name">{{ f.name }}</span>
-                <button v-if="!disabled" class="remove-btn" @click.stop="removeFile(index)">×</button>
-            </li>
-        </ul>
+             <!-- Download Button for Existing Files -->
+             <button v-if="isRemoteFile" class="download-btn" @click.stop="downloadFile" title="Download">
+               <span class="download-icon">⬇</span>
+             </button>
+
+             <button v-if="!disabled" class="remove-btn" @click.stop="removeFile" title="Remove">
+               <img src="@/assets/icons/x.svg" alt="Remove" />
+             </button>
+           </div>
+        </template>
       </div>
     </div>
+
+    <div class="error-message" v-if="error">{{ error }}</div>
   </div>
 </template>
 
-<script>
-import iconFileBlue from '@/assets/icons/file-blue.svg';
-import iconUploadMulti from '@/assets/icons/upload-multi.svg';
+<script setup>
+import { ref, computed, watch } from 'vue';
+import CreditRequestService from '@/services/CreditRequestService';
 
-export default {
-  name: 'FileUploader',
-  data() {
-    return {
-      file: this.modelValue,
-      iconFileBlue,
-      iconUploadMulti
-    };
+const props = defineProps({
+  label: String,
+  required: Boolean,
+  modelValue: [Object, Array, File], // Can be File object, Array, or Metadata Object
+  accept: {
+    type: String,
+    default: '.pdf,.jpg,.jpeg,.png'
   },
-  props: {
-    label: {
-      type: String,
-      required: true
-    },
-    required: {
-      type: Boolean,
-      default: false
-    },
-    accept: {
-      type: String,
-      default: '*/*'
-    },
-    modelValue: {
-      type: [Object, Array], // Object for single, Array for multiple
-      default: null
-    },
-    multiple: {
-      type: Boolean,
-      default: false
-    },
-    disabled: {
-      type: Boolean,
-      default: false
-    }
-  },
-  emits: ['update:modelValue', 'file-selected', 'file-removed'],
-  watch: {
-    modelValue(newVal) {
-      this.file = newVal;
-    }
-  },
-  methods: {
-    triggerUpload() {
-      if (this.disabled) return;
-      this.$refs.fileInput.click();
-    },
-    handleFileChange(event) {
-      const files = event.target.files;
-      if (!files || files.length === 0) return;
+  disabled: Boolean
+});
 
-      if (this.multiple) {
-        // Append new files to existing array
-        const newFilesArray = Array.from(files);
-        const currentFiles = this.file || [];
-        const updatedFiles = [...currentFiles, ...newFilesArray];
+const emit = defineEmits(['update:modelValue']);
+const fileInput = ref(null);
+const isDragActive = ref(false);
+const error = ref('');
 
-        this.file = updatedFiles;
-        this.$emit('update:modelValue', updatedFiles);
-        this.$emit('file-selected', updatedFiles);
-      } else {
-        // Single file mode
-        const selectedFile = files[0];
-        this.file = selectedFile;
-        this.$emit('update:modelValue', selectedFile);
-        this.$emit('file-selected', selectedFile);
-      }
+// Helper to determine if we have a file
+const hasFile = computed(() => {
+  if (Array.isArray(props.modelValue)) return props.modelValue.length > 0;
+  return !!props.modelValue;
+});
 
-      // Reset input to allow re-selection of same file if needed
-      this.$refs.fileInput.value = '';
-    },
-    removeFile(index) {
-      if (this.multiple) {
-        const updatedFiles = [...this.file];
-        updatedFiles.splice(index, 1);
-        this.file = updatedFiles;
-        this.$emit('update:modelValue', updatedFiles);
-      } else {
-        this.file = null;
-        this.$emit('update:modelValue', null);
-      }
-      this.$emit('file-removed');
-    }
-  },
-  computed: {
-    isEmpty() {
-      if (this.multiple) {
-        return !this.file || this.file.length === 0;
-      }
-      return !this.file;
-    }
+const isRemoteFile = computed(() => {
+    // If it has an ID, it's likely a remote file metadata object
+    return props.modelValue && props.modelValue.id && ! (props.modelValue instanceof File);
+});
+
+const fileName = computed(() => {
+  if (!hasFile.value) return '';
+  if (props.modelValue instanceof File) return props.modelValue.name;
+
+  // Handle Metadata Object
+  if (props.modelValue.original_name) return props.modelValue.original_name;
+
+  if (Array.isArray(props.modelValue) && props.modelValue.length > 0) {
+      const f = props.modelValue[0];
+      return f.name || f.original_name || 'Multiple files';
   }
+  return 'File uploaded';
+});
+
+const triggerFileInput = () => {
+  if (props.disabled) return;
+  fileInput.value.click();
 };
+
+const onDragOver = () => {
+  if (props.disabled) return;
+  isDragActive.value = true;
+};
+
+const onDragLeave = () => {
+  if (props.disabled) return;
+  isDragActive.value = false;
+};
+
+const onDrop = (e) => {
+  if (props.disabled) return;
+  isDragActive.value = false;
+  const files = e.dataTransfer.files;
+  handleFiles(files);
+};
+
+const onFileChange = (e) => {
+  handleFiles(e.target.files);
+};
+
+const handleFiles = (files) => {
+  if (files.length === 0) return;
+
+  const file = files[0]; // Handle single file for now based on current reqs
+
+  error.value = '';
+  emit('update:modelValue', file);
+};
+
+const removeFile = () => {
+  emit('update:modelValue', null);
+  if (fileInput.value) fileInput.value.value = '';
+};
+
+const downloadFile = async () => {
+    if (!isRemoteFile.value) return;
+    try {
+        const { txId, id, original_name } = props.modelValue;
+        const response = await CreditRequestService.downloadFile(txId, id);
+
+        // Create Blob URL
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', original_name);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (e) {
+        console.error('Download failed', e);
+        error.value = 'Download failed';
+    }
+};
+
+// Clear error if value changes externally
+watch(() => props.modelValue, (val) => {
+    if (val) error.value = '';
+});
+
 </script>
 
 <style scoped>
-.upload-item {
+.file-uploader {
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
-label {
-  font-weight: bold;
+.label-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.upload-label {
   font-size: 14px;
-  margin-bottom: 8px;
+  font-weight: 500;
   color: #333;
-  text-align: left;
 }
 
 .required {
-  color: red;
-  margin-left: 4px;
+  color: #dc3545;
+  margin-left: 2px;
 }
 
-.upload-box {
-  border: 1px dashed #ccc;
-  border-radius: 8px;
+.file-count {
+  font-size: 12px;
+  color: #28a745;
+}
+
+.upload-area {
+  border: 1px dashed #ced4da;
+  border-radius: 6px;
   padding: 20px;
   text-align: center;
   cursor: pointer;
-  background-color: #fff;
-  transition: border-color 0.2s, background-color 0.2s;
-  min-height: 120px;
+  background: #fff;
+  transition: all 0.2s;
+  min-height: 100px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 
-.upload-box.disabled {
-  background-color: #f5f5f5;
+.upload-area:hover:not(.disabled) {
+  border-color: #0056FF;
+  background: #f8faff;
+}
+
+.upload-area.drag-active {
+  border-color: #0056FF;
+  background: #e6f0ff;
+}
+
+.upload-area.has-file {
+  border-style: solid;
+  border-color: #e0e0e0;
+  background: #f8f9fa;
+}
+
+.upload-area.disabled {
+  background: #f3f3f3;
   cursor: not-allowed;
   border-style: solid;
 }
 
-.upload-box-large {
-  border: 2px dashed #e0e0e0;
-  padding: 40px;
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
 }
 
-.upload-box:hover {
-  border-color: #0056FF;
-  background-color: #f8faff;
+.upload-icon {
+  width: 24px;
+  height: 24px;
+  opacity: 0.5;
+}
+
+.upload-text {
+  font-size: 13px;
+  color: #6c757d;
 }
 
 .hidden-input {
   display: none;
 }
 
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-  width: 100%;
-}
-
-.icon-wrapper {
-  color: #0056FF;
-  margin-bottom: 10px;
-}
-
-.icon-large {
-  margin-bottom: 15px;
-}
-
-.upload-placeholder p {
-  margin: 5px 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.upload-placeholder .link {
-  color: #0056FF;
-  font-weight: bold;
-  text-decoration: underline;
-}
-
-.upload-placeholder .info {
-  font-size: 11px;
-  color: #999;
-  margin-top: 5px;
-}
-
-.file-preview-container {
-    width: 100%;
-}
-
-.file-preview {
+.file-info {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  justify-content: center;
+  padding: 0 10px;
 }
 
-.file-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    width: 100%;
-}
-
-.file-list-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    margin-bottom: 5px;
+.file-icon {
+  width: 20px;
+  height: 20px;
 }
 
 .file-name {
   font-size: 14px;
-  font-weight: bold;
-  color: #28a745;
-  word-break: break-all;
+  color: #333;
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .remove-btn {
-  background: #ff4d4f;
-  color: white;
+  background: none;
   border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  padding: 0;
 }
 
 .remove-btn:hover {
-  background: #d9363e;
+  background: #fee2e2;
+}
+
+.remove-btn img {
+  width: 16px;
+  height: 16px;
+}
+
+/* Download Button Styles */
+.download-btn {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 8px;
+    color: #0056FF;
+    transition: all 0.2s;
+}
+
+.download-btn:hover {
+    background-color: #f0f7ff;
+    border-color: #0056FF;
+}
+
+.download-icon {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.error-message {
+  font-size: 12px;
+  color: #dc3545;
+  margin-top: 4px;
 }
 </style>
