@@ -22,7 +22,7 @@
         <h3>ความคิดเห็น: {{ currentRoleLabel }}</h3>
         <textarea
             class="comment-input"
-            placeholder="กรอกความคิดเห็น..."
+            placeholder="ระบุพฤติกรรมลูกค้า, ประวัติโครงการ, การซื้อขายล่าสุด, หรือข้อมูลประกอบการพิจารณาอื่นๆ..."
             v-model="newComment"
             rows="5"
             :disabled="isReadOnly"
