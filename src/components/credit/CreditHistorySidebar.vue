@@ -17,9 +17,10 @@
       <span class="subtitle" v-if="historyItems.length > 0">ทั้งหมด {{ historyItems.length }} รายการ</span>
       <hr v-if="historyItems.length > 0" />
       <div class="history-list" v-if="historyItems.length > 0">
-        <div class="history-item" v-for="(item, index) in historyItems" :key="item.id">
+        <div class="history-item clickable" v-for="(item, index) in historyItems" :key="item.id" @click="handleClick(item)">
           <div class="item-info">
             <div class="date">{{ item.date }}</div>
+            <!-- item.amount is actually the TxID in the current API mapping -->
             <div class="amount">{{ item.amount }}</div>
           </div>
           <div class="item-status">
@@ -33,6 +34,8 @@
              <img v-if="item.status === 'pending'" :src="clockIcon" alt="Pending" width="24" height="24" />
              <img v-if="item.status === 'rejected'" :src="rejectedIcon" alt="Rejected" width="24" height="24" />
              <img v-if="item.status === 'approved'" :src="approvedIcon" alt="Approved" width="24" height="24" />
+             <!-- Draft -->
+             <span v-if="item.status === 'Draft'" class="draft-badge">Draft</span>
           </div>
         </div>
       </div>
@@ -49,6 +52,7 @@ import userIcon from '@/assets/icons/user.svg';
 import clockIcon from '@/assets/icons/clock-orange.svg';
 import rejectedIcon from '@/assets/icons/x-circle-red.svg';
 import approvedIcon from '@/assets/icons/check-circle-green.svg';
+import { useCreditRequestStore } from '@/stores/creditRequest';
 
 export default {
   name: 'CreditHistorySidebar',
@@ -66,6 +70,10 @@ export default {
       default: false
     }
   },
+  setup() {
+      const store = useCreditRequestStore();
+      return { store };
+  },
   data() {
     return {
       userIcon,
@@ -73,6 +81,15 @@ export default {
       rejectedIcon,
       approvedIcon
     };
+  },
+  methods: {
+      handleClick(item) {
+          // item.amount holds the TxId (e.g. AYCA2501/014) based on customerController logic
+          const txId = item.amount;
+          if (txId) {
+              this.store.loadRequestDetail(txId);
+          }
+      }
   }
 };
 </script>
@@ -142,6 +159,15 @@ h3 {
   align-items: center;
   padding: 15px 0;
   border-bottom: 1px solid #e6e6e6;
+  transition: background-color 0.2s;
+}
+
+.history-item.clickable {
+    cursor: pointer;
+}
+
+.history-item.clickable:hover {
+    background-color: #f9f9f9;
 }
 
 .history-item:last-child {
@@ -174,6 +200,14 @@ hr {
   border: none;
   border-top: 1px solid #e6e6e6;
   margin: 15px 0;
+}
+
+.draft-badge {
+    background-color: #e0e0e0;
+    color: #333;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
 }
 
 </style>

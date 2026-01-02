@@ -1,6 +1,106 @@
 const db = require('../db');
 const fs = require('fs-extra');
 const path = require('path');
+const mime = require('mime-types');
+
+exports.getCreditRequestDetail = async (req, res) => {
+    const { id } = req.params; // tx_id
+
+    try {
+        let sql;
+        if (db.dbType === 'mssql') {
+            sql = 'SELECT TOP 1 * FROM CreditRequests WHERE tx_id = ?';
+        } else {
+            sql = 'SELECT * FROM CreditRequests WHERE tx_id = ? LIMIT 1';
+        }
+
+        const { rows } = await db.query(sql, [id]);
+
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: 'Credit request not found' });
+        }
+
+        const request = rows[0];
+
+        // Fetch Attachments
+        const attachmentsSql = 'SELECT * FROM CreditRequestAttachments WHERE tx_id = ?';
+        const { rows: attachments } = await db.query(attachmentsSql, [id]);
+
+        // Fetch Comments
+        const commentsSql = 'SELECT * FROM RequestComments WHERE tx_id = ? ORDER BY created_at ASC';
+        const { rows: comments } = await db.query(commentsSql, [id]);
+
+        // Parse snapshot data if string
+        let snapshotData = request.snapshot_data;
+        if (typeof snapshotData === 'string') {
+            try {
+                snapshotData = JSON.parse(snapshotData);
+            } catch (e) {
+                console.error('Error parsing snapshot JSON:', e);
+                snapshotData = {};
+            }
+        }
+
+        const responseData = {
+            id: request.id,
+            txId: request.tx_id,
+            status: request.status,
+            customer_no: request.customer_no,
+            customer_name: request.customer_name,
+            request_amount: request.request_amount,
+            request_reason: request.request_reason,
+            request_credit_term: request.request_credit_term,
+            created_at: request.created_at,
+            updated_at: request.updated_at,
+            snapshot_data: snapshotData,
+            attachments: attachments || [],
+            comments: comments || []
+        };
+
+        res.status(200).json({ data: responseData });
+
+    } catch (error) {
+        console.error('Error fetching credit request detail:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+exports.downloadCreditRequestFile = async (req, res) => {
+    const { id, fileId } = req.params; // id = tx_id, fileId = attachment ID
+
+    try {
+        let sql;
+        if (db.dbType === 'mssql') {
+            sql = 'SELECT TOP 1 * FROM CreditRequestAttachments WHERE id = ? AND tx_id = ?';
+        } else {
+            sql = 'SELECT * FROM CreditRequestAttachments WHERE id = ? AND tx_id = ? LIMIT 1';
+        }
+
+        const { rows } = await db.query(sql, [fileId, id]);
+
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+
+        const fileRecord = rows[0];
+        const filePath = fileRecord.file_path;
+
+        if (!await fs.pathExists(filePath)) {
+            return res.status(404).json({ error: 'File not found on server' });
+        }
+
+        const mimeType = mime.lookup(filePath) || 'application/octet-stream';
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileRecord.original_name)}"`);
+
+        const fileStream = fs.createReadStream(filePath);
+        fileStream.pipe(res);
+
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
 
 exports.createCreditRequest = async (req, res) => {
   // When using multer, text fields are in req.body and files in req.files
@@ -8,6 +108,17 @@ exports.createCreditRequest = async (req, res) => {
 
   if (!customer_name || !customer_no) {
     return res.status(400).json({ error: 'Customer name and Customer No (ID) are required' });
+  }
+
+  // Parse snapshot_data if it's a string
+  let parsedSnapshot = snapshot_data;
+  if (typeof parsedSnapshot === 'string') {
+    try {
+        parsedSnapshot = JSON.parse(parsedSnapshot);
+    } catch (e) {
+        console.error('Error parsing snapshot data:', e);
+        parsedSnapshot = {};
+    }
   }
 
   try {

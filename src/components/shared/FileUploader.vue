@@ -31,6 +31,13 @@
         <!-- Single File Preview -->
         <div v-if="!multiple" class="file-preview">
           <span class="file-name">{{ file.name }}</span>
+
+          <!-- Download Button (Read Only / Remote) -->
+          <button v-if="disabled && isRemote(file)" class="download-btn" @click.stop="downloadFile(file)" title="Download">
+             <img src="@/assets/icons/download.svg" alt="Download" />
+          </button>
+
+          <!-- Remove Button (Editable) -->
           <button v-if="!disabled" class="remove-btn" @click.stop="removeFile()">×</button>
         </div>
 
@@ -38,6 +45,12 @@
         <ul v-else class="file-list">
             <li v-for="(f, index) in file" :key="index" class="file-list-item">
                 <span class="file-name">{{ f.name }}</span>
+
+                <!-- Download Button (Read Only / Remote) -->
+                 <button v-if="disabled && isRemote(f)" class="download-btn-small" @click.stop="downloadFile(f)" title="Download">
+                    <img src="@/assets/icons/download.svg" alt="Download" />
+                 </button>
+
                 <button v-if="!disabled" class="remove-btn" @click.stop="removeFile(index)">×</button>
             </li>
         </ul>
@@ -131,6 +144,15 @@ export default {
         this.$emit('update:modelValue', null);
       }
       this.$emit('file-removed');
+    },
+    isRemote(file) {
+        return file && file.isRemote && file.id && file.txId;
+    },
+    downloadFile(file) {
+        if (this.isRemote(file)) {
+             const url = `/api/credit-requests/${encodeURIComponent(file.txId)}/files/${file.id}`;
+             window.open(url, '_blank');
+        }
     }
   },
   computed: {
@@ -180,7 +202,7 @@ label {
 
 .upload-box.disabled {
   background-color: #f5f5f5;
-  cursor: not-allowed;
+  cursor: default; /* Change from not-allowed to default for better UX when viewing */
   border-style: solid;
 }
 
@@ -189,7 +211,7 @@ label {
   padding: 40px;
 }
 
-.upload-box:hover {
+.upload-box:hover:not(.disabled) {
   border-color: #0056FF;
   background-color: #f8faff;
 }
@@ -287,5 +309,39 @@ label {
 
 .remove-btn:hover {
   background: #d9363e;
+}
+
+.download-btn {
+    background: #0056FF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.download-btn img {
+    width: 20px;
+    height: 20px;
+    filter: invert(1); /* Make icon white */
+}
+
+.download-btn-small {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+.download-btn-small img {
+    width: 18px;
+    height: 18px;
+    /* color #0056FF */
 }
 </style>

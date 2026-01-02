@@ -93,6 +93,54 @@ export const useCreditRequestStore = defineStore('creditRequest', {
   },
 
   actions: {
+    async loadRequestDetail(txId) {
+        this.loading = true;
+        this.error = null;
+        try {
+            const response = await CreditRequestService.getCreditRequestDetail(txId);
+            const data = response.data.data;
+
+            // Populate State
+            this.requestId = data.txId; // tx_id
+            this.requestStatus = data.status;
+            this.customer = data.snapshot_data || {};
+            this.financialSummary = data.snapshot_data?.financial_summary || {};
+            this.creditScore = data.snapshot_data?.credit_score || {};
+            this.comments = data.comments || [];
+
+            // Handle Files
+            this.files = {};
+            if (data.attachments && data.attachments.length > 0) {
+                data.attachments.forEach(att => {
+                    // We store it as an object with specific props to indicate it's remote
+                    this.files[att.file_type] = {
+                        name: att.original_name,
+                        id: att.id,
+                        txId: att.tx_id,
+                        isRemote: true
+                    };
+                    this.uploadedDocuments[att.file_type] = true;
+                });
+            }
+
+            // Transaction Data
+            this.transactionData = {
+                amount: data.request_amount,
+                reason: data.request_reason,
+                creditTerm: data.request_credit_term
+            };
+
+            this.viewingHistory = true;
+            this.hasSearched = true; // To show the form
+
+        } catch (err) {
+            console.error('Failed to load request detail', err);
+            Swal.fire('Error', 'ไม่สามารถโหลดข้อมูลคำขอได้', 'error');
+        } finally {
+            this.loading = false;
+        }
+    },
+
     async fetchComments() {
         if (!this.requestId) return;
         try {
@@ -282,6 +330,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.uploadedDocuments = {};
       this.files = {};
       this.comments = [];
+      this.viewingHistory = false;
     }
   }
 });
