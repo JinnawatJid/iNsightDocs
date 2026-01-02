@@ -227,12 +227,18 @@ exports.searchCustomers = async (req, res) => {
 
               // Generate Suggestions
 
-              // 1. High Value Check
-              if (parseAmount(accumData.SecondAccum) > 300000) {
-                  suggestions.push("เป็นลูกค้าชั้นดี มียอดซื้อสะสมสูง");
-              }
-
+              // 1. Total Purchase Value Check (Tiered)
               const secondAccumVal = parseAmount(accumData.SecondAccum);
+
+              if (secondAccumVal > 1000000) {
+                  suggestions.push("เป็นลูกค้าชั้นดี มียอดซื้อสะสมสูง");
+              } else if (secondAccumVal > 300000) {
+                  suggestions.push("มียอดซื้อสะสมปานกลาง");
+              } else if (secondAccumVal > 0) {
+                  suggestions.push("ยอดซื้อสะสมอยู่ในระดับทั่วไป");
+              } else {
+                  suggestions.push("ไม่มียอดซื้อสะสม");
+              }
 
               // 2. Consistency Check
               if (jun > 0 && jul > 0 && aug > 0) {
