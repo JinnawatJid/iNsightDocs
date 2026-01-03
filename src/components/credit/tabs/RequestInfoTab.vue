@@ -475,10 +475,8 @@ watch(() => files.quotation, (newVal) => {
 
 // Initialize files from store (to support Edit mode or tab switching)
 watch(() => store.files, (newVal) => {
-  if (newVal) {
-    if (newVal.credit_application_doc !== undefined) files.creditApp = newVal.credit_application_doc;
-    if (newVal.quotation_doc !== undefined) files.quotation = newVal.quotation_doc;
-  }
+  files.creditApp = newVal?.credit_application_doc || null;
+  files.quotation = newVal?.quotation_doc || null;
 }, { immediate: true, deep: true });
 
 const formData = reactive({

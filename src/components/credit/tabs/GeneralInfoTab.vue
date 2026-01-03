@@ -215,19 +215,18 @@ const files = reactive({
 
 // Watch store.files to hydrate local files (for Read Only view)
 watch(() => store.files, (newVal) => {
-  if (newVal) {
-    if (newVal.id_card) files.idCard = newVal.id_card;
-    if (newVal.home_reg) files.homeReg = newVal.home_reg;
-  }
+  // Correctly sync local state with store, including clearing files if null/undefined
+  files.idCard = newVal?.id_card || null;
+  files.homeReg = newVal?.home_reg || null;
 }, { immediate: true, deep: true });
 
 // Watch for file changes to update store for Approval Chance logic
 watch(() => files.idCard, (newVal) => {
-  if (newVal) store.updateFile('id_card', newVal);
+  store.updateFile('id_card', newVal);
 });
 
 watch(() => files.homeReg, (newVal) => {
-  if (newVal) store.updateFile('home_reg', newVal);
+  store.updateFile('home_reg', newVal);
 });
 
 const formData = reactive({
