@@ -50,6 +50,9 @@ exports.getCreditRequestDetail = async (req, res) => {
             request_amount: request.request_amount,
             request_reason: request.request_reason,
             request_credit_term: request.request_credit_term,
+            term_gs: request.term_gs,
+            term_ae: request.term_ae,
+            term_yc: request.term_yc,
             created_at: request.created_at,
             updated_at: request.updated_at,
             snapshot_data: snapshotData,
@@ -104,7 +107,20 @@ exports.downloadCreditRequestFile = async (req, res) => {
 
 exports.createCreditRequest = async (req, res) => {
   // When using multer, text fields are in req.body and files in req.files
-  const { customer_no, customer_name, request_amount, request_reason, request_credit_term, snapshot_data, is_submit } = req.body;
+  const {
+    customer_no,
+    customer_name,
+    request_amount,
+    request_reason,
+    request_credit_term,
+    term_gs,
+    term_ae,
+    term_yc,
+    snapshot_data,
+    is_submit
+  } = req.body;
+
+  console.log('createCreditRequest Body:', { customer_no, request_amount, term_gs, term_ae, term_yc, is_submit, status: req.body.status });
 
   if (!customer_name || !customer_no) {
     return res.status(400).json({ error: 'Customer name and Customer No (ID) are required' });
@@ -150,6 +166,9 @@ exports.createCreditRequest = async (req, res) => {
     let responseAmount = null;
     let responseReason = null;
     let responseCreditTerm = null;
+    let responseTermGS = null;
+    let responseTermAE = null;
+    let responseTermYC = null;
 
     if (rows && rows.length > 0) {
       const existing = rows[0];
@@ -179,8 +198,8 @@ exports.createCreditRequest = async (req, res) => {
         status = newStatus;
 
         await db.runAsync(
-          'UPDATE CreditRequests SET request_amount = ?, request_reason = ?, request_credit_term = ?, snapshot_data = ?, status = ? WHERE id = ?',
-          [request_amount, request_reason, request_credit_term, snapshot_data, status, requestId]
+          'UPDATE CreditRequests SET request_amount = ?, request_reason = ?, request_credit_term = ?, term_gs = ?, term_ae = ?, term_yc = ?, snapshot_data = ?, status = ? WHERE id = ?',
+          [request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, snapshot_data, status, requestId]
         );
 
         // Handle Comment insertion if provided
@@ -198,6 +217,9 @@ exports.createCreditRequest = async (req, res) => {
         responseAmount = existing.request_amount;
         responseReason = existing.request_reason;
         responseCreditTerm = existing.request_credit_term;
+        responseTermGS = existing.term_gs;
+        responseTermAE = existing.term_ae;
+        responseTermYC = existing.term_yc;
       }
 
     } else {
@@ -247,8 +269,8 @@ exports.createCreditRequest = async (req, res) => {
       status = 'Draft';
 
       const result = await db.runAsync(
-        'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, snapshot_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [txId, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, snapshot_data]
+        'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, snapshot_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [txId, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, snapshot_data]
       );
       requestId = result.id;
     }
@@ -283,7 +305,10 @@ exports.createCreditRequest = async (req, res) => {
         snapshot_data: responseSnapshot || snapshot_data,
         request_amount: responseAmount || request_amount,
         request_reason: responseReason || request_reason,
-        request_credit_term: responseCreditTerm || request_credit_term
+        request_credit_term: responseCreditTerm || request_credit_term,
+        term_gs: responseTermGS !== null ? responseTermGS : term_gs,
+        term_ae: responseTermAE !== null ? responseTermAE : term_ae,
+        term_yc: responseTermYC !== null ? responseTermYC : term_yc
     };
 
     res.status(201).json({

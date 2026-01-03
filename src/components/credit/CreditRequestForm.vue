@@ -19,6 +19,9 @@
       <div class="comment-section">
         <CommentHistory :comments="comments" />
 
+        <!-- Credit Term Island for Managers -->
+        <CreditTermIsland v-if="showTermIsland" :readOnly="isReadOnly" />
+
         <h3>ความคิดเห็น: {{ currentRoleLabel }}</h3>
         <textarea
             class="comment-input"
@@ -88,6 +91,7 @@
 <script>
 import ApplicationTabs from './ApplicationTabs.vue';
 import CommentHistory from './CommentHistory.vue';
+import CreditTermIsland from './CreditTermIsland.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
@@ -98,7 +102,8 @@ export default {
   name: 'CreditRequestForm',
   components: {
     ApplicationTabs,
-    CommentHistory
+    CommentHistory,
+    CreditTermIsland
   },
   setup() {
     const store = useCreditRequestStore();
@@ -108,6 +113,11 @@ export default {
     const comments = computed(() => store.comments);
     const requestStatus = computed(() => store.requestStatus);
     const currentRoleLabel = computed(() => store.currentRole);
+
+    // Show Island if NOT Draft (i.e. Opened, Submitted, etc.)
+    const showTermIsland = computed(() => {
+        return requestStatus.value && requestStatus.value !== 'Draft';
+    });
 
     // Parse amount to check for > 300,000
     const isHighValue = computed(() => {
@@ -201,6 +211,9 @@ export default {
             formData.append('customer_name', store.customer.name);
             formData.append('request_amount', store.transactionData.amount || '');
             formData.append('request_reason', store.transactionData.reason || '');
+            formData.append('term_gs', store.transactionData.termGS || '');
+            formData.append('term_ae', store.transactionData.termAE || '');
+            formData.append('term_yc', store.transactionData.termYC || '');
             formData.append('snapshot_data', JSON.stringify(store.customer));
 
             // Critical: Pass Status and Comment
@@ -254,7 +267,8 @@ export default {
         requestStatus,
         currentRoleLabel,
         newComment,
-        isHighValue
+        isHighValue,
+        showTermIsland
     };
   }
 };
