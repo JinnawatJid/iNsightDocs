@@ -298,13 +298,26 @@ const files = reactive({
   storeLandTax: null,
 });
 
-watch(() => files.legalEntityCertificate, (v) => store.updateFile('legal_entity_certificate', v));
-watch(() => files.vatDocument, (v) => store.updateFile('vat_document', v));
-watch(() => files.companyPhoto, (v) => store.updateFile('company_photo', v));
-watch(() => files.companyLandTax, (v) => store.updateFile('company_land_tax', v));
-watch(() => files.storePhoto, (v) => store.updateFile('store_photo', v));
-watch(() => files.commercialReg, (v) => store.updateFile('commercial_reg', v));
-watch(() => files.storeLandTax, (v) => store.updateFile('store_land_tax', v));
+// Watch store.files to hydrate local files (for Read Only view)
+watch(() => store.files, (newVal) => {
+  if (newVal) {
+    if (newVal.legal_entity_certificate) files.legalEntityCertificate = newVal.legal_entity_certificate;
+    if (newVal.vat_document) files.vatDocument = newVal.vat_document;
+    if (newVal.company_photo) files.companyPhoto = newVal.company_photo;
+    if (newVal.company_land_tax) files.companyLandTax = newVal.company_land_tax;
+    if (newVal.store_photo) files.storePhoto = newVal.store_photo;
+    if (newVal.commercial_reg) files.commercialReg = newVal.commercial_reg;
+    if (newVal.store_land_tax) files.storeLandTax = newVal.store_land_tax;
+  }
+}, { immediate: true, deep: true });
+
+watch(() => files.legalEntityCertificate, (v) => { if(v) store.updateFile('legal_entity_certificate', v); });
+watch(() => files.vatDocument, (v) => { if(v) store.updateFile('vat_document', v); });
+watch(() => files.companyPhoto, (v) => { if(v) store.updateFile('company_photo', v); });
+watch(() => files.companyLandTax, (v) => { if(v) store.updateFile('company_land_tax', v); });
+watch(() => files.storePhoto, (v) => { if(v) store.updateFile('store_photo', v); });
+watch(() => files.commercialReg, (v) => { if(v) store.updateFile('commercial_reg', v); });
+watch(() => files.storeLandTax, (v) => { if(v) store.updateFile('store_land_tax', v); });
 
 const formData = reactive({
   houseAddress: '',

@@ -68,6 +68,7 @@ watch(() => store.files, (newVal) => {
   if (newVal) {
     if (newVal.bank_guarantee_doc !== undefined) files.bankGuarantee = newVal.bank_guarantee_doc;
     if (newVal.letter_guarantee_doc !== undefined) files.letterGuarantee = newVal.letter_guarantee_doc;
+    if (newVal.bank_statement !== undefined) files.bankStatement = newVal.bank_statement;
   }
 }, { immediate: true, deep: true });
 

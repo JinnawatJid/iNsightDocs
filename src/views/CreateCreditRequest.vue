@@ -163,8 +163,6 @@ const closePreview = () => {
     justify-content: center; /* Center content */
     align-items: center;
     gap: 20px;
-    position: fixed;
-    top: 80px; /* Below Navbar */
     width: 100%;
     z-index: 999;
 }

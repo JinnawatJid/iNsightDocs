@@ -106,6 +106,28 @@ export const useCreditRequestStore = defineStore('creditRequest', {
             this.customer = data.snapshot_data || {};
             this.financialSummary = data.snapshot_data?.financial_summary || {};
             this.creditScore = data.snapshot_data?.credit_score || {};
+
+            // Fallback for legacy snapshots (missing financial summary)
+            if (Object.keys(this.financialSummary).length === 0 && data.customer_no) {
+                try {
+                    const results = await CustomerService.searchCustomers(data.customer_no);
+                    if (results && results.length > 0) {
+                        const freshData = results[0];
+                        // Only use fallback if we really found the customer
+                        // Backend maps 'No_' to 'id' in response
+                        const resultId = freshData.customer.id || freshData.customer.No_;
+                        if (resultId === data.customer_no) {
+                             this.financialSummary = freshData.financial_summary || {};
+                             if (Object.keys(this.creditScore).length === 0) {
+                                 this.creditScore = freshData.credit_score || {};
+                             }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Fallback fetch for financial summary failed', e);
+                }
+            }
+
             this.comments = data.comments || [];
 
             // Handle Files
