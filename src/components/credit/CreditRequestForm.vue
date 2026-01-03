@@ -19,6 +19,49 @@
       <div class="comment-section">
         <CommentHistory :comments="comments" />
 
+        <!-- Manager Credit Term Island -->
+        <div class="manager-island" v-if="!isDraft">
+            <h3 class="island-title">ข้อมูลเครดิต (สำหรับผู้จัดการ)</h3>
+            <div class="island-grid">
+                 <div class="form-group">
+                    <label>วงเงินเครดิตที่ต้องการ (บาท)</label>
+                    <input
+                        type="text"
+                        class="form-input"
+                        v-model="managerCreditData.amount"
+                        @input="restrictAmountInput"
+                    >
+                </div>
+                <div class="form-group">
+                    <label>ระยะเวลาเครดิต (G, S)</label>
+                    <input
+                        type="text"
+                        class="form-input"
+                        v-model="managerCreditData.creditTermGS"
+                        @input="(e) => restrictTermInput(e, 'creditTermGS')"
+                    >
+                </div>
+                <div class="form-group">
+                    <label>ระยะเวลาเครดิต (A, E)</label>
+                    <input
+                        type="text"
+                        class="form-input"
+                        v-model="managerCreditData.creditTermAE"
+                        @input="(e) => restrictTermInput(e, 'creditTermAE')"
+                    >
+                </div>
+                <div class="form-group">
+                    <label>ระยะเวลาเครดิต (Y, C)</label>
+                    <input
+                        type="text"
+                        class="form-input"
+                        v-model="managerCreditData.creditTermYC"
+                        @input="(e) => restrictTermInput(e, 'creditTermYC')"
+                    >
+                </div>
+            </div>
+        </div>
+
         <h3>ความคิดเห็น: {{ currentRoleLabel }}</h3>
         <textarea
             class="comment-input"
@@ -92,7 +135,7 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 import axios from 'axios';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, reactive } from 'vue';
 
 export default {
   name: 'CreditRequestForm',
@@ -108,6 +151,7 @@ export default {
     const comments = computed(() => store.comments);
     const requestStatus = computed(() => store.requestStatus);
     const currentRoleLabel = computed(() => store.currentRole);
+    const isDraft = computed(() => !store.requestStatus || store.requestStatus === 'Draft');
 
     // Parse amount to check for > 300,000
     const isHighValue = computed(() => {
@@ -117,6 +161,53 @@ export default {
     });
 
     const newComment = ref('');
+
+    // Manager Island Data
+    const managerCreditData = reactive({
+        amount: '',
+        creditTermGS: '',
+        creditTermAE: '',
+        creditTermYC: ''
+    });
+
+    // Initialize/Sync Manager Data with Store
+    watch(() => store.transactionData, (newVal) => {
+        if (newVal) {
+            if (managerCreditData.amount !== newVal.amount) managerCreditData.amount = newVal.amount;
+            if (managerCreditData.creditTermGS !== newVal.creditTermGS) managerCreditData.creditTermGS = newVal.creditTermGS;
+            if (managerCreditData.creditTermAE !== newVal.creditTermAE) managerCreditData.creditTermAE = newVal.creditTermAE;
+            if (managerCreditData.creditTermYC !== newVal.creditTermYC) managerCreditData.creditTermYC = newVal.creditTermYC;
+        }
+    }, { immediate: true, deep: true });
+
+    // Save changes back to store
+    watch(managerCreditData, (newVal) => {
+        store.updateTransactionData({
+            amount: newVal.amount,
+            creditTermGS: newVal.creditTermGS,
+            creditTermAE: newVal.creditTermAE,
+            creditTermYC: newVal.creditTermYC
+        });
+    }, { deep: true });
+
+    const restrictAmountInput = (e) => {
+        let value = e.target.value.replace(/[^0-9.]/g, '');
+        const parts = value.split('.');
+        if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
+        // Add commas
+        if (value && !value.endsWith('.')) {
+             const raw = value.replace(/,/g, '');
+             const formatted = Number(raw).toLocaleString('en-US');
+             value = formatted;
+        }
+        e.target.value = value;
+        managerCreditData.amount = value;
+    };
+
+    const restrictTermInput = (e, field) => {
+         e.target.value = e.target.value.replace(/\D/g, '');
+         managerCreditData[field] = e.target.value;
+    };
 
     const handleCancel = async () => {
         const result = await Swal.fire({
@@ -201,6 +292,10 @@ export default {
             formData.append('customer_name', store.customer.name);
             formData.append('request_amount', store.transactionData.amount || '');
             formData.append('request_reason', store.transactionData.reason || '');
+            // New fields
+            formData.append('request_credit_term_gs', store.transactionData.creditTermGS || '');
+            formData.append('request_credit_term_ae', store.transactionData.creditTermAE || '');
+            formData.append('request_credit_term_yc', store.transactionData.creditTermYC || '');
             formData.append('snapshot_data', JSON.stringify(store.customer));
 
             // Critical: Pass Status and Comment
@@ -254,7 +349,11 @@ export default {
         requestStatus,
         currentRoleLabel,
         newComment,
-        isHighValue
+        isHighValue,
+        isDraft,
+        managerCreditData,
+        restrictAmountInput,
+        restrictTermInput
     };
   }
 };
@@ -397,5 +496,58 @@ export default {
 }
 .btn-cancel:hover, .btn-reject:hover {
     background-color: #c82333;
+}
+
+.manager-island {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.island-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #333;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 10px;
+}
+
+.island-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #333;
+}
+
+.form-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+/* Responsive for Island */
+@media (max-width: 1024px) {
+    .island-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .island-grid {
+        grid-template-columns: 1fr;
+    }
 }
 </style>

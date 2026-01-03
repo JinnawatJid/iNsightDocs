@@ -50,6 +50,9 @@ exports.getCreditRequestDetail = async (req, res) => {
             request_amount: request.request_amount,
             request_reason: request.request_reason,
             request_credit_term: request.request_credit_term,
+            request_credit_term_gs: request.request_credit_term_gs,
+            request_credit_term_ae: request.request_credit_term_ae,
+            request_credit_term_yc: request.request_credit_term_yc,
             created_at: request.created_at,
             updated_at: request.updated_at,
             snapshot_data: snapshotData,
@@ -104,7 +107,13 @@ exports.downloadCreditRequestFile = async (req, res) => {
 
 exports.createCreditRequest = async (req, res) => {
   // When using multer, text fields are in req.body and files in req.files
-  const { customer_no, customer_name, request_amount, request_reason, request_credit_term, snapshot_data, is_submit } = req.body;
+  const {
+      customer_no, customer_name,
+      request_amount, request_reason,
+      request_credit_term, // Legacy/Fallback
+      request_credit_term_gs, request_credit_term_ae, request_credit_term_yc,
+      snapshot_data, is_submit
+  } = req.body;
 
   if (!customer_name || !customer_no) {
     return res.status(400).json({ error: 'Customer name and Customer No (ID) are required' });
@@ -150,6 +159,9 @@ exports.createCreditRequest = async (req, res) => {
     let responseAmount = null;
     let responseReason = null;
     let responseCreditTerm = null;
+    let responseCreditTermGS = null;
+    let responseCreditTermAE = null;
+    let responseCreditTermYC = null;
 
     if (rows && rows.length > 0) {
       const existing = rows[0];
@@ -163,24 +175,23 @@ exports.createCreditRequest = async (req, res) => {
       if (is_submit === 'true' || is_submit === true || req.body.status) {
 
         // If status is passed explicitly, use it. Otherwise, default logic:
-        // Draft -> Opened (if submitted)
-        // Opened -> Submitted (if submitted)
-        // But the frontend should control the status now.
-
-        // Use provided status or keep existing if not provided (just save)
         let newStatus = req.body.status || existing.status;
-
-        // Fallback legacy logic: if submitting from Opened, go to Submitted?
-        // No, let's strictly rely on frontend passing the correct status for transitions.
-        // If simply "Saving Draft" (is_submit=false), we keep status.
-
-        // Logic for "Draft" -> "Opened" is managed by frontend passing status='Opened'
 
         status = newStatus;
 
         await db.runAsync(
-          'UPDATE CreditRequests SET request_amount = ?, request_reason = ?, request_credit_term = ?, snapshot_data = ?, status = ? WHERE id = ?',
-          [request_amount, request_reason, request_credit_term, snapshot_data, status, requestId]
+          `UPDATE CreditRequests SET
+             request_amount = ?, request_reason = ?,
+             request_credit_term = ?,
+             request_credit_term_gs = ?, request_credit_term_ae = ?, request_credit_term_yc = ?,
+             snapshot_data = ?, status = ?
+           WHERE id = ?`,
+          [
+              request_amount, request_reason,
+              request_credit_term,
+              request_credit_term_gs, request_credit_term_ae, request_credit_term_yc,
+              snapshot_data, status, requestId
+          ]
         );
 
         // Handle Comment insertion if provided
@@ -198,6 +209,9 @@ exports.createCreditRequest = async (req, res) => {
         responseAmount = existing.request_amount;
         responseReason = existing.request_reason;
         responseCreditTerm = existing.request_credit_term;
+        responseCreditTermGS = existing.request_credit_term_gs;
+        responseCreditTermAE = existing.request_credit_term_ae;
+        responseCreditTermYC = existing.request_credit_term_yc;
       }
 
     } else {
@@ -247,8 +261,18 @@ exports.createCreditRequest = async (req, res) => {
       status = 'Draft';
 
       const result = await db.runAsync(
-        'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, snapshot_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [txId, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, snapshot_data]
+        `INSERT INTO CreditRequests (
+            tx_id, customer_no, customer_name, status,
+            request_amount, request_reason,
+            request_credit_term, request_credit_term_gs, request_credit_term_ae, request_credit_term_yc,
+            snapshot_data
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+            txId, customer_no, customer_name, status,
+            request_amount, request_reason,
+            request_credit_term, request_credit_term_gs, request_credit_term_ae, request_credit_term_yc,
+            snapshot_data
+        ]
       );
       requestId = result.id;
     }
@@ -283,7 +307,10 @@ exports.createCreditRequest = async (req, res) => {
         snapshot_data: responseSnapshot || snapshot_data,
         request_amount: responseAmount || request_amount,
         request_reason: responseReason || request_reason,
-        request_credit_term: responseCreditTerm || request_credit_term
+        request_credit_term: responseCreditTerm || request_credit_term,
+        request_credit_term_gs: responseCreditTermGS || request_credit_term_gs,
+        request_credit_term_ae: responseCreditTermAE || request_credit_term_ae,
+        request_credit_term_yc: responseCreditTermYC || request_credit_term_yc
     };
 
     res.status(201).json({

@@ -22,7 +22,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     // Transaction Data (Separate from Customer Data)
     transactionData: {
       amount: '',
-      creditTerm: '',
+      creditTerm: '', // Old field, kept for safety
+      creditTermGS: '', // Glass/Glue
+      creditTermAE: '', // Aluminium/Accessory
+      creditTermYC: '', // Gypsum/C-Line
       reason: 'สต๊อคสินค้า'
     },
 
@@ -149,7 +152,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
             this.transactionData = {
                 amount: data.request_amount,
                 reason: data.request_reason,
-                creditTerm: data.request_credit_term
+                creditTerm: data.request_credit_term,
+                creditTermGS: data.request_credit_term_gs,
+                creditTermAE: data.request_credit_term_ae,
+                creditTermYC: data.request_credit_term_yc
             };
 
             // Determine if we should be in Read-Only "History" mode
@@ -259,10 +265,13 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           }
 
           // Update transaction data (amount/reason) if present
-          if (resData.request_amount || resData.request_reason || resData.request_credit_term) {
+          if (resData.request_amount || resData.request_reason || resData.request_credit_term || resData.request_credit_term_gs) {
             this.transactionData = {
               amount: resData.request_amount || '',
               creditTerm: resData.request_credit_term || '',
+              creditTermGS: resData.request_credit_term_gs || '',
+              creditTermAE: resData.request_credit_term_ae || '',
+              creditTermYC: resData.request_credit_term_yc || '',
               reason: resData.request_reason || 'สต๊อคสินค้า'
             };
           }
