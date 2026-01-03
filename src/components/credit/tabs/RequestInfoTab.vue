@@ -172,17 +172,18 @@
               <label>เหตุผลการขอเครดิต </label>
               <select
                 class="form-input"
-                :class="{ 'disabled': !isEditing }"
+                :class="{ 'border-red-500': errors.creditReason, 'disabled': !isEditing }"
                 :disabled="!isEditing"
                 v-model="formData.creditReason"
-                @change="saveToBackend"
+                @change="onCreditReasonChange"
+                @blur="onCreditReasonChange"
               >
-                  <option value="สต๊อคสินค้า">สต๊อคสินค้า</option>
-                  <option value="รับโปรเจค">รับโปรเจค</option>
-                  <option value="ขออนุมัติเครดิตล่วงหน้า (ยังไม่มีใบสั่งซื้อ)">ขออนุมัติเครดิตล่วงหน้า (ยังไม่มีใบสั่งซื้อ)</option>
-                  <option value="ขออนุมัติเครดิต เพื่อรออนุมัติใบสั่งซื้อ">ขออนุมัติเครดิต เพื่อรออนุมัติใบสั่งซื้อ</option>
-                  <option value="ขออนุมัติเครดิต (มีใบสั่งซื้อแนบมาพร้อม)">ขออนุมัติเครดิต (มีใบสั่งซื้อแนบมาพร้อม)</option>
+                  <option value="" disabled>เลือกเหตุผล</option>
+                  <option v-for="option in reasonOptions" :key="option" :value="option">
+                    {{ option }}
+                  </option>
               </select>
+              <span v-if="errors.creditReason" class="error-text">{{ errors.creditReason }}</span>
             </div>
       </div>
 
@@ -521,7 +522,7 @@ const formData = reactive({
   termGS: '',
   termAE: '',
   termYC: '',
-  creditReason: 'สต๊อคสินค้า',
+  creditReason: '',
   // Billing Info
   billingRequirement: 'not_required', // default
   billingRequirementNote: '',
@@ -605,7 +606,7 @@ watch(() => store.transactionData, (newVal) => {
         if (newVal.amount && formData.creditAmount !== newVal.amount) {
              formData.creditAmount = newVal.amount;
         }
-        if (newVal.reason && formData.creditReason !== newVal.reason) {
+        if (newVal.reason !== undefined && formData.creditReason !== newVal.reason) {
              formData.creditReason = newVal.reason;
         }
         if (newVal.creditTerm && formData.creditTerm !== newVal.creditTerm) {
@@ -710,6 +711,25 @@ function saveToBackend() {
     updates.payment_account_no = formData.paymentAccountNo;
 
     store.saveCustomerData(updates);
+}
+
+const reasonOptions = computed(() => {
+  const standardOptions = [
+    'ขออนุมัติเครดิตล่วงหน้า (ยังไม่มีใบสั่งซื้อ)',
+    'ขออนุมัติเครดิต (มีใบสั่งซื้อแนบมาพร้อม)'
+  ];
+
+  // If current value is not in standard options and is not empty, add it (Legacy support)
+  if (formData.creditReason && !standardOptions.includes(formData.creditReason)) {
+    return [formData.creditReason, ...standardOptions];
+  }
+
+  return standardOptions;
+});
+
+function onCreditReasonChange() {
+  validateField('creditReason', formData.creditReason, ['required']);
+  saveToBackend();
 }
 
 function onPaymentMethodChange() {
