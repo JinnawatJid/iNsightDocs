@@ -65,10 +65,13 @@ watch(() => files.letterGuarantee, (newVal) => {
 
 // Initialize files from store
 watch(() => store.files, (newVal) => {
-  if (newVal) {
-    if (newVal.bank_guarantee_doc !== undefined) files.bankGuarantee = newVal.bank_guarantee_doc;
-    if (newVal.letter_guarantee_doc !== undefined) files.letterGuarantee = newVal.letter_guarantee_doc;
-    if (newVal.bank_statement !== undefined) files.bankStatement = newVal.bank_statement;
+  files.bankGuarantee = newVal?.bank_guarantee_doc || null;
+  files.letterGuarantee = newVal?.letter_guarantee_doc || null;
+  // Handle array type for bankStatement
+  if (newVal && newVal.bank_statement) {
+      files.bankStatement = newVal.bank_statement;
+  } else {
+      files.bankStatement = []; // Default to empty array for multiple files
   }
 }, { immediate: true, deep: true });
 

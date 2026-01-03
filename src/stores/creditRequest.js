@@ -152,7 +152,16 @@ export const useCreditRequestStore = defineStore('creditRequest', {
                 creditTerm: data.request_credit_term
             };
 
-            this.viewingHistory = true;
+            // Determine if we should be in Read-Only "History" mode
+            const activeStatuses = ['Draft', 'Opened', 'Submitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'];
+            if (activeStatuses.includes(this.requestStatus)) {
+                // Active Request: Editable, No Banner
+                this.viewingHistory = false;
+            } else {
+                // Final/Inactive Request: Read-Only, Banner
+                this.viewingHistory = true;
+            }
+
             this.hasSearched = true; // To show the form
 
         } catch (err) {

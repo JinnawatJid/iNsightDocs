@@ -250,19 +250,17 @@ const files = reactive({
 
 // Watch store.files to hydrate local files (for Read Only view)
 watch(() => store.files, (newVal) => {
-  if (newVal) {
-    if (newVal.home_photo) files.homePhoto = newVal.home_photo;
-    if (newVal.land_tax) files.landTax = newVal.land_tax;
-  }
+  files.homePhoto = newVal?.home_photo || null;
+  files.landTax = newVal?.land_tax || null;
 }, { immediate: true, deep: true });
 
 // Watch for file changes to update store for Approval Chance logic
 watch(() => files.homePhoto, (newVal) => {
-  if (newVal) store.updateFile('home_photo', newVal);
+  store.updateFile('home_photo', newVal);
 });
 
 watch(() => files.landTax, (newVal) => {
-  if (newVal) store.updateFile('land_tax', newVal);
+  store.updateFile('land_tax', newVal);
 });
 
 const formData = reactive({
