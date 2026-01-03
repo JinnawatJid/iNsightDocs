@@ -16,21 +16,14 @@
     </div>
 
     <div class="form-footer">
-      <div class="comment-section">
-        <CommentHistory :comments="comments" />
-
-        <!-- Credit Term Island for Managers -->
-        <CreditTermIsland v-if="showTermIsland" :readOnly="isReadOnly" />
-
-        <h3>ความคิดเห็น: {{ currentRoleLabel }}</h3>
-        <textarea
-            class="comment-input"
-            placeholder="ระบุพฤติกรรมลูกค้า, ประวัติโครงการ, การซื้อขายล่าสุด, หรือข้อมูลประกอบการพิจารณาอื่นๆ..."
-            v-model="newComment"
-            rows="5"
-            :disabled="isReadOnly"
-        ></textarea>
-      </div>
+      <!-- Unified Review Section (Terms + Comments) -->
+      <CreditReviewSection
+        :readOnly="isReadOnly"
+        :showTerms="showTerms"
+        :comments="comments"
+        :currentRole="currentRoleLabel"
+        v-model="newComment"
+      />
 
       <div class="footer-info">
          <span class="author">Current Role: {{ currentRoleLabel }}</span>
@@ -90,8 +83,7 @@
 
 <script>
 import ApplicationTabs from './ApplicationTabs.vue';
-import CommentHistory from './CommentHistory.vue';
-import CreditTermIsland from './CreditTermIsland.vue';
+import CreditReviewSection from './CreditReviewSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
@@ -102,8 +94,7 @@ export default {
   name: 'CreditRequestForm',
   components: {
     ApplicationTabs,
-    CommentHistory,
-    CreditTermIsland
+    CreditReviewSection
   },
   setup() {
     const store = useCreditRequestStore();
@@ -114,8 +105,8 @@ export default {
     const requestStatus = computed(() => store.requestStatus);
     const currentRoleLabel = computed(() => store.currentRole);
 
-    // Show Island if NOT Draft (i.e. Opened, Submitted, etc.)
-    const showTermIsland = computed(() => {
+    // Show Terms (Manager Mode) if NOT Draft
+    const showTerms = computed(() => {
         return requestStatus.value && requestStatus.value !== 'Draft';
     });
 
@@ -268,7 +259,7 @@ export default {
         currentRoleLabel,
         newComment,
         isHighValue,
-        showTermIsland
+        showTerms
     };
   }
 };
