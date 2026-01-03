@@ -1,6 +1,13 @@
 <template>
   <div class="create-credit-request">
     <Navbar />
+
+    <!-- Close Preview Banner -->
+    <div v-if="store.viewingHistory" class="preview-banner">
+        <span>กำลังดูประวัติคำขอ: {{ store.requestId }} (Read Only)</span>
+        <button class="btn-close-preview" @click="closePreview">ปิดการดูประวัติ / สร้างคำขอใหม่</button>
+    </div>
+
     <div class="page-content">
       <!-- Header row aligned with center column -->
       <div class="main-grid header-row">
@@ -65,6 +72,10 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import iconSearchLarge from '@/assets/icons/search-large.svg';
 
 const store = useCreditRequestStore();
+
+const closePreview = () => {
+    store.resetState();
+};
 </script>
 
 <style scoped>
@@ -142,5 +153,32 @@ const store = useCreditRequestStore();
 
 .placeholder-content p {
   font-size: 14px;
+}
+
+.preview-banner {
+    background-color: #333;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: center; /* Center content */
+    align-items: center;
+    gap: 20px;
+    position: fixed;
+    top: 80px; /* Below Navbar */
+    width: 100%;
+    z-index: 999;
+}
+
+.btn-close-preview {
+    background-color: white;
+    color: #333;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.btn-close-preview:hover {
+    background-color: #ddd;
 }
 </style>

@@ -8,6 +8,8 @@ const upload = require('../middleware/upload');
 router.post('/', upload.any(), creditRequestController.createCreditRequest);
 router.get('/', creditRequestController.getCreditRequests);
 router.get('/:id/pdf', pdfController.generateCreditRequestPDF);
+router.get('/:id/detail', creditRequestController.getCreditRequestDetail);
+router.get('/:id/files/:fileId', creditRequestController.downloadCreditRequestFile);
 router.patch('/:id/cancel', creditRequestController.cancelCreditRequest);
 router.get('/:id/comments', creditRequestController.getComments);
 

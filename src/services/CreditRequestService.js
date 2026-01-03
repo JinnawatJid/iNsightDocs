@@ -40,5 +40,9 @@ export default {
 
   async getComments(txId) {
     return axios.get(`${API_URL}/${encodeURIComponent(txId)}/comments`);
+  },
+
+  async getCreditRequestDetail(txId) {
+    return axios.get(`${API_URL}/${encodeURIComponent(txId)}/detail`);
   }
 };
