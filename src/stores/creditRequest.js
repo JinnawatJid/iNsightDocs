@@ -22,7 +22,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     // Transaction Data (Separate from Customer Data)
     transactionData: {
       amount: '',
-      creditTerm: '',
+      creditTerm: '', // Legacy/Main
+      termGS: '',
+      termAE: '',
+      termYC: '',
       reason: 'สต๊อคสินค้า'
     },
 
@@ -149,7 +152,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
             this.transactionData = {
                 amount: data.request_amount,
                 reason: data.request_reason,
-                creditTerm: data.request_credit_term
+                creditTerm: data.request_credit_term,
+                termGS: data.term_gs,
+                termAE: data.term_ae,
+                termYC: data.term_yc
             };
 
             // Determine if we should be in Read-Only "History" mode
@@ -259,10 +265,13 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           }
 
           // Update transaction data (amount/reason) if present
-          if (resData.request_amount || resData.request_reason || resData.request_credit_term) {
+          if (resData.request_amount || resData.request_reason || resData.request_credit_term || resData.term_gs) {
             this.transactionData = {
               amount: resData.request_amount || '',
               creditTerm: resData.request_credit_term || '',
+              termGS: resData.term_gs || '',
+              termAE: resData.term_ae || '',
+              termYC: resData.term_yc || '',
               reason: resData.request_reason || 'สต๊อคสินค้า'
             };
           }
@@ -305,6 +314,29 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     updateTransactionData(data) {
         this.transactionData = { ...this.transactionData, ...data };
+    },
+
+    async saveTransactionData() {
+        if (!this.customer || !this.customer.id) return;
+        try {
+            const formData = new FormData();
+            formData.append('customer_no', this.customer.id);
+            formData.append('customer_name', this.customer.name);
+            formData.append('request_amount', this.transactionData.amount || '');
+            formData.append('request_reason', this.transactionData.reason || '');
+            formData.append('request_credit_term', this.transactionData.creditTerm || '');
+            formData.append('term_gs', this.transactionData.termGS || '');
+            formData.append('term_ae', this.transactionData.termAE || '');
+            formData.append('term_yc', this.transactionData.termYC || '');
+            formData.append('snapshot_data', JSON.stringify(this.customer));
+
+            // is_submit=true triggers update, but we don't pass 'status' so it keeps existing status
+            formData.append('is_submit', 'true');
+
+            await CreditRequestService.createCreditRequest(formData); // This endpoint handles updates too
+        } catch (e) {
+            console.error('Failed to save transaction data', e);
+        }
     },
 
     // Action to persist coordinates to backend

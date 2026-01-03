@@ -163,7 +163,10 @@ const initDB = async () => {
             { name: 'request_amount', type: 'REAL' },
             { name: 'request_reason', type: 'TEXT' },
             { name: 'request_credit_term', type: 'REAL' },
-            { name: 'snapshot_data', type: 'TEXT' }
+            { name: 'snapshot_data', type: 'TEXT' },
+            { name: 'term_gs', type: 'INTEGER' },
+            { name: 'term_ae', type: 'INTEGER' },
+            { name: 'term_yc', type: 'INTEGER' }
         ];
 
         for (const col of creditRequestColumns) {
@@ -175,6 +178,20 @@ const initDB = async () => {
                      console.error(`Error adding column ${col.name}:`, err);
                 }
             }
+        }
+
+        // Migration: Copy request_credit_term to new columns if they are NULL (Legacy Data)
+        try {
+            await db.runAsync(`
+                UPDATE CreditRequests
+                SET term_gs = CAST(request_credit_term AS INTEGER),
+                    term_ae = CAST(request_credit_term AS INTEGER),
+                    term_yc = CAST(request_credit_term AS INTEGER)
+                WHERE term_gs IS NULL AND request_credit_term IS NOT NULL
+            `);
+            console.log('Migrated legacy credit terms to new columns.');
+        } catch (e) {
+            console.error('Error migrating legacy credit terms:', e);
         }
 
         // Create CreditRequestAttachments table

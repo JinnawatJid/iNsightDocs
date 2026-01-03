@@ -113,7 +113,7 @@
         <h3>รายละเอียดคำขอเครดิต</h3>
       </div>
       <div class="form-grid-three-columns">
-            <div class="form-group">
+            <div class="form-group" v-if="isDraftMode">
               <label>วงเงินเครดิตที่ต้องการ (บาท) </label>
               <input
                 type="text"
@@ -128,18 +128,45 @@
               <span v-if="errors.creditAmount" class="error-text">{{ errors.creditAmount }}</span>
             </div>
 
-            <div class="form-group">
-               <label>ระยะเวลาเครดิต (วัน)</label>
-               <input
-                type="text"
-                class="form-input"
-                :class="{ 'disabled': !isEditing }"
-                :disabled="!isEditing"
-                v-model="formData.creditTerm"
-                @input="(e) => { e.target.value = e.target.value.replace(/\D/g, ''); formData.creditTerm = e.target.value; }"
-                @blur="saveToBackend"
-              />
-            </div>
+            <!-- New Split Terms for Draft Mode -->
+            <template v-if="isDraftMode">
+              <div class="form-group">
+                <label>ระยะเวลาเครดิต (กระจก, กาว)</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.termGS"
+                  @input="(e) => { e.target.value = e.target.value.replace(/\D/g, ''); formData.termGS = e.target.value; }"
+                  @blur="saveToBackend"
+                />
+              </div>
+              <div class="form-group">
+                <label>ระยะเวลาเครดิต (อลูมิเนียม, Accessory)</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.termAE"
+                  @input="(e) => { e.target.value = e.target.value.replace(/\D/g, ''); formData.termAE = e.target.value; }"
+                  @blur="saveToBackend"
+                />
+              </div>
+              <div class="form-group">
+                <label>ระยะเวลาเครดิต (ยิปซั่ม, ซีลาย)</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  :class="{ 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.termYC"
+                  @input="(e) => { e.target.value = e.target.value.replace(/\D/g, ''); formData.termYC = e.target.value; }"
+                  @blur="saveToBackend"
+                />
+              </div>
+            </template>
 
             <div class="form-group">
               <label>เหตุผลการขอเครดิต </label>
@@ -442,7 +469,7 @@
 </template>
 
 <script setup>
-import { reactive, watch, ref } from 'vue';
+import { reactive, watch, ref, computed } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
@@ -454,6 +481,10 @@ const { errors, validateField, restrictCreditAmountInput, restrictPhoneInput } =
 const isEditing = ref(!props.readOnly);
 watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
+});
+
+const isDraftMode = computed(() => {
+  return !store.requestStatus || store.requestStatus === 'Draft';
 });
 
 // Checkbox logic (kept but unused/hidden for now)
@@ -486,7 +517,10 @@ const formData = reactive({
   contactDivision: '',
   contactPhone: '',
   creditAmount: '',
-  creditTerm: '',
+  creditTerm: '', // Legacy
+  termGS: '',
+  termAE: '',
+  termYC: '',
   creditReason: 'สต๊อคสินค้า',
   // Billing Info
   billingRequirement: 'not_required', // default
@@ -577,6 +611,15 @@ watch(() => store.transactionData, (newVal) => {
         if (newVal.creditTerm && formData.creditTerm !== newVal.creditTerm) {
              formData.creditTerm = newVal.creditTerm;
         }
+        if (newVal.termGS && formData.termGS !== newVal.termGS) {
+             formData.termGS = newVal.termGS;
+        }
+        if (newVal.termAE && formData.termAE !== newVal.termAE) {
+             formData.termAE = newVal.termAE;
+        }
+        if (newVal.termYC && formData.termYC !== newVal.termYC) {
+             formData.termYC = newVal.termYC;
+        }
     }
 }, { immediate: true, deep: true });
 
@@ -614,7 +657,10 @@ watch(formData, (newVal) => {
   store.updateTransactionData({
     amount: newVal.creditAmount,
     reason: newVal.creditReason,
-    creditTerm: newVal.creditTerm
+    creditTerm: newVal.creditTerm,
+    termGS: newVal.termGS,
+    termAE: newVal.termAE,
+    termYC: newVal.termYC
   });
 }, { deep: true });
 
