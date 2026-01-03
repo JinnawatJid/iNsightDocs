@@ -6,6 +6,14 @@
     </div>
 
     <div class="review-content">
+      <!-- Comment History (Moved to Top) -->
+      <div class="comments-history-wrapper">
+         <CommentHistory :comments="comments" />
+      </div>
+
+      <!-- Separator if we have terms -->
+      <div v-if="showTerms" class="section-separator"></div>
+
       <!-- Terms Section (Manager Only) -->
       <div v-if="showTerms" class="terms-grid-wrapper">
          <div class="form-grid-four">
@@ -59,24 +67,19 @@
                 />
             </div>
          </div>
-         <div class="section-separator"></div>
       </div>
 
-      <!-- Comment Section -->
-      <div class="comments-wrapper">
-         <CommentHistory :comments="comments" />
-
-         <div class="new-comment-box">
-            <h5 class="comment-label">ความคิดเห็น: {{ currentRole }}</h5>
-            <textarea
-                class="comment-input"
-                placeholder="ระบุพฤติกรรมลูกค้า, ประวัติโครงการ, การซื้อขายล่าสุด, หรือข้อมูลประกอบการพิจารณาอื่นๆ..."
-                :value="modelValue"
-                @input="$emit('update:modelValue', $event.target.value)"
-                rows="5"
-                :disabled="readOnly"
-            ></textarea>
-         </div>
+      <!-- New Comment Input (Bottom) -->
+      <div class="new-comment-box">
+        <h5 class="comment-label">ความคิดเห็น: {{ currentRole }}</h5>
+        <textarea
+            class="comment-input"
+            placeholder="ระบุพฤติกรรมลูกค้า, ประวัติโครงการ, การซื้อขายล่าสุด, หรือข้อมูลประกอบการพิจารณาอื่นๆ..."
+            :value="modelValue"
+            @input="$emit('update:modelValue', $event.target.value)"
+            rows="5"
+            :disabled="readOnly"
+        ></textarea>
       </div>
     </div>
   </div>
@@ -146,7 +149,6 @@ function saveChanges() {
   background-color: #f8f9fa; /* Unified light background */
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  /* padding: 15px; Remove padding here to let header/content handle it */
 }
 
 .review-header {
@@ -176,6 +178,8 @@ function saveChanges() {
 
 .review-content {
   padding: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
 .terms-grid-wrapper {
@@ -216,17 +220,28 @@ function saveChanges() {
 }
 
 .section-separator {
-  margin-top: 20px;
+  margin: 20px 0;
   border-top: 1px solid #e0e0e0;
 }
 
-.comments-wrapper {
-  /* Ensure it fits nicely */
+.comments-history-wrapper {
+  /* Margin handled by separator or bottom input */
 }
 
 .new-comment-box {
-    margin-top: 15px;
+    /* If terms are shown, they have margin-bottom. If not, this needs top margin from history?
+       Actually, if terms are hidden, we might want a separator or just margin.
+    */
+    margin-top: 20px;
 }
+
+/* If no terms shown, add separator after history?
+   Or just spacing.
+*/
+.comments-history-wrapper:not(:last-child) {
+    /* If followed by separator or input */
+}
+
 
 .comment-label {
     margin: 0 0 10px 0;
