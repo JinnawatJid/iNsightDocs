@@ -17,7 +17,28 @@ We introduce a **Score-Based Dynamic Limit** system.
 *   **Risk Control (NPL Prevention):** We use an **exponential curve ($Score^2$)** rather than a linear one. This means low scores are heavily penalized (getting very low limits), ensuring safety. High scores are rewarded disproportionately, encouraging growth for safe customers.
 *   **Dynamic Growth:** For existing customers, the "Max Limit" is tied to their actual **Purchase Capacity** ($3 \times$ Average Sales). This allows the credit limit to grow naturally alongside the customer's business success.
 
-## 3. The Mathematical Formula
+## 3. Data Strategy (Hybrid Source)
+
+The scoring model relies on a hybrid data strategy, combining internal transaction history with verified external financial data.
+
+### 3.1 Internal Data (Purchase Behavior)
+*   **Source:** `AY_ACCUM` table in the application database.
+*   **Content:** Monthly purchase history, trend analysis, and payment discipline.
+*   **Usage:** Used primarily for **Category C3 (Purchase Behavior)** and the "Dynamic Max" calculation.
+
+### 3.2 External Data (Financial Strength)
+*   **Source:** **DBD (Department of Business Development)** Financial Statements.
+*   **Format:** Excel file (`.xlsx`) exported from the DBD DataWarehouse (via unofficial API/User Action).
+*   **Mechanism:** The user uploads this specific Excel file to the Credit Request system. The system parses the file to extract:
+    *   Registered Capital
+    *   Total Revenue
+    *   Total Assets / Current Assets
+    *   Liabilities (Total & Current)
+    *   Shareholder's Equity
+    *   Net Profit
+*   **Usage:** Used for **Category C1 (Company Strength)** and **Category C2 (Cash Flow)**.
+
+## 4. The Mathematical Formula
 
 The core formula for determining the Credit Limit is:
 
@@ -30,13 +51,13 @@ $$
 *   **Score:** The calculated customer score (0 to 200).
 *   **n (Exponent):** We use **$n=2$**. This creates a "Quadratic Curve" which is safer than a linear line. It grants strictly lower credit for mediocre scores, protecting the company from risk.
 
-### 3.1 Scenario A: New Credit Request
+### 4.1 Scenario A: New Credit Request
 For a customer who has never had credit with us before.
 *   **Min:** 50,000 THB (System Policy Minimum)
 *   **Max:** 500,000 THB (Company Policy Cap for New Customers)
 *   **Logic:** A safe, bounded range to test the new relationship.
 
-### 3.2 Scenario B: Credit Limit Increase
+### 4.2 Scenario B: Credit Limit Increase
 For an existing customer requesting more credit.
 *   **Min:** **Current Credit Limit**.
     *   *Rationale:* We should never recommend a limit *lower* than what they already have and are paying for successfully.
@@ -45,20 +66,47 @@ For an existing customer requesting more credit.
     *   *Rationale:* This ties the limit to their proven capability. If they buy 100k/month, their max theoretical limit is 300k.
 *   **Logic:** This allows the "ceiling" to float upwards as the customer grows.
 
-## 4. Scoring Criteria (The 200 Points)
+## 5. Scoring Criteria (The 200 Points)
 
-The Score (0-200) is calculated from three pillars:
+The Score (0-200) is calculated from three pillars.
+*   **Companies:** Score = C1 + C2 + C3.
+*   **Individuals:** Score is derived heavily from Purchase Behavior (C3 logic adjusted or standalone).
 
-| Component | Description | Applicability |
-| :--- | :--- | :--- |
-| **1. Company Strength** | Registered capital, Years in business, Asset value. | Company Only |
-| **2. Cash Flow** | Analysis of financial documents (Bank Statements). | Company Only |
-| **3. Purchase Behavior** | Frequency, Amount, and Trend of purchases (from `AY_ACCUM`). | All Customers (Individual & Company) |
+### 5.1 C1: Company Strength (Performance) - Max 49 Points
+*Data Source: DBD Excel File*
 
-*   **Individuals:** Score is derived heavily from Purchase Behavior.
-*   **Companies:** Score is a weighted average of all three components.
+| Criterion | Weight (%) | Raw Score Criteria | Max Points |
+| :--- | :---: | :--- | :---: |
+| **1. Years in Business**<br>*(Stability)* | **7.21%** | ≥ 5 Years: 2 pts<br>≥ 3 Years: 1.6 pts<br>≥ 1 Year: 1 pt | **14.42** |
+| **2. Credit / Capital Ratio**<br>*(Leverage)* | **4.32%** | Calculated Ratio | **8.64** |
+| **3. Asset Ownership**<br>*(Collateral Potential)* | **12.97%** | Owns Land/Building: 2 pts<br>Rent/Lease: ~0.8 pts | **25.94** |
+| **Total C1** | **24.5%** | | **49.00** |
 
-## 5. Risk Control (Gatekeepers)
+### 5.2 C2: Cash Flow - Max 55.02 Points
+*Data Source: DBD Excel File (Financial Ratios)*
+
+| Criterion | Weight (%) | Raw Score Criteria | Max Points |
+| :--- | :---: | :--- | :---: |
+| **1. D/E Ratio**<br>*(Debt to Equity)* | **12.38%** | ≤ 1: 2 pts<br>≤ 1.5: 1.6 pts<br>≤ 2: 1.2 pts<br>≤ 3: 1 pt<br>> 3: 0 pts | **24.76** |
+| **2. Inventory Turnover**<br>*(Efficiency)* | **6.88%** | ≥ 12 times: 2 pts<br>≥ 8 times: 1.5 pts<br>≥ 6 times: 1 pt<br>< 4 times: 0 pts | **13.76** |
+| **3. DSCR**<br>*(Debt Service Coverage)* | **8.25%** | ≥ 1.5: 2 pts<br>≥ 1.25: 1.5 pts<br>≥ 1: 1 pt<br>< 1: 0 pts | **16.50** |
+| **Total C2** | **27.5%** | | **55.02** |
+
+### 5.3 C3: Purchase Behavior - Max 95.98 Points
+*Data Source: Internal `AY_ACCUM` & Request Data*
+
+| Criterion | Weight (%) | Raw Score Criteria | Max Points |
+| :--- | :---: | :--- | :---: |
+| **1. Revenue / Registered Capital**<br>*(Efficiency)* | **1.52%** | Ratio Calculation | **3.04** |
+| **2. Avg Purchase (3mo) / Requested Credit**<br>*(Capacity Check)* | **17.52%** | Ratio Calculation | **35.04** |
+| **3. Purchase / Credit Term**<br>*(Turnover Speed)* | **9.14%** | Ratio Calculation | **18.28** |
+| **4. Purchase Trend**<br>*(Growth)* | **14.48%** | Positive/Stable Trend: 2 pts<br>Negative Trend: < 2 pts | **28.96** |
+| **5. Customer Duration**<br>*(Loyalty)* | **5.33%** | Long-term customer: 2 pts | **10.66** |
+| **Total C3** | **48.0%** | | **95.98** |
+
+**Grand Total Score: 200 Points**
+
+## 6. Risk Control (Gatekeepers)
 
 Before the formula is even applied, the customer must pass specific **"Eligibility Gates"**. If they fail these, the system will not recommend an increase, regardless of their score.
 
@@ -69,21 +117,22 @@ Before the formula is even applied, the customer must pass specific **"Eligibili
     *   **Rule:** Customer should be using **50-60%** of their existing limit.
     *   *Action:* If utilization is too low (e.g., <30%), the system raises a **WARNING**: "Current limit appears sufficient; increase may not be justified."
 
-## 6. Technical Implementation Strategy
+## 7. Technical Implementation Strategy
 
-### 6.1 Database
+### 7.1 Database
 *   **`Customers` Table:** Stores the `Current Credit Limit` and demographic data.
 *   **`AY_ACCUM` Table:** Stores the monthly sales data used to calculate the "Dynamic Max".
 
-### 6.2 Backend Logic (`customerController.js`)
+### 7.2 Backend Logic (`customerController.js`)
 *   **`calculateCreditScore()` function:**
     1.  Fetches `AY_ACCUM` data.
-    2.  Calculates `AvgMonthlySales`.
-    3.  Determines `Max` (500k for New, $3 \times$ Avg for Increase).
-    4.  Runs the Gatekeeper checks.
-    5.  Applies the Formula.
-    6.  Returns the `RecommendedLimit`.
+    2.  Parses uploaded DBD Excel file (if available).
+    3.  Calculates `AvgMonthlySales`.
+    4.  Determines `Max` (500k for New, $3 \times$ Avg for Increase).
+    5.  Runs the Gatekeeper checks.
+    6.  Applies the Formula.
+    7.  Returns the `RecommendedLimit`.
 
-### 6.3 Future Roadmap
+### 7.3 Future Roadmap
 *   **Automated Payment Check:** Integrate with the Accounting/ERP system to automatically pull "Days Late" data for the Gatekeeper check.
 *   **AI Scoring:** Eventually replace the fixed-weight scoring with a Machine Learning model trained on historical NPL data.
