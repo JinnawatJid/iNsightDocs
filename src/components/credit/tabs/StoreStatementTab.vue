@@ -31,7 +31,7 @@
 
     <!-- Financial Analysis Section -->
     <div class="financial-analysis-section">
-      <div class="section-header">Financial Analysis</div>
+      <div class="section-header">Financial Analysis & Scoring</div>
 
       <div class="upload-grid-three">
         <FileUploader
@@ -67,15 +67,31 @@
             class="btn-primary"
             :disabled="analyzing"
           >
-            {{ analyzing ? 'กำลังวิเคราะห์...' : 'Analyze Financials' }}
+            {{ analyzing ? 'กำลังวิเคราะห์...' : 'Analyze & Calculate Score' }}
           </button>
         </div>
       </div>
 
       <!-- Analysis Results -->
       <div v-if="analysisResults" class="analysis-results">
-        <h4>Analysis Results</h4>
 
+        <!-- Scoring Highlight -->
+        <div v-if="analysisResults.scoringResult" class="score-highlight">
+            <div class="score-card">
+                <div class="score-title">Credit Score</div>
+                <div class="score-val" :class="getGradeClass(analysisResults.scoringResult.grade)">
+                    {{ analysisResults.scoringResult.totalScore }} / 200
+                </div>
+                <div class="score-grade">Grade {{ analysisResults.scoringResult.grade }}</div>
+            </div>
+            <div class="limit-card">
+                <div class="score-title">Recommended Limit</div>
+                <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
+                <div class="limit-unit">THB</div>
+            </div>
+        </div>
+
+        <h4>Extracted Financial Data</h4>
         <div class="result-grid">
           <div class="result-item">
             <span class="label">รายได้รวม (Total Revenue):</span>
@@ -178,7 +194,6 @@ const analyzeFinancials = async () => {
 
   if (!registeredCapital.value) {
      Swal.fire('Warning', 'Please enter Registered Capital for accurate Credit/Capital calculation.', 'warning');
-     // Proceeding anyway but ratio will be Infinity/0
   }
 
   analyzing.value = true;
@@ -192,6 +207,12 @@ const analyzeFinancials = async () => {
   const requestAmount = store.transactionData?.amount || 0;
   formData.append('request_amount', requestAmount);
 
+  // Get Customer No
+  const customerNo = store.customer?.id || store.customer?.No_;
+  if (customerNo) {
+      formData.append('customer_no', customerNo);
+  }
+
   try {
     const response = await axios.post('/api/financials/analyze', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
@@ -199,9 +220,19 @@ const analyzeFinancials = async () => {
 
     if (response.data.success) {
       analysisResults.value = response.data;
-      // Persist to store so it's saved in snapshot_data
+
+      // Update store with analysis result
       store.updateFinancialAnalysis(response.data);
-      Swal.fire('Success', 'Financial analysis complete.', 'success');
+
+      // Update store creditScore so the sidebar updates
+      if (response.data.scoringResult) {
+          store.creditScore = {
+              ...store.creditScore,
+              ...response.data.scoringResult
+          };
+      }
+
+      Swal.fire('Success', 'Financial analysis & Scoring complete.', 'success');
     }
   } catch (error) {
     console.error(error);
@@ -219,6 +250,12 @@ const formatNumber = (num) => {
 const formatDecimal = (num) => {
    if (num === null || num === undefined) return '-';
    return num.toLocaleString('th-TH', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+};
+
+const getGradeClass = (grade) => {
+    if (grade === 'A') return 'text-success';
+    if (grade === 'B') return 'text-warning';
+    return 'text-danger';
 };
 
 </script>
@@ -286,7 +323,7 @@ const formatDecimal = (num) => {
   padding: 10px 20px;
   border-radius: 4px;
   cursor: pointer;
-  height: 40px; /* Match input height roughly */
+  height: 40px;
 }
 
 .btn-primary:disabled {
@@ -300,6 +337,40 @@ const formatDecimal = (num) => {
   border-radius: 8px;
   border: 1px solid #eee;
 }
+
+.score-highlight {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.score-card, .limit-card {
+    flex: 1;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.score-val {
+    font-size: 2em;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.limit-val {
+    font-size: 2em;
+    font-weight: bold;
+    color: #28a745;
+    margin: 10px 0;
+}
+
+.text-success { color: #28a745; }
+.text-warning { color: #ffc107; }
+.text-danger { color: #dc3545; }
 
 .result-grid {
   display: grid;
