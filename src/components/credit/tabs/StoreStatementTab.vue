@@ -95,27 +95,57 @@
         <div class="result-grid">
           <div class="result-item">
             <span class="label">รายได้รวม (Total Revenue):</span>
-            <span class="value">{{ formatNumber(analysisResults.extractedData.totalRevenue) }}</span>
+            <span class="value">
+              {{ formatNumber(analysisResults.extractedData.totalRevenue?.value) }}
+              <span class="col-badge" v-if="analysisResults.extractedData.totalRevenue?.column">
+                (Col: {{ analysisResults.extractedData.totalRevenue.column }})
+              </span>
+            </span>
           </div>
           <div class="result-item">
             <span class="label">กำไรขั้นต้น (Gross Profit):</span>
-            <span class="value">{{ formatNumber(analysisResults.extractedData.grossProfit) }}</span>
+            <span class="value">
+              {{ formatNumber(analysisResults.extractedData.grossProfit?.value) }}
+              <span class="col-badge" v-if="analysisResults.extractedData.grossProfit?.column">
+                (Col: {{ analysisResults.extractedData.grossProfit.column }})
+              </span>
+            </span>
           </div>
           <div class="result-item">
             <span class="label">หนี้สินไม่หมุนเวียน (Non-Current Liabilities):</span>
-            <span class="value">{{ formatNumber(analysisResults.extractedData.nonCurrentLiabilities) }}</span>
+            <span class="value">
+              {{ formatNumber(analysisResults.extractedData.nonCurrentLiabilities?.value) }}
+              <span class="col-badge" v-if="analysisResults.extractedData.nonCurrentLiabilities?.column">
+                (Col: {{ analysisResults.extractedData.nonCurrentLiabilities.column }})
+              </span>
+            </span>
           </div>
           <div class="result-item">
             <span class="label">ส่วนของผู้ถือหุ้น (Equity):</span>
-            <span class="value">{{ formatNumber(analysisResults.extractedData.shareholdersEquity) }}</span>
+            <span class="value">
+              {{ formatNumber(analysisResults.extractedData.shareholdersEquity?.value) }}
+              <span class="col-badge" v-if="analysisResults.extractedData.shareholdersEquity?.column">
+                (Col: {{ analysisResults.extractedData.shareholdersEquity.column }})
+              </span>
+            </span>
           </div>
            <div class="result-item">
             <span class="label">Inventory Turnover:</span>
-            <span class="value">{{ formatNumber(analysisResults.extractedData.inventoryTurnover) }}</span>
+            <span class="value">
+              {{ formatNumber(analysisResults.extractedData.inventoryTurnover?.value) }}
+              <span class="col-badge" v-if="analysisResults.extractedData.inventoryTurnover?.column">
+                (Col: {{ analysisResults.extractedData.inventoryTurnover.column }})
+              </span>
+            </span>
           </div>
            <div class="result-item">
             <span class="label">D/E Ratio:</span>
-            <span class="value">{{ formatNumber(analysisResults.extractedData.deRatio) }}</span>
+            <span class="value">
+              {{ formatNumber(analysisResults.extractedData.deRatio?.value) }}
+              <span class="col-badge" v-if="analysisResults.extractedData.deRatio?.column">
+                (Col: {{ analysisResults.extractedData.deRatio.column }})
+              </span>
+            </span>
           </div>
         </div>
 
@@ -410,5 +440,15 @@ const getGradeClass = (grade) => {
   font-size: 1.2em;
   color: #007bff;
   font-weight: bold;
+}
+
+.col-badge {
+  font-size: 0.8em;
+  color: #666;
+  background-color: #eee;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  font-weight: normal;
 }
 </style>
