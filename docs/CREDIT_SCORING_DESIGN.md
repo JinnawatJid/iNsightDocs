@@ -17,7 +17,7 @@ We introduce a **Score-Based Dynamic Limit** system.
 *   **Risk Control (NPL Prevention):** We use an **exponential curve ($Score^2$)** rather than a linear one. This means low scores are heavily penalized (getting very low limits), ensuring safety. High scores are rewarded disproportionately, encouraging growth for safe customers.
 *   **Dynamic Growth:** For existing customers, the "Max Limit" is tied to their actual **Purchase Capacity** ($3 \times$ Average Sales). This allows the credit limit to grow naturally alongside the customer's business success.
 
-## 3. Data Strategy (Hybrid Source)
+## 3. Data Strategy (Hybrid Source - Phase 1)
 
 The scoring model relies on a hybrid data strategy, combining internal transaction history with verified external financial data.
 
@@ -26,17 +26,22 @@ The scoring model relies on a hybrid data strategy, combining internal transacti
 *   **Content:** Monthly purchase history, trend analysis, and payment discipline.
 *   **Usage:** Used primarily for **Category C3 (Purchase Behavior)** and the "Dynamic Max" calculation.
 
-### 3.2 External Data (Financial Strength)
+### 3.2 External Data (Financial Strength) - *Partially Automated*
 *   **Source:** **DBD (Department of Business Development)** Financial Statements.
-*   **Format:** Excel file (`.xlsx`) exported from the DBD DataWarehouse (via unofficial API/User Action).
-*   **Mechanism:** The user uploads this specific Excel file to the Credit Request system. The system parses the file to extract:
-    *   Registered Capital
-    *   Total Revenue
-    *   Total Assets / Current Assets
-    *   Liabilities (Total & Current)
-    *   Shareholder's Equity
-    *   Net Profit
-*   **Usage:** Used for **Category C1 (Company Strength)** and **Category C2 (Cash Flow)**.
+*   **Format:** Three separate Excel files (`.xlsx`): Balance Sheet, Profit & Loss, and Financial Ratios.
+*   **Mechanism:**
+    *   **Automated Parsing:** The user uploads the 3 Excel files to the Credit Request system (`StoreStatementTab`).
+    *   **Manual Input:** The **Registered Capital** is entered manually (as it resides in the Company Profile image, not the Excel sheets).
+    *   The system parses the Excel files to extract:
+        *   Non-Current Liabilities (`หนี้สินไม่หมุนเวียน`)
+        *   Shareholder's Equity (`ส่วนของผู้ถือหุ้น`)
+        *   Total Revenue (`รายได้รวม`)
+        *   Gross Profit (`กำไร(ขาดทุน) ขั้นต้น`)
+        *   D/E Ratio (`อัตราส่วนหนี้สินรวมต่อส่วนของผู้ถือหุ้น`)
+        *   Inventory Turnover (`อัตราการหมุนเวียนสินค้าคงเหลือ`)
+    *   **Calculations:**
+        *   **DSCR** = `(Gross Profit / Non-Current Liabilities) * 0.3`
+        *   **Credit/Capital Ratio** = `Request Amount / Registered Capital`
 
 ## 4. The Mathematical Formula
 
@@ -73,7 +78,7 @@ The Score (0-200) is calculated from three pillars.
 *   **Individuals:** Score is derived heavily from Purchase Behavior (C3 logic adjusted or standalone).
 
 ### 5.1 C1: Company Strength (Performance) - Max 49 Points
-*Data Source: DBD Excel File*
+*Data Source: DBD Excel File & Manual Input*
 
 | Criterion | Weight (%) | Raw Score Criteria (Score/2) | Max Points |
 | :--- | :---: | :--- | :---: |
@@ -123,15 +128,12 @@ Before the formula is even applied, the customer must pass specific **"Eligibili
 *   **`Customers` Table:** Stores the `Current Credit Limit` and demographic data.
 *   **`AY_ACCUM` Table:** Stores the monthly sales data used to calculate the "Dynamic Max".
 
-### 7.2 Backend Logic (`customerController.js`)
-*   **`calculateCreditScore()` function:**
-    1.  Fetches `AY_ACCUM` data.
-    2.  Parses uploaded DBD Excel file (if available).
-    3.  Calculates `AvgMonthlySales`.
-    4.  Determines `Max` (500k for New, $3 \times$ Avg for Increase).
-    5.  Runs the Gatekeeper checks.
-    6.  Applies the Formula.
-    7.  Returns the `RecommendedLimit`.
+### 7.2 Backend Logic (`financialController.js`)
+*   **`analyzeFinancials` function:**
+    *   Parses DBD Excel files (`xlsx` library).
+    *   Extracts key financial figures using Thai header matching.
+    *   Calculates Ratios (DSCR, D/E, etc.).
+    *   Returns structured data to Frontend.
 
 ### 7.3 Future Roadmap
 *   **Automated Payment Check:** Integrate with the Accounting/ERP system to automatically pull "Days Late" data for the Gatekeeper check.

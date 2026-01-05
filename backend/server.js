@@ -3,6 +3,7 @@ const cors = require('cors');
 const db = require('./db');
 const customerRoutes = require('./routes/customerRoutes');
 const creditRequestRoutes = require('./routes/creditRequestRoutes');
+const financialRoutes = require('./routes/financialRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,6 +14,7 @@ app.use(express.json());
 // Routes
 app.use('/api/customers', customerRoutes);
 app.use('/api/credit-requests', creditRequestRoutes);
+app.use('/api/financials', financialRoutes);
 
 // Health Check
 app.get('/api/health', async (req, res) => {
