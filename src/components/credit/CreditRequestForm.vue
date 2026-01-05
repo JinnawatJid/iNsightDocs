@@ -205,7 +205,11 @@ export default {
             formData.append('term_gs', store.transactionData.termGS || '');
             formData.append('term_ae', store.transactionData.termAE || '');
             formData.append('term_yc', store.transactionData.termYC || '');
-            formData.append('snapshot_data', JSON.stringify(store.customer));
+
+            // Use store.getSnapshot() if available, otherwise fallback to store.customer
+            // But we know we just added getSnapshot to the store.
+            const snapshot = store.getSnapshot ? store.getSnapshot() : store.customer;
+            formData.append('snapshot_data', JSON.stringify(snapshot));
 
             // Critical: Pass Status and Comment
             formData.append('status', status);

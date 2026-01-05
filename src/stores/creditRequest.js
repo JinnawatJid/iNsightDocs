@@ -79,17 +79,6 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     isReadOnly: (state) => {
-      // With new flow, "Read Only" is tricky. Each role can edit in their turn?
-      // Assuming existing logic: Only Head Office roles might be ReadOnly on form data, but can comment/approve.
-      // For now, let's keep form editable for active actors, or follow user existing requirement:
-      // "Read Only" logic was: Opened/Canceled = Editable. Others = ReadOnly.
-      // We should probably allow editing for the active actor?
-      // User said: "ผู้จัดการสาขา -> which review and edit the request data". So Submitted -> Sales Manager should also edit?
-      // Let's assume Active Status = Editable by Current Actor.
-      // But for simplicity/safety, let's keep the user's previous "Read Only" list but update it.
-      // Actually, if I am the "Sales Manager", I am reviewing "Submitted" request. I might need to edit.
-      // Let's NOT block editing based on status for now, unless it's Final (Approved/Rejected/Closed/Canceled).
-
       const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled'];
       return finalStatuses.includes(state.requestStatus);
     }
@@ -117,7 +106,6 @@ export const useCreditRequestStore = defineStore('creditRequest', {
                     if (results && results.length > 0) {
                         const freshData = results[0];
                         // Only use fallback if we really found the customer
-                        // Backend maps 'No_' to 'id' in response
                         const resultId = freshData.customer.id || freshData.customer.No_;
                         if (resultId === data.customer_no) {
                              this.financialSummary = freshData.financial_summary || {};
@@ -157,16 +145,6 @@ export const useCreditRequestStore = defineStore('creditRequest', {
                 termAE: data.term_ae,
                 termYC: data.term_yc
             };
-
-            // Determine if we should be in Read-Only "History" mode
-            const activeStatuses = ['Draft', 'Opened', 'Submitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'];
-            if (activeStatuses.includes(this.requestStatus)) {
-                // Active Request: Editable, No Banner
-                this.viewingHistory = false;
-            } else {
-                // Final/Inactive Request: Read-Only, Banner
-                this.viewingHistory = true;
-            }
 
             this.hasSearched = true; // To show the form
 
@@ -208,11 +186,6 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           this.creditScore = data.credit_score || {};
           this.hasSearched = true;
 
-          // Automatically create a credit request transaction (or fetch existing)
-          // We pass empty data initially, backend handles "Opened" creation or retrieval
-          // Note: createCreditRequestService usually creates.
-          // But here we want to just "Initialize" it.
-          // The current backend createCreditRequest returns existing if Opened.
           await this.createCreditRequest(this.customer.id, this.customer.name);
 
           // Fetch comments
@@ -259,6 +232,15 @@ export const useCreditRequestStore = defineStore('creditRequest', {
               }
               // Merge into customer state
               this.customer = { ...this.customer, ...parsedSnapshot };
+
+              // Load financial data if present in snapshot
+              if (parsedSnapshot.financial_summary) {
+                  this.financialSummary = parsedSnapshot.financial_summary;
+              }
+              if (parsedSnapshot.credit_score) {
+                  this.creditScore = parsedSnapshot.credit_score;
+              }
+
             } catch (e) {
               console.error('Failed to parse snapshot data', e);
             }
@@ -285,11 +267,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       if (!this.requestId) return;
       try {
         await CreditRequestService.cancelCreditRequest(this.requestId);
-
-        // Update local status to Canceled so it becomes editable (since Canceled is not in isReadOnly)
-        // We do NOT reset state, so the user keeps their data to edit.
         this.requestStatus = 'Canceled';
-
       } catch (err) {
         console.error('Failed to cancel request', err);
         throw err;
@@ -305,15 +283,34 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.uploadedDocuments[key] = !!file;
     },
 
-    // Action to update customer data from form edits
     updateCustomerData(updates) {
       if (this.customer) {
         this.customer = { ...this.customer, ...updates };
       }
     },
 
+    updateFinancialAnalysis(analysisData) {
+      if (!this.financialSummary) this.financialSummary = {};
+
+      // Store the analysis result in a dedicated property within financialSummary
+      // This will be persisted when getSnapshot() includes financialSummary
+      this.financialSummary.analysis_result = analysisData;
+
+      // We can also update top-level scores if they map directly,
+      // but keeping it structured is better for Phase 2.
+    },
+
     updateTransactionData(data) {
         this.transactionData = { ...this.transactionData, ...data };
+    },
+
+    // Helper to get full snapshot object for saving
+    getSnapshot() {
+        return {
+            ...this.customer,
+            financial_summary: this.financialSummary,
+            credit_score: this.creditScore
+        };
     },
 
     async saveTransactionData() {
@@ -328,7 +325,9 @@ export const useCreditRequestStore = defineStore('creditRequest', {
             formData.append('term_gs', this.transactionData.termGS || '');
             formData.append('term_ae', this.transactionData.termAE || '');
             formData.append('term_yc', this.transactionData.termYC || '');
-            formData.append('snapshot_data', JSON.stringify(this.customer));
+
+            // Use getSnapshot() to ensure all data including financials is saved
+            formData.append('snapshot_data', JSON.stringify(this.getSnapshot()));
 
             // is_submit=true triggers update, but we don't pass 'status' so it keeps existing status
             formData.append('is_submit', 'true');
