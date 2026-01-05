@@ -75,33 +75,33 @@ The Score (0-200) is calculated from three pillars.
 ### 5.1 C1: Company Strength (Performance) - Max 49 Points
 *Data Source: DBD Excel File*
 
-| Criterion | Weight (%) | Raw Score Criteria | Max Points |
+| Criterion | Weight (%) | Raw Score Criteria (Score/2) | Max Points |
 | :--- | :---: | :--- | :---: |
-| **1. Years in Business**<br>*(Stability)* | **7.21%** | ≥ 5 Years: 2 pts<br>≥ 3 Years: 1.6 pts<br>≥ 1 Year: 1 pt | **14.42** |
-| **2. Credit / Capital Ratio**<br>*(Leverage)* | **4.32%** | Calculated Ratio | **8.64** |
-| **3. Asset Ownership**<br>*(Collateral Potential)* | **12.97%** | Owns Land/Building: 2 pts<br>Rent/Lease: ~0.8 pts | **25.94** |
+| **1. Years in Business**<br>*(Stability)* | **7.21%** | ≥ 10 yrs: 2.0<br>≥ 5 yrs: 1.5<br>≥ 3 yrs: 1.0<br>≥ 1 yr: 0.5<br>< 1 yr: 0.25 | **14.42** |
+| **2. Requested Credit / Registered Capital**<br>*(Leverage)* | **4.32%** | ≤ 0.5x: 2.0<br>0.51 - 0.9x: 1.5<br>0.91 - 1.5x: 1.0<br>1.51 - 1.99x: 0.5<br>≥ 2x: 0.25 | **8.64** |
+| **3. Asset Ownership**<br>*(Collateral Potential)* | **12.97%** | Asset > Credit: 2.0<br>Asset < Credit: 1.5<br>Rental: 1.0 | **25.94** |
 | **Total C1** | **24.5%** | | **49.00** |
 
 ### 5.2 C2: Cash Flow - Max 55.02 Points
 *Data Source: DBD Excel File (Financial Ratios)*
 
-| Criterion | Weight (%) | Raw Score Criteria | Max Points |
+| Criterion | Weight (%) | Raw Score Criteria (Score/2) | Max Points |
 | :--- | :---: | :--- | :---: |
-| **1. D/E Ratio**<br>*(Debt to Equity)* | **12.38%** | ≤ 1: 2 pts<br>≤ 1.5: 1.6 pts<br>≤ 2: 1.2 pts<br>≤ 3: 1 pt<br>> 3: 0 pts | **24.76** |
-| **2. Inventory Turnover**<br>*(Efficiency)* | **6.88%** | ≥ 12 times: 2 pts<br>≥ 8 times: 1.5 pts<br>≥ 6 times: 1 pt<br>< 4 times: 0 pts | **13.76** |
-| **3. DSCR**<br>*(Debt Service Coverage)* | **8.25%** | ≥ 1.5: 2 pts<br>≥ 1.25: 1.5 pts<br>≥ 1: 1 pt<br>< 1: 0 pts | **16.50** |
+| **1. D/E Ratio**<br>*(Debt to Equity)* | **12.38%** | ≤ 1: 2.0<br>≤ 1.5: 1.6<br>≤ 2: 1.2<br>≤ 3: 1.0<br>> 3: 0.0 | **24.76** |
+| **2. Inventory Turnover**<br>*(Efficiency)* | **6.88%** | ≥ 12 times: 2.0<br>≥ 8 times: 1.5<br>≥ 6 times: 1.0<br>≥ 4 times: 0.5<br>< 4 times: 0.0 | **13.76** |
+| **3. DSCR**<br>*(Debt Service Coverage)* | **8.25%** | ≥ 0.5: 2.0<br>≥ 0.4: 1.5<br>≥ 0.33: 1.0<br>≥ 0.25: 0.5<br>< 0.25: 0.0 | **16.50** |
 | **Total C2** | **27.5%** | | **55.02** |
 
 ### 5.3 C3: Purchase Behavior - Max 95.98 Points
 *Data Source: Internal `AY_ACCUM` & Request Data*
 
-| Criterion | Weight (%) | Raw Score Criteria | Max Points |
+| Criterion | Weight (%) | Raw Score Criteria (Score/2) | Max Points |
 | :--- | :---: | :--- | :---: |
-| **1. Revenue / Registered Capital**<br>*(Efficiency)* | **1.52%** | Ratio Calculation | **3.04** |
-| **2. Avg Purchase (3mo) / Requested Credit**<br>*(Capacity Check)* | **17.52%** | Ratio Calculation | **35.04** |
-| **3. Purchase / Credit Term**<br>*(Turnover Speed)* | **9.14%** | Ratio Calculation | **18.28** |
-| **4. Purchase Trend**<br>*(Growth)* | **14.48%** | Positive/Stable Trend: 2 pts<br>Negative Trend: < 2 pts | **28.96** |
-| **5. Customer Duration**<br>*(Loyalty)* | **5.33%** | Long-term customer: 2 pts | **10.66** |
+| **1. Revenue / Registered Capital**<br>*(Efficiency)* | **1.52%** | ≥ 1.5x: 2.0<br>1.00 - 1.49x: 1.5<br>0.60 - 0.99x: 1.0<br>0.26 - 0.59x: 0.5<br>≤ 0.25x: 0.25 | **3.04** |
+| **2. Avg Purchase (3mo) / Requested Credit**<br>*(Capacity Check)* | **17.52%** | ≥ 1.5x: 2.0<br>1.00 - 1.49x: 1.5<br>0.60 - 0.99x: 1.0<br>0.26 - 0.59x: 0.5<br>≤ 0.25x: 0.25 | **35.04** |
+| **3. Purchase / Credit Term**<br>*(Turnover Speed)* | **9.14%** | **Formula:** $\frac{1.5 \times (AvgPurchase \times \frac{ReqDays}{30})}{ReqCredit}$<br><br>≥ 1.5x: 2.0<br>1.00 - 1.49x: 1.5<br>0.60 - 0.99x: 1.0<br>0.26 - 0.59x: 0.5<br>≤ 0.25x: 0.25 | **18.28** |
+| **4. Purchase Trend**<br>*(Growth)* | **14.48%** | Increase ≥ 1.20: 2.0<br>Increase 1.05-1.19: 1.5<br>Stable 0.95-1.04: 1.0<br>Decrease 0.80-0.94: 0.5<br>Decrease ≤ 0.80: 0.25 | **28.96** |
+| **5. Customer Duration**<br>*(Loyalty)* | **5.33%** | ≥ 7 yrs: 2.0<br>4 - 6 yrs: 1.5<br>1 - 3 yrs: 1.0<br>< 1 yr: 0.5 | **10.66** |
 | **Total C3** | **48.0%** | | **95.98** |
 
 **Grand Total Score: 200 Points**
