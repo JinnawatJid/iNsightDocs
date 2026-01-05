@@ -91,60 +91,77 @@
             </div>
         </div>
 
-        <h4>Extracted Financial Data</h4>
-        <div class="result-grid">
+        <div class="results-header-row">
+           <h4>Extracted Financial Data</h4>
+           <div class="toggle-switch">
+              <label class="switch">
+                <input type="checkbox" v-model="showDebug">
+                <span class="slider round"></span>
+              </label>
+              <span class="toggle-label">Show Debug Info</span>
+           </div>
+        </div>
+
+        <!-- DEBUG TABLE VIEW -->
+        <div v-if="showDebug && analysisResults.debugData" class="debug-table-container">
+            <table class="debug-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Value</th>
+                        <th>Column</th>
+                        <th>Weight</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(item, index) in analysisResults.debugData" :key="index">
+                        <td>{{ item.label }}</td>
+                        <td class="text-right">{{ formatValue(item.value) }}</td>
+                        <td class="text-center">{{ item.column || '-' }}</td>
+                        <td class="text-right">{{ item.weight ? item.weight : '-' }}</td>
+                        <td class="text-right">{{ item.score ? formatDecimal(item.score) : '-' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- NORMAL GRID VIEW -->
+        <div v-else class="result-grid">
           <div class="result-item">
             <span class="label">รายได้รวม (Total Revenue):</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.totalRevenue?.value) }}
-              <span class="col-badge" v-if="analysisResults.extractedData.totalRevenue?.column">
-                (Col: {{ analysisResults.extractedData.totalRevenue.column }})
-              </span>
             </span>
           </div>
           <div class="result-item">
             <span class="label">กำไรขั้นต้น (Gross Profit):</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.grossProfit?.value) }}
-              <span class="col-badge" v-if="analysisResults.extractedData.grossProfit?.column">
-                (Col: {{ analysisResults.extractedData.grossProfit.column }})
-              </span>
             </span>
           </div>
           <div class="result-item">
             <span class="label">หนี้สินไม่หมุนเวียน (Non-Current Liabilities):</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.nonCurrentLiabilities?.value) }}
-              <span class="col-badge" v-if="analysisResults.extractedData.nonCurrentLiabilities?.column">
-                (Col: {{ analysisResults.extractedData.nonCurrentLiabilities.column }})
-              </span>
             </span>
           </div>
           <div class="result-item">
             <span class="label">ส่วนของผู้ถือหุ้น (Equity):</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.shareholdersEquity?.value) }}
-              <span class="col-badge" v-if="analysisResults.extractedData.shareholdersEquity?.column">
-                (Col: {{ analysisResults.extractedData.shareholdersEquity.column }})
-              </span>
             </span>
           </div>
            <div class="result-item">
             <span class="label">Inventory Turnover:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.inventoryTurnover?.value) }}
-              <span class="col-badge" v-if="analysisResults.extractedData.inventoryTurnover?.column">
-                (Col: {{ analysisResults.extractedData.inventoryTurnover.column }})
-              </span>
             </span>
           </div>
            <div class="result-item">
             <span class="label">D/E Ratio:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.deRatio?.value) }}
-              <span class="col-badge" v-if="analysisResults.extractedData.deRatio?.column">
-                (Col: {{ analysisResults.extractedData.deRatio.column }})
-              </span>
             </span>
           </div>
         </div>
@@ -179,6 +196,7 @@ const isEditing = ref(!props.readOnly);
 const analyzing = ref(false);
 const registeredCapital = ref('');
 const analysisResults = ref(null);
+const showDebug = ref(false);
 
 watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
@@ -281,6 +299,14 @@ const formatDecimal = (num) => {
    if (num === null || num === undefined) return '-';
    return num.toLocaleString('th-TH', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 };
+
+const formatValue = (val) => {
+    if (typeof val === 'number') {
+        if (Number.isInteger(val)) return val.toLocaleString('th-TH');
+        return val.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return val;
+}
 
 const getGradeClass = (grade) => {
     if (grade === 'A') return 'text-success';
@@ -402,6 +428,114 @@ const getGradeClass = (grade) => {
 .text-warning { color: #ffc107; }
 .text-danger { color: #dc3545; }
 
+/* HEADER ROW WITH TOGGLE */
+.results-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.results-header-row h4 {
+    margin: 0;
+}
+
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.toggle-label {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #555;
+}
+
+/* TOGGLE CSS */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #007bff;
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.slider.round {
+  border-radius: 20px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* DEBUG TABLE */
+.debug-table-container {
+    overflow-x: auto;
+    margin-bottom: 20px;
+}
+
+.debug-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.debug-table th, .debug-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    font-size: 0.9em;
+}
+
+.debug-table th {
+    background-color: #f2f2f2;
+    text-align: left;
+}
+
+.debug-table td.text-right {
+    text-align: right;
+}
+
+.debug-table td.text-center {
+    text-align: center;
+}
+
+/* NORMAL GRID */
 .result-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -440,15 +574,5 @@ const getGradeClass = (grade) => {
   font-size: 1.2em;
   color: #007bff;
   font-weight: bold;
-}
-
-.col-badge {
-  font-size: 0.8em;
-  color: #666;
-  background-color: #eee;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 8px;
-  font-weight: normal;
 }
 </style>

@@ -29,8 +29,8 @@ const parseAmount = (str) => {
   return isNaN(val) ? 0 : val;
 };
 
-// Helper to find value in a sheet based on row label and strategy
-const findValueByLabel = (sheet, labelSearchTerm, strategy = 'AMOUNT') => {
+// Helper to find value in a sheet based on row label (or keywords) and strategy
+const findValue = (sheet, searchTerms, strategy = 'AMOUNT') => {
   const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
 
   // 1. Determine Target Column based on Headers (Global Sheet Context)
@@ -44,7 +44,6 @@ const findValueByLabel = (sheet, labelSearchTerm, strategy = 'AMOUNT') => {
       for (let c = 0; c < row.length; c++) {
         const cell = row[c];
         if (cell && typeof cell === 'string' && cell.includes('จำนวนเงิน')) {
-          // If we find multiple, we prefer the right-most one (latest year typically)
           if (c > targetColIndex) {
             targetColIndex = c;
           }
@@ -58,7 +57,6 @@ const findValueByLabel = (sheet, labelSearchTerm, strategy = 'AMOUNT') => {
       const row = data[r] || [];
       for (let c = 0; c < row.length; c++) {
         const cell = row[c];
-        // Check if cell is a year (number or string)
         let yearVal = 0;
         if (typeof cell === 'number' && cell > 2000 && cell < 3000) yearVal = cell;
         else if (typeof cell === 'string' && /^\d{4}$/.test(cell.trim())) yearVal = parseInt(cell.trim());
@@ -71,19 +69,25 @@ const findValueByLabel = (sheet, labelSearchTerm, strategy = 'AMOUNT') => {
     }
   }
 
-  // 2. Find the Row matching the Label
+  // 2. Find the Row matching the Label/Keywords
   for (let r = 0; r < data.length; r++) {
     const row = data[r];
     if (row && row.length > 0) {
       const rowString = row.join(' ').toLowerCase();
-      if (rowString.includes(labelSearchTerm.toLowerCase())) {
 
+      let match = false;
+      if (Array.isArray(searchTerms)) {
+        match = searchTerms.every(term => rowString.includes(term.toLowerCase()));
+      } else {
+        match = rowString.includes(searchTerms.toLowerCase());
+      }
+
+      if (match) {
         let finalValue = 0;
         let finalColIndex = -1;
 
         // Path A: We found a definitive Target Column from headers
         if (targetColIndex !== -1) {
-           // Verify if the cell at targetColIndex exists
            if (targetColIndex < row.length) {
              finalValue = parseAmount(row[targetColIndex]);
              finalColIndex = targetColIndex;
@@ -91,12 +95,7 @@ const findValueByLabel = (sheet, labelSearchTerm, strategy = 'AMOUNT') => {
         }
 
         // Path B: Fallback (No Header found or Empty Cell at Target)
-        // If Path A yielded 0 (and it might be real 0, but let's check fallback if we are unsure)
-        // Actually, let's stick to Target Column if found.
-        // Only do fallback if targetColIndex == -1.
-
         if (targetColIndex === -1) {
-             // Get all non-empty cells with their original indices
              const validCells = [];
              for(let c = 0; c < row.length; c++) {
                const val = row[c];
@@ -107,17 +106,12 @@ const findValueByLabel = (sheet, labelSearchTerm, strategy = 'AMOUNT') => {
 
              if (validCells.length > 0) {
                if (strategy === 'AMOUNT') {
-                 // Option B Heuristic:
-                 // Check last value. If small (<100) and prev is large (>1000), assume last is % change.
+                 // Heuristic for Amount vs % Change
                  const last = validCells[validCells.length - 1];
                  const prev = validCells.length > 1 ? validCells[validCells.length - 2] : null;
-
                  const lastNum = parseAmount(last.val);
                  const prevNum = prev ? parseAmount(prev.val) : 0;
 
-                 // Simple heuristic: "Change %" is usually small (e.g. -5, 10, 0.5) vs Amount (thousands/millions)
-                 // Or we look for specific formatting? No, raw values.
-                 // Let's use: if lastNum < 500 (abs) AND prevNum > 10000 (abs)
                  if (Math.abs(lastNum) < 500 && Math.abs(prevNum) > 1000) {
                     finalValue = prevNum;
                     finalColIndex = prev.idx;
@@ -126,7 +120,7 @@ const findValueByLabel = (sheet, labelSearchTerm, strategy = 'AMOUNT') => {
                     finalColIndex = last.idx;
                  }
                } else {
-                 // RATIO Strategy Fallback: Just take the last one
+                 // RATIO Strategy Fallback
                  const last = validCells[validCells.length - 1];
                  finalValue = parseAmount(last.val);
                  finalColIndex = last.idx;
@@ -151,8 +145,9 @@ const findValueByLabel = (sheet, labelSearchTerm, strategy = 'AMOUNT') => {
 const calculateC1 = (customer, registeredCapital, requestAmount) => {
   let score = 0;
   const breakdown = {};
+  const debug = [];
 
-  // 1. Years in Business (7.21% -> Max 14.42)
+  // 1. Years in Business (Max 14.42)
   const years = parseFloat(customer.years_in_business || 0);
   let rawYears = 0;
   if (years >= 10) rawYears = 2.0;
@@ -164,8 +159,9 @@ const calculateC1 = (customer, registeredCapital, requestAmount) => {
   const scoreYears = rawYears * 7.21;
   breakdown.years = scoreYears;
   score += scoreYears;
+  debug.push({ label: 'Years in Business', value: years, weight: 14.42, score: scoreYears, column: '-' });
 
-  // 2. Request / Capital (4.32% -> Max 8.64)
+  // 2. Request / Capital (Max 8.64)
   const regCap = parseFloat(registeredCapital || 1);
   const reqAmt = parseFloat(requestAmount || 0);
   const leverage = reqAmt / regCap;
@@ -179,8 +175,9 @@ const calculateC1 = (customer, registeredCapital, requestAmount) => {
   const scoreLev = rawLev * 4.32;
   breakdown.leverage = scoreLev;
   score += scoreLev;
+  debug.push({ label: 'Request / Capital Ratio', value: leverage.toFixed(2), weight: 8.64, score: scoreLev, column: '-' });
 
-  // 3. Asset Ownership (12.97% -> Max 25.94)
+  // 3. Asset Ownership (Max 25.94)
   const ownership = customer.residence_ownership || '';
   const assetValue = parseAmount(customer.residence_ownership_other || '0');
 
@@ -195,17 +192,19 @@ const calculateC1 = (customer, registeredCapital, requestAmount) => {
   const scoreAsset = rawAsset * 12.97;
   breakdown.asset = scoreAsset;
   score += scoreAsset;
+  debug.push({ label: 'Asset Ownership', value: ownership, weight: 25.94, score: scoreAsset, column: '-' });
 
-  return { total: score, details: breakdown };
+  return { total: score, details: breakdown, debug };
 };
 
 // C2: Cash Flow (Max 55.02)
 const calculateC2 = (financials) => {
   let score = 0;
   const breakdown = {};
+  const debug = [];
 
-  // 1. D/E Ratio (12.38% -> Max 24.76)
-  const de = financials.deRatio.value || 0; // Access .value
+  // 1. D/E Ratio (Max 24.76)
+  const de = financials.deRatio.value || 0;
   let rawDE = 0;
   if (de <= 1) rawDE = 2.0;
   else if (de <= 1.5) rawDE = 1.6;
@@ -216,9 +215,10 @@ const calculateC2 = (financials) => {
   const scoreDE = rawDE * 12.38;
   breakdown.deRatio = scoreDE;
   score += scoreDE;
+  debug.push({ label: 'D/E Ratio', value: de, weight: 24.76, score: scoreDE, column: financials.deRatio.column });
 
-  // 2. Inventory Turnover (6.88% -> Max 13.76)
-  const inv = financials.inventoryTurnover.value || 0; // Access .value
+  // 2. Inventory Turnover (Max 13.76)
+  const inv = financials.inventoryTurnover.value || 0;
   let rawInv = 0;
   if (inv >= 12) rawInv = 2.0;
   else if (inv >= 8) rawInv = 1.5;
@@ -229,9 +229,10 @@ const calculateC2 = (financials) => {
   const scoreInv = rawInv * 6.88;
   breakdown.inventory = scoreInv;
   score += scoreInv;
+  debug.push({ label: 'Inventory Turnover', value: inv, weight: 13.76, score: scoreInv, column: financials.inventoryTurnover.column });
 
-  // 3. DSCR (8.25% -> Max 16.50)
-  const dscr = financials.dscr || 0; // Calculated field (number)
+  // 3. DSCR (Max 16.50)
+  const dscr = financials.dscr || 0;
   let rawDSCR = 0;
   if (dscr >= 0.5) rawDSCR = 2.0;
   else if (dscr >= 0.4) rawDSCR = 1.5;
@@ -242,26 +243,28 @@ const calculateC2 = (financials) => {
   const scoreDSCR = rawDSCR * 8.25;
   breakdown.dscr = scoreDSCR;
   score += scoreDSCR;
+  debug.push({ label: 'DSCR (Calculated)', value: dscr.toFixed(4), weight: 16.50, score: scoreDSCR, column: '-' });
 
-  return { total: score, details: breakdown };
+  return { total: score, details: breakdown, debug };
 };
 
 // C3: Purchase Behavior (Max 95.98)
 const calculateC3 = (accumData, financials, registeredCapital, requestAmount, requestTerm) => {
   let score = 0;
   const breakdown = {};
+  const debug = [];
 
   if (!accumData) {
-      return { total: 0, details: {} };
+      return { total: 0, details: {}, debug: [] };
   }
 
   const secondAccum = parseAmount(accumData.SecondAccum);
-  const totalRevenue = financials.totalRevenue.value || 0; // Access .value
+  const totalRevenue = financials.totalRevenue.value || 0;
   const regCap = parseFloat(registeredCapital || 1);
   const reqAmt = parseFloat(requestAmount || 1);
   const reqDays = parseFloat(requestTerm || 30);
 
-  // 1. Revenue / Registered Capital (1.52% -> Max 3.04)
+  // 1. Revenue / Registered Capital (Max 3.04)
   const revCapRatio = totalRevenue / regCap;
   let rawRevCap = 0;
   if (revCapRatio >= 1.5) rawRevCap = 2.0;
@@ -273,8 +276,9 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   const scoreRevCap = rawRevCap * 1.52;
   breakdown.revenueCapital = scoreRevCap;
   score += scoreRevCap;
+  debug.push({ label: 'Revenue / Capital', value: revCapRatio.toFixed(2), weight: 3.04, score: scoreRevCap, column: '-' });
 
-  // 2. Avg Purchase (3mo) / Requested Credit (17.52% -> Max 35.04)
+  // 2. Avg Purchase (3mo) / Requested Credit (Max 35.04)
   const avgPurchase3Mo = secondAccum / 3;
   const capCheckRatio = avgPurchase3Mo / reqAmt;
   let rawCapCheck = 0;
@@ -287,8 +291,9 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   const scoreCapCheck = rawCapCheck * 17.52;
   breakdown.capacityCheck = scoreCapCheck;
   score += scoreCapCheck;
+  debug.push({ label: 'Capacity Check', value: capCheckRatio.toFixed(2), weight: 35.04, score: scoreCapCheck, column: '-' });
 
-  // 3. Purchase / Credit Term (9.14% -> Max 18.28)
+  // 3. Purchase / Credit Term (Max 18.28)
   const termFactor = reqDays / 30;
   const turnoverSpeed = (1.5 * (avgPurchase3Mo * termFactor)) / reqAmt;
 
@@ -302,8 +307,9 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   const scoreTurnover = rawTurnover * 9.14;
   breakdown.turnover = scoreTurnover;
   score += scoreTurnover;
+  debug.push({ label: 'Turnover Speed', value: turnoverSpeed.toFixed(2), weight: 18.28, score: scoreTurnover, column: '-' });
 
-  // 4. Purchase Trend (14.48% -> Max 28.96)
+  // 4. Purchase Trend (Max 28.96)
   const trend = parseFloat(accumData.AccumTrend || 1.0);
   let rawTrend = 0;
   if (trend >= 1.20) rawTrend = 2.0;
@@ -315,13 +321,15 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   const scoreTrend = rawTrend * 14.48;
   breakdown.trend = scoreTrend;
   score += scoreTrend;
+  debug.push({ label: 'Purchase Trend', value: trend.toFixed(2), weight: 28.96, score: scoreTrend, column: '-' });
 
   // 5. Customer Duration
   const scoreDuration = 0.5 * 5.33;
   breakdown.duration = scoreDuration;
   score += scoreDuration;
+  debug.push({ label: 'Customer Duration', value: 'Active', weight: 2.67, score: scoreDuration, column: '-' });
 
-  return { total: score, details: breakdown };
+  return { total: score, details: breakdown, debug };
 };
 
 exports.analyzeFinancials = async (req, res) => {
@@ -342,22 +350,23 @@ exports.analyzeFinancials = async (req, res) => {
     if (files['balance_sheet'] && files['balance_sheet'][0]) {
       const workbook = xlsx.read(files['balance_sheet'][0].buffer, { type: 'buffer' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      results.nonCurrentLiabilities = findValueByLabel(sheet, 'หนี้สินไม่หมุนเวียน', 'AMOUNT');
-      results.shareholdersEquity = findValueByLabel(sheet, 'ส่วนของผู้ถือหุ้น', 'AMOUNT');
+      results.nonCurrentLiabilities = findValue(sheet, 'หนี้สินไม่หมุนเวียน', 'AMOUNT');
+      results.shareholdersEquity = findValue(sheet, 'ส่วนของผู้ถือหุ้น', 'AMOUNT');
     }
 
     if (files['profit_loss'] && files['profit_loss'][0]) {
       const workbook = xlsx.read(files['profit_loss'][0].buffer, { type: 'buffer' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      results.totalRevenue = findValueByLabel(sheet, 'รายได้รวม', 'AMOUNT');
-      results.grossProfit = findValueByLabel(sheet, 'กำไร(ขาดทุน) ขั้นต้น', 'AMOUNT');
+      results.totalRevenue = findValue(sheet, 'รายได้รวม', 'AMOUNT');
+      results.grossProfit = findValue(sheet, 'กำไร(ขาดทุน) ขั้นต้น', 'AMOUNT');
     }
 
     if (files['financial_ratios'] && files['financial_ratios'][0]) {
       const workbook = xlsx.read(files['financial_ratios'][0].buffer, { type: 'buffer' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      results.deRatio = findValueByLabel(sheet, 'อัตราส่วนหนี้สินรวมต่อส่วนของผู้ถือหุ้น', 'RATIO');
-      results.inventoryTurnover = findValueByLabel(sheet, 'อัตราการหมุนเวียนสินค้าคงเหลือ', 'RATIO');
+      results.deRatio = findValue(sheet, 'อัตราส่วนหนี้สินรวมต่อส่วนของผู้ถือหุ้น', 'RATIO');
+      // Updated: Search for BOTH 'อัตราการหมุนเวียน' AND 'สินค้าคงเหลือ'
+      results.inventoryTurnover = findValue(sheet, ['อัตราการหมุนเวียน', 'สินค้าคงเหลือ'], 'RATIO');
     }
 
     // Calculations for C2 inputs
@@ -405,8 +414,6 @@ exports.analyzeFinancials = async (req, res) => {
     // --- 3. SCORING ---
     const c1 = calculateC1(customerData, regCap, reqAmt);
 
-    // Mix extracted inputs (using .value) + calculated inputs for C2
-    // We pass the whole 'results' object, but calculateC2 is updated to read .value
     const c2Inputs = { ...results, dscr: calculations.dscr };
     const c2 = calculateC2(c2Inputs);
 
@@ -426,6 +433,22 @@ exports.analyzeFinancials = async (req, res) => {
     if (totalScore >= 160) grade = 'A';
     else if (totalScore >= 120) grade = 'B';
 
+    // Combine Debug Data
+    // We want the Extracted Data first, then the Scoring Factors
+    const rawInputs = [
+        { label: 'Total Revenue (Extracted)', value: results.totalRevenue.value, column: results.totalRevenue.column, weight: '-', score: '-' },
+        { label: 'Gross Profit (Extracted)', value: results.grossProfit.value, column: results.grossProfit.column, weight: '-', score: '-' },
+        { label: 'Non-Current Liabilities (Extracted)', value: results.nonCurrentLiabilities.value, column: results.nonCurrentLiabilities.column, weight: '-', score: '-' },
+        { label: 'Shareholders Equity (Extracted)', value: results.shareholdersEquity.value, column: results.shareholdersEquity.column, weight: '-', score: '-' },
+    ];
+
+    const debugData = [
+        ...rawInputs,
+        ...c1.debug,
+        ...c2.debug,
+        ...c3.debug
+    ];
+
     const scoringResult = {
         totalScore: Math.round(totalScore),
         grade,
@@ -437,7 +460,8 @@ exports.analyzeFinancials = async (req, res) => {
       success: true,
       extractedData: results,
       calculations: calculations,
-      scoringResult: scoringResult
+      scoringResult: scoringResult,
+      debugData: debugData // New Field
     });
 
   } catch (error) {
