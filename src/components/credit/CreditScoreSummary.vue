@@ -1,5 +1,44 @@
 <template>
   <div class="credit-score-summary">
+
+    <!-- NEW: Credit Score Section -->
+    <div v-if="creditScore && creditScore.totalScore !== undefined" class="score-section">
+        <h3>Credit Score Result</h3>
+
+        <div class="score-display">
+            <div class="score-circle" :class="getGradeClass(creditScore.grade)">
+                <span class="score-number">{{ creditScore.totalScore }}</span>
+                <span class="score-max">/ 200</span>
+            </div>
+            <div class="score-grade-text">Grade {{ creditScore.grade }}</div>
+        </div>
+
+        <div class="limit-display">
+            <div class="limit-label">Recommended Limit</div>
+            <div class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} THB</div>
+        </div>
+
+        <hr class="divider" />
+
+        <div class="score-breakdown">
+            <div class="breakdown-item">
+                <span>C1: Company Strength</span>
+                <span class="breakdown-val">{{ formatDecimal(creditScore.breakdown?.c1?.total) }}</span>
+            </div>
+            <div class="breakdown-item">
+                <span>C2: Cash Flow</span>
+                <span class="breakdown-val">{{ formatDecimal(creditScore.breakdown?.c2?.total) }}</span>
+            </div>
+            <div class="breakdown-item">
+                <span>C3: Purchase Behavior</span>
+                <span class="breakdown-val">{{ formatDecimal(creditScore.breakdown?.c3?.total) }}</span>
+            </div>
+        </div>
+
+        <hr class="divider" />
+    </div>
+
+
     <div v-if="canRequest && badges.length > 0" class="status-section">
       <div class="status-header">
         <img :src="iconCheckCircle" alt="Check" width="24" height="24" />
@@ -14,7 +53,7 @@
     </div>
 
     <div class="summary-section">
-      <h3>พฤติกรรมการซื้อ</h3>
+      <h3>พฤติกรรมการซื้อ (Internal)</h3>
 
       <div class="stat-item">
         <div class="stat-icon-row">
@@ -69,6 +108,8 @@
 <script>
 import iconCheckCircle from '@/assets/icons/check-circle-green.svg';
 import iconShoppingCart from '@/assets/icons/shopping-cart.svg';
+import { useCreditRequestStore } from '@/stores/creditRequest';
+import { computed } from 'vue';
 
 export default {
   name: 'CreditScoreSummary',
@@ -97,19 +138,39 @@ export default {
       default: () => []
     }
   },
+  setup() {
+      const store = useCreditRequestStore();
+      const creditScore = computed(() => store.creditScore);
+
+      return {
+          creditScore
+      };
+  },
   methods: {
       getTrendClass(trendString) {
           if (!trendString) return '';
-          if (trendString.includes('เพิ่มขึ้น')) return 'up'; // Increase
-          if (trendString.includes('ลดลง')) return 'down'; // Decrease
+          if (trendString.includes('เพิ่มขึ้น')) return 'up';
+          if (trendString.includes('ลดลง')) return 'down';
           return 'neutral';
       },
       isPositiveSuggestion(text) {
-        // Highlight "Never had bad debt history" as requested
         return text === 'ไม่เคยมีประวัติหนี้เสีย';
       },
       toggleMonthlyDetails() {
         this.showMonthlyDetails = !this.showMonthlyDetails;
+      },
+      formatNumber(num) {
+        if (num === null || num === undefined) return '-';
+        return num.toLocaleString('th-TH');
+      },
+      formatDecimal(num) {
+         if (num === null || num === undefined) return '-';
+         return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      },
+      getGradeClass(grade) {
+          if (grade === 'A') return 'grade-a';
+          if (grade === 'B') return 'grade-b';
+          return 'grade-c';
       }
   }
 };
@@ -123,6 +184,81 @@ export default {
   padding: 20px;
 }
 
+.score-section {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.score-display {
+    margin: 15px 0;
+}
+
+.score-circle {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 5px solid #ccc;
+    background: #f9f9f9;
+}
+
+.score-circle.grade-a { border-color: #28a745; color: #28a745; }
+.score-circle.grade-b { border-color: #ffc107; color: #d39e00; }
+.score-circle.grade-c { border-color: #dc3545; color: #dc3545; }
+
+.score-number {
+    font-size: 24px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.score-max {
+    font-size: 10px;
+    color: #666;
+}
+
+.score-grade-text {
+    font-weight: bold;
+    font-size: 18px;
+    margin-top: 5px;
+}
+
+.limit-display {
+    background: #eef7ff;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+.limit-label {
+    font-size: 12px;
+    color: #555;
+    text-transform: uppercase;
+}
+
+.limit-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.score-breakdown {
+    font-size: 14px;
+}
+
+.breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.breakdown-val {
+    font-weight: bold;
+}
+
+/* Original Styles Below */
 .status-section {
   margin-bottom: 20px;
 }
