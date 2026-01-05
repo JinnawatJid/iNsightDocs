@@ -8,7 +8,7 @@
           :disabled="!isEditing"
         />
         <FileUploader
-          label="หนังสือค้ำประกัน (ถ้ามี)"
+          label="หนังสือค้ำประกัน (Letter of Guarantee - ถ้ามี)"
           v-model="files.letterGuarantee"
           :disabled="!isEditing"
         />
@@ -17,7 +17,7 @@
     <!-- Main Upload Section -->
     <div class="upload-section-large">
       <FileUploader
-        label="รายการเดินบัญชี"
+        label="รายการเดินบัญชี (Bank Statement)"
         required
         multiple
         v-model="files.bankStatement"
@@ -31,7 +31,7 @@
 
     <!-- Financial Analysis Section -->
     <div class="financial-analysis-section">
-      <div class="section-header">Financial Analysis & Scoring</div>
+      <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต (Financial Analysis & Scoring)</div>
 
       <div class="upload-grid-three">
         <FileUploader
@@ -55,8 +55,9 @@
         <div class="form-group">
           <label>ทุนจดทะเบียน (Registered Capital)</label>
           <input
-            type="number"
+            type="text"
             v-model="registeredCapital"
+            @input="handleCapitalInput"
             class="form-control"
             placeholder="ระบุทุนจดทะเบียน (บาท)"
           />
@@ -67,7 +68,7 @@
             class="btn-primary"
             :disabled="analyzing"
           >
-            {{ analyzing ? 'กำลังวิเคราะห์...' : 'Analyze & Calculate Score' }}
+            {{ analyzing ? 'กำลังวิเคราะห์...' : 'วิเคราะห์และคำนวณคะแนน' }}
           </button>
         </div>
       </div>
@@ -78,27 +79,52 @@
         <!-- Scoring Highlight -->
         <div v-if="analysisResults.scoringResult" class="score-highlight">
             <div class="score-card">
-                <div class="score-title">Credit Score</div>
+                <div class="score-title">คะแนนเครดิต (Credit Score)</div>
                 <div class="score-val" :class="getGradeClass(analysisResults.scoringResult.grade)">
                     {{ analysisResults.scoringResult.totalScore }} / 200
                 </div>
-                <div class="score-grade">Grade {{ analysisResults.scoringResult.grade }}</div>
+                <div class="score-grade">เกรด {{ analysisResults.scoringResult.grade }}</div>
             </div>
             <div class="limit-card">
-                <div class="score-title">Recommended Limit</div>
+                <div class="score-title">วงเงินแนะนำ (Recommended Limit)</div>
                 <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
-                <div class="limit-unit">THB</div>
+                <div class="limit-unit">บาท (THB)</div>
             </div>
         </div>
 
+        <!-- Score Breakdown (New Section) -->
+        <div v-if="analysisResults.scoringResult && analysisResults.scoringResult.breakdown" class="score-breakdown-section">
+             <h4>รายละเอียดคะแนน (Score Breakdown)</h4>
+             <div class="breakdown-grid">
+                 <!-- C1 -->
+                 <div class="breakdown-card">
+                     <div class="bd-title">C1: ความแข็งแกร่งของบริษัท</div>
+                     <div class="bd-subtitle">(Company Strength)</div>
+                     <div class="bd-value">{{ formatDecimal(analysisResults.scoringResult.breakdown.c1.total) }}</div>
+                 </div>
+                 <!-- C2 -->
+                 <div class="breakdown-card">
+                     <div class="bd-title">C2: กระแสเงินสดและสภาพคล่อง</div>
+                     <div class="bd-subtitle">(Cash Flow & Liquidity)</div>
+                     <div class="bd-value">{{ formatDecimal(analysisResults.scoringResult.breakdown.c2.total) }}</div>
+                 </div>
+                 <!-- C3 -->
+                 <div class="breakdown-card">
+                     <div class="bd-title">C3: พฤติกรรมการซื้อและประวัติ</div>
+                     <div class="bd-subtitle">(Purchase Behavior)</div>
+                     <div class="bd-value">{{ formatDecimal(analysisResults.scoringResult.breakdown.c3.total) }}</div>
+                 </div>
+             </div>
+        </div>
+
         <div class="results-header-row">
-           <h4>Extracted Financial Data</h4>
+           <h4>ข้อมูลทางการเงิน (Financial Data)</h4>
            <div class="toggle-switch">
               <label class="switch">
                 <input type="checkbox" v-model="showDebug">
                 <span class="slider round"></span>
               </label>
-              <span class="toggle-label">Show Debug Info</span>
+              <span class="toggle-label">แสดงข้อมูล Debug</span>
            </div>
         </div>
 
@@ -107,11 +133,11 @@
             <table class="debug-table">
                 <thead>
                     <tr>
-                        <th>Item</th>
-                        <th>Value</th>
-                        <th>Column</th>
-                        <th>Weight</th>
-                        <th>Score</th>
+                        <th>รายการ (Item)</th>
+                        <th>ค่า (Value)</th>
+                        <th>คอลัมน์ (Column)</th>
+                        <th>น้ำหนัก (Weight)</th>
+                        <th>คะแนน (Score)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -153,13 +179,13 @@
             </span>
           </div>
            <div class="result-item">
-            <span class="label">Inventory Turnover:</span>
+            <span class="label">อัตราหมุนเวียนสินค้าคงเหลือ (Inventory Turnover):</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.inventoryTurnover?.value) }}
             </span>
           </div>
            <div class="result-item">
-            <span class="label">D/E Ratio:</span>
+            <span class="label">อัตราส่วนหนี้สินต่อทุน (D/E Ratio):</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.deRatio?.value) }}
             </span>
@@ -168,11 +194,11 @@
 
         <div class="calculated-ratios">
           <div class="ratio-card">
-            <div class="ratio-title">DSCR</div>
+            <div class="ratio-title">อัตราส่วนความสามารถในการชำระหนี้ (DSCR)</div>
             <div class="ratio-value">{{ formatDecimal(analysisResults.calculations.dscr) }}</div>
           </div>
           <div class="ratio-card">
-            <div class="ratio-title">Credit / Capital Ratio</div>
+            <div class="ratio-title">สัดส่วนเครดิตต่อทุน (Credit / Capital Ratio)</div>
             <div class="ratio-value">{{ formatDecimal(analysisResults.calculations.creditCapitalRatio) }}</div>
           </div>
         </div>
@@ -194,7 +220,7 @@ const store = useCreditRequestStore();
 
 const isEditing = ref(!props.readOnly);
 const analyzing = ref(false);
-const registeredCapital = ref('');
+const registeredCapital = ref(''); // Now a string to support commas
 const analysisResults = ref(null);
 const showDebug = ref(false);
 
@@ -234,14 +260,31 @@ watch(() => store.files, (newVal) => {
   }
 }, { immediate: true, deep: true });
 
+// Input Handler for Auto-Comma
+const handleCapitalInput = (event) => {
+    let val = event.target.value;
+    // Remove all non-digit characters
+    val = val.replace(/[^0-9]/g, '');
+
+    if (val) {
+        // Format with commas
+        registeredCapital.value = Number(val).toLocaleString('en-US');
+    } else {
+        registeredCapital.value = '';
+    }
+};
+
 const analyzeFinancials = async () => {
   if (!files.balanceSheet || !files.profitLoss || !files.financialRatios) {
-    Swal.fire('Error', 'Please upload Balance Sheet, Profit & Loss, and Ratios files.', 'error');
+    Swal.fire('Error', 'กรุณาอัปโหลดไฟล์ งบดุล, งบกำไรขาดทุน และ อัตราส่วนทางการเงิน', 'error');
     return;
   }
 
-  if (!registeredCapital.value) {
-     Swal.fire('Warning', 'Please enter Registered Capital for accurate Credit/Capital calculation.', 'warning');
+  // Parse raw number from formatted string
+  const cleanCapital = registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : '';
+
+  if (!cleanCapital) {
+     Swal.fire('Warning', 'กรุณาระบุทุนจดทะเบียนเพื่อการคำนวณที่ถูกต้อง', 'warning');
   }
 
   analyzing.value = true;
@@ -249,7 +292,7 @@ const analyzeFinancials = async () => {
   formData.append('balance_sheet', files.balanceSheet);
   formData.append('profit_loss', files.profitLoss);
   formData.append('financial_ratios', files.financialRatios);
-  formData.append('registered_capital', registeredCapital.value);
+  formData.append('registered_capital', cleanCapital);
 
   // Get request amount from store
   const requestAmount = store.transactionData?.amount || 0;
@@ -280,11 +323,11 @@ const analyzeFinancials = async () => {
           };
       }
 
-      Swal.fire('Success', 'Financial analysis & Scoring complete.', 'success');
+      Swal.fire('Success', 'วิเคราะห์ข้อมูลเรียบร้อยแล้ว', 'success');
     }
   } catch (error) {
     console.error(error);
-    Swal.fire('Error', 'Failed to analyze files. Ensure they are valid Excel files.', 'error');
+    Swal.fire('Error', 'ไม่สามารถวิเคราะห์ไฟล์ได้ กรุณาตรวจสอบว่าไฟล์เป็น Excel ที่ถูกต้อง', 'error');
   } finally {
     analyzing.value = false;
   }
@@ -575,4 +618,50 @@ input:checked + .slider:before {
   color: #007bff;
   font-weight: bold;
 }
+
+/* NEW BREAKDOWN STYLES */
+.score-breakdown-section {
+    margin-bottom: 25px;
+}
+
+.score-breakdown-section h4 {
+    margin-bottom: 10px;
+    font-size: 1em;
+    color: #555;
+    border-left: 4px solid #007bff;
+    padding-left: 10px;
+}
+
+.breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.breakdown-card {
+    background: white;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.bd-title {
+    font-weight: bold;
+    font-size: 0.95em;
+    color: #333;
+}
+
+.bd-subtitle {
+    font-size: 0.75em;
+    color: #888;
+    margin-bottom: 5px;
+}
+
+.bd-value {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: #007bff;
+}
+
 </style>
