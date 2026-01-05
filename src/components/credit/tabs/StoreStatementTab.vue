@@ -8,7 +8,7 @@
           :disabled="!isEditing"
         />
         <FileUploader
-          label="หนังสือค้ำประกัน (Letter of Guarantee - ถ้ามี)"
+          label="หนังสือค้ำประกัน (ถ้ามี)"
           v-model="files.letterGuarantee"
           :disabled="!isEditing"
         />
