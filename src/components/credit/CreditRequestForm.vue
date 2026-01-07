@@ -8,6 +8,7 @@
       </div>
     </div>
 
+    <div v-if="hasData" :key="store.customer.id" class="form-content-wrapper">
     <div class="unified-card">
       <div class="card-header">
         <h3>เอกสารประกอบการพิจารณา</h3>
@@ -15,68 +16,81 @@
       <ApplicationTabs :readOnly="isReadOnly" />
     </div>
 
-    <div class="form-footer">
-      <!-- Unified Review Section (Terms + Comments) -->
-      <CreditReviewSection
-        :readOnly="isReadOnly"
-        :showTerms="showTerms"
-        :comments="comments"
-        :currentRole="currentRoleLabel"
-        v-model="newComment"
-      />
+      <div class="form-footer">
+        <!-- Unified Review Section (Terms + Comments) -->
+        <CreditReviewSection
+          :readOnly="isReadOnly"
+          :showTerms="showTerms"
+          :comments="comments"
+          :currentRole="currentRoleLabel"
+          v-model="newComment"
+        />
 
-      <div class="footer-info">
-         <span class="author">Current Role: {{ currentRoleLabel }}</span>
-      </div>
+        <div class="footer-info">
+            <span class="author">Current Role: {{ currentRoleLabel }}</span>
+        </div>
 
-      <div class="action-buttons">
-        <!-- Dynamic Buttons based on Status -->
+        <div class="action-buttons">
+            <!-- Dynamic Buttons based on Status -->
 
-        <!-- Draft -> Opened -->
-        <template v-if="requestStatus === 'Draft' || !requestStatus">
-             <button class="btn-save" @click="saveDraft">บันทึกแบบร่าง</button>
-             <button class="btn-submit" @click="submitAction('Opened', 'ส่งคำขอให้ผู้จัดการสาขา')">ส่งให้ผู้จัดการสาขา</button>
-        </template>
+            <!-- Draft -> Opened -->
+            <template v-if="requestStatus === 'Draft' || !requestStatus">
+                 <button class="btn-secondary" @click="saveDraft" :disabled="!isFormValid && false">
+                    บันทึกแบบร่าง (Save Draft)
+                 </button>
+                 <button class="btn-primary" @click="submitAction('Opened', 'ส่งคำขอให้ผู้จัดการสาขา')">
+                    ส่งคำขอ (Submit)
+                 </button>
+            </template>
 
-        <!-- Opened -> Submitted -->
-        <template v-else-if="requestStatus === 'Opened'">
-             <button class="btn-submit" @click="submitAction('Submitted', 'ส่งคำขอให้ฝ่ายขาย (HO)')">ส่งให้ฝ่ายขาย (HO)</button>
-        </template>
+            <!-- Opened -> Submitted -->
+            <template v-else-if="requestStatus === 'Opened'">
+                 <button class="btn-submit" @click="submitAction('Submitted', 'ส่งคำขอให้ฝ่ายขาย (HO)')">ส่งให้ฝ่ายขาย (HO)</button>
+            </template>
 
-        <!-- Submitted -> PendingSales or Rejected -->
-        <template v-else-if="requestStatus === 'Submitted'">
-             <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
-             <button class="btn-submit" @click="submitAction('PendingSales (ชั่วคราว)', 'ส่งต่อให้ฝ่ายการเงิน')">ส่งต่อให้ฝ่ายการเงิน</button>
-        </template>
+            <!-- Submitted -> PendingSales or Rejected -->
+            <template v-else-if="requestStatus === 'Submitted'">
+                 <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
+                 <button class="btn-submit" @click="submitAction('PendingSales (ชั่วคราว)', 'ส่งต่อให้ฝ่ายการเงิน')">ส่งต่อให้ฝ่ายการเงิน</button>
+            </template>
 
-        <!-- PendingSales -> Reviewed or Rejected -->
-        <template v-else-if="requestStatus === 'PendingSales (ชั่วคราว)'">
-             <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
-             <button class="btn-submit" @click="submitAction('Reviewed', 'ส่งต่อให้ผู้จัดการฝ่ายการเงิน')">ส่งต่อให้ผู้จัดการฝ่ายการเงิน</button>
-        </template>
+            <!-- PendingSales -> Reviewed or Rejected -->
+            <template v-else-if="requestStatus === 'PendingSales (ชั่วคราว)'">
+                 <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
+                 <button class="btn-submit" @click="submitAction('Reviewed', 'ส่งต่อให้ผู้จัดการฝ่ายการเงิน')">ส่งต่อให้ผู้จัดการฝ่ายการเงิน</button>
+            </template>
 
-        <!-- Reviewed -> Approved or PendingFinance or Rejected -->
-        <template v-else-if="requestStatus === 'Reviewed'">
-             <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
-             <template v-if="isHighValue">
-                 <button class="btn-submit" @click="submitAction('PendingFinance (ชั่วคราว)', 'ส่งต่อให้กรรมการเครดิต')">ส่งต่อให้กรรมการเครดิต</button>
-             </template>
-             <template v-else>
+            <!-- Reviewed -> Approved or PendingFinance or Rejected -->
+            <template v-else-if="requestStatus === 'Reviewed'">
+                 <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
+                 <template v-if="isHighValue">
+                     <button class="btn-submit" @click="submitAction('PendingFinance (ชั่วคราว)', 'ส่งต่อให้กรรมการเครดิต')">ส่งต่อให้กรรมการเครดิต</button>
+                 </template>
+                 <template v-else>
+                     <button class="btn-approve" @click="submitAction('Approved', 'อนุมัติคำขอ')">อนุมัติคำขอ</button>
+                 </template>
+            </template>
+
+            <!-- PendingFinance -> Approved or Rejected -->
+            <template v-else-if="requestStatus === 'PendingFinance (ชั่วคราว)'">
+                 <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
                  <button class="btn-approve" @click="submitAction('Approved', 'อนุมัติคำขอ')">อนุมัติคำขอ</button>
-             </template>
-        </template>
+            </template>
 
-        <!-- PendingFinance -> Approved or Rejected -->
-        <template v-else-if="requestStatus === 'PendingFinance (ชั่วคราว)'">
-             <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
-             <button class="btn-approve" @click="submitAction('Approved', 'อนุมัติคำขอ')">อนุมัติคำขอ</button>
-        </template>
-
-        <!-- Final Statuses -->
-        <template v-else>
-             <button class="btn-cancel" @click="handleCancel" v-if="requestStatus !== 'Canceled'">ยกเลิกคำขอ</button>
-        </template>
+            <!-- Final Statuses -->
+            <template v-else>
+                 <button class="btn-cancel" @click="handleCancel" v-if="requestStatus !== 'Canceled'">ยกเลิกคำขอ</button>
+            </template>
+        </div>
       </div>
+    </div>
+    
+    <div v-else class="empty-state">
+        <div class="empty-content">
+            <img src="@/assets/icons/search-large.svg" alt="Search" class="empty-icon">
+            <h3>กรุณาค้นหาข้อมูลลูกค้า</h3>
+            <p>พิมพ์รหัสลูกค้าหรือชื่อบริษัทเพื่อเริ่มต้นสร้างคำขอเครดิต</p>
+        </div>
     </div>
   </div>
 </template>
@@ -117,6 +131,8 @@ export default {
         const amt = parseFloat(amtStr.replace(/,/g, ''));
         return amt > 300000;
     });
+
+    const hasData = computed(() => !!store.customer && !!store.customer.id);
 
     const newComment = ref('');
 
@@ -299,7 +315,9 @@ export default {
         currentRoleLabel,
         newComment,
         isHighValue,
-        showTerms
+        showTerms,
+        hasData,
+        store
     };
   }
 };

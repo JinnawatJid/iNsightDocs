@@ -248,25 +248,7 @@ watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
 
-// Validation Watcher
-watch(() => store.showValidationErrors, (val) => {
-    if (val) {
-        validateField('houseAddress', formData.houseAddress, ['required']);
-        validateField('subdistrict', formData.subdistrict, ['required']);
-        validateField('postCode', formData.postCode, ['required']);
-        validateField('district', formData.district, ['required']);
-        validateField('city', formData.city, ['required']);
-        validateField('phone', formData.phone, ['required', 'phone']);
 
-        // New Fields
-        validateField('locationType', formData.locationTypeSelect, ['required']);
-        validateField('propertyOwnership', formData.ownershipSelect, ['required']);
-        // Only validate value/rent if ownership is selected (or mandatory enforced)
-        if (formData.ownershipSelect) {
-             validateField('ownershipValue', formData.ownershipOther, ['required']);
-        }
-    }
-});
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
@@ -415,6 +397,26 @@ watch(() => formData.postCode, (newZip) => {
 function toggleEdit() {
   isEditing.value = !isEditing.value;
 }
+
+// Validation Watcher (Moved to end)
+watch(() => store.showValidationErrors, (val) => {
+    if (val) {
+        validateField('houseAddress', formData.houseAddress, ['required']);
+        validateField('subdistrict', formData.subdistrict, ['required']);
+        validateField('postCode', formData.postCode, ['required']);
+        validateField('district', formData.district, ['required']);
+        validateField('city', formData.city, ['required']);
+        validateField('phone', formData.phone, ['required', 'phone']);
+
+        // New Fields
+        validateField('locationType', formData.locationTypeSelect, ['required']);
+        validateField('propertyOwnership', formData.ownershipSelect, ['required']);
+        // Only validate value/rent if ownership is selected (or mandatory enforced)
+        if (formData.ownershipSelect) {
+             validateField('ownershipValue', formData.ownershipOther, ['required']);
+        }
+    }
+}, { immediate: true });
 </script>
 
 <style scoped>

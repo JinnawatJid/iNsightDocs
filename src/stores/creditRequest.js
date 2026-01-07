@@ -63,8 +63,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       const count = Object.values(state.files).filter(f => !!f).length;
       const ratio = count / totalDocs;
 
-      if (ratio < 1/3) return 'Low';
-      if (ratio < 2/3) return 'Medium';
+      if (ratio < 1 / 3) return 'Low';
+      if (ratio < 2 / 3) return 'Medium';
       return 'High';
     },
 
@@ -89,86 +89,86 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
   actions: {
     async loadRequestDetail(txId) {
-        this.loading = true;
-        this.error = null;
-        try {
-            const response = await CreditRequestService.getCreditRequestDetail(txId);
-            const data = response.data.data;
+      this.loading = true;
+      this.error = null;
+      try {
+        const response = await CreditRequestService.getCreditRequestDetail(txId);
+        const data = response.data.data;
 
-            // Populate State
-            this.requestId = data.txId; // tx_id
-            this.requestStatus = data.status;
-            this.customer = data.snapshot_data || {};
-            this.financialSummary = data.snapshot_data?.financial_summary || {};
-            this.creditScore = data.snapshot_data?.credit_score || {};
+        // Populate State
+        this.requestId = data.txId; // tx_id
+        this.requestStatus = data.status;
+        this.customer = data.snapshot_data || {};
+        this.financialSummary = data.snapshot_data?.financial_summary || {};
+        this.creditScore = data.snapshot_data?.credit_score || {};
 
-            // Fallback for legacy snapshots (missing financial summary)
-            if (Object.keys(this.financialSummary).length === 0 && data.customer_no) {
-                try {
-                    const results = await CustomerService.searchCustomers(data.customer_no);
-                    if (results && results.length > 0) {
-                        const freshData = results[0];
-                        // Only use fallback if we really found the customer
-                        const resultId = freshData.customer.id || freshData.customer.No_;
-                        if (resultId === data.customer_no) {
-                             this.financialSummary = freshData.financial_summary || {};
-                             if (Object.keys(this.creditScore).length === 0) {
-                                 this.creditScore = freshData.credit_score || {};
-                             }
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Fallback fetch for financial summary failed', e);
+        // Fallback for legacy snapshots (missing financial summary)
+        if (Object.keys(this.financialSummary).length === 0 && data.customer_no) {
+          try {
+            const results = await CustomerService.searchCustomers(data.customer_no);
+            if (results && results.length > 0) {
+              const freshData = results[0];
+              // Only use fallback if we really found the customer
+              const resultId = freshData.customer.id || freshData.customer.No_;
+              if (resultId === data.customer_no) {
+                this.financialSummary = freshData.financial_summary || {};
+                if (Object.keys(this.creditScore).length === 0) {
+                  this.creditScore = freshData.credit_score || {};
                 }
+              }
             }
-
-            this.comments = data.comments || [];
-
-            // Handle Files
-            this.files = {};
-            if (data.attachments && data.attachments.length > 0) {
-                data.attachments.forEach(att => {
-                    // We store it as an object with specific props to indicate it's remote
-                    this.files[att.file_type] = {
-                        name: att.original_name,
-                        id: att.id,
-                        txId: att.tx_id,
-                        isRemote: true
-                    };
-                    this.uploadedDocuments[att.file_type] = true;
-                });
-            }
-
-            // Transaction Data
-            this.transactionData = {
-                amount: data.request_amount,
-                reason: data.request_reason,
-                creditTerm: data.request_credit_term,
-                termGS: data.term_gs,
-                termAE: data.term_ae,
-                termYC: data.term_yc
-            };
-
-            this.hasSearched = true; // To show the form
-
-        } catch (err) {
-            console.error('Failed to load request detail', err);
-            Swal.fire('Error', 'ไม่สามารถโหลดข้อมูลคำขอได้', 'error');
-        } finally {
-            this.loading = false;
+          } catch (e) {
+            console.warn('Fallback fetch for financial summary failed', e);
+          }
         }
+
+        this.comments = data.comments || [];
+
+        // Handle Files
+        this.files = {};
+        if (data.attachments && data.attachments.length > 0) {
+          data.attachments.forEach(att => {
+            // We store it as an object with specific props to indicate it's remote
+            this.files[att.file_type] = {
+              name: att.original_name,
+              id: att.id,
+              txId: att.tx_id,
+              isRemote: true
+            };
+            this.uploadedDocuments[att.file_type] = true;
+          });
+        }
+
+        // Transaction Data
+        this.transactionData = {
+          amount: data.request_amount,
+          reason: data.request_reason,
+          creditTerm: data.request_credit_term,
+          termGS: data.term_gs,
+          termAE: data.term_ae,
+          termYC: data.term_yc
+        };
+
+        this.hasSearched = true; // To show the form
+
+      } catch (err) {
+        console.error('Failed to load request detail', err);
+        Swal.fire('Error', 'ไม่สามารถโหลดข้อมูลคำขอได้', 'error');
+      } finally {
+        this.loading = false;
+      }
     },
 
     async fetchComments() {
-        if (!this.requestId) return;
-        try {
-            const res = await CreditRequestService.getComments(this.requestId);
-            if (res.data && res.data.data) {
-                this.comments = res.data.data;
-            }
-        } catch (e) {
-            console.error('Failed to fetch comments', e);
+      if (!this.requestId) return;
+      try {
+        const res = await CreditRequestService.getComments(this.requestId);
+        if (res.data && res.data.data) {
+          this.comments = res.data.data;
         }
+      } catch (e) {
+        console.error('Failed to fetch comments', e);
+      }
     },
 
     async searchCustomer(query) {
@@ -178,9 +178,17 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.error = null;
 
       try {
+        Swal.fire({
+          title: 'กำลังค้นหาข้อมูลลูกค้า',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
         const results = await CustomerService.searchCustomers(query);
 
         if (results && results.length > 0) {
+          this.clearFormData(); // Clear previous data
           const data = results[0];
 
           this.customer = data.customer;
@@ -193,6 +201,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
           // Fetch comments
           await this.fetchComments();
+
+          Swal.close();
         } else {
           this.resetState();
           Swal.fire({
@@ -218,8 +228,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       try {
         // Just a basic init call
         const result = await CreditRequestService.createCreditRequest({
-            customer_no: customerNo,
-            customer_name: customerName
+          customer_no: customerNo,
+          customer_name: customerName
         });
         if (result && result.data && result.data.data) {
           const resData = result.data.data;
@@ -238,10 +248,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
               // Load financial data if present in snapshot
               if (parsedSnapshot.financial_summary) {
-                  this.financialSummary = parsedSnapshot.financial_summary;
+                this.financialSummary = parsedSnapshot.financial_summary;
               }
               if (parsedSnapshot.credit_score) {
-                  this.creditScore = parsedSnapshot.credit_score;
+                this.creditScore = parsedSnapshot.credit_score;
               }
 
             } catch (e) {
@@ -304,46 +314,46 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     updateTransactionData(data) {
-        this.transactionData = { ...this.transactionData, ...data };
+      this.transactionData = { ...this.transactionData, ...data };
     },
 
     // Helper to get full snapshot object for saving
     getSnapshot() {
-        return {
-            ...this.customer,
-            financial_summary: this.financialSummary,
-            credit_score: this.creditScore
-        };
+      return {
+        ...this.customer,
+        financial_summary: this.financialSummary,
+        credit_score: this.creditScore
+      };
     },
 
     async saveTransactionData() {
-        if (!this.customer || !this.customer.id) return;
-        try {
-            const formData = new FormData();
-            formData.append('customer_no', this.customer.id);
-            formData.append('customer_name', this.customer.name);
-            formData.append('request_amount', this.transactionData.amount || '');
-            formData.append('request_reason', this.transactionData.reason || '');
-            formData.append('request_credit_term', this.transactionData.creditTerm || '');
-            formData.append('term_gs', this.transactionData.termGS || '');
-            formData.append('term_ae', this.transactionData.termAE || '');
-            formData.append('term_yc', this.transactionData.termYC || '');
+      if (!this.customer || !this.customer.id) return;
+      try {
+        const formData = new FormData();
+        formData.append('customer_no', this.customer.id);
+        formData.append('customer_name', this.customer.name);
+        formData.append('request_amount', this.transactionData.amount || '');
+        formData.append('request_reason', this.transactionData.reason || '');
+        formData.append('request_credit_term', this.transactionData.creditTerm || '');
+        formData.append('term_gs', this.transactionData.termGS || '');
+        formData.append('term_ae', this.transactionData.termAE || '');
+        formData.append('term_yc', this.transactionData.termYC || '');
 
-            // Use getSnapshot() to ensure all data including financials is saved
-            formData.append('snapshot_data', JSON.stringify(this.getSnapshot()));
+        // Use getSnapshot() to ensure all data including financials is saved
+        formData.append('snapshot_data', JSON.stringify(this.getSnapshot()));
 
-            // is_submit=true triggers update, but we don't pass 'status' so it keeps existing status
-            formData.append('is_submit', 'true');
+        // is_submit=true triggers update, but we don't pass 'status' so it keeps existing status
+        formData.append('is_submit', 'true');
 
-            await CreditRequestService.createCreditRequest(formData); // This endpoint handles updates too
-        } catch (e) {
-            console.error('Failed to save transaction data', e);
-        }
+        await CreditRequestService.createCreditRequest(formData); // This endpoint handles updates too
+      } catch (e) {
+        console.error('Failed to save transaction data', e);
+      }
     },
 
     // Action to persist coordinates to backend
     async saveCustomerCoordinates(updates) {
-       await this.saveCustomerData(updates);
+      await this.saveCustomerData(updates);
     },
 
     // Generic action to persist customer data to backend
@@ -397,14 +407,44 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.comments = [];
       this.viewingHistory = false;
       this.showValidationErrors = false;
+      this.transactionData = {
+        amount: '',
+        creditTerm: '',
+        termGS: '',
+        termAE: '',
+        termYC: '',
+        reason: 'สต๊อคสินค้า'
+      };
+    },
+
+    clearFormData() {
+      // Clears data but keeps loading state/search context if needed
+      this.customer = {};
+      this.history = [];
+      this.financialSummary = {};
+      this.creditScore = {};
+      this.requestId = null;
+      this.requestStatus = null;
+      this.uploadedDocuments = {};
+      this.files = {};
+      this.comments = [];
+      this.showValidationErrors = false;
+      this.transactionData = {
+        amount: '',
+        creditTerm: '',
+        termGS: '',
+        termAE: '',
+        termYC: '',
+        reason: 'สต๊อคสินค้า'
+      };
     },
 
     triggerValidation() {
-        this.showValidationErrors = true;
+      this.showValidationErrors = true;
     },
 
     clearValidation() {
-        this.showValidationErrors = false;
+      this.showValidationErrors = false;
     }
   }
 });
