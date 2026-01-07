@@ -165,19 +165,33 @@ export default {
                 if (key === 'amount' || key === 'reason') {
                     val = store.transactionData[key];
                 } else {
-                    // For Individual Store Address, we saved them as store_xxx
-                    // But mandatoryKeys just lists 'address' etc.
-                    // Wait, mandatoryFields.js just lists 'address' (Residence).
-                    // StoreCompanyTab saves to store_address only for Individuals.
-
-                    // If we want to strictly validate Individual Store Address, we need to add those keys to mandatoryFields or map them here.
-                    // But based on my fix in StoreCompanyTab, 'address' IS the residence address which is mandatory.
-                    // 'store_address' is optional/mandatory depending on logic.
-                    // For now, let's stick to the core mandatory fields defined in config.
                     val = store.customer[key];
                 }
                 return !val;
             });
+
+            // Conditional Validation for Residence & Store Value/Rent
+            // Residence Logic
+            const resOwnership = store.customer.residence_ownership;
+            if (resOwnership === 'บ้านเช่า') {
+                // If house rent, value is in residence_ownership_other
+                if (!store.customer.residence_ownership_other) missingFields.push('residence_ownership_other');
+            } else if (resOwnership) {
+                // For other ownerships, value is also in residence_ownership_other
+                if (!store.customer.residence_ownership_other) missingFields.push('residence_ownership_other');
+            }
+
+            // Store/Company Address Logic
+            // Note: Company reuses residence fields if 'isSameAddress' isn't handled differently in store.
+            // StoreCompanyTab logic: if Company, it updates store_ownership keys IF separate.
+            // But if Individual, it updates store_ownership keys.
+            // Let's check store_ownership keys.
+            const storeOwnership = store.customer.store_ownership;
+            if (storeOwnership === 'เช่าซื้อ' || storeOwnership === 'เช่า') {
+                 if (!store.customer.store_ownership_other) missingFields.push('store_ownership_other');
+            } else if (storeOwnership) {
+                 if (!store.customer.store_ownership_other) missingFields.push('store_ownership_other');
+            }
 
             // Check Files
             const missingFiles = files.filter(key => {
