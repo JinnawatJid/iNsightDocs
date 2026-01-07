@@ -6,19 +6,19 @@
       <div v-if="isCompany" class="upload-grid">
         <FileUploader
           label="หนังสือรับรองนิติบุคคล"
-          required
+          :required="isRequiredFile('legal_entity_certificate')"
           v-model="files.legalEntityCertificate"
           :disabled="!isEditing"
         />
         <FileUploader
           label="เอกสารภพ.20"
-          required
+          :required="isRequiredFile('vat_document')"
           v-model="files.vatDocument"
           :disabled="!isEditing"
         />
         <FileUploader
           label="รูปถ่ายบริษัท"
-          required
+          :required="isRequiredFile('company_photo')"
           v-model="files.companyPhoto"
           :disabled="!isEditing"
         >
@@ -28,7 +28,7 @@
         </FileUploader>
         <FileUploader
           label="เอกสารเสียภาษีที่ดินบริษัท"
-          required
+          :required="isRequiredFile('company_land_tax')"
           v-model="files.companyLandTax"
           :disabled="!isEditing"
         />
@@ -37,7 +37,7 @@
       <div v-else class="upload-grid">
         <FileUploader
           label="รูปร้านค้า"
-          required
+          :required="isRequiredFile('store_photo')"
           v-model="files.storePhoto"
           :disabled="!isEditing"
         >
@@ -47,13 +47,13 @@
         </FileUploader>
         <FileUploader
           label="ทะเบียนพาณิชย์"
-          required
+          :required="isRequiredFile('commercial_reg')"
           v-model="files.commercialReg"
           :disabled="!isEditing"
         />
         <FileUploader
           label="เอกสารเสียภาษีที่ดินร้านค้า"
-          required
+          :required="isRequiredFile('store_land_tax')"
           v-model="files.storeLandTax"
           :disabled="!isEditing"
         />
@@ -165,7 +165,7 @@
             v-model="formData.phone"
             placeholder="0XX-XXX-XXXX"
             @input="(e) => { restrictPhoneInput(e); validateField('phone', e.target.value, ['required', 'phone']); }"
-            @blur="validateField('phone', formData.phone, ['required', 'phone']); saveData('phone', formData.phone)"
+            @blur="validateField('phone', formData.phone, ['required', 'phone']);"
           />
           <span v-if="errors.phone" class="error-text">{{ errors.phone }}</span>
         </div>
@@ -178,7 +178,6 @@
             :disabled="!isEditing"
             v-model="formData.fax"
             placeholder="ระบุเบอร์แฟกซ์"
-            @blur="saveData('fax', formData.fax)"
           />
         </div>
         <div class="form-group">
@@ -190,7 +189,6 @@
             :disabled="!isEditing"
             v-model="formData.email"
             placeholder="example@email.com"
-            @blur="saveData('email', formData.email)"
           />
         </div>
       </div>
@@ -198,13 +196,13 @@
         <!-- Location Type and Ownership Grid -->
         <div class="form-grid-four-columns">
             <div class="form-group">
-               <label>ลักษณะที่ตั้ง <span v-if="isRequired('location_type')" class="text-red-500">*</span></label>
+               <label>ลักษณะที่ตั้ง <span v-if="isRequired('store_location_type')" class="text-red-500">*</span></label>
                <select
                   class="form-control"
                   :class="{ 'border-red-500': errors.locationType, 'disabled': !isEditing }"
                   :disabled="!isEditing"
                   v-model="formData.locationTypeSelect"
-                  @change="() => { validateField('locationType', formData.locationTypeSelect, ['required']); saveData('store_location_type', formData.locationTypeSelect); }"
+                  @change="() => { validateField('locationType', formData.locationTypeSelect, ['required']); }"
                 >
                   <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
                   <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
@@ -223,17 +221,16 @@
                   :disabled="!isEditing"
                   v-model="formData.locationTypeOther"
                   placeholder="ระบุ..."
-                  @blur="saveData('store_location_type_other', formData.locationTypeOther)"
                 />
              </div>
              <div class="form-group">
-               <label>กรรมสิทธิ์ทรัพย์สิน <span v-if="isRequired('property_ownership')" class="text-red-500">*</span></label>
+               <label>กรรมสิทธิ์ทรัพย์สิน <span v-if="isRequired('store_ownership')" class="text-red-500">*</span></label>
                <select
                   class="form-control"
                   :class="{ 'border-red-500': errors.propertyOwnership, 'disabled': !isEditing }"
                   :disabled="!isEditing"
                   v-model="formData.ownershipSelect"
-                  @change="() => { validateField('propertyOwnership', formData.ownershipSelect, ['required']); saveData('store_ownership', formData.ownershipSelect); }"
+                  @change="() => { validateField('propertyOwnership', formData.ownershipSelect, ['required']); }"
                 >
                   <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
                   <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
@@ -242,7 +239,7 @@
                 <span v-if="errors.propertyOwnership" class="error-text">{{ errors.propertyOwnership }}</span>
              </div>
              <div class="form-group">
-                <label>{{ ownershipLabel }} <span v-if="isRequired('property_ownership')" class="text-red-500">*</span></label>
+                <label>{{ ownershipLabel }} <span v-if="isRequired('store_ownership')" class="text-red-500">*</span></label>
                 <input
                   type="text"
                   class="form-control"
@@ -251,7 +248,6 @@
                   v-model="formData.ownershipOther"
                   placeholder="ระบุ..."
                   @input="validateField('ownershipValue', formData.ownershipOther, ['required'])"
-                  @blur="saveData('store_ownership_other', formData.ownershipOther)"
                 />
                 <span v-if="errors.ownershipValue" class="error-text">{{ errors.ownershipValue }}</span>
              </div>
@@ -315,6 +311,12 @@ watch(() => store.showValidationErrors, (val) => {
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
+}
+
+function isRequiredFile(fileKey) {
+    return mandatoryStoreKeys.files.common.includes(fileKey) ||
+           mandatoryStoreKeys.files.company.includes(fileKey) ||
+           mandatoryStoreKeys.files.individual.includes(fileKey);
 }
 
 const isSameAddress = ref(false);
@@ -563,12 +565,6 @@ function onCoordinatesChange({ mapCode, landmark, note }) {
     store_landmark: landmark,
     store_note: note
   });
-}
-
-function saveData(key, value) {
-  const updates = {};
-  updates[key] = value;
-  store.saveCustomerData(updates);
 }
 
 // Watch postCode
