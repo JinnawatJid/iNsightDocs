@@ -16,7 +16,7 @@ if exist "%RELEASE_DIR%" rmdir /s /q "%RELEASE_DIR%"
 mkdir "%RELEASE_DIR%"
 
 echo ===================================================
-echo [2/8] Installing Dependencies & Building Frontend...
+echo [2/8] Installing Dependencies ^& Building Frontend...
 echo ===================================================
 call npm install
 call npm run build
