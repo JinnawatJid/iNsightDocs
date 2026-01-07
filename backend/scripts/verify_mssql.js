@@ -128,12 +128,25 @@ async function main() {
 
         // Verify Insert Permission (e.g. RequestComments)
         console.log('Verifying Write Permission (INSERT into RequestComments)...');
+        const testTxId = 'VERIFY_TEST';
         const testComment = {
-            tx_id: 'VERIFY_TEST',
+            tx_id: testTxId,
             actor_role: 'System',
             comment_text: 'Verification Script Test'
         };
 
+        // Need to insert parent CreditRequest first due to FK constraint
+        console.log('Inserting dummy CreditRequest...');
+        try {
+             await db.runAsync(
+                `INSERT INTO CreditRequests (tx_id, status) VALUES (?, ?)`,
+                [testTxId, 'Draft']
+            );
+        } catch (e) {
+            // Ignore if exists (re-run scenario)
+        }
+
+        console.log('Inserting RequestComment...');
         await db.runAsync(
             `INSERT INTO RequestComments (tx_id, actor_role, comment_text) VALUES (?, ?, ?)`,
             [testComment.tx_id, testComment.actor_role, testComment.comment_text]
@@ -141,7 +154,9 @@ async function main() {
         console.log('[OK] Insert successful.');
 
         // Clean up test data
-        await db.query(`DELETE FROM RequestComments WHERE tx_id = 'VERIFY_TEST'`);
+        console.log('Cleaning up test data...');
+        await db.query(`DELETE FROM RequestComments WHERE tx_id = '${testTxId}'`);
+        await db.query(`DELETE FROM CreditRequests WHERE tx_id = '${testTxId}'`);
         console.log('[OK] Cleanup successful.');
 
         console.log('\n--- MSSQL Verification PASSED Successfully ---');
