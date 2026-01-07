@@ -143,7 +143,7 @@
                 />
               </div>
               <div class="form-group">
-                <label>ระยะเวลาเครดิต (อลูมิเนียม, Accessory)</label>
+                <label>ระยะเวลาเครดิต (อลูมิเนียม, Acc)</label>
                 <input
                   type="text"
                   class="form-input"
