@@ -37,7 +37,7 @@
       <div class="contact-grid-layout">
         <!-- Row 1 -->
         <div class="form-group">
-          <label>ชื่อผู้ติดต่อ </label>
+          <label>ชื่อผู้ติดต่อ <span v-if="isRequired('contact_person')" class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-input"
@@ -50,7 +50,7 @@
           <span v-if="errors.contactName" class="error-text">{{ errors.contactName }}</span>
         </div>
         <div class="form-group">
-          <label>ตำแหน่ง </label>
+          <label>ตำแหน่ง <span v-if="isRequired('contact_position')" class="text-red-500">*</span></label>
            <input
             type="text"
             class="form-input"
@@ -91,7 +91,7 @@
           <span v-if="errors.contactDivision" class="error-text">{{ errors.contactDivision }}</span>
         </div>
         <div class="form-group">
-          <label>เบอร์โทรผู้ติดต่อ </label>
+          <label>เบอร์โทรผู้ติดต่อ <span v-if="isRequired('contact_phone_number')" class="text-red-500">*</span></label>
            <input
             type="text"
             class="form-input"
@@ -114,7 +114,7 @@
       </div>
       <div class="form-grid-three-columns">
             <div class="form-group" v-if="isDraftMode">
-              <label>วงเงินเครดิตที่ต้องการ (บาท) </label>
+              <label>วงเงินเครดิตที่ต้องการ (บาท) <span v-if="isRequired('amount')" class="text-red-500">*</span></label>
               <input
                 type="text"
                 class="form-input"
@@ -169,7 +169,7 @@
             </template>
 
             <div class="form-group">
-              <label>เหตุผลการขอเครดิต </label>
+              <label>เหตุผลการขอเครดิต <span v-if="isRequired('reason')" class="text-red-500">*</span></label>
               <select
                 class="form-input"
                 :class="{ 'border-red-500': errors.creditReason, 'disabled': !isEditing }"
@@ -474,6 +474,7 @@ import { reactive, watch, ref, computed } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
+import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
@@ -484,9 +485,33 @@ watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
 
+// Validation Watcher
+watch(() => store.showValidationErrors, (val) => {
+    if (val) {
+        // Trigger validation for all fields
+        validateField('contactName', formData.contactName, ['required', 'text']);
+        validateField('contactPosition', formData.contactPosition, ['required', 'text']);
+        validateField('contactPhone', formData.contactPhone, ['required', 'numeric']);
+        if (isDraftMode.value) {
+           validateField('creditAmount', formData.creditAmount, ['required', 'numeric']);
+           validateField('creditReason', formData.creditReason, ['required']);
+        }
+        if (formData.paymentMethod) {
+            validateField('paymentMethod', formData.paymentMethod, ['required']);
+            validateField('paymentBankName', formData.paymentBankName, ['required']);
+            validateField('paymentBankBranch', formData.paymentBankBranch, ['required']);
+            validateField('paymentAccountNo', formData.paymentAccountNo, ['required', 'numeric']);
+        }
+    }
+});
+
 const isDraftMode = computed(() => {
   return !store.requestStatus || store.requestStatus === 'Draft';
 });
+
+function isRequired(storeKey) {
+    return mandatoryStoreKeys.fields.includes(storeKey);
+}
 
 // Checkbox logic (kept but unused/hidden for now)
 const isSameAsAuthorized = ref(false);

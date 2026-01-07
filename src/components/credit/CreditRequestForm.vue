@@ -89,6 +89,7 @@ import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import { computed, ref, watch } from 'vue';
+import { getMandatoryKeys } from '@/config/mandatoryFields';
 
 export default {
   name: 'CreditRequestForm',
@@ -146,38 +147,59 @@ export default {
     };
 
     const submitAction = async (targetStatus, confirmText) => {
-         // Validation checks first
+        // Validation checks first
         if (!store.customer || !store.customer.id) {
             Swal.fire('Error', 'กรุณาค้นหาลูกค้าก่อนทำรายการ', 'error');
             return;
         }
 
-        // Check if mandatory files are present (Only for initial submission, maybe?)
-        // Let's keep file check strict for "Submitted" step (Opened -> Submitted)
-        if (targetStatus === 'Submitted') {
-            const commonFiles = ['id_card', 'home_reg', 'home_photo', 'land_tax', 'credit_application_doc'];
-            let requiredFiles = [...commonFiles];
+        // Comprehensive Validation Logic (Enabled for Opened and Submitted)
+        // Opened is the first "Submit" action for the user (Branch Head -> Manager)
+        if (targetStatus === 'Opened' || targetStatus === 'Submitted') {
+            const { fields, files } = getMandatoryKeys(store.isCompany);
 
-            if (store.isCompany) {
-                requiredFiles.push('legal_entity_certificate', 'vat_document', 'company_photo', 'company_land_tax');
-            } else {
-                requiredFiles.push('store_photo', 'commercial_reg', 'store_land_tax');
-            }
-            requiredFiles.push('bank_statement');
+            // Check Fields
+            const missingFields = fields.filter(key => {
+                let val;
+                // Check if key is in transactionData (amount, reason) or customer
+                if (key === 'amount' || key === 'reason') {
+                    val = store.transactionData[key];
+                } else {
+                    // For Individual Store Address, we saved them as store_xxx
+                    // But mandatoryKeys just lists 'address' etc.
+                    // Wait, mandatoryFields.js just lists 'address' (Residence).
+                    // StoreCompanyTab saves to store_address only for Individuals.
 
-            const missing = requiredFiles.filter(key => {
+                    // If we want to strictly validate Individual Store Address, we need to add those keys to mandatoryFields or map them here.
+                    // But based on my fix in StoreCompanyTab, 'address' IS the residence address which is mandatory.
+                    // 'store_address' is optional/mandatory depending on logic.
+                    // For now, let's stick to the core mandatory fields defined in config.
+                    val = store.customer[key];
+                }
+                return !val;
+            });
+
+            // Check Files
+            const missingFiles = files.filter(key => {
                 const val = store.files[key];
                 if (Array.isArray(val)) return val.length === 0;
                 return !val;
             });
 
-            if (missing.length > 0) {
+            if (missingFields.length > 0 || missingFiles.length > 0) {
+                 store.triggerValidation(); // Trigger visual cues
+
+                 console.log('Missing Fields:', missingFields);
+                 console.log('Missing Files:', missingFiles);
+
                  Swal.fire({
                     icon: 'warning',
-                    title: 'เอกสารไม่ครบ',
-                    text: 'กรุณาอัปโหลดเอกสารให้ครบถ้วน'
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'กรุณากรอกข้อมูลและแนบเอกสารให้ครบถ้วนตามรายการที่มีเครื่องหมาย *'
                  });
                  return;
+            } else {
+                store.clearValidation();
             }
         }
 

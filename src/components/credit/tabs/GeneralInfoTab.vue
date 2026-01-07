@@ -26,7 +26,7 @@
       <div class="form-layout-columns">
         <div class="column-layout">
           <div class="form-group">
-            <label>ชื่อร้าน/บริษัท </label>
+            <label>ชื่อร้าน/บริษัท <span v-if="isRequired('name')" class="text-red-500">*</span></label>
             <input
               type="text"
               class="form-input"
@@ -63,7 +63,7 @@
       <div class="form-layout-columns">
          <div class="column-layout">
            <div class="form-group">
-            <label>ชื่อผู้มีอำนาจลงนาม 1 </label>
+            <label>ชื่อผู้มีอำนาจลงนาม 1 <span v-if="isRequired('authorized_person')" class="text-red-500">*</span></label>
             <input
               type="text"
               class="form-input"
@@ -79,7 +79,7 @@
          </div>
          <div class="column-layout">
             <div class="form-group">
-             <label>ตำแหน่ง </label>
+             <label>ตำแหน่ง <span v-if="isRequired('authorized_position')" class="text-red-500">*</span></label>
             <input
               type="text"
               class="form-input"
@@ -189,6 +189,7 @@ import { reactive, watch, ref } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
+import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
@@ -198,6 +199,19 @@ const isEditing = ref(!props.readOnly);
 watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
+
+// Validation Watcher
+watch(() => store.showValidationErrors, (val) => {
+    if (val) {
+        validateField('companyName', formData.companyName, ['required']);
+        validateField('authorizedName', formData.authorizedName, ['required', 'text']);
+        validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text']);
+    }
+});
+
+function isRequired(storeKey) {
+    return mandatoryStoreKeys.fields.includes(storeKey);
+}
 
 const validBusinessTypes = [
   'ผู้ติดตั้งรายใหญ่',
