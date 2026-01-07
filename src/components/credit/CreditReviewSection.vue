@@ -212,6 +212,7 @@ function saveChanges() {
   font-family: inherit;
   width: 100%; /* Ensure full width in grid cell */
   box-sizing: border-box;
+  background-color: #fff;
 }
 
 .form-input:disabled {

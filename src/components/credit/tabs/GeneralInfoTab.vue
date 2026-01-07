@@ -205,22 +205,7 @@ watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
 
-// Validation Watcher
-watch(() => store.showValidationErrors, (val) => {
-    if (val) {
-        validateField('companyName', formData.companyName, ['required']);
-        validateField('authorizedName', formData.authorizedName, ['required', 'text']);
-        validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text']);
 
-        // Business Details Validation
-        validateField('businessType', formData.businessType, ['required']);
-        if (formData.businessType === 'อื่นๆ') {
-             validateField('businessTypeOther', formData.businessTypeOther, ['required']);
-        }
-        validateField('mainProducts', formData.mainProducts, ['required']);
-        validateField('yearsInBusiness', formData.yearsInBusiness, ['required']);
-    }
-});
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
@@ -382,6 +367,23 @@ function saveToBackend() {
 function toggleEdit() {
   isEditing.value = !isEditing.value;
 }
+
+// Validation Watcher (Moved to end)
+watch(() => store.showValidationErrors, (val) => {
+    if (val) {
+        validateField('companyName', formData.companyName, ['required']);
+        validateField('authorizedName', formData.authorizedName, ['required', 'text']);
+        validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text']);
+
+        // Business Details Validation
+        validateField('businessType', formData.businessType, ['required']);
+        if (formData.businessType === 'อื่นๆ') {
+             validateField('businessTypeOther', formData.businessTypeOther, ['required']);
+        }
+        validateField('mainProducts', formData.mainProducts, ['required']);
+        validateField('yearsInBusiness', formData.yearsInBusiness, ['required']);
+    }
+}, { immediate: true });
 </script>
 
 <style scoped>

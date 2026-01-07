@@ -53,7 +53,7 @@
     </div>
 
     <div class="summary-section">
-      <h3>พฤติกรรมการซื้อ (Internal)</h3>
+      <h3>พฤติกรรมการซื้อ</h3>
 
       <div class="stat-item">
         <div class="stat-icon-row">

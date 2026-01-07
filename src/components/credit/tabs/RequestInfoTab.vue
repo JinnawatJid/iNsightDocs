@@ -143,7 +143,7 @@
                 />
               </div>
               <div class="form-group">
-                <label>ระยะเวลาเครดิต (อลูมิเนียม, Accessory)</label>
+                <label>ระยะเวลาเครดิต (อลูมิเนียม, Acc)</label>
                 <input
                   type="text"
                   class="form-input"
@@ -485,32 +485,7 @@ watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
 
-// Validation Watcher
-watch(() => store.showValidationErrors, (val) => {
-    if (val) {
-        // Trigger validation for all fields
-        validateField('contactName', formData.contactName, ['required', 'text']);
-        validateField('contactPosition', formData.contactPosition, ['required', 'text']);
-        validateField('contactPhone', formData.contactPhone, ['required', 'numeric']);
 
-        // Billing Info
-        validateField('billingRequirement', formData.billingRequirement, ['required']);
-
-        // Payment Info
-        validateField('paymentMethod', formData.paymentMethod, ['required']);
-
-        if (isDraftMode.value) {
-           validateField('creditAmount', formData.creditAmount, ['required', 'numeric']);
-           validateField('creditReason', formData.creditReason, ['required']);
-        }
-        if (formData.paymentMethod) {
-            validateField('paymentMethod', formData.paymentMethod, ['required']);
-            validateField('paymentBankName', formData.paymentBankName, ['required']);
-            validateField('paymentBankBranch', formData.paymentBankBranch, ['required']);
-            validateField('paymentAccountNo', formData.paymentAccountNo, ['required', 'numeric']);
-        }
-    }
-});
 
 const isDraftMode = computed(() => {
   return !store.requestStatus || store.requestStatus === 'Draft';
@@ -798,6 +773,33 @@ function restrictLocalCreditInput(e, item, field) {
     e.target.value = value;
     item[field] = value;
 }
+
+// Validation Watcher (Moved to end to avoid TDZ)
+watch(() => store.showValidationErrors, (val) => {
+    if (val) {
+        // Trigger validation for all fields
+        validateField('contactName', formData.contactName, ['required', 'text']);
+        validateField('contactPosition', formData.contactPosition, ['required', 'text']);
+        validateField('contactPhone', formData.contactPhone, ['required', 'numeric']);
+
+        // Billing Info
+        validateField('billingRequirement', formData.billingRequirement, ['required']);
+
+        // Payment Info
+        validateField('paymentMethod', formData.paymentMethod, ['required']);
+
+        if (isDraftMode.value) {
+           validateField('creditAmount', formData.creditAmount, ['required', 'numeric']);
+           validateField('creditReason', formData.creditReason, ['required']);
+        }
+        if (formData.paymentMethod) {
+            validateField('paymentMethod', formData.paymentMethod, ['required']);
+            validateField('paymentBankName', formData.paymentBankName, ['required']);
+            validateField('paymentBankBranch', formData.paymentBankBranch, ['required']);
+            validateField('paymentAccountNo', formData.paymentAccountNo, ['required', 'numeric']);
+        }
+    }
+}, { immediate: true });
 </script>
 
 <style scoped>
