@@ -130,54 +130,59 @@
       <!-- Business Details -->
       <div class="grid-three-col" style="margin-top: 15px;">
           <div class="form-group">
-             <label>ประเภทกิจการ</label>
+             <label>ประเภทกิจการ <span v-if="isRequired('business_type')" class="text-red-500">*</span></label>
              <select
                 class="form-input"
-                :class="{ 'disabled': !isEditing }"
+                :class="{ 'border-red-500': errors.businessType, 'disabled': !isEditing }"
                 :disabled="!isEditing"
                 v-model="formData.businessType"
-                @change="saveToBackend"
+                @change="() => { validateField('businessType', formData.businessType, ['required']); saveToBackend(); }"
               >
                   <option value="" disabled selected>เลือกประเภท</option>
                   <option v-for="type in validBusinessTypes" :key="type" :value="type">{{ type }}</option>
                   <option value="อื่นๆ">อื่นๆ</option>
               </select>
+              <span v-if="errors.businessType" class="error-text">{{ errors.businessType }}</span>
               <input
                 v-if="formData.businessType === 'อื่นๆ'"
                 type="text"
                 class="form-input"
                 style="margin-top: 10px;"
-                :class="{ 'disabled': !isEditing }"
+                :class="{ 'border-red-500': errors.businessTypeOther, 'disabled': !isEditing }"
                 :disabled="!isEditing"
                 v-model="formData.businessTypeOther"
                 placeholder="ระบุประเภทกิจการ"
+                @input="validateField('businessTypeOther', formData.businessTypeOther, ['required'])"
                 @blur="saveToBackend"
               />
           </div>
           <div class="form-group">
-             <label>ระบุสินค้าหลัก</label>
+             <label>ระบุสินค้าหลัก <span v-if="isRequired('main_products')" class="text-red-500">*</span></label>
              <input
               type="text"
               class="form-input"
-              :class="{ 'disabled': !isEditing }"
+              :class="{ 'border-red-500': errors.mainProducts, 'disabled': !isEditing }"
               :disabled="!isEditing"
               v-model="formData.mainProducts"
               placeholder="ระบุสินค้า"
+              @input="validateField('mainProducts', formData.mainProducts, ['required'])"
               @blur="saveToBackend"
             />
+            <span v-if="errors.mainProducts" class="error-text">{{ errors.mainProducts }}</span>
           </div>
           <div class="form-group">
-             <label>ดำเนินธุรกิจ (ปี)</label>
+             <label>ดำเนินธุรกิจ (ปี) <span v-if="isRequired('years_in_business')" class="text-red-500">*</span></label>
              <input
               type="text"
               class="form-input"
-              :class="{ 'disabled': !isEditing }"
+              :class="{ 'border-red-500': errors.yearsInBusiness, 'disabled': !isEditing }"
               :disabled="!isEditing"
               v-model="formData.yearsInBusiness"
               placeholder="ระบุจำนวนปี"
-              @input="(e) => restrictNumeric(e)"
+              @input="(e) => { restrictNumeric(e); validateField('yearsInBusiness', formData.yearsInBusiness, ['required']); }"
               @blur="saveToBackend"
             />
+            <span v-if="errors.yearsInBusiness" class="error-text">{{ errors.yearsInBusiness }}</span>
           </div>
       </div>
     </div>
@@ -206,6 +211,14 @@ watch(() => store.showValidationErrors, (val) => {
         validateField('companyName', formData.companyName, ['required']);
         validateField('authorizedName', formData.authorizedName, ['required', 'text']);
         validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text']);
+
+        // Business Details Validation
+        validateField('businessType', formData.businessType, ['required']);
+        if (formData.businessType === 'อื่นๆ') {
+             validateField('businessTypeOther', formData.businessTypeOther, ['required']);
+        }
+        validateField('mainProducts', formData.mainProducts, ['required']);
+        validateField('yearsInBusiness', formData.yearsInBusiness, ['required']);
     }
 });
 

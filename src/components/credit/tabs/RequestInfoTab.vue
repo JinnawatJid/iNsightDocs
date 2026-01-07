@@ -193,10 +193,10 @@
         <!-- New 3-Column Grid for Requirement, Method, and Schedule -->
         <div class="form-grid-three-columns">
             <div class="form-group">
-               <label>ต้องมีการวางบิลหรือไม่</label>
+               <label>ต้องมีการวางบิลหรือไม่ <span v-if="isRequired('billing_requirement')" class="text-red-500">*</span></label>
                <select
                   class="form-input"
-                  :class="{ 'disabled': !isEditing }"
+                  :class="{ 'border-red-500': errors.billingRequirement, 'disabled': !isEditing }"
                   :disabled="!isEditing"
                   v-model="formData.billingRequirement"
                   @change="saveToBackend"
@@ -325,7 +325,7 @@
         <!-- Payment Method & Condition Grid (50/50) -->
         <div class="payment-method-grid">
             <div class="form-group">
-                <label>ชำระเงินโดย </label>
+                <label>ชำระเงินโดย <span v-if="isRequired('payment_method')" class="text-red-500">*</span></label>
                 <select
                 class="form-input"
                 :class="{ 'border-red-500': errors.paymentMethod, 'disabled': !isEditing }"
@@ -492,6 +492,13 @@ watch(() => store.showValidationErrors, (val) => {
         validateField('contactName', formData.contactName, ['required', 'text']);
         validateField('contactPosition', formData.contactPosition, ['required', 'text']);
         validateField('contactPhone', formData.contactPhone, ['required', 'numeric']);
+
+        // Billing Info
+        validateField('billingRequirement', formData.billingRequirement, ['required']);
+
+        // Payment Info
+        validateField('paymentMethod', formData.paymentMethod, ['required']);
+
         if (isDraftMode.value) {
            validateField('creditAmount', formData.creditAmount, ['required', 'numeric']);
            validateField('creditReason', formData.creditReason, ['required']);

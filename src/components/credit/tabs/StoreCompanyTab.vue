@@ -198,12 +198,13 @@
         <!-- Location Type and Ownership Grid -->
         <div class="form-grid-four-columns">
             <div class="form-group">
-               <label>ลักษณะที่ตั้ง </label>
+               <label>ลักษณะที่ตั้ง <span v-if="isRequired('location_type')" class="text-red-500">*</span></label>
                <select
                   class="form-control"
-                  :class="{ 'disabled': !isEditing }"
+                  :class="{ 'border-red-500': errors.locationType, 'disabled': !isEditing }"
                   :disabled="!isEditing"
                   v-model="formData.locationTypeSelect"
+                  @change="() => { validateField('locationType', formData.locationTypeSelect, ['required']); saveData('store_location_type', formData.locationTypeSelect); }"
                 >
                   <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
                   <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
@@ -211,6 +212,7 @@
                   <option value="บ้าน">บ้าน</option>
                   <option value="โรงงาน">โรงงาน</option>
                 </select>
+                <span v-if="errors.locationType" class="error-text">{{ errors.locationType }}</span>
             </div>
              <div class="form-group">
                 <label>คำอธิบายเพิ่มเติม</label>
@@ -221,31 +223,37 @@
                   :disabled="!isEditing"
                   v-model="formData.locationTypeOther"
                   placeholder="ระบุ..."
+                  @blur="saveData('store_location_type_other', formData.locationTypeOther)"
                 />
              </div>
              <div class="form-group">
-               <label>กรรมสิทธิ์ทรัพย์สิน </label>
+               <label>กรรมสิทธิ์ทรัพย์สิน <span v-if="isRequired('property_ownership')" class="text-red-500">*</span></label>
                <select
                   class="form-control"
-                  :class="{ 'disabled': !isEditing }"
+                  :class="{ 'border-red-500': errors.propertyOwnership, 'disabled': !isEditing }"
                   :disabled="!isEditing"
                   v-model="formData.ownershipSelect"
+                  @change="() => { validateField('propertyOwnership', formData.ownershipSelect, ['required']); saveData('store_ownership', formData.ownershipSelect); }"
                 >
                   <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
                   <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
                   <option value="เช่าซื้อ">เช่าซื้อ</option>
                 </select>
+                <span v-if="errors.propertyOwnership" class="error-text">{{ errors.propertyOwnership }}</span>
              </div>
              <div class="form-group">
-                <label>{{ ownershipLabel }}</label>
+                <label>{{ ownershipLabel }} <span v-if="isRequired('property_ownership')" class="text-red-500">*</span></label>
                 <input
                   type="text"
                   class="form-control"
-                  :class="{ 'disabled': !isEditing }"
+                  :class="{ 'border-red-500': errors.ownershipValue, 'disabled': !isEditing }"
                   :disabled="!isEditing"
                   v-model="formData.ownershipOther"
                   placeholder="ระบุ..."
+                  @input="validateField('ownershipValue', formData.ownershipOther, ['required'])"
+                  @blur="saveData('store_ownership_other', formData.ownershipOther)"
                 />
+                <span v-if="errors.ownershipValue" class="error-text">{{ errors.ownershipValue }}</span>
              </div>
         </div>
 
@@ -294,6 +302,14 @@ watch(() => store.showValidationErrors, (val) => {
         validateField('district', formData.district, ['required']);
         validateField('city', formData.city, ['required']);
         validateField('phone', formData.phone, ['required', 'phone']);
+
+        // New Fields
+        validateField('locationType', formData.locationTypeSelect, ['required']);
+        validateField('propertyOwnership', formData.ownershipSelect, ['required']);
+        // Only validate value/rent if ownership is selected (or mandatory enforced)
+        if (formData.ownershipSelect) {
+             validateField('ownershipValue', formData.ownershipOther, ['required']);
+        }
     }
 });
 
