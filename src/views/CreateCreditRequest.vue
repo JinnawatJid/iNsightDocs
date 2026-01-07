@@ -99,9 +99,12 @@ const closePreview = () => {
 }
 
 /* Responsive adjustments */
-@media (max-width: 1200px) {
+@media (max-width: 1366px) {
   .main-grid {
-    grid-template-columns: 250px 1fr 250px;
+    grid-template-columns: 220px 1fr 220px;
+  }
+  .page-content {
+    padding: 20px 20px;
   }
 }
 

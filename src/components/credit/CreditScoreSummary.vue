@@ -427,4 +427,10 @@ h3 {
 .summary-section {
   text-align: left;
 }
+
+@media (max-width: 1366px) {
+  .credit-score-summary {
+    padding: 15px;
+  }
+}
 </style>
