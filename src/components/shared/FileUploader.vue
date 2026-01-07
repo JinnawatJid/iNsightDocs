@@ -1,7 +1,7 @@
 <template>
   <div class="upload-item" :class="{ 'upload-item-large': multiple }">
-    <label>{{ label }} </label>
-    <div class="upload-box" :class="{ 'upload-box-large': multiple, 'disabled': disabled }" @click="triggerUpload">
+    <label>{{ label }} <span v-if="required" class="required">*</span></label>
+    <div class="upload-box" :class="{ 'upload-box-large': multiple, 'disabled': disabled, 'border-red-500': showError }" @click="triggerUpload">
       <input
         type="file"
         ref="fileInput"
@@ -62,6 +62,8 @@
 <script>
 import iconFileBlue from '@/assets/icons/file-blue.svg';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
+import { useCreditRequestStore } from '@/stores/creditRequest';
+import { computed } from 'vue';
 
 export default {
   name: 'FileUploader',
@@ -71,6 +73,21 @@ export default {
       iconFileBlue,
       iconUploadMulti
     };
+  },
+  setup(props) {
+      const store = useCreditRequestStore();
+      const showError = computed(() => {
+          // Show error if required, empty, and global validation is triggered
+          if (props.required && store.showValidationErrors) {
+              if (props.multiple) {
+                   return !props.modelValue || props.modelValue.length === 0;
+              } else {
+                   return !props.modelValue;
+              }
+          }
+          return false;
+      });
+      return { showError };
   },
   props: {
     label: {
@@ -343,5 +360,15 @@ label {
     width: 18px;
     height: 18px;
     /* color #0056FF */
+}
+
+.border-red-500 {
+  border-color: #ef4444 !important;
+  background-color: #fff1f2; /* Light red background for emphasis */
+}
+
+.required {
+    color: #ef4444;
+    margin-left: 4px;
 }
 </style>

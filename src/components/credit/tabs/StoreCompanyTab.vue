@@ -79,7 +79,7 @@
       <!-- Address Form -->
       <div class="form-grid-three-columns">
         <div class="form-group span-2">
-          <label>ที่อยู่ (บ้านเลขที่, ถนน) </label>
+          <label>ที่อยู่ (บ้านเลขที่, ถนน) <span v-if="isRequired('address')" class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
@@ -93,7 +93,7 @@
           <span v-if="errors.houseAddress" class="error-text">{{ errors.houseAddress }}</span>
         </div>
         <div class="form-group">
-          <label>ตำบล/แขวง </label>
+          <label>ตำบล/แขวง <span v-if="isRequired('subdistrict')" class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
@@ -107,7 +107,7 @@
           <span v-if="errors.subdistrict" class="error-text">{{ errors.subdistrict }}</span>
         </div>
         <div class="form-group">
-          <label>รหัสไปรษณีย์ </label>
+          <label>รหัสไปรษณีย์ <span v-if="isRequired('zipcode')" class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
@@ -121,7 +121,7 @@
           <span v-if="errors.postCode" class="error-text">{{ errors.postCode }}</span>
         </div>
         <div class="form-group">
-          <label>อำเภอ/เขต </label>
+          <label>อำเภอ/เขต <span v-if="isRequired('district')" class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
@@ -135,7 +135,7 @@
           <span v-if="errors.district" class="error-text">{{ errors.district }}</span>
         </div>
         <div class="form-group">
-          <label>จังหวัด </label>
+          <label>จังหวัด <span v-if="isRequired('province')" class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
@@ -154,7 +154,7 @@
       <div class="form-grid-three-columns">
         <div class="form-group">
           <label>
-            เบอร์โทรศัพท์
+            เบอร์โทรศัพท์ <span v-if="isRequired('phone')" class="text-red-500">*</span>
             <span v-if="!formData.phone" class="no-data-alert">ไม่พบข้อมูล</span>
           </label>
           <input
@@ -273,6 +273,7 @@ import FileUploader from '@/components/shared/FileUploader.vue';
 import CoordinateMap from '@/components/shared/CoordinateMap.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
+import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 import iconImage from '@/assets/icons/image.svg';
 
 const props = defineProps(['readOnly']);
@@ -283,6 +284,22 @@ const isEditing = ref(!props.readOnly);
 watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
+
+// Validation Watcher
+watch(() => store.showValidationErrors, (val) => {
+    if (val) {
+        validateField('houseAddress', formData.houseAddress, ['required']);
+        validateField('subdistrict', formData.subdistrict, ['required']);
+        validateField('postCode', formData.postCode, ['required']);
+        validateField('district', formData.district, ['required']);
+        validateField('city', formData.city, ['required']);
+        validateField('phone', formData.phone, ['required', 'phone']);
+    }
+});
+
+function isRequired(storeKey) {
+    return mandatoryStoreKeys.fields.includes(storeKey);
+}
 
 const isSameAddress = ref(false);
 
@@ -387,6 +404,7 @@ watch(isSameAddress, (isSame) => {
   } else {
     // Revert to store values if unchecked
     if (store.customer) {
+       // Restore from store_xxx keys if not company, or general store_ keys
        formData.mapCode = store.customer.store_map_code || '';
        formData.landmark = store.customer.store_landmark || '';
        formData.note = store.customer.store_note || '';
@@ -395,6 +413,28 @@ watch(isSameAddress, (isSame) => {
        formData.locationTypeOther = store.customer.store_location_type_other || '';
        formData.ownershipSelect = store.customer.store_ownership || '';
        formData.ownershipOther = store.customer.store_ownership_other || '';
+
+       // Also restore address fields if they exist as store_xxx (for individuals)
+       if (!isCompany.value) {
+            formData.houseAddress = store.customer.store_address || '';
+            formData.subdistrict = store.customer.store_subdistrict || '';
+            formData.postCode = store.customer.store_zipcode || '';
+            formData.district = store.customer.store_district || '';
+            formData.city = store.customer.store_province || '';
+            formData.phone = store.customer.store_phone || '';
+            formData.fax = store.customer.store_fax || '';
+            formData.email = store.customer.store_email || '';
+       } else {
+            // For Company, we clear.
+            formData.houseAddress = '';
+            formData.subdistrict = '';
+            formData.postCode = '';
+            formData.district = '';
+            formData.city = '';
+            formData.phone = '';
+            formData.fax = '';
+            formData.email = '';
+       }
     } else {
        formData.mapCode = '';
        formData.landmark = '';
@@ -404,16 +444,16 @@ watch(isSameAddress, (isSame) => {
        formData.locationTypeOther = '';
        formData.ownershipSelect = '';
        formData.ownershipOther = '';
-    }
 
-    formData.houseAddress = '';
-    formData.subdistrict = '';
-    formData.postCode = '';
-    formData.district = '';
-    formData.city = '';
-    formData.phone = '';
-    formData.fax = '';
-    formData.email = '';
+       formData.houseAddress = '';
+       formData.subdistrict = '';
+       formData.postCode = '';
+       formData.district = '';
+       formData.city = '';
+       formData.phone = '';
+       formData.fax = '';
+       formData.email = '';
+    }
   }
 });
 
@@ -425,8 +465,6 @@ watch(() => store.customer, (newVal) => {
 
     if (isSameAddress.value) {
          // Should stay synced with residence
-         // But here we might just want to load stored STORE values if isSameAddress is false
-         // Since isSameAddress defaults to false (ref(false)), we usually load store values first
     } else {
         formData.mapCode = newVal.store_map_code || '';
         formData.landmark = newVal.store_landmark || '';
@@ -436,6 +474,18 @@ watch(() => store.customer, (newVal) => {
         formData.locationTypeOther = newVal.store_location_type_other || '';
         formData.ownershipSelect = newVal.store_ownership || '';
         formData.ownershipOther = newVal.store_ownership_other || '';
+
+        // Hydrate address fields if Individual and data exists
+        if (!isCompany.value && newVal.store_address) {
+             formData.houseAddress = newVal.store_address || '';
+             formData.subdistrict = newVal.store_subdistrict || '';
+             formData.postCode = newVal.store_zipcode || '';
+             formData.district = newVal.store_district || '';
+             formData.city = newVal.store_province || '';
+             formData.phone = newVal.store_phone || '';
+             formData.fax = newVal.store_fax || '';
+             formData.email = newVal.store_email || '';
+        }
     }
 
     if (isSameAddress.value) {
@@ -445,6 +495,9 @@ watch(() => store.customer, (newVal) => {
 }, { immediate: true, deep: true });
 
 watch(formData, (newVal) => {
+  // Logic updated: If isCompany, update MAIN address (Head Office = Address)
+  // If NOT isCompany, update STORE address (new keys) so individual shop address is saved.
+
   if (isCompany.value) {
      const updates = {
       address: newVal.houseAddress,
@@ -455,6 +508,27 @@ watch(formData, (newVal) => {
       phone: newVal.phone,
       fax: newVal.fax,
       email: newVal.email,
+      store_map_code: newVal.mapCode,
+      store_landmark: newVal.landmark,
+      store_note: newVal.note,
+      store_location_type: newVal.locationTypeSelect,
+      store_location_type_other: newVal.locationTypeOther,
+      store_ownership: newVal.ownershipSelect,
+      store_ownership_other: newVal.ownershipOther
+    };
+    store.updateCustomerData(updates);
+  } else {
+     // Individual: Save to Store Specific Keys (which will be in snapshot)
+     const updates = {
+      store_address: newVal.houseAddress,
+      store_subdistrict: newVal.subdistrict,
+      store_zipcode: newVal.postCode,
+      store_district: newVal.district,
+      store_province: newVal.city,
+      store_phone: newVal.phone,
+      store_fax: newVal.fax,
+      store_email: newVal.email,
+
       store_map_code: newVal.mapCode,
       store_landmark: newVal.landmark,
       store_note: newVal.note,

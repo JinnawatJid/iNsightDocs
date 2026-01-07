@@ -36,7 +36,7 @@
       <!-- Address Form -->
       <div class="form-grid-three-columns">
         <div class="form-group span-2">
-          <label>ที่อยู่ (บ้านเลขที่, ถนน) </label>
+          <label>ที่อยู่ (บ้านเลขที่, ถนน) <span v-if="isRequired('address')" class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
@@ -50,7 +50,7 @@
           <span v-if="errors.houseAddress" class="error-text">{{ errors.houseAddress }}</span>
         </div>
         <div class="form-group">
-          <label>ตำบล/แขวง </label>
+          <label>ตำบล/แขวง <span v-if="isRequired('subdistrict')" class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
@@ -64,7 +64,7 @@
           <span v-if="errors.subdistrict" class="error-text">{{ errors.subdistrict }}</span>
         </div>
         <div class="form-group">
-          <label>รหัสไปรษณีย์ </label>
+          <label>รหัสไปรษณีย์ <span v-if="isRequired('zipcode')" class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
@@ -78,7 +78,7 @@
           <span v-if="errors.postCode" class="error-text">{{ errors.postCode }}</span>
         </div>
         <div class="form-group">
-          <label>อำเภอ/เขต </label>
+          <label>อำเภอ/เขต <span v-if="isRequired('district')" class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
@@ -92,7 +92,7 @@
           <span v-if="errors.district" class="error-text">{{ errors.district }}</span>
         </div>
         <div class="form-group">
-          <label>จังหวัด </label>
+          <label>จังหวัด <span v-if="isRequired('province')" class="text-red-500">*</span></label>
           <input
             type="text"
             class="form-control"
@@ -111,7 +111,7 @@
        <div class="form-grid-three-columns">
          <div class="form-group">
           <label>
-            เบอร์โทรศัพท์ 
+            เบอร์โทรศัพท์ <span v-if="isRequired('phone')" class="text-red-500">*</span>
             <span v-if="!formData.phone" class="no-data-alert">ไม่พบข้อมูล</span>
           </label>
           <input
@@ -232,6 +232,7 @@ import FileUploader from '@/components/shared/FileUploader.vue';
 import CoordinateMap from '@/components/shared/CoordinateMap.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
+import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 import iconImage from '@/assets/icons/image.svg';
 
 const props = defineProps(['readOnly']);
@@ -242,6 +243,22 @@ const isEditing = ref(!props.readOnly);
 watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
+
+// Validation Watcher
+watch(() => store.showValidationErrors, (val) => {
+    if (val) {
+        validateField('houseAddress', formData.houseAddress, ['required']);
+        validateField('subdistrict', formData.subdistrict, ['required']);
+        validateField('postCode', formData.postCode, ['required']);
+        validateField('district', formData.district, ['required']);
+        validateField('city', formData.city, ['required']);
+        validateField('phone', formData.phone, ['required', 'phone']);
+    }
+});
+
+function isRequired(storeKey) {
+    return mandatoryStoreKeys.fields.includes(storeKey);
+}
 
 const files = reactive({
   homePhoto: null,
