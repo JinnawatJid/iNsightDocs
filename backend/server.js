@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path'); // Added path module
 const db = require('./db');
 const customerRoutes = require('./routes/customerRoutes');
 const creditRequestRoutes = require('./routes/creditRequestRoutes');
@@ -26,6 +27,14 @@ app.get('/api/health', async (req, res) => {
     console.error('Health check failed:', error);
     res.status(500).json({ status: 'error', database: 'disconnected', error: error.message });
   }
+});
+
+// Serve static files from the frontend dist directory
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Handle SPA routing: Serve index.html for any unknown routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 const startServer = async () => {
