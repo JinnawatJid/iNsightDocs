@@ -6,7 +6,7 @@
         <!-- Home Photo -->
         <FileUploader
           label="รูปถ่ายบ้าน"
-          required
+          :required="isRequiredFile('home_photo')"
           accept="image/*"
           v-model="files.homePhoto"
           :disabled="!isEditing"
@@ -19,7 +19,7 @@
         <!-- Land Tax Document -->
         <FileUploader
           label="เอกสารเสียภาษีที่ดิน"
-          required
+          :required="isRequiredFile('land_tax')"
           v-model="files.landTax"
           :disabled="!isEditing"
         />
@@ -122,7 +122,7 @@
             v-model="formData.phone"
             placeholder="0XX-XXX-XXXX"
             @input="(e) => { restrictPhoneInput(e); validateField('phone', e.target.value, ['required', 'phone']); }"
-            @blur="validateField('phone', formData.phone, ['required', 'phone']); saveData('phone', formData.phone)"
+            @blur="validateField('phone', formData.phone, ['required', 'phone']);"
           />
           <span v-if="errors.phone" class="error-text">{{ errors.phone }}</span>
         </div>
@@ -135,7 +135,6 @@
             :disabled="!isEditing"
             v-model="formData.fax"
             placeholder="ระบุเบอร์แฟกซ์"
-            @blur="saveData('fax', formData.fax)"
           />
         </div>
         <div class="form-group">
@@ -147,7 +146,6 @@
             :disabled="!isEditing"
             v-model="formData.email"
             placeholder="example@email.com"
-            @blur="saveData('email', formData.email)"
           />
         </div>
        </div>
@@ -155,13 +153,13 @@
         <!-- Location Type and Ownership Grid -->
         <div class="form-grid-four-columns">
             <div class="form-group">
-               <label>ลักษณะที่ตั้ง <span v-if="isRequired('location_type')" class="text-red-500">*</span></label>
+               <label>ลักษณะที่ตั้ง <span v-if="isRequired('residence_location_type')" class="text-red-500">*</span></label>
                <select
                   class="form-control"
                   :class="{ 'border-red-500': errors.locationType, 'disabled': !isEditing }"
                   :disabled="!isEditing"
                   v-model="formData.locationTypeSelect"
-                  @change="() => { validateField('locationType', formData.locationTypeSelect, ['required']); saveData('residence_location_type', formData.locationTypeSelect); }"
+                  @change="() => { validateField('locationType', formData.locationTypeSelect, ['required']); }"
                 >
                   <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
                   <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
@@ -180,17 +178,16 @@
                   :disabled="!isEditing"
                   v-model="formData.locationTypeOther"
                   placeholder="ระบุ..."
-                  @blur="saveData('residence_location_type_other', formData.locationTypeOther)"
                 />
              </div>
              <div class="form-group">
-               <label>กรรมสิทธิ์ทรัพย์สิน <span v-if="isRequired('property_ownership')" class="text-red-500">*</span></label>
+               <label>กรรมสิทธิ์ทรัพย์สิน <span v-if="isRequired('residence_ownership')" class="text-red-500">*</span></label>
                <select
                   class="form-control"
                   :class="{ 'border-red-500': errors.propertyOwnership, 'disabled': !isEditing }"
                   :disabled="!isEditing"
                   v-model="formData.ownershipSelect"
-                  @change="() => { validateField('propertyOwnership', formData.ownershipSelect, ['required']); saveData('residence_ownership', formData.ownershipSelect); }"
+                  @change="() => { validateField('propertyOwnership', formData.ownershipSelect, ['required']); }"
                 >
                   <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
                   <option value="บ้านตนเอง">บ้านตนเอง</option>
@@ -201,7 +198,7 @@
                 <span v-if="errors.propertyOwnership" class="error-text">{{ errors.propertyOwnership }}</span>
              </div>
              <div class="form-group">
-                <label>{{ ownershipLabel }} <span v-if="isRequired('property_ownership')" class="text-red-500">*</span></label>
+                <label>{{ ownershipLabel }} <span v-if="isRequired('residence_ownership')" class="text-red-500">*</span></label>
                 <input
                   type="text"
                   class="form-control"
@@ -210,7 +207,6 @@
                   v-model="formData.ownershipOther"
                   placeholder="ระบุ..."
                   @input="validateField('ownershipValue', formData.ownershipOther, ['required'])"
-                  @blur="saveData('residence_ownership_other', formData.ownershipOther)"
                 />
                 <span v-if="errors.ownershipValue" class="error-text">{{ errors.ownershipValue }}</span>
              </div>
@@ -274,6 +270,12 @@ watch(() => store.showValidationErrors, (val) => {
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
+}
+
+function isRequiredFile(fileKey) {
+    return mandatoryStoreKeys.files.common.includes(fileKey) ||
+           mandatoryStoreKeys.files.company.includes(fileKey) ||
+           mandatoryStoreKeys.files.individual.includes(fileKey);
 }
 
 const files = reactive({
@@ -397,12 +399,6 @@ function onCoordinatesChange({ mapCode, landmark, note }) {
     residence_landmark: landmark,
     residence_note: note
   });
-}
-
-function saveData(key, value) {
-  const updates = {};
-  updates[key] = value;
-  store.saveCustomerData(updates);
 }
 
 // Watch postCode for auto-completion

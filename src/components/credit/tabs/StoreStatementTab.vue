@@ -214,10 +214,15 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import { useFormValidation } from '@/composables/useFormValidation';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
+
+// This might be overkill for just file uploads, but ensures consistency with other tabs
+// and handles potential future text inputs validation
+const { errors, validateField } = useFormValidation();
 
 const isEditing = ref(!props.readOnly);
 const analyzing = ref(false);
@@ -228,6 +233,18 @@ const showDebug = ref(false);
 watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
+
+// Validation Watcher (Boilerplate to satisfy "validation on inactive tabs" pattern)
+watch(() => store.showValidationErrors, (val) => {
+    if (val) {
+        // If we had text fields here, we would validate them like this:
+        // validateField('someField', formData.someField, ['required']);
+
+        // For files, the parent CreditRequestForm usually handles "is file present" logic and alerts.
+        // But if FileUploader supports :error prop, we could pass it.
+        // Currently FileUploader only has visual 'required' indicator.
+    }
+}, { immediate: true });
 
 const files = reactive({
   bankStatement: [],
