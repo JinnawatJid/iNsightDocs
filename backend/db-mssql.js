@@ -8,6 +8,7 @@ const config = {
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     server: process.env.DB_SERVER,
+    port: parseInt(process.env.DB_PORT) || 1433,
     database: process.env.DB_NAME,
     options: {
         encrypt: false, // Set to true if using Azure
@@ -213,7 +214,10 @@ const initDB = async () => {
             { name: 'request_amount', type: 'REAL' },
             { name: 'request_reason', type: 'NVARCHAR(MAX)' },
             { name: 'request_credit_term', type: 'REAL' },
-            { name: 'snapshot_data', type: 'NVARCHAR(MAX)' }
+            { name: 'snapshot_data', type: 'NVARCHAR(MAX)' },
+            { name: 'term_gs', type: 'INT' },
+            { name: 'term_ae', type: 'INT' },
+            { name: 'term_yc', type: 'INT' }
         ];
 
         for (const col of creditRequestColumns) {
@@ -234,6 +238,21 @@ const initDB = async () => {
             }
         }
 
+        // Migration: Copy request_credit_term to new columns if they are NULL (Legacy Data)
+        try {
+            const migrationSQL = `
+                UPDATE CreditRequests
+                SET term_gs = CAST(request_credit_term AS INT),
+                    term_ae = CAST(request_credit_term AS INT),
+                    term_yc = CAST(request_credit_term AS INT)
+                WHERE term_gs IS NULL AND request_credit_term IS NOT NULL
+            `;
+            await pool.request().query(migrationSQL);
+            console.log('Migrated legacy credit terms to new columns.');
+        } catch (e) {
+            console.error('Error migrating legacy credit terms:', e);
+        }
+
          // Create CreditRequestAttachments table
         const createCreditRequestAttachmentsSQL = `
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='CreditRequestAttachments' and xtype='U')
@@ -248,6 +267,20 @@ const initDB = async () => {
             )
         `;
         await pool.request().query(createCreditRequestAttachmentsSQL);
+
+        // Create RequestComments table
+        const createRequestCommentsSQL = `
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='RequestComments' and xtype='U')
+            CREATE TABLE RequestComments (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                tx_id NVARCHAR(255),
+                actor_role NVARCHAR(255),
+                comment_text NVARCHAR(MAX),
+                created_at DATETIME DEFAULT GETDATE(),
+                FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
+            )
+        `;
+        await pool.request().query(createRequestCommentsSQL);
 
         console.log('Database initialized (MSSQL).');
     } catch (error) {
