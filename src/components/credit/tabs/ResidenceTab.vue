@@ -266,7 +266,7 @@ watch(() => store.showValidationErrors, (val) => {
              validateField('ownershipValue', formData.ownershipOther, ['required']);
         }
     }
-});
+}, { immediate: true });
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);

@@ -510,7 +510,7 @@ watch(() => store.showValidationErrors, (val) => {
             validateField('paymentAccountNo', formData.paymentAccountNo, ['required', 'numeric']);
         }
     }
-});
+}, { immediate: true });
 
 const isDraftMode = computed(() => {
   return !store.requestStatus || store.requestStatus === 'Draft';

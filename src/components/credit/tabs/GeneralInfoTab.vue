@@ -220,7 +220,7 @@ watch(() => store.showValidationErrors, (val) => {
         validateField('mainProducts', formData.mainProducts, ['required']);
         validateField('yearsInBusiness', formData.yearsInBusiness, ['required']);
     }
-});
+}, { immediate: true });
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
