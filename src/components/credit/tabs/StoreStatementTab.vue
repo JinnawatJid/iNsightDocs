@@ -214,6 +214,7 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();

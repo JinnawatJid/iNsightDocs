@@ -33,7 +33,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     requestsList: [],
 
     // Comments
-    comments: []
+    comments: [],
+
+    // Validation State
+    showValidationErrors: false
   }),
 
   getters: {
@@ -393,6 +396,15 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.files = {};
       this.comments = [];
       this.viewingHistory = false;
+      this.showValidationErrors = false;
+    },
+
+    triggerValidation() {
+        this.showValidationErrors = true;
+    },
+
+    clearValidation() {
+        this.showValidationErrors = false;
     }
   }
 });
