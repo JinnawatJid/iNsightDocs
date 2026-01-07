@@ -18,17 +18,19 @@ export const mandatoryStoreKeys = {
         'main_products',
         'years_in_business',
 
-        // Residence & Store (shared keys logic, or specific keys)
-        // Note: For 'Store', if it's individual, we often use store_address, etc.
-        // But the primary Residence address uses these keys.
+        // Residence & Store
         'address', // houseAddress
         'subdistrict',
         'zipcode', // postCode
         'district',
         'province', // city
         'phone',
-        'location_type',
-        'property_ownership'
+
+        // Updated keys to match ResidenceTab.vue / StoreCompanyTab.vue
+        'residence_location_type',
+        'residence_ownership',
+        'store_location_type',
+        'store_ownership'
     ],
     // Files mapping to store.files keys
     files: {
@@ -43,11 +45,11 @@ export const mandatoryStoreKeys = {
             'legal_entity_certificate',
             'vat_document',
             'company_photo'
-            // Removed: company_land_tax
+            // Removed: 'company_land_tax'
         ],
         individual: [
             'store_photo'
-            // Removed: commercial_reg, store_land_tax
+            // Removed: 'commercial_reg', 'store_land_tax'
         ]
     }
 };
