@@ -4,16 +4,22 @@ require('dotenv').config();
 
 // Configuration for SA (System Administrator)
 const SA_CONFIG = {
-    user: 'sa',
-    password: 'Tng#kmitl2', // From user request
-    server: '192.192.0.220', // From user request
-    port: 50682,             // From user request
+    user: process.env.SA_USER || 'sa',
+    password: process.env.SA_PASSWORD, // Must be provided via environment variable
+    server: process.env.DB_SERVER || '192.192.0.220',
+    port: parseInt(process.env.DB_PORT) || 50682,
     database: 'master',      // Connect to master to create DBs/Logins
     options: {
         encrypt: false,
         trustServerCertificate: true
     }
 };
+
+if (!SA_CONFIG.password) {
+    console.error('Error: SA_PASSWORD environment variable is required.');
+    console.error('Usage: SA_PASSWORD=your_password node verify_mssql.js');
+    process.exit(1);
+}
 
 const NEW_DB_NAME = 'SP682';
 const NEW_USER = 'SP682';
@@ -77,6 +83,14 @@ async function main() {
             console.log(`User '${NEW_USER}' added to db_owner role.`);
         } else {
             console.log(`User '${NEW_USER}' already exists in DB.`);
+            // Fix "Orphaned User" issue if SIDs don't match (common when recreating Logins)
+            console.log(`Attempting to re-link user '${NEW_USER}' to login '${NEW_USER}' (Fix Orphaned User)...`);
+            try {
+                await pool.request().query(`ALTER USER ${NEW_USER} WITH LOGIN = ${NEW_USER}`);
+                console.log(`User '${NEW_USER}' successfully re-linked to login.`);
+            } catch (relinkErr) {
+                console.error(`Warning: Failed to re-link user. It might already be correct. Error: ${relinkErr.message}`);
+            }
         }
 
         await pool.close();
