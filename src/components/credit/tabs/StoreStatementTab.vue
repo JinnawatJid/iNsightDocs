@@ -15,7 +15,7 @@
     </div>
 
     <!-- Main Upload Section -->
-    <div class="upload-section-large">
+    <div class="upload-section-large" v-if="!store.isCompany">
       <FileUploader
         label="รายการเดินบัญชี (Bank Statement)"
         required
