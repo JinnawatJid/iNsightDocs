@@ -361,7 +361,7 @@ function saveToBackend() {
     updates.years_in_business = formData.yearsInBusiness;
 
     // Call generic action to save to DB
-    store.saveCustomerData(updates);
+    store.updateCustomerData(updates);
 }
 
 function toggleEdit() {

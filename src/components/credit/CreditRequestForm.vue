@@ -244,6 +244,10 @@ export default {
 
         if (!confirm.isConfirmed) return;
 
+        // Force Save Customer Data (Master) before creating transaction
+        // This persists all the local edits (Name, Address, Map, etc.)
+        await store.saveCustomerData(store.customer);
+
         await submitBase(targetStatus, 'ทำรายการสำเร็จ', true);
     };
 

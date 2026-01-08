@@ -23,8 +23,8 @@
                 <input
                 type="text"
                 class="form-input"
-                v-model="formData.amount"
-                @input="restrictAmount"
+                v-model="displayAmount"
+                @input="handleAmountInput"
                 @blur="saveChanges"
                 :disabled="readOnly"
                 />
@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { reactive, watch, toRefs } from 'vue';
+import { reactive, watch, toRefs, ref } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import CommentHistory from './CommentHistory.vue';
 
@@ -110,17 +110,68 @@ const formData = reactive({
   termYC: ''
 });
 
+const displayAmount = ref('');
+
 // Sync from store
 watch(transactionData, (newVal) => {
   if (newVal) {
-    if (formData.amount !== newVal.amount) formData.amount = newVal.amount;
+    if (formData.amount !== newVal.amount) {
+        formData.amount = newVal.amount;
+        // Update display amount with commas
+        if (newVal.amount) {
+            const num = parseFloat(newVal.amount);
+            displayAmount.value = isNaN(num) ? newVal.amount : num.toLocaleString();
+        } else {
+            displayAmount.value = '';
+        }
+    }
     if (formData.termGS != newVal.termGS) formData.termGS = newVal.termGS;
     if (formData.termAE != newVal.termAE) formData.termAE = newVal.termAE;
     if (formData.termYC != newVal.termYC) formData.termYC = newVal.termYC;
   }
 }, { immediate: true, deep: true });
 
-function restrictAmount(e) {
+
+
+function handleAmountInput(e) {
+  // 1. Get raw value, remove commas
+  let rawValue = e.target.value.replace(/,/g, '');
+  
+  // 2. Remove non-numeric chars (allow one dot)
+  rawValue = rawValue.replace(/[^0-9.]/g, '');
+  const parts = rawValue.split('.');
+  if (parts.length > 2) rawValue = parts[0] + '.' + parts.slice(1).join('');
+
+  // 3. Update internal formData (raw)
+  formData.amount = rawValue;
+
+  // 4. Update Display Value (Add Commas)
+  if (rawValue) {
+      const num = parseFloat(rawValue);
+      // Prevent weird behavior while typing dot (e.g. "100.")
+      if (rawValue.endsWith('.')) {
+          displayAmount.value = num.toLocaleString() + '.';
+      } else if (rawValue.includes('.') && parts[1].length > 0) {
+          // Keep decimals
+           displayAmount.value = rawValue.replace(/\d(?=(\d{3})+\.)/g, '$&,'); // Simplified regex or just use toLocale for display? 
+           // Better user experience: just format integer part if possible, but simplest is:
+           // If user is typing, we might want to just let them type and format on blur?
+           // The user ASKED for "when user type 1000 I want it to display as 1,000"
+           
+           // Robust way:
+           const parts = rawValue.split('.');
+           parts[0] = parseInt(parts[0]).toLocaleString();
+           displayAmount.value = parts.join('.');
+      } else {
+          displayAmount.value = num.toLocaleString();
+      }
+  } else {
+      displayAmount.value = '';
+  }
+}
+
+// Remove old restrictAmount if no longer used
+function restrictAmount_OLD(e) {
   let value = e.target.value.replace(/[^0-9.]/g, '');
   const parts = value.split('.');
   if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
@@ -213,6 +264,7 @@ function saveChanges() {
   width: 100%; /* Ensure full width in grid cell */
   box-sizing: border-box;
   background-color: #fff;
+  color: #333;
 }
 
 .form-input:disabled {

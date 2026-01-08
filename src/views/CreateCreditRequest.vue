@@ -27,7 +27,7 @@
         <div class="grid-col left">
           <CreditHistorySidebar
             v-if="store.hasSearched"
-            :customerName="store.customer.name"
+            :customerName="store.displayCustomer.name"
             :historyItems="store.history"
             :searched="store.hasSearched"
           />
