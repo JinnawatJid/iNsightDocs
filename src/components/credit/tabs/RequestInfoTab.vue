@@ -44,6 +44,7 @@
             :class="{ 'border-red-500': errors.contactName, 'disabled': !isEditing }"
             :disabled="!isEditing"
             v-model="formData.contactName"
+            placeholder="ระบุชื่อผู้ติดต่อ"
             @input="validateField('contactName', formData.contactName, ['required', 'text'])"
             @blur="handleBlur('contactName')"
           />
@@ -57,6 +58,7 @@
             :class="{ 'border-red-500': errors.contactPosition, 'disabled': !isEditing }"
             :disabled="!isEditing"
             v-model="formData.contactPosition"
+            placeholder="ระบุตำแหน่ง"
             @input="validateField('contactPosition', formData.contactPosition, ['required', 'text'])"
             @blur="handleBlur('contactPosition')"
           />
@@ -70,6 +72,7 @@
             :class="{ 'border-red-500': errors.contactDepartment, 'disabled': !isEditing }"
             :disabled="!isEditing"
             v-model="formData.contactDepartment"
+            placeholder="ระบุแผนก"
             @input="validateField('contactDepartment', formData.contactDepartment, ['text'])"
             @blur="handleBlur('contactDepartment')"
           />
@@ -85,6 +88,7 @@
             :class="{ 'border-red-500': errors.contactDivision, 'disabled': !isEditing }"
             :disabled="!isEditing"
             v-model="formData.contactDivision"
+            placeholder="ระบุฝ่าย"
             @input="validateField('contactDivision', formData.contactDivision, ['text'])"
             @blur="handleBlur('contactDivision')"
           />
@@ -98,6 +102,7 @@
             :class="{ 'border-red-500': errors.contactPhone, 'disabled': !isEditing }"
             :disabled="!isEditing"
             v-model="formData.contactPhone"
+            placeholder="0XX-XXX-XXXX"
             @input="validateField('contactPhone', formData.contactPhone, ['required', 'numeric'])"
             @blur="handleBlur('contactPhone')"
           />
@@ -120,7 +125,7 @@
                 class="form-input"
                 :class="{ 'border-red-500': errors.creditAmount, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                placeholder="เจ้าหน้าที่ใส่"
+                placeholder="ระบุวงเงินที่ต้องการ"
                 v-model="formData.creditAmount"
                 @input="(e) => { restrictCreditAmountInput(e); validateField('creditAmount', e.target.value, ['required', 'numeric']); }"
                 @blur="handleBlur('creditAmount')"
@@ -252,6 +257,7 @@
                   type="text"
                   class="form-input"
                   v-model="formData.billingSchedule"
+                  placeholder="ระบุวันที่/เวลา"
                   :disabled="!isEditing"
                   @blur="saveToBackend"
                 >
@@ -266,6 +272,7 @@
                       type="text"
                       class="form-input"
                       v-model="formData.billingContact"
+                      placeholder="ระบุชื่อผู้รับวางบิล"
                       :disabled="!isEditing"
                       @blur="saveToBackend"
                     >
@@ -276,6 +283,7 @@
                       type="text"
                       class="form-input"
                       v-model="formData.billingDepartment"
+                      placeholder="ระบุแผนก"
                       :disabled="!isEditing"
                       @blur="saveToBackend"
                     >
@@ -289,6 +297,7 @@
                       type="text"
                       class="form-input"
                       v-model="formData.billingPhone"
+                      placeholder="ระบุเบอร์โทรศัพท์"
                       :disabled="!isEditing"
                       @blur="saveToBackend"
                     >
@@ -299,6 +308,7 @@
                       type="text"
                       class="form-input"
                       v-model="formData.billingMobile"
+                      placeholder="ระบุเบอร์มือถือ"
                       :disabled="!isEditing"
                       @blur="saveToBackend"
                     >
@@ -309,6 +319,7 @@
                       type="text"
                       class="form-input"
                       v-model="formData.billingEmail"
+                      placeholder="ระบุอีเมล"
                       :disabled="!isEditing"
                       @blur="saveToBackend"
                     >

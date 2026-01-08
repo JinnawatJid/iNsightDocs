@@ -100,7 +100,7 @@
             :class="{ 'border-red-500': errors.subdistrict, 'disabled': !isEditing }"
             :disabled="!isEditing"
             v-model="formData.subdistrict"
-            placeholder="อัตโนมัติ"
+            placeholder="ระบุตำบล/แขวง"
             @input="validateField('subdistrict', formData.subdistrict, ['required'])"
             @blur="validateField('subdistrict', formData.subdistrict, ['required'])"
           />
@@ -128,7 +128,7 @@
             :class="{ 'border-red-500': errors.district, 'disabled': !isEditing }"
             :disabled="!isEditing"
             v-model="formData.district"
-            placeholder="อัตโนมัติ"
+            placeholder="ระบุอำเภอ/เขต"
             @input="validateField('district', formData.district, ['required'])"
             @blur="validateField('district', formData.district, ['required'])"
           />
@@ -142,7 +142,7 @@
             :class="{ 'border-red-500': errors.city, 'disabled': !isEditing }"
             :disabled="!isEditing"
             v-model="formData.city"
-            placeholder="อัตโนมัติ"
+            placeholder="ระบุจังหวัด"
             @input="validateField('city', formData.city, ['required'])"
             @blur="validateField('city', formData.city, ['required'])"
           />

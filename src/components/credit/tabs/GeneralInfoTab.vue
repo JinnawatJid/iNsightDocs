@@ -33,7 +33,7 @@
               :class="{ 'border-red-500': errors.companyName, 'disabled': !isEditing }"
               :disabled="!isEditing"
               v-model="formData.companyName"
-              placeholder="**ดึงข้อมูลจาก Dynamics**"
+              placeholder="ระบุชื่อบริษัท"
               @input="validateField('companyName', formData.companyName, ['required'])"
               @blur="handleBlur('companyName')"
             />
@@ -70,7 +70,7 @@
               :class="{ 'border-red-500': errors.authorizedName, 'disabled': !isEditing }"
               :disabled="!isEditing"
               v-model="formData.authorizedName"
-              placeholder="**ดึงข้อมูลจาก Dynamics**"
+              placeholder="ระบุชื่อผู้มีอำนาจลงนาม"
               @input="validateField('authorizedName', formData.authorizedName, ['required', 'text'])"
               @blur="handleBlur('authorizedName')"
             />
@@ -85,7 +85,7 @@
               class="form-input"
               :class="{ 'border-red-500': errors.authorizedPosition, 'disabled': !isEditing }"
               :disabled="!isEditing"
-              placeholder="เจ้าหน้าที่ใส่"
+              placeholder="ระบุตำแหน่ง"
               v-model="formData.authorizedPosition"
               @input="validateField('authorizedPosition', formData.authorizedPosition, ['required', 'text'])"
               @blur="handleBlur('authorizedPosition')"
