@@ -55,14 +55,14 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     uploadedDocumentCount: (state) => {
-      // Use the files object to count, ensuring we have actual files
-      return Object.values(state.files).filter(f => !!f).length;
+      // Use the files object to count, ensuring we have actual files and ignoring empty arrays
+      return Object.values(state.files).filter(f => f && (!Array.isArray(f) || f.length > 0)).length;
     },
 
     approvalChanceLevel: (state) => {
       // Total docs tracked = 5 (2 from GeneralInfo, 2 from Residence, 1 from RequestInfo)
       const totalDocs = 5;
-      const count = Object.values(state.files).filter(f => !!f).length;
+      const count = Object.values(state.files).filter(f => f && (!Array.isArray(f) || f.length > 0)).length;
       const ratio = count / totalDocs;
 
       if (ratio < 1 / 3) return 'Low';
@@ -72,7 +72,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     approvalChancePercent: (state) => {
       const totalDocs = 5;
-      const count = Object.values(state.files).filter(f => !!f).length;
+      const count = Object.values(state.files).filter(f => f && (!Array.isArray(f) || f.length > 0)).length;
       return Math.min(100, Math.round((count / totalDocs) * 100));
     },
 
