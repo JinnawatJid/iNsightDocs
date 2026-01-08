@@ -38,8 +38,7 @@ export const mandatoryStoreKeys = {
             'credit_application_doc', // Request Info
             'id_card', // General Info
             'home_reg', // General Info
-            'home_photo', // Residence
-            'bank_statement' // Financial
+            'home_photo' // Residence
         ],
         company: [
             'legal_entity_certificate',
@@ -48,7 +47,8 @@ export const mandatoryStoreKeys = {
             // Removed: 'company_land_tax'
         ],
         individual: [
-            'store_photo'
+            'store_photo',
+            'bank_statement' // Financial
             // Removed: 'commercial_reg', 'store_land_tax'
         ]
     }
