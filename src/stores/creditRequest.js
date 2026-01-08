@@ -6,7 +6,9 @@ import Swal from 'sweetalert2';
 export const useCreditRequestStore = defineStore('creditRequest', {
   state: () => ({
     hasSearched: false,
+    hasSearched: false,
     customer: {},
+    displayCustomer: {}, // Stable copy for sidebar display
     history: [],
     financialSummary: {},
     creditScore: {},
@@ -98,7 +100,9 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         // Populate State
         this.requestId = data.txId; // tx_id
         this.requestStatus = data.status;
+        this.requestStatus = data.status;
         this.customer = data.snapshot_data || {};
+        this.displayCustomer = { ...this.customer }; // Init display copy
         this.financialSummary = data.snapshot_data?.financial_summary || {};
         this.creditScore = data.snapshot_data?.credit_score || {};
 
@@ -192,6 +196,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           const data = results[0];
 
           this.customer = data.customer;
+          this.displayCustomer = { ...this.customer }; // Init display copy
           this.history = data.history || [];
           this.financialSummary = data.financial_summary || {};
           this.creditScore = data.credit_score || {};
@@ -351,9 +356,9 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       }
     },
 
-    // Action to persist coordinates to backend
+    // Action to persist coordinates to local state only (Saved to DB on Submit)
     async saveCustomerCoordinates(updates) {
-      await this.saveCustomerData(updates);
+      this.updateCustomerData(updates);
     },
 
     // Generic action to persist customer data to backend
@@ -362,6 +367,9 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
       // Optimistically update state
       this.updateCustomerData(updates);
+
+      // Update Display Customer as we are committing to backend
+      this.displayCustomer = { ...this.customer };
 
       try {
         await CustomerService.updateCustomer(this.customer.id, updates);

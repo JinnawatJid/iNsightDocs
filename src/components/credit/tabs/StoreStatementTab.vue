@@ -30,7 +30,7 @@
     </div>
 
     <!-- Financial Analysis Section -->
-    <div class="financial-analysis-section">
+    <div class="financial-analysis-section" v-if="['Submitted', 'Reviewed', 'Approved', 'PendingFinance (ชั่วคราว)', 'PendingSales (ชั่วคราว)'].includes(store.requestStatus)">
       <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต (Financial Analysis & Scoring)</div>
 
       <div class="upload-grid-three">

@@ -717,7 +717,7 @@ function saveToBackend() {
     updates.payment_bank_branch = formData.paymentBankBranch;
     updates.payment_account_no = formData.paymentAccountNo;
 
-    store.saveCustomerData(updates);
+    store.updateCustomerData(updates);
 }
 
 const reasonOptions = computed(() => {
