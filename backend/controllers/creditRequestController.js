@@ -302,12 +302,7 @@ exports.createCreditRequest = async (req, res) => {
     // Fetch attachments to return in response (essential for auto-resume flow)
     let attachments = [];
     if (txId) {
-         let attSql;
-         if (db.dbType === 'mssql') {
-             attSql = 'SELECT * FROM CreditRequestAttachments WHERE tx_id = ?';
-         } else {
-             attSql = 'SELECT * FROM CreditRequestAttachments WHERE tx_id = ?';
-         }
+         const attSql = 'SELECT * FROM CreditRequestAttachments WHERE tx_id = ?';
          const { rows } = await db.query(attSql, [txId]);
          attachments = rows || [];
     }
