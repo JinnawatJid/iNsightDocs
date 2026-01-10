@@ -21,16 +21,6 @@
     <div class="personal-info-section">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลผู้ติดต่อ</h3>
-        <!-- Checkbox hidden as per requirement -->
-        <div class="checkbox-wrapper" v-if="false">
-          <input
-            type="checkbox"
-            id="sameAsAuthorized"
-            v-model="isSameAsAuthorized"
-            :disabled="!isEditing"
-          />
-          <label for="sameAsAuthorized">ข้อมูลเดียวกับผู้มีอำนาจลงนาม</label>
-        </div>
       </div>
 
       <!-- New Layout: 2 Rows -->
@@ -41,42 +31,33 @@
           <input
             type="text"
             class="form-input"
-            :class="{ 'border-red-500': errors.contactName, 'disabled': !isEditing }"
+            :class="{ 'border-red-500': errors.contact_person, 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.contactName"
+            v-model="store.customer.contact_person"
             placeholder="ระบุชื่อผู้ติดต่อ"
-            @input="validateField('contactName', formData.contactName, ['required', 'text'])"
-            @blur="handleBlur('contactName')"
           />
-          <span v-if="errors.contactName" class="error-text">{{ errors.contactName }}</span>
         </div>
         <div class="form-group">
           <label>ตำแหน่ง <span v-if="isRequired('contact_position')" class="text-red-500">*</span></label>
            <input
             type="text"
             class="form-input"
-            :class="{ 'border-red-500': errors.contactPosition, 'disabled': !isEditing }"
+            :class="{ 'border-red-500': errors.contact_position, 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.contactPosition"
+            v-model="store.customer.contact_position"
             placeholder="ระบุตำแหน่ง"
-            @input="validateField('contactPosition', formData.contactPosition, ['required', 'text'])"
-            @blur="handleBlur('contactPosition')"
           />
-          <span v-if="errors.contactPosition" class="error-text">{{ errors.contactPosition }}</span>
         </div>
         <div class="form-group">
           <label>แผนก</label>
            <input
             type="text"
             class="form-input"
-            :class="{ 'border-red-500': errors.contactDepartment, 'disabled': !isEditing }"
+            :class="{ 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.contactDepartment"
+            v-model="store.customer.contact_department"
             placeholder="ระบุแผนก"
-            @input="validateField('contactDepartment', formData.contactDepartment, ['text'])"
-            @blur="handleBlur('contactDepartment')"
           />
-          <span v-if="errors.contactDepartment" class="error-text">{{ errors.contactDepartment }}</span>
         </div>
 
         <!-- Row 2 -->
@@ -85,28 +66,23 @@
            <input
             type="text"
             class="form-input"
-            :class="{ 'border-red-500': errors.contactDivision, 'disabled': !isEditing }"
+            :class="{ 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.contactDivision"
+            v-model="store.customer.contact_division"
             placeholder="ระบุฝ่าย"
-            @input="validateField('contactDivision', formData.contactDivision, ['text'])"
-            @blur="handleBlur('contactDivision')"
           />
-          <span v-if="errors.contactDivision" class="error-text">{{ errors.contactDivision }}</span>
         </div>
         <div class="form-group">
           <label>เบอร์โทรผู้ติดต่อ <span v-if="isRequired('contact_phone_number')" class="text-red-500">*</span></label>
            <input
             type="text"
             class="form-input"
-            :class="{ 'border-red-500': errors.contactPhone, 'disabled': !isEditing }"
+            :class="{ 'border-red-500': errors.contact_phone_number, 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.contactPhone"
+            v-model="store.customer.contact_phone_number"
             placeholder="0XX-XXX-XXXX"
-            @input="validateField('contactPhone', formData.contactPhone, ['required', 'numeric'])"
-            @blur="handleBlur('contactPhone')"
+            @input="(e) => handlePhoneInput(e, 'contact_phone_number')"
           />
-          <span v-if="errors.contactPhone" class="error-text">{{ errors.contactPhone }}</span>
         </div>
         <div class="form-group"></div> <!-- Empty Placeholder -->
       </div>
@@ -123,14 +99,12 @@
               <input
                 type="text"
                 class="form-input"
-                :class="{ 'border-red-500': errors.creditAmount, 'disabled': !isEditing }"
+                :class="{ 'border-red-500': errors.amount, 'disabled': !isEditing }"
                 :disabled="!isEditing"
                 placeholder="ระบุวงเงินที่ต้องการ"
-                v-model="formData.creditAmount"
-                @input="(e) => { restrictCreditAmountInput(e); validateField('creditAmount', e.target.value, ['required', 'numeric']); }"
-                @blur="handleBlur('creditAmount')"
+                v-model="store.transactionData.amount"
+                @input="restrictCreditAmountInput"
               />
-              <span v-if="errors.creditAmount" class="error-text">{{ errors.creditAmount }}</span>
             </div>
 
             <!-- New Split Terms for Draft Mode -->
@@ -142,9 +116,8 @@
                   class="form-input"
                   :class="{ 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formData.termGS"
-                  @input="(e) => { e.target.value = e.target.value.replace(/\D/g, ''); formData.termGS = e.target.value; }"
-                  @blur="saveToBackend"
+                  v-model="store.transactionData.termGS"
+                  @input="(e) => handleNumericInput(e, 'termGS', true)"
                 />
               </div>
               <div class="form-group">
@@ -154,9 +127,8 @@
                   class="form-input"
                   :class="{ 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formData.termAE"
-                  @input="(e) => { e.target.value = e.target.value.replace(/\D/g, ''); formData.termAE = e.target.value; }"
-                  @blur="saveToBackend"
+                  v-model="store.transactionData.termAE"
+                  @input="(e) => handleNumericInput(e, 'termAE', true)"
                 />
               </div>
               <div class="form-group">
@@ -166,9 +138,8 @@
                   class="form-input"
                   :class="{ 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formData.termYC"
-                  @input="(e) => { e.target.value = e.target.value.replace(/\D/g, ''); formData.termYC = e.target.value; }"
-                  @blur="saveToBackend"
+                  v-model="store.transactionData.termYC"
+                  @input="(e) => handleNumericInput(e, 'termYC', true)"
                 />
               </div>
             </template>
@@ -177,18 +148,15 @@
               <label>เหตุผลการขอเครดิต <span v-if="isRequired('reason')" class="text-red-500">*</span></label>
               <select
                 class="form-input"
-                :class="{ 'border-red-500': errors.creditReason, 'disabled': !isEditing }"
+                :class="{ 'border-red-500': errors.reason, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="formData.creditReason"
-                @change="onCreditReasonChange"
-                @blur="onCreditReasonChange"
+                v-model="store.transactionData.reason"
               >
                   <option value="" disabled>เลือกเหตุผล</option>
                   <option v-for="option in reasonOptions" :key="option" :value="option">
                     {{ option }}
                   </option>
               </select>
-              <span v-if="errors.creditReason" class="error-text">{{ errors.creditReason }}</span>
             </div>
       </div>
 
@@ -201,36 +169,33 @@
                <label>ต้องมีการวางบิลหรือไม่ <span v-if="isRequired('billing_requirement')" class="text-red-500">*</span></label>
                <select
                   class="form-input"
-                  :class="{ 'border-red-500': errors.billingRequirement, 'disabled': !isEditing }"
+                  :class="{ 'border-red-500': errors.billing_requirement, 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formData.billingRequirement"
-                  @change="saveToBackend"
+                  v-model="store.customer.billing_requirement"
                 >
                     <option value="required">ต้องการ</option>
                     <option value="not_required">ไม่ต้องการ</option>
                     <option value="other">อื่นๆ (ระบุ)</option>
                 </select>
                 <!-- Other Input for Requirement -->
-                <div v-if="formData.billingRequirement === 'other'" style="margin-top: 10px;">
+                <div v-if="store.customer.billing_requirement === 'other'" style="margin-top: 10px;">
                     <input
                         type="text"
                         class="form-input"
                         placeholder="ระบุ (ถ้ามี)"
-                        v-model="formData.billingRequirementNote"
+                        v-model="store.customer.billing_requirement_note"
                         :disabled="!isEditing"
-                        @blur="saveToBackend"
                     >
                 </div>
             </div>
 
-            <div class="form-group" v-if="formData.billingRequirement === 'required'">
+            <div class="form-group" v-if="store.customer.billing_requirement === 'required'">
                <label>กรณีต้องวางบิลขอให้เลือกวิธีวางบิล</label>
                <select
                   class="form-input"
                   :class="{ 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formData.billingMethod"
-                  @change="saveToBackend"
+                  v-model="store.customer.billing_method"
                 >
                     <option value="delivery">พร้อมการส่งมอบสินค้า</option>
                     <option value="mail">ทางไปรษณีย์</option>
@@ -238,43 +203,40 @@
                     <option value="other">อื่นๆ</option>
                 </select>
                  <!-- Other Input for Method -->
-                 <div v-if="formData.billingMethod === 'other'" style="margin-top: 10px;">
+                 <div v-if="store.customer.billing_method === 'other'" style="margin-top: 10px;">
                     <input
                         type="text"
                         class="form-input"
                         placeholder="ระบุ"
-                        v-model="formData.billingMethodNote"
+                        v-model="store.customer.billing_method_note"
                         :disabled="!isEditing"
-                        @blur="saveToBackend"
                     >
                 </div>
             </div>
 
             <!-- Billing Schedule (Moved here, ensuring 3rd slot) -->
-            <div class="form-group" v-if="formData.billingRequirement !== 'not_required'">
+            <div class="form-group" v-if="store.customer.billing_requirement !== 'not_required'">
                 <label>กำหนดวัน-เวลาวางบิล</label>
                 <input
                   type="text"
                   class="form-input"
-                  v-model="formData.billingSchedule"
+                  v-model="store.customer.billing_schedule"
                   placeholder="ระบุวันที่/เวลา"
                   :disabled="!isEditing"
-                  @blur="saveToBackend"
                 >
              </div>
         </div>
 
-        <div v-if="formData.billingRequirement !== 'not_required'">
+        <div v-if="store.customer.billing_requirement !== 'not_required'">
             <div class="billing-details-grid">
                  <div class="form-group full-width">
                     <label>ชื่อผู้ติดต่อรับวางบิล</label>
                     <input
                       type="text"
                       class="form-input"
-                      v-model="formData.billingContact"
+                      v-model="store.customer.billing_contact"
                       placeholder="ระบุชื่อผู้รับวางบิล"
                       :disabled="!isEditing"
-                      @blur="saveToBackend"
                     >
                  </div>
                  <div class="form-group full-width">
@@ -282,10 +244,9 @@
                     <input
                       type="text"
                       class="form-input"
-                      v-model="formData.billingDepartment"
+                      v-model="store.customer.billing_department"
                       placeholder="ระบุแผนก"
                       :disabled="!isEditing"
-                      @blur="saveToBackend"
                     >
                  </div>
             </div>
@@ -296,10 +257,9 @@
                     <input
                       type="text"
                       class="form-input"
-                      v-model="formData.billingPhone"
+                      v-model="store.customer.billing_phone"
                       placeholder="ระบุเบอร์โทรศัพท์"
                       :disabled="!isEditing"
-                      @blur="saveToBackend"
                     >
                  </div>
                  <div class="form-group">
@@ -307,10 +267,9 @@
                     <input
                       type="text"
                       class="form-input"
-                      v-model="formData.billingMobile"
+                      v-model="store.customer.billing_mobile"
                       placeholder="ระบุเบอร์มือถือ"
                       :disabled="!isEditing"
-                      @blur="saveToBackend"
                     >
                  </div>
                  <div class="form-group">
@@ -318,10 +277,9 @@
                     <input
                       type="text"
                       class="form-input"
-                      v-model="formData.billingEmail"
+                      v-model="store.customer.billing_email"
                       placeholder="ระบุอีเมล"
                       :disabled="!isEditing"
-                      @blur="saveToBackend"
                     >
                  </div>
             </div>
@@ -339,74 +297,63 @@
                 <label>ชำระเงินโดย <span v-if="isRequired('payment_method')" class="text-red-500">*</span></label>
                 <select
                 class="form-input"
-                :class="{ 'border-red-500': errors.paymentMethod, 'disabled': !isEditing }"
+                :class="{ 'border-red-500': errors.payment_method, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="formData.paymentMethod"
-                @change="onPaymentMethodChange"
+                v-model="store.customer.payment_method"
                 >
                 <option value="" disabled>เลือกวิธีการชำระเงิน</option>
                 <option value="โอนเงิน">โอนเงิน</option>
                 <option value="รับเช็ค">รับเช็ค</option>
                 </select>
-                <span v-if="errors.paymentMethod" class="error-text">{{ errors.paymentMethod }}</span>
             </div>
 
              <!-- Conditional Payment Condition Input -->
-             <div class="form-group" v-if="formData.paymentMethod">
-                <label>{{ formData.paymentMethod === 'โอนเงิน' ? 'เงื่อนไขการโอนเงิน' : 'เงื่อนไขการรับเช็ค' }}</label>
+             <div class="form-group" v-if="store.customer.payment_method">
+                <label>{{ store.customer.payment_method === 'โอนเงิน' ? 'เงื่อนไขการโอนเงิน' : 'เงื่อนไขการรับเช็ค' }}</label>
                 <input
                     type="text"
                     class="form-input"
-                    v-model="formData.paymentCondition"
+                    v-model="store.customer.payment_condition"
                     :disabled="!isEditing"
-                    @blur="saveToBackend"
                 />
             </div>
         </div>
 
         <!-- Bank Details Grid (Visible only when method is selected) -->
-        <div v-if="formData.paymentMethod" class="form-grid-three-columns">
+        <div v-if="store.customer.payment_method" class="form-grid-three-columns">
             <div class="form-group">
             <label>จากบัญชีธนาคาร </label>
             <input
                 type="text"
                 class="form-input"
-                :class="{ 'border-red-500': errors.paymentBankName, 'disabled': !isEditing }"
+                :class="{ 'border-red-500': errors.payment_bank_name, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="formData.paymentBankName"
+                v-model="store.customer.payment_bank_name"
                 placeholder="ระบุชื่อธนาคาร"
-                @input="validateField('paymentBankName', formData.paymentBankName, ['required'])"
-                @blur="saveToBackend(); validateField('paymentBankName', formData.paymentBankName, ['required'])"
             />
-            <span v-if="errors.paymentBankName" class="error-text">{{ errors.paymentBankName }}</span>
             </div>
             <div class="form-group">
             <label>สาขา </label>
             <input
                 type="text"
                 class="form-input"
-                :class="{ 'border-red-500': errors.paymentBankBranch, 'disabled': !isEditing }"
+                :class="{ 'border-red-500': errors.payment_bank_branch, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="formData.paymentBankBranch"
+                v-model="store.customer.payment_bank_branch"
                 placeholder="ระบุสาขา"
-                @input="validateField('paymentBankBranch', formData.paymentBankBranch, ['required'])"
-                @blur="saveToBackend(); validateField('paymentBankBranch', formData.paymentBankBranch, ['required'])"
             />
-            <span v-if="errors.paymentBankBranch" class="error-text">{{ errors.paymentBankBranch }}</span>
             </div>
             <div class="form-group">
             <label>เลขที่บัญชี </label>
             <input
                 type="text"
                 class="form-input"
-                :class="{ 'border-red-500': errors.paymentAccountNo, 'disabled': !isEditing }"
+                :class="{ 'border-red-500': errors.payment_account_no, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="formData.paymentAccountNo"
+                v-model="store.customer.payment_account_no"
                 placeholder="ระบุเลขที่บัญชี"
-                @input="(e) => { restrictPhoneInput(e); validateField('paymentAccountNo', e.target.value, ['required', 'numeric']); }"
-                @blur="saveToBackend(); validateField('paymentAccountNo', formData.paymentAccountNo, ['required', 'numeric'])"
+                @input="(e) => handlePhoneInput(e, 'payment_account_no')"
             />
-            <span v-if="errors.paymentAccountNo" class="error-text">{{ errors.paymentAccountNo }}</span>
             </div>
         </div>
 
@@ -421,7 +368,7 @@
       </div>
 
       <div class="credit-history-container">
-        <div v-for="(item, index) in existingCredits" :key="index" class="credit-history-row">
+        <div v-for="(item, index) in store.customer.existing_credits" :key="index" class="credit-history-row">
             <div class="row-index">{{ index + 1 }}.</div>
             <div class="form-group flex-grow">
                 <label>ชื่อบริษัท</label>
@@ -430,7 +377,6 @@
                   class="form-input"
                   v-model="item.companyName"
                   :disabled="!isEditing"
-                  @blur="saveExistingCredits"
                 />
             </div>
             <div class="form-group flex-grow">
@@ -440,7 +386,6 @@
                   class="form-input"
                   v-model="item.goods"
                   :disabled="!isEditing"
-                  @blur="saveExistingCredits"
                 />
             </div>
             <div class="form-group small-width">
@@ -450,7 +395,6 @@
                   class="form-input"
                   v-model="item.term"
                   :disabled="!isEditing"
-                  @blur="saveExistingCredits"
                   @input="(e) => { e.target.value = e.target.value.replace(/\D/g, ''); item.term = e.target.value; }"
                 />
             </div>
@@ -461,8 +405,7 @@
                   class="form-input"
                   v-model="item.limit"
                   :disabled="!isEditing"
-                  @blur="saveExistingCredits"
-                  @input="(e) => { restrictLocalCreditInput(e, item, 'limit'); }"
+                  @input="(e) => restrictLocalCreditInput(e, item, 'limit')"
                 />
             </div>
             <div class="action-col" v-if="isEditing">
@@ -484,19 +427,15 @@
 import { reactive, watch, ref, computed } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
-import { useFormValidation } from '@/composables/useFormValidation';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
-const { errors, validateField, restrictCreditAmountInput, restrictPhoneInput } = useFormValidation();
 
 const isEditing = ref(!props.readOnly);
 watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
-
-
 
 const isDraftMode = computed(() => {
   return !store.requestStatus || store.requestStatus === 'Draft';
@@ -506,8 +445,35 @@ function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
 }
 
-// Checkbox logic (kept but unused/hidden for now)
-const isSameAsAuthorized = ref(false);
+// Simple computed error object based on store's validation logic
+// We can check if field is missing IF showValidationErrors is true
+const errors = computed(() => {
+    if (!store.showValidationErrors) return {};
+
+    // Check fields
+    const e = {};
+    const check = (key, val) => {
+        if (!val || (typeof val === 'string' && val.trim() === '')) {
+            e[key] = true;
+        }
+    };
+
+    check('contact_person', store.customer.contact_person);
+    check('contact_position', store.customer.contact_position);
+    check('contact_phone_number', store.customer.contact_phone_number);
+    check('amount', store.transactionData.amount);
+    check('reason', store.transactionData.reason);
+    check('billing_requirement', store.customer.billing_requirement);
+    check('payment_method', store.customer.payment_method);
+
+    if (store.customer.payment_method) {
+        check('payment_bank_name', store.customer.payment_bank_name);
+        check('payment_bank_branch', store.customer.payment_bank_branch);
+        check('payment_account_no', store.customer.payment_account_no);
+    }
+
+    return e;
+});
 
 const files = reactive({
   creditApp: null,
@@ -529,208 +495,6 @@ watch(() => store.files, (newVal) => {
   files.quotation = newVal?.quotation_doc || null;
 }, { immediate: true, deep: true });
 
-const formData = reactive({
-  contactName: '',
-  contactPosition: '',
-  contactDepartment: '',
-  contactDivision: '',
-  contactPhone: '',
-  creditAmount: '',
-  creditTerm: '', // Legacy
-  termGS: '',
-  termAE: '',
-  termYC: '',
-  creditReason: '',
-  // Billing Info
-  billingRequirement: 'not_required', // default
-  billingRequirementNote: '',
-  billingMethod: '',
-  billingMethodNote: '',
-  billingSchedule: '',
-  billingContact: '',
-  billingDepartment: '',
-  billingPhone: '',
-  billingMobile: '',
-  billingEmail: '',
-  // Payment Details
-  paymentMethod: '',
-  paymentCondition: '',
-  paymentBankName: '',
-  paymentBankBranch: '',
-  paymentAccountNo: ''
-});
-
-const existingCredits = ref([
-  { companyName: '', goods: '', term: '', limit: '' }
-]);
-
-// Initialize from store
-watch(() => store.customer, (newVal) => {
-  if (newVal) {
-    // Existing Credits Init
-    if (newVal.existing_credits) {
-       // If it's already an array (parsed by backend logic)
-       if (Array.isArray(newVal.existing_credits)) {
-           existingCredits.value = newVal.existing_credits.length > 0 ? newVal.existing_credits : [{ companyName: '', goods: '', term: '', limit: '' }];
-       } else if (typeof newVal.existing_credits === 'string') {
-           // Fallback if string
-           try {
-               const parsed = JSON.parse(newVal.existing_credits);
-               existingCredits.value = parsed.length > 0 ? parsed : [{ companyName: '', goods: '', term: '', limit: '' }];
-           } catch (e) {
-               console.error("Failed to parse existing_credits", e);
-               existingCredits.value = [{ companyName: '', goods: '', term: '', limit: '' }];
-           }
-       }
-    } else {
-        // Default state if nothing in store
-        existingCredits.value = [{ companyName: '', goods: '', term: '', limit: '' }];
-    }
-
-    const contact = (newVal.contact_person !== undefined && newVal.contact_person !== null)
-      ? newVal.contact_person
-      : '';
-
-    if (formData.contactName !== contact) formData.contactName = contact;
-    if (formData.contactPosition !== newVal.contact_position) formData.contactPosition = newVal.contact_position || '';
-    if (formData.contactPhone !== newVal.contact_phone_number) formData.contactPhone = newVal.contact_phone_number || '';
-    if (formData.contactDepartment !== newVal.contact_department) formData.contactDepartment = newVal.contact_department || '';
-    if (formData.contactDivision !== newVal.contact_division) formData.contactDivision = newVal.contact_division || '';
-
-    // Billing Info Initialization
-    if (formData.billingRequirement !== newVal.billing_requirement && newVal.billing_requirement) formData.billingRequirement = newVal.billing_requirement;
-    if (formData.billingRequirementNote !== newVal.billing_requirement_note) formData.billingRequirementNote = newVal.billing_requirement_note || '';
-    if (formData.billingMethod !== newVal.billing_method) formData.billingMethod = newVal.billing_method || '';
-    if (formData.billingMethodNote !== newVal.billing_method_note) formData.billingMethodNote = newVal.billing_method_note || '';
-    if (formData.billingSchedule !== newVal.billing_schedule) formData.billingSchedule = newVal.billing_schedule || '';
-    if (formData.billingContact !== newVal.billing_contact) formData.billingContact = newVal.billing_contact || '';
-    if (formData.billingDepartment !== newVal.billing_department) formData.billingDepartment = newVal.billing_department || '';
-    if (formData.billingPhone !== newVal.billing_phone) formData.billingPhone = newVal.billing_phone || '';
-    if (formData.billingMobile !== newVal.billing_mobile) formData.billingMobile = newVal.billing_mobile || '';
-    if (formData.billingEmail !== newVal.billing_email) formData.billingEmail = newVal.billing_email || '';
-
-    // Payment Info Initialization
-    if (formData.paymentMethod !== newVal.payment_method) formData.paymentMethod = newVal.payment_method || '';
-    if (formData.paymentCondition !== newVal.payment_condition) formData.paymentCondition = newVal.payment_condition || '';
-    if (formData.paymentBankName !== newVal.payment_bank_name) formData.paymentBankName = newVal.payment_bank_name || '';
-    if (formData.paymentBankBranch !== newVal.payment_bank_branch) formData.paymentBankBranch = newVal.payment_bank_branch || '';
-    if (formData.paymentAccountNo !== newVal.payment_account_no) formData.paymentAccountNo = newVal.payment_account_no || '';
-  }
-}, { immediate: true, deep: true });
-
-// Initialize Transaction Data from store
-watch(() => store.transactionData, (newVal) => {
-    if (newVal) {
-        if (newVal.amount && formData.creditAmount !== newVal.amount) {
-             formData.creditAmount = newVal.amount;
-        }
-        if (newVal.reason !== undefined && formData.creditReason !== newVal.reason) {
-             formData.creditReason = newVal.reason;
-        }
-        if (newVal.creditTerm && formData.creditTerm !== newVal.creditTerm) {
-             formData.creditTerm = newVal.creditTerm;
-        }
-        if (newVal.termGS && formData.termGS !== newVal.termGS) {
-             formData.termGS = newVal.termGS;
-        }
-        if (newVal.termAE && formData.termAE !== newVal.termAE) {
-             formData.termAE = newVal.termAE;
-        }
-        if (newVal.termYC && formData.termYC !== newVal.termYC) {
-             formData.termYC = newVal.termYC;
-        }
-    }
-}, { immediate: true, deep: true });
-
-// Sync changes locally to store
-watch(formData, (newVal) => {
-  const updates = {};
-  updates.contact_person = newVal.contactName;
-  updates.contact_position = newVal.contactPosition;
-  updates.contact_phone_number = newVal.contactPhone;
-  updates.contact_department = newVal.contactDepartment;
-  updates.contact_division = newVal.contactDivision;
-
-  // Billing Info Updates
-  updates.billing_requirement = newVal.billingRequirement;
-  updates.billing_requirement_note = newVal.billingRequirementNote;
-  updates.billing_method = newVal.billingMethod;
-  updates.billing_method_note = newVal.billingMethodNote;
-  updates.billing_schedule = newVal.billingSchedule;
-  updates.billing_contact = newVal.billingContact;
-  updates.billing_department = newVal.billingDepartment;
-  updates.billing_phone = newVal.billingPhone;
-  updates.billing_mobile = newVal.billingMobile;
-  updates.billing_email = newVal.billingEmail;
-
-  // Payment Info Updates
-  updates.payment_method = newVal.paymentMethod;
-  updates.payment_condition = newVal.paymentCondition;
-  updates.payment_bank_name = newVal.paymentBankName;
-  updates.payment_bank_branch = newVal.paymentBankBranch;
-  updates.payment_account_no = newVal.paymentAccountNo;
-
-  // Update store
-  store.updateCustomerData(updates);
-
-  store.updateTransactionData({
-    amount: newVal.creditAmount,
-    reason: newVal.creditReason,
-    creditTerm: newVal.creditTerm,
-    termGS: newVal.termGS,
-    termAE: newVal.termAE,
-    termYC: newVal.termYC
-  });
-}, { deep: true });
-
-function handleBlur(field) {
-    if (field === 'contactName') {
-        validateField('contactName', formData.contactName, ['required', 'text']);
-    } else if (field === 'contactPosition') {
-        validateField('contactPosition', formData.contactPosition, ['required', 'text']);
-    } else if (field === 'contactPhone') {
-        validateField('contactPhone', formData.contactPhone, ['required', 'numeric']);
-    } else if (field === 'creditAmount') {
-        validateField('creditAmount', formData.creditAmount, ['required', 'numeric']);
-    } else if (field === 'contactDepartment') {
-        validateField('contactDepartment', formData.contactDepartment, ['text']);
-    } else if (field === 'contactDivision') {
-        validateField('contactDivision', formData.contactDivision, ['text']);
-    }
-
-    saveToBackend();
-}
-
-function saveToBackend() {
-    const updates = {};
-    updates.contact_person = formData.contactName;
-    updates.contact_position = formData.contactPosition;
-    updates.contact_phone_number = formData.contactPhone;
-    updates.contact_department = formData.contactDepartment;
-    updates.contact_division = formData.contactDivision;
-
-    // Billing Info Save
-    updates.billing_requirement = formData.billingRequirement;
-    updates.billing_requirement_note = formData.billingRequirementNote;
-    updates.billing_method = formData.billingMethod;
-    updates.billing_method_note = formData.billingMethodNote;
-    updates.billing_schedule = formData.billingSchedule;
-    updates.billing_contact = formData.billingContact;
-    updates.billing_department = formData.billingDepartment;
-    updates.billing_phone = formData.billingPhone;
-    updates.billing_mobile = formData.billingMobile;
-    updates.billing_email = formData.billingEmail;
-
-    // Payment Info Save
-    updates.payment_method = formData.paymentMethod;
-    updates.payment_condition = formData.paymentCondition;
-    updates.payment_bank_name = formData.paymentBankName;
-    updates.payment_bank_branch = formData.paymentBankBranch;
-    updates.payment_account_no = formData.paymentAccountNo;
-
-    store.updateCustomerData(updates);
-}
-
 const reasonOptions = computed(() => {
   const standardOptions = [
     'ขออนุมัติเครดิตล่วงหน้า (ยังไม่มีใบสั่งซื้อ)',
@@ -738,42 +502,55 @@ const reasonOptions = computed(() => {
   ];
 
   // If current value is not in standard options and is not empty, add it (Legacy support)
-  if (formData.creditReason && !standardOptions.includes(formData.creditReason)) {
-    return [formData.creditReason, ...standardOptions];
+  if (store.transactionData.reason && !standardOptions.includes(store.transactionData.reason)) {
+    return [store.transactionData.reason, ...standardOptions];
   }
 
   return standardOptions;
 });
 
-function onCreditReasonChange() {
-  validateField('creditReason', formData.creditReason, ['required']);
-  saveToBackend();
-}
-
-function onPaymentMethodChange() {
-  validateField('paymentMethod', formData.paymentMethod, ['required']);
-  saveToBackend();
-}
-
 function addCreditRow() {
-    existingCredits.value.push({ companyName: '', goods: '', term: '', limit: '' });
+    if (!store.customer.existing_credits) store.customer.existing_credits = [];
+    store.customer.existing_credits.push({ companyName: '', goods: '', term: '', limit: '' });
 }
 
 function removeCreditRow(index) {
-    if (existingCredits.value.length > 1) {
-        existingCredits.value.splice(index, 1);
-        saveExistingCredits();
+    if (store.customer.existing_credits.length > 1) {
+        store.customer.existing_credits.splice(index, 1);
     } else {
         // If only 1 row, just clear it
-        existingCredits.value[0] = { companyName: '', goods: '', term: '', limit: '' };
-        saveExistingCredits();
+        store.customer.existing_credits[0] = { companyName: '', goods: '', term: '', limit: '' };
     }
 }
 
-function saveExistingCredits() {
-    // We send the array; the controller or save logic handles stringification if needed,
-    // but based on my controller update, I should send an object/array and let controller stringify.
-    store.saveCustomerData({ existing_credits: existingCredits.value });
+// Helper for credit amount input formatting
+function restrictCreditAmountInput(e) {
+    let value = e.target.value.replace(/[^0-9.]/g, '');
+    const parts = value.split('.');
+    if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
+
+    // Update model directly
+    store.transactionData.amount = value;
+    e.target.value = value;
+}
+
+// Helper for phone/numeric inputs to ensure model update
+function handlePhoneInput(e, storeKey) {
+    const value = e.target.value.replace(/\D/g, '');
+    e.target.value = value;
+    // Explicitly update store
+    store.customer[storeKey] = value;
+}
+
+// Generic numeric input handler for transaction data
+function handleNumericInput(e, storeKey, isTransactionData = false) {
+    const value = e.target.value.replace(/\D/g, '');
+    e.target.value = value;
+    if (isTransactionData) {
+        store.transactionData[storeKey] = value;
+    } else {
+        store.customer[storeKey] = value;
+    }
 }
 
 // Helper for number input in loop
@@ -785,32 +562,6 @@ function restrictLocalCreditInput(e, item, field) {
     item[field] = value;
 }
 
-// Validation Watcher (Moved to end to avoid TDZ)
-watch(() => store.showValidationErrors, (val) => {
-    if (val) {
-        // Trigger validation for all fields
-        validateField('contactName', formData.contactName, ['required', 'text']);
-        validateField('contactPosition', formData.contactPosition, ['required', 'text']);
-        validateField('contactPhone', formData.contactPhone, ['required', 'numeric']);
-
-        // Billing Info
-        validateField('billingRequirement', formData.billingRequirement, ['required']);
-
-        // Payment Info
-        validateField('paymentMethod', formData.paymentMethod, ['required']);
-
-        if (isDraftMode.value) {
-           validateField('creditAmount', formData.creditAmount, ['required', 'numeric']);
-           validateField('creditReason', formData.creditReason, ['required']);
-        }
-        if (formData.paymentMethod) {
-            validateField('paymentMethod', formData.paymentMethod, ['required']);
-            validateField('paymentBankName', formData.paymentBankName, ['required']);
-            validateField('paymentBankBranch', formData.paymentBankBranch, ['required']);
-            validateField('paymentAccountNo', formData.paymentAccountNo, ['required', 'numeric']);
-        }
-    }
-}, { immediate: true });
 </script>
 
 <style scoped>
@@ -842,13 +593,6 @@ watch(() => store.showValidationErrors, (val) => {
 
 .border-red-500 {
   border-color: #ef4444 !important;
-}
-
-.error-text {
-  color: #ef4444;
-  font-size: 0.8em;
-  margin-top: 4px;
-  display: block;
 }
 
 /* Ensure disabled style is consistent */
@@ -884,10 +628,7 @@ watch(() => store.showValidationErrors, (val) => {
 .billing-info-section {
   display: flex;
   flex-direction: column;
-  /* gap: 20px; Removed gap as requested */
 }
-
-/* Removed old .billing-dropdown-grid since we use .form-grid-three-columns now */
 
 .billing-details-grid {
     display: grid;
@@ -899,7 +640,7 @@ watch(() => store.showValidationErrors, (val) => {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 15px;
-    margin-top: 15px; /* Added margin as requested */
+    margin-top: 15px;
 }
 
 .full-width {

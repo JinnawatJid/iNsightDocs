@@ -1,7 +1,7 @@
 <template>
   <div class="credit-review-section unified-card">
     <div class="review-header">
-      <h4>บันทึกการพิจารณา (Review & Comments)</h4>
+      <h4>บันทึกการพิจารณา</h4>
       <span v-if="showTerms" class="role-badge">สำหรับผู้จัดการและฝ่ายสินเชื่อ</span>
     </div>
 
@@ -23,9 +23,8 @@
                 <input
                 type="text"
                 class="form-input"
-                v-model="displayAmount"
+                v-model="store.transactionData.amount"
                 @input="handleAmountInput"
-                @blur="saveChanges"
                 :disabled="readOnly"
                 />
             </div>
@@ -35,9 +34,8 @@
                 <input
                 type="text"
                 class="form-input"
-                v-model="formData.termGS"
+                v-model="store.transactionData.termGS"
                 @input="restrictNumber('termGS', $event)"
-                @blur="saveChanges"
                 :disabled="readOnly"
                 placeholder="0"
                 />
@@ -47,9 +45,8 @@
                 <input
                 type="text"
                 class="form-input"
-                v-model="formData.termAE"
+                v-model="store.transactionData.termAE"
                 @input="restrictNumber('termAE', $event)"
-                @blur="saveChanges"
                 :disabled="readOnly"
                 placeholder="0"
                 />
@@ -59,9 +56,8 @@
                 <input
                 type="text"
                 class="form-input"
-                v-model="formData.termYC"
+                v-model="store.transactionData.termYC"
                 @input="restrictNumber('termYC', $event)"
-                @blur="saveChanges"
                 :disabled="readOnly"
                 placeholder="0"
                 />
@@ -86,7 +82,6 @@
 </template>
 
 <script setup>
-import { reactive, watch, toRefs, ref } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import CommentHistory from './CommentHistory.vue';
 
@@ -101,37 +96,6 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const store = useCreditRequestStore();
-const { transactionData } = toRefs(store);
-
-const formData = reactive({
-  amount: '',
-  termGS: '',
-  termAE: '',
-  termYC: ''
-});
-
-const displayAmount = ref('');
-
-// Sync from store
-watch(transactionData, (newVal) => {
-  if (newVal) {
-    if (formData.amount !== newVal.amount) {
-        formData.amount = newVal.amount;
-        // Update display amount with commas
-        if (newVal.amount) {
-            const num = parseFloat(newVal.amount);
-            displayAmount.value = isNaN(num) ? newVal.amount : num.toLocaleString();
-        } else {
-            displayAmount.value = '';
-        }
-    }
-    if (formData.termGS != newVal.termGS) formData.termGS = newVal.termGS;
-    if (formData.termAE != newVal.termAE) formData.termAE = newVal.termAE;
-    if (formData.termYC != newVal.termYC) formData.termYC = newVal.termYC;
-  }
-}, { immediate: true, deep: true });
-
-
 
 function handleAmountInput(e) {
   // 1. Get raw value, remove commas
@@ -142,55 +106,24 @@ function handleAmountInput(e) {
   const parts = rawValue.split('.');
   if (parts.length > 2) rawValue = parts[0] + '.' + parts.slice(1).join('');
 
-  // 3. Update internal formData (raw)
-  formData.amount = rawValue;
+  // 3. Update store directly
+  store.transactionData.amount = rawValue;
 
-  // 4. Update Display Value (Add Commas)
-  if (rawValue) {
-      const num = parseFloat(rawValue);
-      // Prevent weird behavior while typing dot (e.g. "100.")
-      if (rawValue.endsWith('.')) {
-          displayAmount.value = num.toLocaleString() + '.';
-      } else if (rawValue.includes('.') && parts[1].length > 0) {
-          // Keep decimals
-           displayAmount.value = rawValue.replace(/\d(?=(\d{3})+\.)/g, '$&,'); // Simplified regex or just use toLocale for display? 
-           // Better user experience: just format integer part if possible, but simplest is:
-           // If user is typing, we might want to just let them type and format on blur?
-           // The user ASKED for "when user type 1000 I want it to display as 1,000"
-           
-           // Robust way:
-           const parts = rawValue.split('.');
-           parts[0] = parseInt(parts[0]).toLocaleString();
-           displayAmount.value = parts.join('.');
-      } else {
-          displayAmount.value = num.toLocaleString();
-      }
-  } else {
-      displayAmount.value = '';
-  }
-}
+  // 4. Update Display Value (Force it back if needed, but usually v-model handles it)
+  // If we want commas while typing, we need a local display value.
+  // BUT, to keep it simple and match RequestInfoTab logic, we'll store the raw value
+  // and maybe just let the user type numbers.
+  // OR we just update the DOM to show commas without changing the model?
+  // Let's stick to the simplest "Raw Number" approach for now to avoid the cursor jumping issues common with comma formatting.
+  // If the user REALLY wants commas, we'd need a directive or a computed property with get/set.
 
-// Remove old restrictAmount if no longer used
-function restrictAmount_OLD(e) {
-  let value = e.target.value.replace(/[^0-9.]/g, '');
-  const parts = value.split('.');
-  if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
-  formData.amount = value;
+  e.target.value = rawValue;
 }
 
 function restrictNumber(field, e) {
   const val = e.target.value.replace(/\D/g, '');
-  formData[field] = val;
-}
-
-function saveChanges() {
-  store.updateTransactionData({
-    amount: formData.amount,
-    termGS: formData.termGS,
-    termAE: formData.termAE,
-    termYC: formData.termYC
-  });
-  store.saveTransactionData();
+  store.transactionData[field] = val;
+  e.target.value = val;
 }
 </script>
 
@@ -277,24 +210,9 @@ function saveChanges() {
   border-top: 1px solid #e0e0e0;
 }
 
-.comments-history-wrapper {
-  /* Margin handled by separator or bottom input */
-}
-
 .new-comment-box {
-    /* If terms are shown, they have margin-bottom. If not, this needs top margin from history?
-       Actually, if terms are hidden, we might want a separator or just margin.
-    */
     margin-top: 20px;
 }
-
-/* If no terms shown, add separator after history?
-   Or just spacing.
-*/
-.comments-history-wrapper:not(:last-child) {
-    /* If followed by separator or input */
-}
-
 
 .comment-label {
     margin: 0 0 10px 0;
