@@ -41,14 +41,6 @@
                 </button>
             </template>
 
-            <!-- Cancel Button (Always available for active requests unless specifically excluded) -->
-            <button
-                v-if="canCancel"
-                class="btn-cancel"
-                @click="handleCancel"
-            >
-                ยกเลิกคำขอ
-            </button>
         </div>
       </div>
     </div>
@@ -103,11 +95,6 @@ const availableActions = computed(() => {
         if (action.condition === 'isLowValue') return !isHighValue.value;
         return true;
     });
-});
-
-const canCancel = computed(() => {
-    const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled', 'Draft'];
-    return !finalStatuses.includes(requestStatus.value);
 });
 
 const newComment = ref('');
@@ -231,28 +218,6 @@ const submitTransaction = async (btn) => {
             text: 'เกิดข้อผิดพลาดในการส่งคำขอ',
             icon: 'error'
         });
-    }
-};
-
-const handleCancel = async () => {
-    const result = await Swal.fire({
-        title: 'ยกเลิกคำขอ?',
-        text: 'คุณแน่ใจหรือไม่ที่จะยกเลิกคำขอนี้?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'ใช่, ยกเลิก',
-        cancelButtonText: 'ไม่',
-        confirmButtonColor: '#d33',
-    });
-
-    if (result.isConfirmed) {
-        try {
-            await store.cancelRequest();
-            await Swal.fire('ยกเลิกสำเร็จ', 'คำขอถูกยกเลิกแล้ว', 'success');
-            window.location.reload();
-        } catch (e) {
-            Swal.fire('Error', 'ไม่สามารถยกเลิกคำขอได้', 'error');
-        }
     }
 };
 </script>
