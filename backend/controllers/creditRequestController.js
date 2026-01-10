@@ -53,6 +53,7 @@ exports.getCreditRequestDetail = async (req, res) => {
             term_gs: request.term_gs,
             term_ae: request.term_ae,
             term_yc: request.term_yc,
+            request_type: request.request_type,
             created_at: request.created_at,
             updated_at: request.updated_at,
             snapshot_data: snapshotData,
@@ -116,11 +117,12 @@ exports.createCreditRequest = async (req, res) => {
     term_gs,
     term_ae,
     term_yc,
+    request_type,
     snapshot_data,
     is_submit
   } = req.body;
 
-  console.log('createCreditRequest Body:', { customer_no, request_amount, term_gs, term_ae, term_yc, is_submit, status: req.body.status });
+  console.log('createCreditRequest Body:', { customer_no, request_amount, term_gs, term_ae, term_yc, request_type, is_submit, status: req.body.status });
 
   if (!customer_name || !customer_no) {
     return res.status(400).json({ error: 'Customer name and Customer No (ID) are required' });
@@ -169,6 +171,7 @@ exports.createCreditRequest = async (req, res) => {
     let responseTermGS = null;
     let responseTermAE = null;
     let responseTermYC = null;
+    let responseRequestType = null;
 
     if (rows && rows.length > 0) {
       const existing = rows[0];
@@ -198,8 +201,8 @@ exports.createCreditRequest = async (req, res) => {
         status = newStatus;
 
         await db.runAsync(
-          'UPDATE CreditRequests SET request_amount = ?, request_reason = ?, request_credit_term = ?, term_gs = ?, term_ae = ?, term_yc = ?, snapshot_data = ?, status = ? WHERE id = ?',
-          [request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, snapshot_data, status, requestId]
+          'UPDATE CreditRequests SET request_amount = ?, request_reason = ?, request_credit_term = ?, term_gs = ?, term_ae = ?, term_yc = ?, request_type = ?, snapshot_data = ?, status = ? WHERE id = ?',
+          [request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data, status, requestId]
         );
 
         // Handle Comment insertion if provided
@@ -220,6 +223,7 @@ exports.createCreditRequest = async (req, res) => {
         responseTermGS = existing.term_gs;
         responseTermAE = existing.term_ae;
         responseTermYC = existing.term_yc;
+        responseRequestType = existing.request_type;
       }
 
     } else {
@@ -269,8 +273,8 @@ exports.createCreditRequest = async (req, res) => {
       status = 'Draft';
 
       const result = await db.runAsync(
-        'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, snapshot_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [txId, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, snapshot_data]
+        'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [txId, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data]
       );
       requestId = result.id;
     }
@@ -308,7 +312,8 @@ exports.createCreditRequest = async (req, res) => {
         request_credit_term: responseCreditTerm || request_credit_term,
         term_gs: responseTermGS !== null ? responseTermGS : term_gs,
         term_ae: responseTermAE !== null ? responseTermAE : term_ae,
-        term_yc: responseTermYC !== null ? responseTermYC : term_yc
+        term_yc: responseTermYC !== null ? responseTermYC : term_yc,
+        request_type: responseRequestType || request_type
     };
 
     res.status(201).json({

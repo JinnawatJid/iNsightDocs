@@ -217,7 +217,8 @@ const initDB = async () => {
             { name: 'snapshot_data', type: 'NVARCHAR(MAX)' },
             { name: 'term_gs', type: 'INT' },
             { name: 'term_ae', type: 'INT' },
-            { name: 'term_yc', type: 'INT' }
+            { name: 'term_yc', type: 'INT' },
+            { name: 'request_type', type: 'NVARCHAR(50)' }
         ];
 
         for (const col of creditRequestColumns) {
