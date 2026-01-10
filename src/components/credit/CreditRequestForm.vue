@@ -106,7 +106,7 @@ const availableActions = computed(() => {
 });
 
 const canCancel = computed(() => {
-    const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled'];
+    const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled', 'Draft'];
     return !finalStatuses.includes(requestStatus.value);
 });
 
