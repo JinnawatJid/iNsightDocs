@@ -42,14 +42,24 @@ const generateCreditRequestPDF = async (req, res) => {
         c.contact_phone_number,
         c.authorized_person,
         c.authorized_position,
+        c.business_type,
+        c.years_in_business,
+        c.main_products,
+        c.contact_department,
+        c.contact_division,
         c.residence_map_code,
         c.residence_landmark,
         c.residence_note,
+        c.residence_ownership,
+        c.residence_ownership_other,
         c.store_map_code,
         c.store_landmark,
         c.store_note,
+        c.store_ownership,
+        c.store_ownership_other,
         c.billing_method,
-        c.payment_method
+        c.payment_method,
+        c.payment_condition
       FROM CreditRequests cr
       JOIN Customers c ON cr.customer_no = c."No_"
       WHERE cr.tx_id = ?
@@ -76,6 +86,14 @@ const generateCreditRequestPDF = async (req, res) => {
     const customerName = snapCust.company_name || snapCust.name || data.db_customer_name || '-';
     const customerNo = snapCust.id || data.db_customer_no || '-';
     const taxId = snapCust.tax_id || snapCust.vat_registration_no || data.db_vat_registration_no || '-';
+    const businessType = snapCust.business_type || data.business_type || '-';
+    const yearsInBusiness = snapCust.years_in_business || data.years_in_business || '-';
+
+    // Helper to format currency
+    const formatCurrency = (val) => {
+      if (!val) return '0.00';
+      return Number(val).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
 
     // Address Logic
     const address = snapCust.address || data.db_address || '';
@@ -83,18 +101,39 @@ const generateCreditRequestPDF = async (req, res) => {
     const district = snapCust.district || data.db_district || '';
     const province = snapCust.province || data.db_province || '';
     const zipcode = snapCust.zipcode || data.db_zipcode || '';
+    const residenceMap = snapCust.residence_map_code || data.residence_map_code || '-';
+
+    // Residence Ownership Logic
+    const residenceOwnership = snapCust.residence_ownership || data.residence_ownership || '-';
+    const residenceOwnershipOther = snapCust.residence_ownership_other || data.residence_ownership_other || '';
+    let resOwnDisplay = residenceOwnership;
+    if (residenceOwnershipOther) {
+        // If it's a number (cost/value), format it. If text, just append.
+        const numVal = parseFloat(residenceOwnershipOther.replace(/,/g, ''));
+        const displayVal = !isNaN(numVal) ? formatCurrency(numVal) + ' บาท' : residenceOwnershipOther;
+        resOwnDisplay = `${residenceOwnership} (${displayVal})`;
+    }
 
     const fullAddress = `${address} ${subdistrict} ${district} ${province} ${zipcode}`.trim();
 
-    // Store Address Logic (Assume separate keys or fallback to same as residence if not distinct)
-    // In current store structure, we have store_address, store_subdistrict, etc.
-    // If not present, we assume same as residence or check 'store' specific columns if they exist.
-    // For now, let's look for explicit store keys in snapshot
+    // Store Address Logic
     const storeAddress = snapCust.store_address || '-';
     const storeSubdistrict = snapCust.store_subdistrict || '';
     const storeDistrict = snapCust.store_district || '';
     const storeProvince = snapCust.store_province || '';
     const storeZipcode = snapCust.store_zipcode || '';
+    const storeMap = snapCust.store_map_code || data.store_map_code || '-';
+
+    // Store Ownership Logic
+    const storeOwnership = snapCust.store_ownership || data.store_ownership || '-';
+    const storeOwnershipOther = snapCust.store_ownership_other || data.store_ownership_other || '';
+    let storeOwnDisplay = storeOwnership;
+    if (storeOwnershipOther) {
+        const numVal = parseFloat(storeOwnershipOther.replace(/,/g, ''));
+        const displayVal = !isNaN(numVal) ? formatCurrency(numVal) + ' บาท' : storeOwnershipOther;
+        storeOwnDisplay = `${storeOwnership} (${displayVal})`;
+    }
+
     const fullStoreAddress = `${storeAddress} ${storeSubdistrict} ${storeDistrict} ${storeProvince} ${storeZipcode}`.trim();
 
 
@@ -105,18 +144,11 @@ const generateCreditRequestPDF = async (req, res) => {
 
     // Authorized Person Logic
     const authName = snapCust.authorized_person || data.authorized_person || '-';
-    const authPos = snapCust.authorized_position || data.authorized_position || '-';
 
     // Fetch Attachments to list them
     const attachmentsQuery = `SELECT * FROM CreditRequestAttachments WHERE tx_id = ?`;
     const attachmentsRes = await db.query(attachmentsQuery, [id]);
     const attachments = attachmentsRes.rows || [];
-
-    // Helper to format currency
-    const formatCurrency = (val) => {
-      if (!val) return '0.00';
-      return Number(val).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
 
     // Helper to format date
     const formatDate = (dateStr) => {
@@ -177,29 +209,21 @@ const generateCreditRequestPDF = async (req, res) => {
     // Prepare Score Data
     const score = scoreData.total_score ? Math.round(scoreData.total_score) : '-';
     const grade = scoreData.grade || '-';
-    // Determine Chance manually if missing
-    let approvalChanceText = scoreData.approval_chance || '-';
-    if (approvalChanceText === '-' && attachments.length > 0) {
-         // Simple fallback logic if we have files but no score run
-         const docCount = attachments.length;
-         if (docCount >= 4) approvalChanceText = 'High';
-         else if (docCount >= 2) approvalChanceText = 'Medium';
-         else approvalChanceText = 'Low';
-    }
 
     // Billing Info (Fallback to DB if snapshot missing)
     const billingMethod = snapCust.billing_method || data.billing_method || '-';
     const paymentMethod = snapCust.payment_method || data.payment_method || '-';
+    const paymentCondition = snapCust.payment_condition || data.payment_condition || '-';
     const paymentTerm = data.request_credit_term || '-';
 
     // Logo Path
-    const logoPath = path.join(__dirname, '../assets/logo.png');
+    const logoPath = path.join(__dirname, '../assets/logoReport.png');
     let logoImage = null;
     if (fs.existsSync(logoPath)) {
         logoImage = logoPath;
     }
 
-    // Attachment Summary List
+    // Attachment Summary List - Focusing on Document Types
     const attachmentSummary = attachments.map((att, index) => {
         let typeLabel = att.file_type;
         // Map common types to Thai
@@ -208,17 +232,23 @@ const generateCreditRequestPDF = async (req, res) => {
         else if (typeLabel === 'store_map') typeLabel = 'แผนที่ร้านค้า';
         else if (typeLabel === 'home_map') typeLabel = 'แผนที่บ้าน';
         else if (typeLabel === 'store_photo') typeLabel = 'รูปถ่ายร้านค้า';
+        else if (typeLabel === 'home_photo') typeLabel = 'รูปถ่ายบ้านพักอาศัย';
         else if (typeLabel === 'bank_statement') typeLabel = 'Statement ธนาคาร';
+        else if (typeLabel === 'commercial_registration') typeLabel = 'ทะเบียนพาณิชย์/ภพ.20';
         else if (typeLabel === 'credit_application_doc') typeLabel = 'ใบคำขอสินเชื่อ';
+        else if (typeLabel === 'land_tax_doc') typeLabel = 'เอกสารเสียภาษีที่ดิน';
 
-        return `${index + 1}. ${typeLabel} (${att.original_name})`;
+        // Keep original filename in parentheses if needed, or just type
+        // User requested: "check completeness ... filename is not main point"
+        // Pattern: "1. ภพ.20"
+        return `${index + 1}. ${typeLabel}`;
     }).join('\n');
 
 
     // Build Document Definition
     const docDefinition = {
       pageSize: 'A4',
-      pageMargins: [40, 40, 40, 40],
+      pageMargins: [30, 30, 30, 30], // Slightly reduced margins for more space
       defaultStyle: {
         font: 'Sarabun',
         fontSize: 10
@@ -230,22 +260,22 @@ const generateCreditRequestPDF = async (req, res) => {
                 // Left: Logo (Bigger)
                 logoImage ? {
                     image: logoImage,
-                    width: 100, // Increased size
+                    width: 120, // Increased size per request
                     margin: [0, 0, 0, 0]
-                } : { text: 'Company Logo', fontSize: 10, color: 'gray' },
+                } : { text: 'LOGO', fontSize: 10, color: 'gray' },
 
-                // Center: Title & Metadata
+                // Center: Title & Metadata (Aligned Center relative to page)
                 {
                     stack: [
                         { text: 'สรุปคำขอสินเชื่อ', style: 'header', alignment: 'center' },
                         { text: `เลขที่คำขอ: ${data.tx_id}`, alignment: 'center', fontSize: 10, margin: [0, 5, 0, 0] },
                         { text: `วันที่: ${formatDate(data.created_at)}`, alignment: 'center', fontSize: 10 }
                     ],
-                    width: '*',
-                    alignment: 'center' // Ensure stack is centered
+                    width: '*', // Take available space
+                    alignment: 'center'
                 },
 
-                // Right: Request Type (Clean Text, No Blue Box)
+                // Right: Request Type & Status (Simple text)
                 {
                     stack: [
                          { text: `ประเภท: ${requestType}`, alignment: 'right', bold: true, fontSize: 12, margin: [0, 10, 0, 0] },
@@ -258,28 +288,42 @@ const generateCreditRequestPDF = async (req, res) => {
         },
 
         // --- SECTION 1: CUSTOMER PROFILE (Consolidated) ---
+        // Fields: General, Residence, Store
         { text: 'ข้อมูลลูกค้า', style: 'subheader' },
         {
           table: {
-            widths: ['auto', '*'],
+            widths: ['15%', '35%', '15%', '35%'],
             body: [
-              // Identity
-              [{ text: 'ชื่อลูกค้า:', bold: true }, customerName],
-              [{ text: 'รหัสลูกค้า:', bold: true }, customerNo],
-              [{ text: 'เลขเสียภาษี:', bold: true }, taxId],
-              // Addresses
-              [{ text: 'ที่อยู่ (ตามภพ.20):', bold: true }, fullAddress],
-              [{ text: 'ที่อยู่ร้านค้า/จัดส่ง:', bold: true }, fullStoreAddress !== '-' ? fullStoreAddress : 'เดียวกับที่อยู่บริษัท'],
-              // Key Persons
-              [{ text: 'ผู้มีอำนาจลงนาม:', bold: true }, `${authName} (${authPos})`],
-              [{ text: 'ผู้ติดต่อ:', bold: true }, `${contactName} (${contactPos}) - ${contactPhone}`]
+              // Row 1: General Identity
+              [{ text: 'ชื่อลูกค้า:', bold: true }, { text: customerName, colSpan: 3 }, {}, {}],
+              // Row 2: IDs
+              [{ text: 'รหัสลูกค้า:', bold: true }, customerNo, { text: 'เลขเสียภาษี:', bold: true }, taxId],
+              // Row 3: Business Info
+              [{ text: 'ประเภทธุรกิจ:', bold: true }, businessType, { text: 'ดำเนินกิจการ:', bold: true }, `${yearsInBusiness} ปี`],
+              // Row 4: Key Persons
+              [{ text: 'ผู้มีอำนาจ:', bold: true }, authName, { text: 'ผู้ติดต่อ:', bold: true }, `${contactName} (${contactPhone})`],
+
+              // Sub-header styling via row
+              [{ text: 'ที่อยู่และสถานที่ประกอบการ', bold: true, fillColor: '#f0f0f0', colSpan: 4, alignment: 'center' }, {}, {}, {}],
+
+              // Row 5: Residence
+              [{ text: 'ที่อยู่ (ภพ.20):', bold: true }, { text: fullAddress, colSpan: 3 }, {}, {}],
+              // Row 6: Residence Details
+              [{ text: 'กรรมสิทธิ์:', bold: true }, resOwnDisplay, { text: 'พิกัด (Map):', bold: true }, residenceMap],
+
+              // Row 7: Store (if different)
+              [{ text: 'ที่อยู่ร้านค้า:', bold: true }, { text: fullStoreAddress !== '-' ? fullStoreAddress : 'เดียวกับที่อยู่บริษัท', colSpan: 3 }, {}, {}],
+              // Row 8: Store Details
+              [{ text: 'กรรมสิทธิ์:', bold: true }, storeOwnDisplay, { text: 'พิกัด (Map):', bold: true }, storeMap],
+
             ]
           },
           layout: 'lightHorizontalLines',
-          margin: [0, 0, 0, 20]
+          margin: [0, 0, 0, 15]
         },
 
         // --- SECTION 2: FINANCIAL SUMMARY ---
+        // 3-month sales history & summary stats
         { text: 'สรุปข้อมูลทางการเงิน', style: 'subheader' },
         {
              columns: [
@@ -310,15 +354,16 @@ const generateCreditRequestPDF = async (req, res) => {
                      layout: 'noBorders'
                  }
              ],
-             margin: [0, 0, 0, 20]
+             margin: [0, 0, 0, 15]
         },
 
-        // --- SECTION 3: TRANSACTION DETAILS (Request + Billing) ---
+        // --- SECTION 3: TRANSACTION & BILLING (Grouped) ---
         { text: 'รายละเอียดคำขอและเงื่อนไขการชำระเงิน', style: 'subheader' },
         {
             table: {
                 widths: ['15%', '35%', '15%', '35%'],
                 body: [
+                     // Credit Request
                      [
                         { text: 'วงเงินที่ขอ:', bold: true }, formatCurrency(data.request_amount) + ' บาท',
                         { text: 'Credit Term:', bold: true }, `${paymentTerm} วัน`
@@ -326,41 +371,41 @@ const generateCreditRequestPDF = async (req, res) => {
                      [
                         { text: 'เหตุผล:', bold: true }, { text: data.request_reason || '-', colSpan: 3 }, {}
                      ],
+                     // Billing & Payment
                      [
                         { text: 'การวางบิล:', bold: true }, billingMethod,
                         { text: 'การชำระเงิน:', bold: true }, paymentMethod
+                     ],
+                     [
+                        { text: 'เงื่อนไข:', bold: true }, { text: paymentCondition, colSpan: 3 }, {}
                      ]
                 ]
             },
             layout: 'lightHorizontalLines',
-            margin: [0, 0, 0, 20]
+            margin: [0, 0, 0, 15]
         },
 
-        // --- SECTION 4: DOCUMENT LIST (Replaces Images) ---
+        // --- SECTION 4: ATTACHMENTS (Doc Types Only) ---
         { text: 'เอกสารแนบ', style: 'subheader' },
         {
             text: attachmentSummary || 'ไม่มีเอกสารแนบ',
             fontSize: 10,
-            margin: [0, 0, 0, 20]
+            margin: [0, 0, 0, 15]
         },
 
-        // --- SECTION 5: RISK ANALYSIS (THE VERDICT) ---
+        // --- SECTION 5: RISK ANALYSIS (Bottom Verdict) ---
         { text: 'การวิเคราะห์ความเสี่ยง', style: 'subheader' },
         {
             table: {
-                widths: ['*', '*', '*', '*'],
+                widths: ['*', '*'], // Only Score and Grade
                 body: [
                     [
                         { text: 'Credit Score', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
-                        { text: 'Grade', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
-                        { text: 'Approval Chance', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
-                        { text: 'Financial Trend', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' }
+                        { text: 'Grade', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' }
                     ],
                     [
-                        { text: `${score} / 100`, alignment: 'center', fontSize: 12, bold: true, margin: [0, 5, 0, 5] },
-                        { text: grade, alignment: 'center', fontSize: 12, bold: true, margin: [0, 5, 0, 5] },
-                        { text: approvalChanceText, alignment: 'center', fontSize: 12, bold: true, margin: [0, 5, 0, 5] },
-                        { text: financial.trend_status || '-', alignment: 'center', fontSize: 10, margin: [0, 5, 0, 5] }
+                        { text: `${score} / 100`, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] },
+                        { text: grade, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] }
                     ]
                 ]
             },
@@ -370,7 +415,7 @@ const generateCreditRequestPDF = async (req, res) => {
       ],
       styles: {
         header: {
-          fontSize: 18, // Increased Title Size
+          fontSize: 18,
           bold: true
         },
         subheader: {
