@@ -89,7 +89,8 @@ exports.searchCustomers = async (req, res) => {
         "billing_department",
         "billing_phone",
         "billing_mobile",
-        "billing_email"
+        "billing_email",
+        "existing_credits"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR

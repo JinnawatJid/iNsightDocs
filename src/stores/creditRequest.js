@@ -2,10 +2,10 @@ import { defineStore } from 'pinia';
 import CustomerService from '@/services/CustomerService';
 import CreditRequestService from '@/services/CreditRequestService';
 import Swal from 'sweetalert2';
+import { getMandatoryKeys } from '@/config/mandatoryFields';
 
 export const useCreditRequestStore = defineStore('creditRequest', {
   state: () => ({
-    hasSearched: false,
     hasSearched: false,
     customer: {},
     displayCustomer: {}, // Stable copy for sidebar display
@@ -90,6 +90,19 @@ export const useCreditRequestStore = defineStore('creditRequest', {
   },
 
   actions: {
+    // Helper to safely parse existing_credits to an array
+    parseExistingCredits(credits) {
+       if (!credits) return [];
+       if (Array.isArray(credits)) return credits;
+       try {
+           const parsed = JSON.parse(credits);
+           return Array.isArray(parsed) ? parsed : [];
+       } catch (e) {
+           console.warn('Failed to parse existing_credits', e);
+           return [];
+       }
+    },
+
     async loadRequestDetail(txId) {
       this.loading = true;
       this.error = null;
@@ -100,8 +113,16 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         // Populate State
         this.requestId = data.txId; // tx_id
         this.requestStatus = data.status;
-        this.requestStatus = data.status;
         this.customer = data.snapshot_data || {};
+
+        // Ensure existing_credits is an array
+        if (this.customer.existing_credits) {
+            this.customer.existing_credits = this.parseExistingCredits(this.customer.existing_credits);
+        } else {
+             // Ensure it's initialized
+            this.customer.existing_credits = [];
+        }
+
         this.displayCustomer = { ...this.customer }; // Init display copy
         this.financialSummary = data.snapshot_data?.financial_summary || {};
         this.creditScore = data.snapshot_data?.credit_score || {};
@@ -196,6 +217,14 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           const data = results[0];
 
           this.customer = data.customer;
+
+          // Parse existing_credits
+          if (this.customer.existing_credits) {
+              this.customer.existing_credits = this.parseExistingCredits(this.customer.existing_credits);
+          } else {
+              this.customer.existing_credits = [];
+          }
+
           this.displayCustomer = { ...this.customer }; // Init display copy
           this.history = data.history || [];
           this.financialSummary = data.financial_summary || {};
@@ -250,6 +279,13 @@ export const useCreditRequestStore = defineStore('creditRequest', {
               }
               // Merge into customer state
               this.customer = { ...this.customer, ...parsedSnapshot };
+
+              // Ensure existing_credits is an array
+              if (this.customer.existing_credits) {
+                  this.customer.existing_credits = this.parseExistingCredits(this.customer.existing_credits);
+              } else {
+                  this.customer.existing_credits = [];
+              }
 
               // Load financial data if present in snapshot
               if (parsedSnapshot.financial_summary) {
@@ -309,13 +345,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     updateFinancialAnalysis(analysisData) {
       if (!this.financialSummary) this.financialSummary = {};
-
-      // Store the analysis result in a dedicated property within financialSummary
-      // This will be persisted when getSnapshot() includes financialSummary
       this.financialSummary.analysis_result = analysisData;
-
-      // We can also update top-level scores if they map directly,
-      // but keeping it structured is better for Phase 2.
     },
 
     updateTransactionData(data) {
@@ -324,11 +354,19 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     // Helper to get full snapshot object for saving
     getSnapshot() {
-      return {
+      // Create a copy to modify
+      const snapshot = {
         ...this.customer,
         financial_summary: this.financialSummary,
         credit_score: this.creditScore
       };
+
+      // Ensure existing_credits is saved as Array (backend JSON stringify handles it if needed for column,
+      // but for snapshot JSON, it's better to keep it as data)
+      // Actually, snapshot_data is stored as JSON string.
+      // So if existing_credits is an array here, it becomes an array in the JSON.
+      // Which is fine.
+      return snapshot;
     },
 
     async saveTransactionData() {
@@ -344,34 +382,28 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         formData.append('term_ae', this.transactionData.termAE || '');
         formData.append('term_yc', this.transactionData.termYC || '');
 
-        // Use getSnapshot() to ensure all data including financials is saved
         formData.append('snapshot_data', JSON.stringify(this.getSnapshot()));
 
-        // is_submit=true triggers update, but we don't pass 'status' so it keeps existing status
         formData.append('is_submit', 'true');
 
-        await CreditRequestService.createCreditRequest(formData); // This endpoint handles updates too
+        await CreditRequestService.createCreditRequest(formData);
       } catch (e) {
         console.error('Failed to save transaction data', e);
       }
     },
 
-    // Action to persist coordinates to local state only (Saved to DB on Submit)
     async saveCustomerCoordinates(updates) {
       this.updateCustomerData(updates);
     },
 
-    // Generic action to persist customer data to backend
     async saveCustomerData(updates) {
       if (!this.customer || !this.customer.id) return;
 
-      // Optimistically update state
       this.updateCustomerData(updates);
-
-      // Update Display Customer as we are committing to backend
       this.displayCustomer = { ...this.customer };
 
       try {
+        // Backend CustomerController handles array/object stringification for 'existing_credits'
         await CustomerService.updateCustomer(this.customer.id, updates);
       } catch (err) {
         console.error("Failed to save customer data:", err);
@@ -381,6 +413,61 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           text: 'Failed to save customer data.'
         });
       }
+    },
+
+    // Validation Action
+    validateRequest(isSubmit = false) {
+        // 1. Get mandatory keys
+        const { fields, files } = getMandatoryKeys(this.isCompany);
+        const missingFields = [];
+
+        // 2. Validate Fields
+        fields.forEach(key => {
+            let val;
+            if (['amount', 'reason'].includes(key)) {
+                val = this.transactionData[key];
+            } else {
+                val = this.customer[key];
+            }
+            if (!val || (typeof val === 'string' && val.trim() === '')) {
+                missingFields.push(key);
+            }
+        });
+
+        // 3. Conditional Checks (Residence & Store)
+        const resOwnership = this.customer.residence_ownership;
+        if (resOwnership === 'บ้านเช่า' || resOwnership === 'อื่นๆ') {
+             if (!this.customer.residence_ownership_other) missingFields.push('residence_ownership_other');
+        }
+
+        const storeOwnership = this.customer.store_ownership;
+        if (storeOwnership === 'เช่าซื้อ' || storeOwnership === 'เช่า') {
+             if (!this.customer.store_ownership_other) missingFields.push('store_ownership_other');
+        }
+
+        // 4. Validate Files (Only on Submit)
+        const missingFiles = [];
+        if (isSubmit) {
+            files.forEach(key => {
+                const file = this.files[key];
+                // Check if we have a file object OR if it's marked as uploaded
+                const isUploaded = this.uploadedDocuments[key];
+
+                if (!file && !isUploaded) {
+                     missingFiles.push(key);
+                } else if (Array.isArray(file) && file.length === 0) {
+                     missingFiles.push(key);
+                }
+            });
+        }
+
+        if (missingFields.length > 0 || missingFiles.length > 0) {
+            this.showValidationErrors = true;
+            return { valid: false, missingFields, missingFiles };
+        }
+
+        this.showValidationErrors = false;
+        return { valid: true };
     },
 
     async fetchRequests(status) {
@@ -426,7 +513,6 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     clearFormData() {
-      // Clears data but keeps loading state/search context if needed
       this.customer = {};
       this.history = [];
       this.financialSummary = {};

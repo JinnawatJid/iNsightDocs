@@ -31,56 +31,24 @@
         </div>
 
         <div class="action-buttons">
-            <!-- Dynamic Buttons based on Status -->
-
-            <!-- Draft -> Opened -->
-            <template v-if="requestStatus === 'Draft' || !requestStatus">
-                 <button class="btn-secondary" @click="saveDraft" :disabled="!isFormValid && false">
-                    บันทึกแบบร่าง (Save Draft)
-                 </button>
-                 <button class="btn-primary" @click="submitAction('Opened', 'ส่งคำขอให้ผู้จัดการสาขา')">
-                    ส่งคำขอ (Submit)
-                 </button>
+            <!-- Dynamic Actions based on Workflow Config -->
+            <template v-for="(btn, index) in availableActions" :key="index">
+                <button
+                    :class="getButtonClass(btn.variant)"
+                    @click="handleAction(btn)"
+                >
+                    {{ btn.label }}
+                </button>
             </template>
 
-            <!-- Opened -> Submitted -->
-            <template v-else-if="requestStatus === 'Opened'">
-                 <button class="btn-submit" @click="submitAction('Submitted', 'ส่งคำขอให้ฝ่ายขาย (HO)')">ส่งให้ฝ่ายขาย (HO)</button>
-            </template>
-
-            <!-- Submitted -> PendingSales or Rejected -->
-            <template v-else-if="requestStatus === 'Submitted'">
-                 <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
-                 <button class="btn-submit" @click="submitAction('PendingSales (ชั่วคราว)', 'ส่งต่อให้ฝ่ายการเงิน')">ส่งต่อให้ฝ่ายการเงิน</button>
-            </template>
-
-            <!-- PendingSales -> Reviewed or Rejected -->
-            <template v-else-if="requestStatus === 'PendingSales (ชั่วคราว)'">
-                 <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
-                 <button class="btn-submit" @click="submitAction('Reviewed', 'ส่งต่อให้ผู้จัดการฝ่ายการเงิน')">ส่งต่อให้ผู้จัดการฝ่ายการเงิน</button>
-            </template>
-
-            <!-- Reviewed -> Approved or PendingFinance or Rejected -->
-            <template v-else-if="requestStatus === 'Reviewed'">
-                 <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
-                 <template v-if="isHighValue">
-                     <button class="btn-submit" @click="submitAction('PendingFinance (ชั่วคราว)', 'ส่งต่อให้กรรมการเครดิต')">ส่งต่อให้กรรมการเครดิต</button>
-                 </template>
-                 <template v-else>
-                     <button class="btn-approve" @click="submitAction('Approved', 'อนุมัติคำขอ')">อนุมัติคำขอ</button>
-                 </template>
-            </template>
-
-            <!-- PendingFinance -> Approved or Rejected -->
-            <template v-else-if="requestStatus === 'PendingFinance (ชั่วคราว)'">
-                 <button class="btn-reject" @click="submitAction('Rejected', 'ปฏิเสธคำขอ')">ปฏิเสธ</button>
-                 <button class="btn-approve" @click="submitAction('Approved', 'อนุมัติคำขอ')">อนุมัติคำขอ</button>
-            </template>
-
-            <!-- Final Statuses -->
-            <template v-else>
-                 <button class="btn-cancel" @click="handleCancel" v-if="requestStatus !== 'Canceled'">ยกเลิกคำขอ</button>
-            </template>
+            <!-- Cancel Button (Always available for active requests unless specifically excluded) -->
+            <button
+                v-if="canCancel"
+                class="btn-cancel"
+                @click="handleCancel"
+            >
+                ยกเลิกคำขอ
+            </button>
         </div>
       </div>
     </div>
@@ -95,235 +63,197 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import ApplicationTabs from './ApplicationTabs.vue';
 import CreditReviewSection from './CreditReviewSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
-import { useRouter } from 'vue-router';
+import { workflowConfig, roleLabels } from '@/config/workflow';
 import Swal from 'sweetalert2';
 import axios from 'axios';
-import { computed, ref, watch } from 'vue';
-import { getMandatoryKeys } from '@/config/mandatoryFields';
+import { computed, ref } from 'vue';
 
-export default {
-  name: 'CreditRequestForm',
-  components: {
-    ApplicationTabs,
-    CreditReviewSection
-  },
-  setup() {
-    const store = useCreditRequestStore();
-    const router = useRouter();
+const store = useCreditRequestStore();
 
-    const isReadOnly = computed(() => store.isReadOnly);
-    const comments = computed(() => store.comments);
-    const requestStatus = computed(() => store.requestStatus);
-    const currentRoleLabel = computed(() => store.currentRole);
+// Computeds
+const isReadOnly = computed(() => store.isReadOnly);
+const comments = computed(() => store.comments);
+const requestStatus = computed(() => store.requestStatus || 'Draft'); // Default to Draft
+const currentRoleLabel = computed(() => roleLabels[requestStatus.value] || store.currentRole);
+const hasData = computed(() => !!store.customer && !!store.customer.id);
 
-    // Show Terms (Manager Mode) if NOT Draft
-    const showTerms = computed(() => {
-        return requestStatus.value && requestStatus.value !== 'Draft';
+// Logic for High Value > 300k
+const isHighValue = computed(() => {
+    const amtStr = store.transactionData.amount || '0';
+    const amt = parseFloat(String(amtStr).replace(/,/g, ''));
+    return amt > 300000;
+});
+
+// Logic for showing terms (Manager+)
+const showTerms = computed(() => {
+    return requestStatus.value && requestStatus.value !== 'Draft';
+});
+
+// Determine Available Actions
+const availableActions = computed(() => {
+    const actions = workflowConfig[requestStatus.value] || [];
+
+    // Filter actions based on conditions (e.g., isHighValue)
+    return actions.filter(action => {
+        if (action.condition === 'isHighValue') return isHighValue.value;
+        if (action.condition === 'isLowValue') return !isHighValue.value;
+        return true;
     });
+});
 
-    // Parse amount to check for > 300,000
-    const isHighValue = computed(() => {
-        const amtStr = store.transactionData.amount || '0';
-        const amt = parseFloat(amtStr.replace(/,/g, ''));
-        return amt > 300000;
-    });
+const canCancel = computed(() => {
+    const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled'];
+    return !finalStatuses.includes(requestStatus.value);
+});
 
-    const hasData = computed(() => !!store.customer && !!store.customer.id);
+const newComment = ref('');
 
-    const newComment = ref('');
+// Button Styling Map
+const getButtonClass = (variant) => {
+    switch (variant) {
+        case 'primary': return 'btn-primary';
+        case 'secondary': return 'btn-secondary'; // Grey
+        case 'submit': return 'btn-submit'; // Blue
+        case 'approve': return 'btn-approve'; // Green
+        case 'reject': return 'btn-reject'; // Red
+        default: return 'btn-secondary';
+    }
+};
 
-    const handleCancel = async () => {
-        const result = await Swal.fire({
-            title: 'ยกเลิกคำขอ?',
-            text: 'คุณแน่ใจหรือไม่ที่จะยกเลิกคำขอนี้?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'ใช่, ยกเลิก',
-            cancelButtonText: 'ไม่',
-            confirmButtonColor: '#d33',
-        });
+const handleAction = async (btn) => {
+    // 1. Validation Logic
+    // Only validate fields if it's a "Submit" or "Approve" action moving forward
+    // Save Draft (targetStatus === 'Draft') might skip full validation?
+    // Let's enforce validation for everything EXCEPT Save Draft.
+    const isSubmit = btn.targetStatus !== 'Draft' && btn.variant !== 'reject';
 
-        if (result.isConfirmed) {
-            try {
-                await store.cancelRequest();
-                await Swal.fire('ยกเลิกสำเร็จ', 'คำขอถูกยกเลิกแล้ว', 'success');
-                window.location.reload();
-            } catch (e) {
-                Swal.fire('Error', 'ไม่สามารถยกเลิกคำขอได้', 'error');
-            }
+    // If it is a submit action, we run full validation
+    if (isSubmit) {
+        const validation = store.validateRequest(true); // true = check files too
+        if (!validation.valid) {
+             console.log('Validation Failed:', validation);
+             store.triggerValidation();
+             Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบถ้วน',
+                text: 'กรุณากรอกข้อมูลและแนบเอกสารให้ครบถ้วนตามรายการที่มีเครื่องหมาย *'
+             });
+             return;
+        } else {
+             store.clearValidation();
         }
-    };
+    }
 
-    const saveDraft = async () => {
-        await submitBase('Draft', 'บันทึกแบบร่างสำเร็จ', false);
-    };
-
-    const submitAction = async (targetStatus, confirmText) => {
-        // Validation checks first
-        if (!store.customer || !store.customer.id) {
-            Swal.fire('Error', 'กรุณาค้นหาลูกค้าก่อนทำรายการ', 'error');
-            return;
-        }
-
-        // Comprehensive Validation Logic (Enabled for Opened and Submitted)
-        // Opened is the first "Submit" action for the user (Branch Head -> Manager)
-        if (targetStatus === 'Opened' || targetStatus === 'Submitted') {
-            const { fields, files } = getMandatoryKeys(store.isCompany);
-
-            // Check Fields
-            const missingFields = fields.filter(key => {
-                let val;
-                // Check if key is in transactionData (amount, reason) or customer
-                if (key === 'amount' || key === 'reason') {
-                    val = store.transactionData[key];
-                } else {
-                    val = store.customer[key];
-                }
-                return !val;
-            });
-
-            // Conditional Validation for Residence & Store Value/Rent
-            // Residence Logic
-            const resOwnership = store.customer.residence_ownership;
-            if (resOwnership === 'บ้านเช่า') {
-                // If house rent, value is in residence_ownership_other
-                if (!store.customer.residence_ownership_other) missingFields.push('residence_ownership_other');
-            } else if (resOwnership) {
-                // For other ownerships, value is also in residence_ownership_other
-                if (!store.customer.residence_ownership_other) missingFields.push('residence_ownership_other');
-            }
-
-            // Store/Company Address Logic
-            // Note: Company reuses residence fields if 'isSameAddress' isn't handled differently in store.
-            // StoreCompanyTab logic: if Company, it updates store_ownership keys IF separate.
-            // But if Individual, it updates store_ownership keys.
-            // Let's check store_ownership keys.
-            const storeOwnership = store.customer.store_ownership;
-            if (storeOwnership === 'เช่าซื้อ' || storeOwnership === 'เช่า') {
-                 if (!store.customer.store_ownership_other) missingFields.push('store_ownership_other');
-            } else if (storeOwnership) {
-                 if (!store.customer.store_ownership_other) missingFields.push('store_ownership_other');
-            }
-
-            // Check Files
-            const missingFiles = files.filter(key => {
-                const val = store.files[key];
-                if (Array.isArray(val)) return val.length === 0;
-                return !val;
-            });
-
-            if (missingFields.length > 0 || missingFiles.length > 0) {
-                 store.triggerValidation(); // Trigger visual cues
-
-                 console.log('Missing Fields:', missingFields);
-                 console.log('Missing Files:', missingFiles);
-
-                 Swal.fire({
-                    icon: 'warning',
-                    title: 'ข้อมูลไม่ครบถ้วน',
-                    text: 'กรุณากรอกข้อมูลและแนบเอกสารให้ครบถ้วนตามรายการที่มีเครื่องหมาย *'
-                 });
-                 return;
-            } else {
-                store.clearValidation();
-            }
-        }
-
+    // 2. Confirmation
+    if (btn.confirmMessage) {
         const confirm = await Swal.fire({
             title: 'ยืนยันการทำรายการ?',
-            text: `คุณต้องการ "${confirmText}" ใช่หรือไม่?`,
+            text: btn.confirmText ? `คุณต้องการ "${btn.confirmText}" ใช่หรือไม่?` : 'ยืนยันการทำรายการ',
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'ใช่',
             cancelButtonText: 'ยกเลิก'
         });
-
         if (!confirm.isConfirmed) return;
+    }
 
-        // Force Save Customer Data (Master) before creating transaction
-        // This persists all the local edits (Name, Address, Map, etc.)
-        await store.saveCustomerData(store.customer);
+    // 3. Persist Data (Save Customer + Transaction)
+    // We always save the current state before transitioning
+    await store.saveCustomerData(store.customer);
 
-        await submitBase(targetStatus, 'ทำรายการสำเร็จ', true);
-    };
+    // 4. Submit Transaction
+    await submitTransaction(btn);
+};
 
-    const submitBase = async (status, successMessage, isSubmitFlag) => {
-         try {
-            const formData = new FormData();
-            formData.append('customer_no', store.customer.id);
-            formData.append('customer_name', store.customer.name);
-            formData.append('request_amount', store.transactionData.amount || '');
-            formData.append('request_reason', store.transactionData.reason || '');
-            formData.append('term_gs', store.transactionData.termGS || '');
-            formData.append('term_ae', store.transactionData.termAE || '');
-            formData.append('term_yc', store.transactionData.termYC || '');
+const submitTransaction = async (btn) => {
+     try {
+        const formData = new FormData();
+        formData.append('customer_no', store.customer.id);
+        formData.append('customer_name', store.customer.name);
+        formData.append('request_amount', store.transactionData.amount || '');
+        formData.append('request_reason', store.transactionData.reason || '');
 
-            // Use store.getSnapshot() if available, otherwise fallback to store.customer
-            // But we know we just added getSnapshot to the store.
-            const snapshot = store.getSnapshot ? store.getSnapshot() : store.customer;
-            formData.append('snapshot_data', JSON.stringify(snapshot));
+        // Map split terms
+        formData.append('term_gs', store.transactionData.termGS || '');
+        formData.append('term_ae', store.transactionData.termAE || '');
+        formData.append('term_yc', store.transactionData.termYC || '');
 
-            // Critical: Pass Status and Comment
-            formData.append('status', status);
-            formData.append('is_submit', isSubmitFlag ? 'true' : 'false');
+        // Snapshot
+        const snapshot = store.getSnapshot();
+        formData.append('snapshot_data', JSON.stringify(snapshot));
 
-            if (newComment.value.trim()) {
-                formData.append('comment', newComment.value.trim());
-                formData.append('actor_role', currentRoleLabel.value);
-            }
+        // Status & Comment
+        formData.append('status', btn.targetStatus);
 
-            // Files
-            for (const [key, file] of Object.entries(store.files)) {
-                if (file) {
-                    if (Array.isArray(file)) {
-                        file.forEach(f => formData.append(key, f));
-                    } else {
-                        formData.append(key, file);
-                    }
+        // is_submit logic: If changing status (not Draft), set to true
+        // Actually, logic in backend uses is_submit to trigger history/notification.
+        // Let's always set it to true unless it's just saving draft?
+        // Logic: if btn.action === 'saveDraft', is_submit = false?
+        // No, let's strictly follow the button intent.
+        formData.append('is_submit', btn.action === 'saveDraft' ? 'false' : 'true');
+
+        if (newComment.value.trim()) {
+            formData.append('comment', newComment.value.trim());
+            formData.append('actor_role', currentRoleLabel.value);
+        }
+
+        // Files
+        for (const [key, file] of Object.entries(store.files)) {
+            if (file) {
+                if (Array.isArray(file)) {
+                    file.forEach(f => formData.append(key, f));
+                } else if (!file.isRemote) { // Only append actual File objects, not remote placeholders
+                    formData.append(key, file);
                 }
             }
-
-            await axios.post('/api/credit-requests', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            await Swal.fire({
-                title: 'สำเร็จ',
-                text: successMessage,
-                icon: 'success'
-            });
-
-            window.location.reload();
-
-        } catch (error) {
-            console.error(error);
-             Swal.fire({
-                title: 'เกิดข้อผิดพลาด',
-                text: 'เกิดข้อผิดพลาดในการส่งคำขอ',
-                icon: 'error'
-            });
         }
-    };
 
-    return {
-        submitAction,
-        saveDraft,
-        isReadOnly,
-        handleCancel,
-        comments,
-        requestStatus,
-        currentRoleLabel,
-        newComment,
-        isHighValue,
-        showTerms,
-        hasData,
-        store
-    };
-  }
+        await axios.post('/api/credit-requests', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        await Swal.fire({
+            title: 'สำเร็จ',
+            text: btn.confirmMessage || 'ทำรายการสำเร็จ',
+            icon: 'success'
+        });
+
+        window.location.reload();
+
+    } catch (error) {
+        console.error(error);
+         Swal.fire({
+            title: 'เกิดข้อผิดพลาด',
+            text: 'เกิดข้อผิดพลาดในการส่งคำขอ',
+            icon: 'error'
+        });
+    }
+};
+
+const handleCancel = async () => {
+    const result = await Swal.fire({
+        title: 'ยกเลิกคำขอ?',
+        text: 'คุณแน่ใจหรือไม่ที่จะยกเลิกคำขอนี้?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'ใช่, ยกเลิก',
+        cancelButtonText: 'ไม่',
+        confirmButtonColor: '#d33',
+    });
+
+    if (result.isConfirmed) {
+        try {
+            await store.cancelRequest();
+            await Swal.fire('ยกเลิกสำเร็จ', 'คำขอถูกยกเลิกแล้ว', 'success');
+            window.location.reload();
+        } catch (e) {
+            Swal.fire('Error', 'ไม่สามารถยกเลิกคำขอได้', 'error');
+        }
+    }
 };
 </script>
 
@@ -354,7 +284,6 @@ export default {
   background: white;
   border-radius: 8px;
   border: 1px solid #e0e0e0;
-  /* padding: 10px 0; */
   overflow: hidden;
 }
 
@@ -371,6 +300,7 @@ export default {
   margin-bottom: 20px;
 }
 
+/* Icon style reused from previous version */
 .card-header h3::before {
   content: '';
   display: inline-block;
@@ -382,28 +312,6 @@ export default {
 
 .form-footer {
   margin-top: 20px;
-}
-
-.comment-section {
-  margin-bottom: 20px;
-}
-
-.comment-section h3 {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.comment-input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  background-color: #f5f6f8;
-  box-sizing: border-box;
-  color: black;
-  font-family: inherit;
-  resize: vertical;
 }
 
 .footer-info {
@@ -422,47 +330,56 @@ export default {
   gap: 15px;
 }
 
-.btn-save {
+/* Button Variants */
+.btn-secondary {
   padding: 12px 30px;
-  background-color: #999;
+  background-color: #999; /* Grey */
   color: white;
   border: none;
   border-radius: 4px;
   font-size: 16px;
   cursor: pointer;
 }
+.btn-secondary:hover {
+  background-color: #888;
+}
 
-.btn-submit, .btn-approve {
+.btn-primary, .btn-submit {
   padding: 12px 30px;
-  background-color: #0056FF;
+  background-color: #0056FF; /* Blue */
   color: white;
   border: none;
   border-radius: 4px;
   font-size: 16px;
   cursor: pointer;
 }
-
-.btn-approve {
-    background-color: #28a745;
-}
-.btn-approve:hover {
-    background-color: #218838;
-}
-
-.btn-submit:hover {
+.btn-primary:hover, .btn-submit:hover {
   background-color: #0046cc;
 }
 
-.btn-cancel, .btn-reject {
+.btn-approve {
     padding: 12px 30px;
-    background-color: #dc3545;
+    background-color: #28a745; /* Green */
     color: white;
     border: none;
     border-radius: 4px;
     font-size: 16px;
     cursor: pointer;
 }
-.btn-cancel:hover, .btn-reject:hover {
+.btn-approve:hover {
+    background-color: #218838;
+}
+
+.btn-reject, .btn-cancel {
+    padding: 12px 30px;
+    background-color: #dc3545; /* Red */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+}
+.btn-reject:hover, .btn-cancel:hover {
     background-color: #c82333;
 }
 </style>
