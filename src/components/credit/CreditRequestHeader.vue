@@ -2,10 +2,12 @@
   <div class="credit-header">
     <div class="header-section">
       <label>ประเภทคำขอเครดิต</label>
-      <select class="form-select" v-model="selectedType" @change="$emit('update:type', selectedType)">
+      <select class="form-select" v-model="selectedType" @change="updateType">
         <option value="เครดิตใหม่">เครดิตใหม่</option>
         <option value="เครดิตเพิ่ม">เครดิตเพิ่ม</option>
         <option value="เครดิตโครงการ">เครดิตโครงการ</option>
+        <option value="เปลี่ยนแปลงระยะเวลาเครดิต">เปลี่ยนแปลงระยะเวลาเครดิต</option>
+        <option value="เปลี่ยนแปลงเงื่อนไขการชำระเงิน">เปลี่ยนแปลงเงื่อนไขการชำระเงิน</option>
       </select>
     </div>
     <div class="header-section flex-grow">
@@ -74,6 +76,17 @@ export default {
       showDropdown: false,
     };
   },
+  watch: {
+    // Sync local state with store when loading a request
+    'creditStore.transactionData.requestType': {
+      immediate: true,
+      handler(newVal) {
+        if (newVal) {
+          this.selectedType = newVal;
+        }
+      }
+    }
+  },
   computed: {
     showExportButton() {
       // Show button if status is Submitted or later
@@ -92,6 +105,13 @@ export default {
     document.removeEventListener('click', this.handleClickOutside);
   },
   methods: {
+    updateType() {
+      this.creditStore.updateTransactionData({ requestType: this.selectedType });
+      // Trigger save if we have a customer loaded
+      if (this.creditStore.requestId) {
+        this.creditStore.saveTransactionData();
+      }
+    },
     onInput() {
       if (this.searchQuery.length >= 3) {
         this.debouncedFetchSuggestions();

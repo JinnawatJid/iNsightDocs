@@ -145,7 +145,7 @@ const initDB = async () => {
         }
 
         // Create CreditRequests table manually
-        db.run(`CREATE TABLE IF NOT EXISTS CreditRequests (
+        await db.runAsync(`CREATE TABLE IF NOT EXISTS CreditRequests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             tx_id TEXT UNIQUE,
             customer_no TEXT,
@@ -166,7 +166,8 @@ const initDB = async () => {
             { name: 'snapshot_data', type: 'TEXT' },
             { name: 'term_gs', type: 'INTEGER' },
             { name: 'term_ae', type: 'INTEGER' },
-            { name: 'term_yc', type: 'INTEGER' }
+            { name: 'term_yc', type: 'INTEGER' },
+            { name: 'request_type', type: 'TEXT' }
         ];
 
         for (const col of creditRequestColumns) {
@@ -195,7 +196,7 @@ const initDB = async () => {
         }
 
         // Create CreditRequestAttachments table
-        db.run(`CREATE TABLE IF NOT EXISTS CreditRequestAttachments (
+        await db.runAsync(`CREATE TABLE IF NOT EXISTS CreditRequestAttachments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             tx_id TEXT,
             file_type TEXT,
@@ -206,7 +207,7 @@ const initDB = async () => {
         )`);
 
         // Create RequestComments table
-        db.run(`CREATE TABLE IF NOT EXISTS RequestComments (
+        await db.runAsync(`CREATE TABLE IF NOT EXISTS RequestComments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             tx_id TEXT,
             actor_role TEXT,

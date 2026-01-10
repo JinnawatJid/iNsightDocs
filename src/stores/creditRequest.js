@@ -28,7 +28,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       termGS: '',
       termAE: '',
       termYC: '',
-      reason: 'สต๊อคสินค้า'
+      reason: 'สต๊อคสินค้า',
+      requestType: 'เครดิตใหม่'
     },
 
     // List of requests (Pending/History)
@@ -150,7 +151,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           creditTerm: data.request_credit_term,
           termGS: data.term_gs,
           termAE: data.term_ae,
-          termYC: data.term_yc
+          termYC: data.term_yc,
+          requestType: data.request_type || 'เครดิตใหม่'
         };
 
         this.hasSearched = true; // To show the form
@@ -272,7 +274,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
               termGS: resData.term_gs || '',
               termAE: resData.term_ae || '',
               termYC: resData.term_yc || '',
-              reason: resData.request_reason || 'สต๊อคสินค้า'
+              reason: resData.request_reason || 'สต๊อคสินค้า',
+              requestType: resData.request_type || 'เครดิตใหม่'
             };
           }
         }
@@ -343,6 +346,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         formData.append('term_gs', this.transactionData.termGS || '');
         formData.append('term_ae', this.transactionData.termAE || '');
         formData.append('term_yc', this.transactionData.termYC || '');
+        formData.append('request_type', this.transactionData.requestType || 'เครดิตใหม่');
 
         // Use getSnapshot() to ensure all data including financials is saved
         formData.append('snapshot_data', JSON.stringify(this.getSnapshot()));
@@ -421,7 +425,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termGS: '',
         termAE: '',
         termYC: '',
-        reason: 'สต๊อคสินค้า'
+        reason: 'สต๊อคสินค้า',
+        requestType: 'เครดิตใหม่'
       };
     },
 
@@ -443,7 +448,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termGS: '',
         termAE: '',
         termYC: '',
-        reason: 'สต๊อคสินค้า'
+        reason: 'สต๊อคสินค้า',
+        requestType: 'เครดิตใหม่'
       };
     },
 
