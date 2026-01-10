@@ -32,8 +32,8 @@
         <div v-if="!multiple" class="file-preview">
           <span class="file-name">{{ file.name }}</span>
 
-          <!-- Download Button (Read Only / Remote) -->
-          <button v-if="disabled && isRemote(file)" class="download-btn" @click.stop="downloadFile(file)" title="Download">
+          <!-- Download Button (Always if Remote) -->
+          <button v-if="isRemote(file)" class="download-btn" @click.stop="downloadFile(file)" title="Download">
              <img src="@/assets/icons/download.svg" alt="Download" />
           </button>
 
@@ -46,8 +46,8 @@
             <li v-for="(f, index) in file" :key="index" class="file-list-item">
                 <span class="file-name">{{ f.name }}</span>
 
-                <!-- Download Button (Read Only / Remote) -->
-                 <button v-if="disabled && isRemote(f)" class="download-btn-small" @click.stop="downloadFile(f)" title="Download">
+                <!-- Download Button (Always if Remote) -->
+                 <button v-if="isRemote(f)" class="download-btn-small" @click.stop="downloadFile(f)" title="Download">
                     <img src="@/assets/icons/download.svg" alt="Download" />
                  </button>
 

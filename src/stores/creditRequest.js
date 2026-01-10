@@ -302,6 +302,21 @@ export const useCreditRequestStore = defineStore('creditRequest', {
             }
           }
 
+          // Handle Attachments from initialization/resume
+          if (resData.attachments && resData.attachments.length > 0) {
+              this.files = {};
+              this.uploadedDocuments = {};
+              resData.attachments.forEach(att => {
+                  this.files[att.file_type] = {
+                      name: att.original_name,
+                      id: att.id,
+                      txId: att.tx_id,
+                      isRemote: true
+                  };
+                  this.uploadedDocuments[att.file_type] = true;
+              });
+          }
+
           // Update transaction data (amount/reason) if present
           if (resData.request_amount || resData.request_reason || resData.request_credit_term || resData.term_gs) {
             this.transactionData = {

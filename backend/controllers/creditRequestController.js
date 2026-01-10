@@ -299,12 +299,21 @@ exports.createCreditRequest = async (req, res) => {
         }
     }
 
+    // Fetch attachments to return in response (essential for auto-resume flow)
+    let attachments = [];
+    if (txId) {
+         const attSql = 'SELECT * FROM CreditRequestAttachments WHERE tx_id = ?';
+         const { rows } = await db.query(attSql, [txId]);
+         attachments = rows || [];
+    }
+
     let responseData = {
         id: requestId,
         txId,
         status,
         customer_name,
         customer_no,
+        attachments,
         // For Opened requests (existing or new), return what we have
         snapshot_data: responseSnapshot || snapshot_data,
         request_amount: responseAmount || request_amount,
