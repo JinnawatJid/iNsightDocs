@@ -59,7 +59,10 @@ const generateCreditRequestPDF = async (req, res) => {
         c.store_ownership_other,
         c.billing_method,
         c.payment_method,
-        c.payment_condition
+        c.payment_condition,
+        c.payment_bank_name,
+        c.payment_bank_branch,
+        c.payment_account_no
       FROM CreditRequests cr
       JOIN Customers c ON cr.customer_no = c."No_"
       WHERE cr.tx_id = ?
@@ -85,6 +88,9 @@ const generateCreditRequestPDF = async (req, res) => {
 
     const customerName = snapCust.company_name || snapCust.name || data.db_customer_name || '-';
     const customerNo = snapCust.id || data.db_customer_no || '-';
+    // Trim fallback
+    const customerNoClean = customerNo.trim();
+
     const taxId = snapCust.tax_id || snapCust.vat_registration_no || data.db_vat_registration_no || '-';
     const businessType = snapCust.business_type || data.business_type || '-';
     const yearsInBusiness = snapCust.years_in_business || data.years_in_business || '-';
@@ -101,7 +107,7 @@ const generateCreditRequestPDF = async (req, res) => {
     const district = snapCust.district || data.db_district || '';
     const province = snapCust.province || data.db_province || '';
     const zipcode = snapCust.zipcode || data.db_zipcode || '';
-    const residenceMap = snapCust.residence_map_code || data.residence_map_code || '-';
+    // const residenceMap = snapCust.residence_map_code || data.residence_map_code || '-'; // Removed as requested
 
     // Residence Ownership Logic
     const residenceOwnership = snapCust.residence_ownership || data.residence_ownership || '-';
@@ -122,7 +128,7 @@ const generateCreditRequestPDF = async (req, res) => {
     const storeDistrict = snapCust.store_district || '';
     const storeProvince = snapCust.store_province || '';
     const storeZipcode = snapCust.store_zipcode || '';
-    const storeMap = snapCust.store_map_code || data.store_map_code || '-';
+    // const storeMap = snapCust.store_map_code || data.store_map_code || '-'; // Removed as requested
 
     // Store Ownership Logic
     const storeOwnership = snapCust.store_ownership || data.store_ownership || '-';
@@ -167,11 +173,11 @@ const generateCreditRequestPDF = async (req, res) => {
         console.log('PDF: Snapshot missing financials, attempting fallback to Live Data...');
         try {
             const accumQuery = `SELECT * FROM AY_ACCUM WHERE custcode = ? LIMIT 1`;
-            const accumRes = await db.query(accumQuery, [customerNo]);
+            // Use cleaned customer number for better match
+            const accumRes = await db.query(accumQuery, [customerNoClean]);
             if (accumRes.rows.length > 0) {
                 const accum = accumRes.rows[0];
                 // Simple reconstruction of 3-month history (assuming Jun, Jul, Aug as per current logic)
-                // In a real scenario, this should be dynamic based on current month, but for now matching existing logic
                 financial = {
                     monthly_history: [
                         { label: 'มิ.ย.', value: formatCurrency(accum.Jun) },
@@ -207,14 +213,39 @@ const generateCreditRequestPDF = async (req, res) => {
     }
 
     // Prepare Score Data
-    const score = scoreData.total_score ? Math.round(scoreData.total_score) : '-';
-    const grade = scoreData.grade || '-';
+    let score = scoreData.total_score ? Math.round(scoreData.total_score) : 'รอการประเมิน';
+    let grade = scoreData.grade || '-';
 
     // Billing Info (Fallback to DB if snapshot missing)
-    const billingMethod = snapCust.billing_method || data.billing_method || '-';
+    let billingMethod = snapCust.billing_method || data.billing_method || '-';
+    // Translate Billing Method
+    if (billingMethod.toLowerCase() === 'delivery') billingMethod = 'วางบิลพร้อมส่งของ';
+    else if (billingMethod.toLowerCase() === 'mail') billingMethod = 'ทางไปรษณีย์';
+    else if (billingMethod.toLowerCase() === 'messenger') billingMethod = 'วางบิลโดยแมสเซนเจอร์';
+
     const paymentMethod = snapCust.payment_method || data.payment_method || '-';
     const paymentCondition = snapCust.payment_condition || data.payment_condition || '-';
-    const paymentTerm = data.request_credit_term || '-';
+
+    // Bank Details
+    const bankName = snapCust.payment_bank_name || data.payment_bank_name || '-';
+    const bankBranch = snapCust.payment_bank_branch || data.payment_bank_branch || '-';
+    const bankAccount = snapCust.payment_account_no || data.payment_account_no || '-';
+    const bankDetails = (bankName !== '-' && bankAccount !== '-')
+        ? `${bankName} สาขา ${bankBranch} เลขที่ ${bankAccount}`
+        : '-';
+
+    let paymentTerm = data.request_credit_term;
+    if (!paymentTerm || paymentTerm === '-') {
+        // Fallback to split terms
+        const gs = data.term_gs || '0';
+        const ae = data.term_ae || '0';
+        const yc = data.term_yc || '0';
+        if (gs !== '0' || ae !== '0' || yc !== '0') {
+             paymentTerm = `G:${gs} S:${ae} Y:${yc}`;
+        } else {
+             paymentTerm = '-';
+        }
+    }
 
     // Logo Path
     const logoPath = path.join(__dirname, '../assets/logoReport.png');
@@ -257,14 +288,15 @@ const generateCreditRequestPDF = async (req, res) => {
         // --- HEADER ---
         {
             columns: [
-                // Left: Logo (Bigger)
+                // Left: Logo (Fixed Width)
                 logoImage ? {
                     image: logoImage,
-                    width: 120, // Increased size per request
+                    width: 120,
                     margin: [0, 0, 0, 0]
-                } : { text: 'LOGO', fontSize: 10, color: 'gray' },
+                } : { text: 'LOGO', fontSize: 10, color: 'gray', width: 120 },
 
                 // Center: Title & Metadata (Aligned Center relative to page)
+                // Use absolute centering logic or just expanded width
                 {
                     stack: [
                         { text: 'สรุปคำขอสินเชื่อ', style: 'header', alignment: 'center' },
@@ -275,13 +307,13 @@ const generateCreditRequestPDF = async (req, res) => {
                     alignment: 'center'
                 },
 
-                // Right: Request Type & Status (Simple text)
+                // Right: Request Type & Status (Fixed Width equal to Left to balance center)
                 {
                     stack: [
                          { text: `ประเภท: ${requestType}`, alignment: 'right', bold: true, fontSize: 12, margin: [0, 10, 0, 0] },
                          { text: `สถานะ: ${data.status}`, alignment: 'right', fontSize: 10, margin: [0, 5, 0, 0], bold: true }
                     ],
-                    width: 150
+                    width: 120
                 }
             ],
             margin: [0, 0, 0, 20]
@@ -301,21 +333,27 @@ const generateCreditRequestPDF = async (req, res) => {
               // Row 3: Business Info
               [{ text: 'ประเภทธุรกิจ:', bold: true }, businessType, { text: 'ดำเนินกิจการ:', bold: true }, `${yearsInBusiness} ปี`],
               // Row 4: Key Persons
-              [{ text: 'ผู้มีอำนาจ:', bold: true }, authName, { text: 'ผู้ติดต่อ:', bold: true }, `${contactName} (${contactPhone})`],
+              [{ text: 'ผู้มีอำนาจ:', bold: true }, authName, { text: 'ผู้ติดต่อ:', bold: true }, `${contactName} (${contactPhone})`]
+            ]
+          },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 15]
+        },
 
-              // Sub-header styling via row
-              [{ text: 'ที่อยู่และสถานที่ประกอบการ', bold: true, fillColor: '#f0f0f0', colSpan: 4, alignment: 'center' }, {}, {}, {}],
-
-              // Row 5: Residence
-              [{ text: 'ที่อยู่ (ภพ.20):', bold: true }, { text: fullAddress, colSpan: 3 }, {}, {}],
-              // Row 6: Residence Details
-              [{ text: 'กรรมสิทธิ์:', bold: true }, resOwnDisplay, { text: 'พิกัด (Map):', bold: true }, residenceMap],
-
-              // Row 7: Store (if different)
-              [{ text: 'ที่อยู่ร้านค้า:', bold: true }, { text: fullStoreAddress !== '-' ? fullStoreAddress : 'เดียวกับที่อยู่บริษัท', colSpan: 3 }, {}, {}],
-              // Row 8: Store Details
-              [{ text: 'กรรมสิทธิ์:', bold: true }, storeOwnDisplay, { text: 'พิกัด (Map):', bold: true }, storeMap],
-
+        // --- SECTION 1.5: ADDRESS INFO (Split as requested) ---
+        { text: 'ที่อยู่และสถานที่ประกอบการ', style: 'subheader' },
+        {
+          table: {
+            widths: ['15%', '85%'], // 2-Column layout for address
+            body: [
+               // Residence
+               [{ text: 'ที่อยู่อาศัย:', bold: true }, fullAddress],
+               [{ text: 'กรรมสิทธิ์:', bold: true }, resOwnDisplay],
+               // Spacer
+               [{ text: '', colSpan: 2, border: [false, false, false, false], margin: [0, 5, 0, 5] }, {}],
+               // Store
+               [{ text: 'ที่อยู่ร้านค้า:', bold: true }, fullStoreAddress !== '-' ? fullStoreAddress : 'เดียวกับที่อยู่บริษัท'],
+               [{ text: 'กรรมสิทธิ์:', bold: true }, storeOwnDisplay]
             ]
           },
           layout: 'lightHorizontalLines',
@@ -366,7 +404,7 @@ const generateCreditRequestPDF = async (req, res) => {
                      // Credit Request
                      [
                         { text: 'วงเงินที่ขอ:', bold: true }, formatCurrency(data.request_amount) + ' บาท',
-                        { text: 'Credit Term:', bold: true }, `${paymentTerm} วัน`
+                        { text: 'ระยะเวลาเครดิต:', bold: true }, `${paymentTerm} วัน`
                      ],
                      [
                         { text: 'เหตุผล:', bold: true }, { text: data.request_reason || '-', colSpan: 3 }, {}
@@ -377,7 +415,8 @@ const generateCreditRequestPDF = async (req, res) => {
                         { text: 'การชำระเงิน:', bold: true }, paymentMethod
                      ],
                      [
-                        { text: 'เงื่อนไข:', bold: true }, { text: paymentCondition, colSpan: 3 }, {}
+                        { text: 'เงื่อนไข:', bold: true }, paymentCondition,
+                        { text: 'ธนาคาร:', bold: true }, bankDetails
                      ]
                 ]
             },
@@ -385,15 +424,7 @@ const generateCreditRequestPDF = async (req, res) => {
             margin: [0, 0, 0, 15]
         },
 
-        // --- SECTION 4: ATTACHMENTS (Doc Types Only) ---
-        { text: 'เอกสารแนบ', style: 'subheader' },
-        {
-            text: attachmentSummary || 'ไม่มีเอกสารแนบ',
-            fontSize: 10,
-            margin: [0, 0, 0, 15]
-        },
-
-        // --- SECTION 5: RISK ANALYSIS (Bottom Verdict) ---
+        // --- SECTION 4: RISK ANALYSIS (Moved UP, before Attachments) ---
         { text: 'การวิเคราะห์ความเสี่ยง', style: 'subheader' },
         {
             table: {
@@ -404,12 +435,20 @@ const generateCreditRequestPDF = async (req, res) => {
                         { text: 'Grade', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' }
                     ],
                     [
-                        { text: `${score} / 100`, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] },
+                        { text: score === 'รอการประเมิน' ? score : `${score} / 100`, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] },
                         { text: grade, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] }
                     ]
                 ]
             },
             layout: 'lightHorizontalLines',
+            margin: [0, 0, 0, 15]
+        },
+
+        // --- SECTION 5: ATTACHMENTS (Moved to LAST) ---
+        { text: 'เอกสารแนบ', style: 'subheader' },
+        {
+            text: attachmentSummary || 'ไม่มีเอกสารแนบ',
+            fontSize: 10,
             margin: [0, 0, 0, 15]
         }
       ],
