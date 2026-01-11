@@ -188,9 +188,14 @@ h3 {
 
 .request-type {
   font-weight: 500;
-  color: #333;
-  font-size: 14px;
-  margin-bottom: 2px;
+  color: #0056b3;
+  font-size: 12px;
+  background-color: #e7f1ff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  width: fit-content;
+  margin-bottom: 4px;
 }
 
 .amount {
