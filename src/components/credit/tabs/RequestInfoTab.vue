@@ -94,13 +94,27 @@
         <h3>รายละเอียดคำขอเครดิต</h3>
       </div>
       <div class="form-grid-three-columns">
+            <!-- Field 1: Current Limit (Read Only) - Only for Credit Increase -->
+            <div class="form-group" v-if="isRequestIncrease && isDraftMode">
+              <label>วงเงินปัจจุบัน (Current Limit)</label>
+              <input
+                type="text"
+                class="form-input disabled"
+                disabled
+                :value="store.financialSummary.current_credit_limit || 'N/A'"
+              />
+            </div>
+
             <div class="form-group" v-if="isDraftMode">
-              <label>วงเงินเครดิตที่ต้องการ (บาท) <span v-if="isRequired('amount')" class="text-red-500">*</span></label>
+              <label>
+                  {{ isRequestIncrease ? 'วงเงินใหม่ที่ต้องการ (New Total Limit)' : 'วงเงินเครดิตที่ต้องการ (บาท)' }}
+                  <span v-if="isRequired('amount')" class="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 class="form-input"
-                :class="{ 'border-red-500': errors.amount, 'disabled': !isEditing }"
-                :disabled="!isEditing"
+                :class="{ 'border-red-500': errors.amount, 'disabled': !canEditAmount }"
+                :disabled="!canEditAmount"
                 placeholder="ระบุวงเงินที่ต้องการ"
                 v-model="store.transactionData.amount"
                 @input="restrictCreditAmountInput"
@@ -110,34 +124,50 @@
             <!-- New Split Terms for Draft Mode -->
             <template v-if="isDraftMode">
               <div class="form-group">
-                <label>ระยะเวลาเครดิต (กระจก, กาว)</label>
+                <label>
+                    ระยะเวลาเครดิต (กระจก, กาว)
+                    <!-- Show current if special mode -->
+                    <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
+                        (Current: {{ store.originalCustomer.credit_term }})
+                    </span>
+                </label>
                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'disabled': !isEditing }"
-                  :disabled="!isEditing"
+                  :class="{ 'disabled': !canEditTerms }"
+                  :disabled="!canEditTerms"
                   v-model="store.transactionData.termGS"
                   @input="(e) => handleNumericInput(e, 'termGS', true)"
                 />
               </div>
               <div class="form-group">
-                <label>ระยะเวลาเครดิต (อลูมิเนียม, Acc)</label>
+                <label>
+                    ระยะเวลาเครดิต (อลูมิเนียม, Acc)
+                    <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
+                        (Current: {{ store.originalCustomer.credit_term }})
+                    </span>
+                </label>
                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'disabled': !isEditing }"
-                  :disabled="!isEditing"
+                  :class="{ 'disabled': !canEditTerms }"
+                  :disabled="!canEditTerms"
                   v-model="store.transactionData.termAE"
                   @input="(e) => handleNumericInput(e, 'termAE', true)"
                 />
               </div>
               <div class="form-group">
-                <label>ระยะเวลาเครดิต (ยิปซั่ม, ซีลาย)</label>
+                <label>
+                    ระยะเวลาเครดิต (ยิปซั่ม, ซีลาย)
+                    <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
+                        (Current: {{ store.originalCustomer.credit_term }})
+                    </span>
+                </label>
                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'disabled': !isEditing }"
-                  :disabled="!isEditing"
+                  :class="{ 'disabled': !canEditTerms }"
+                  :disabled="!canEditTerms"
                   v-model="store.transactionData.termYC"
                   @input="(e) => handleNumericInput(e, 'termYC', true)"
                 />
@@ -438,8 +468,20 @@ watch(() => props.readOnly, (val) => {
 });
 
 const isDraftMode = computed(() => {
+  // If 'Change Payment', amount/terms should be read-only (not editable draft mode for those fields)
+  // Logic is complex: Draft Mode usually means "Editable".
+  // But for special types, we selectively disable fields.
+  // We handle this via :disabled binding in template with specific helpers.
   return !store.requestStatus || store.requestStatus === 'Draft';
 });
+
+const isRequestIncrease = computed(() => store.transactionData.requestType === 'เครดิตเพิ่ม');
+const isChangePayment = computed(() => store.transactionData.requestType === 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน');
+const isChangeTerm = computed(() => store.transactionData.requestType === 'เปลี่ยนแปลงระยะเวลาเครดิต');
+
+// Field Visibility / Editability Logic
+const canEditAmount = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || store.transactionData.requestType === 'เครดิตใหม่'));
+const canEditTerms = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isChangeTerm.value || store.transactionData.requestType === 'เครดิตใหม่'));
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);

@@ -8,6 +8,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
   state: () => ({
     hasSearched: false,
     customer: {},
+    originalCustomer: {}, // Deep clone of initial search result for comparison
     displayCustomer: {}, // Stable copy for sidebar display
     history: [],
     financialSummary: {},
@@ -227,6 +228,9 @@ export const useCreditRequestStore = defineStore('creditRequest', {
               this.customer.existing_credits = [];
           }
 
+          // Clone for original state comparison
+          this.originalCustomer = JSON.parse(JSON.stringify(this.customer));
+
           this.displayCustomer = { ...this.customer }; // Init display copy
           this.history = data.history || [];
           this.financialSummary = data.financial_summary || {};
@@ -376,7 +380,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       const snapshot = {
         ...this.customer,
         financial_summary: this.financialSummary,
-        credit_score: this.creditScore
+        credit_score: this.creditScore,
+        // Include transactionData in snapshot for fallback?
+        // Actually, transactionData is stored in dedicated columns, but having it here doesn't hurt.
+        transaction_data: this.transactionData
       };
 
       // Ensure existing_credits is saved as Array (backend JSON stringify handles it if needed for column,
@@ -436,12 +443,37 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     // Validation Action
     validateRequest(isSubmit = false) {
+        const reqType = this.transactionData.requestType;
+        const isSpecial = ['เครดิตเพิ่ม', 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน', 'เปลี่ยนแปลงระยะเวลาเครดิต'].includes(reqType);
+
         // 1. Get mandatory keys
         const { fields, files } = getMandatoryKeys(this.isCompany);
         const missingFields = [];
 
+        // For special requests, we only validate RELEVANT fields and skip most file checks if strict mode isn't required
+        // But the user said "documents tend to be the same".
+        // Let's implement logic: If Special, only validate RequestInfoTab fields and Credit Application Doc.
+        // We SKIP General/Residence/Store fields/files IF they are already populated (which they should be from search).
+        // But actually, we just rely on what's visible? No, validation runs on data.
+
+        // Refined Logic for Special Requests:
+        // We assume existing data is valid. We only check fields that are actively being edited or Critical fields.
+
+        let fieldsToCheck = fields;
+        let filesToCheck = files;
+
+        if (isSpecial) {
+             // Filter to only check essential fields + Request Info fields
+             const essential = ['amount', 'reason', 'contact_person', 'contact_phone_number', 'payment_method', 'billing_requirement'];
+             fieldsToCheck = fields.filter(f => essential.includes(f));
+
+             // Only require the Credit Application Doc for special requests
+             // (Assuming other docs are on file from previous request)
+             filesToCheck = ['credit_application_doc'];
+        }
+
         // 2. Validate Fields
-        fields.forEach(key => {
+        fieldsToCheck.forEach(key => {
             let val;
             if (['amount', 'reason'].includes(key)) {
                 val = this.transactionData[key];
@@ -453,21 +485,24 @@ export const useCreditRequestStore = defineStore('creditRequest', {
             }
         });
 
-        // 3. Conditional Checks (Residence & Store)
-        const resOwnership = this.customer.residence_ownership;
-        if (resOwnership === 'บ้านเช่า' || resOwnership === 'อื่นๆ') {
-             if (!this.customer.residence_ownership_other) missingFields.push('residence_ownership_other');
-        }
+        // 3. Conditional Checks (Residence & Store) - Skip for Special unless "Show All" is active?
+        // Let's skip for special to be safe/lenient as requested ("Overlap" logic).
+        if (!isSpecial) {
+            const resOwnership = this.customer.residence_ownership;
+            if (resOwnership === 'บ้านเช่า' || resOwnership === 'อื่นๆ') {
+                 if (!this.customer.residence_ownership_other) missingFields.push('residence_ownership_other');
+            }
 
-        const storeOwnership = this.customer.store_ownership;
-        if (storeOwnership === 'เช่าซื้อ' || storeOwnership === 'เช่า') {
-             if (!this.customer.store_ownership_other) missingFields.push('store_ownership_other');
+            const storeOwnership = this.customer.store_ownership;
+            if (storeOwnership === 'เช่าซื้อ' || storeOwnership === 'เช่า') {
+                 if (!this.customer.store_ownership_other) missingFields.push('store_ownership_other');
+            }
         }
 
         // 4. Validate Files (Only on Submit)
         const missingFiles = [];
         if (isSubmit) {
-            files.forEach(key => {
+            filesToCheck.forEach(key => {
                 const file = this.files[key];
                 // Check if we have a file object OR if it's marked as uploaded
                 const isUploaded = this.uploadedDocuments[key];
@@ -510,6 +545,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     resetState() {
       this.hasSearched = false;
       this.customer = {};
+      this.originalCustomer = {};
       this.history = [];
       this.financialSummary = {};
       this.creditScore = {};
@@ -534,6 +570,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     clearFormData() {
       this.customer = {};
+      this.originalCustomer = {};
       this.history = [];
       this.financialSummary = {};
       this.creditScore = {};

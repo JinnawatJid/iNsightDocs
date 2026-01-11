@@ -12,8 +12,15 @@
     <div class="unified-card">
       <div class="card-header">
         <h3>เอกสารประกอบการพิจารณา</h3>
+        <button
+            v-if="isSpecialRequestType"
+            class="toggle-details-btn"
+            @click="showAllDetails = !showAllDetails"
+        >
+            {{ showAllDetails ? 'ซ่อนข้อมูลทั้งหมด (Hide All)' : 'แสดงข้อมูลทั้งหมด (Show All)' }}
+        </button>
       </div>
-      <ApplicationTabs :readOnly="isReadOnly" />
+      <ApplicationTabs :readOnly="isReadOnly" :viewMode="viewMode" />
     </div>
 
       <div class="form-footer">
@@ -52,12 +59,21 @@
             <p>พิมพ์รหัสลูกค้าหรือชื่อบริษัทเพื่อเริ่มต้นสร้างคำขอเครดิต</p>
         </div>
     </div>
+
+    <!-- Change Summary Modal -->
+    <ChangeSummaryModal
+      :isOpen="showChangeSummary"
+      :changes="changesToConfirm"
+      @close="showChangeSummary = false"
+      @confirm="handleConfirmChanges"
+    />
   </div>
 </template>
 
 <script setup>
 import ApplicationTabs from './ApplicationTabs.vue';
 import CreditReviewSection from './CreditReviewSection.vue';
+import ChangeSummaryModal from './ChangeSummaryModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { workflowConfig, roleLabels } from '@/config/workflow';
 import Swal from 'sweetalert2';
@@ -65,6 +81,12 @@ import axios from 'axios';
 import { computed, ref } from 'vue';
 
 const store = useCreditRequestStore();
+
+// Local State for View Mode
+const showAllDetails = ref(false);
+const showChangeSummary = ref(false);
+const changesToConfirm = ref([]);
+const pendingActionBtn = ref(null);
 
 // Computeds
 const isReadOnly = computed(() => store.isReadOnly);
@@ -78,6 +100,21 @@ const isHighValue = computed(() => {
     const amtStr = store.transactionData.amount || '0';
     const amt = parseFloat(String(amtStr).replace(/,/g, ''));
     return amt > 300000;
+});
+
+// Check if current request type is one of the special types
+const isSpecialRequestType = computed(() => {
+    const type = store.transactionData.requestType;
+    return ['เครดิตเพิ่ม', 'เปลี่ยนแปลงระยะเวลาเครดิต', 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน'].includes(type);
+});
+
+// View Mode Logic
+const viewMode = computed(() => {
+    // If not special type, or if user toggled "Show All", use 'full' mode
+    if (!isSpecialRequestType.value || showAllDetails.value) {
+        return 'full';
+    }
+    return 'focus';
 });
 
 // Logic for showing terms (Manager+)
@@ -114,8 +151,6 @@ const getButtonClass = (variant) => {
 const handleAction = async (btn) => {
     // 1. Validation Logic
     // Only validate fields if it's a "Submit" or "Approve" action moving forward
-    // Save Draft (targetStatus === 'Draft') might skip full validation?
-    // Let's enforce validation for everything EXCEPT Save Draft.
     const isSubmit = btn.targetStatus !== 'Draft' && btn.variant !== 'reject';
 
     // If it is a submit action, we run full validation
@@ -135,7 +170,7 @@ const handleAction = async (btn) => {
         }
     }
 
-    // 2. Confirmation
+    // 2. Confirmation (Initial)
     if (btn.confirmMessage) {
         const confirm = await Swal.fire({
             title: 'ยืนยันการทำรายการ?',
@@ -148,12 +183,97 @@ const handleAction = async (btn) => {
         if (!confirm.isConfirmed) return;
     }
 
-    // 3. Persist Data (Save Customer + Transaction)
-    // We always save the current state before transitioning
+    // 3. Check for Change Summary (Only on Submit/Approve for special types)
+    const needsSummary = isSpecialRequestType.value && isSubmit && btn.targetStatus !== 'Draft';
+
+    if (needsSummary) {
+        const changes = computeChanges();
+        if (changes.length > 0) {
+            changesToConfirm.value = changes;
+            pendingActionBtn.value = btn;
+            showChangeSummary.value = true;
+            return;
+        }
+    }
+
+    // 4. Persist Data (Save Customer + Transaction)
     await store.saveCustomerData(store.customer);
 
-    // 4. Submit Transaction
+    // 5. Submit Transaction
     await submitTransaction(btn);
+};
+
+const handleConfirmChanges = async () => {
+    showChangeSummary.value = false;
+    if (pendingActionBtn.value) {
+        await store.saveCustomerData(store.customer);
+        await submitTransaction(pendingActionBtn.value);
+        pendingActionBtn.value = null;
+    }
+};
+
+const computeChanges = () => {
+    const changes = [];
+    const type = store.transactionData.requestType;
+    const old = store.originalCustomer || {};
+    const curr = store.customer || {};
+    const txn = store.transactionData || {};
+
+    // Helper to format
+    const fmt = (val) => (val === null || val === undefined || val === '') ? '-' : val;
+
+    // 1. Credit Increase
+    if (type === 'เครดิตเพิ่ม') {
+        // Try to find current credit limit proxy
+        let currentLimit = 'N/A';
+        // Check financial summary for 3-months purchase as a weak proxy? No, that's sales.
+        // Check existing_credits if any? No.
+        // If we have history, maybe we can find last approved amount?
+        // Ideally we should have "Current Limit" in store.financialSummary or store.customer
+        // If not available, we stick to N/A but with better label if possible.
+
+        // For now, check if financialSummary has a 'current_limit' property (future proofing)
+        if (store.financialSummary && store.financialSummary.current_credit_limit) {
+            currentLimit = store.financialSummary.current_credit_limit;
+        }
+
+        changes.push({
+            label: 'วงเงินใหม่ที่ต้องการ (New Limit)',
+            oldVal: currentLimit,
+            newVal: fmt(txn.amount)
+        });
+    }
+
+    // 2. Change Payment
+    if (type === 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน' || type === 'เครดิตเพิ่ม') {
+        const fields = [
+            { key: 'billing_requirement', label: 'การวางบิล' },
+            { key: 'billing_method', label: 'วิธีการวางบิล' },
+            { key: 'billing_schedule', label: 'กำหนดวางบิล' },
+            { key: 'payment_method', label: 'วิธีการชำระเงิน' },
+            { key: 'payment_condition', label: 'เงื่อนไขการชำระเงิน' },
+            { key: 'payment_bank_name', label: 'ธนาคาร' }
+        ];
+
+        fields.forEach(f => {
+            if (old[f.key] !== curr[f.key]) {
+                 changes.push({
+                    label: f.label,
+                    oldVal: fmt(old[f.key]),
+                    newVal: fmt(curr[f.key])
+                 });
+            }
+        });
+    }
+
+    // 3. Change Credit Term
+    if (type === 'เปลี่ยนแปลงระยะเวลาเครดิต' || type === 'เครดิตเพิ่ม') {
+        if (txn.termGS) changes.push({ label: 'Term GS', oldVal: '-', newVal: txn.termGS });
+        if (txn.termAE) changes.push({ label: 'Term AE', oldVal: '-', newVal: txn.termAE });
+        if (txn.termYC) changes.push({ label: 'Term YC', oldVal: '-', newVal: txn.termYC });
+    }
+
+    return changes;
 };
 
 const submitTransaction = async (btn) => {
@@ -176,11 +296,6 @@ const submitTransaction = async (btn) => {
         // Status & Comment
         formData.append('status', btn.targetStatus);
 
-        // is_submit logic: If changing status (not Draft), set to true
-        // Actually, logic in backend uses is_submit to trigger history/notification.
-        // Let's always set it to true unless it's just saving draft?
-        // Logic: if btn.action === 'saveDraft', is_submit = false?
-        // No, let's strictly follow the button intent.
         formData.append('is_submit', btn.action === 'saveDraft' ? 'false' : 'true');
 
         if (newComment.value.trim()) {
@@ -254,6 +369,10 @@ const submitTransaction = async (btn) => {
 
 .card-header {
   padding: 0px 20px 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
 .card-header h3 {
@@ -262,7 +381,21 @@ const submitTransaction = async (btn) => {
   gap: 10px;
   font-size: 18px;
   font-weight: bold;
-  margin-bottom: 20px;
+  margin: 0;
+}
+
+.toggle-details-btn {
+  background: none;
+  border: 1px solid #0056FF;
+  color: #0056FF;
+  padding: 5px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.toggle-details-btn:hover {
+  background-color: #f0f5ff;
 }
 
 /* Icon style reused from previous version */

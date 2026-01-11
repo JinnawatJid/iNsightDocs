@@ -38,7 +38,7 @@ export default {
     StoreStatementTab,
     RequestInfoTab
   },
-  props: ['readOnly'],
+  props: ['readOnly', 'viewMode'],
   setup() {
     const creditRequestStore = useCreditRequestStore();
     return { creditRequestStore };
@@ -52,13 +52,20 @@ export default {
     tabs() {
       const storeLabel = this.creditRequestStore.isCompany ? 'ที่อยู่บริษัท' : 'ที่อยู่ร้านค้า';
 
-      return [
+      const allTabs = [
         { id: 'requestInfo', label: 'ข้อมูลคำขอ' },
         { id: 'general', label: 'ข้อมูลทั่วไป' },
         { id: 'residence', label: 'ที่อยู่อาศัย' },
         { id: 'store', label: storeLabel },
         { id: 'financial', label: 'เอกสารการเงิน' }
       ];
+
+      // If viewMode is 'focus', only show Request Info tab
+      if (this.viewMode === 'focus') {
+          return [allTabs[0]];
+      }
+
+      return allTabs;
     },
     currentTabComponent() {
       switch (this.currentTab) {
