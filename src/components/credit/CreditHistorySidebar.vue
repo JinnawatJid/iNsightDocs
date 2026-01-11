@@ -19,9 +19,16 @@
       <div class="history-list" v-if="historyItems.length > 0">
         <div class="history-item clickable" v-for="(item, index) in historyItems" :key="item.id" @click="handleClick(item)">
           <div class="item-info">
-            <div class="date">{{ item.date }}</div>
+            <div
+              class="request-type"
+              :class="getRequestTypeClass(item.requestType)"
+              v-if="item.requestType"
+            >
+              {{ item.requestType }}
+            </div>
             <!-- item.amount is actually the TxID in the current API mapping -->
             <div class="amount">{{ item.amount }}</div>
+            <div class="date">{{ item.date }}</div>
           </div>
           <div class="item-status">
              <!-- Active Statuses -->
@@ -89,6 +96,13 @@ export default {
           if (txId) {
               this.store.loadRequestDetail(txId);
           }
+      },
+      getRequestTypeClass(type) {
+          if (!type) return 'type-new'; // Default
+          if (type.includes('เครดิตเพิ่ม')) return 'type-increase';
+          if (type.includes('เครดิตโครงการ')) return 'type-project';
+          if (type.includes('เปลี่ยนแปลง')) return 'type-change';
+          return 'type-new';
       }
   }
 };
@@ -179,15 +193,50 @@ h3 {
   flex-direction: column;
 }
 
-.date {
-  color: #888;
-  font-size: 14px;
+.request-type {
+  font-weight: 500;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  width: fit-content;
   margin-bottom: 4px;
+}
+
+/* New Credit (Default - Blue) */
+.type-new {
+  color: #0056b3;
+  background-color: #e7f1ff;
+}
+
+/* Increase Credit (Green) */
+.type-increase {
+  color: #0f5132;
+  background-color: #d1e7dd;
+}
+
+/* Project Credit (Purple) */
+.type-project {
+  color: #6f42c1;
+  background-color: #e0cffc;
+}
+
+/* Changes (Orange) - Term & Condition */
+.type-change {
+  color: #856404;
+  background-color: #fff3cd;
 }
 
 .amount {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.date {
+  color: #888;
+  font-size: 12px;
 }
 
 .no-history {
