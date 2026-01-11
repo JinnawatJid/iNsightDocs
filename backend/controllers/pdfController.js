@@ -349,8 +349,6 @@ const generateCreditRequestPDF = async (req, res) => {
                // Residence
                [{ text: 'ที่อยู่อาศัย:', bold: true }, fullAddress],
                [{ text: 'กรรมสิทธิ์:', bold: true }, resOwnDisplay],
-               // Spacer
-               [{ text: '', colSpan: 2, border: [false, false, false, false], margin: [0, 5, 0, 5] }, {}],
                // Store
                [{ text: 'ที่อยู่ร้านค้า:', bold: true }, fullStoreAddress !== '-' ? fullStoreAddress : 'เดียวกับที่อยู่บริษัท'],
                [{ text: 'กรรมสิทธิ์:', bold: true }, storeOwnDisplay]
@@ -399,12 +397,12 @@ const generateCreditRequestPDF = async (req, res) => {
         { text: 'รายละเอียดคำขอและเงื่อนไขการชำระเงิน', style: 'subheader' },
         {
             table: {
-                widths: ['15%', '35%', '15%', '35%'],
+                widths: ['15%', '35%', '20%', '30%'],
                 body: [
                      // Credit Request
                      [
                         { text: 'วงเงินที่ขอ:', bold: true }, formatCurrency(data.request_amount) + ' บาท',
-                        { text: 'ระยะเวลาเครดิต:', bold: true }, `${paymentTerm} วัน`
+                        { text: 'ระยะเวลาเครดิต:', bold: true }, `${paymentTerm}`
                      ],
                      [
                         { text: 'เหตุผล:', bold: true }, { text: data.request_reason || '-', colSpan: 3 }, {}
