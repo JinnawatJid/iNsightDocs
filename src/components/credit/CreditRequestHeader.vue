@@ -89,9 +89,19 @@ export default {
   },
   computed: {
     showExportButton() {
-      // Show button if status is Submitted or later
+      // Show button if status is Opened (Branch Manager) or later
       const status = this.creditStore.requestStatus;
-      const validStatuses = ['Submitted', 'Reviewed', 'Approved', 'Rejected', 'Closed', 'Canceled'];
+      const validStatuses = [
+        'Opened',
+        'Submitted',
+        'PendingSales (ชั่วคราว)',
+        'Reviewed',
+        'PendingFinance (ชั่วคราว)',
+        'Approved',
+        'Rejected',
+        'Closed',
+        'Canceled'
+      ];
       return validStatuses.includes(status);
     }
   },
