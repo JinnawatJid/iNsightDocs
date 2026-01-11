@@ -189,7 +189,8 @@ exports.searchCustomers = async (req, res) => {
               id: h.id,
               date: new Date(h.created_at).toLocaleDateString('th-TH'),
               amount: h.tx_id,
-              status: h.status
+              status: h.status,
+              request_type: h.request_type
           }));
       } catch (histErr) {
           console.error(`Error fetching history for ${row["No_"]}:`, histErr);

@@ -22,6 +22,7 @@
             <div class="date">{{ item.date }}</div>
             <!-- item.amount is actually the TxID in the current API mapping -->
             <div class="amount">{{ item.amount }}</div>
+            <div class="request-type" v-if="item.request_type">{{ item.request_type }}</div>
           </div>
           <div class="item-status">
              <!-- Active Statuses -->
@@ -188,6 +189,12 @@ h3 {
 .amount {
   font-weight: bold;
   font-size: 16px;
+}
+
+.request-type {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
 }
 
 .no-history {
