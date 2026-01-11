@@ -19,10 +19,10 @@
       <div class="history-list" v-if="historyItems.length > 0">
         <div class="history-item clickable" v-for="(item, index) in historyItems" :key="item.id" @click="handleClick(item)">
           <div class="item-info">
-            <div class="date">{{ item.date }}</div>
             <div class="request-type" v-if="item.requestType">{{ item.requestType }}</div>
             <!-- item.amount is actually the TxID in the current API mapping -->
             <div class="amount">{{ item.amount }}</div>
+            <div class="date">{{ item.date }}</div>
           </div>
           <div class="item-status">
              <!-- Active Statuses -->
@@ -180,12 +180,6 @@ h3 {
   flex-direction: column;
 }
 
-.date {
-  color: #888;
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-
 .request-type {
   font-weight: 500;
   color: #0056b3;
@@ -200,8 +194,14 @@ h3 {
 
 .amount {
   font-weight: bold;
-  font-size: 16px;
-  color: #666;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.date {
+  color: #888;
+  font-size: 12px;
 }
 
 .no-history {
