@@ -15,13 +15,14 @@
 
     <div class="tab-content">
       <keep-alive>
-        <component :is="currentTabComponent" :readOnly="readOnly" />
+        <component :is="currentTabComponent" :readOnly="readOnly" :viewMode="viewMode" />
       </keep-alive>
     </div>
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed } from 'vue';
 import ResidenceTab from './tabs/ResidenceTab.vue';
 import GeneralInfoTab from './tabs/GeneralInfoTab.vue';
 import StoreCompanyTab from './tabs/StoreCompanyTab.vue';
@@ -29,62 +30,54 @@ import StoreStatementTab from './tabs/StoreStatementTab.vue';
 import RequestInfoTab from './tabs/RequestInfoTab.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
-export default {
-  name: 'ApplicationTabs',
-  components: {
-    ResidenceTab,
-    GeneralInfoTab,
-    StoreCompanyTab,
-    StoreStatementTab,
-    RequestInfoTab
-  },
-  props: ['readOnly', 'viewMode'],
-  setup() {
-    const creditRequestStore = useCreditRequestStore();
-    return { creditRequestStore };
-  },
-  data() {
-    return {
-      currentTab: 'requestInfo'
-    };
-  },
-  computed: {
-    tabs() {
-      const storeLabel = this.creditRequestStore.isCompany ? 'ที่อยู่บริษัท' : 'ที่อยู่ร้านค้า';
+const props = defineProps(['readOnly', 'viewMode']);
+const store = useCreditRequestStore();
+const currentTab = ref('requestInfo');
 
-      const allTabs = [
-        { id: 'requestInfo', label: 'ข้อมูลคำขอ' },
-        { id: 'general', label: 'ข้อมูลทั่วไป' },
-        { id: 'residence', label: 'ที่อยู่อาศัย' },
-        { id: 'store', label: storeLabel },
-        { id: 'financial', label: 'เอกสารการเงิน' }
-      ];
+const tabs = computed(() => {
+  const storeLabel = store.isCompany ? 'ที่อยู่บริษัท' : 'ที่อยู่ร้านค้า';
+  const requestType = store.transactionData.requestType;
 
-      // If viewMode is 'focus', only show Request Info tab
-      if (this.viewMode === 'focus') {
-          return [allTabs[0]];
-      }
+  const isChangeRequest = [
+    'เครดิตเพิ่ม',
+    'เปลี่ยนแปลงระยะเวลาเครดิต',
+    'เปลี่ยนแปลงเงื่อนไขการชำระเงิน'
+  ].includes(requestType);
 
-      return allTabs;
-    },
-    currentTabComponent() {
-      switch (this.currentTab) {
-        case 'requestInfo':
-          return 'RequestInfoTab';
-        case 'general':
-          return 'GeneralInfoTab';
-        case 'residence':
-          return 'ResidenceTab';
-        case 'store':
-          return 'StoreCompanyTab';
-        case 'financial':
-          return 'StoreStatementTab';
-        default:
-          return 'RequestInfoTab';
-      }
-    }
+  const requestInfoLabel = isChangeRequest ? 'เปลี่ยนแปลงข้อมูลคำขอ' : 'ข้อมูลคำขอ';
+
+  const allTabs = [
+    { id: 'requestInfo', label: requestInfoLabel },
+    { id: 'general', label: 'ข้อมูลทั่วไป' },
+    { id: 'residence', label: 'ที่อยู่อาศัย' },
+    { id: 'store', label: storeLabel },
+    { id: 'financial', label: 'เอกสารการเงิน' }
+  ];
+
+  // If viewMode is 'focus', only show Request Info tab
+  if (props.viewMode === 'focus') {
+      return [allTabs[0]];
   }
-};
+
+  return allTabs;
+});
+
+const currentTabComponent = computed(() => {
+  switch (currentTab.value) {
+    case 'requestInfo':
+      return RequestInfoTab;
+    case 'general':
+      return GeneralInfoTab;
+    case 'residence':
+      return ResidenceTab;
+    case 'store':
+      return StoreCompanyTab;
+    case 'financial':
+      return StoreStatementTab;
+    default:
+      return RequestInfoTab;
+  }
+});
 </script>
 
 <style scoped>

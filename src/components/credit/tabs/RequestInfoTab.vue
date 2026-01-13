@@ -1,92 +1,96 @@
 <template>
   <div class="request-info-tab">
     <!-- Upload Section -->
-    <div class="upload-section">
-      <div class="upload-grid">
-        <FileUploader
-          label="เอกสารขอเปิดเครดิต"
-          required
-          v-model="files.creditApp"
-          :disabled="!isEditing"
-        />
-        <FileUploader
-          label="ใบเสนอราคา (ถ้ามี)"
-          v-model="files.quotation"
-          :disabled="!isEditing"
-        />
-      </div>
-    </div>
+    <transition name="slide-fade">
+        <div class="upload-section" v-if="isUploadsVisible">
+        <div class="upload-grid">
+            <FileUploader
+            label="เอกสารขอเปิดเครดิต"
+            required
+            v-model="files.creditApp"
+            :disabled="!isEditing"
+            />
+            <FileUploader
+            label="ใบเสนอราคา (ถ้ามี)"
+            v-model="files.quotation"
+            :disabled="!isEditing"
+            />
+        </div>
+        </div>
+    </transition>
 
     <!-- Contact Info Section -->
-    <div class="personal-info-section">
-      <div class="section-header">
-        <h3>ตรวจสอบข้อมูลผู้ติดต่อ</h3>
-      </div>
-
-      <!-- New Layout: 2 Rows -->
-      <div class="contact-grid-layout">
-        <!-- Row 1 -->
-        <div class="form-group">
-          <label>ชื่อผู้ติดต่อ <span v-if="isRequired('contact_person')" class="text-red-500">*</span></label>
-          <input
-            type="text"
-            class="form-input"
-            :class="{ 'border-red-500': errors.contact_person, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="store.customer.contact_person"
-            placeholder="ระบุชื่อผู้ติดต่อ"
-          />
-        </div>
-        <div class="form-group">
-          <label>ตำแหน่ง <span v-if="isRequired('contact_position')" class="text-red-500">*</span></label>
-           <input
-            type="text"
-            class="form-input"
-            :class="{ 'border-red-500': errors.contact_position, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="store.customer.contact_position"
-            placeholder="ระบุตำแหน่ง"
-          />
-        </div>
-        <div class="form-group">
-          <label>แผนก</label>
-           <input
-            type="text"
-            class="form-input"
-            :class="{ 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="store.customer.contact_department"
-            placeholder="ระบุแผนก"
-          />
+    <transition name="slide-fade">
+        <div class="personal-info-section" v-if="isContactInfoVisible">
+        <div class="section-header">
+            <h3>ตรวจสอบข้อมูลผู้ติดต่อ</h3>
         </div>
 
-        <!-- Row 2 -->
-        <div class="form-group">
-          <label>ฝ่าย</label>
-           <input
-            type="text"
-            class="form-input"
-            :class="{ 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="store.customer.contact_division"
-            placeholder="ระบุฝ่าย"
-          />
+        <!-- New Layout: 2 Rows -->
+        <div class="contact-grid-layout">
+            <!-- Row 1 -->
+            <div class="form-group">
+            <label>ชื่อผู้ติดต่อ <span v-if="isRequired('contact_person')" class="text-red-500">*</span></label>
+            <input
+                type="text"
+                class="form-input"
+                :class="{ 'border-red-500': errors.contact_person, 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="store.customer.contact_person"
+                placeholder="ระบุชื่อผู้ติดต่อ"
+            />
+            </div>
+            <div class="form-group">
+            <label>ตำแหน่ง <span v-if="isRequired('contact_position')" class="text-red-500">*</span></label>
+            <input
+                type="text"
+                class="form-input"
+                :class="{ 'border-red-500': errors.contact_position, 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="store.customer.contact_position"
+                placeholder="ระบุตำแหน่ง"
+            />
+            </div>
+            <div class="form-group">
+            <label>แผนก</label>
+            <input
+                type="text"
+                class="form-input"
+                :class="{ 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="store.customer.contact_department"
+                placeholder="ระบุแผนก"
+            />
+            </div>
+
+            <!-- Row 2 -->
+            <div class="form-group">
+            <label>ฝ่าย</label>
+            <input
+                type="text"
+                class="form-input"
+                :class="{ 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="store.customer.contact_division"
+                placeholder="ระบุฝ่าย"
+            />
+            </div>
+            <div class="form-group">
+            <label>เบอร์โทรผู้ติดต่อ <span v-if="isRequired('contact_phone_number')" class="text-red-500">*</span></label>
+            <input
+                type="text"
+                class="form-input"
+                :class="{ 'border-red-500': errors.contact_phone_number, 'disabled': !isEditing }"
+                :disabled="!isEditing"
+                v-model="store.customer.contact_phone_number"
+                placeholder="0XX-XXX-XXXX"
+                @input="(e) => handlePhoneInput(e, 'contact_phone_number')"
+            />
+            </div>
+            <div class="form-group"></div> <!-- Empty Placeholder -->
         </div>
-        <div class="form-group">
-          <label>เบอร์โทรผู้ติดต่อ <span v-if="isRequired('contact_phone_number')" class="text-red-500">*</span></label>
-           <input
-            type="text"
-            class="form-input"
-            :class="{ 'border-red-500': errors.contact_phone_number, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="store.customer.contact_phone_number"
-            placeholder="0XX-XXX-XXXX"
-            @input="(e) => handlePhoneInput(e, 'contact_phone_number')"
-          />
         </div>
-        <div class="form-group"></div> <!-- Empty Placeholder -->
-      </div>
-    </div>
+    </transition>
 
     <!-- Credit Details Section -->
     <div class="personal-info-section">
@@ -191,7 +195,8 @@
       </div>
 
       <!-- Billing Information Section -->
-      <div class="billing-info-section">
+      <transition name="slide-fade">
+      <div class="billing-info-section" v-if="isBillingVisible">
 
         <!-- New 3-Column Grid for Requirement, Method, and Schedule -->
         <div class="form-grid-three-columns">
@@ -388,6 +393,7 @@
         </div>
 
       </div>
+      </transition>
     </div>
 
     <!-- Existing Credit Info Section -->
@@ -459,7 +465,7 @@ import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 
-const props = defineProps(['readOnly']);
+const props = defineProps(['readOnly', 'viewMode']);
 const store = useCreditRequestStore();
 
 const isEditing = ref(!props.readOnly);
@@ -468,16 +474,36 @@ watch(() => props.readOnly, (val) => {
 });
 
 const isDraftMode = computed(() => {
-  // If 'Change Payment', amount/terms should be read-only (not editable draft mode for those fields)
-  // Logic is complex: Draft Mode usually means "Editable".
-  // But for special types, we selectively disable fields.
-  // We handle this via :disabled binding in template with specific helpers.
   return !store.requestStatus || store.requestStatus === 'Draft';
 });
 
 const isRequestIncrease = computed(() => store.transactionData.requestType === 'เครดิตเพิ่ม');
 const isChangePayment = computed(() => store.transactionData.requestType === 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน');
 const isChangeTerm = computed(() => store.transactionData.requestType === 'เปลี่ยนแปลงระยะเวลาเครดิต');
+const isNewRequest = computed(() => store.transactionData.requestType === 'เครดิตใหม่');
+
+// VISIBILITY LOGIC
+const showAll = computed(() => props.viewMode === 'full');
+
+const isUploadsVisible = computed(() => {
+    if (showAll.value) return true;
+    if (isNewRequest.value) return true;
+    if (isRequestIncrease.value) return true;
+    return false;
+});
+
+const isContactInfoVisible = computed(() => {
+    if (showAll.value) return true;
+    if (isNewRequest.value) return true;
+    return false;
+});
+
+const isBillingVisible = computed(() => {
+    if (showAll.value) return true;
+    if (isNewRequest.value) return true;
+    if (isChangePayment.value) return true;
+    return false;
+});
 
 // Field Visibility / Editability Logic
 const canEditAmount = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || store.transactionData.requestType === 'เครดิตใหม่'));
@@ -488,7 +514,6 @@ function isRequired(storeKey) {
 }
 
 // Simple computed error object based on store's validation logic
-// We can check if field is missing IF showValidationErrors is true
 const errors = computed(() => {
     if (!store.showValidationErrors) return {};
 
@@ -768,6 +793,23 @@ function restrictLocalCreditInput(e, item, field) {
     background-color: #f9f9f9;
     border-color: #ccc;
     color: #333;
+}
+
+/* Transition Animations */
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: all 0.3s ease-in-out;
+  max-height: 500px; /* Arbitrary large height */
+  opacity: 1;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 /* Responsive adjustments */
