@@ -29,7 +29,7 @@ This document defines the Roles and Responsibilities for the Credit Request Appl
 | **3. Upload Documents** | **R** | A | - | C | - | - |
 | **4. Submit to HQ** <br>*(Opened -> Submitted)* | I | **R** / A | I | - | - | - |
 | **5. Sales Review** <br>*(Submitted -> PendingSales)* | I | I | **R** / A | - | I | - |
-| **6. Finance Screening** <br>*(Check Docs & Scores)* | I | I | - | **R** | A | - |
+| **6. Finance Screening** <br>*(Check Docs & Scores)* | I | I | I | **R** | A | - |
 | **7. Final Approval (<= 300k)** | I | I | I | C | **R** / A | - |
 | **8. Final Approval (> 300k)** | I | I | I | C | C | **R** / A |
 | **9. Rejection Decision** | I | I | I | - | **A** / R | - |
