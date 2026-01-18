@@ -11,7 +11,7 @@ This document defines the Roles and Responsibilities for the Credit Request Appl
 *   **I - Informed**: Those who are kept up-to-date on progress, often only on completion of the task; and with whom there is just one-way communication.
 
 ### Roles
-*   **BH**: Branch Head (หัวหน้าสำนักงาน) - Initiator
+*   **OM**: Office Manager (หัวหน้าสำนักงาน) - Initiator
 *   **BM**: Branch Manager (ผู้จัดการสาขา) - First Level Approver
 *   **SM**: Sales Manager (ผู้จัดการฝ่ายขาย) - Sales Reviewer
 *   **FS**: Finance Secretary (เลขานุการฝ่ายการเงิน) - Document Screener
@@ -22,7 +22,7 @@ This document defines the Roles and Responsibilities for the Credit Request Appl
 
 ## RACI Matrix
 
-| Activity | BH (Branch Head) | BM (Branch Manager) | SM (Sales Manager) | FS (Finance Sec) | FM (Finance Mgr) | CC (Credit Comm) |
+| Activity | OM (Office Manager) | BM (Branch Manager) | SM (Sales Manager) | FS (Finance Sec) | FM (Finance Mgr) | CC (Credit Comm) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **1. Create New Request** | **R** | A | I | - | - | - |
 | **2. Edit Customer Data** | **R** | **R** | - | - | - | - |
