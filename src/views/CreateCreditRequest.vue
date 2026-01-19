@@ -18,7 +18,7 @@
           <CreditRequestHeader @search="store.searchCustomer" />
         </div>
         <div class="grid-col right">
-          <DocumentChecklist v-if="store.hasSearched" />
+          <!-- Empty for now, allowing search bar to stretch if needed, or keeping layout -->
         </div>
       </div>
 
@@ -47,6 +47,7 @@
 
         <!-- Right Column: Idea/Summary -->
         <div class="grid-col right">
+           <DocumentChecklist v-if="store.hasSearched" />
            <CreditScoreSummary
              v-if="store.hasSearched"
              :financial="store.financialSummary"

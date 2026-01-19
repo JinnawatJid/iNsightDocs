@@ -59,7 +59,7 @@ const uploadedCount = computed(() => {
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 20px;
+  padding: 15px; /* Compact padding */
   margin-bottom: 20px;
   display: flex;
   flex-direction: column;
@@ -67,48 +67,48 @@ const uploadedCount = computed(() => {
 }
 
 .header {
-  margin-bottom: 15px;
+  margin-bottom: 10px; /* Reduced margin */
   border-bottom: 1px solid #f0f0f0;
-  padding-bottom: 10px;
+  padding-bottom: 8px; /* Reduced padding */
 }
 
 .title-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 5px;
+  margin-bottom: 2px;
 }
 
 .title {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 14px; /* Slightly smaller */
   color: #333;
 }
 
 .count-badge {
   background-color: #f0f0f0;
   color: #666;
-  font-size: 12px;
-  padding: 2px 8px;
+  font-size: 11px;
+  padding: 2px 6px;
   border-radius: 12px;
   font-weight: bold;
 }
 
 .subtitle {
-  font-size: 13px;
+  font-size: 11px; /* Smaller subtitle */
   color: #888;
 }
 
 .checklist-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px; /* Reduced gap */
 }
 
 .checklist-item {
   display: flex;
   align-items: center;
-  padding: 10px;
+  padding: 8px; /* Compact padding */
   border-radius: 6px;
   border: 1px solid transparent;
   background-color: #fafafa;
