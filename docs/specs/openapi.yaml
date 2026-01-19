@@ -1,97 +1,60 @@
 openapi: 3.0.0
 info:
   title: Customer Credit Data API
-  description: >
-    API for external systems (e.g., Sales Department) to read current customer credit limits and terms.
-    This API retrieves the most recent 'Approved' credit request for a given customer.
   version: 1.0.0
-servers:
-  - url: http://localhost:3000
-    description: Development Server
-  - url: http://production-server:3000
-    description: Production Server (Example)
+  description: API for external systems (Sales Department) to read active customer credit limits.
+
 components:
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
       in: header
       name: X-API-KEY
-      description: Simple API Key authentication for internal network use.
+
   schemas:
     CreditData:
       type: object
       properties:
         customer_id:
           type: string
-          description: The unique customer identifier (e.g., 01016AY).
           example: "01016AY"
         status:
           type: string
-          description: The status of the credit request.
           example: "Approved"
         credit_limit:
           type: number
-          format: double
-          description: The approved credit limit amount.
+          description: Approved credit limit amount.
           example: 500000.00
         credit_terms:
           type: object
-          description: Approved credit terms for different product categories (days).
           properties:
-            gs:
-              type: integer
-              description: Credit term for GS products.
-              example: 30
-            ae:
-              type: integer
-              description: Credit term for AE products.
-              example: 60
-            yc:
-              type: integer
-              description: Credit term for YC products.
-              example: 45
+            gs: { type: integer, example: 30 }
+            ae: { type: integer, example: 60 }
+            yc: { type: integer, example: 45 }
         updated_at:
           type: string
           format: date-time
-          description: Timestamp when this credit limit was approved.
           example: "2023-10-25T14:30:00Z"
-    ErrorResponse:
-      type: object
-      properties:
-        error:
-          type: string
-          example: "Customer not found or no approved credit limit exists."
+
 security:
   - ApiKeyAuth: []
+
 paths:
   /api/external/credit-status/{customerId}:
     get:
-      summary: Get active credit data for a customer
-      description: >
-        Retrieves the active credit limit and terms for a specific customer based on their most recent 'Approved' credit request.
+      summary: Get active credit data
       parameters:
         - in: path
           name: customerId
+          required: true
           schema:
             type: string
-          required: true
-          description: The ID of the customer to retrieve.
       responses:
         '200':
-          description: Successful response with credit data.
+          description: Successful response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreditData'
-        '401':
-          description: Unauthorized - Invalid or missing API Key.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: Customer not found or no approved credit record exists.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          description: Customer or credit record not found
