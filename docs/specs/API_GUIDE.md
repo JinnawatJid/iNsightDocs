@@ -192,6 +192,32 @@ Returns a list of **Sales Invoice Headers**.
 
 ---
 
+## Data Usage & Calculation Logic
+
+This section explains how the Credit Scoring System consumes the raw invoice data from Endpoint 2 to derive key metrics.
+
+### 1. SKU Parsing (Product Categorization)
+The system automatically categorizes sales transactions based on the **first character** of the `sku` field:
+
+*   **`A`** → Aluminum
+*   **`G`** → Glass
+*   **`C`** → Celine
+*   *(Any other character is categorized as 'Other')*
+
+### 2. Month Accumulation
+The system aggregates the `amount` field by `customer_id` and `posted_date` (grouped by month).
+*   **Metric:** `Accum6Months`
+*   **Calculation:** Sum of `amount` for the most recent 6-month period (rolling window).
+*   **Purpose:** To determine the "Total Purchase Volume" tier (e.g., High, Medium, Normal).
+
+### 3. Ratio Calculation
+The system calculates the purchasing behavior ratio for specific product categories.
+*   **Formula:** `Product Ratio = (Sum of Category Amount / Total Accum6Months)`
+*   **Example:** If a customer bought 500,000 THB total, and 100,000 THB was for "Glass" (SKU starting with 'G'):
+    *   Ratio = 100,000 / 500,000 = **0.20** (or 20%)
+
+---
+
 ## Synchronization Strategy
 
 1.  **Full Sync (Initial):** We will request data for the past 12 months.
