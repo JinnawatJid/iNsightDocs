@@ -18,7 +18,7 @@
           <CreditRequestHeader @search="store.searchCustomer" />
         </div>
         <div class="grid-col right">
-          <ApprovalChance v-if="store.hasSearched" />
+          <DocumentChecklist v-if="store.hasSearched" />
         </div>
       </div>
 
@@ -67,7 +67,7 @@ import CreditHistorySidebar from '@/components/credit/CreditHistorySidebar.vue';
 import RequestStatus from '@/components/credit/RequestStatus.vue';
 import CreditRequestForm from '@/components/credit/CreditRequestForm.vue';
 import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
-import ApprovalChance from '@/components/credit/ApprovalChance.vue';
+import DocumentChecklist from '@/components/credit/DocumentChecklist.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import iconSearchLarge from '@/assets/icons/search-large.svg';
 
