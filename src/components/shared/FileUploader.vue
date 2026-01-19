@@ -20,9 +20,9 @@
              <img v-else :src="iconUploadMulti" alt="Upload" width="48" height="48" />
           </slot>
         </div>
-        <p>Drop your files here or <span class="link">Click to upload</span></p>
+        <p><span class="link">คลิกเพื่ออัปโหลด</span> หรือลากไฟล์มาที่นี่</p>
         <span class="info">
-            {{ multiple ? 'Can add multiple files' : 'SVG, PNG, JPG or GIF (max. 800x400px)' }}
+            {{ multiple ? 'สามารถแนบได้หลายไฟล์' : 'รองรับไฟล์รูปภาพและเอกสาร (JPG, PNG, PDF) ขนาดไม่เกิน 10MB' }}
         </span>
       </div>
 
