@@ -1,5 +1,5 @@
 <template>
-  <div class="document-checklist-component">
+  <div class="document-checklist-component" ref="containerRef">
     <!-- Trigger Header -->
     <div class="header" @click="toggleDropdown">
       <div class="title-row">
@@ -25,6 +25,7 @@
         :key="index"
         class="checklist-item"
         :class="{ 'uploaded': doc.isUploaded, 'missing': !doc.isUploaded }"
+        @click="navigateToTab(doc.tab)"
       >
         <div class="status-icon">
           <!-- Green Check -->
@@ -75,18 +76,18 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
 });
 
-// Map keys to Thai Labels
-const FILE_LABELS = {
-  'credit_application_doc': 'เอกสารคำขอเปิดเครดิต',
-  'id_card': 'สำเนาบัตรประชาชน',
-  'home_reg': 'สำเนาทะเบียนบ้าน',
-  'home_photo': 'รูปถ่ายที่อยู่อาศัย',
-  'store_photo': 'รูปถ่ายหน้าร้าน',
-  'map': 'แผนที่ร้านค้า',
-  'bank_statement': 'รายการเดินบัญชี (Statement)',
-  'legal_entity_certificate': 'หนังสือรับรองบริษัท',
-  'vat_document': 'ใบทะเบียนภาษีมูลค่าเพิ่ม (ภพ.20)',
-  'company_photo': 'รูปถ่ายบริษัท'
+// Map keys to Thai Labels and Target Tabs
+const DOC_CONFIG = {
+  'credit_application_doc': { label: 'เอกสารคำขอเปิดเครดิต', tab: 'requestInfo' },
+  'id_card': { label: 'สำเนาบัตรประชาชน', tab: 'general' },
+  'home_reg': { label: 'สำเนาทะเบียนบ้าน', tab: 'general' },
+  'home_photo': { label: 'รูปถ่ายที่อยู่อาศัย', tab: 'residence' },
+  'store_photo': { label: 'รูปถ่ายหน้าร้าน', tab: 'store' },
+  'map': { label: 'แผนที่ร้านค้า', tab: 'store' },
+  'bank_statement': { label: 'รายการเดินบัญชี (Statement)', tab: 'financial' },
+  'legal_entity_certificate': { label: 'หนังสือรับรองบริษัท', tab: 'store' },
+  'vat_document': { label: 'ใบทะเบียนภาษีมูลค่าเพิ่ม (ภพ.20)', tab: 'store' },
+  'company_photo': { label: 'รูปถ่ายบริษัท', tab: 'store' }
 };
 
 const documents = computed(() => {
@@ -96,14 +97,23 @@ const documents = computed(() => {
   return files.map(key => {
     // Check if uploaded (either in files object or marked in uploadedDocuments map)
     const hasFile = !!store.files[key] || !!store.uploadedDocuments[key];
+    const config = DOC_CONFIG[key] || { label: key, tab: 'requestInfo' };
 
     return {
       id: key,
-      label: FILE_LABELS[key] || key, // Fallback to key if label missing
+      label: config.label,
+      tab: config.tab,
       isUploaded: hasFile
     };
   });
 });
+
+const navigateToTab = (tabId) => {
+  if (tabId) {
+    store.setActiveTab(tabId);
+    isOpen.value = false; // Close dropdown after selection
+  }
+};
 
 const uploadedCount = computed(() => {
   return documents.value.filter(d => d.isUploaded).length;

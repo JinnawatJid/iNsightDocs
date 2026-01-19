@@ -32,7 +32,11 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const props = defineProps(['readOnly', 'viewMode']);
 const store = useCreditRequestStore();
-const currentTab = ref('requestInfo');
+
+const currentTab = computed({
+  get: () => store.activeTab,
+  set: (val) => store.setActiveTab(val)
+});
 
 const tabs = computed(() => {
   const storeLabel = store.isCompany ? 'ที่อยู่บริษัท' : 'ที่อยู่ร้านค้า';
