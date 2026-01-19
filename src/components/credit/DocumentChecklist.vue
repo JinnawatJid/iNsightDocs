@@ -1,14 +1,25 @@
 <template>
   <div class="document-checklist-component">
-    <div class="header">
+    <!-- Trigger Header -->
+    <div class="header" @click="toggleDropdown">
       <div class="title-row">
         <span class="title">รายการเอกสารที่ต้องใช้</span>
         <span class="count-badge">{{ uploadedCount }}/{{ documents.length }}</span>
+
+        <!-- Toggle Icon -->
+        <svg
+          :class="{ 'rotate-180': isOpen }"
+          class="toggle-icon"
+          xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
       </div>
       <span class="subtitle">กรุณาแนบเอกสารให้ครบถ้วนเพื่อการพิจารณา</span>
     </div>
 
-    <div class="checklist-container">
+    <!-- Dropdown Content (Absolute) -->
+    <div v-if="isOpen" class="checklist-dropdown">
       <div
         v-for="(doc, index) in documents"
         :key="index"
@@ -38,16 +49,61 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useCreditRequestStore } from '@/stores/creditRequest';
+import { getMandatoryKeys } from '@/config/mandatoryFields';
 
-// MOCK DATA FOR PREVIEW
-const documents = ref([
-  { id: 'id_card', label: 'สำเนาบัตรประชาชน', isUploaded: true },
-  { id: 'home_reg', label: 'สำเนาทะเบียนบ้าน', isUploaded: true },
-  { id: 'bank_statement', label: 'รายการเดินบัญชี (Bank Statement)', isUploaded: false },
-  { id: 'store_photo', label: 'รูปถ่ายหน้าร้าน', isUploaded: false },
-  { id: 'map', label: 'แผนที่ร้านค้า', isUploaded: false },
-]);
+const store = useCreditRequestStore();
+const isOpen = ref(false);
+const containerRef = ref(null);
+
+const toggleDropdown = () => {
+  isOpen.value = !isOpen.value;
+};
+
+const handleClickOutside = (event) => {
+  if (containerRef.value && !containerRef.value.contains(event.target)) {
+    isOpen.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+
+// Map keys to Thai Labels
+const FILE_LABELS = {
+  'credit_application_doc': 'เอกสารคำขอเปิดเครดิต',
+  'id_card': 'สำเนาบัตรประชาชน',
+  'home_reg': 'สำเนาทะเบียนบ้าน',
+  'home_photo': 'รูปถ่ายที่อยู่อาศัย',
+  'store_photo': 'รูปถ่ายหน้าร้าน',
+  'map': 'แผนที่ร้านค้า',
+  'bank_statement': 'รายการเดินบัญชี (Statement)',
+  'legal_entity_certificate': 'หนังสือรับรองบริษัท',
+  'vat_document': 'ใบทะเบียนภาษีมูลค่าเพิ่ม (ภพ.20)',
+  'company_photo': 'รูปถ่ายบริษัท'
+};
+
+const documents = computed(() => {
+  // Get mandatory file keys based on customer type (Company vs Individual)
+  const { files } = getMandatoryKeys(store.isCompany);
+
+  return files.map(key => {
+    // Check if uploaded (either in files object or marked in uploadedDocuments map)
+    const hasFile = !!store.files[key] || !!store.uploadedDocuments[key];
+
+    return {
+      id: key,
+      label: FILE_LABELS[key] || key, // Fallback to key if label missing
+      isUploaded: hasFile
+    };
+  });
+});
 
 const uploadedCount = computed(() => {
   return documents.value.filter(d => d.isUploaded).length;
@@ -56,53 +112,87 @@ const uploadedCount = computed(() => {
 
 <style scoped>
 .document-checklist-component {
+  position: relative; /* For absolute dropdown positioning */
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 15px; /* Compact padding */
-  margin-bottom: 20px;
+  padding: 15px 20px;
+  /* Match height of neighbor (Search Header) roughly */
+  height: 100%;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .header {
-  margin-bottom: 10px; /* Reduced margin */
-  border-bottom: 1px solid #f0f0f0;
-  padding-bottom: 8px; /* Reduced padding */
+  cursor: pointer;
+  user-select: none;
 }
 
 .title-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .title {
   font-weight: bold;
-  font-size: 14px; /* Slightly smaller */
+  font-size: 16px;
   color: #333;
+  margin-right: 8px;
 }
 
 .count-badge {
   background-color: #f0f0f0;
   color: #666;
-  font-size: 11px;
-  padding: 2px 6px;
+  font-size: 12px;
+  padding: 2px 8px;
   border-radius: 12px;
   font-weight: bold;
+  margin-right: auto; /* Push icon to right */
+}
+
+.toggle-icon {
+  color: #999;
+  transition: transform 0.3s ease;
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
 }
 
 .subtitle {
-  font-size: 11px; /* Smaller subtitle */
+  font-size: 12px;
   color: #888;
+  display: block;
+}
+
+/* Dropdown Styles */
+.checklist-dropdown {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 1000; /* Ensure overlay */
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .checklist-container {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* Reduced gap */
+  gap: 6px;
+  /* Make list scrollable if needed in future, but dropdown usually expands */
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .checklist-item {
@@ -132,7 +222,6 @@ const uploadedCount = computed(() => {
 }
 
 .icon-alert {
-  color: #ffc107; /* Orange/Yellow */
   color: #f59e0b; /* Darker Orange for better visibility */
 }
 
@@ -156,7 +245,6 @@ const uploadedCount = computed(() => {
 /* Specific Styles for states */
 .checklist-item.uploaded .doc-name {
   color: #28a745;
-  text-decoration: none; /* Removed strikethrough for cleaner look, just green text */
 }
 
 .checklist-item.uploaded .doc-status {
