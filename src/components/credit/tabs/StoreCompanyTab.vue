@@ -64,15 +64,6 @@
     <div class="address-verification">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลที่อยู่ร้านค้า/บริษัท</h3>
-        <div class="checkbox-wrapper">
-          <input
-            type="checkbox"
-            id="sameAddress"
-            v-model="isSameAddress"
-            :disabled="!isEditing"
-          />
-          <label for="sameAddress">ที่อยู่เดียวกับที่อยู่อาศัย</label>
-        </div>
         <!-- Removed Edit button -->
       </div>
 
@@ -288,8 +279,6 @@ function isRequiredFile(fileKey) {
            mandatoryStoreKeys.files.individual.includes(fileKey);
 }
 
-const isSameAddress = ref(false);
-
 const files = reactive({
   // Company
   legalEntityCertificate: null,
@@ -356,115 +345,56 @@ function formatPhoneNumber(phone) {
   return phone; 
 }
 
-// Watch isSameAddress for toggling
-watch(isSameAddress, (isSame) => {
-  if (isSame && store.customer) {
-    formData.houseAddress = store.customer.address || '';
-    formData.postCode = store.customer.zipcode || '';
-    formData.district = store.customer.district || '';
-    formData.city = store.customer.province || '';
-    formData.phone = formatPhoneNumber(store.customer.phone || '');
-    formData.fax = store.customer.fax || '';
-    formData.email = store.customer.email || '';
-    
-    // Coordinates for Store - if copying from residence
-    formData.mapCode = store.customer.residence_map_code || '';
-    formData.landmark = store.customer.residence_landmark || '';
-    formData.note = store.customer.residence_note || '';
-
-    formData.subdistrict = store.customer.subdistrict || '';
-
-    // Copy Location Type and Ownership from Residence
-    formData.locationTypeSelect = store.customer.residence_location_type || '';
-    formData.locationTypeOther = store.customer.residence_location_type_other || '';
-    formData.ownershipSelect = store.customer.residence_ownership || '';
-
-  } else {
-    // Revert to store values if unchecked
-    if (store.customer) {
-       // Restore from store_xxx keys if not company, or general store_ keys
-       formData.mapCode = store.customer.store_map_code || '';
-       formData.landmark = store.customer.store_landmark || '';
-       formData.note = store.customer.store_note || '';
-
-       formData.locationTypeSelect = store.customer.store_location_type || '';
-       formData.locationTypeOther = store.customer.store_location_type_other || '';
-       formData.ownershipSelect = store.customer.store_ownership || '';
-
-       // Also restore address fields if they exist as store_xxx (for individuals)
-       if (!isCompany.value) {
-            formData.houseAddress = store.customer.store_address || '';
-            formData.subdistrict = store.customer.store_subdistrict || '';
-            formData.postCode = store.customer.store_zipcode || '';
-            formData.district = store.customer.store_district || '';
-            formData.city = store.customer.store_province || '';
-            formData.phone = store.customer.store_phone || '';
-            formData.fax = store.customer.store_fax || '';
-            formData.email = store.customer.store_email || '';
-       } else {
-            // For Company, we clear.
-            formData.houseAddress = '';
-            formData.subdistrict = '';
-            formData.postCode = '';
-            formData.district = '';
-            formData.city = '';
-            formData.phone = '';
-            formData.fax = '';
-            formData.email = '';
-       }
-    } else {
-       formData.mapCode = '';
-       formData.landmark = '';
-       formData.note = '';
-
-       formData.locationTypeSelect = '';
-       formData.locationTypeOther = '';
-       formData.ownershipSelect = '';
-
-       formData.houseAddress = '';
-       formData.subdistrict = '';
-       formData.postCode = '';
-       formData.district = '';
-       formData.city = '';
-       formData.phone = '';
-       formData.fax = '';
-       formData.email = '';
-    }
-  }
-});
-
 // Watch store.customer for initial load
 watch(() => store.customer, (newVal) => {
   if (newVal) {
-    // Only populate if not "Same Address" (or if logic demands)
-    // For now, simple population. User can toggle same address if needed.
+    // Populate form data from store fields
+    // Individual -> store_ keys
+    // Company -> address (main) keys
 
-    if (isSameAddress.value) {
-         // Should stay synced with residence
-    } else {
+    if (!isCompany.value) {
+        // INDIVIDUAL
+        formData.houseAddress = newVal.store_address || '';
+        formData.subdistrict = newVal.store_subdistrict || '';
+        formData.postCode = newVal.store_zipcode || '';
+        formData.district = newVal.store_district || '';
+        formData.city = newVal.store_province || '';
+        formData.phone = formatPhoneNumber(newVal.store_phone || '');
+        formData.fax = newVal.store_fax || '';
+        formData.email = newVal.store_email || '';
+
         formData.mapCode = newVal.store_map_code || '';
         formData.landmark = newVal.store_landmark || '';
         formData.note = newVal.store_note || '';
-
         formData.locationTypeSelect = newVal.store_location_type || '';
         formData.locationTypeOther = newVal.store_location_type_other || '';
         formData.ownershipSelect = newVal.store_ownership || '';
-
-        // Hydrate address fields if Individual and data exists
-        if (!isCompany.value && newVal.store_address) {
-             formData.houseAddress = newVal.store_address || '';
-             formData.subdistrict = newVal.store_subdistrict || '';
-             formData.postCode = newVal.store_zipcode || '';
-             formData.district = newVal.store_district || '';
-             formData.city = newVal.store_province || '';
-             formData.phone = newVal.store_phone || '';
-             formData.fax = newVal.store_fax || '';
-             formData.email = newVal.store_email || '';
-        }
-    }
-
-    if (isSameAddress.value) {
+    } else {
+        // COMPANY
+        formData.houseAddress = newVal.address || '';
         formData.subdistrict = newVal.subdistrict || '';
+        formData.postCode = newVal.zipcode || '';
+        formData.district = newVal.district || '';
+        formData.city = newVal.province || '';
+        formData.phone = formatPhoneNumber(newVal.phone || '');
+        formData.fax = newVal.fax || '';
+        formData.email = newVal.email || '';
+
+        // Use store_ map keys? Or generic map keys?
+        // Usually Company Address is Main Address, so maybe generic?
+        // But map component binds to 'store_map_code' in previous logic for Individual.
+        // For Company, if we used 'address', we likely use 'map_code' (Residence keys in legacy).
+        // BUT, StoreCompanyTab previously updated 'store_map_code' if isCompany too!
+        // Let's check the update logic below.
+
+        // Logic below: if isCompany -> store_map_code.
+        // Fallback to legacy map keys (map_code, etc) if store_ keys missing for Company.
+        formData.mapCode = newVal.store_map_code || newVal.map_code || '';
+        formData.landmark = newVal.store_landmark || newVal.landmark || '';
+        formData.note = newVal.store_note || newVal.note || '';
+        formData.locationTypeSelect = newVal.store_location_type || '';
+        formData.locationTypeOther = newVal.store_location_type_other || '';
+        formData.ownershipSelect = newVal.store_ownership || '';
     }
   }
 }, { immediate: true, deep: true });
@@ -483,6 +413,10 @@ watch(formData, (newVal) => {
       phone: newVal.phone,
       fax: newVal.fax,
       email: newVal.email,
+      // For company, we also sync back to main keys if store_ keys used?
+      // Actually, if we read from map_code as fallback, we should save to both or just map_code?
+      // To be safe and consistent with the new pattern, we save to store_ keys (which become the new standard for "Location Map")
+      // AND we might want to sync legacy keys if needed, but let's stick to the store keys for components.
       store_map_code: newVal.mapCode,
       store_landmark: newVal.landmark,
       store_note: newVal.note,
@@ -524,7 +458,7 @@ function onCoordinatesChange({ mapCode, landmark, note }) {
 
 // Watch postCode
 watch(() => formData.postCode, (newZip) => {
-  if (!isSameAddress.value && newZip && newZip.length === 5) {
+  if (newZip && newZip.length === 5) {
     const results = searchAddressByZipcode(newZip);
     if (results.length > 0) {
       formData.district = results[0].amphoe;

@@ -30,6 +30,15 @@
     <div class="address-verification">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลที่อยู่</h3>
+        <div class="checkbox-wrapper">
+          <input
+            type="checkbox"
+            id="sameStoreAddress"
+            v-model="isSameAddress"
+            :disabled="!isEditing"
+          />
+          <label for="sameStoreAddress">ที่อยู่เดียวกับร้านค้า/บริษัท</label>
+        </div>
         <!-- Removed Edit button -->
       </div>
 
@@ -248,6 +257,8 @@ function isRequiredFile(fileKey) {
            mandatoryStoreKeys.files.individual.includes(fileKey);
 }
 
+const isSameAddress = ref(false);
+
 const files = reactive({
   homePhoto: null,
   landTax: null
@@ -300,55 +311,164 @@ function formatPhoneNumber(phone) {
   return phone; 
 }
 
+const isCompany = computed(() => store.isCompany);
+
+// Watch isSameAddress for toggling
+watch(isSameAddress, (isSame) => {
+  if (isSame && store.customer) {
+    // Populate from Store Data
+    if (!isCompany.value) {
+        // Individual: Source = store_ keys
+        formData.houseAddress = store.customer.store_address || '';
+        formData.subdistrict = store.customer.store_subdistrict || '';
+        formData.postCode = store.customer.store_zipcode || '';
+        formData.district = store.customer.store_district || '';
+        formData.city = store.customer.store_province || '';
+        formData.phone = formatPhoneNumber(store.customer.store_phone || '');
+        formData.fax = store.customer.store_fax || '';
+        formData.email = store.customer.store_email || '';
+
+        formData.mapCode = store.customer.store_map_code || '';
+        formData.landmark = store.customer.store_landmark || '';
+        formData.note = store.customer.store_note || '';
+        formData.locationTypeSelect = store.customer.store_location_type || '';
+        formData.locationTypeOther = store.customer.store_location_type_other || '';
+        formData.ownershipSelect = store.customer.store_ownership || '';
+    } else {
+        // Company: Source = address keys (Company Address)
+        formData.houseAddress = store.customer.address || '';
+        formData.subdistrict = store.customer.subdistrict || '';
+        formData.postCode = store.customer.zipcode || '';
+        formData.district = store.customer.district || '';
+        formData.city = store.customer.province || '';
+        formData.phone = formatPhoneNumber(store.customer.phone || '');
+        formData.fax = store.customer.fax || '';
+        formData.email = store.customer.email || '';
+
+        // Fallback to legacy map keys (map_code, etc) if store_ keys missing for Company.
+        formData.mapCode = store.customer.store_map_code || store.customer.map_code || '';
+        formData.landmark = store.customer.store_landmark || store.customer.landmark || '';
+        formData.note = store.customer.store_note || store.customer.note || '';
+        formData.locationTypeSelect = store.customer.store_location_type || '';
+        formData.locationTypeOther = store.customer.store_location_type_other || '';
+        formData.ownershipSelect = store.customer.store_ownership || '';
+    }
+  } else {
+     // Revert / Clear or Reload from original Residence Fields
+     if (store.customer) {
+        if (!isCompany.value) {
+            // Individual: Load 'address' fields (Residence)
+            formData.houseAddress = store.customer.address || '';
+            formData.subdistrict = store.customer.subdistrict || '';
+            formData.postCode = store.customer.zipcode || '';
+            formData.district = store.customer.district || '';
+            formData.city = store.customer.province || '';
+            formData.phone = formatPhoneNumber(store.customer.phone || '');
+            formData.fax = store.customer.fax || '';
+            formData.email = store.customer.email || '';
+
+            formData.mapCode = store.customer.residence_map_code || '';
+            formData.landmark = store.customer.residence_landmark || '';
+            formData.note = store.customer.residence_note || '';
+            formData.locationTypeSelect = store.customer.residence_location_type || '';
+            formData.locationTypeOther = store.customer.residence_location_type_other || '';
+            formData.ownershipSelect = store.customer.residence_ownership || '';
+        } else {
+            // Company: Load 'residence_' fields (if any)
+            formData.houseAddress = store.customer.residence_address || '';
+            formData.subdistrict = store.customer.residence_subdistrict || '';
+            formData.postCode = store.customer.residence_zipcode || '';
+            formData.district = store.customer.residence_district || '';
+            formData.city = store.customer.residence_province || '';
+            formData.phone = formatPhoneNumber(store.customer.residence_phone || '');
+            formData.fax = store.customer.residence_fax || '';
+            formData.email = store.customer.residence_email || '';
+
+            formData.mapCode = store.customer.residence_map_code || '';
+            formData.landmark = store.customer.residence_landmark || '';
+            formData.note = store.customer.residence_note || '';
+            formData.locationTypeSelect = store.customer.residence_location_type || '';
+            formData.locationTypeOther = store.customer.residence_location_type_other || '';
+            formData.ownershipSelect = store.customer.residence_ownership || '';
+        }
+     }
+  }
+});
+
 // Watch store.customer for changes
 watch(() => store.customer, (newVal) => {
   if (newVal) {
-    formData.houseAddress = newVal.address || '';
-    formData.postCode = newVal.zipcode || '';
-    formData.district = newVal.district || '';
-    formData.city = newVal.province || '';
-    formData.phone = formatPhoneNumber(newVal.phone || '');
-    formData.fax = newVal.fax || '';
-    formData.email = newVal.email || '';
-    
-    // Coordinates for Residence
-    formData.mapCode = newVal.residence_map_code || '';
-    formData.landmark = newVal.residence_landmark || '';
-    formData.note = newVal.residence_note || '';
+    if (!isSameAddress.value) {
+        if (!isCompany.value) {
+            formData.houseAddress = newVal.address || '';
+            formData.subdistrict = newVal.subdistrict || '';
+            formData.postCode = newVal.zipcode || '';
+            formData.district = newVal.district || '';
+            formData.city = newVal.province || '';
+            formData.phone = formatPhoneNumber(newVal.phone || '');
+            formData.fax = newVal.fax || '';
+            formData.email = newVal.email || '';
+        } else {
+            // Company: Bind to residence_ keys
+            formData.houseAddress = newVal.residence_address || '';
+            formData.subdistrict = newVal.residence_subdistrict || '';
+            formData.postCode = newVal.residence_zipcode || '';
+            formData.district = newVal.residence_district || '';
+            formData.city = newVal.residence_province || '';
+            formData.phone = formatPhoneNumber(newVal.residence_phone || '');
+            formData.fax = newVal.residence_fax || '';
+            formData.email = newVal.residence_email || '';
+        }
 
-    // Ensure subdistrict is mapped
-    formData.subdistrict = newVal.subdistrict || '';
-
-    // Location Type and Ownership
-    formData.locationTypeSelect = newVal.residence_location_type || '';
-    formData.locationTypeOther = newVal.residence_location_type_other || '';
-    formData.ownershipSelect = newVal.residence_ownership || '';
+        // Coordinates/Extra fields are always residence_ keys for this tab
+        formData.mapCode = newVal.residence_map_code || '';
+        formData.landmark = newVal.residence_landmark || '';
+        formData.note = newVal.residence_note || '';
+        formData.locationTypeSelect = newVal.residence_location_type || '';
+        formData.locationTypeOther = newVal.residence_location_type_other || '';
+        formData.ownershipSelect = newVal.residence_ownership || '';
+    }
   }
 }, { immediate: true, deep: true });
 
 // Sync changes back to store
 watch(formData, (newVal) => {
-  const updates = {
-    address: newVal.houseAddress,
-    subdistrict: newVal.subdistrict,
-    zipcode: newVal.postCode,
-    district: newVal.district,
-    province: newVal.city,
-    phone: newVal.phone,
-    fax: newVal.fax,
-    email: newVal.email,
+  let updates = {};
 
-    // Ensure we sync coordinates to store state even if not calling API directly here
-    // But we use a separate method for coordinate saving to be explicit
-    residence_map_code: newVal.mapCode,
-    residence_landmark: newVal.landmark,
-    residence_note: newVal.note,
+  if (!isCompany.value) {
+      // Individual: Update 'address' keys (Residence)
+      updates = {
+        address: newVal.houseAddress,
+        subdistrict: newVal.subdistrict,
+        zipcode: newVal.postCode,
+        district: newVal.district,
+        province: newVal.city,
+        phone: newVal.phone,
+        fax: newVal.fax,
+        email: newVal.email,
+      };
+  } else {
+      // Company: Update 'residence_' keys
+      updates = {
+        residence_address: newVal.houseAddress,
+        residence_subdistrict: newVal.subdistrict,
+        residence_zipcode: newVal.postCode,
+        residence_district: newVal.district,
+        residence_province: newVal.city,
+        residence_phone: newVal.phone,
+        residence_fax: newVal.fax,
+        residence_email: newVal.email,
+      };
+  }
 
-    // New Fields
-    residence_location_type: newVal.locationTypeSelect,
-    residence_location_type_other: newVal.locationTypeOther,
-    residence_ownership: newVal.ownershipSelect,
-  };
+  // Common keys for this tab
+  updates.residence_map_code = newVal.mapCode;
+  updates.residence_landmark = newVal.landmark;
+  updates.residence_note = newVal.note;
+  updates.residence_location_type = newVal.locationTypeSelect;
+  updates.residence_location_type_other = newVal.locationTypeOther;
+  updates.residence_ownership = newVal.ownershipSelect;
+
   store.updateCustomerData(updates);
 }, { deep: true });
 
@@ -363,7 +483,7 @@ function onCoordinatesChange({ mapCode, landmark, note }) {
 
 // Watch postCode for auto-completion
 watch(() => formData.postCode, (newZip) => {
-  if (newZip && newZip.length === 5) {
+  if (!isSameAddress.value && newZip && newZip.length === 5) {
     const results = searchAddressByZipcode(newZip);
     if (results.length > 0) {
       formData.district = results[0].amphoe;
