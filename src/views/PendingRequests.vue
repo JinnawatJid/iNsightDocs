@@ -17,8 +17,12 @@
            </div>
 
            <div v-else class="content-wrapper">
-               <CustomerTitleCard />
-               <!-- Detailed Content will go here -->
+               <div class="fixed-header">
+                   <CustomerTitleCard />
+               </div>
+               <div class="scrollable-content">
+                   <ApplicationTabs :readOnly="true" viewMode="full" />
+               </div>
            </div>
         </div>
 
@@ -35,6 +39,7 @@
 import Navbar from '@/components/shared/Navbar.vue';
 import RequestSidebar from '@/components/credit/RequestSidebar.vue';
 import CustomerTitleCard from '@/components/credit/CustomerTitleCard.vue';
+import ApplicationTabs from '@/components/credit/ApplicationTabs.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const store = useCreditRequestStore();
@@ -91,13 +96,41 @@ const store = useCreditRequestStore();
 .grid-col.center {
     background: transparent;
     border: none;
-    overflow: visible;
+    overflow: hidden; /* Changed to hidden to manage scroll internally */
 }
 
 .content-wrapper {
     height: 100%;
     display: flex;
     flex-direction: column;
+}
+
+.fixed-header {
+    flex-shrink: 0;
+    /* margin-bottom handled by CustomerTitleCard itself */
+}
+
+.scrollable-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 20px; /* Add some breathing room at the bottom */
+
+    /* Scrollbar styling for webkit */
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
+}
+
+.scrollable-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollable-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.scrollable-content::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 20px;
 }
 
 .placeholder-state {
