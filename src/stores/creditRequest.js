@@ -43,18 +43,21 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     showValidationErrors: false,
 
     // UI State
-    activeTab: 'requestInfo'
+    activeTab: 'requestInfo',
+
+    // Simulation State
+    userRole: 'หัวหน้าสำนักงาน' // Default Role
   }),
 
   getters: {
-    currentRole: (state) => {
-      // Logic to determine role based on status
+    // Determine the role that *should* be acting on the current status
+    targetRole: (state) => {
       const s = state.requestStatus;
       if (!s || s === 'Draft') return 'หัวหน้าสำนักงาน';
       if (s === 'Opened') return 'ผู้จัดการสาขา';
       if (s === 'Submitted') return 'ผู้จัดการฝ่ายขาย (HO)';
       if (s === 'PendingSales (ชั่วคราว)') return 'เจ้าหน้าที่ฝ่ายการเงิน';
-      if (s === 'Reviewed') return 'ผู้จัดการฝ่ายการเงิน'; // or Committee if > 300k, handled in logic
+      if (s === 'Reviewed') return 'ผู้จัดการฝ่ายการเงิน';
       if (s === 'PendingFinance (ชั่วคราว)') return 'กรรมการเครดิต';
       return '';
     },
@@ -690,6 +693,60 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     setActiveTab(tabId) {
       this.activeTab = tabId;
+    },
+
+    setUserRole(role) {
+      this.userRole = role;
+    },
+
+    async updateStatus(newStatus, comment = '') {
+      if (!this.requestId || !this.customer.id) return;
+
+      this.loading = true;
+      try {
+        const formData = new FormData();
+        formData.append('customer_no', this.customer.id);
+        formData.append('customer_name', this.customer.name);
+
+        // Pass current transaction data to avoid wiping it
+        formData.append('request_amount', this.transactionData.amount || '');
+        formData.append('request_reason', this.transactionData.reason || '');
+        formData.append('request_credit_term', this.transactionData.creditTerm || '');
+        formData.append('term_gs', this.transactionData.termGS || '');
+        formData.append('term_ae', this.transactionData.termAE || '');
+        formData.append('term_yc', this.transactionData.termYC || '');
+        formData.append('request_type', this.transactionData.requestType || 'เครดิตใหม่');
+
+        // Pass full snapshot
+        formData.append('snapshot_data', JSON.stringify(this.getSnapshot()));
+
+        // Workflow parameters
+        formData.append('is_submit', 'true');
+        formData.append('status', newStatus);
+        formData.append('comment', comment);
+        formData.append('actor_role', this.userRole);
+
+        const result = await CreditRequestService.createCreditRequest(formData);
+
+        if (result && result.data && result.data.data) {
+           this.requestStatus = result.data.data.status;
+           await this.fetchComments(); // Refresh comments
+
+           // If status changed to something that removes it from the current user's list,
+           // we might want to refresh the sidebar list too.
+           // Triggering a list refresh for the current active tab
+           const listStatus = this.activeTab === 'history' ? 'Approved,Rejected,Closed,Canceled' : 'Draft,Opened,Submitted,Reviewed,PendingSales (ชั่วคราว),PendingFinance (ชั่วคราว)';
+           await this.fetchRequests(listStatus);
+        }
+
+        return true;
+      } catch (e) {
+        console.error('Failed to update status', e);
+        Swal.fire('Error', 'Failed to update status', 'error');
+        return false;
+      } finally {
+        this.loading = false;
+      }
     }
   }
 });

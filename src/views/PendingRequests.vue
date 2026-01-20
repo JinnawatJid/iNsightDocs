@@ -2,6 +2,10 @@
   <div class="pending-requests">
     <Navbar />
     <div class="page-content">
+      <div class="sim-role-wrapper">
+        <RoleSelector />
+      </div>
+
       <div class="main-grid">
         <!-- Left Column: Request Sidebar -->
         <div class="grid-col left">
@@ -29,6 +33,9 @@
                        <ApplicationTabs :readOnly="true" viewMode="full" />
                    </div>
                </div>
+
+               <!-- Action Bar (Sticky at Bottom of Center Col) -->
+               <WorkflowActionBar />
            </div>
         </div>
 
@@ -53,6 +60,8 @@ import RequestSidebar from '@/components/credit/RequestSidebar.vue';
 import CustomerTitleCard from '@/components/credit/CustomerTitleCard.vue';
 import ApplicationTabs from '@/components/credit/ApplicationTabs.vue';
 import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
+import WorkflowActionBar from '@/components/credit/WorkflowActionBar.vue';
+import RoleSelector from '@/components/credit/RoleSelector.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const store = useCreditRequestStore();
@@ -69,6 +78,14 @@ const store = useCreditRequestStore();
   padding: 20px 40px;
   max-width: 1600px;
   margin: 0 auto;
+  position: relative;
+}
+
+.sim-role-wrapper {
+  position: absolute;
+  top: -60px;
+  right: 40px;
+  z-index: 100;
 }
 
 .main-grid {
