@@ -141,6 +141,7 @@
                   class="form-input"
                   :class="{ 'disabled': !canEditTerms }"
                   :disabled="!canEditTerms"
+                  placeholder="ระบุระยะเวลาเครดิต (กระจก, กาว)"
                   v-model="store.transactionData.termGS"
                   @input="(e) => handleNumericInput(e, 'termGS', true)"
                 />
@@ -157,6 +158,7 @@
                   class="form-input"
                   :class="{ 'disabled': !canEditTerms }"
                   :disabled="!canEditTerms"
+                  placeholder="ระบุระยะเวลาเครดิต (อลูมิเนียม, Acc)"
                   v-model="store.transactionData.termAE"
                   @input="(e) => handleNumericInput(e, 'termAE', true)"
                 />
@@ -173,6 +175,7 @@
                   class="form-input"
                   :class="{ 'disabled': !canEditTerms }"
                   :disabled="!canEditTerms"
+                  placeholder="ระบุระยะเวลาเครดิต (ยิปซั่ม, ซีลาย)"
                   v-model="store.transactionData.termYC"
                   @input="(e) => handleNumericInput(e, 'termYC', true)"
                 />
