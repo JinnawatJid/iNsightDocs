@@ -344,7 +344,7 @@ exports.getCreditRequests = async (req, res) => {
 
   try {
     let sql = `
-      SELECT id, tx_id, customer_no, customer_name, status, request_amount, created_at
+      SELECT id, tx_id, customer_no, customer_name, status, request_amount, request_type, created_at
       FROM CreditRequests
     `;
     const params = [];
