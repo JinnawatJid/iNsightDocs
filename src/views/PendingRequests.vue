@@ -17,14 +17,24 @@
            </div>
 
            <div v-else class="content-wrapper">
-               <CustomerTitleCard />
-               <!-- Detailed Content will go here -->
+               <div class="fixed-header">
+                   <CustomerTitleCard />
+               </div>
+               <div class="scrollable-content">
+                   <!-- Unified Card Wrapper -->
+                   <div class="unified-card">
+                       <div class="card-header">
+                           <h3>เอกสารประกอบการพิจารณา</h3>
+                       </div>
+                       <ApplicationTabs :readOnly="true" viewMode="full" />
+                   </div>
+               </div>
            </div>
         </div>
 
         <!-- Right Column: Status Placeholder -->
         <div class="grid-col right">
-           <!-- Placeholder for Approve Status -->
+           <!-- Placeholder for Approve Status or future Timeline -->
         </div>
       </div>
     </div>
@@ -35,6 +45,7 @@
 import Navbar from '@/components/shared/Navbar.vue';
 import RequestSidebar from '@/components/credit/RequestSidebar.vue';
 import CustomerTitleCard from '@/components/credit/CustomerTitleCard.vue';
+import ApplicationTabs from '@/components/credit/ApplicationTabs.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const store = useCreditRequestStore();
@@ -91,6 +102,12 @@ const store = useCreditRequestStore();
 .grid-col.center {
     background: transparent;
     border: none;
+    overflow: hidden; /* Changed to hidden to manage scroll internally */
+}
+
+.grid-col.right {
+    background: transparent;
+    border: none;
     overflow: visible;
 }
 
@@ -98,6 +115,69 @@ const store = useCreditRequestStore();
     height: 100%;
     display: flex;
     flex-direction: column;
+}
+
+.fixed-header {
+    flex-shrink: 0;
+    /* margin-bottom handled by CustomerTitleCard itself */
+}
+
+.scrollable-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 20px; /* Add some breathing room at the bottom */
+
+    /* Scrollbar styling for webkit */
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
+}
+
+.scrollable-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollable-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.scrollable-content::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 20px;
+}
+
+/* Unified Card Styles (Matching CreditRequestForm) */
+.unified-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 20px 20px 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: bold;
+  margin: 0;
+}
+
+/* Icon style */
+.card-header h3::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'%3E%3C/path%3E%3Cpolyline points='14 2 14 8 20 8'%3E%3C/polyline%3E%3Cline x1='16' y1='13' x2='8' y2='13'%3E%3C/line%3E%3Cline x1='16' y1='17' x2='8' y2='17'%3E%3C/line%3E%3Cpolyline points='10 9 9 9 8 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
 }
 
 .placeholder-state {
