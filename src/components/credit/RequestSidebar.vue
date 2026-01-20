@@ -21,7 +21,7 @@
     <!-- Search Box -->
     <div class="search-container">
       <div class="search-box">
-        <img src="@/assets/icons/search.svg" alt="Search" class="search-icon" />
+        <img :src="iconSearch" alt="Search" class="search-icon" />
         <input
           type="text"
           v-model="searchQuery"
@@ -44,14 +44,38 @@
         v-for="req in requests"
         :key="req.id"
         class="request-item"
+        :class="{ active: store.requestId === req.tx_id }"
+        @click="selectRequest(req)"
       >
-        <div class="item-header">
-           <span class="customer-name">{{ req.customer_name }}</span>
-           <span class="request-date">{{ formatDate(req.created_at) }}</span>
+        <!-- Top: Request Type Badge -->
+        <div class="item-top">
+          <span
+            class="request-type-badge"
+            :class="getRequestTypeClass(req.request_type)"
+          >
+            {{ req.request_type || 'เครดิตใหม่' }}
+          </span>
         </div>
-        <div class="item-body">
-           <span class="request-amount">{{ formatCurrency(req.request_amount) }} บาท</span>
-           <span class="status-badge" :class="getStatusClass(req.status)">{{ req.status }}</span>
+
+        <!-- Middle: Customer Name and Status Icon -->
+        <div class="item-middle">
+           <span class="customer-name">{{ req.customer_name }}</span>
+           <div class="status-icon">
+              <!-- Active Statuses (Clock) -->
+              <img v-if="['Draft', 'Opened', 'Submitted', 'Reviewed'].includes(req.status)" :src="iconClock" :alt="req.status" width="24" height="24" />
+              <!-- Negative Statuses (X) -->
+              <img v-else-if="['Rejected', 'Canceled'].includes(req.status)" :src="iconRejected" :alt="req.status" width="24" height="24" />
+              <!-- Positive Statuses (Check) -->
+              <img v-else-if="['Approved', 'Closed'].includes(req.status)" :src="iconApproved" :alt="req.status" width="24" height="24" />
+              <!-- Default -->
+              <img v-else :src="iconClock" alt="Status" width="24" height="24" />
+           </div>
+        </div>
+
+        <!-- Bottom: TxID and Date -->
+        <div class="item-bottom">
+           <span class="tx-id">{{ req.tx_id }}</span>
+           <span class="date">{{ formatDate(req.created_at) }}</span>
         </div>
       </div>
     </div>
@@ -62,6 +86,12 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { debounce } from 'lodash';
+
+// Import Icons
+import iconSearch from '@/assets/icons/search.svg';
+import iconClock from '@/assets/icons/clock-orange.svg';
+import iconApproved from '@/assets/icons/check-circle-green.svg';
+import iconRejected from '@/assets/icons/x-circle-red.svg';
 
 const store = useCreditRequestStore();
 const activeTab = ref('pending');
@@ -77,8 +107,9 @@ const switchTab = (tab) => {
 
 const fetchData = () => {
   const query = searchQuery.value;
+  // Included 'Draft' and others to match backend active statuses
   if (activeTab.value === 'pending') {
-    store.fetchRequests('Opened,Submitted,Reviewed', query);
+    store.fetchRequests('Draft,Opened,Submitted,Reviewed,PendingSales (ชั่วคราว),PendingFinance (ชั่วคราว)', query);
   } else {
     store.fetchRequests('Approved,Rejected,Closed,Canceled', query);
   }
@@ -98,26 +129,23 @@ const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-GB', {
         year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
+        month: 'numeric',
+        day: 'numeric'
     });
 };
 
-const formatCurrency = (amount) => {
-    if (amount === null || amount === undefined) return '0';
-    return Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const selectRequest = (req) => {
+    if (req.tx_id) {
+        store.loadRequestDetail(req.tx_id);
+    }
 };
 
-const getStatusClass = (status) => {
-    switch (status) {
-        case 'Submitted': return 'status-submitted';
-        case 'Reviewed': return 'status-reviewed';
-        case 'Approved': return 'status-approved';
-        case 'Rejected': return 'status-rejected';
-        case 'Opened': return 'status-opened';
-        case 'Closed': return 'status-closed';
-        default: return 'status-default';
-    }
+const getRequestTypeClass = (type) => {
+    if (!type) return 'type-new';
+    if (type.includes('เครดิตเพิ่ม')) return 'type-increase';
+    if (type.includes('เครดิตโครงการ')) return 'type-project';
+    if (type.includes('เปลี่ยนแปลง')) return 'type-change';
+    return 'type-new';
 };
 
 onMounted(() => {
@@ -142,15 +170,15 @@ onMounted(() => {
   background-color: #999;
   border-radius: 52px;
   overflow: hidden;
-  /* Key changes for matching shape */
   width: 80%;
   margin: 20px auto 10px auto;
+  flex-shrink: 0;
 }
 
 .tab-item {
   flex: 1;
   text-align: center;
-  padding: 4px 0;
+  padding: 6px 0;
   cursor: pointer;
   border-radius: 50px;
   font-weight: 500;
@@ -175,6 +203,7 @@ onMounted(() => {
 .search-container {
     padding: 0 20px 15px 20px;
     margin-top: 10px;
+    flex-shrink: 0;
 }
 
 .search-box {
@@ -183,7 +212,7 @@ onMounted(() => {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     padding: 8px 12px;
-    background-color: #fff; /* Ensure white background */
+    background-color: #fff;
 }
 
 .search-icon {
@@ -199,8 +228,8 @@ onMounted(() => {
     width: 100%;
     font-size: 14px;
     color: #333;
-    background-color: transparent; /* Fix grey background */
-    height: 24px; /* Fix vertical alignment */
+    background-color: transparent;
+    height: 24px;
     padding: 0;
     margin: 0;
     font-family: inherit;
@@ -214,7 +243,7 @@ onMounted(() => {
 .request-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 0 20px 0;
+  padding: 0;
 }
 
 .request-item {
@@ -222,71 +251,80 @@ onMounted(() => {
   border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: background-color 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .request-item:hover {
   background-color: #f9f9f9;
 }
 
-.item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px; /* Spacing between rows */
-  text-align: left;
+.request-item.active {
+    background-color: #e6f7ff; /* Light blue highlight for selection */
+    border-left: 4px solid #007bff;
+}
+
+.item-top {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.request-type-badge {
+  font-weight: 500;
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+/* Badge Colors matching History */
+.type-new { color: #0056b3; background-color: #e7f1ff; } /* Blue */
+.type-increase { color: #0f5132; background-color: #d1e7dd; } /* Green */
+.type-project { color: #6f42c1; background-color: #e0cffc; } /* Purple */
+.type-change { color: #856404; background-color: #fff3cd; } /* Orange */
+
+.item-middle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .customer-name {
-  font-weight: bold;
-  color: #333;
-  flex: 1;
-  margin-right: 10px;
-  text-align: left;
-  font-size: 14px;
-  line-height: 1.4;
+    font-weight: bold;
+    font-size: 15px;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 10px;
 }
 
-.request-date {
-  font-size: 12px;
-  color: #888;
-  white-space: nowrap;
-  flex-shrink: 0;
+.status-icon img {
+    display: block;
 }
 
-.item-body {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.item-bottom {
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: #888;
 }
 
-.request-amount {
-  font-weight: 500;
-  color: #333;
-  font-size: 14px;
+.tx-id {
+    font-weight: 500;
+    color: #555;
 }
 
-/* Status Badges */
-.status-badge {
-  font-size: 12px;
-  padding: 4px 12px;
-  border-radius: 12px; /* Pill shape */
-  color: white;
-  font-weight: 500;
-  min-width: 80px;
-  text-align: center;
+.date {
+    color: #999;
 }
-
-.status-submitted { background-color: #007bff; } /* Blue */
-.status-reviewed { background-color: #ffc107; color: #333; } /* Yellow */
-.status-approved { background-color: #28a745; } /* Green */
-.status-rejected { background-color: #dc3545; } /* Red */
-.status-opened { background-color: #6c757d; } /* Grey */
-.status-closed { background-color: #343a40; } /* Dark Grey */
-.status-default { background-color: #6c757d; }
 
 .loading-state, .empty-state {
   text-align: center;
-  padding: 20px;
+  padding: 30px 20px;
   color: #888;
   font-size: 14px;
 }
