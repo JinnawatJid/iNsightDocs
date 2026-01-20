@@ -359,7 +359,11 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     updateFile(key, file) {
       this.files[key] = file;
-      this.uploadedDocuments[key] = !!file;
+      if (Array.isArray(file)) {
+          this.uploadedDocuments[key] = file.length > 0;
+      } else {
+          this.uploadedDocuments[key] = !!file;
+      }
     },
 
     updateCustomerData(updates) {
