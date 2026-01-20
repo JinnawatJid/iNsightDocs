@@ -70,7 +70,7 @@
         <h5 class="comment-label">ความคิดเห็น: {{ currentRole }}</h5>
         <textarea
             class="comment-input"
-            placeholder="ระบุพฤติกรรมลูกค้า, ประวัติโครงการ, การซื้อขายล่าสุด, หรือข้อมูลประกอบการพิจารณาอื่นๆ..."
+            :placeholder="placeholderText"
             :value="modelValue"
             @input="$emit('update:modelValue', $event.target.value)"
             rows="5"
@@ -84,6 +84,8 @@
 <script setup>
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import CommentHistory from './CommentHistory.vue';
+import { commentPlaceholders } from '@/config/workflow';
+import { computed } from 'vue';
 
 const props = defineProps({
   readOnly: { type: Boolean, default: false },
@@ -96,6 +98,12 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const store = useCreditRequestStore();
+
+const placeholderText = computed(() => {
+    const status = store.requestStatus || 'Draft';
+    // Fallback if status not found in map
+    return commentPlaceholders[status] || 'ระบุพฤติกรรมลูกค้า, ประวัติโครงการ, การซื้อขายล่าสุด, หรือข้อมูลประกอบการพิจารณาอื่นๆ...';
+});
 
 function handleAmountInput(e) {
   // 1. Get raw value, remove commas
