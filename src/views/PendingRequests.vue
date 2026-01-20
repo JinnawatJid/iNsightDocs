@@ -28,7 +28,7 @@
 
         <!-- Right Column: Status Placeholder -->
         <div class="grid-col right">
-           <!-- Placeholder for Approve Status -->
+           <DocumentChecklist v-if="store.requestId" />
         </div>
       </div>
     </div>
@@ -40,6 +40,7 @@ import Navbar from '@/components/shared/Navbar.vue';
 import RequestSidebar from '@/components/credit/RequestSidebar.vue';
 import CustomerTitleCard from '@/components/credit/CustomerTitleCard.vue';
 import ApplicationTabs from '@/components/credit/ApplicationTabs.vue';
+import DocumentChecklist from '@/components/credit/DocumentChecklist.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const store = useCreditRequestStore();
@@ -97,6 +98,12 @@ const store = useCreditRequestStore();
     background: transparent;
     border: none;
     overflow: hidden; /* Changed to hidden to manage scroll internally */
+}
+
+.grid-col.right {
+    background: transparent;
+    border: none;
+    overflow: visible; /* Allow checklist dropdown to overflow */
 }
 
 .content-wrapper {
