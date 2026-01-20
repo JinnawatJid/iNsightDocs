@@ -96,7 +96,11 @@ const documents = computed(() => {
 
   return files.map(key => {
     // Check if uploaded (either in files object or marked in uploadedDocuments map)
-    const hasFile = !!store.files[key] || !!store.uploadedDocuments[key];
+    // FIX: Ensure empty arrays (like bank_statement initial state) are treated as false
+    const file = store.files[key];
+    const hasLocalFile = file && (!Array.isArray(file) || file.length > 0);
+    const hasFile = hasLocalFile || !!store.uploadedDocuments[key];
+
     const config = DOC_CONFIG[key] || { label: key, tab: 'requestInfo' };
 
     return {
@@ -133,6 +137,7 @@ const uploadedCount = computed(() => {
   flex-direction: column;
   justify-content: center;
   box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  margin-bottom: 20px; /* Added to match neighbors */
 }
 
 .header {
