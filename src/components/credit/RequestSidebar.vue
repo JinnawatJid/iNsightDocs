@@ -25,7 +25,7 @@
         <input
           type="text"
           v-model="searchQuery"
-          placeholder="ค้นหาข้อมูลลูกค้า"
+          placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ, เบอร์โทร หรือ ชื่อบริษัท"
           class="search-input"
         />
       </div>
