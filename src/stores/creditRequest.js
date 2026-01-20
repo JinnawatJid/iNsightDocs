@@ -53,7 +53,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       if (!s || s === 'Draft') return 'หัวหน้าสำนักงาน';
       if (s === 'Opened') return 'ผู้จัดการสาขา';
       if (s === 'Submitted') return 'ผู้จัดการฝ่ายขาย (HO)';
-      if (s === 'PendingSales (ชั่วคราว)') return 'เลขานุการฝ่ายการเงิน';
+      if (s === 'PendingSales (ชั่วคราว)') return 'เจ้าหน้าที่ฝ่ายการเงิน';
       if (s === 'Reviewed') return 'ผู้จัดการฝ่ายการเงิน'; // or Committee if > 300k, handled in logic
       if (s === 'PendingFinance (ชั่วคราว)') return 'กรรมการเครดิต';
       return '';

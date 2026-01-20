@@ -1,7 +1,7 @@
 // Workflow Configuration for Credit Request Status Transitions
 
 export const workflowConfig = {
-    // Branch Head (Start)
+    // Office Manager (Start)
     'Draft': [
         {
             label: 'บันทึกแบบร่าง',
@@ -49,7 +49,7 @@ export const workflowConfig = {
             confirmMessage: 'ทำรายการสำเร็จ'
         }
     ],
-    // Finance Secretary
+    // Finance Officer
     'PendingSales (ชั่วคราว)': [
         {
             label: 'ปฏิเสธ',
@@ -124,7 +124,7 @@ export const roleLabels = {
     'Draft': 'หัวหน้าสำนักงาน',
     'Opened': 'ผู้จัดการสาขา',
     'Submitted': 'ผู้จัดการฝ่ายขาย (HO)',
-    'PendingSales (ชั่วคราว)': 'เลขานุการฝ่ายการเงิน',
+    'PendingSales (ชั่วคราว)': 'เจ้าหน้าที่ฝ่ายการเงิน',
     'Reviewed': 'ผู้จัดการฝ่ายการเงิน',
     'PendingFinance (ชั่วคราว)': 'กรรมการเครดิต',
     'Approved': 'อนุมัติแล้ว',
