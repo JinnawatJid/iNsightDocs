@@ -111,6 +111,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     async loadRequestDetail(txId) {
       this.loading = true;
       this.error = null;
+      // Reset active tab to default when loading a new request
+      this.activeTab = 'requestInfo';
       try {
         const response = await CreditRequestService.getCreditRequestDetail(txId);
         const data = response.data.data;
