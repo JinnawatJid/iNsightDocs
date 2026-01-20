@@ -88,3 +88,32 @@ To implement this, the backend (`customerController.js`) will need access to the
   }
 }
 ```
+
+---
+
+## 5. Alternative Suggestions for 'Trend' (User Preference: Total Purchase)
+
+**Context:** Key users (P'Bee, P'Joy) have indicated that the "Purchase Trend" (Trend) metric is less relevant to their decision-making than "Total Purchase Amount" (Volume). They find the "Trend Down" warning (e.g., "ยอดการสั่งซื้อมีแนวโน้มลดลง") less helpful than knowing the absolute state of sales volume.
+
+We propose replacing or supplementing the generic "Trend Down" warning with one of the following options that focus on **Sales Volume**.
+
+### Option 1: "Period-over-Period Volume" (Comparison of Totals)
+Focuses on the *fact* that the total amount has decreased, rather than a rate/percentage.
+*   **Concept:** Compare `Total Purchase (Current 3 Months)` vs `Total Purchase (Previous 3 Months)`.
+*   **Logic:** `If (CurrentTotal < PreviousTotal)`
+*   **Proposed Text:** **"ยอดซื้อรวมลดลงเมื่อเทียบกับรอบก่อนหน้า"** (Total purchase amount decreased compared to previous round).
+*   **Why:** Directly addresses the "Total Purchase" metric.
+
+### Option 2: "Latest Month vs Average" (Immediate Volume Drop)
+Highlights if the *most recent* month is performing poorly compared to the customer's usual standard.
+*   **Concept:** Detect if the latest month is dragging down the average.
+*   **Logic:** `If (LatestMonthSales < AverageMonthlySales)`
+*   **Proposed Text:** **"ยอดซื้อเดือนล่าสุดต่ำกว่าค่าเฉลี่ยปกติ"** (Latest month purchase is below normal average).
+*   **Why:** Actionable insight; suggests immediate contact is needed.
+
+### Option 3: "High Volume Reassurance" (Ignore the dip)
+If the customer is a "High Value" customer (Tier 1/2), minor trend fluctuations should not generate negative warnings.
+*   **Concept:** Prioritize the "Good Standing" status over minor negative trends.
+*   **Logic:** `If (TotalPurchase > 1,000,000) AND (Trend < 0)`
+*   **Proposed Text:** **"ยอดซื้อรวมยังอยู่ในเกณฑ์ดีเยี่ยม"** (Total purchase remains at an excellent level).
+*   **Why:** Prevents false alarms for VIP customers who might just have a slow month.
