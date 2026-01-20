@@ -118,7 +118,19 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         // Populate State
         this.requestId = data.txId; // tx_id
         this.requestStatus = data.status;
-        this.customer = data.snapshot_data || {};
+
+        // Handle snapshot_data parsing if it is a string (SQLite/Legacy behavior)
+        let parsedSnapshot = data.snapshot_data || {};
+        if (typeof parsedSnapshot === 'string') {
+          try {
+            parsedSnapshot = JSON.parse(parsedSnapshot);
+          } catch (e) {
+            console.error('Failed to parse snapshot_data in loadRequestDetail', e);
+            parsedSnapshot = {};
+          }
+        }
+
+        this.customer = parsedSnapshot;
 
         // Ensure existing_credits is an array
         if (this.customer.existing_credits) {
@@ -129,8 +141,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         }
 
         this.displayCustomer = { ...this.customer }; // Init display copy
-        this.financialSummary = data.snapshot_data?.financial_summary || {};
-        this.creditScore = data.snapshot_data?.credit_score || {};
+        this.financialSummary = parsedSnapshot.financial_summary || {};
+        this.creditScore = parsedSnapshot.credit_score || {};
 
         // Fallback for legacy snapshots (missing financial summary)
         if (Object.keys(this.financialSummary).length === 0 && data.customer_no) {
