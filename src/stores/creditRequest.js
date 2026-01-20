@@ -132,6 +132,14 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
         this.customer = parsedSnapshot;
 
+        // Fallback: Use root-level data if snapshot is missing critical fields
+        if (!this.customer.name && data.customer_name) {
+             this.customer.name = data.customer_name;
+        }
+        if ((!this.customer.id && !this.customer.No_) && data.customer_no) {
+             this.customer.id = data.customer_no;
+        }
+
         // Ensure existing_credits is an array
         if (this.customer.existing_credits) {
             this.customer.existing_credits = this.parseExistingCredits(this.customer.existing_credits);
