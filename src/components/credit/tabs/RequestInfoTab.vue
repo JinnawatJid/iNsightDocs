@@ -234,6 +234,7 @@
                   :disabled="!isEditing"
                   v-model="store.customer.billing_method"
                 >
+                    <option value="" disabled>เลือกวิธีในการวางบิล</option>
                     <option value="delivery">พร้อมการส่งมอบสินค้า</option>
                     <option value="mail">ทางไปรษณีย์</option>
                     <option value="company">ที่บริษัท ร้านค้า</option>
