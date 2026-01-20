@@ -26,3 +26,7 @@ dist-ssr
 # Backend Database
 backend/*.db
 backend/*.sqlite
+backend/uploads
+
+release
+SP682_1_2_1_release.zip

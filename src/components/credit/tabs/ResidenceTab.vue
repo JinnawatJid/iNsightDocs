@@ -170,17 +170,6 @@
                 <span v-if="errors.locationType" class="error-text">{{ errors.locationType }}</span>
             </div>
              <div class="form-group">
-                <label>คำอธิบายเพิ่มเติม</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  :class="{ 'disabled': !isEditing }"
-                  :disabled="!isEditing"
-                  v-model="formData.locationTypeOther"
-                  placeholder="ระบุ..."
-                />
-             </div>
-             <div class="form-group">
                <label>กรรมสิทธิ์ทรัพย์สิน <span v-if="isRequired('residence_ownership')" class="text-red-500">*</span></label>
                <select
                   class="form-control"
@@ -198,18 +187,16 @@
                 </select>
                 <span v-if="errors.propertyOwnership" class="error-text">{{ errors.propertyOwnership }}</span>
              </div>
-             <div class="form-group">
-                <label>{{ ownershipLabel }} <span v-if="isRequired('residence_ownership')" class="text-red-500">*</span></label>
+             <div class="form-group span-2">
+                <label>คำอธิบายเพิ่มเติม</label>
                 <input
                   type="text"
                   class="form-control"
-                  :class="{ 'border-red-500': errors.ownershipValue, 'disabled': !isEditing }"
+                  :class="{ 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formData.ownershipOther"
+                  v-model="formData.locationTypeOther"
                   placeholder="ระบุ..."
-                  @input="validateField('ownershipValue', formData.ownershipOther, ['required'])"
                 />
-                <span v-if="errors.ownershipValue" class="error-text">{{ errors.ownershipValue }}</span>
              </div>
         </div>
 
@@ -293,20 +280,9 @@ const formData = reactive({
   locationTypeSelect: '',
   locationTypeOther: '',
   ownershipSelect: '',
-  ownershipOther: '',
   mapCode: '',
   landmark: '',
   note: ''
-});
-
-const ownershipLabel = computed(() => {
-  if (formData.ownershipSelect === 'บ้านเช่า') {
-    return 'เช่า เดือนละ';
-  }
-  if (formData.ownershipSelect === 'เช่าซื้อ') {
-    return 'เช่าซื้อ เดือนละ';
-  }
-  return 'มูลค่า';
 });
 
 function formatPhoneNumber(phone) {
@@ -347,7 +323,6 @@ watch(() => store.customer, (newVal) => {
     formData.locationTypeSelect = newVal.residence_location_type || '';
     formData.locationTypeOther = newVal.residence_location_type_other || '';
     formData.ownershipSelect = newVal.residence_ownership || '';
-    formData.ownershipOther = newVal.residence_ownership_other || '';
   }
 }, { immediate: true, deep: true });
 
@@ -373,7 +348,6 @@ watch(formData, (newVal) => {
     residence_location_type: newVal.locationTypeSelect,
     residence_location_type_other: newVal.locationTypeOther,
     residence_ownership: newVal.ownershipSelect,
-    residence_ownership_other: newVal.ownershipOther
   };
   store.updateCustomerData(updates);
 }, { deep: true });
@@ -415,10 +389,6 @@ watch(() => store.showValidationErrors, (val) => {
         // New Fields
         validateField('locationType', formData.locationTypeSelect, ['required']);
         validateField('propertyOwnership', formData.ownershipSelect, ['required']);
-        // Only validate value/rent if ownership is selected (or mandatory enforced)
-        if (formData.ownershipSelect) {
-             validateField('ownershipValue', formData.ownershipOther, ['required']);
-        }
     }
 }, { immediate: true });
 </script>
