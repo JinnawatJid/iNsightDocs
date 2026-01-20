@@ -34,7 +34,13 @@
 
         <!-- Right Column: Status Placeholder -->
         <div class="grid-col right">
-           <!-- Placeholder for Approve Status or future Timeline -->
+           <CreditScoreSummary
+             v-if="store.requestId"
+             :financial="store.financialSummary"
+             :canRequest="store.creditScore?.can_request_credit"
+             :badges="store.creditScore?.badges"
+             :suggestions="store.creditScore?.suggestions"
+           />
         </div>
       </div>
     </div>
@@ -46,6 +52,7 @@ import Navbar from '@/components/shared/Navbar.vue';
 import RequestSidebar from '@/components/credit/RequestSidebar.vue';
 import CustomerTitleCard from '@/components/credit/CustomerTitleCard.vue';
 import ApplicationTabs from '@/components/credit/ApplicationTabs.vue';
+import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const store = useCreditRequestStore();
@@ -108,7 +115,23 @@ const store = useCreditRequestStore();
 .grid-col.right {
     background: transparent;
     border: none;
-    overflow: visible;
+    overflow-y: auto;
+    /* Scrollbar styling for webkit */
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
+}
+
+.grid-col.right::-webkit-scrollbar {
+    width: 6px;
+}
+
+.grid-col.right::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.grid-col.right::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 20px;
 }
 
 .content-wrapper {
