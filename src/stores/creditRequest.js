@@ -29,7 +29,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       termGS: '',
       termAE: '',
       termYC: '',
-      reason: 'สต๊อคสินค้า',
+      reason: '',
       requestType: 'เครดิตใหม่'
     },
 
@@ -332,7 +332,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
               termGS: resData.term_gs || '',
               termAE: resData.term_ae || '',
               termYC: resData.term_yc || '',
-              reason: resData.request_reason || 'สต๊อคสินค้า',
+              reason: resData.request_reason || '',
               requestType: resData.request_type || 'เครดิตใหม่'
             };
           }
@@ -520,6 +520,16 @@ export const useCreditRequestStore = defineStore('creditRequest', {
                      missingFiles.push(key);
                 }
             });
+
+            // Additional Check: Quotation is mandatory if reason is specific
+            if (this.transactionData.reason === 'ขออนุมัติเครดิต (มีใบสั่งซื้อแนบมาพร้อม)') {
+                const qKey = 'quotation_doc';
+                const file = this.files[qKey];
+                const isUploaded = this.uploadedDocuments[qKey];
+                if ((!file && !isUploaded) || (Array.isArray(file) && file.length === 0)) {
+                    missingFiles.push(qKey);
+                }
+            }
         }
 
         if (missingFields.length > 0 || missingFiles.length > 0) {
@@ -551,7 +561,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     resetState() {
       this.hasSearched = false;
-      this.customer = {};
+      this.customer = { payment_method: '' }; // Ensure payment_method defaults to empty
       this.originalCustomer = {};
       this.history = [];
       this.financialSummary = {};
@@ -570,13 +580,13 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termGS: '',
         termAE: '',
         termYC: '',
-        reason: 'สต๊อคสินค้า',
+        reason: '',
         requestType: 'เครดิตใหม่'
       };
     },
 
     clearFormData() {
-      this.customer = {};
+      this.customer = { payment_method: '' }; // Ensure payment_method defaults to empty
       this.originalCustomer = {};
       this.history = [];
       this.financialSummary = {};
@@ -593,7 +603,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termGS: '',
         termAE: '',
         termYC: '',
-        reason: 'สต๊อคสินค้า',
+        reason: '',
         requestType: 'เครดิตใหม่'
       };
     },
