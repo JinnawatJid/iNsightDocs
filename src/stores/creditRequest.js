@@ -40,7 +40,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     comments: [],
 
     // Validation State
-    showValidationErrors: false
+    showValidationErrors: false,
+
+    // UI State
+    activeTab: 'requestInfo'
   }),
 
   getters: {
@@ -597,6 +600,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     clearValidation() {
       this.showValidationErrors = false;
+    },
+
+    setActiveTab(tabId) {
+      this.activeTab = tabId;
     }
   }
 });
