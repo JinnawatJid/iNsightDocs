@@ -7,7 +7,7 @@ import { getMandatoryKeys } from '@/config/mandatoryFields';
 export const useCreditRequestStore = defineStore('creditRequest', {
   state: () => ({
     hasSearched: false,
-    customer: {},
+    customer: { payment_method: '', billing_requirement: '' }, // Initialize with defaults for dropdowns
     originalCustomer: {}, // Deep clone of initial search result for comparison
     displayCustomer: {}, // Stable copy for sidebar display
     history: [],
@@ -561,7 +561,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     resetState() {
       this.hasSearched = false;
-      this.customer = { payment_method: '' }; // Ensure payment_method defaults to empty
+      this.customer = { payment_method: '', billing_requirement: '' }; // Ensure defaults are empty
       this.originalCustomer = {};
       this.history = [];
       this.financialSummary = {};
@@ -586,7 +586,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     clearFormData() {
-      this.customer = { payment_method: '' }; // Ensure payment_method defaults to empty
+      this.customer = { payment_method: '', billing_requirement: '' }; // Ensure defaults are empty
       this.originalCustomer = {};
       this.history = [];
       this.financialSummary = {};

@@ -209,6 +209,7 @@
                   :disabled="!isEditing"
                   v-model="store.customer.billing_requirement"
                 >
+                    <option value="" disabled>เลือกการวางบิล</option>
                     <option value="required">ต้องการ</option>
                     <option value="not_required">ไม่ต้องการ</option>
                     <option value="other">อื่นๆ (ระบุ)</option>
