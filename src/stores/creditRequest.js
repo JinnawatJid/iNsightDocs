@@ -242,6 +242,46 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           this.clearFormData(); // Clear previous data
           const data = results[0];
 
+          // Determine if company
+          const name = data.customer.name || '';
+          const keywords = ['บริษัท', 'ห้างหุ้นส่วนจำกัด', 'บ.', 'หจก.'];
+          const isCompany = keywords.some(keyword => name.includes(keyword));
+
+          if (!isCompany) {
+             // For Individual: Map Address Fetch to Store Address keys
+             // And clear Residence keys
+             data.customer.store_address = data.customer.address;
+             data.customer.store_subdistrict = data.customer.subdistrict;
+             data.customer.store_zipcode = data.customer.zipcode;
+             data.customer.store_district = data.customer.district;
+             data.customer.store_province = data.customer.province;
+             data.customer.store_phone = data.customer.phone;
+             data.customer.store_fax = data.customer.fax;
+             data.customer.store_email = data.customer.email;
+             data.customer.store_map_code = data.customer.map_code;
+             data.customer.store_landmark = data.customer.landmark;
+             data.customer.store_note = data.customer.note;
+
+             // Clear Residence
+             data.customer.address = '';
+             data.customer.subdistrict = '';
+             data.customer.zipcode = '';
+             data.customer.district = '';
+             data.customer.province = '';
+             data.customer.phone = '';
+             data.customer.fax = '';
+             data.customer.email = '';
+             data.customer.map_code = '';
+             data.customer.landmark = '';
+             data.customer.note = '';
+          } else {
+             // For Company: Address is Company Address (Store Tab).
+             // Residence Tab should be empty or distinct.
+             // We ensure 'residence_' keys are empty or initialized if we use them
+             // But usually they don't come from fetch unless specific columns exist.
+             // No action needed if backend returns them as null/empty.
+          }
+
           this.customer = data.customer;
 
           // Ensure dropdown defaults

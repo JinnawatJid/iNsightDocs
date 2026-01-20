@@ -53,8 +53,8 @@ const tabs = computed(() => {
   const allTabs = [
     { id: 'requestInfo', label: requestInfoLabel },
     { id: 'general', label: 'ข้อมูลทั่วไป' },
-    { id: 'residence', label: 'ที่อยู่อาศัย' },
     { id: 'store', label: storeLabel },
+    { id: 'residence', label: 'ที่อยู่อาศัย' },
     { id: 'financial', label: 'เอกสารการเงิน' }
   ];
 
