@@ -224,6 +224,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
           this.customer = data.customer;
 
+          // Ensure dropdown defaults
+          if (!this.customer.payment_method) this.customer.payment_method = '';
+          if (!this.customer.billing_requirement) this.customer.billing_requirement = '';
+
           // Parse existing_credits
           if (this.customer.existing_credits) {
               this.customer.existing_credits = this.parseExistingCredits(this.customer.existing_credits);
@@ -288,6 +292,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
               }
               // Merge into customer state
               this.customer = { ...this.customer, ...parsedSnapshot };
+
+              // Ensure dropdown defaults
+              if (!this.customer.payment_method) this.customer.payment_method = '';
+              if (!this.customer.billing_requirement) this.customer.billing_requirement = '';
 
               // Ensure existing_credits is an array
               if (this.customer.existing_credits) {

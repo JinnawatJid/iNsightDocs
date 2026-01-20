@@ -252,7 +252,7 @@
             </div>
 
             <!-- Billing Schedule (Moved here, ensuring 3rd slot) -->
-            <div class="form-group" v-if="store.customer.billing_requirement !== 'not_required'">
+            <div class="form-group" v-if="store.customer.billing_requirement && store.customer.billing_requirement !== 'not_required'">
                 <label>กำหนดวัน-เวลาวางบิล</label>
                 <input
                   type="text"
@@ -264,7 +264,7 @@
              </div>
         </div>
 
-        <div v-if="store.customer.billing_requirement !== 'not_required'">
+        <div v-if="store.customer.billing_requirement && store.customer.billing_requirement !== 'not_required'">
             <div class="billing-details-grid">
                  <div class="form-group full-width">
                     <label>ชื่อผู้ติดต่อรับวางบิล</label>
