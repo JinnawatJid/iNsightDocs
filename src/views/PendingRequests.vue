@@ -10,10 +10,15 @@
 
         <!-- Center Column: Content Placeholder -->
         <div class="grid-col center">
-           <div class="placeholder-state">
+           <div v-if="!store.requestId" class="placeholder-state">
              <div class="placeholder-content">
                <h3>เลือกรายการทางซ้ายเพื่อดูรายละเอียด</h3>
              </div>
+           </div>
+
+           <div v-else class="content-wrapper">
+               <CustomerTitleCard />
+               <!-- Detailed Content will go here -->
            </div>
         </div>
 
@@ -29,6 +34,10 @@
 <script setup>
 import Navbar from '@/components/shared/Navbar.vue';
 import RequestSidebar from '@/components/credit/RequestSidebar.vue';
+import CustomerTitleCard from '@/components/credit/CustomerTitleCard.vue';
+import { useCreditRequestStore } from '@/stores/creditRequest';
+
+const store = useCreditRequestStore();
 </script>
 
 <style scoped>
@@ -69,13 +78,26 @@ import RequestSidebar from '@/components/credit/RequestSidebar.vue';
     background: white;
     border-radius: 8px;
     height: 100%;
-    overflow: hidden;
+    /* overflow: hidden; Removed to allow sticky headers or popups if needed */
     border: 1px solid #e0e0e0;
 }
 
 /* Override sidebar container style if needed, but RequestSidebar has its own styles */
 .grid-col.left {
     padding: 0;
+}
+
+/* Center column background override to be transparent so cards have their own bg */
+.grid-col.center {
+    background: transparent;
+    border: none;
+    overflow: visible;
+}
+
+.content-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .placeholder-state {
