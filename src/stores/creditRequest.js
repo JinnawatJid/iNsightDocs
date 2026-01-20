@@ -7,7 +7,7 @@ import { getMandatoryKeys } from '@/config/mandatoryFields';
 export const useCreditRequestStore = defineStore('creditRequest', {
   state: () => ({
     hasSearched: false,
-    customer: { payment_method: '', billing_requirement: '' }, // Initialize with defaults for dropdowns
+    customer: { payment_method: '', billing_requirement: '', billing_method: '' }, // Initialize with defaults for dropdowns
     originalCustomer: {}, // Deep clone of initial search result for comparison
     displayCustomer: {}, // Stable copy for sidebar display
     history: [],
@@ -227,6 +227,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           // Ensure dropdown defaults
           if (!this.customer.payment_method) this.customer.payment_method = '';
           if (!this.customer.billing_requirement) this.customer.billing_requirement = '';
+          if (!this.customer.billing_method) this.customer.billing_method = '';
 
           // Parse existing_credits
           if (this.customer.existing_credits) {
@@ -296,6 +297,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
               // Ensure dropdown defaults
               if (!this.customer.payment_method) this.customer.payment_method = '';
               if (!this.customer.billing_requirement) this.customer.billing_requirement = '';
+              if (!this.customer.billing_method) this.customer.billing_method = '';
 
               // Ensure existing_credits is an array
               if (this.customer.existing_credits) {
@@ -569,7 +571,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     resetState() {
       this.hasSearched = false;
-      this.customer = { payment_method: '', billing_requirement: '' }; // Ensure defaults are empty
+      this.customer = { payment_method: '', billing_requirement: '', billing_method: '' }; // Ensure defaults are empty
       this.originalCustomer = {};
       this.history = [];
       this.financialSummary = {};
@@ -594,7 +596,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     clearFormData() {
-      this.customer = { payment_method: '', billing_requirement: '' }; // Ensure defaults are empty
+      this.customer = { payment_method: '', billing_requirement: '', billing_method: '' }; // Ensure defaults are empty
       this.originalCustomer = {};
       this.history = [];
       this.financialSummary = {};
