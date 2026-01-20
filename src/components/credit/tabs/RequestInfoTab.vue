@@ -12,6 +12,7 @@
             />
             <FileUploader
             label="ใบเสนอราคา (ถ้ามี)"
+            :required="isQuotationRequired"
             v-model="files.quotation"
             :disabled="!isEditing"
             />
@@ -481,6 +482,10 @@ const isRequestIncrease = computed(() => store.transactionData.requestType === '
 const isChangePayment = computed(() => store.transactionData.requestType === 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน');
 const isChangeTerm = computed(() => store.transactionData.requestType === 'เปลี่ยนแปลงระยะเวลาเครดิต');
 const isNewRequest = computed(() => store.transactionData.requestType === 'เครดิตใหม่');
+
+const isQuotationRequired = computed(() => {
+    return store.transactionData.reason === 'ขออนุมัติเครดิต (มีใบสั่งซื้อแนบมาพร้อม)';
+});
 
 // VISIBILITY LOGIC
 const showAll = computed(() => props.viewMode === 'full');
