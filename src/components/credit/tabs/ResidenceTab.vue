@@ -194,6 +194,7 @@
                   <option value="บ้านญาติ">บ้านญาติ</option>
                   <option value="บ้านเช่า">บ้านเช่า</option>
                   <option value="บ้านบิดา/มารดา">บ้านบิดา/มารดา</option>
+                  <option value="เช่าซื้อ">เช่าซื้อ</option>
                 </select>
                 <span v-if="errors.propertyOwnership" class="error-text">{{ errors.propertyOwnership }}</span>
              </div>
@@ -301,6 +302,9 @@ const formData = reactive({
 const ownershipLabel = computed(() => {
   if (formData.ownershipSelect === 'บ้านเช่า') {
     return 'เช่า เดือนละ';
+  }
+  if (formData.ownershipSelect === 'เช่าซื้อ') {
+    return 'เช่าซื้อ เดือนละ';
   }
   return 'มูลค่า';
 });
