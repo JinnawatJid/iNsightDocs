@@ -139,8 +139,8 @@
                 @change="() => { validateField('businessType', formData.businessType, ['required']); saveToBackend(); }"
               >
                   <option value="" disabled selected>เลือกประเภท</option>
-                  <option v-for="type in validBusinessTypes" :key="type" :value="type">{{ type }}</option>
-                  <option value="Other">Other</option>
+                  <option v-for="type in businessTypeOptions" :key="type.code" :value="type.name">{{ type.code }} - {{ type.name }}</option>
+                  <option value="Other">O - Other</option>
               </select>
               <span v-if="errors.businessType" class="error-text">{{ errors.businessType }}</span>
               <input
@@ -211,14 +211,16 @@ function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
 }
 
-const validBusinessTypes = [
-  'Manufacturer',
-  'Industry',
-  'Wholesale',
-  'Project',
-  'Retailer',
-  'Small Project Installer'
+const businessTypeOptions = [
+  { code: 'M', name: 'Manufacturer' },
+  { code: 'I', name: 'Industry' },
+  { code: 'W', name: 'Wholesale' },
+  { code: 'P', name: 'Project' },
+  { code: 'R', name: 'Retailer' },
+  { code: 'S', name: 'Small Project Installer' }
 ];
+
+const validBusinessNames = businessTypeOptions.map(t => t.name);
 
 const files = reactive({
   idCard: null,
@@ -291,7 +293,7 @@ watch(() => store.customer, (newVal, oldVal) => {
 
     // Business Type Logic
     const businessVal = newVal.business_type || '';
-    if (validBusinessTypes.includes(businessVal)) {
+    if (validBusinessNames.includes(businessVal)) {
         formData.businessType = businessVal;
         formData.businessTypeOther = '';
     } else if (businessVal) {
