@@ -40,6 +40,7 @@
                 v-model="store.customer.contact_person"
                 placeholder="ระบุชื่อผู้ติดต่อ"
             />
+            <span v-if="errors.contact_person" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
             <div class="form-group">
             <label>ตำแหน่ง <span v-if="isRequired('contact_position')" class="text-red-500">*</span></label>
@@ -51,6 +52,7 @@
                 v-model="store.customer.contact_position"
                 placeholder="ระบุตำแหน่ง"
             />
+            <span v-if="errors.contact_position" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
             <div class="form-group">
             <label>แผนก</label>
@@ -87,6 +89,7 @@
                 placeholder="0XX-XXX-XXXX"
                 @input="(e) => handlePhoneInput(e, 'contact_phone_number')"
             />
+            <span v-if="errors.contact_phone_number" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
             <div class="form-group"></div> <!-- Empty Placeholder -->
         </div>
@@ -124,6 +127,7 @@
                 v-model="store.transactionData.amount"
                 @input="restrictCreditAmountInput"
               />
+              <span v-if="errors.amount" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
 
             <!-- New Split Terms for Draft Mode -->
@@ -195,6 +199,7 @@
                     {{ option }}
                   </option>
               </select>
+              <span v-if="errors.reason" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
       </div>
 
@@ -217,6 +222,7 @@
                     <option value="not_required">ไม่ต้องการ</option>
                     <option value="other">อื่นๆ (ระบุ)</option>
                 </select>
+                <span v-if="errors.billing_requirement" class="error-text">กรุณาระบุข้อมูล</span>
                 <!-- Other Input for Requirement -->
                 <div v-if="store.customer.billing_requirement === 'other'" style="margin-top: 10px;">
                     <input
@@ -346,6 +352,7 @@
                 <option value="โอนเงิน">โอนเงิน</option>
                 <option value="รับเช็ค">รับเช็ค</option>
                 </select>
+                <span v-if="errors.payment_method" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
 
              <!-- Conditional Payment Condition Input -->
@@ -372,6 +379,7 @@
                 v-model="store.customer.payment_bank_name"
                 placeholder="ระบุชื่อธนาคาร"
             />
+            <span v-if="errors.payment_bank_name" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
             <div class="form-group">
             <label>สาขา </label>
@@ -383,6 +391,7 @@
                 v-model="store.customer.payment_bank_branch"
                 placeholder="ระบุสาขา"
             />
+            <span v-if="errors.payment_bank_branch" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
             <div class="form-group">
             <label>เลขที่บัญชี </label>
@@ -395,6 +404,7 @@
                 placeholder="ระบุเลขที่บัญชี"
                 @input="(e) => handlePhoneInput(e, 'payment_account_no')"
             />
+            <span v-if="errors.payment_account_no" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
         </div>
 
