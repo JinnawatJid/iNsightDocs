@@ -140,11 +140,11 @@
               >
                   <option value="" disabled selected>เลือกประเภท</option>
                   <option v-for="type in validBusinessTypes" :key="type" :value="type">{{ type }}</option>
-                  <option value="อื่นๆ">อื่นๆ</option>
+                  <option value="Other">Other</option>
               </select>
               <span v-if="errors.businessType" class="error-text">{{ errors.businessType }}</span>
               <input
-                v-if="formData.businessType === 'อื่นๆ'"
+                v-if="formData.businessType === 'Other'"
                 type="text"
                 class="form-input"
                 style="margin-top: 10px;"
@@ -212,12 +212,12 @@ function isRequired(storeKey) {
 }
 
 const validBusinessTypes = [
-  'ผู้ติดตั้งรายใหญ่',
-  'ผู้ติดตั้งรายย่อย',
-  'ซื้อมาขายไป',
-  'โรงงานอุตสาหกรรม',
-  'รับเหมาก่อสร้าง',
-  'ร้านทำกรอบรูป'
+  'Manufacturer',
+  'Industry',
+  'Wholesale',
+  'Project',
+  'Retailer',
+  'Small Project Installer'
 ];
 
 const files = reactive({
@@ -295,10 +295,10 @@ watch(() => store.customer, (newVal, oldVal) => {
         formData.businessType = businessVal;
         formData.businessTypeOther = '';
     } else if (businessVal) {
-        formData.businessType = 'อื่นๆ';
+        formData.businessType = 'Other';
         formData.businessTypeOther = businessVal;
     } else {
-        if (isNewCustomer || formData.businessType !== 'อื่นๆ') {
+        if (isNewCustomer || formData.businessType !== 'Other') {
             formData.businessType = '';
             formData.businessTypeOther = '';
         }
@@ -322,7 +322,7 @@ watch(formData, (newVal) => {
   updates.authorized_position_2 = newVal.authorizedPosition2;
 
   // Combine Business Type
-  updates.business_type = newVal.businessType === 'อื่นๆ' ? newVal.businessTypeOther : newVal.businessType;
+  updates.business_type = newVal.businessType === 'Other' ? newVal.businessTypeOther : newVal.businessType;
 
   updates.main_products = newVal.mainProducts;
   updates.years_in_business = newVal.yearsInBusiness;
@@ -355,7 +355,7 @@ function saveToBackend() {
     updates.authorized_position_2 = formData.authorizedPosition2;
 
     // Combine Business Type
-    updates.business_type = formData.businessType === 'อื่นๆ' ? formData.businessTypeOther : formData.businessType;
+    updates.business_type = formData.businessType === 'Other' ? formData.businessTypeOther : formData.businessType;
 
     updates.main_products = formData.mainProducts;
     updates.years_in_business = formData.yearsInBusiness;
@@ -377,7 +377,7 @@ watch(() => store.showValidationErrors, (val) => {
 
         // Business Details Validation
         validateField('businessType', formData.businessType, ['required']);
-        if (formData.businessType === 'อื่นๆ') {
+        if (formData.businessType === 'Other') {
              validateField('businessTypeOther', formData.businessTypeOther, ['required']);
         }
         validateField('mainProducts', formData.mainProducts, ['required']);
