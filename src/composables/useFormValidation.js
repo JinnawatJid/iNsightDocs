@@ -28,10 +28,10 @@ export function useFormValidation() {
            }
         }
       } else if (rule === 'text') {
-        // Allow Thai, English, spaces
-        // Regex: ^[a-zA-Z\u0E00-\u0E7F\s]+$
+        // Allow Thai, English, spaces, parentheses, dots
+        // Regex: ^[a-zA-Z\u0E00-\u0E7F\s().]+$
         // \u0E00-\u0E7F is the Thai Unicode block
-        if (value && !/^[a-zA-Z\u0E00-\u0E7F\s]+$/.test(value)) {
+        if (value && !/^[a-zA-Z\u0E00-\u0E7F\s().]+$/.test(value)) {
           errors[fieldName] = 'กรุณาระบุตัวอักษรเท่านั้น';
           return false;
         }
