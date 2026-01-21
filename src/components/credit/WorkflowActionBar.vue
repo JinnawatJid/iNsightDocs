@@ -24,6 +24,13 @@ import { computed } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import Swal from 'sweetalert2';
 
+const props = defineProps({
+    comment: {
+        type: String,
+        default: ''
+    }
+});
+
 const store = useCreditRequestStore();
 
 const currentStatus = computed(() => store.requestStatus);
@@ -82,7 +89,10 @@ const availableActions = computed(() => {
 });
 
 const handleAction = async (action) => {
-  if (action.requireComment) {
+  let commentText = props.comment || '';
+
+  // Case 1: Comment Required AND Box is Empty -> Use Popup
+  if (action.requireComment && !commentText.trim()) {
     const { value: text, isConfirmed } = await Swal.fire({
       title: action.label,
       input: 'textarea',
@@ -105,8 +115,9 @@ const handleAction = async (action) => {
       await store.updateStatus(action.targetStatus, text);
       Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');
     }
-  } else {
-    // Simple confirmation for positive actions
+  }
+  // Case 2: Comment Provided (Inline) OR Not Required -> Confirm then Submit
+  else {
     const result = await Swal.fire({
       title: 'ยืนยันการทำรายการ?',
       text: `คุณต้องการ ${action.label} ใช่หรือไม่?`,
@@ -117,7 +128,12 @@ const handleAction = async (action) => {
     });
 
     if (result.isConfirmed) {
-      await store.updateStatus(action.targetStatus, 'Approved/Verified'); // Default comment
+      // If comment was not required and box was empty, use default message
+      if (!commentText.trim() && !action.requireComment) {
+          commentText = 'Approved/Verified';
+      }
+
+      await store.updateStatus(action.targetStatus, commentText);
       Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');
     }
   }
