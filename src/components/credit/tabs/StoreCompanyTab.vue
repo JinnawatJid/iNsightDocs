@@ -142,7 +142,7 @@
       </div>
       
       <!-- Phone | Fax | Email Grid -->
-      <div class="form-grid-three-columns">
+      <div class="form-grid-two-columns">
         <div class="form-group">
           <label>
             เบอร์โทรศัพท์ <span v-if="isRequired('phone')" class="text-red-500">*</span>
@@ -159,17 +159,6 @@
             @blur="validateField('phone', formData.phone, ['required', 'phone']);"
           />
           <span v-if="errors.phone" class="error-text">{{ errors.phone }}</span>
-        </div>
-        <div class="form-group">
-          <label>แฟกซ์</label>
-          <input
-            type="text"
-            class="form-control"
-            :class="{ 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="formData.fax"
-            placeholder="ระบุเบอร์แฟกซ์"
-          />
         </div>
         <div class="form-group">
           <label>อีเมล</label>

@@ -205,3 +205,10 @@ select.form-control {
   gap: 15px;
   margin-bottom: 15px;
 }
+
+.form-grid-two-columns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
+}
