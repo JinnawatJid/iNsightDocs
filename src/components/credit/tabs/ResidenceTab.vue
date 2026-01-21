@@ -367,6 +367,16 @@ watch(isSameAddress, (isSame) => {
         }
      }
   }
+
+  // Trigger validation for all updated fields
+  validateField('houseAddress', formData.houseAddress, ['required']);
+  validateField('subdistrict', formData.subdistrict, ['required']);
+  validateField('postCode', formData.postCode, ['required']);
+  validateField('district', formData.district, ['required']);
+  validateField('city', formData.city, ['required']);
+  validateField('phone', formData.phone, ['required']);
+  validateField('locationType', formData.locationTypeSelect, ['required']);
+  validateField('propertyOwnership', formData.ownershipSelect, ['required']);
 });
 
 // Watch store.customer for changes
