@@ -5,7 +5,7 @@
       <div class="upload-grid">
         <!-- Home Photo -->
         <FileUploader
-          label="รูปถ่ายบ้าน"
+          label="รูปถ่าย"
           :required="isRequiredFile('home_photo')"
           accept="image/*"
           v-model="files.homePhoto"
