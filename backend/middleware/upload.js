@@ -12,6 +12,9 @@ const storage = multer.diskStorage({
     cb(null, tempDir);
   },
   filename: function (req, file, cb) {
+    // Fix for Thai characters (UTF-8 encoded by browser, interpreted as Latin-1 by multer/busboy)
+    file.originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
+
     // Keep original name but prepend timestamp to avoid collisions in temp
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + '-' + file.originalname);

@@ -139,12 +139,12 @@
                 @change="() => { validateField('businessType', formData.businessType, ['required']); saveToBackend(); }"
               >
                   <option value="" disabled selected>เลือกประเภท</option>
-                  <option v-for="type in validBusinessTypes" :key="type" :value="type">{{ type }}</option>
-                  <option value="อื่นๆ">อื่นๆ</option>
+                  <option v-for="type in businessTypeOptions" :key="type.code" :value="type.name">{{ type.code }} - {{ type.name }}</option>
+                  <option value="Other">O - Other</option>
               </select>
               <span v-if="errors.businessType" class="error-text">{{ errors.businessType }}</span>
               <input
-                v-if="formData.businessType === 'อื่นๆ'"
+                v-if="formData.businessType === 'Other'"
                 type="text"
                 class="form-input"
                 style="margin-top: 10px;"
@@ -211,14 +211,16 @@ function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
 }
 
-const validBusinessTypes = [
-  'ผู้ติดตั้งรายใหญ่',
-  'ผู้ติดตั้งรายย่อย',
-  'ซื้อมาขายไป',
-  'โรงงานอุตสาหกรรม',
-  'รับเหมาก่อสร้าง',
-  'ร้านทำกรอบรูป'
+const businessTypeOptions = [
+  { code: 'M', name: 'Manufacturer' },
+  { code: 'I', name: 'Industry' },
+  { code: 'W', name: 'Wholesale' },
+  { code: 'P', name: 'Project' },
+  { code: 'R', name: 'Retailer' },
+  { code: 'S', name: 'Small Project Installer' }
 ];
+
+const validBusinessNames = businessTypeOptions.map(t => t.name);
 
 const files = reactive({
   idCard: null,
@@ -291,14 +293,14 @@ watch(() => store.customer, (newVal, oldVal) => {
 
     // Business Type Logic
     const businessVal = newVal.business_type || '';
-    if (validBusinessTypes.includes(businessVal)) {
+    if (validBusinessNames.includes(businessVal)) {
         formData.businessType = businessVal;
         formData.businessTypeOther = '';
     } else if (businessVal) {
-        formData.businessType = 'อื่นๆ';
+        formData.businessType = 'Other';
         formData.businessTypeOther = businessVal;
     } else {
-        if (isNewCustomer || formData.businessType !== 'อื่นๆ') {
+        if (isNewCustomer || formData.businessType !== 'Other') {
             formData.businessType = '';
             formData.businessTypeOther = '';
         }
@@ -322,7 +324,7 @@ watch(formData, (newVal) => {
   updates.authorized_position_2 = newVal.authorizedPosition2;
 
   // Combine Business Type
-  updates.business_type = newVal.businessType === 'อื่นๆ' ? newVal.businessTypeOther : newVal.businessType;
+  updates.business_type = newVal.businessType === 'Other' ? newVal.businessTypeOther : newVal.businessType;
 
   updates.main_products = newVal.mainProducts;
   updates.years_in_business = newVal.yearsInBusiness;
@@ -355,7 +357,7 @@ function saveToBackend() {
     updates.authorized_position_2 = formData.authorizedPosition2;
 
     // Combine Business Type
-    updates.business_type = formData.businessType === 'อื่นๆ' ? formData.businessTypeOther : formData.businessType;
+    updates.business_type = formData.businessType === 'Other' ? formData.businessTypeOther : formData.businessType;
 
     updates.main_products = formData.mainProducts;
     updates.years_in_business = formData.yearsInBusiness;
@@ -377,7 +379,7 @@ watch(() => store.showValidationErrors, (val) => {
 
         // Business Details Validation
         validateField('businessType', formData.businessType, ['required']);
-        if (formData.businessType === 'อื่นๆ') {
+        if (formData.businessType === 'Other') {
              validateField('businessTypeOther', formData.businessTypeOther, ['required']);
         }
         validateField('mainProducts', formData.mainProducts, ['required']);
