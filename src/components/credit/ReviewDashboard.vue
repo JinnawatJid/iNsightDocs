@@ -21,7 +21,7 @@
         </div>
         <div class="deal-item">
             <label>วิธีชำระเงิน (Payment)</label>
-            <div class="value">{{ store.transactionData.payment_method || '-' }}</div>
+            <div class="value">{{ store.customer.payment_method || '-' }}</div>
         </div>
          <div class="deal-item full-width">
             <label>เหตุผล/วัตถุประสงค์ (Objective)</label>
