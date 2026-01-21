@@ -3,12 +3,12 @@
     <!-- Guarantee Docs Section (Moved from Request Info) -->
     <div class="upload-grid-small">
         <FileUploader
-          label="Bank Guarantee (ถ้ามี)"
+          label="Bank Guarantee"
           v-model="files.bankGuarantee"
           :disabled="!isEditing"
         />
         <FileUploader
-          label="หนังสือค้ำประกัน (ถ้ามี)"
+          label="เอกสารค้ำประกัน"
           v-model="files.letterGuarantee"
           :disabled="!isEditing"
         />

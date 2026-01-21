@@ -222,7 +222,7 @@
                     <input
                         type="text"
                         class="form-input"
-                        placeholder="ระบุ (ถ้ามี)"
+                        placeholder="ระบุ"
                         v-model="store.customer.billing_requirement_note"
                         :disabled="!isEditing"
                     >
