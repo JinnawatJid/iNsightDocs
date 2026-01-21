@@ -155,8 +155,8 @@
             :disabled="!isEditing"
             v-model="formData.phone"
             placeholder="0XX-XXX-XXXX"
-            @input="(e) => { restrictPhoneInput(e); validateField('phone', e.target.value, ['required', 'phone']); }"
-            @blur="validateField('phone', formData.phone, ['required', 'phone']);"
+            @input="(e) => { validateField('phone', e.target.value, ['required']); }"
+            @blur="validateField('phone', formData.phone, ['required']);"
           />
           <span v-if="errors.phone" class="error-text">{{ errors.phone }}</span>
         </div>
@@ -249,7 +249,7 @@ import iconImage from '@/assets/icons/image.svg';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
-const { errors, validateField, restrictPhoneInput } = useFormValidation();
+const { errors, validateField } = useFormValidation();
 
 const isEditing = ref(!props.readOnly);
 watch(() => props.readOnly, (val) => {
@@ -348,7 +348,7 @@ watch(() => store.customer, (newVal) => {
         formData.postCode = newVal.store_zipcode || '';
         formData.district = newVal.store_district || '';
         formData.city = newVal.store_province || '';
-        formData.phone = formatPhoneNumber(newVal.store_phone || '');
+        formData.phone = newVal.store_phone || '';
         formData.fax = newVal.store_fax || '';
         formData.email = newVal.store_email || '';
 
@@ -365,7 +365,7 @@ watch(() => store.customer, (newVal) => {
         formData.postCode = newVal.zipcode || '';
         formData.district = newVal.district || '';
         formData.city = newVal.province || '';
-        formData.phone = formatPhoneNumber(newVal.phone || '');
+        formData.phone = newVal.phone || '';
         formData.fax = newVal.fax || '';
         formData.email = newVal.email || '';
 
@@ -468,7 +468,7 @@ watch(() => store.showValidationErrors, (val) => {
         validateField('postCode', formData.postCode, ['required']);
         validateField('district', formData.district, ['required']);
         validateField('city', formData.city, ['required']);
-        validateField('phone', formData.phone, ['required', 'phone']);
+        validateField('phone', formData.phone, ['required']);
 
         // New Fields
         validateField('locationType', formData.locationTypeSelect, ['required']);
