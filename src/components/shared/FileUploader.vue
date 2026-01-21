@@ -13,15 +13,18 @@
 
       <!-- Placeholder State -->
       <div v-if="isEmpty" class="upload-placeholder">
-        <div class="icon-wrapper" :class="{ 'icon-large': multiple }">
+        <div v-if="!disabled" class="icon-wrapper" :class="{ 'icon-large': multiple }">
           <slot name="icon">
              <!-- Default Icon -->
              <img v-if="!multiple" :src="iconFileBlue" alt="File" width="24" height="24" />
              <img v-else :src="iconUploadMulti" alt="Upload" width="48" height="48" />
           </slot>
         </div>
-        <p><span class="link">คลิกเพื่ออัปโหลด</span> หรือลากไฟล์มาที่นี่</p>
-        <span class="info">
+
+        <p v-if="!disabled"><span class="link">คลิกเพื่ออัปโหลด</span> หรือลากไฟล์มาที่นี่</p>
+        <p v-else style="color: #999; font-size: 13px;">ไม่มีเอกสารแนบ</p>
+
+        <span v-if="!disabled" class="info">
             {{ multiple ? 'สามารถแนบได้หลายไฟล์' : 'รองรับไฟล์รูปภาพและเอกสาร (JPG, PNG, PDF) ขนาดไม่เกิน 10MB' }}
         </span>
       </div>

@@ -26,16 +26,25 @@
                </div>
                <div class="scrollable-content">
                    <!-- Unified Card Wrapper -->
-                   <div class="unified-card">
+                   <div class="unified-card mb-20">
                        <div class="card-header">
                            <h3>เอกสารประกอบการพิจารณา</h3>
                        </div>
                        <ApplicationTabs :readOnly="true" viewMode="full" />
                    </div>
+
+                   <!-- Credit Review Section (History + Comments + Terms) -->
+                   <CreditReviewSection
+                     :readOnly="isReadOnly"
+                     :showTerms="showTerms"
+                     :comments="store.comments"
+                     :currentRole="store.userRole"
+                     v-model="newComment"
+                   />
                </div>
 
                <!-- Action Bar (Sticky at Bottom of Center Col) -->
-               <WorkflowActionBar />
+               <WorkflowActionBar :comment="newComment" />
            </div>
         </div>
 
@@ -55,6 +64,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch } from 'vue';
 import Navbar from '@/components/shared/Navbar.vue';
 import RequestSidebar from '@/components/credit/RequestSidebar.vue';
 import CustomerTitleCard from '@/components/credit/CustomerTitleCard.vue';
@@ -62,9 +72,32 @@ import ApplicationTabs from '@/components/credit/ApplicationTabs.vue';
 import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
 import WorkflowActionBar from '@/components/credit/WorkflowActionBar.vue';
 import RoleSelector from '@/components/credit/RoleSelector.vue';
+import CreditReviewSection from '@/components/credit/CreditReviewSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const store = useCreditRequestStore();
+const newComment = ref('');
+
+// Watch for request ID changes to reset comment box
+watch(() => store.requestId, () => {
+    newComment.value = '';
+});
+
+const isReadOnly = computed(() => {
+    // Pending requests are read-only for the Application Tabs (customer data),
+    // but the Review Section (terms/comments) might be editable depending on role.
+    // However, CreditReviewSection's 'readOnly' prop controls the INPUTS.
+    // If the user is an approver, they should be able to edit Terms/Comment.
+    // If the request is truly final (Approved/Rejected), then it's read-only.
+
+    // store.isReadOnly covers Final statuses (Approved/Rejected/Canceled).
+    return store.isReadOnly;
+});
+
+const showTerms = computed(() => {
+    // Show terms if not Draft (meaning it's in the approval flow)
+    return store.requestStatus && store.requestStatus !== 'Draft';
+});
 </script>
 
 <style scoped>
@@ -191,6 +224,10 @@ const store = useCreditRequestStore();
   border-radius: 8px;
   border: 1px solid #e0e0e0;
   overflow: hidden;
+}
+
+.mb-20 {
+    margin-bottom: 20px;
 }
 
 .card-header {
