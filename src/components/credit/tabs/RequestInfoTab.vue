@@ -11,7 +11,7 @@
             :disabled="!isEditing"
             />
             <FileUploader
-            label="ใบเสนอราคา (ถ้ามี)"
+            label="ใบเสนอราคา"
             :required="isQuotationRequired"
             v-model="files.quotation"
             :disabled="!isEditing"
