@@ -130,8 +130,8 @@
             :disabled="!isEditing"
             v-model="formData.phone"
             placeholder="0XX-XXX-XXXX"
-            @input="(e) => { restrictPhoneInput(e); validateField('phone', e.target.value, ['required', 'phone']); }"
-            @blur="validateField('phone', formData.phone, ['required', 'phone']);"
+            @input="(e) => { validateField('phone', e.target.value, ['required']); }"
+            @blur="validateField('phone', formData.phone, ['required']);"
           />
           <span v-if="errors.phone" class="error-text">{{ errors.phone }}</span>
         </div>
@@ -227,7 +227,7 @@ import iconImage from '@/assets/icons/image.svg';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
-const { errors, validateField, restrictPhoneInput } = useFormValidation();
+const { errors, validateField } = useFormValidation();
 
 const isEditing = ref(!props.readOnly);
 watch(() => props.readOnly, (val) => {
@@ -285,21 +285,6 @@ const formData = reactive({
   note: ''
 });
 
-function formatPhoneNumber(phone) {
-  if (!phone) return '';
-  const cleaned = phone.replace(/\D/g, '');
-  
-  if (cleaned.length === 10) {
-    return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-  } else if (cleaned.length === 9) {
-     if (cleaned.startsWith('02')) {
-       return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
-     }
-     return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
-  }
-  return phone; 
-}
-
 const isCompany = computed(() => store.isCompany);
 
 // Watch isSameAddress for toggling
@@ -313,7 +298,7 @@ watch(isSameAddress, (isSame) => {
         formData.postCode = store.customer.store_zipcode || '';
         formData.district = store.customer.store_district || '';
         formData.city = store.customer.store_province || '';
-        formData.phone = formatPhoneNumber(store.customer.store_phone || '');
+        formData.phone = store.customer.store_phone || '';
         formData.fax = store.customer.store_fax || '';
         formData.email = store.customer.store_email || '';
 
@@ -330,7 +315,7 @@ watch(isSameAddress, (isSame) => {
         formData.postCode = store.customer.zipcode || '';
         formData.district = store.customer.district || '';
         formData.city = store.customer.province || '';
-        formData.phone = formatPhoneNumber(store.customer.phone || '');
+        formData.phone = store.customer.phone || '';
         formData.fax = store.customer.fax || '';
         formData.email = store.customer.email || '';
 
@@ -352,7 +337,7 @@ watch(isSameAddress, (isSame) => {
             formData.postCode = store.customer.zipcode || '';
             formData.district = store.customer.district || '';
             formData.city = store.customer.province || '';
-            formData.phone = formatPhoneNumber(store.customer.phone || '');
+            formData.phone = store.customer.phone || '';
             formData.fax = store.customer.fax || '';
             formData.email = store.customer.email || '';
 
@@ -369,7 +354,7 @@ watch(isSameAddress, (isSame) => {
             formData.postCode = store.customer.residence_zipcode || '';
             formData.district = store.customer.residence_district || '';
             formData.city = store.customer.residence_province || '';
-            formData.phone = formatPhoneNumber(store.customer.residence_phone || '');
+            formData.phone = store.customer.residence_phone || '';
             formData.fax = store.customer.residence_fax || '';
             formData.email = store.customer.residence_email || '';
 
@@ -394,7 +379,7 @@ watch(() => store.customer, (newVal) => {
             formData.postCode = newVal.zipcode || '';
             formData.district = newVal.district || '';
             formData.city = newVal.province || '';
-            formData.phone = formatPhoneNumber(newVal.phone || '');
+            formData.phone = newVal.phone || '';
             formData.fax = newVal.fax || '';
             formData.email = newVal.email || '';
         } else {
@@ -404,7 +389,7 @@ watch(() => store.customer, (newVal) => {
             formData.postCode = newVal.residence_zipcode || '';
             formData.district = newVal.residence_district || '';
             formData.city = newVal.residence_province || '';
-            formData.phone = formatPhoneNumber(newVal.residence_phone || '');
+            formData.phone = newVal.residence_phone || '';
             formData.fax = newVal.residence_fax || '';
             formData.email = newVal.residence_email || '';
         }
@@ -493,7 +478,7 @@ watch(() => store.showValidationErrors, (val) => {
         validateField('postCode', formData.postCode, ['required']);
         validateField('district', formData.district, ['required']);
         validateField('city', formData.city, ['required']);
-        validateField('phone', formData.phone, ['required', 'phone']);
+        validateField('phone', formData.phone, ['required']);
 
         // New Fields
         validateField('locationType', formData.locationTypeSelect, ['required']);
