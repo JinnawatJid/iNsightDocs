@@ -38,16 +38,19 @@
           label="งบดุล (Balance Sheet)"
           v-model="files.balanceSheet"
           :disabled="!isEditing"
+          accept=".xlsx, .xls"
         />
         <FileUploader
           label="งบกำไรขาดทุน (Profit & Loss)"
           v-model="files.profitLoss"
           :disabled="!isEditing"
+          accept=".xlsx, .xls"
         />
         <FileUploader
           label="งบอัตราส่วนทางการเงิน (Ratios)"
           v-model="files.financialRatios"
           :disabled="!isEditing"
+          accept=".xlsx, .xls"
         />
       </div>
 
