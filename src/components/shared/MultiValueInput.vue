@@ -4,59 +4,66 @@
       <label>
         {{ label }}
         <span v-if="required" class="text-red-500">*</span>
-        <span v-if="required && (!modelValue || modelValue.length === 0)" class="no-data-alert"></span>
+        <span v-if="required && (!modelValue || modelValue.length === 0)" class="no-data-alert">ไม่พบข้อมูล</span>
       </label>
     </div>
 
-    <div class="chips-container" :class="{ 'has-error': hasError }">
-      <!-- Chips Display -->
-      <div
-        v-for="(item, index) in localValues"
-        :key="index"
-        class="chip"
-      >
-        <span class="chip-text">{{ item }}</span>
-        <button
-          v-if="!disabled"
-          type="button"
-          class="chip-remove"
-          @click.stop="removeItem(index)"
-          tabindex="-1"
-        >
-          &times;
-        </button>
+    <div class="input-container" :class="{ 'has-error': hasError }">
+      <!-- Values List Wrapper -->
+      <div class="values-list">
+        <span v-for="(item, index) in localValues" :key="index" class="value-group">
+          <span
+            class="value-text"
+            @click.stop="startEditing(index)"
+          >
+            {{ item }}
+          </span><span v-if="index < localValues.length - 1" class="separator">, </span>
+        </span>
+
+        <!-- Placeholder Text if Empty -->
+        <span v-if="localValues.length === 0 && !isPopupOpen && placeholder" class="placeholder-text">
+          {{ placeholder }}
+        </span>
       </div>
 
-      <!-- Add Button -->
+      <!-- Static Add Button -->
       <button
-        v-if="!disabled && !isAdding"
+        v-if="!disabled"
         type="button"
-        class="add-btn-icon"
+        class="add-btn-static"
         @click.stop="startAdding"
         aria-label="Add"
+        :class="{ 'active': isPopupOpen && editingIndex === -1 }"
       >
         +
       </button>
 
-      <!-- Placeholder Text if Empty -->
-      <span v-if="localValues.length === 0 && !isAdding && placeholder" class="placeholder-text">
-        {{ placeholder }}
-      </span>
-
       <!-- Popup Input Modal -->
-      <div v-if="isAdding" class="popup-input-wrapper" v-click-outside="cancelAdding">
+      <div v-if="isPopupOpen" class="popup-input-wrapper" v-click-outside="cancelPopup">
         <input
           ref="inputRef"
           type="text"
           class="popup-input"
-          v-model="newItemValue"
+          v-model="popupValue"
           :placeholder="placeholder"
-          @keydown.enter.prevent="confirmAddItem"
-          @keydown.esc.prevent="cancelAdding"
+          @keydown.enter.prevent="confirmPopup"
+          @keydown.esc.prevent="cancelPopup"
           @input="handleInput"
         />
-        <button type="button" class="popup-confirm-btn" @click="confirmAddItem">
+
+        <!-- Confirm Button -->
+        <button type="button" class="popup-action-btn confirm-btn" @click="confirmPopup">
           ✓
+        </button>
+
+        <!-- Delete Button (Only in Edit Mode) -->
+        <button
+          v-if="editingIndex !== -1"
+          type="button"
+          class="popup-action-btn delete-btn"
+          @click="deleteCurrentItem"
+        >
+          🗑️
         </button>
       </div>
     </div>
@@ -103,8 +110,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'blur', 'input']);
 
 const localValues = ref([]);
-const isAdding = ref(false);
-const newItemValue = ref('');
+const isPopupOpen = ref(false);
+const editingIndex = ref(-1); // -1 means adding new, >= 0 means editing index
+const popupValue = ref('');
 const inputRef = ref(null);
 
 const hasError = computed(() => !!props.error);
@@ -138,13 +146,7 @@ function formatPhoneNumber(val) {
 function handleInput(e) {
     let val = e.target.value;
     if (props.type === 'phone') {
-        // Auto-format for display while typing?
-        // Simple digit filter first
         const raw = val.replace(/\D/g, '');
-        // We can apply partial formatting if desired, or just keep digits until save
-        // The previous requirement asked for auto-formatting.
-        // Let's implement partial formatting for better UX
-
         if (raw.length > 10) {
              val = raw.slice(0, 10);
         } else {
@@ -159,32 +161,49 @@ function handleInput(e) {
                  val = val.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
              }
         }
-
-        // Update model
-        newItemValue.value = val;
+        popupValue.value = val;
     } else if (props.type === 'email') {
-        newItemValue.value = val.replace(/,/g, '');
+        popupValue.value = val.replace(/,/g, '');
     }
 }
 
 function startAdding() {
-    isAdding.value = true;
-    newItemValue.value = '';
+    editingIndex.value = -1;
+    popupValue.value = '';
+    openPopup();
+}
+
+function startEditing(index) {
+    if (props.disabled) return;
+    editingIndex.value = index;
+    popupValue.value = localValues.value[index];
+    openPopup();
+}
+
+function openPopup() {
+    isPopupOpen.value = true;
     nextTick(() => {
-        if (inputRef.value) inputRef.value.focus();
+        if (inputRef.value) {
+            inputRef.value.focus();
+            if (editingIndex.value !== -1) {
+                inputRef.value.select(); // Select all text when editing
+            }
+        }
     });
 }
 
-function cancelAdding() {
-    isAdding.value = false;
-    newItemValue.value = '';
+function cancelPopup() {
+    isPopupOpen.value = false;
+    popupValue.value = '';
+    editingIndex.value = -1;
     emit('blur');
 }
 
-function confirmAddItem() {
-    let val = newItemValue.value.trim();
+function confirmPopup() {
+    let val = popupValue.value.trim();
+
     if (!val) {
-        cancelAdding();
+        cancelPopup();
         return;
     }
 
@@ -193,19 +212,28 @@ function confirmAddItem() {
         val = formatPhoneNumber(val);
     }
 
-    // Add to list
-    localValues.value.push(val);
-    emitValues();
+    if (editingIndex.value === -1) {
+        // Add Mode
+        localValues.value.push(val);
+    } else {
+        // Edit Mode
+        localValues.value[editingIndex.value] = val;
+    }
 
-    // Reset but keep adding mode? Or close?
-    // "minimal modals" usually imply one-off action. Let's close it.
-    isAdding.value = false;
-    newItemValue.value = '';
+    emitValues();
+    isPopupOpen.value = false;
+    popupValue.value = '';
+    editingIndex.value = -1;
 }
 
-function removeItem(index) {
-    localValues.value.splice(index, 1);
-    emitValues();
+function deleteCurrentItem() {
+    if (editingIndex.value !== -1) {
+        localValues.value.splice(editingIndex.value, 1);
+        emitValues();
+        isPopupOpen.value = false;
+        popupValue.value = '';
+        editingIndex.value = -1;
+    }
 }
 
 function emitValues() {
@@ -221,7 +249,7 @@ function emitValues() {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  position: relative; /* For popup context if needed, though we use absolute inside */
+  position: relative;
 }
 
 .label-row {
@@ -234,13 +262,11 @@ function emitValues() {
   color: #374151;
 }
 
-.chips-container {
+.input-container {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    min-height: 38px; /* Standard input height */
-    padding: 4px 8px;
+    align-items: center; /* Center items vertically by default */
+    min-height: 38px;
+    padding: 0 8px; /* Padding for the container */
     border: 1px solid #d1d5db;
     border-radius: 6px;
     background-color: white;
@@ -248,8 +274,43 @@ function emitValues() {
     transition: border-color 0.2s;
 }
 
-.chips-container.has-error {
+.input-container.has-error {
     border-color: #ef4444;
+}
+
+/* List of values takes available space */
+.values-list {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0; /* No gap, relying on separator */
+    padding: 4px 0;
+    line-height: 1.5;
+}
+
+.value-group {
+    display: inline-flex; /* Keep value and separator together */
+    align-items: center;
+}
+
+.value-text {
+    cursor: pointer;
+    color: #1f2937;
+    font-size: 14px;
+    position: relative;
+    transition: color 0.2s;
+}
+
+.value-text:hover {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+.separator {
+    color: #374151;
+    font-size: 14px;
+    white-space: pre; /* Ensure space is respected */
 }
 
 .placeholder-text {
@@ -257,72 +318,36 @@ function emitValues() {
     font-size: 14px;
 }
 
-/* Chip Styles */
-.chip {
-    display: flex;
-    align-items: center;
-    background-color: #e5e7eb;
-    border-radius: 16px;
-    padding: 4px 10px;
-    font-size: 13px;
-    color: #1f2937;
-    gap: 6px;
-}
-
-.chip-text {
-    line-height: 1;
-}
-
-.chip-remove {
-    background: none;
-    border: none;
-    color: #6b7280;
-    cursor: pointer;
-    font-size: 16px;
-    line-height: 1;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-}
-
-.chip-remove:hover {
-    color: #ef4444;
-    background-color: #fee2e2;
-}
-
-/* Add Button */
-.add-btn-icon {
+/* Static Add Button */
+.add-btn-static {
+    flex-shrink: 0;
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    border: 1px dashed #9ca3af;
+    border: 1px solid transparent;
     background: transparent;
     color: #6b7280;
-    font-size: 18px;
+    font-size: 20px;
     line-height: 1;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    margin-left: 8px; /* Space from list */
 }
 
-.add-btn-icon:hover {
-    border-color: #3b82f6;
+.add-btn-static:hover, .add-btn-static.active {
     color: #3b82f6;
     background-color: #eff6ff;
 }
 
-/* Popup Input */
+/* Popup Input - Positioned above */
 .popup-input-wrapper {
     position: absolute;
-    bottom: 100%; /* Above the container */
-    left: 0;
-    margin-bottom: 8px; /* Space between popup and container */
+    bottom: 100%;
+    right: 0; /* Align right side with container */
+    margin-bottom: 8px;
     background: white;
     border: 1px solid #e0e0e0;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -335,12 +360,12 @@ function emitValues() {
     animation: fadeIn 0.2s ease-out;
 }
 
-/* Little arrow pointing down */
+/* Arrow pointing down */
 .popup-input-wrapper::after {
     content: '';
     position: absolute;
     top: 100%;
-    left: 20px; /* Adjust based on where button usually is, or center */
+    right: 12px; /* Align with the + button roughly */
     border-width: 6px;
     border-style: solid;
     border-color: white transparent transparent transparent;
@@ -350,7 +375,7 @@ function emitValues() {
     content: '';
     position: absolute;
     top: 100%;
-    left: 19px;
+    right: 11px;
     border-width: 7px;
     border-style: solid;
     border-color: #e0e0e0 transparent transparent transparent;
@@ -361,7 +386,7 @@ function emitValues() {
     border-radius: 4px;
     padding: 6px 10px;
     font-size: 14px;
-    min-width: 200px;
+    min-width: 180px;
     outline: none;
 }
 
@@ -369,9 +394,7 @@ function emitValues() {
     border-color: #3b82f6;
 }
 
-.popup-confirm-btn {
-    background-color: #10b981;
-    color: white;
+.popup-action-btn {
     border: none;
     border-radius: 4px;
     width: 28px;
@@ -383,8 +406,21 @@ function emitValues() {
     font-size: 14px;
 }
 
-.popup-confirm-btn:hover {
+.confirm-btn {
+    background-color: #10b981;
+    color: white;
+}
+.confirm-btn:hover {
     background-color: #059669;
+}
+
+.delete-btn {
+    background-color: #ef4444;
+    color: white;
+    font-size: 12px;
+}
+.delete-btn:hover {
+    background-color: #dc2626;
 }
 
 @keyframes fadeIn {
