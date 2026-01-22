@@ -8,44 +8,58 @@
       </label>
     </div>
 
-    <div class="input-list">
+    <div class="chips-container" :class="{ 'has-error': hasError }">
+      <!-- Chips Display -->
       <div
         v-for="(item, index) in localValues"
         :key="index"
-        class="input-row"
+        class="chip"
       >
-        <input
-          type="text"
-          class="form-control"
-          :class="{ 'border-red-500': hasError, 'disabled': disabled }"
-          :disabled="disabled"
-          :placeholder="placeholder"
-          :value="item"
-          @input="(e) => updateItem(index, e.target.value)"
-          @blur="onBlur"
-        />
-
+        <span class="chip-text">{{ item }}</span>
         <button
-          v-if="!disabled && (localValues.length > 1 || index > 0)"
+          v-if="!disabled"
           type="button"
-          class="remove-btn"
-          @click="removeItem(index)"
+          class="chip-remove"
+          @click.stop="removeItem(index)"
           tabindex="-1"
         >
           &times;
         </button>
       </div>
-    </div>
 
-    <!-- Add Button -->
-    <button
-      v-if="!disabled"
-      type="button"
-      class="add-btn"
-      @click="addItem"
-    >
-      + เพิ่ม{{ label }}
-    </button>
+      <!-- Add Button -->
+      <button
+        v-if="!disabled && !isAdding"
+        type="button"
+        class="add-btn-icon"
+        @click.stop="startAdding"
+        aria-label="Add"
+      >
+        +
+      </button>
+
+      <!-- Placeholder Text if Empty -->
+      <span v-if="localValues.length === 0 && !isAdding && placeholder" class="placeholder-text">
+        {{ placeholder }}
+      </span>
+
+      <!-- Popup Input Modal -->
+      <div v-if="isAdding" class="popup-input-wrapper" v-click-outside="cancelAdding">
+        <input
+          ref="inputRef"
+          type="text"
+          class="popup-input"
+          v-model="newItemValue"
+          :placeholder="placeholder"
+          @keydown.enter.prevent="confirmAddItem"
+          @keydown.esc.prevent="cancelAdding"
+          @input="handleInput"
+        />
+        <button type="button" class="popup-confirm-btn" @click="confirmAddItem">
+          ✓
+        </button>
+      </div>
+    </div>
 
     <!-- Error Message -->
     <span v-if="error" class="error-text">{{ error }}</span>
@@ -53,7 +67,22 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, nextTick } from 'vue';
+
+// Custom directive for clicking outside
+const vClickOutside = {
+  mounted(el, binding) {
+    el.clickOutsideEvent = function(event) {
+      if (!(el === event.target || el.contains(event.target))) {
+        binding.value(event);
+      }
+    };
+    document.body.addEventListener('click', el.clickOutsideEvent);
+  },
+  unmounted(el) {
+    document.body.removeEventListener('click', el.clickOutsideEvent);
+  }
+};
 
 const props = defineProps({
   modelValue: {
@@ -73,122 +102,116 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'blur', 'input']);
 
-const localValues = ref(['']);
+const localValues = ref([]);
+const isAdding = ref(false);
+const newItemValue = ref('');
+const inputRef = ref(null);
 
 const hasError = computed(() => !!props.error);
 
 // Sync from parent to local
 watch(() => props.modelValue, (newVal) => {
-  if (newVal === null || newVal === undefined) {
-    localValues.value = [''];
+  if (!newVal) {
+    localValues.value = [];
     return;
   }
 
-  const split = newVal.toString().split(',').map(s => s.trim());
-  // Determine if we need to update local to avoid cursor jumping?
-  // Simple check: if joined matches, don't touch.
+  const split = newVal.toString().split(',').map(s => s.trim()).filter(s => s !== '');
+  // Avoid reactivity loops
   if (split.join(',') !== localValues.value.join(',')) {
-      if (split.length === 0 || (split.length === 1 && split[0] === '')) {
-         localValues.value = [''];
-      } else {
-         localValues.value = split;
-      }
+     localValues.value = split;
   }
 }, { immediate: true });
 
-function formatPhoneNumber(value) {
-  if (!value) return '';
-  // Remove all non-digit characters
-  const cleaned = value.replace(/\D/g, '');
-
-  // Apply formatting based on length
-  if (cleaned.length > 10) {
-      // Truncate to 10 digits
-      const truncated = cleaned.slice(0, 10);
-      return truncated.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-  } else if (cleaned.length === 10) {
-    return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-  } else if (cleaned.length === 9) {
-    if (cleaned.startsWith('02')) {
-      return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+function formatPhoneNumber(val) {
+    if (!val) return '';
+    const digits = val.replace(/\D/g, '');
+    if (digits.length > 10) return digits.slice(0, 10).replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+    if (digits.length === 10) return digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+    if (digits.length === 9) {
+        if (digits.startsWith('02')) return digits.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+        return digits.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
     }
-    return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
-  }
-
-  // Partial formatting for typing experience?
-  // Usually better to just let them type digits and format when possible,
-  // or return cleaned if we want strict number input.
-  // But returning 'cleaned' makes it hard to see groups.
-  // Let's just return the raw input (but filtered) if it doesn't match a pattern yet,
-  // OR apply partial formatting.
-  // For simplicity and robustness like the previous code:
-  // We'll just return what the user typed but stripped of invalid chars?
-  // Actually, the previous code in StoreCompanyTab returned formatted string.
-
-  return cleaned;
+    return digits;
 }
 
-function updateItem(index, rawValue) {
-  let newValue = rawValue;
+function handleInput(e) {
+    let val = e.target.value;
+    if (props.type === 'phone') {
+        // Auto-format for display while typing?
+        // Simple digit filter first
+        const raw = val.replace(/\D/g, '');
+        // We can apply partial formatting if desired, or just keep digits until save
+        // The previous requirement asked for auto-formatting.
+        // Let's implement partial formatting for better UX
 
-  if (props.type === 'phone') {
-     // Allow digits only (and maybe dashes if user types them, but we clean them anyway)
-     const digits = newValue.replace(/\D/g, '');
+        if (raw.length > 10) {
+             val = raw.slice(0, 10);
+        } else {
+             val = raw;
+        }
 
-     // Auto-format
-     // If the user is deleting (backspace), this might be annoying if we aggressively re-format.
-     // However, the requirement is "Auto format to work".
-     // We will use the logic to format fully if length matches.
+        // Simple formatting
+        if (val.length > 6) {
+             if (val.length === 9 && val.startsWith('02')) {
+                 val = val.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+             } else if (val.length === 10) {
+                 val = val.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+             }
+        }
 
-     if (digits.length === 10) {
-        newValue = digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-     } else if (digits.length === 9) {
-         if (digits.startsWith('02')) {
-             newValue = digits.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
-         } else {
-             newValue = digits.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
-         }
-     } else {
-         // Just show digits if incomplete
-         newValue = digits;
-     }
-  } else if (props.type === 'email') {
-      // Prevent commas
-      newValue = newValue.replace(/,/g, '');
-  }
-
-  localValues.value[index] = newValue;
-  emitValues();
+        // Update model
+        newItemValue.value = val;
+    } else if (props.type === 'email') {
+        newItemValue.value = val.replace(/,/g, '');
+    }
 }
 
-function addItem() {
-  localValues.value.push('');
+function startAdding() {
+    isAdding.value = true;
+    newItemValue.value = '';
+    nextTick(() => {
+        if (inputRef.value) inputRef.value.focus();
+    });
+}
+
+function cancelAdding() {
+    isAdding.value = false;
+    newItemValue.value = '';
+    emit('blur');
+}
+
+function confirmAddItem() {
+    let val = newItemValue.value.trim();
+    if (!val) {
+        cancelAdding();
+        return;
+    }
+
+    // Final formatting for phone
+    if (props.type === 'phone') {
+        val = formatPhoneNumber(val);
+    }
+
+    // Add to list
+    localValues.value.push(val);
+    emitValues();
+
+    // Reset but keep adding mode? Or close?
+    // "minimal modals" usually imply one-off action. Let's close it.
+    isAdding.value = false;
+    newItemValue.value = '';
 }
 
 function removeItem(index) {
-  localValues.value.splice(index, 1);
-  if (localValues.value.length === 0) {
-      localValues.value.push('');
-  }
-  emitValues();
+    localValues.value.splice(index, 1);
+    emitValues();
 }
 
 function emitValues() {
-  // Filter out empty strings before emitting?
-  // Or emit empty string if all are empty?
-  // If we have [''] -> emit ''
-  // If we have ['081...', ''] -> emit '081...' (trim empty?)
-
-  const validValues = localValues.value
-    .map(v => v.trim())
-    .filter(v => v !== '');
-
-  emit('update:modelValue', validValues.join(','));
-  emit('input', validValues.join(',')); // For validation listeners
-}
-
-function onBlur() {
-    emit('blur');
+    const str = localValues.value.join(',');
+    emit('update:modelValue', str);
+    emit('input', str);
 }
 
 </script>
@@ -197,11 +220,12 @@ function onBlur() {
 .multi-value-input {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  position: relative; /* For popup context if needed, though we use absolute inside */
 }
 
 .label-row {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .label-row label {
@@ -210,76 +234,162 @@ function onBlur() {
   color: #374151;
 }
 
-.input-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px; /* Standard input height */
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: white;
+    position: relative;
+    transition: border-color 0.2s;
 }
 
-.input-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.chips-container.has-error {
+    border-color: #ef4444;
 }
 
-.form-control {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
+.placeholder-text {
+    color: #9ca3af;
+    font-size: 14px;
 }
 
-.form-control:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+/* Chip Styles */
+.chip {
+    display: flex;
+    align-items: center;
+    background-color: #e5e7eb;
+    border-radius: 16px;
+    padding: 4px 10px;
+    font-size: 13px;
+    color: #1f2937;
+    gap: 6px;
 }
 
-.form-control.border-red-500 {
-  border-color: #ef4444;
+.chip-text {
+    line-height: 1;
 }
 
-.form-control.disabled {
-  background-color: #f3f4f6;
-  cursor: not-allowed;
-  color: #9ca3af;
+.chip-remove {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
 }
 
-.remove-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: none;
-  background-color: #fee2e2;
-  color: #ef4444;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  transition: background-color 0.2s;
+.chip-remove:hover {
+    color: #ef4444;
+    background-color: #fee2e2;
 }
 
-.remove-btn:hover {
-  background-color: #fecaca;
+/* Add Button */
+.add-btn-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px dashed #9ca3af;
+    background: transparent;
+    color: #6b7280;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
 }
 
-.add-btn {
-  align-self: flex-start;
-  font-size: 12px;
-  color: #3b82f6;
-  background: none;
-  border: none;
-  padding: 4px 0;
-  cursor: pointer;
-  font-weight: 500;
+.add-btn-icon:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background-color: #eff6ff;
 }
 
-.add-btn:hover {
-  text-decoration: underline;
+/* Popup Input */
+.popup-input-wrapper {
+    position: absolute;
+    bottom: 100%; /* Above the container */
+    left: 0;
+    margin-bottom: 8px; /* Space between popup and container */
+    background: white;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 100;
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Little arrow pointing down */
+.popup-input-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 20px; /* Adjust based on where button usually is, or center */
+    border-width: 6px;
+    border-style: solid;
+    border-color: white transparent transparent transparent;
+}
+
+.popup-input-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 19px;
+    border-width: 7px;
+    border-style: solid;
+    border-color: #e0e0e0 transparent transparent transparent;
+}
+
+.popup-input {
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 14px;
+    min-width: 200px;
+    outline: none;
+}
+
+.popup-input:focus {
+    border-color: #3b82f6;
+}
+
+.popup-confirm-btn {
+    background-color: #10b981;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.popup-confirm-btn:hover {
+    background-color: #059669;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .text-red-500 {
@@ -289,7 +399,7 @@ function onBlur() {
 .error-text {
   color: #ef4444;
   font-size: 12px;
-  margin-top: -4px;
+  margin-top: 2px;
 }
 
 .no-data-alert {
