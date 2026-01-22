@@ -23,3 +23,8 @@ Files created but not yet committed may disappear if the environment resets or "
 ## 3. General Directives
 *   **Verification:** Always verify file creation and content using `read_file` or `list_files` before marking a task as complete.
 *   **Testing:** Run relevant tests (or verify manually via `curl` for backend / Playwright for frontend) before submitting.
+
+## 4. Frontend Verification Learnings
+*   **Context:** To verify **editing** features (like inputs), always use the `CreateCreditRequest` page (`/create-credit-request`) as it is guaranteed to be editable. The `PendingRequests` view often defaults to read-only.
+*   **Workflow:** When testing `CreateCreditRequest`, you must **Search and Select a Customer** first to unlock the form tabs (Residence, Store, etc.).
+*   **Data Validity:** For search functionality verification, always use **valid existing customer codes** (e.g., `00001AY` from `backend/Customers_rows.csv`). Creating a request via API does not automatically add the customer to the backend's Master Customer search index.
