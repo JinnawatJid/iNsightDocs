@@ -144,31 +144,28 @@
       <!-- Phone | Fax | Email Grid -->
       <div class="form-grid-two-columns">
         <div class="form-group">
-          <label>
-            เบอร์โทรศัพท์ <span v-if="isRequired('phone')" class="text-red-500">*</span>
-            <span v-if="!formData.phone" class="no-data-alert">ไม่พบข้อมูล</span>
-          </label>
-          <input
-            type="text"
-            class="form-control"
-            :class="{ 'border-red-500': errors.phone, 'disabled': !isEditing }"
-            :disabled="!isEditing"
+          <MultiValueInput
+            label="เบอร์โทรศัพท์"
+            type="phone"
+            :required="isRequired('phone')"
             v-model="formData.phone"
+            :disabled="!isEditing"
             placeholder="0XX-XXX-XXXX"
-            @input="(e) => { validateField('phone', e.target.value, ['required']); }"
-            @blur="validateField('phone', formData.phone, ['required']);"
+            :error="errors.phone"
+             @input="(val) => { validateField('phone', val, ['required', 'phone']); }"
+             @blur="validateField('phone', formData.phone, ['required', 'phone']);"
           />
-          <span v-if="errors.phone" class="error-text">{{ errors.phone }}</span>
         </div>
         <div class="form-group">
-          <label>อีเมล</label>
-          <input
-            type="text"
-            class="form-control"
-            :class="{ 'disabled': !isEditing }"
-            :disabled="!isEditing"
+          <MultiValueInput
+            label="อีเมล"
+            type="email"
             v-model="formData.email"
+            :disabled="!isEditing"
             placeholder="example@email.com"
+            :error="errors.email"
+             @input="(val) => { validateField('email', val, ['email']); }"
+             @blur="validateField('email', formData.email, ['email']);"
           />
         </div>
       </div>
@@ -242,6 +239,7 @@ import { reactive, computed, watch, ref } from 'vue';
 import { searchAddressByZipcode } from 'thai-address-database';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import CoordinateMap from '@/components/shared/CoordinateMap.vue';
+import MultiValueInput from '@/components/shared/MultiValueInput.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
@@ -320,19 +318,7 @@ const isCompany = computed(() => {
   return store.isCompany;
 });
 
-function formatPhoneNumber(phone) {
-  if (!phone) return '';
-  const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.length === 10) {
-    return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-  } else if (cleaned.length === 9) {
-     if (cleaned.startsWith('02')) {
-       return cleaned.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
-     }
-     return cleaned.replace(/(\d{3})(\d{3})(\d{3})/, '$1-$2-$3');
-  }
-  return phone; 
-}
+// Removed local formatPhoneNumber as it's handled in MultiValueInput
 
 // Watch store.customer for initial load
 watch(() => store.customer, (newVal) => {
@@ -369,14 +355,6 @@ watch(() => store.customer, (newVal) => {
         formData.fax = newVal.fax || '';
         formData.email = newVal.email || '';
 
-        // Use store_ map keys? Or generic map keys?
-        // Usually Company Address is Main Address, so maybe generic?
-        // But map component binds to 'store_map_code' in previous logic for Individual.
-        // For Company, if we used 'address', we likely use 'map_code' (Residence keys in legacy).
-        // BUT, StoreCompanyTab previously updated 'store_map_code' if isCompany too!
-        // Let's check the update logic below.
-
-        // Logic below: if isCompany -> store_map_code.
         // Fallback to legacy map keys (map_code, etc) if store_ keys missing for Company.
         formData.mapCode = newVal.store_map_code || newVal.map_code || '';
         formData.landmark = newVal.store_landmark || newVal.landmark || '';
@@ -468,7 +446,7 @@ watch(() => store.showValidationErrors, (val) => {
         validateField('postCode', formData.postCode, ['required']);
         validateField('district', formData.district, ['required']);
         validateField('city', formData.city, ['required']);
-        validateField('phone', formData.phone, ['required']);
+        validateField('phone', formData.phone, ['required', 'phone']);
 
         // New Fields
         validateField('locationType', formData.locationTypeSelect, ['required']);

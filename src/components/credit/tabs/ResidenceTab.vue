@@ -119,31 +119,28 @@
       <!-- Phone | Fax | Email Grid -->
        <div class="form-grid-two-columns">
          <div class="form-group">
-          <label>
-            เบอร์โทรศัพท์ <span v-if="isRequired('phone')" class="text-red-500">*</span>
-            <span v-if="!formData.phone" class="no-data-alert">ไม่พบข้อมูล</span>
-          </label>
-          <input
-            type="text"
-            class="form-control"
-            :class="{ 'border-red-500': errors.phone, 'disabled': !isEditing }"
-            :disabled="!isEditing"
+          <MultiValueInput
+            label="เบอร์โทรศัพท์"
+            type="phone"
+            :required="isRequired('phone')"
             v-model="formData.phone"
+            :disabled="!isEditing"
             placeholder="0XX-XXX-XXXX"
-            @input="(e) => { validateField('phone', e.target.value, ['required']); }"
-            @blur="validateField('phone', formData.phone, ['required']);"
+            :error="errors.phone"
+            @input="(val) => { validateField('phone', val, ['required', 'phone']); }"
+            @blur="validateField('phone', formData.phone, ['required', 'phone']);"
           />
-          <span v-if="errors.phone" class="error-text">{{ errors.phone }}</span>
         </div>
         <div class="form-group">
-          <label>อีเมล</label>
-          <input
-            type="text"
-            class="form-control"
-            :class="{ 'disabled': !isEditing }"
-            :disabled="!isEditing"
+          <MultiValueInput
+            label="อีเมล"
+            type="email"
             v-model="formData.email"
+            :disabled="!isEditing"
             placeholder="example@email.com"
+            :error="errors.email"
+             @input="(val) => { validateField('email', val, ['email']); }"
+             @blur="validateField('email', formData.email, ['email']);"
           />
         </div>
        </div>
@@ -220,6 +217,7 @@ import { reactive, watch, ref, computed } from 'vue';
 import { searchAddressByZipcode } from 'thai-address-database';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import CoordinateMap from '@/components/shared/CoordinateMap.vue';
+import MultiValueInput from '@/components/shared/MultiValueInput.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
@@ -374,7 +372,7 @@ watch(isSameAddress, (isSame) => {
   validateField('postCode', formData.postCode, ['required']);
   validateField('district', formData.district, ['required']);
   validateField('city', formData.city, ['required']);
-  validateField('phone', formData.phone, ['required']);
+  validateField('phone', formData.phone, ['required', 'phone']);
   validateField('locationType', formData.locationTypeSelect, ['required']);
   validateField('propertyOwnership', formData.ownershipSelect, ['required']);
 });
@@ -488,7 +486,7 @@ watch(() => store.showValidationErrors, (val) => {
         validateField('postCode', formData.postCode, ['required']);
         validateField('district', formData.district, ['required']);
         validateField('city', formData.city, ['required']);
-        validateField('phone', formData.phone, ['required']);
+        validateField('phone', formData.phone, ['required', 'phone']);
 
         // New Fields
         validateField('locationType', formData.locationTypeSelect, ['required']);

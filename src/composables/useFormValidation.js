@@ -19,13 +19,33 @@ export function useFormValidation() {
           return false;
         }
       } else if (rule === 'phone') {
-        // Strict 9 or 10 digits
+        // Handle comma-separated list
         if (value) {
-           const digits = value.replace(/\D/g, '');
-           if (digits.length !== 9 && digits.length !== 10) {
-             errors[fieldName] = 'เบอร์โทรศัพท์ต้องมี 9 หรือ 10 หลัก';
-             return false;
+           const phones = value.split(',');
+           for (const p of phones) {
+               const pClean = p.trim();
+               if (!pClean) continue;
+               const digits = pClean.replace(/\D/g, '');
+               if (digits.length !== 9 && digits.length !== 10) {
+                 errors[fieldName] = 'เบอร์โทรศัพท์ต้องมี 9 หรือ 10 หลัก';
+                 return false;
+               }
            }
+        }
+      } else if (rule === 'email') {
+        // Handle comma-separated list
+        if (value) {
+            const emails = value.split(',');
+            // Simple regex for email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            for (const e of emails) {
+                const eClean = e.trim();
+                if (!eClean) continue;
+                if (!emailRegex.test(eClean)) {
+                    errors[fieldName] = 'รูปแบบอีเมลไม่ถูกต้อง';
+                    return false;
+                }
+            }
         }
       } else if (rule === 'text') {
         // Allow Thai, English, spaces, parentheses, dots
