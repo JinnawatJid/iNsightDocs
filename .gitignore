@@ -27,6 +27,7 @@ dist-ssr
 backend/*.db
 backend/*.sqlite
 backend/uploads
+temp_uploads/
 
 release
 SP682_1_2_1_release.zip
