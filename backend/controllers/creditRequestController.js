@@ -3,6 +3,8 @@ const fs = require('fs-extra');
 const path = require('path');
 const mime = require('mime-types');
 
+const UPLOAD_BASE = path.join(__dirname, '../uploads');
+
 exports.getCreditRequestDetail = async (req, res) => {
     const { id } = req.params; // tx_id
 
@@ -87,7 +89,12 @@ exports.downloadCreditRequestFile = async (req, res) => {
         }
 
         const fileRecord = rows[0];
-        const filePath = fileRecord.file_path;
+        let filePath = fileRecord.file_path;
+
+        // Handle relative paths (new format) vs absolute paths (legacy format)
+        if (!path.isAbsolute(filePath)) {
+            filePath = path.join(UPLOAD_BASE, filePath);
+        }
 
         if (!await fs.pathExists(filePath)) {
             return res.status(404).json({ error: 'File not found on server' });
@@ -95,7 +102,9 @@ exports.downloadCreditRequestFile = async (req, res) => {
 
         const mimeType = mime.lookup(filePath) || 'application/octet-stream';
         res.setHeader('Content-Type', mimeType);
-        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileRecord.original_name)}"`);
+        // Use filename*=UTF-8''... for better browser support of non-ASCII characters
+        const encodedFilename = encodeURIComponent(fileRecord.original_name);
+        res.setHeader('Content-Disposition', `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`);
 
         const fileStream = fs.createReadStream(filePath);
         fileStream.pipe(res);
@@ -285,16 +294,23 @@ exports.createCreditRequest = async (req, res) => {
         const year = now.getFullYear();
         const mm = (now.getMonth() + 1).toString().padStart(2, '0');
 
-        const targetDir = path.join(__dirname, '../uploads', year.toString(), mm, txId);
+        // Construct relative path components
+        const relativeDir = path.join(year.toString(), mm, txId);
+        const targetDir = path.join(UPLOAD_BASE, relativeDir);
         await fs.ensureDir(targetDir);
 
         for (const file of req.files) {
             const finalPath = path.join(targetDir, file.originalname);
             await fs.move(file.path, finalPath, { overwrite: true });
 
+            // Store relative path in DB (e.g., 2023/10/TXID/file.pdf)
+            // Use path.relative to get the relative path from UPLOAD_BASE
+            // and normalize slashes to forward slashes for cross-platform compatibility
+            const relativeFilePath = path.relative(UPLOAD_BASE, finalPath).split(path.sep).join('/');
+
             await db.runAsync(
                 'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name) VALUES (?, ?, ?, ?)',
-                [txId, file.fieldname, finalPath, file.originalname]
+                [txId, file.fieldname, relativeFilePath, file.originalname]
             );
         }
     }
