@@ -1,0 +1,11 @@
+Activity,OM (Office Manager),BM (Branch Manager),SM (Sales Manager),FO (Finance Off),FM (Finance Mgr),CC (Credit Comm)
+1. Create New Request,R,A,-,-,-,-
+2. Edit Customer Data,R,R,-,-,-,-
+3. Upload Documents,R,A,-,-,-,-
+4. Submit to HQ (Opened -> Submitted),I,R/A,I,-,-,-
+5. Sales Review (Submitted -> PendingSales),I,I,R/A,-,I,-
+6. Finance Screening (Check Docs & Scores),I,I,I,R,A,-
+7. Final Approval (<= 300k),I,I,I,C,R/A,-
+8. Final Approval (> 300k),I,I,I,C,C,R/A
+9. Rejection Decision,I,I,R,R,R/A,R
+10. Cancel Request,R,A,I,-,I,-
