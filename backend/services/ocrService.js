@@ -2,7 +2,7 @@ const axios = require('axios');
 
 // Configuration
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/generate';
-const OCR_MODEL = process.env.OCR_MODEL || 'typhoon-v1.5-x-7b-instruct';
+const OCR_MODEL = process.env.OCR_MODEL || 'scb10x/typhoon-ocr1.5-3b';
 // Default to MOCK being true if not explicitly set to 'false', for safety in dev/testing
 const USE_MOCK = process.env.MOCK_OCR !== 'false';
 
