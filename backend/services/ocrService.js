@@ -5,7 +5,8 @@ const { execFile } = require('child_process');
 
 // Configuration
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/generate';
-const OCR_MODEL = process.env.OCR_MODEL || 'scb10x/typhoon-ocr1.5-3b';
+// Default to the low-memory model to prevent crashes on standard machines
+const OCR_MODEL = process.env.OCR_MODEL || 'typhoon-ocr-lowmem';
 const USE_MOCK = process.env.MOCK_OCR !== 'false';
 
 /**
@@ -71,9 +72,26 @@ const ocrService = {
 
     } catch (error) {
       console.error('OCR Service: Error processing document', error.message);
+
       if (error.code === 'ECONNREFUSED') {
          throw new Error('Ollama service is not reachable. Please ensure Ollama is running.');
       }
+
+      // Check for memory-related 500 errors from Ollama
+      if (error.response && error.response.status === 500) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'string' && errorData.includes('more system memory')) {
+           throw new Error(`Model memory limit exceeded. Please run 'backend/scripts/setup_ocr_lowmem.ps1' to install the optimized model.`);
+        } else if (errorData && errorData.error && errorData.error.includes('more system memory')) {
+           throw new Error(`Model memory limit exceeded. Please run 'backend/scripts/setup_ocr_lowmem.ps1' to install the optimized model.`);
+        }
+      }
+
+      // Fallback: If the model is not found, suggest running the setup script
+      if (error.response && error.response.status === 404) {
+          throw new Error(`Model '${OCR_MODEL}' not found. Please run 'backend/scripts/setup_ocr_lowmem.ps1' to create it.`);
+      }
+
       throw error;
     }
   },
