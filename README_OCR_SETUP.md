@@ -20,7 +20,7 @@ Since your server is offline, you must manually transfer the required files.
 3. Verify it's running by opening a terminal and typing: `ollama --version`.
 
 ### Step B: Load the Typhoon Model
-1. On a connected machine, pull the model to a file: `ollama pull typhoon-v1.5-x-7b-instruct`.
+1. On a connected machine, pull the model to a file: `ollama pull scb10x/typhoon-ocr1.5-3b`.
 2. Save/Export the model (refer to Ollama docs for offline transfer, or copy the `~/.ollama/models` directory).
 3. Transfer the model files to the server's `~/.ollama/models` directory.
 
