@@ -15,4 +15,7 @@ const upload = multer({
 // POST /api/ocr/extract-id
 router.post('/extract-id', upload.single('document'), ocrController.extractThaiID);
 
+// POST /api/ocr/benchmark
+router.post('/benchmark', upload.single('document'), ocrController.runBenchmark);
+
 module.exports = router;

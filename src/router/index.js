@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import PendingRequests from '../views/PendingRequests.vue';
 import CustomerSearch from '../views/CustomerSearch.vue';
 import CreateCreditRequest from '../views/CreateCreditRequest.vue';
+import OcrBenchmark from '../views/OcrBenchmark.vue';
 
 const routes = [
   {
@@ -22,6 +23,11 @@ const routes = [
     path: '/customer-search',
     name: 'CustomerSearch',
     component: CustomerSearch,
+  },
+  {
+    path: '/ocr-benchmark',
+    name: 'OcrBenchmark',
+    component: OcrBenchmark,
   },
 ];
 

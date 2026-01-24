@@ -1,7 +1,7 @@
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs-extra');
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 
 // Configuration
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/generate';
@@ -77,6 +77,8 @@ Describe the image's main elements (people, objects, text), note any contextual 
 
       try {
         const data = this._parseMarkdownToData(rawText);
+        // Include raw text in the response for benchmark comparison
+        data.rawText = rawText;
         return data;
       } catch (parseError) {
         console.error('OCR Service: Failed to parse data from model response.');
@@ -110,6 +112,96 @@ Describe the image's main elements (people, objects, text), note any contextual 
 
       throw error;
     }
+  },
+
+  /**
+   * Extract text using Tesseract.js
+   * @param {Object} file - The file object from multer
+   * @returns {Promise<Object>} - Extracted text
+   */
+  async extractWithTesseract(file) {
+    let Tesseract;
+    try {
+      Tesseract = require('tesseract.js');
+    } catch (e) {
+      return { success: false, error: 'Tesseract.js not installed. Please run backend/scripts/install_tesseract.bat' };
+    }
+
+    let imageBuffer = file.buffer;
+    if (file.mimetype === 'application/pdf') {
+      try {
+        imageBuffer = await this._convertPdfToImage(file.buffer);
+      } catch (e) {
+        return { success: false, error: 'PDF conversion failed for Tesseract: ' + e.message };
+      }
+    }
+
+    try {
+      const { data: { text } } = await Tesseract.recognize(imageBuffer, 'tha+eng');
+      return { success: true, text: text };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
+   * Extract text using EasyOCR (via Python script)
+   * @param {Object} file - The file object from multer
+   * @returns {Promise<Object>} - Extracted text
+   */
+  async extractWithEasyOCR(file) {
+    let imageBuffer = file.buffer;
+    if (file.mimetype === 'application/pdf') {
+      try {
+        imageBuffer = await this._convertPdfToImage(file.buffer);
+      } catch (e) {
+        return { success: false, error: 'PDF conversion failed for EasyOCR: ' + e.message };
+      }
+    }
+
+    // Write buffer to temp file for Python script
+    const tempDir = path.join(__dirname, '../../uploads/temp');
+    await fs.ensureDir(tempDir);
+    const tempImgPath = path.join(tempDir, `temp_easyocr_${Date.now()}.jpg`);
+    await fs.writeFile(tempImgPath, imageBuffer);
+
+    return new Promise((resolve) => {
+      const scriptPath = path.join(__dirname, '../scripts/easyocr_wrapper.py');
+      const process = spawn('python', [scriptPath, tempImgPath]);
+
+      let output = '';
+      let errorOutput = '';
+
+      process.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      process.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+
+      process.on('close', async (code) => {
+        await fs.remove(tempImgPath); // Clean up
+
+        if (code !== 0) {
+          console.error("EasyOCR Error:", errorOutput);
+          // If python is missing or script fails, return graceful error
+          resolve({ success: false, error: 'EasyOCR failed. Ensure Python and dependencies are installed (run backend/scripts/setup_easyocr.bat). Details: ' + errorOutput });
+          return;
+        }
+
+        try {
+          const result = JSON.parse(output);
+          resolve(result);
+        } catch (e) {
+          resolve({ success: false, error: 'Failed to parse EasyOCR output: ' + output });
+        }
+      });
+
+      process.on('error', (err) => {
+         resolve({ success: false, error: 'Failed to start Python process. Is Python installed? ' + err.message });
+      });
+    });
   },
 
   /**
