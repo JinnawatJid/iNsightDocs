@@ -25,7 +25,7 @@
         <p v-else style="color: #999; font-size: 13px;">ไม่มีเอกสารแนบ</p>
 
         <span v-if="!disabled" class="info">
-            {{ multiple ? 'สามารถแนบได้หลายไฟล์' : 'รองรับไฟล์รูปภาพและเอกสาร (JPG, PNG, PDF) ขนาดไม่เกิน 10MB' }}
+            {{ multiple ? 'สามารถแนบได้หลายไฟล์' : 'รองรับไฟล์รูปภาพและเอกสาร (JPG, PNG, PDF) ขนาดไม่เกิน 5MB' }}
         </span>
       </div>
 
@@ -67,6 +67,7 @@ import iconFileBlue from '@/assets/icons/file-blue.svg';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { computed } from 'vue';
+import Swal from 'sweetalert2';
 
 export default {
   name: 'FileUploader',
@@ -103,7 +104,7 @@ export default {
     },
     accept: {
       type: String,
-      default: '*/*'
+      default: '.jpg, .jpeg, .png, .pdf'
     },
     modelValue: {
       type: [Object, Array], // Object for single, Array for multiple
@@ -133,18 +134,58 @@ export default {
       const files = event.target.files;
       if (!files || files.length === 0) return;
 
+      const validFiles = [];
+      const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+      // Simple extension check helper
+      const isExtensionValid = (fileName) => {
+          if (this.accept === '*/*') return true;
+          const allowedExts = this.accept.split(',').map(ext => ext.trim().toLowerCase());
+          const fileExt = '.' + fileName.split('.').pop().toLowerCase();
+          return allowedExts.includes(fileExt);
+      };
+
+      for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+
+          // Size Check
+          if (file.size > MAX_SIZE) {
+              Swal.fire({
+                  icon: 'error',
+                  title: 'File too large',
+                  text: `File "${file.name}" exceeds the 5MB limit.`
+              });
+              // Reset input
+              this.$refs.fileInput.value = '';
+              return; // Stop processing
+          }
+
+          // Extension Check
+          if (!isExtensionValid(file.name)) {
+               Swal.fire({
+                  icon: 'error',
+                  title: 'Invalid file type',
+                  text: `File "${file.name}" is not allowed. Allowed types: ${this.accept}`
+              });
+              // Reset input
+              this.$refs.fileInput.value = '';
+              return;
+          }
+
+          validFiles.push(file);
+      }
+
       if (this.multiple) {
         // Append new files to existing array
-        const newFilesArray = Array.from(files);
         const currentFiles = this.file || [];
-        const updatedFiles = [...currentFiles, ...newFilesArray];
+        const updatedFiles = [...currentFiles, ...validFiles];
 
         this.file = updatedFiles;
         this.$emit('update:modelValue', updatedFiles);
         this.$emit('file-selected', updatedFiles);
       } else {
         // Single file mode
-        const selectedFile = files[0];
+        const selectedFile = validFiles[0];
         this.file = selectedFile;
         this.$emit('update:modelValue', selectedFile);
         this.$emit('file-selected', selectedFile);

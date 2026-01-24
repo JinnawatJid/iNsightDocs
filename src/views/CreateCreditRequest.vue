@@ -15,6 +15,11 @@
           <RequestStatus v-if="store.hasSearched" />
         </div>
         <div class="grid-col center">
+          <div v-if="isOcrEnabled" class="smart-import-wrapper">
+             <button class="btn-smart-import" @click="showSmartImport = true">
+                📷 Smart Import (Thai ID)
+             </button>
+          </div>
           <CreditRequestHeader @search="store.searchCustomer" />
         </div>
         <div class="grid-col right">
@@ -57,6 +62,13 @@
         </div>
       </div>
     </div>
+
+    <!-- Smart Import Modal -->
+    <SmartImportModal
+      v-if="showSmartImport"
+      @close="showSmartImport = false"
+      @data-extracted="handleOcrData"
+    />
   </div>
 </template>
 
@@ -68,13 +80,62 @@ import RequestStatus from '@/components/credit/RequestStatus.vue';
 import CreditRequestForm from '@/components/credit/CreditRequestForm.vue';
 import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
 import DocumentChecklist from '@/components/credit/DocumentChecklist.vue';
+import SmartImportModal from '@/components/credit/SmartImportModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useFeatureFlag } from '@/composables/useFeatureFlag';
 import iconSearchLarge from '@/assets/icons/search-large.svg';
+import { ref } from 'vue';
 
 const store = useCreditRequestStore();
+const { isOcrEnabled } = useFeatureFlag();
+const showSmartImport = ref(false);
 
 const closePreview = () => {
     store.resetState();
+};
+
+const handleOcrData = (data) => {
+  // Map extracted data to store
+  console.log('Applying OCR Data to Form:', data);
+
+  // 1. Name
+  const fullName = `${data.title || ''} ${data.firstName} ${data.lastName}`.trim();
+  store.customer.name = fullName;
+
+  // 2. ID Number
+  store.customer.tax_id = data.idNumber;
+  // Ensure we have a customer ID so the form renders (hasData check)
+  if (!store.customer.id) {
+    store.customer.id = 'NEW';
+  }
+
+  // 3. Address Parsing
+  const fullAddr = data.address || '';
+
+  // Basic Regex for Thai Address Components
+  const zipMatch = fullAddr.match(/\d{5}$/);
+  const provinceMatch = fullAddr.match(/(?:จ\.|จังหวัด)\s*([^\s]+)/);
+  const districtMatch = fullAddr.match(/(?:อ\.|อำเภอ|เขต)\s*([^\s]+)/);
+  const subMatch = fullAddr.match(/(?:ต\.|ตำบล|แขวง)\s*([^\s]+)/);
+
+  if (zipMatch) store.customer.zipcode = zipMatch[0];
+  if (provinceMatch) store.customer.province = provinceMatch[1];
+  if (districtMatch) store.customer.district = districtMatch[1];
+  if (subMatch) store.customer.subdistrict = subMatch[1];
+
+  // Put full address in line 1
+  store.customer.address = fullAddr;
+
+  // Also update Residence keys
+  store.customer.residence_address = store.customer.address;
+  store.customer.residence_province = store.customer.province;
+  store.customer.residence_district = store.customer.district;
+  store.customer.residence_subdistrict = store.customer.subdistrict;
+  store.customer.residence_zipcode = store.customer.zipcode;
+
+  // 4. Force UI Update
+  store.displayCustomer = { ...store.customer };
+  store.hasSearched = true; // Unlock the form
 };
 </script>
 
@@ -181,5 +242,32 @@ const closePreview = () => {
 }
 .btn-close-preview:hover {
     background-color: #ddd;
+}
+
+.smart-import-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.btn-smart-import {
+  background: linear-gradient(135deg, #0056FF 0%, #0033cc 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-smart-import:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 </style>
