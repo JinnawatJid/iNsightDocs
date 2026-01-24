@@ -23,6 +23,29 @@ const ocrController = {
     } finally {
       console.timeEnd('OCR Total Duration');
     }
+  },
+
+  async compareModels(req, res) {
+    console.time('OCR Compare Duration');
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No document uploaded' });
+      }
+
+      if (req.file.originalname) {
+        req.file.originalname = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+      }
+
+      console.log('OCR Controller: Received compare request for file:', req.file.originalname);
+
+      const results = await ocrService.compareModels(req.file);
+      res.json(results);
+    } catch (error) {
+      console.error('OCR Controller: Compare Error:', error.message);
+      res.status(500).json({ error: 'OCR comparison failed', details: error.message });
+    } finally {
+      console.timeEnd('OCR Compare Duration');
+    }
   }
 };
 

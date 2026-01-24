@@ -18,6 +18,7 @@
     "pdf-poppler": "^0.2.3",
     "pdfmake": "^0.2.20",
     "sqlite3": "^5.1.7",
+    "tesseract.js": "^7.0.0",
     "thai-address-database": "^0.0.30",
     "xlsx": "^0.18.5"
   }

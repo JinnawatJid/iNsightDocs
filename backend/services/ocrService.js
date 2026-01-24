@@ -1,53 +1,15 @@
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs-extra');
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
+const Tesseract = require('tesseract.js');
 
 // Configuration
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/generate';
-// Default to the low-memory model to prevent crashes on standard machines
 const OCR_MODEL = process.env.OCR_MODEL || 'typhoon-ocr-lowmem';
 const USE_MOCK = process.env.MOCK_OCR !== 'false';
 
-/**
- * Service to handle OCR extraction from images via Ollama/Typhoon
- */
-const ocrService = {
-  /**
-   * Extract data from a Thai ID card (Image or PDF)
-   * @param {Object} file - The file object from multer (buffer, mimetype, path, etc.)
-   * @returns {Promise<Object>} - Extracted data object
-   */
-  async extractThaiID(file) {
-    if (USE_MOCK) {
-      console.log('OCR Service: Using MOCK mode');
-      return this._getMockData();
-    }
-
-    let imageBuffer = file.buffer;
-
-    try {
-      // Handle PDF: Convert first page to Image
-      if (file.mimetype === 'application/pdf') {
-         console.log('OCR Service: Detected PDF, converting to image...');
-         imageBuffer = await this._convertPdfToImage(file.buffer);
-      }
-
-      console.log('OCR Service: Sending request to Ollama...');
-      const base64Image = imageBuffer.toString('base64');
-
-      // Start Heartbeat logging
-      const startTime = Date.now();
-      const heartbeat = setInterval(() => {
-        const elapsed = Math.round((Date.now() - startTime) / 1000);
-        console.log(`OCR Service: Waiting for Ollama... (${elapsed}s elapsed)`);
-      }, 5000);
-
-      let response;
-      try {
-        response = await axios.post(OLLAMA_URL, {
-          model: OCR_MODEL,
-          prompt: `Extract all text from the image.
+const TYPHOON_PROMPT = `Extract all text from the image.
 
 Instructions:
 - Only return the clean Markdown.
@@ -64,15 +26,31 @@ Describe the image's main elements (people, objects, text), note any contextual 
 </figure>
 
 - Page Numbers: Wrap page numbers in <page_number>...</page_number> (e.g., <page_number>14</page_number>).
-- Checkboxes: Use ☐ for unchecked and ☑ for checked boxes.`,
-          images: [base64Image],
-          stream: false
-        });
-      } finally {
-        clearInterval(heartbeat);
+- Checkboxes: Use ☐ for unchecked and ☑ for checked boxes.`;
+
+/**
+ * Service to handle OCR extraction from images via Ollama/Typhoon
+ */
+const ocrService = {
+  /**
+   * Extract data from a Thai ID card (Image or PDF)
+   */
+  async extractThaiID(file) {
+    if (USE_MOCK) {
+      console.log('OCR Service: Using MOCK mode');
+      return this._getMockData();
+    }
+
+    let imageBuffer = file.buffer;
+
+    try {
+      if (file.mimetype === 'application/pdf') {
+         console.log('OCR Service: Detected PDF, converting to image...');
+         imageBuffer = await this._convertPdfToImage(file.buffer);
       }
 
-      const rawText = response.data.response;
+      console.log('OCR Service: Sending request to Ollama...');
+      const rawText = await this._extractTyphoonRaw(imageBuffer);
       console.log('OCR Service: Received response from Ollama (Length: ' + rawText.length + ')');
 
       try {
@@ -88,12 +66,154 @@ Describe the image's main elements (people, objects, text), note any contextual 
 
     } catch (error) {
       console.error('OCR Service: Error processing document', error.message);
+      this._handleOllamaError(error);
+      throw error;
+    }
+  },
 
+  /**
+   * Compare multiple OCR models
+   */
+  async compareModels(file) {
+      // If mocking is enabled, return mock data for all 3
+      if (USE_MOCK) {
+          return {
+              typhoon: { text: "Mock Typhoon Result\n(Line 2)", time: 1200, success: true },
+              tesseract: { text: "Mock Tesseract Result", time: 500, success: true },
+              easyocr: { text: "Mock EasyOCR Result", time: 2500, success: true }
+          };
+      }
+
+      let imageBuffer = file.buffer;
+      if (file.mimetype === 'application/pdf') {
+         imageBuffer = await this._convertPdfToImage(file.buffer);
+      }
+
+      const results = {};
+
+      // 1. Typhoon (Ollama)
+      try {
+          const start = Date.now();
+          const text = await this._extractTyphoonRaw(imageBuffer);
+          results.typhoon = { text, time: Date.now() - start, success: true };
+      } catch (e) {
+          results.typhoon = { error: e.message, success: false };
+      }
+
+      // 2. Tesseract
+      try {
+          const start = Date.now();
+          const text = await this.extractTesseract(imageBuffer);
+          results.tesseract = { text, time: Date.now() - start, success: true };
+      } catch (e) {
+          results.tesseract = { error: e.message, success: false };
+      }
+
+      // 3. EasyOCR
+      try {
+          const start = Date.now();
+          const text = await this.extractEasyOCR(imageBuffer);
+          results.easyocr = { text, time: Date.now() - start, success: true };
+      } catch (e) {
+           results.easyocr = { error: e.message, success: false };
+      }
+
+      return results;
+  },
+
+  /**
+   * Internal helper to call Ollama/Typhoon
+   */
+  async _extractTyphoonRaw(imageBuffer) {
+      const base64Image = imageBuffer.toString('base64');
+
+      // Start Heartbeat logging
+      const startTime = Date.now();
+      const heartbeat = setInterval(() => {
+        const elapsed = Math.round((Date.now() - startTime) / 1000);
+        console.log(`OCR Service: Waiting for Ollama... (${elapsed}s elapsed)`);
+      }, 5000);
+
+      try {
+        const response = await axios.post(OLLAMA_URL, {
+          model: OCR_MODEL,
+          prompt: TYPHOON_PROMPT,
+          images: [base64Image],
+          stream: false
+        });
+        return response.data.response;
+      } finally {
+        clearInterval(heartbeat);
+      }
+  },
+
+  /**
+   * Tesseract.js extraction
+   */
+  async extractTesseract(imageBuffer) {
+      // Note: This downloads language data on first run
+      const result = await Tesseract.recognize(
+        imageBuffer,
+        'tha+eng',
+        {
+            // logger: m => console.log(m) // Optional logging
+        }
+      );
+      return result.data.text;
+  },
+
+  /**
+   * EasyOCR extraction via Python script
+   */
+  async extractEasyOCR(imageBuffer) {
+      const tempDir = path.join(__dirname, '../../uploads/temp');
+      await fs.ensureDir(tempDir);
+      const tempFile = path.join(tempDir, `easyocr_${Date.now()}.jpg`);
+      await fs.writeFile(tempFile, imageBuffer);
+
+      try {
+          const pythonScript = path.join(__dirname, '../scripts/run_easyocr.py');
+
+          return new Promise((resolve, reject) => {
+              const pythonProcess = spawn('python', [pythonScript, tempFile]);
+
+              let output = '';
+              let errorOutput = '';
+
+              pythonProcess.stdout.on('data', (data) => {
+                  output += data.toString();
+              });
+
+              pythonProcess.stderr.on('data', (data) => {
+                  errorOutput += data.toString();
+              });
+
+              pythonProcess.on('close', (code) => {
+                  // Cleanup
+                  fs.remove(tempFile).catch(() => {});
+
+                  if (code !== 0) {
+                      reject(new Error(errorOutput || `EasyOCR exited with code ${code}`));
+                  } else {
+                      resolve(output);
+                  }
+              });
+
+              pythonProcess.on('error', (err) => {
+                  fs.remove(tempFile).catch(() => {});
+                  reject(err);
+              });
+          });
+      } catch (e) {
+          await fs.remove(tempFile).catch(() => {});
+          throw e;
+      }
+  },
+
+  _handleOllamaError(error) {
       if (error.code === 'ECONNREFUSED') {
          throw new Error('Ollama service is not reachable. Please ensure Ollama is running.');
       }
-
-      // Check for memory-related 500 errors from Ollama
       if (error.response && error.response.status === 500) {
         const errorData = error.response.data;
         if (typeof errorData === 'string' && errorData.includes('more system memory')) {
@@ -102,14 +222,9 @@ Describe the image's main elements (people, objects, text), note any contextual 
            throw new Error(`Model memory limit exceeded. Please run 'backend/scripts/setup_ocr_lowmem.ps1' to install the optimized model.`);
         }
       }
-
-      // Fallback: If the model is not found, suggest running the setup script
       if (error.response && error.response.status === 404) {
           throw new Error(`Model '${OCR_MODEL}' not found. Please run 'backend/scripts/setup_ocr_lowmem.ps1' to create it.`);
       }
-
-      throw error;
-    }
   },
 
   /**
@@ -129,18 +244,15 @@ Describe the image's main elements (people, objects, text), note any contextual 
 
     if (!text) return result;
 
-    // Helper: Normalize spaces
     const cleanText = text.replace(/\r\n/g, '\n');
 
     // 1. ID Number
-    // Regex: 13 digits, allowing spaces/dashes.
     const idMatch = cleanText.match(/\b\d[\s-]?\d{4}[\s-]?\d{5}[\s-]?\d{2}[\s-]?\d\b/);
     if (idMatch) {
         result.idNumber = idMatch[0].replace(/[^0-9]/g, '');
     }
 
     // 2. Name
-    // Order matters! Longest matches first to avoid partial matches (e.g. นาง vs นางสาว)
     const nameRegex = /(นางสาว|นาย|นาง|ด\.ช\.|ด\.ญ\.|Mr\.|Mrs\.|Ms\.)\s*([^\s]+)\s+([^\s]+)/;
     const nameMatch = cleanText.match(nameRegex);
     if (nameMatch) {
@@ -150,7 +262,6 @@ Describe the image's main elements (people, objects, text), note any contextual 
     }
 
     // 3. Address
-    // Capture everything after the keyword until the end of the line, or next line if it doesn't look like a key.
     const addressMatch = cleanText.match(/(?:ที่อยู่|Address)[^:\d]*[:\s]\s*([\s\S]+?)(?=\n.*(?:วัน|Date|Issue|Expiry|Religion|ศาสนา)|$)/i);
     if (addressMatch) {
         let addr = addressMatch[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
@@ -158,24 +269,20 @@ Describe the image's main elements (people, objects, text), note any contextual 
     }
 
     // 4. Dates
-    // Generic Date Matcher: D/DD Month YYYY
     const datePattern = "([0-9]{1,2}\\s+[\\S]+\\s+[0-9]{4})";
 
-    // Date of Birth
     const dobRegex = new RegExp(`(?:เกิด|Birth)[^:\\d]*[:\\s]\\s*${datePattern}`, "i");
     const dobMatch = cleanText.match(dobRegex);
     if (dobMatch) {
         result.dateOfBirth = dobMatch[1];
     }
 
-    // Date of Issue
     const issueRegex = new RegExp(`(?:วันออกบัตร|Issue)[^:\\d]*[:\\s]\\s*${datePattern}`, "i");
     const issueMatch = cleanText.match(issueRegex);
     if (issueMatch) {
         result.dateOfIssue = issueMatch[1];
     }
 
-    // Date of Expiry
     const expiryRegex = new RegExp(`(?:วันหมดอายุ|Expiry)[^:\\d]*[:\\s]\\s*${datePattern}`, "i");
     const expiryMatch = cleanText.match(expiryRegex);
     if (expiryMatch) {
@@ -187,31 +294,25 @@ Describe the image's main elements (people, objects, text), note any contextual 
 
   /**
    * Convert PDF buffer to Image Buffer (First Page)
-   * Uses local Poppler binaries in backend/poppler/
    */
   async _convertPdfToImage(pdfBuffer) {
-    // Define path to local Windows binary
     const popplerPath = path.join(__dirname, '../poppler/pdftocairo.exe');
-
-    // We need to write the buffer to a temp file because pdftocairo works with files
     const tempDir = path.join(__dirname, '../../uploads/temp');
     await fs.ensureDir(tempDir);
 
     const tempPdfPath = path.join(tempDir, `temp_${Date.now()}.pdf`);
     await fs.writeFile(tempPdfPath, pdfBuffer);
 
-    // Output prefix construction
     const outPrefix = path.basename(tempPdfPath, path.extname(tempPdfPath));
     const outPathPrefix = path.join(tempDir, outPrefix);
 
-    // Arguments for pdftocairo
     const args = [
-      '-jpeg',           // Output format
-      '-f', '1',         // First page to convert
-      '-l', '1',         // Last page to convert (only the first page)
-      '-scale-to', '1024', // Scale the long side to 1024px
-      tempPdfPath,       // Input file
-      outPathPrefix      // Output prefix (pdftocairo will append -1.jpg)
+      '-jpeg',
+      '-f', '1',
+      '-l', '1',
+      '-scale-to', '1024',
+      tempPdfPath,
+      outPathPrefix
     ];
 
     return new Promise((resolve, reject) => {
@@ -223,12 +324,12 @@ Describe the image's main elements (people, objects, text), note any contextual 
           try { await fs.remove(tempPdfPath); } catch (e) {}
 
           if (error.code === 'ENOENT') {
-             return reject(new Error(`Poppler binary not found at ${popplerPath}. Please ensure backend/poppler contains pdftocairo.exe`));
+             return reject(new Error(`Poppler binary not found at ${popplerPath}.`));
           }
           if (process.platform !== 'win32') {
-             return reject(new Error('Local Poppler binary execution failed. This configuration is intended for Windows environments using the bundled .exe files.'));
+             return reject(new Error('Local Poppler binary execution failed.'));
           }
-          return reject(new Error('Failed to convert PDF to image using local Poppler.'));
+          return reject(new Error('Failed to convert PDF to image.'));
         }
 
         const expectedOutputPath = path.join(tempDir, `${outPrefix}-1.jpg`);
@@ -250,9 +351,6 @@ Describe the image's main elements (people, objects, text), note any contextual 
     });
   },
 
-  /**
-   * Returns mock data for testing purposes
-   */
   _getMockData() {
     return new Promise((resolve) => {
       setTimeout(() => {
