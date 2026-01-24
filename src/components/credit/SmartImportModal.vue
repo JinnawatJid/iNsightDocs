@@ -8,7 +8,7 @@
 
       <div class="modal-body">
         <div v-if="!isLoading && !extractionComplete" class="upload-section">
-          <p class="instruction">Upload a photo of a Thai National ID Card to auto-fill the form.</p>
+          <p class="instruction">Upload a photo or PDF of a Thai National ID Card to auto-fill the form.</p>
 
           <div
             class="drop-zone"
@@ -20,7 +20,7 @@
               type="file"
               ref="fileInput"
               class="hidden-input"
-              accept="image/jpeg, image/png, image/jpg"
+              accept="image/jpeg, image/png, image/jpg, application/pdf"
               @change="handleFileSelect"
             >
             <div v-if="selectedFile" class="file-info">
@@ -29,7 +29,7 @@
             </div>
             <div v-else class="placeholder">
               <span class="icon">📷</span>
-              <span>Click or Drag to Upload ID Card</span>
+              <span>Click or Drag to Upload ID Card (Image/PDF)</span>
             </div>
           </div>
 
@@ -88,9 +88,9 @@ const handleDrop = (event) => {
 };
 
 const validateAndSetFile = (file) => {
-  const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+  const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
   if (!validTypes.includes(file.type)) {
-    error.value = 'Invalid file type. Please upload a JPG or PNG.';
+    error.value = 'Invalid file type. Please upload a JPG, PNG, or PDF.';
     return;
   }
   if (file.size > 5 * 1024 * 1024) {

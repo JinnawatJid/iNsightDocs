@@ -1,4 +1,7 @@
 const axios = require('axios');
+const path = require('path');
+const fs = require('fs-extra');
+const pdf = require('pdf-poppler');
 
 // Configuration
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/generate';
@@ -22,6 +25,12 @@ const ocrService = {
     }
 
     try {
+      // Check for PDF magic bytes (%PDF)
+      if (imageBuffer.slice(0, 4).toString() === '%PDF') {
+         console.log('OCR Service: Detected PDF input, converting to image...');
+         imageBuffer = await this._convertPdfToImage(imageBuffer);
+      }
+
       console.log('OCR Service: Sending request to Ollama...');
       const base64Image = imageBuffer.toString('base64');
 
@@ -68,6 +77,56 @@ const ocrService = {
          throw new Error('Ollama service is not reachable. Please ensure Ollama is running.');
       }
       throw error;
+    }
+  },
+
+  /**
+   * Helper to convert PDF buffer to Image buffer using pdf-poppler
+   */
+  async _convertPdfToImage(pdfBuffer) {
+    const tempDir = path.join(__dirname, '../../temp_ocr_processing');
+    await fs.ensureDir(tempDir);
+
+    // Create unique ID for this transaction
+    const tempId = Date.now() + '-' + Math.random().toString(36).substring(7);
+    const pdfPath = path.join(tempDir, `${tempId}.pdf`);
+
+    try {
+      await fs.writeFile(pdfPath, pdfBuffer);
+
+      const opts = {
+        format: 'jpeg',
+        out_dir: tempDir,
+        out_prefix: tempId,
+        page: 1
+      };
+
+      // Note: pdf-poppler binaries might be missing on some Linux envs (like this sandbox),
+      // but are expected on the target Windows server.
+      await pdf.convert(pdfPath, opts);
+
+      // pdf-poppler generates filename as prefix-1.jpg
+      const imagePath = path.join(tempDir, `${tempId}-1.jpg`);
+
+      if (!await fs.pathExists(imagePath)) {
+        throw new Error('PDF conversion failed: Output image not found');
+      }
+
+      const imageBuffer = await fs.readFile(imagePath);
+
+      // Cleanup
+      await fs.remove(pdfPath);
+      await fs.remove(imagePath);
+
+      return imageBuffer;
+
+    } catch (error) {
+      console.error('PDF Conversion Error:', error);
+      // Cleanup on error
+      try { await fs.remove(pdfPath); } catch (e) {}
+      try { await fs.remove(path.join(tempDir, `${tempId}-1.jpg`)); } catch (e) {}
+
+      throw new Error('Failed to convert PDF to image: ' + error.message);
     }
   },
 
