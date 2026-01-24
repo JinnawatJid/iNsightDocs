@@ -24,7 +24,15 @@ Since your server is offline, you must manually transfer the required files.
 2. Save/Export the model (refer to Ollama docs for offline transfer, or copy the `~/.ollama/models` directory).
 3. Transfer the model files to the server's `~/.ollama/models` directory.
 
-### Step C: Configure Backend
+### Step C: Install Poppler (For PDF Support)
+To support PDF uploads on your Windows Server, you must install Poppler:
+
+1. Download the latest binary zip from: [https://github.com/oschwartz10612/poppler-windows/releases/](https://github.com/oschwartz10612/poppler-windows/releases/)
+2. Extract the zip file.
+3. Add the `bin/` folder (where `pdftoppm.exe` is located) to your System PATH environment variable.
+   - *Alternative:* You can place the `.exe` files directly in `backend/node_modules/pdf-poppler/src/lib` if modifying PATH is not possible, but PATH is recommended.
+
+### Step D: Configure Backend
 The backend defaults to looking for Ollama at `http://localhost:11434`.
 To disable Mock Mode and use the real AI, ensure your environment variables are set (optional, defaults provided in code):
 ```
