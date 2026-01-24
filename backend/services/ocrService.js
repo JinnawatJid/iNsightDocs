@@ -1,7 +1,7 @@
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs-extra');
-// const poppler = require('pdf-poppler'); // Loaded dynamically to prevent Linux crash
+const { execFile } = require('child_process');
 
 // Configuration
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/generate';
@@ -80,58 +80,79 @@ const ocrService = {
 
   /**
    * Convert PDF buffer to Image Buffer (First Page)
-   * Uses pdf-poppler which requires Poppler binaries installed on system
+   * Uses local Poppler binaries in backend/poppler/
    */
   async _convertPdfToImage(pdfBuffer) {
-    if (process.platform === 'linux') {
-         console.warn('OCR Service: Linux detected. PDF conversion requires Poppler utils (pdftoppm). Mocking PDF conversion for stability in this env.');
-         // In a real Linux env, we'd spawn('pdftoppm'). For now, return a dummy buffer or fail gracefully.
-         // Since we can't easily mock a real image buffer that matches the PDF content without a converter,
-         // we will throw a clear error if not in MOCK mode.
-         if (USE_MOCK) return Buffer.from('mock-image-buffer');
-         throw new Error('PDF conversion on Linux requires system dependencies. Please test with JPG/PNG or deploy to Windows.');
-    }
+    // Define path to local Windows binary
+    // Note: This explicitly targets the 'backend/poppler' directory uploaded by the user
+    const popplerPath = path.join(__dirname, '../poppler/pdftocairo.exe');
 
-    // Dynamic import for Windows support
-    const poppler = require('pdf-poppler');
-
-    // We need to write the buffer to a temp file because pdf-poppler works with files
+    // We need to write the buffer to a temp file because pdftocairo works with files
     const tempDir = path.join(__dirname, '../../uploads/temp');
     await fs.ensureDir(tempDir);
 
     const tempPdfPath = path.join(tempDir, `temp_${Date.now()}.pdf`);
     await fs.writeFile(tempPdfPath, pdfBuffer);
 
-    const opts = {
-      format: 'jpeg',
-      out_dir: tempDir,
-      out_prefix: path.basename(tempPdfPath, path.extname(tempPdfPath)),
-      page: 1 // Only first page
-    };
+    // Output prefix construction
+    const outPrefix = path.basename(tempPdfPath, path.extname(tempPdfPath));
+    const outPathPrefix = path.join(tempDir, outPrefix);
 
-    try {
-      await poppler.convert(tempPdfPath, opts);
+    // Arguments for pdftocairo
+    const args = [
+      '-jpeg',           // Output format
+      '-f', '1',         // First page to convert
+      '-l', '1',         // Last page to convert (only the first page)
+      '-scale-to', '1024', // Scale the long side to 1024px
+      tempPdfPath,       // Input file
+      outPathPrefix      // Output prefix (pdftocairo will append -1.jpg)
+    ];
 
-      // The output file will be named prefix-1.jpg
-      const expectedOutputPath = path.join(tempDir, `${opts.out_prefix}-1.jpg`);
+    return new Promise((resolve, reject) => {
+      console.log(`OCR Service: Executing local Poppler binary at ${popplerPath}`);
 
-      if (await fs.pathExists(expectedOutputPath)) {
-          const imageBuffer = await fs.readFile(expectedOutputPath);
+      execFile(popplerPath, args, async (error, stdout, stderr) => {
+        if (error) {
+          console.error('OCR Service: Poppler execution failed', stderr || error.message);
+          // Attempt cleanup
+          try { await fs.remove(tempPdfPath); } catch (e) {}
 
-          // Cleanup
+          if (error.code === 'ENOENT') {
+             return reject(new Error(`Poppler binary not found at ${popplerPath}. Please ensure backend/poppler contains pdftocairo.exe`));
+          }
+          // If we are on Linux/Non-Windows, execFile with .exe might fail with generic error or specific format error
+          if (process.platform !== 'win32') {
+             return reject(new Error('Local Poppler binary execution failed. This configuration is intended for Windows environments using the bundled .exe files.'));
+          }
+          return reject(new Error('Failed to convert PDF to image using local Poppler.'));
+        }
+
+        // pdftocairo appends -1.jpg (or -000001.jpg depending on digit settings, but usually -1 for single digit pages)
+        // Since we limited to page 1, and default numbering is often just the page number.
+        // Let's verify the file existence.
+
+        // Note: pdftocairo standard behavior: prefix + "-" + page_number + ".jpg"
+        const expectedOutputPath = path.join(tempDir, `${outPrefix}-1.jpg`);
+
+        if (await fs.pathExists(expectedOutputPath)) {
+          try {
+            const imageBuffer = await fs.readFile(expectedOutputPath);
+
+            // Cleanup temp files
+            await fs.remove(tempPdfPath);
+            await fs.remove(expectedOutputPath);
+
+            resolve(imageBuffer);
+          } catch (readErr) {
+            reject(new Error('Failed to read converted image file.'));
+          }
+        } else {
+          // Cleanup input
           await fs.remove(tempPdfPath);
-          await fs.remove(expectedOutputPath);
-
-          return imageBuffer;
-      } else {
-          throw new Error('PDF conversion failed: Output image not found');
-      }
-
-    } catch (err) {
-      // Cleanup on error
-      if (await fs.pathExists(tempPdfPath)) await fs.remove(tempPdfPath);
-      throw new Error('Failed to convert PDF to image. Please ensure Poppler is installed on the server.');
-    }
+          reject(new Error('PDF conversion failed: Output image not found.'));
+        }
+      });
+    });
   },
 
   /**
