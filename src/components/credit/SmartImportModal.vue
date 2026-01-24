@@ -140,16 +140,19 @@ const processFile = async () => {
 
     clearInterval(msgInterval);
 
-    if (response.data.success) {
+    // The backend returns the data object directly (or with an error key)
+    // We check if we got a valid response object
+    if (response.data && !response.data.error) {
       statusMessage.value = "Complete!";
       extractionComplete.value = true;
       // Short delay to show complete message
       setTimeout(() => {
-        emit('data-extracted', response.data.data);
+        // Pass the entire response data as it is the extracted object
+        emit('data-extracted', response.data);
         emit('close');
       }, 500);
     } else {
-      throw new Error(response.data.error || 'Unknown error');
+      throw new Error(response.data?.error || 'Unknown error');
     }
 
   } catch (err) {
