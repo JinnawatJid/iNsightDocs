@@ -13,6 +13,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     history: [],
     financialSummary: {},
     creditScore: {},
+    dataSource: null, // 'api' or 'database'
     loading: false,
     error: null,
 
@@ -312,6 +313,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           this.history = data.history || [];
           this.financialSummary = data.financial_summary || {};
           this.creditScore = data.credit_score || {};
+          // Set data source if provided (fallback to api if unknown, though backend should send it)
+          this.dataSource = data._source || null;
           this.hasSearched = true;
 
           await this.createCreditRequest(this.customer.id, this.customer.name);
@@ -653,6 +656,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.history = [];
       this.financialSummary = {};
       this.creditScore = {};
+      this.dataSource = null;
       this.error = null;
       this.requestId = null;
       this.requestStatus = null;
@@ -678,6 +682,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.history = [];
       this.financialSummary = {};
       this.creditScore = {};
+      this.dataSource = null;
       this.requestId = null;
       this.requestStatus = null;
       this.uploadedDocuments = {};
