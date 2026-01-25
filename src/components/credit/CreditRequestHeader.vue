@@ -11,7 +11,12 @@
       </select>
     </div>
     <div class="header-section flex-grow">
-      <label>ค้นหาข้อมูลลูกค้า</label>
+      <div class="label-row">
+        <label>ค้นหาข้อมูลลูกค้า</label>
+        <span v-if="dataSource" class="source-badge" :class="sourceClass">
+            {{ sourceLabel }}
+        </span>
+      </div>
       <div class="search-group" ref="searchContainer">
         <div class="search-icon">
            <img :src="iconSearchBi" alt="Search" width="16" height="16" />
@@ -103,6 +108,19 @@ export default {
         'Canceled'
       ];
       return validStatuses.includes(status);
+    },
+    dataSource() {
+      return this.creditStore.dataSource;
+    },
+    sourceLabel() {
+        if (this.dataSource === 'api') return 'Live API';
+        if (this.dataSource === 'database') return 'Offline Mode';
+        return '';
+    },
+    sourceClass() {
+        if (this.dataSource === 'api') return 'badge-live';
+        if (this.dataSource === 'database') return 'badge-offline';
+        return '';
     }
   },
   created() {
@@ -228,6 +246,13 @@ export default {
   gap: 8px;
 }
 
+.label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 260px; /* Match input width approx */
+}
+
 .header-section.flex-grow {
   flex-grow: 1;
 }
@@ -344,5 +369,25 @@ label {
   color: #888;
   text-align: center;
   font-style: italic;
+}
+
+.source-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.badge-live {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border: 1px solid #badbcc;
+}
+
+.badge-offline {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
 }
 </style>
