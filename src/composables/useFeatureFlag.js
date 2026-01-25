@@ -22,10 +22,25 @@ export function useFeatureFlag() {
     if (querySource && querySource.feature) {
         featureParam = querySource.feature;
     }
-    // Priority 2: Check Window Location (Fallback)
+    // Priority 2: Check Window Location Search
     else {
         const urlParams = new URLSearchParams(window.location.search);
         featureParam = urlParams.get('feature');
+
+        // Priority 3: Check Window Location Hash (for HashRouter or query inside hash)
+        if (!featureParam && window.location.hash.includes('?')) {
+            const hashQuery = window.location.hash.split('?')[1];
+            const hashParams = new URLSearchParams(hashQuery);
+            featureParam = hashParams.get('feature');
+        }
+
+        // Priority 4: Brute-force Regex on full HREF (Ultimate Fallback)
+        if (!featureParam) {
+            const match = window.location.href.match(/[?&]feature=([^&#]*)/);
+            if (match) {
+                featureParam = match[1];
+            }
+        }
     }
 
     // console.log('[FeatureFlag] Checking... Param:', featureParam);
