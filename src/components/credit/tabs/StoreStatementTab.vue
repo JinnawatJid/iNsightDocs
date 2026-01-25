@@ -207,6 +207,11 @@
         </div>
       </div>
     </div>
+
+    <!-- Debug Info (Only visible if flag is in URL but section is hidden) -->
+    <div v-if="shouldShowDebugInfo" class="debug-info-panel">
+        <small>Debug: Status=[{{ debugStatus }}] | IsDraft=[{{ debugIsDraft }}] | Flag=[{{ debugFlag }}]</small>
+    </div>
   </div>
 </template>
 
@@ -402,17 +407,32 @@ const shouldShowFinancialAnalysis = computed(() => {
 
     // 2. Draft Phase Visibility (Controlled by Feature Flag)
     // If status is Draft or null (New Request), check the flag
-    // Use lower case check to be safe
-    const isDraft = !status || status.toLowerCase() === 'draft';
+    // Use lower case check and trim to be safe against database padding
+    const cleanStatus = status ? status.trim().toLowerCase() : '';
+    const isDraft = !status || cleanStatus === 'draft';
     const flagEnabled = isFinancialDraftEnabled.value;
 
-    console.log('[StoreStatementTab] Status:', status, 'IsDraft:', isDraft, 'Flag:', flagEnabled);
+    console.log('[StoreStatementTab] Status:', status, 'Clean:', cleanStatus, 'IsDraft:', isDraft, 'Flag:', flagEnabled);
 
     if (isDraft && flagEnabled) {
         return true;
     }
 
     return false;
+});
+
+// Debug Helpers
+const debugStatus = computed(() => store.requestStatus);
+const debugIsDraft = computed(() => {
+    const s = store.requestStatus;
+    return !s || (s && s.trim().toLowerCase() === 'draft');
+});
+const debugFlag = computed(() => isFinancialDraftEnabled.value);
+const shouldShowDebugInfo = computed(() => {
+    // Show debug if feature is in URL but section is HIDDEN
+    // This helps user identify why it's hidden
+    const hasParam = window.location.href.includes('financial_draft');
+    return hasParam && !shouldShowFinancialAnalysis.value;
 });
 
 </script>
@@ -720,6 +740,16 @@ input:checked + .slider:before {
     font-size: 1.4em;
     font-weight: bold;
     color: #007bff;
+}
+
+.debug-info-panel {
+    margin-top: 20px;
+    padding: 10px;
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    border-radius: 4px;
+    text-align: center;
 }
 
 </style>
