@@ -89,7 +89,7 @@ def run():
         print("Verifying Financial Analysis Section...")
         try:
             # Check for the specific header text in the new section
-            expect(page.locator("text=การวิเคราะห์ทางการเงินและคะแนนเครดิต")).to_be_visible(timeout=5000)
+            expect(page.locator('[data-testid="financial-analysis-section"]')).to_be_visible(timeout=5000)
             print("SUCCESS: Financial Analysis section is visible.")
 
             # Optional: Check console logs if we could access them, but checking visibility is enough
