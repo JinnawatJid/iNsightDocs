@@ -402,7 +402,13 @@ const shouldShowFinancialAnalysis = computed(() => {
 
     // 2. Draft Phase Visibility (Controlled by Feature Flag)
     // If status is Draft or null (New Request), check the flag
-    if ((!status || status === 'Draft') && isFinancialDraftEnabled.value) {
+    // Use lower case check to be safe
+    const isDraft = !status || status.toLowerCase() === 'draft';
+    const flagEnabled = isFinancialDraftEnabled.value;
+
+    console.log('[StoreStatementTab] Status:', status, 'IsDraft:', isDraft, 'Flag:', flagEnabled);
+
+    if (isDraft && flagEnabled) {
         return true;
     }
 

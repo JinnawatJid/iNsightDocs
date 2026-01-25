@@ -1,4 +1,5 @@
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 
 const isOcrEnabled = ref(false);
 const isFinancialDraftEnabled = ref(false);
@@ -12,12 +13,22 @@ const isFinancialDraftEnabled = ref(false);
  * URL: http://.../page?feature=financial_draft
  */
 export function useFeatureFlag() {
+  const route = useRoute();
 
-  const checkFeatures = () => {
-    // 1. Check URL params
-    const urlParams = new URLSearchParams(window.location.search);
-    const featureParam = urlParams.get('feature');
-    console.log('[FeatureFlag] Checking... URL:', window.location.href, 'Param:', featureParam);
+  const checkFeatures = (querySource) => {
+    let featureParam = null;
+
+    // Priority 1: Check provided query source (Route Query)
+    if (querySource && querySource.feature) {
+        featureParam = querySource.feature;
+    }
+    // Priority 2: Check Window Location (Fallback)
+    else {
+        const urlParams = new URLSearchParams(window.location.search);
+        featureParam = urlParams.get('feature');
+    }
+
+    // console.log('[FeatureFlag] Checking... Param:', featureParam);
 
     // --- OCR Feature ---
     if (featureParam === 'ocr_beta') {
@@ -27,7 +38,6 @@ export function useFeatureFlag() {
       sessionStorage.removeItem('OCR_ENABLED');
       isOcrEnabled.value = false;
     } else {
-      // Check Session Storage (Persistence)
       isOcrEnabled.value = sessionStorage.getItem('OCR_ENABLED') === 'true';
     }
 
@@ -35,17 +45,25 @@ export function useFeatureFlag() {
     if (featureParam === 'financial_draft') {
       sessionStorage.setItem('FINANCIAL_DRAFT_ENABLED', 'true');
       isFinancialDraftEnabled.value = true;
+      console.log('[FeatureFlag] Financial Draft Enabled via URL');
     } else if (featureParam === 'financial_off') {
       sessionStorage.removeItem('FINANCIAL_DRAFT_ENABLED');
       isFinancialDraftEnabled.value = false;
+      console.log('[FeatureFlag] Financial Draft Disabled via URL');
     } else {
-      // Check Session Storage (Persistence)
       isFinancialDraftEnabled.value = sessionStorage.getItem('FINANCIAL_DRAFT_ENABLED') === 'true';
     }
   };
 
-  // Initialize on load
+  // Initial Check (Window)
   checkFeatures();
+
+  // Reactive Watcher (Route)
+  if (route) {
+    watch(() => route.query, (newQuery) => {
+        checkFeatures(newQuery);
+    }, { deep: true });
+  }
 
   return {
     isOcrEnabled,
