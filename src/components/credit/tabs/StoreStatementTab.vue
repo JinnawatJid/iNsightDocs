@@ -30,7 +30,7 @@
     </div>
 
     <!-- Financial Analysis Section -->
-    <div class="financial-analysis-section" v-if="['Submitted', 'Reviewed', 'Approved', 'PendingFinance (ชั่วคราว)', 'PendingSales (ชั่วคราว)'].includes(store.requestStatus)">
+    <div class="financial-analysis-section" v-if="shouldShowFinancialAnalysis">
       <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต (Financial Analysis & Scoring)</div>
 
       <div class="upload-grid-three">
@@ -211,7 +211,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue';
+import { reactive, ref, watch, computed } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
@@ -219,9 +219,11 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
+import { useFeatureFlag } from '@/composables/useFeatureFlag';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
+const { isFinancialDraftEnabled } = useFeatureFlag();
 
 // This might be overkill for just file uploads, but ensures consistency with other tabs
 // and handles potential future text inputs validation
@@ -377,6 +379,35 @@ const getGradeClass = (grade) => {
     if (grade === 'B') return 'text-warning';
     return 'text-danger';
 };
+
+// Visibility Logic for Financial Analysis
+const shouldShowFinancialAnalysis = computed(() => {
+    const status = store.requestStatus;
+
+    // 1. Standard Visibility (Downstream roles) + New Workflow Statuses
+    const visibleStatuses = [
+        'Opened',
+        'RegionalSubmitted',
+        'SalesSubmitted',
+        'Submitted',
+        'Reviewed',
+        'Approved',
+        'PendingFinance (ชั่วคราว)',
+        'PendingSales (ชั่วคราว)'
+    ];
+
+    if (visibleStatuses.includes(status)) {
+        return true;
+    }
+
+    // 2. Draft Phase Visibility (Controlled by Feature Flag)
+    // If status is Draft or null (New Request), check the flag
+    if ((!status || status === 'Draft') && isFinancialDraftEnabled.value) {
+        return true;
+    }
+
+    return false;
+});
 
 </script>
 

@@ -528,7 +528,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     // Validation Action
-    validateRequest(isSubmit = false) {
+    validateRequest(isSubmit = false, isFinancialMandatory = false) {
         const reqType = this.transactionData.requestType;
         const isSpecial = ['เครดิตเพิ่ม', 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน', 'เปลี่ยนแปลงระยะเวลาเครดิต'].includes(reqType);
 
@@ -588,6 +588,14 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         // 4. Validate Files (Only on Submit)
         const missingFiles = [];
         if (isSubmit) {
+            // Add Financial Documents to check list if mandatory
+            if (isFinancialMandatory) {
+                const financialFiles = ['balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc'];
+                financialFiles.forEach(f => {
+                    if (!filesToCheck.includes(f)) filesToCheck.push(f);
+                });
+            }
+
             filesToCheck.forEach(key => {
                 const file = this.files[key];
                 // Check if we have a file object OR if it's marked as uploaded
