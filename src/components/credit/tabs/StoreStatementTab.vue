@@ -30,7 +30,7 @@
     </div>
 
     <!-- Financial Analysis Section -->
-    <div class="financial-analysis-section" v-if="shouldShowFinancialAnalysis">
+    <div class="financial-analysis-section" v-if="shouldShowFinancialAnalysis" data-testid="financial-analysis-section">
       <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต (Financial Analysis & Scoring)</div>
 
       <div class="upload-grid-three">
@@ -387,6 +387,16 @@ const getGradeClass = (grade) => {
     return 'text-danger';
 };
 
+// Debug Helpers
+const debugStatus = computed(() => store.requestStatus);
+const debugIsDraft = computed(() => {
+    const s = store.requestStatus ? store.requestStatus.trim().toLowerCase() : '';
+    return !store.requestStatus || s === 'draft';
+});
+const debugFlag = computed(() => {
+    return isFinancialDraftEnabled.value || (route.query && route.query.feature === 'financial_draft');
+});
+
 // Visibility Logic for Financial Analysis
 const shouldShowFinancialAnalysis = computed(() => {
     const status = store.requestStatus;
@@ -425,6 +435,13 @@ const shouldShowFinancialAnalysis = computed(() => {
     }
 
     return false;
+});
+
+const shouldShowDebugInfo = computed(() => {
+    // Show debug info if the feature flag is in the URL
+    const flagInUrl = (route.query && route.query.feature === 'financial_draft');
+    // If flag is present, always show debug info to help diagnose why the section might be hidden
+    return flagInUrl;
 });
 
 </script>
