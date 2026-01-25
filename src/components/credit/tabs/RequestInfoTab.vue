@@ -623,7 +623,8 @@ function restrictCreditAmountInput(e) {
 
 // Helper for phone/numeric inputs to ensure model update
 function handlePhoneInput(e, storeKey) {
-    const value = e.target.value.replace(/\D/g, '');
+    // Allow digits and dashes
+    const value = e.target.value.replace(/[^0-9-]/g, '');
     e.target.value = value;
     // Explicitly update store
     store.customer[storeKey] = value;
