@@ -6,6 +6,9 @@
       <button @click="compare" :disabled="!file || loading">
         {{ loading ? 'Comparing...' : 'Run Comparison' }}
       </button>
+      <button v-if="results" @click="copyToClipboard" class="btn-secondary">
+        Copy Stats to Clipboard
+      </button>
     </div>
 
     <div v-if="error" class="error-message">
@@ -17,7 +20,7 @@
       <div class="result-card">
         <h2>Typhoon (Ollama)</h2>
         <div v-if="results.typhoon">
-          <p><strong>Time:</strong> {{ results.typhoon.time }} ms</p>
+          <p><strong>Time:</strong> {{ formatTime(results.typhoon.time) }}</p>
           <p v-if="results.typhoon.success" class="success">Success</p>
           <p v-else class="error">Failed: {{ results.typhoon.error }}</p>
           <textarea readonly>{{ results.typhoon.text }}</textarea>
@@ -29,7 +32,7 @@
       <div class="result-card">
         <h2>Tesseract.js</h2>
         <div v-if="results.tesseract">
-          <p><strong>Time:</strong> {{ results.tesseract.time }} ms</p>
+          <p><strong>Time:</strong> {{ formatTime(results.tesseract.time) }}</p>
           <p v-if="results.tesseract.success" class="success">Success</p>
           <p v-else class="error">Failed: {{ results.tesseract.error }}</p>
           <textarea readonly>{{ results.tesseract.text }}</textarea>
@@ -41,7 +44,7 @@
       <div class="result-card">
         <h2>EasyOCR (Python)</h2>
         <div v-if="results.easyocr">
-          <p><strong>Time:</strong> {{ results.easyocr.time }} ms</p>
+          <p><strong>Time:</strong> {{ formatTime(results.easyocr.time) }}</p>
           <p v-if="results.easyocr.success" class="success">Success</p>
           <p v-else class="error">Failed: {{ results.easyocr.error }}</p>
           <textarea readonly>{{ results.easyocr.text }}</textarea>
@@ -55,6 +58,7 @@
 <script setup>
 import { ref } from 'vue';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 const file = ref(null);
 const loading = ref(false);
@@ -65,6 +69,13 @@ const handleFileChange = (event) => {
   file.value = event.target.files[0];
   results.value = null;
   error.value = null;
+};
+
+const formatTime = (ms) => {
+  if (!ms) return '0s';
+  const seconds = (ms / 1000).toFixed(2);
+  const minutes = (ms / 1000 / 60).toFixed(2);
+  return `${minutes} min (${seconds}s)`;
 };
 
 const compare = async () => {
@@ -90,6 +101,28 @@ const compare = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const copyToClipboard = () => {
+  if (!results.value) return;
+
+  const typhoonTime = (results.value.typhoon.time / 1000).toFixed(2);
+  const tesseractTime = (results.value.tesseract.time / 1000).toFixed(2);
+  const easyocrTime = (results.value.easyocr.time / 1000).toFixed(2);
+  const filename = file.value ? file.value.name : 'Unknown';
+
+  // Format: Filename [TAB] TyphoonTime [TAB] TesseractTime [TAB] EasyOCRTime
+  const textToCopy = `${filename}\t${typhoonTime}\t${tesseractTime}\t${easyocrTime}`;
+
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    Swal.fire({
+      icon: 'success',
+      title: 'Copied!',
+      text: 'Stats copied to clipboard. You can paste them into your spreadsheet.',
+      timer: 1500,
+      showConfirmButton: false
+    });
+  });
 };
 </script>
 
@@ -124,6 +157,10 @@ button {
 button:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
 }
 
 .results-grid {
@@ -162,6 +199,7 @@ textarea {
   white-space: pre-wrap;
   resize: vertical;
   background-color: #fcfcfc;
+  color: #000000; /* Force black text */
 }
 
 .error-message {
