@@ -247,10 +247,12 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           }
         });
         const results = await CustomerService.searchCustomers(query);
+        console.log('[CreditRequestStore] Search Results:', results);
 
         if (results && results.length > 0) {
           this.clearFormData(); // Clear previous data
           const data = results[0];
+          console.log('[CreditRequestStore] First Result Source:', data._source);
 
           // Determine if company
           const name = data.customer.name || '';
