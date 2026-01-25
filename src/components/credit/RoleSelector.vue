@@ -2,9 +2,9 @@
  <div class="role-selector">
    <label class="label">จำลองสิทธิ์ (Role Simulator):</label>
    <select v-model="selectedRole" class="select-box">
-     <option value="หัวหน้าสำนักงาน">หัวหน้าสำนักงาน (Office Manager)</option>
      <option value="ผู้จัดการสาขา">ผู้จัดการสาขา (Branch Manager)</option>
-     <option value="ผู้จัดการฝ่ายขาย (HO)">ผู้จัดการฝ่ายขาย (Sales Manager)</option>
+     <option value="ผู้จัดการภาค">ผู้จัดการภาค (Regional Manager)</option>
+     <option value="ผู้จัดการฝ่ายขาย">ผู้จัดการฝ่ายขาย (Sales Manager)</option>
      <option value="เจ้าหน้าที่ฝ่ายการเงิน">เจ้าหน้าที่ฝ่ายการเงิน (Finance Officer)</option>
      <option value="ผู้จัดการฝ่ายการเงิน">ผู้จัดการฝ่ายการเงิน (Finance Manager)</option>
      <option value="กรรมการเครดิต">กรรมการเครดิต (Credit Committee)</option>

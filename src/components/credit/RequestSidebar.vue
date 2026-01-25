@@ -62,7 +62,7 @@
            <span class="customer-name">{{ req.customer_name }}</span>
            <div class="status-icon">
               <!-- Active Statuses (Clock) -->
-              <img v-if="['Draft', 'Opened', 'Submitted', 'Reviewed'].includes(req.status)" :src="iconClock" :alt="req.status" width="24" height="24" />
+              <img v-if="['Draft', 'Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed', 'Submitted', 'PendingSales (ชั่วคราว)'].includes(req.status)" :src="iconClock" :alt="req.status" width="24" height="24" />
               <!-- Negative Statuses (X) -->
               <img v-else-if="['Rejected', 'Canceled'].includes(req.status)" :src="iconRejected" :alt="req.status" width="24" height="24" />
               <!-- Positive Statuses (Check) -->
@@ -109,7 +109,7 @@ const fetchData = () => {
   const query = searchQuery.value;
   // Included 'Draft' and others to match backend active statuses
   if (activeTab.value === 'pending') {
-    store.fetchRequests('Draft,Opened,Submitted,Reviewed,PendingSales (ชั่วคราว),PendingFinance (ชั่วคราว)', query);
+    store.fetchRequests('Draft,Opened,RegionalSubmitted,SalesSubmitted,Reviewed,Submitted,PendingSales (ชั่วคราว),PendingFinance (ชั่วคราว)', query);
   } else {
     store.fetchRequests('Approved,Rejected,Closed,Canceled', query);
   }

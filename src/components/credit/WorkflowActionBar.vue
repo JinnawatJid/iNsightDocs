@@ -44,44 +44,53 @@ const availableActions = computed(() => {
 
   if (!status) return [];
 
-  // 1. Office Manager (Draft -> Opened)
-  if (status === 'Draft' && role === 'หัวหน้าสำนักงาน') {
+  const amount = Number(store.transactionData.amount || 0);
+
+  // 1. Branch Manager (Draft -> Opened)
+  if (status === 'Draft' && role === 'ผู้จัดการสาขา') {
     actions.push({ key: 'submit', label: 'ส่งคำขอ (Submit)', targetStatus: 'Opened', class: 'btn-primary' });
   }
 
-  // 2. Branch Manager (Opened -> Submitted | Rejected | Return)
-  if (status === 'Opened' && role === 'ผู้จัดการสาขา') {
-    actions.push({ key: 'approve', label: 'อนุมัติ (Approve)', targetStatus: 'Submitted', class: 'btn-success' });
+  // 2. Regional Manager (Opened -> RegionalSubmitted)
+  if (status === 'Opened' && role === 'ผู้จัดการภาค') {
+    actions.push({ key: 'approve', label: 'อนุมัติ (Approve)', targetStatus: 'RegionalSubmitted', class: 'btn-success' });
     actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
     actions.push({ key: 'return', label: 'ส่งกลับแก้ไข (Return)', targetStatus: 'Draft', class: 'btn-warning', requireComment: true });
   }
 
-  // 3. Sales Manager (Submitted -> PendingSales | Return)
-  if (status === 'Submitted' && role === 'ผู้จัดการฝ่ายขาย (HO)') {
-    actions.push({ key: 'verify', label: 'ตรวจสอบแล้ว (Verify)', targetStatus: 'PendingSales (ชั่วคราว)', class: 'btn-success' }); // Should go to Verify -> PendingSales
-    actions.push({ key: 'return', label: 'ส่งกลับแก้ไข (Return)', targetStatus: 'Draft', class: 'btn-warning', requireComment: true });
+  // 3. Sales Manager (RegionalSubmitted -> SalesSubmitted)
+  if (status === 'RegionalSubmitted' && role === 'ผู้จัดการฝ่ายขาย') {
+    actions.push({ key: 'approve', label: 'อนุมัติ (Approve)', targetStatus: 'SalesSubmitted', class: 'btn-success' });
+    actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
+    actions.push({ key: 'return', label: 'ส่งกลับแก้ไข (Return)', targetStatus: 'Opened', class: 'btn-warning', requireComment: true });
   }
 
-  // 4. Finance Officer (PendingSales -> Reviewed | Return)
-  if (status === 'PendingSales (ชั่วคราว)' && role === 'เจ้าหน้าที่ฝ่ายการเงิน') {
-    actions.push({ key: 'review', label: 'ตรวจสอบ (Review)', targetStatus: 'Reviewed', class: 'btn-success' });
-    actions.push({ key: 'return', label: 'ขอข้อมูลเพิ่ม (Return)', targetStatus: 'Opened', class: 'btn-warning', requireComment: true });
+  // 4. Finance Officer (SalesSubmitted -> Reviewed)
+  if (status === 'SalesSubmitted' && role === 'เจ้าหน้าที่ฝ่ายการเงิน') {
+    actions.push({ key: 'review', label: 'ตรวจสอบ (Verify)', targetStatus: 'Reviewed', class: 'btn-success' });
+    actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
+    actions.push({ key: 'return', label: 'ขอข้อมูลเพิ่ม (Return)', targetStatus: 'RegionalSubmitted', class: 'btn-warning', requireComment: true });
   }
 
-  // 5. Finance Manager (Reviewed -> PendingFinance (Committee) OR Approved (if low amount))
+  // 5. Finance Manager (Reviewed -> Approved if <= 300k)
   if (status === 'Reviewed' && role === 'ผู้จัดการฝ่ายการเงิน') {
-    // Logic for amount check could go here, but for now allow flow to Committee
-    actions.push({ key: 'forward', label: 'ส่งกรรมการเครดิต (Forward)', targetStatus: 'PendingFinance (ชั่วคราว)', class: 'btn-primary' });
-    actions.push({ key: 'approve', label: 'อนุมัติ (Approve)', targetStatus: 'Approved', class: 'btn-success' }); // If within authority
-    actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
-    actions.push({ key: 'return', label: 'ส่งกลับ (Return)', targetStatus: 'PendingSales (ชั่วคราว)', class: 'btn-warning', requireComment: true });
+    if (amount <= 300000) {
+        actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
+        actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
+        actions.push({ key: 'return', label: 'ส่งกลับ (Return)', targetStatus: 'SalesSubmitted', class: 'btn-warning', requireComment: true });
+    } else {
+        // High Value: FM sees no actions or maybe just "Reject"?
+        // For now, no actions, as CC must approve.
+    }
   }
 
-  // 6. Credit Committee (PendingFinance -> Approved | Rejected)
-  if (status === 'PendingFinance (ชั่วคราว)' && role === 'กรรมการเครดิต') {
-    actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
-    actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
-    actions.push({ key: 'return', label: 'ส่งกลับ (Return)', targetStatus: 'Reviewed', class: 'btn-warning', requireComment: true });
+  // 6. Credit Committee (Reviewed -> Approved if > 300k)
+  if (status === 'Reviewed' && role === 'กรรมการเครดิต') {
+    if (amount > 300000) {
+        actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
+        actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
+        actions.push({ key: 'return', label: 'ส่งกลับ (Return)', targetStatus: 'SalesSubmitted', class: 'btn-warning', requireComment: true });
+    }
   }
 
   // 7. Approved/Rejected/Canceled (No Actions)
