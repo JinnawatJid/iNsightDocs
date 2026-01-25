@@ -7,7 +7,6 @@
         <FileUploader
           label="รูปถ่าย"
           :required="isRequiredFile('home_photo')"
-          accept="image/*"
           v-model="files.homePhoto"
           :disabled="!isEditing"
         >
