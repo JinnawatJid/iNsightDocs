@@ -1,104 +1,45 @@
-from playwright.sync_api import sync_playwright, expect
-import time
 
-def run():
+from playwright.sync_api import sync_playwright, expect
+
+def run_verification():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context()
-        page = context.new_page()
+        page = browser.new_page()
 
         # 1. Navigate with Feature Flag
-        print("Navigating to Create Credit Request with Feature Flag...")
-        page.goto("http://localhost:3000/create-credit-request?feature=financial_draft")
+        # Targeted Vite Dev Server
+        print("Navigating to Create Request page with feature flag...")
+        page.goto("http://localhost:5173/create-credit-request?feature=financial_draft")
 
-        # Wait for page load
-        page.wait_for_load_state('networkidle')
+        # 2. Search for a customer to unlock tabs
+        print("Searching for customer '00001AY'...")
+        # Use exact placeholder or a simpler selector
+        page.get_by_placeholder("ค้นหาด้วย รหัสลูกค้า, ชื่อ, เบอร์โทร หรือ ชื่อบริษัท").fill("00001AY")
 
-        # 2. Mock API responses
+        # Click Search Button
+        page.click('button:has-text("ค้นหา")')
 
-        # Mock Suggestions (Autocomplete) - empty to avoid interference
-        page.route("**/api/customers/suggestions*", lambda route: route.fulfill(
-            status=200,
-            content_type="application/json",
-            body='[]'
-        ))
+        # Wait for results / Tabs to appear
+        print("Waiting for customer data to load...")
+        # Wait for tabs container to be visible
+        expect(page.locator('.application-tabs')).to_be_visible(timeout=10000)
 
-        # Mock Customer Search
-        page.route("**/api/customers/search?*", lambda route: route.fulfill(
-            status=200,
-            content_type="application/json",
-            body='''[{
-                "customer": {
-                    "id": "00001AY",
-                    "name": "Test Customer",
-                    "address": "123 Test St",
-                    "phone": "0812345678",
-                    "payment_method": "Transfer",
-                    "billing_requirement": "None",
-                    "billing_method": "Email"
-                },
-                "history": [],
-                "financial_summary": {},
-                "credit_score": {}
-            }]'''
-        ))
+        # 3. Switch to "Financial Documents" tab (เอกสารการเงิน)
+        print("Switching to Financial Documents tab...")
+        page.locator('div.tab-item', has_text="เอกสารการเงิน").click()
 
-        # Mock Credit Request Creation
-        page.route("**/api/credit-requests", lambda route: route.fulfill(
-            status=200,
-            content_type="application/json",
-            body='''{
-                "data": {
-                    "txId": "TMP-123456",
-                    "status": "Draft",
-                    "customer_no": "00001AY",
-                    "customer_name": "Test Customer",
-                    "attachments": []
-                }
-            }'''
-        ))
-
-        # Mock Comments (using wildcard for ID)
-        page.route("**/api/credit-requests/*/comments", lambda route: route.fulfill(
-            status=200,
-            content_type="application/json",
-            body='{"data": []}'
-        ))
-
-        # 3. Perform Search
-        print("Searching for customer...")
-        page.fill('input[placeholder*="ค้นหา"]', "Test Customer")
-        page.click('button.btn-search')
-
-        # Wait for Swal to close (it might take a moment for asyncs to finish)
-        # We can wait for the tabs to appear, which happens after search
-        print("Waiting for tabs...")
-        try:
-            page.wait_for_selector('.application-tabs', timeout=10000)
-        except Exception as e:
-            # If tabs don't appear, maybe Swal is still there. Take screenshot.
-            print("Tabs did not appear. Taking screenshot...")
-            page.screenshot(path="verification/timeout.png")
-            raise e
-
-        # 4. Switch to Financial Tab
-        print("Switching to Financial Tab...")
-        page.click('text=เอกสารการเงิน')
-
-        # 5. Verify Financial Analysis Section
+        # 4. Verify Financial Analysis Section is Visible
         print("Verifying Financial Analysis Section...")
-        try:
-            # Check for the specific header text in the new section
-            expect(page.locator('[data-testid="financial-analysis-section"]')).to_be_visible(timeout=5000)
-            print("SUCCESS: Financial Analysis section is visible.")
+        section = page.locator('[data-testid="financial-analysis-section"]')
+        expect(section).to_be_visible()
 
-            # Optional: Check console logs if we could access them, but checking visibility is enough
-        except Exception as e:
-            print("FAILURE: Financial Analysis section is NOT visible.")
-            page.screenshot(path="verification/failure.png")
-            raise e
+        print("Financial Analysis Section is VISIBLE!")
+
+        # 5. Take Screenshot
+        page.screenshot(path="verification/financial_draft_visible.png", full_page=True)
+        print("Screenshot saved to verification/financial_draft_visible.png")
 
         browser.close()
 
 if __name__ == "__main__":
-    run()
+    run_verification()
