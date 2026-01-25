@@ -2,7 +2,7 @@ const db = require('../db');
 const axios = require('axios');
 
 // Configuration
-const API_URL = "http://192.192.0.37:8280/customer-sp682/1.0.0";
+const API_URL = process.env.CUSTOMER_API_URL || "http://192.192.0.37:8280/customer-sp682/1.0.0";
 const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
 
 // Helper to format currency
