@@ -217,6 +217,7 @@
 
 <script setup>
 import { reactive, ref, watch, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
@@ -228,6 +229,7 @@ import { useFeatureFlag } from '@/composables/useFeatureFlag';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
+const route = useRoute();
 const { isFinancialDraftEnabled } = useFeatureFlag();
 
 // This might be overkill for just file uploads, but ensures consistency with other tabs
@@ -410,7 +412,11 @@ const shouldShowFinancialAnalysis = computed(() => {
     // Use lower case check and trim to be safe against database padding
     const cleanStatus = status ? status.trim().toLowerCase() : '';
     const isDraft = !status || cleanStatus === 'draft';
-    const flagEnabled = isFinancialDraftEnabled.value;
+
+    // We check the singleton composable, but also double-check route.query directly
+    // This ensures that even if the composable fails to trigger reactivity for some reason,
+    // the component's own reactive route dependency will save us.
+    const flagEnabled = isFinancialDraftEnabled.value || (route.query && route.query.feature === 'financial_draft');
 
     console.log('[StoreStatementTab] Status:', status, 'Clean:', cleanStatus, 'IsDraft:', isDraft, 'Flag:', flagEnabled);
 
@@ -419,20 +425,6 @@ const shouldShowFinancialAnalysis = computed(() => {
     }
 
     return false;
-});
-
-// Debug Helpers
-const debugStatus = computed(() => store.requestStatus);
-const debugIsDraft = computed(() => {
-    const s = store.requestStatus;
-    return !s || (s && s.trim().toLowerCase() === 'draft');
-});
-const debugFlag = computed(() => isFinancialDraftEnabled.value);
-const shouldShowDebugInfo = computed(() => {
-    // Show debug if feature is in URL but section is HIDDEN
-    // This helps user identify why it's hidden
-    const hasParam = window.location.href.includes('financial_draft');
-    return hasParam && !shouldShowFinancialAnalysis.value;
 });
 
 </script>
