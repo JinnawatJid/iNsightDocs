@@ -1,7 +1,7 @@
 // Workflow Configuration for Credit Request Status Transitions
 
 export const workflowConfig = {
-    // Office Manager (Start)
+    // Branch Manager (Start)
     'Draft': [
         {
             label: 'บันทึกแบบร่าง',
@@ -15,23 +15,23 @@ export const workflowConfig = {
             action: 'submit',
             variant: 'primary', // Blue button
             targetStatus: 'Opened',
-            confirmText: 'ส่งคำขอให้ผู้จัดการสาขา',
+            confirmText: 'ส่งคำขอให้ผู้จัดการภาค',
             confirmMessage: 'ทำรายการสำเร็จ'
         }
     ],
-    // Branch Manager
+    // Regional Manager
     'Opened': [
         {
-            label: 'ส่งให้ฝ่ายขาย (HO)',
+            label: 'ส่งให้ฝ่ายขาย',
             action: 'submit',
             variant: 'submit', // Blue (Primary)
-            targetStatus: 'Submitted',
-            confirmText: 'ส่งคำขอให้ฝ่ายขาย (HO)',
+            targetStatus: 'RegionalSubmitted',
+            confirmText: 'ส่งคำขอให้ฝ่ายขาย',
             confirmMessage: 'ทำรายการสำเร็จ'
         }
     ],
     // Sales Manager
-    'Submitted': [
+    'RegionalSubmitted': [
         {
             label: 'ปฏิเสธ',
             action: 'reject',
@@ -44,13 +44,13 @@ export const workflowConfig = {
             label: 'ส่งต่อให้ฝ่ายการเงิน',
             action: 'submit',
             variant: 'submit', // Blue
-            targetStatus: 'PendingSales (ชั่วคราว)',
+            targetStatus: 'SalesSubmitted',
             confirmText: 'ส่งต่อให้ฝ่ายการเงิน',
             confirmMessage: 'ทำรายการสำเร็จ'
         }
     ],
     // Finance Officer
-    'PendingSales (ชั่วคราว)': [
+    'SalesSubmitted': [
         {
             label: 'ปฏิเสธ',
             action: 'reject',
@@ -68,7 +68,7 @@ export const workflowConfig = {
             confirmMessage: 'ทำรายการสำเร็จ'
         }
     ],
-    // Finance Manager
+    // Finance Manager / Credit Committee (Reviewed)
     'Reviewed': [
         {
             label: 'ปฏิเสธ',
@@ -78,41 +78,11 @@ export const workflowConfig = {
             confirmText: 'ปฏิเสธคำขอ',
             confirmMessage: 'ปฏิเสธคำขอสำเร็จ'
         },
-        // Logic for High Value (>300k) vs Low Value is handled in the Component
-        // We define both potential paths here, and the component will filter/select based on logic
-        {
-            label: 'ส่งต่อให้กรรมการเครดิต',
-            action: 'submit',
-            variant: 'submit',
-            targetStatus: 'PendingFinance (ชั่วคราว)',
-            condition: 'isHighValue', // Flag for component to check
-            confirmText: 'ส่งต่อให้กรรมการเครดิต',
-            confirmMessage: 'ทำรายการสำเร็จ'
-        },
+        // Both High and Low value lead to Approved, but strictly by different roles (checked in component)
         {
             label: 'อนุมัติคำขอ',
             action: 'approve',
             variant: 'approve', // Green
-            targetStatus: 'Approved',
-            condition: 'isLowValue', // Flag for component to check
-            confirmText: 'อนุมัติคำขอ',
-            confirmMessage: 'อนุมัติคำขอสำเร็จ'
-        }
-    ],
-    // Credit Committee
-    'PendingFinance (ชั่วคราว)': [
-        {
-            label: 'ปฏิเสธ',
-            action: 'reject',
-            variant: 'reject',
-            targetStatus: 'Rejected',
-            confirmText: 'ปฏิเสธคำขอ',
-            confirmMessage: 'ปฏิเสธคำขอสำเร็จ'
-        },
-        {
-            label: 'อนุมัติคำขอ',
-            action: 'approve',
-            variant: 'approve',
             targetStatus: 'Approved',
             confirmText: 'อนุมัติคำขอ',
             confirmMessage: 'อนุมัติคำขอสำเร็จ'
@@ -121,23 +91,26 @@ export const workflowConfig = {
 };
 
 export const roleLabels = {
-    'Draft': 'หัวหน้าสำนักงาน',
-    'Opened': 'ผู้จัดการสาขา',
-    'Submitted': 'ผู้จัดการฝ่ายขาย (HO)',
-    'PendingSales (ชั่วคราว)': 'เจ้าหน้าที่ฝ่ายการเงิน',
-    'Reviewed': 'ผู้จัดการฝ่ายการเงิน',
-    'PendingFinance (ชั่วคราว)': 'กรรมการเครดิต',
+    'Draft': 'ผู้จัดการสาขา',
+    'Opened': 'ผู้จัดการภาค',
+    'RegionalSubmitted': 'ผู้จัดการฝ่ายขาย',
+    'SalesSubmitted': 'เจ้าหน้าที่ฝ่ายการเงิน',
+    'Reviewed': 'ผู้จัดการฝ่ายการเงิน / กรรมการเครดิต',
     'Approved': 'อนุมัติแล้ว',
     'Rejected': 'ปฏิเสธ',
     'Canceled': 'ยกเลิกแล้ว',
-    'Closed': 'ปิดงานแล้ว'
+    'Closed': 'ปิดงานแล้ว',
+
+    // Legacy Support
+    'Submitted': 'ผู้จัดการฝ่ายขาย (Legacy)',
+    'PendingSales (ชั่วคราว)': 'เจ้าหน้าที่ฝ่ายการเงิน (Legacy)',
+    'PendingFinance (ชั่วคราว)': 'กรรมการเครดิต (Legacy)'
 };
 
 export const commentPlaceholders = {
     'Draft': 'ระบุวัตถุประสงค์การขอเครดิต, ประวัติลูกค้า, และรายละเอียดโครงการเพื่อประกอบการพิจารณา...',
-    'Opened': 'ระบุความเห็นเพิ่มเติมสำหรับการพิจารณาของผู้จัดการสาขา...',
-    'Submitted': 'ระบุศักยภาพของลูกค้า, ปริมาณการซื้อขายที่คาดหวัง, หรือความจำเป็นทางธุรกิจ...',
-    'PendingSales (ชั่วคราว)': 'ระบุผลการตรวจสอบเอกสาร, ความครบถ้วนของข้อมูล, หรือประเด็นที่ต้องตรวจสอบเพิ่มเติม...',
-    'Reviewed': 'วิเคราะห์ความเสี่ยง, ประวัติการชำระเงิน, และข้อเสนอแนะทางการเงิน...',
-    'PendingFinance (ชั่วคราว)': 'ระบุเงื่อนไขการอนุมัติ, เหตุผลการตัดสินใจ, หรือข้อกำชับเพิ่มเติม...'
+    'Opened': 'ระบุความเห็นเพิ่มเติมสำหรับการพิจารณาของผู้จัดการภาค...',
+    'RegionalSubmitted': 'ระบุศักยภาพของลูกค้า, ปริมาณการซื้อขายที่คาดหวัง, หรือความจำเป็นทางธุรกิจ...',
+    'SalesSubmitted': 'ระบุผลการตรวจสอบเอกสาร, ความครบถ้วนของข้อมูล, หรือประเด็นที่ต้องตรวจสอบเพิ่มเติม...',
+    'Reviewed': 'วิเคราะห์ความเสี่ยง, ประวัติการชำระเงิน, และข้อเสนอแนะทางการเงิน...'
 };

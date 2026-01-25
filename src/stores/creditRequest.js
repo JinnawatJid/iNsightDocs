@@ -46,18 +46,22 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     activeTab: 'requestInfo',
 
     // Simulation State
-    userRole: 'หัวหน้าสำนักงาน' // Default Role
+    userRole: 'ผู้จัดการสาขา' // Default Role
   }),
 
   getters: {
     // Determine the role that *should* be acting on the current status
     targetRole: (state) => {
       const s = state.requestStatus;
-      if (!s || s === 'Draft') return 'หัวหน้าสำนักงาน';
-      if (s === 'Opened') return 'ผู้จัดการสาขา';
+      if (!s || s === 'Draft') return 'ผู้จัดการสาขา';
+      if (s === 'Opened') return 'ผู้จัดการภาค';
+      if (s === 'RegionalSubmitted') return 'ผู้จัดการฝ่ายขาย';
+      if (s === 'SalesSubmitted') return 'เจ้าหน้าที่ฝ่ายการเงิน';
+      if (s === 'Reviewed') return 'ผู้จัดการฝ่ายการเงิน / กรรมการเครดิต';
+
+      // Legacy support
       if (s === 'Submitted') return 'ผู้จัดการฝ่ายขาย (HO)';
       if (s === 'PendingSales (ชั่วคราว)') return 'เจ้าหน้าที่ฝ่ายการเงิน';
-      if (s === 'Reviewed') return 'ผู้จัดการฝ่ายการเงิน';
       if (s === 'PendingFinance (ชั่วคราว)') return 'กรรมการเครดิต';
       return '';
     },
@@ -735,7 +739,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
            // If status changed to something that removes it from the current user's list,
            // we might want to refresh the sidebar list too.
            // Triggering a list refresh for the current active tab
-           const listStatus = this.activeTab === 'history' ? 'Approved,Rejected,Closed,Canceled' : 'Draft,Opened,Submitted,Reviewed,PendingSales (ชั่วคราว),PendingFinance (ชั่วคราว)';
+           const listStatus = this.activeTab === 'history' ? 'Approved,Rejected,Closed,Canceled' : 'Draft,Opened,RegionalSubmitted,SalesSubmitted,Reviewed,Submitted,PendingSales (ชั่วคราว),PendingFinance (ชั่วคราว)';
            await this.fetchRequests(listStatus);
         }
 

@@ -149,10 +149,10 @@ exports.createCreditRequest = async (req, res) => {
   }
 
   try {
-    // Check for existing active request for this customer (Draft, Opened, Submitted, Reviewed, PendingSales, PendingFinance)
-    // Canceled, Approved, Rejected, Closed are considered inactive/final for this check
-    // We expanded the list of active statuses
-    const activeStatuses = ['Draft', 'Opened', 'Submitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'];
+    // Check for existing active request for this customer
+    // Legacy statuses: Submitted, Reviewed, PendingSales (ชั่วคราว), PendingFinance (ชั่วคราว)
+    // New statuses: RegionalSubmitted, SalesSubmitted, Reviewed
+    const activeStatuses = ['Draft', 'Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)', 'Submitted'];
     const statusPlaceholders = activeStatuses.map(() => '?').join(',');
 
     let existingSql;
@@ -188,33 +188,113 @@ exports.createCreditRequest = async (req, res) => {
       // EXISTING REQUEST FOUND
       txId = existing.tx_id;
       requestId = existing.id;
+      status = existing.status;
 
       // If is_submit is true, we update the data and possibly the status
       // We also handle "status" passed explicitly in the body for status transitions
       if (is_submit === 'true' || is_submit === true || req.body.status) {
 
-        // If status is passed explicitly, use it. Otherwise, default logic:
-        // Draft -> Opened (if submitted)
-        // Opened -> Submitted (if submitted)
-        // But the frontend should control the status now.
-
-        // Use provided status or keep existing if not provided (just save)
         let newStatus = req.body.status || existing.status;
 
-        // Fallback legacy logic: if submitting from Opened, go to Submitted?
-        // No, let's strictly rely on frontend passing the correct status for transitions.
-        // If simply "Saving Draft" (is_submit=false), we keep status.
+        // --- TxID Generation Logic (Draft -> Opened) ---
+        // If we are transitioning from Draft to Opened, we must generate the real ID
+        if (existing.status === 'Draft' && newStatus === 'Opened') {
+            const now = new Date();
+            const year = now.getFullYear();
+            const yy = year.toString().slice(-2);
+            const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+            const prefix = `AYCA${yy}${mm}/`;
 
-        // Logic for "Draft" -> "Opened" is managed by frontend passing status='Opened'
+            // Find the latest running number
+            let latestSql;
+            if (db.dbType === 'mssql') {
+                latestSql = `SELECT TOP 1 tx_id FROM CreditRequests WHERE tx_id LIKE ? ORDER BY tx_id DESC`;
+            } else {
+                latestSql = `SELECT tx_id FROM CreditRequests WHERE tx_id LIKE ? ORDER BY tx_id DESC LIMIT 1`;
+            }
+            const { rows: latestRows } = await db.query(latestSql, [`${prefix}%`]);
+
+            let runningNum = 1;
+            if (latestRows && latestRows.length > 0) {
+                const lastTxId = latestRows[0].tx_id;
+                const lastNumStr = lastTxId.split('/')[1];
+                const lastNum = parseInt(lastNumStr, 10);
+                if (!isNaN(lastNum)) runningNum = lastNum + 1;
+            }
+
+            if (runningNum > 999) return res.status(500).json({ error: 'Transaction limit exceeded for this month' });
+
+            const newRealTxId = `${prefix}${runningNum.toString().padStart(3, '0')}`;
+            const oldTxId = txId;
+
+            console.log(`Finalizing Draft ${oldTxId} to ${newRealTxId}`);
+
+            // 1. Rename Folder
+            // Determine old directory path (might be from a previous month)
+            let oldDir = null;
+            // Check if any attachments exist to get the exact path
+            let attSql;
+            if (db.dbType === 'mssql') {
+                 attSql = 'SELECT TOP 1 file_path FROM CreditRequestAttachments WHERE tx_id = ?';
+            } else {
+                 attSql = 'SELECT file_path FROM CreditRequestAttachments WHERE tx_id = ? LIMIT 1';
+            }
+            const { rows: attRows } = await db.query(attSql, [oldTxId]);
+
+            if (attRows && attRows.length > 0) {
+                 // DB stores path as YYYY/MM/ID/filename.ext (Forward slashes)
+                 const parts = attRows[0].file_path.split('/');
+                 parts.pop(); // remove filename
+                 // Join with OS separator for local FS operations
+                 const relativeOldDir = parts.join(path.sep);
+                 oldDir = path.join(UPLOAD_BASE, relativeOldDir);
+            } else {
+                 // Fallback: Use created_at of the draft
+                 const createdDate = new Date(existing.created_at);
+                 const cYear = createdDate.getFullYear();
+                 const cMm = (createdDate.getMonth() + 1).toString().padStart(2, '0');
+                 oldDir = path.join(UPLOAD_BASE, cYear.toString(), cMm, oldTxId);
+            }
+
+            const newDir = path.join(UPLOAD_BASE, year.toString(), mm, newRealTxId);
+
+            if (oldDir && await fs.pathExists(oldDir)) {
+                // Ensure parent of newDir exists
+                await fs.ensureDir(path.dirname(newDir));
+                await fs.move(oldDir, newDir);
+            }
+
+            // 2. Update DB Attachments Paths
+            // Path format: YYYY/MM/TXID/file.ext
+            // We need to replace the old TXID part with new TXID in the path
+            const oldPathSegment = `${oldTxId}/`;
+            const newPathSegment = `${newRealTxId}/`;
+
+            // Note: simple REPLACE in SQL might be safer, but let's query and update to be DB-agnostic-ish
+            // Actually, we can just use the fact that we know the structure.
+            await db.runAsync(
+                `UPDATE CreditRequestAttachments SET tx_id = ?, file_path = REPLACE(file_path, ?, ?) WHERE tx_id = ?`,
+                [newRealTxId, oldPathSegment, newPathSegment, oldTxId]
+            );
+
+            // 3. Update Comments
+            await db.runAsync(`UPDATE RequestComments SET tx_id = ? WHERE tx_id = ?`, [newRealTxId, oldTxId]);
+
+            // 4. Update the Request itself (will happen in the main UPDATE below, but we need to update tx_id too)
+            // We'll include tx_id in the main update query or do it here.
+            // Let's do it in the main update to avoid conflicts, but we need to update the variable 'txId'
+            txId = newRealTxId;
+        }
 
         status = newStatus;
 
+        // Update Query (including tx_id in case it changed)
         await db.runAsync(
-          'UPDATE CreditRequests SET request_amount = ?, request_reason = ?, request_credit_term = ?, term_gs = ?, term_ae = ?, term_yc = ?, request_type = ?, snapshot_data = ?, status = ? WHERE id = ?',
-          [request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data, status, requestId]
+          'UPDATE CreditRequests SET tx_id = ?, request_amount = ?, request_reason = ?, request_credit_term = ?, term_gs = ?, term_ae = ?, term_yc = ?, request_type = ?, snapshot_data = ?, status = ? WHERE id = ?',
+          [txId, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data, status, requestId]
         );
 
-        // Handle Comment insertion if provided
+        // Handle Comment insertion
         if (req.body.comment && req.body.actor_role) {
              await db.runAsync(
                 'INSERT INTO RequestComments (tx_id, actor_role, comment_text) VALUES (?, ?, ?)',
@@ -223,8 +303,7 @@ exports.createCreditRequest = async (req, res) => {
         }
 
       } else {
-        // Just return existing request without changes
-        status = existing.status;
+        // Just return existing request
         responseSnapshot = existing.snapshot_data;
         responseAmount = existing.request_amount;
         responseReason = existing.request_reason;
@@ -236,49 +315,11 @@ exports.createCreditRequest = async (req, res) => {
       }
 
     } else {
-      // Create NEW Request
-      // Generate TxId: AYCA[YY][MM]/[RunningNumber]
+      // Create NEW Request (DRAFT)
+      // Generate Temporary TxId: TMP-[Timestamp]
       const now = new Date();
-      const year = now.getFullYear();
-      const yy = year.toString().slice(-2);
-      const mm = (now.getMonth() + 1).toString().padStart(2, '0');
-      const prefix = `AYCA${yy}${mm}/`;
+      txId = `TMP-${now.getTime()}`;
 
-      // Find the latest running number for this month
-      let latestSql;
-      if (db.dbType === 'mssql') {
-        latestSql = `
-          SELECT TOP 1 tx_id FROM CreditRequests
-          WHERE tx_id LIKE ?
-          ORDER BY tx_id DESC
-        `;
-      } else {
-        latestSql = `
-          SELECT tx_id FROM CreditRequests
-          WHERE tx_id LIKE ?
-          ORDER BY tx_id DESC
-          LIMIT 1
-        `;
-      }
-      const { rows: latestRows } = await db.query(latestSql, [`${prefix}%`]);
-
-      let runningNum = 1;
-      if (latestRows && latestRows.length > 0) {
-        const lastTxId = latestRows[0].tx_id;
-        const lastNumStr = lastTxId.split('/')[1];
-        const lastNum = parseInt(lastNumStr, 10);
-        if (!isNaN(lastNum)) {
-          runningNum = lastNum + 1;
-        }
-      }
-
-      if (runningNum > 999) {
-        return res.status(500).json({ error: 'Transaction limit exceeded for this month (max 999)' });
-      }
-
-      txId = `${prefix}${runningNum.toString().padStart(3, '0')}`;
-
-      // New requests start as Draft
       status = 'Draft';
 
       const result = await db.runAsync(
@@ -417,7 +458,7 @@ exports.cancelCreditRequest = async (req, res) => {
     }
 
     // Allow cancel for any active status
-    const activeStatuses = ['Draft', 'Opened', 'Submitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'];
+    const activeStatuses = ['Draft', 'Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)', 'Submitted'];
     const request = rows[0];
 
     if (!activeStatuses.includes(request.status)) {
