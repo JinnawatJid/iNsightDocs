@@ -207,16 +207,11 @@
         </div>
       </div>
     </div>
-
-    <!-- Debug Info (Only visible if flag is in URL but section is hidden) -->
-    <div v-if="shouldShowDebugInfo" class="debug-info-panel">
-        <small>Debug: Status=[{{ debugStatus }}] | IsDraft=[{{ debugIsDraft }}] | Flag=[{{ debugFlag }}]</small>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, watch, computed } from 'vue';
+import { reactive, ref, watch, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
@@ -224,7 +219,6 @@ import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { useFormValidation } from '@/composables/useFormValidation';
-import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 import { useFeatureFlag } from '@/composables/useFeatureFlag';
 
 const props = defineProps(['readOnly']);
@@ -232,29 +226,28 @@ const store = useCreditRequestStore();
 const route = useRoute();
 const { isFinancialDraftEnabled } = useFeatureFlag();
 
-// This might be overkill for just file uploads, but ensures consistency with other tabs
-// and handles potential future text inputs validation
 const { errors, validateField } = useFormValidation();
 
 const isEditing = ref(!props.readOnly);
 const analyzing = ref(false);
-const registeredCapital = ref(''); // Now a string to support commas
+const registeredCapital = ref('');
 const analysisResults = ref(null);
 const showDebug = ref(false);
+
+const windowUrl = ref('');
+
+onMounted(() => {
+    // Capture URL on mount to ensure we have the browser's true state
+    windowUrl.value = window.location.href;
+});
 
 watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
 
-// Validation Watcher (Boilerplate to satisfy "validation on inactive tabs" pattern)
 watch(() => store.showValidationErrors, (val) => {
     if (val) {
-        // If we had text fields here, we would validate them like this:
-        // validateField('someField', formData.someField, ['required']);
-
-        // For files, the parent CreditRequestForm usually handles "is file present" logic and alerts.
-        // But if FileUploader supports :error prop, we could pass it.
-        // Currently FileUploader only has visual 'required' indicator.
+        // Validation logic
     }
 }, { immediate: true });
 
@@ -290,14 +283,10 @@ watch(() => store.files, (newVal) => {
   }
 }, { immediate: true, deep: true });
 
-// Input Handler for Auto-Comma
 const handleCapitalInput = (event) => {
     let val = event.target.value;
-    // Remove all non-digit characters
     val = val.replace(/[^0-9]/g, '');
-
     if (val) {
-        // Format with commas
         registeredCapital.value = Number(val).toLocaleString('en-US');
     } else {
         registeredCapital.value = '';
@@ -309,10 +298,7 @@ const analyzeFinancials = async () => {
     Swal.fire('Error', 'กรุณาอัปโหลดไฟล์ งบดุล, งบกำไรขาดทุน และ อัตราส่วนทางการเงิน', 'error');
     return;
   }
-
-  // Parse raw number from formatted string
   const cleanCapital = registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : '';
-
   if (!cleanCapital) {
      Swal.fire('Warning', 'กรุณาระบุทุนจดทะเบียนเพื่อการคำนวณที่ถูกต้อง', 'warning');
   }
@@ -324,11 +310,9 @@ const analyzeFinancials = async () => {
   formData.append('financial_ratios', files.financialRatios);
   formData.append('registered_capital', cleanCapital);
 
-  // Get request amount from store
   const requestAmount = store.transactionData?.amount || 0;
   formData.append('request_amount', requestAmount);
 
-  // Get Customer No
   const customerNo = store.customer?.id || store.customer?.No_;
   if (customerNo) {
       formData.append('customer_no', customerNo);
@@ -341,18 +325,13 @@ const analyzeFinancials = async () => {
 
     if (response.data.success) {
       analysisResults.value = response.data;
-
-      // Update store with analysis result
       store.updateFinancialAnalysis(response.data);
-
-      // Update store creditScore so the sidebar updates
       if (response.data.scoringResult) {
           store.creditScore = {
               ...store.creditScore,
               ...response.data.scoringResult
           };
       }
-
       Swal.fire('Success', 'วิเคราะห์ข้อมูลเรียบร้อยแล้ว', 'success');
     }
   } catch (error) {
@@ -387,61 +366,40 @@ const getGradeClass = (grade) => {
     return 'text-danger';
 };
 
-// Debug Helpers
-const debugStatus = computed(() => store.requestStatus);
-const debugIsDraft = computed(() => {
-    const s = store.requestStatus ? store.requestStatus.trim().toLowerCase() : '';
-    return !store.requestStatus || s === 'draft';
-});
-const debugFlag = computed(() => {
-    return isFinancialDraftEnabled.value || (route.query && route.query.feature === 'financial_draft');
+// Computed for Diagnostics
+const cleanStatus = computed(() => store.requestStatus ? String(store.requestStatus).trim().toLowerCase() : '');
+const isDraft = computed(() => !store.requestStatus || cleanStatus.value === 'draft' || cleanStatus.value === '');
+const hasFlag = computed(() => {
+    // Check reactivity of composable AND raw window URL
+    return isFinancialDraftEnabled.value || windowUrl.value.includes('feature=financial_draft');
 });
 
 // Visibility Logic for Financial Analysis
 const shouldShowFinancialAnalysis = computed(() => {
-    const status = store.requestStatus;
-
-    // 1. Standard Visibility (Downstream roles) + New Workflow Statuses
+    // 1. Standard Visibility (Downstream roles)
     const visibleStatuses = [
-        'Opened',
-        'RegionalSubmitted',
-        'SalesSubmitted',
-        'Submitted',
-        'Reviewed',
-        'Approved',
-        'PendingFinance (ชั่วคราว)',
-        'PendingSales (ชั่วคราว)'
+        'opened',
+        'regionalsubmitted',
+        'salessubmitted',
+        'submitted',
+        'reviewed',
+        'approved',
+        'pendingfinance',
+        'pendingsales',
+        'pendingfinance (ชั่วคราว)',
+        'pendingsales (ชั่วคราว)'
     ];
 
-    if (visibleStatuses.includes(status)) {
+    if (visibleStatuses.some(s => cleanStatus.value.includes(s))) {
         return true;
     }
 
     // 2. Draft Phase Visibility (Controlled by Feature Flag)
-    // If status is Draft or null (New Request), check the flag
-    // Use lower case check and trim to be safe against database padding
-    const cleanStatus = status ? status.trim().toLowerCase() : '';
-    const isDraft = !status || cleanStatus === 'draft';
-
-    // We check the singleton composable, but also double-check route.query directly
-    // This ensures that even if the composable fails to trigger reactivity for some reason,
-    // the component's own reactive route dependency will save us.
-    const flagEnabled = isFinancialDraftEnabled.value || (route.query && route.query.feature === 'financial_draft');
-
-    console.log('[StoreStatementTab] Status:', status, 'Clean:', cleanStatus, 'IsDraft:', isDraft, 'Flag:', flagEnabled);
-
-    if (isDraft && flagEnabled) {
+    if (isDraft.value && hasFlag.value) {
         return true;
     }
 
     return false;
-});
-
-const shouldShowDebugInfo = computed(() => {
-    // Show debug info if the feature flag is in the URL
-    const flagInUrl = (route.query && route.query.feature === 'financial_draft');
-    // If flag is present, always show debug info to help diagnose why the section might be hidden
-    return flagInUrl;
 });
 
 </script>
@@ -750,15 +708,4 @@ input:checked + .slider:before {
     font-weight: bold;
     color: #007bff;
 }
-
-.debug-info-panel {
-    margin-top: 20px;
-    padding: 10px;
-    background: #fff3cd;
-    border: 1px solid #ffeeba;
-    color: #856404;
-    border-radius: 4px;
-    text-align: center;
-}
-
 </style>
