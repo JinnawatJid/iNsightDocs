@@ -58,16 +58,15 @@ export function useFeatureFlag() {
 
     // --- Financial Draft Feature ---
     if (featureParam === 'financial_draft') {
-      sessionStorage.setItem('FINANCIAL_DRAFT_ENABLED', 'true');
+      // Transient flag: Enabled for this session/SPA lifecycle, but not persisted to storage
       isFinancialDraftEnabled.value = true;
-      console.log('[FeatureFlag] Financial Draft Enabled via URL');
+      console.log('[FeatureFlag] Financial Draft Enabled via URL (Transient)');
     } else if (featureParam === 'financial_off') {
-      sessionStorage.removeItem('FINANCIAL_DRAFT_ENABLED');
       isFinancialDraftEnabled.value = false;
       console.log('[FeatureFlag] Financial Draft Disabled via URL');
-    } else {
-      isFinancialDraftEnabled.value = sessionStorage.getItem('FINANCIAL_DRAFT_ENABLED') === 'true';
     }
+    // No else block: Maintain current state during navigation if param is missing
+    // (Defaults to false on fresh reload if param is not present)
   };
 
   // Initial Check (Window)
