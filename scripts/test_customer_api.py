@@ -47,12 +47,12 @@ def run_test(name, payload):
         return None
 
 def main():
+    global API_KEY
     if not API_KEY:
         print("Please set CUSTOMER_API_KEY env var")
         # Fallback to interactive input if running manually
         try:
             import getpass
-            global API_KEY
             API_KEY = getpass.getpass("Enter API Key: ")
         except:
             sys.exit(1)
