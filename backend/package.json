@@ -17,6 +17,7 @@
     "multer": "^1.4.5-lts.1",
     "pdf-poppler": "^0.2.3",
     "pdfmake": "^0.2.20",
+    "puppeteer": "^24.36.0",
     "sqlite3": "^5.1.7",
     "tesseract.js": "^7.0.0",
     "thai-address-database": "^0.0.30",

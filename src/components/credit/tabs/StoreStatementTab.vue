@@ -33,7 +33,39 @@
     <div class="financial-analysis-section" v-if="shouldShowFinancialAnalysis" data-testid="financial-analysis-section">
       <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต (Financial Analysis & Scoring)</div>
 
-      <div class="upload-grid-three">
+      <!-- DBD Auto Import Section -->
+      <div class="dbd-section" v-if="isEditing">
+         <div class="dbd-header">
+            <span class="dbd-title">DBD Auto Import</span>
+            <span class="dbd-subtitle">ดึงข้อมูลจาก DataWarehouse</span>
+         </div>
+         <div class="dbd-controls">
+            <div class="form-group dbd-input-group">
+                <input
+                  type="text"
+                  v-model="dbdQuery"
+                  class="form-control"
+                  placeholder="เลขทะเบียนนิติบุคคล หรือ ชื่อบริษัท"
+                />
+            </div>
+            <button
+                class="btn-dbd"
+                @click="autoDownloadDBD"
+                :disabled="downloadingDBD || !dbdQuery"
+            >
+                <span v-if="downloadingDBD">กำลังดาวน์โหลด...</span>
+                <span v-else>Auto Download</span>
+            </button>
+         </div>
+      </div>
+
+      <div class="upload-grid-four">
+        <FileUploader
+          label="ข้อมูลบริษัท (Company Profile)"
+          v-model="files.companyProfile"
+          :disabled="!isEditing"
+          accept=".pdf"
+        />
         <FileUploader
           label="งบดุล (Balance Sheet)"
           v-model="files.balanceSheet"
@@ -230,6 +262,8 @@ const { errors, validateField } = useFormValidation();
 
 const isEditing = ref(!props.readOnly);
 const analyzing = ref(false);
+const downloadingDBD = ref(false);
+const dbdQuery = ref('');
 const registeredCapital = ref('');
 const analysisResults = ref(null);
 const showDebug = ref(false);
@@ -257,7 +291,8 @@ const files = reactive({
   letterGuarantee: null,
   balanceSheet: null,
   profitLoss: null,
-  financialRatios: null
+  financialRatios: null,
+  companyProfile: null
 });
 
 // Watchers for store sync
@@ -267,6 +302,7 @@ watch(() => files.letterGuarantee, (v) => store.updateFile('letter_guarantee_doc
 watch(() => files.balanceSheet, (v) => store.updateFile('balance_sheet_doc', v));
 watch(() => files.profitLoss, (v) => store.updateFile('profit_loss_doc', v));
 watch(() => files.financialRatios, (v) => store.updateFile('financial_ratios_doc', v));
+watch(() => files.companyProfile, (v) => store.updateFile('company_profile_doc', v));
 
 // Initialize files from store
 watch(() => store.files, (newVal) => {
@@ -275,6 +311,7 @@ watch(() => store.files, (newVal) => {
   files.balanceSheet = newVal?.balance_sheet_doc || null;
   files.profitLoss = newVal?.profit_loss_doc || null;
   files.financialRatios = newVal?.financial_ratios_doc || null;
+  files.companyProfile = newVal?.company_profile_doc || null;
 
   if (newVal && newVal.bank_statement) {
       files.bankStatement = newVal.bank_statement;
@@ -290,6 +327,64 @@ const handleCapitalInput = (event) => {
         registeredCapital.value = Number(val).toLocaleString('en-US');
     } else {
         registeredCapital.value = '';
+    }
+};
+
+// Initialize DBD Query from Customer Data
+watch(() => store.customer, (val) => {
+    if (val && !dbdQuery.value) {
+        // Prefer Tax ID, fallback to Name (if company)
+        if (val.tax_id) {
+            dbdQuery.value = val.tax_id;
+        } else if (store.isCompany && val.name) {
+            dbdQuery.value = val.name;
+        }
+    }
+}, { immediate: true });
+
+const autoDownloadDBD = async () => {
+    if (!dbdQuery.value) return;
+
+    downloadingDBD.value = true;
+    try {
+        const response = await axios.post('/api/external/dbd-profile', {
+            taxId: dbdQuery.value
+        }, {
+            responseType: 'blob'
+        });
+
+        // Convert Blob to File
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const fileName = `DBD_Profile_${dbdQuery.value}.pdf`;
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+
+        // Assign to uploader
+        // FileUploader expects the raw File object or { name, ... } if remote
+        // But since we just downloaded it, it's a "New" file.
+        // We set it directly. FileUploader v-model usually handles this.
+        files.companyProfile = file;
+
+        Swal.fire({
+            title: 'Success',
+            text: 'ดาวน์โหลดข้อมูลบริษัทเรียบร้อยแล้ว',
+            icon: 'success',
+            timer: 2000
+        });
+
+    } catch (error) {
+        console.error('DBD Download Error:', error);
+        let msg = 'ไม่สามารถดาวน์โหลดข้อมูลได้';
+        if (error.response && error.response.data instanceof Blob) {
+             // Try to parse JSON from Blob
+             try {
+                const text = await error.response.data.text();
+                const json = JSON.parse(text);
+                if (json.message) msg = json.message;
+             } catch (e) {}
+        }
+        Swal.fire('Error', msg, 'error');
+    } finally {
+        downloadingDBD.value = false;
     }
 };
 
@@ -440,6 +535,61 @@ const shouldShowFinancialAnalysis = computed(() => {
   grid-template-columns: repeat(3, 1fr);
   gap: 15px;
   margin-bottom: 20px;
+}
+
+.upload-grid-four {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.dbd-section {
+    background-color: #e3f2fd;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #90caf9;
+}
+
+.dbd-header {
+    margin-bottom: 10px;
+}
+
+.dbd-title {
+    font-weight: bold;
+    color: #1565c0;
+    margin-right: 10px;
+}
+
+.dbd-subtitle {
+    font-size: 0.9em;
+    color: #555;
+}
+
+.dbd-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.dbd-input-group {
+    flex: 1;
+    max-width: 400px;
+}
+
+.btn-dbd {
+    background-color: #1976d2;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-dbd:disabled {
+    background-color: #90caf9;
+    cursor: not-allowed;
 }
 
 .manual-input-row {
