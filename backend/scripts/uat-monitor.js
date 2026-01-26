@@ -1,5 +1,4 @@
-const axios = require('axios');
-const path = require('path');
+const http = require('http');
 const db = require('../db');
 
 // Configuration
@@ -27,19 +26,24 @@ const printHeader = () => {
     console.log('----------------------------------------');
 };
 
-const checkHealth = async () => {
-    try {
+const checkHealth = () => {
+    return new Promise((resolve) => {
         const start = Date.now();
-        const response = await axios.get(API_URL);
-        const duration = Date.now() - start;
-        if (response.status === 200) {
-            return `${colors.green}ONLINE (Ping: ${duration}ms)${colors.reset}`;
-        } else {
-            return `${colors.red}ERROR (Status: ${response.status})${colors.reset}`;
-        }
-    } catch (error) {
-        return `${colors.red}OFFLINE (Connection Refused)${colors.reset}`;
-    }
+        const req = http.get(API_URL, (res) => {
+            const duration = Date.now() - start;
+            if (res.statusCode === 200) {
+                resolve(`${colors.green}ONLINE (Ping: ${duration}ms)${colors.reset}`);
+            } else {
+                resolve(`${colors.red}ERROR (Status: ${res.statusCode})${colors.reset}`);
+            }
+        });
+
+        req.on('error', (err) => {
+            resolve(`${colors.red}OFFLINE (Connection Refused)${colors.reset}`);
+        });
+
+        req.end();
+    });
 };
 
 const getDbStats = async () => {

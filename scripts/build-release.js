@@ -283,7 +283,11 @@ set "PATH=%~dp0node;%PATH%"
 :: Navigate to backend
 cd backend
 
-:: Start Server
+:: Start UAT Monitor in a new window
+start "UAT Dashboard" cmd /k "mode con: cols=60 lines=20 & node scripts/uat-monitor.js"
+
+:: Start Server in the current window
+echo Starting backend server...
 node server.js
 
 pause

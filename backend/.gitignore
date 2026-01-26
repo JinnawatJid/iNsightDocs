@@ -26,5 +26,6 @@ dist-ssr
 
 # Backend Database
 backend/*.db
-backend/uploads*.sqlite
+backend/uploads
+*.sqlite
 *.sqlite-journal
