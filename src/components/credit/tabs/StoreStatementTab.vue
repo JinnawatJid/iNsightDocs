@@ -59,7 +59,7 @@
          </div>
       </div>
 
-      <div class="upload-grid-four">
+      <div class="upload-grid-four" v-if="store.isCompany">
         <FileUploader
           label="ข้อมูลบริษัท (Company Profile)"
           v-model="files.companyProfile"
@@ -86,7 +86,7 @@
         />
       </div>
 
-      <div class="manual-input-row" v-if="isEditing">
+      <div class="manual-input-row" v-if="isEditing && store.isCompany">
         <div class="form-group">
           <label>ทุนจดทะเบียน (Registered Capital)</label>
           <input
