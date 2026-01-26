@@ -73,6 +73,30 @@
       <!-- COLUMN 2: SCORING BREAKDOWN -->
       <div class="sheet-column score-column">
 
+        <!-- SECTION 2: REVENUE (New) -->
+        <div class="score-section">
+            <div class="section-title header-pink">2: รายได้</div>
+            <div class="revenue-grid">
+               <!-- Header Row -->
+               <div class="rev-header">รายได้ในแต่ละปี</div>
+               <div class="rev-header-y">ปีที่ 1</div>
+               <div class="rev-header-y">ปีที่ 2</div>
+               <div class="rev-header-y">ปีที่ 3<br>(ปีล่าสุด)</div>
+               <div class="rev-header-avg">รายได้เฉลี่ย</div>
+               <div class="rev-header-gp">กำไรขั้นต้น<br>ปีล่าสุด</div>
+
+               <!-- Value Row -->
+               <div class="rev-val empty-cell"></div>
+
+               <div class="rev-val">{{ formatMoney(getRevenueYear(0)) }}</div>
+               <div class="rev-val">{{ formatMoney(getRevenueYear(1)) }}</div>
+               <div class="rev-val">{{ formatMoney(getRevenueYear(2)) }}</div>
+
+               <div class="rev-val val-gray">{{ formatMoney(extracted.averageRevenue) }}</div>
+               <div class="rev-val">{{ formatMoney(extracted.grossProfit?.value) }}</div>
+            </div>
+        </div>
+
         <!-- SECTION 1: COMPANY (C1) -->
         <div class="score-section">
             <div class="section-title header-pink">1: ข้อมูลบริษัท (Company Strength)</div>
@@ -95,7 +119,14 @@
 
         <!-- SECTION 2: CASH FLOW (C2) -->
         <div class="score-section">
-             <div class="section-title header-orange-light">3: CashFlow ของบริษัท</div>
+             <div class="section-title header-pink">3: CashFlow ของบริษัท</div>
+
+             <!-- Raw Inventory Turnover Display -->
+             <div class="raw-inventory-box">
+                 <div class="inv-label">อัตราการหมุนเวียนของสินค้าคงเหลือ</div>
+                 <div class="inv-value">{{ formatScore(extracted.inventoryTurnover?.value) }}</div>
+             </div>
+
              <div class="score-grid-3">
                 <div class="score-item">
                     <div class="s-label">D/E Ratio</div>
@@ -263,6 +294,12 @@ const getGradeClass = (g) => {
     if (g === 'A') return 'grade-a';
     if (g === 'B') return 'grade-b';
     return 'grade-c';
+};
+
+const getRevenueYear = (index) => {
+    const history = extracted.value.revenueHistory || [];
+    if (history[index]) return history[index].amount;
+    return 0;
 };
 
 </script>
@@ -488,4 +525,63 @@ const getGradeClass = (g) => {
     font-size: 1.1em;
 }
 
+/* REVENUE GRID */
+.revenue-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1.2fr;
+    grid-template-rows: auto auto;
+    border: 1px solid #ddd;
+    text-align: center;
+    font-size: 0.9em;
+    margin: 5px;
+}
+
+.rev-header, .rev-header-y, .rev-header-avg, .rev-header-gp {
+    padding: 8px 2px;
+    font-weight: bold;
+    border: 1px solid #ccc;
+    background-color: #ffe699;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rev-header-y, .rev-header-avg, .rev-header-gp { background-color: #f4b084; }
+
+.rev-val {
+    padding: 8px 2px;
+    border: 1px solid #ccc;
+    background-color: #cfe2f3;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rev-val.empty-cell {
+    background-color: transparent;
+    border: none;
+}
+
+.val-gray { background-color: #eee; }
+
+/* RAW INVENTORY */
+.raw-inventory-box {
+    text-align: center;
+    border: 1px solid #333;
+    margin: 10px 20px;
+    background-color: #f4b084;
+}
+.inv-label {
+    padding: 5px;
+    font-weight: bold;
+    border-bottom: 1px solid #333;
+    font-size: 0.9em;
+}
+.inv-value {
+    background-color: #cfe2f3;
+    padding: 10px;
+    font-size: 1.2em;
+    font-weight: bold;
+}
 </style>
