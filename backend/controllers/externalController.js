@@ -3,46 +3,59 @@ const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
 
-exports.downloadDBDProfile = async (req, res) => {
-    const { taxId, companyName } = req.body;
+// Helper to send SSE messages
+const sendSSE = (res, data) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+};
+
+/**
+ * Stream DBD Profile Download (SSE)
+ * Provides real-time status updates to the client.
+ */
+exports.streamDBDProfile = async (req, res) => {
+    // Note: EventSource uses GET, so params are in query
+    const { taxId, companyName } = req.query;
     const query = taxId || companyName;
 
     if (!query) {
         return res.status(400).json({ success: false, message: 'Tax ID or Company Name is required' });
     }
 
+    // Set headers for Server-Sent Events
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no' // Important for Nginx/Proxies to not buffer
+    });
+
     let browser = null;
     let tmpDir = null;
 
     try {
-        // Create a unique temp directory for this download
+        sendSSE(res, { status: 'progress', message: 'Initializing download environment...' });
+
+        // Create unique temp dir
         tmpDir = path.join(os.tmpdir(), `dbd-${Date.now()}-${Math.random().toString(36).substring(7)}`);
         await fs.ensureDir(tmpDir);
 
-        console.log(`[DBD Auto] Starting download for query: ${query}, tmpDir: ${tmpDir}`);
+        sendSSE(res, { status: 'progress', message: 'Launching browser...' });
 
-        // Launch Puppeteer
-        // Default to headless (true) unless explicitly set to 'false' for debugging
         const isHeadless = process.env.DBD_HEADLESS !== 'false';
-        console.log(`[DBD Auto] Launching Puppeteer (Headless: ${isHeadless})...`);
-
         browser = await puppeteer.launch({
             headless: isHeadless,
-            defaultViewport: null, // Allow browser to size itself
+            defaultViewport: null,
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--window-size=1920,1080',
                 '--disable-gpu',
-                '--ignore-certificate-errors',
-                '--disable-features=IsolateOrigins,site-per-process'
+                '--ignore-certificate-errors'
             ]
         });
 
         const page = await browser.newPage();
-
-        // Set a realistic User-Agent to avoid bot detection
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
         // Configure download behavior
@@ -52,151 +65,100 @@ exports.downloadDBDProfile = async (req, res) => {
             downloadPath: tmpDir,
         });
 
-        // 1. Navigate to DBD Datawarehouse
-        console.log('[DBD Auto] Navigating to https://datawarehouse.dbd.go.th/ ...');
+        // 1. Navigate
+        sendSSE(res, { status: 'progress', message: 'Opening DBD DataWarehouse...' });
+        console.log('[DBD Stream] Navigating...');
         await page.goto('https://datawarehouse.dbd.go.th/', { waitUntil: 'networkidle2', timeout: 60000 });
 
-        const title = await page.title();
-        console.log(`[DBD Auto] Page Title: ${title}`);
-
-        // --- HANDLE POPUPS ---
+        // --- POPUP HANDLING ---
+        sendSSE(res, { status: 'progress', message: 'Checking for popups...' });
         try {
-            console.log('[DBD Auto] Checking for popups...');
-            // Give time for popup to animate in
+            // Wait briefly for animations
             await new Promise(r => setTimeout(r, 2000));
-
-            // Strategy 1: Press Escape (often works for modals)
             await page.keyboard.press('Escape');
-            await new Promise(r => setTimeout(r, 1000));
 
-            // Strategy 2: Look for "ปิด" (Close) button explicitly
-            const closeClicked = await page.evaluate(() => {
+            // Close buttons
+            await page.evaluate(() => {
                 const buttons = Array.from(document.querySelectorAll('button, div, span, a'));
                 const closeBtn = buttons.find(el =>
                     el.innerText && (el.innerText.includes('Close') || el.innerText.includes('ปิด') || el.innerText.includes('X'))
                 );
-                if (closeBtn && closeBtn.offsetParent !== null) { // Check visibility
-                    closeBtn.click();
-                    return true;
-                }
-                return false;
+                if (closeBtn && closeBtn.offsetParent) closeBtn.click();
             });
-            if (closeClicked) console.log('[DBD Auto] Clicked a "Close/ปิด" button.');
 
-            // Strategy 3: Accept Cookies (Critical: Cookie banner often blocks interactions)
+            // Cookie Consent
             const cookieClicked = await page.evaluate(() => {
                 const buttons = Array.from(document.querySelectorAll('button, a'));
                 const acceptBtn = buttons.find(el =>
                     el.innerText && (el.innerText.includes('ยอมรับทั้งหมด') || el.innerText.includes('Accept All'))
                 );
-                if (acceptBtn) {
-                    acceptBtn.click();
-                    return true;
-                }
+                if (acceptBtn) { acceptBtn.click(); return true; }
                 return false;
             });
-            if (cookieClicked) {
-                console.log('[DBD Auto] Clicked "ยอมรับทั้งหมด".');
-                // Wait for banner to disappear
-                await new Promise(r => setTimeout(r, 2000));
-            }
-
-        } catch (popupErr) {
-            console.warn('[DBD Auto] Popup handling warning:', popupErr.message);
-        }
-        // ---------------------
+            if (cookieClicked) await new Promise(r => setTimeout(r, 1000));
+        } catch (e) { console.warn('Popup handling warning:', e.message); }
 
         // 2. Search
-        // Use a specific attribute selector to avoid selecting hidden inputs
+        sendSSE(res, { status: 'progress', message: `Searching for: ${query}...` });
         const targetSelector = 'input[placeholder*="ค้นหาด้วยชื่อ"]';
-
-        console.log(`[DBD Auto] Waiting for search input (${targetSelector})...`);
-
         try {
             await page.waitForSelector(targetSelector, { visible: true, timeout: 10000 });
+            await page.click(targetSelector);
+            await page.type(targetSelector, query, { delay: 100 });
+            await page.keyboard.press('Enter');
         } catch (e) {
-            console.error('[DBD Auto] Search input not found. Dumping HTML for debug...');
-            throw new Error(`Search input '${targetSelector}' not found.`);
+            throw new Error(`Search input not found: ${e.message}`);
         }
 
-        // Focus and Type
-        await page.click(targetSelector); // Ensure focus
-        await page.type(targetSelector, query, { delay: 100 });
-
-        // Press Enter
-        await page.keyboard.press('Enter');
-
-        // 3. Wait for Redirect
-        // The site redirects to the profile page. We can detect this by checking for the "Print" button.
-        // Or we can check if the URL changes to contain "company/profile".
-        console.log('[DBD Auto] Waiting for redirect...');
-
-        // Use a specific selector for the visible print button to avoid the hidden "Request Certificate" button (d-xl-none)
+        // 3. Wait for Redirect/Results
+        sendSSE(res, { status: 'progress', message: 'Waiting for search results...' });
         const printButtonSelector = 'div.dropdown.print > a.btn-print';
 
-        // Wait up to 60 seconds for the redirect and the button to appear (increased from 20s)
         try {
             await page.waitForSelector(printButtonSelector, { visible: true, timeout: 60000 });
         } catch (e) {
-            console.error('[DBD Auto] Print button not found. Checking for list results or errors...');
+             // Fallback: Check for result list
+             sendSSE(res, { status: 'progress', message: 'Checking search result list...' });
 
-            // Check for "Not Found" message
-            const pageContent = await page.content();
-            if (pageContent.includes('ไม่พบข้อมูล')) {
-                 throw new Error('Customer not found in DBD database');
-            }
+             const pageContent = await page.content();
+             if (pageContent.includes('ไม่พบข้อมูล')) {
+                 throw new Error('Company not found in DBD database');
+             }
 
-            // Check if we are on a search result list (multiple matches)
-            // Strategy: Look for links that contain 'company/profile'
-            const resultLink = await page.evaluate(() => {
+             const resultLink = await page.evaluate(() => {
                 const links = Array.from(document.querySelectorAll('a'));
                 const profileLink = links.find(l => l.href && l.href.includes('company/profile'));
-                if (profileLink) {
-                    profileLink.click();
-                    return true;
-                }
+                if (profileLink) { profileLink.click(); return true; }
                 return false;
             });
 
             if (resultLink) {
-                console.log('[DBD Auto] Found search result list. Clicked first profile link.');
-                // Wait again for the print button on the new page
-                // Increased timeout to 60s for slow loading
-                try {
-                    await page.waitForSelector(printButtonSelector, { visible: true, timeout: 60000 });
-                } catch (retryErr) {
-                    throw new Error('Timeout waiting for company profile page after clicking result');
-                }
+                 sendSSE(res, { status: 'progress', message: 'Company found. Opening profile...' });
+                 try {
+                     await page.waitForSelector(printButtonSelector, { visible: true, timeout: 60000 });
+                 } catch (retryErr) {
+                     // Last ditch attempt: check by text
+                     const manualFind = await page.evaluate(() => {
+                         const btns = Array.from(document.querySelectorAll('a, button'));
+                         return !!btns.find(b => b.innerText && b.innerText.includes('พิมพ์ข้อมูล'));
+                     });
+                     if (!manualFind) throw new Error('Timeout waiting for profile page');
+                 }
             } else {
-                 // Check for Captcha or other blockers
                  if (pageContent.includes('captcha') || pageContent.includes('Security Check')) {
                      throw new Error('Blocked by Captcha/Security Check');
                  }
-                 // Try fallback: look for button by text content "พิมพ์ข้อมูล"
-                 const manualFind = await page.evaluate(() => {
-                     const btns = Array.from(document.querySelectorAll('a, button'));
-                     const printBtn = btns.find(b => b.innerText && b.innerText.includes('พิมพ์ข้อมูล'));
-                     return !!printBtn;
-                 });
-                 if (manualFind) {
-                     console.log('[DBD Auto] Found print button via text content fallback.');
-                 } else {
-                     throw new Error('Timeout waiting for company profile page');
-                 }
+                 throw new Error('Timeout waiting for company profile page');
             }
         }
 
-        console.log('[DBD Auto] Redirect successful. Clicking print...');
-
-        // 4. Click Print/Download
-        // Note: The print button might trigger a window.print() or a download.
-        // Based on user description: "the dbd will sent pdf file for me... save to my download directory"
-        // This implies it triggers a download.
+        // 4. Download
+        sendSSE(res, { status: 'progress', message: 'Downloading PDF...' });
 
         try {
             await page.click(printButtonSelector);
         } catch (clickErr) {
-            // Fallback click by text
+             // Fallback click by text
              await page.evaluate(() => {
                  const btns = Array.from(document.querySelectorAll('a, button'));
                  const printBtn = btns.find(b => b.innerText && b.innerText.includes('พิมพ์ข้อมูล'));
@@ -204,86 +166,61 @@ exports.downloadDBDProfile = async (req, res) => {
              });
         }
 
-        // 5. Wait for file download
-        console.log('[DBD Auto] Waiting for file to appear in temp dir...');
-
-        // Poll for file existence
+        // 5. Wait for file
         let downloadedFile = null;
-        const maxWait = 15000; // 15 seconds
+        const maxWait = 20000;
         const startTime = Date.now();
-
         while (Date.now() - startTime < maxWait) {
             const files = await fs.readdir(tmpDir);
-            // Filter for PDF files (ignoring .crdownload partials)
             const pdfFile = files.find(f => f.toLowerCase().endsWith('.pdf'));
-
             if (pdfFile) {
                 downloadedFile = path.join(tmpDir, pdfFile);
-
-                // Ensure file is fully written (size constant? or just wait a bit)
-                // Puppeteer usually renames .crdownload to .pdf when done.
-                // So if we see .pdf, it should be ready.
                 break;
             }
             await new Promise(r => setTimeout(r, 500));
         }
 
-        if (!downloadedFile) {
-            throw new Error('Download timed out');
-        }
+        if (!downloadedFile) throw new Error('Download timed out');
 
-        console.log(`[DBD Auto] File downloaded: ${downloadedFile}`);
+        // 6. Move File
+        sendSSE(res, { status: 'progress', message: 'Saving file to server...' });
 
-        // 6. Read and Return File
-        const fileBuffer = await fs.readFile(downloadedFile);
+        const downloadsDir = path.join(__dirname, '../downloads');
+        await fs.ensureDir(downloadsDir);
 
-        // Clean up immediately
-        await fs.remove(tmpDir);
-        await browser.close();
-        browser = null; // Prevent double close in finally
+        // Use a clean filename
+        const finalFilename = `DBD_Profile_${query}_${Date.now()}.pdf`;
+        const finalPath = path.join(downloadsDir, finalFilename);
 
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="DBD_Profile_${query}.pdf"`);
-        res.send(fileBuffer);
+        await fs.move(downloadedFile, finalPath);
+
+        // 7. Complete
+        sendSSE(res, {
+            status: 'complete',
+            url: `/api/downloads/${finalFilename}`,
+            filename: finalFilename
+        });
 
     } catch (error) {
-        console.error('[DBD Auto] Error:', error);
+        console.error('[DBD Stream] Error:', error);
+        sendSSE(res, { status: 'error', message: error.message });
 
-        // Debugging: Take screenshot on failure
-        if (browser) {
-            try {
-                const pages = await browser.pages();
-                const page = pages.length > 0 ? pages[0] : null;
-                if (page) {
-                    const debugPath = path.join(__dirname, '..', 'error_dbd.png');
-                    const debugHtmlPath = path.join(__dirname, '..', 'error_dbd.html');
-                    await page.screenshot({ path: debugPath, fullPage: true });
-                    const html = await page.content();
-                    await fs.writeFile(debugHtmlPath, html);
-                    console.log(`[DBD Auto] Saved debug screenshot to ${debugPath}`);
-                } else {
-                    console.error('[DBD Auto] No pages found to screenshot.');
-                }
-            } catch (snapErr) {
-                console.error('[DBD Auto] Failed to save debug screenshot:', snapErr);
-            }
-
-            // If running visibly, keep open for inspection
-            const isHeadless = process.env.DBD_HEADLESS !== 'false';
-            if (!isHeadless) {
-                 console.log('[DBD Auto] Browser is visible. Waiting 30s before closing for inspection...');
-                 await new Promise(r => setTimeout(r, 30000));
-            }
-        }
-
-        // Cleanup if error
-        if (tmpDir) await fs.remove(tmpDir).catch(() => {});
+        // Clean up immediately on error (if browser still open)
         if (browser) await browser.close().catch(() => {});
+        if (tmpDir) await fs.remove(tmpDir).catch(() => {});
 
-        res.status(500).json({
-            success: false,
-            message: 'Failed to download DBD profile',
-            error: error.message
-        });
+    } finally {
+        // Ensure browser is closed and response is ended
+        if (browser && browser.isConnected()) await browser.close();
+        if (tmpDir) await fs.remove(tmpDir).catch(() => {});
+        res.end();
     }
+};
+
+// Deprecated: Old POST method (kept for backward compatibility if needed)
+exports.downloadDBDProfile = async (req, res) => {
+    return res.status(400).json({
+        success: false,
+        message: 'Please use the SSE endpoint /api/external/dbd-stream?taxId=... for better experience.'
+    });
 };
