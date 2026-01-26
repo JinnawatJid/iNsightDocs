@@ -55,39 +55,45 @@
     <div class="summary-section">
       <h3>พฤติกรรมการซื้อ</h3>
 
-      <div class="stat-item">
-        <div class="stat-icon-row">
+      <div v-if="financial.error" class="error-message">
+        {{ financial.error }}
+      </div>
+
+      <template v-else>
+        <div class="stat-item">
+          <div class="stat-icon-row">
+            <div class="stat-icon">
+              <img :src="iconShoppingCart" alt="Cart" width="20" height="20" />
+              <span>ยอดซื้อรวม 3 เดือน</span>
+            </div>
+            <button class="toggle-btn" @click="toggleMonthlyDetails" v-if="financial.monthly_history && financial.monthly_history.length > 0">
+              {{ showMonthlyDetails ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด' }}
+            </button>
+          </div>
+          <div class="stat-value highlight">{{ financial.total_purchase_3_months }} บาท</div>
+          <div class="stat-trend" :class="getTrendClass(financial.total_purchase_growth)" v-if="financial.total_purchase_growth">
+              {{ financial.total_purchase_growth }}
+          </div>
+
+          <div v-if="showMonthlyDetails" class="monthly-breakdown">
+            <div v-for="(month, index) in financial.monthly_history" :key="index" class="month-row">
+              <span class="month-label">{{ month.label }}</span>
+              <span class="month-value">{{ month.value }} บาท</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-item">
           <div class="stat-icon">
-            <img :src="iconShoppingCart" alt="Cart" width="20" height="20" />
-            <span>ยอดซื้อรวม 3 เดือน</span>
+            <span class="currency-symbol">฿</span>
+            <span>ค่าเฉลี่ยต่อรอบการจ่ายเงิน</span>
           </div>
-          <button class="toggle-btn" @click="toggleMonthlyDetails" v-if="financial.monthly_history && financial.monthly_history.length > 0">
-            {{ showMonthlyDetails ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด' }}
-          </button>
-        </div>
-        <div class="stat-value highlight">{{ financial.total_purchase_3_months }} บาท</div>
-        <div class="stat-trend" :class="getTrendClass(financial.total_purchase_growth)" v-if="financial.total_purchase_growth">
-            {{ financial.total_purchase_growth }}
-        </div>
-
-        <div v-if="showMonthlyDetails" class="monthly-breakdown">
-          <div v-for="(month, index) in financial.monthly_history" :key="index" class="month-row">
-            <span class="month-label">{{ month.label }}</span>
-            <span class="month-value">{{ month.value }} บาท</span>
+          <div class="stat-value blue">{{ financial.avg_monthly }} บาท</div>
+          <div class="stat-trend" :class="getTrendClass(financial.avg_monthly_trend)" v-if="financial.avg_monthly_trend">
+              {{ financial.avg_monthly_trend }}
           </div>
         </div>
-      </div>
-
-      <div class="stat-item">
-        <div class="stat-icon">
-          <span class="currency-symbol">฿</span>
-          <span>ค่าเฉลี่ยต่อรอบการจ่ายเงิน</span>
-        </div>
-        <div class="stat-value blue">{{ financial.avg_monthly }} บาท</div>
-        <div class="stat-trend" :class="getTrendClass(financial.avg_monthly_trend)" v-if="financial.avg_monthly_trend">
-            {{ financial.avg_monthly_trend }}
-        </div>
-      </div>
+      </template>
     </div>
 
     <div class="suggestion-section">
@@ -426,6 +432,16 @@ h3 {
 
 .summary-section {
   text-align: left;
+}
+
+.error-message {
+  color: #dc3545;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 10px;
 }
 
 @media (max-width: 1366px) {

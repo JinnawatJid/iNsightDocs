@@ -5,6 +5,27 @@ const axios = require('axios');
 const API_URL = process.env.CUSTOMER_API_URL || "http://192.192.0.37:8280/customer-sp682/1.0.0";
 const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
 
+// Configuration
+const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
+
+// MOCK FLAG for Financial API (Sandbox Environment)
+const MOCK_FINANCIAL_API = process.env.MOCK_FINANCIAL_API === 'true';
+const MOCK_FINANCIAL_DATA = {
+  "customer": "01013AY",
+  "anchor_date": "2026-01-15",
+  "months": 6,
+  "monthly": [
+    { "month": "2025-07", "amount": 172935.25 },
+    { "month": "2025-08", "amount": 567041.5 },
+    { "month": "2025-09", "amount": 440718.5 },
+    { "month": "2025-10", "amount": 590844.75 },
+    { "month": "2025-11", "amount": 929268.5 },
+    { "month": "2025-12", "amount": 715785.5 },
+    { "month": "2026-01", "amount": 426226.75 }
+  ],
+  "total": 3842820.75
+};
+
 // Helper to format currency
 const formatCurrency = (val) => {
     if (!val) return "0";
@@ -19,23 +40,47 @@ const parseAmount = (str) => {
   return parseFloat(str.replace(/,/g, ''));
 };
 
-// Helper to format trend text
-const formatTrend = (value) => {
-  if (value === null || value === undefined) return null;
-  // logic: (Value * 100) - 100
-  const percentage = (value * 100) - 100;
-  const absPercentage = Math.abs(percentage).toFixed(2);
+// Helper: Format Thai Date (YYYY-MM -> Month YY)
+const formatThaiMonth = (yyyy_mm) => {
+    if (!yyyy_mm) return '';
+    const [yearStr, monthStr] = yyyy_mm.split('-');
+    const year = parseInt(yearStr);
+    const month = parseInt(monthStr);
 
-  const displayVal = Number.isInteger(percentage) ? percentage : percentage.toFixed(2);
-  const absDisplayVal = Math.abs(displayVal);
+    const thaiMonths = [
+        "", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+        "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    ];
 
-  if (percentage > 0) {
-    return `เพิ่มขึ้น ${absDisplayVal}% จากรอบก่อน`;
-  } else if (percentage < 0) {
-    return `ลดลง ${absDisplayVal}% จากรอบก่อน`;
-  } else {
+    const thaiYear = (year + 543) % 100; // Get last 2 digits of BE year
+    return `${thaiMonths[month]} ${thaiYear}`;
+};
+
+// Helper: Format Trend from Percentage
+const formatTrendPercent = (percent) => {
+    if (percent === null || isNaN(percent)) return null;
+    const absVal = Math.abs(percent).toFixed(2);
+    if (percent > 0) return `เพิ่มขึ้น ${absVal}% จากรอบก่อน`;
+    if (percent < 0) return `ลดลง ${absVal}% จากรอบก่อน`;
     return `คงที่ 0% จากรอบก่อน`;
-  }
+};
+
+const fetchPurchasingBehavior = async (customerNo) => {
+    if (MOCK_FINANCIAL_API) {
+        console.log(`[Financial API] Using Mock Data for ${customerNo}`);
+        return MOCK_FINANCIAL_DATA;
+    }
+
+    try {
+        const response = await axios.get(FINANCIAL_API_URL, {
+            params: { customer_code: customerNo },
+            timeout: 5000
+        });
+        return response.data;
+    } catch (error) {
+        console.error(`Error fetching purchasing behavior for ${customerNo}:`, error.message);
+        throw error;
+    }
 };
 
 /**
@@ -51,15 +96,13 @@ const enrichCustomerData = async (customerNo) => {
     // 1. Fetch Credit History (Requests)
     try {
         const historySql = `SELECT * FROM CreditRequests WHERE customer_no = ? ORDER BY created_at DESC`;
-        // Handle db.query signature differences if any, but standard is (sql, params)
-        // Note: db.query in this project seems to return { rows } based on previous code
         const historyRes = await db.query(historySql, [customerNo]);
         const rows = historyRes.rows || [];
 
         history = rows.map(h => ({
             id: h.id,
             date: new Date(h.created_at).toLocaleDateString('th-TH'),
-            amount: h.tx_id, // Note: Previous code mapped tx_id to amount field in history list? Keep as is.
+            amount: h.tx_id,
             status: h.status,
             requestType: h.request_type || 'เครดิตใหม่'
         }));
@@ -67,97 +110,117 @@ const enrichCustomerData = async (customerNo) => {
         console.error(`Error fetching history for ${customerNo}:`, histErr);
     }
 
-    // 2. Fetch Financial Data (AY_ACCUM)
+    // 2. Fetch Financial Data (New API)
     try {
-        const accumSql = `SELECT * FROM "AY_ACCUM" WHERE "custcode" = ?`;
-        const accumRes = await db.query(accumSql, [customerNo]);
-        const accumData = (accumRes.rows && accumRes.rows[0]) ? accumRes.rows[0] : null;
+        const apiData = await fetchPurchasingBehavior(customerNo);
 
-        if (accumData) {
-            const jun = parseAmount(accumData.Jun);
-            const jul = parseAmount(accumData.Jul);
-            const aug = parseAmount(accumData.Aug);
+        if (apiData && apiData.monthly && apiData.monthly.length > 0) {
+            const monthlyData = apiData.monthly;
 
-            // Business Logic: Divide by 2
-            const avgRaw = (jun + jul + aug) / 2;
-            const avgMonthly = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(avgRaw);
+            // Sort by month (oldest first) to ensure slicing is correct
+            monthlyData.sort((a, b) => a.month.localeCompare(b.month));
 
-            const totalPurchaseGrowth = formatTrend(accumData.AccumTrend);
-            const avgMonthlyTrend = formatTrend(accumData.SecondAvgTrend);
+            const totalAvailable = monthlyData.length;
 
-            const monthlyHistory = [
-                { label: 'มิ.ย.', value: formatCurrency(jun) },
-                { label: 'ก.ค.', value: formatCurrency(jul) },
-                { label: 'ส.ค.', value: formatCurrency(aug) }
-            ];
+            // Identify Last 3 Months
+            const last3 = monthlyData.slice(-3);
+
+            // Identify Previous 3 Months (for trend)
+            let prev3 = [];
+            if (totalAvailable >= 6) {
+                prev3 = monthlyData.slice(-6, -3);
+            } else if (totalAvailable > 3) {
+                prev3 = monthlyData.slice(0, -3);
+            }
+
+            // Sum Calculations
+            const sumLast3 = last3.reduce((acc, cur) => acc + cur.amount, 0);
+            const sumPrev3 = prev3.reduce((acc, cur) => acc + cur.amount, 0);
+
+            // Trend Calculation: ((Current - Previous) / Previous) * 100
+            let trendPercent = 0;
+            if (sumPrev3 > 0) {
+                trendPercent = ((sumLast3 - sumPrev3) / sumPrev3) * 100;
+            } else if (sumLast3 > 0) {
+                // No previous data but current data exists -> 100% growth indicator?
+                // Or just null. Let's use 100% to indicate "New".
+                trendPercent = 100;
+            } else {
+                trendPercent = 0;
+            }
+
+            const totalPurchaseGrowth = formatTrendPercent(trendPercent);
+
+            // Generate Monthly History List (Newest First for UI List)
+            const monthlyHistory = monthlyData.map(m => ({
+                label: formatThaiMonth(m.month),
+                value: formatCurrency(m.amount)
+            })).reverse();
 
             financialSummary = {
-                total_purchase_3_months: formatCurrency(accumData.SecondAccum),
+                total_purchase_3_months: formatCurrency(sumLast3),
                 total_purchase_growth: totalPurchaseGrowth,
-                avg_monthly: avgMonthly,
-                avg_monthly_trend: avgMonthlyTrend,
+                avg_monthly: formatCurrency(sumLast3 / 3),
+                avg_monthly_trend: totalPurchaseGrowth, // Reuse trend for avg (math is same)
                 monthly_history: monthlyHistory
             };
 
-            // Generate Suggestions
-
-            // 1. Total Purchase Value Check (Tiered)
-            const secondAccumVal = parseAmount(accumData.SecondAccum);
-
-            if (secondAccumVal > 1000000) {
+            // Generate Suggestions Logic (Adapted for Dynamic Data)
+            // 1. Total Purchase Value Check (Tiered based on Sum Last 3)
+            if (sumLast3 > 1000000) {
                 suggestions.push("เป็นลูกค้าชั้นดี มียอดซื้อสะสมสูง");
-            } else if (secondAccumVal > 300000) {
+            } else if (sumLast3 > 300000) {
                 suggestions.push("มียอดซื้อสะสมปานกลาง");
-            } else if (secondAccumVal > 0) {
+            } else if (sumLast3 > 0) {
                 suggestions.push("ยอดซื้อสะสมอยู่ในระดับทั่วไป");
             } else {
-                suggestions.push("ไม่มียอดซื้อสะสม");
+                suggestions.push("ไม่มียอดซื้อสะสมในช่วง 3 เดือนล่าสุด");
             }
 
-            // 2. Consistency Check
-            if (jun > 0 && jul > 0 && aug > 0) {
+            // 2. Consistency Check (Check if all last 3 months have sales)
+            const activeMonths = last3.filter(m => m.amount > 0).length;
+            if (activeMonths === 3) {
                 suggestions.push("มีการสั่งซื้อต่อเนื่องทุกเดือนในช่วง 3 เดือนล่าสุด");
-            } else if (secondAccumVal > 0) {
+            } else if (sumLast3 > 0) {
                 suggestions.push("มีการเว้นช่วงการสั่งซื้อในบางเดือน");
             }
 
-            // Churn Warning: No purchase in latest month (Aug) despite having history
-            if (aug === 0 && secondAccumVal > 0) {
+            // Churn Warning: No purchase in latest month
+            if (last3.length > 0 && last3[last3.length - 1].amount === 0 && sumLast3 > 0) {
                 suggestions.push("ไม่มียอดซื้อในเดือนล่าสุด ควรติดต่อลูกค้าเพื่อสอบถามสถานะ");
             }
 
             // 3. Trend Check
-            if (accumData.AccumTrend > 1) {
+            if (trendPercent > 0) {
                 suggestions.push("ลูกค้ามีแนวโน้มการซื้อที่ดีและเพิ่มขึ้นอย่างต่อเนื่อง");
-            } else {
+            } else if (trendPercent < 0) {
                 suggestions.push("ยอดการสั่งซื้อมีแนวโน้มลดลง ควรติดตามสาเหตุ");
             }
 
-            // 4. Hardcoded: Payment Punctuality
             suggestions.push("มีการชำระเงินตรงเวลา");
-
-            // 5. Hardcoded: No Bad Debt
             suggestions.push("ไม่เคยมีประวัติหนี้เสีย");
 
         } else {
-            // No Financial Data
-            financialSummary = {
+            // Empty Data
+             financialSummary = {
                 total_purchase_3_months: "0",
                 total_purchase_growth: null,
                 avg_monthly: "0",
                 avg_monthly_trend: null,
                 monthly_history: []
             };
-            suggestions = ["ไม่พบข้อมูลประวัติการซื้อ"];
+            suggestions.push("ไม่พบข้อมูลประวัติการซื้อ");
         }
-    } catch (accumErr) {
-        console.error(`Error fetching AY_ACCUM for ${customerNo}:`, accumErr);
+
+    } catch (apiErr) {
+        console.error(`Error fetching purchasing behavior for ${customerNo}:`, apiErr);
         financialSummary = {
             total_purchase_3_months: "0",
             total_purchase_growth: null,
             avg_monthly: "0",
             avg_monthly_trend: null,
-            monthly_history: []
+            monthly_history: [],
+            error: "ไม่สามารถเรียกข้อมูลพฤติกรรมการซื้อได้"
         };
     }
 
