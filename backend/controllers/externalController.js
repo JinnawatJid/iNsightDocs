@@ -22,6 +22,8 @@ const extractAndProcessDBDData = async (pdfPath, taxId, companyName) => {
 
         // Extract Registration Date (วันที่จดทะเบียนจัดตั้ง)
         // Pattern: "วันที่จดทะเบียนจัดตั้ง : 29/01/2516" or similar
+        console.log('[DBD Extract] Extracted Text (First 500 chars):', text.substring(0, 500));
+
         const dateRegex = /วันที่จดทะเบียนจัดตั้ง\s*[:]\s*(\d{2}\/\d{2}\/\d{4})/;
         const match = text.match(dateRegex);
 
@@ -377,7 +379,7 @@ exports.streamDBDProfile = async (req, res) => {
 
         // --- NEW: Extract Data from PDF and Update DB ---
         sendSSE(res, { status: 'progress', message: 'กำลังประมวลผลข้อมูลจาก PDF...' });
-        await extractAndProcessDBDData(pdfPath, taxId, companyName);
+        const extractionResult = await extractAndProcessDBDData(pdfPath, taxId, companyName);
 
         // 7. Complete
         sendSSE(res, {
@@ -391,7 +393,8 @@ exports.streamDBDProfile = async (req, res) => {
                     url: `/api/downloads/${excelFilename}`,
                     filename: excelFilename
                 } : null
-            }
+            },
+            yearsInBusiness: extractionResult?.yearsInBusiness
         });
 
     } catch (error) {

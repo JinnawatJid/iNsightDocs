@@ -8,7 +8,7 @@
     <div class="sheet-grid">
       <!-- COLUMN 1: INPUTS (CASE) -->
       <div class="sheet-column input-column">
-        <div class="column-header header-orange">Case:</div>
+        <div class="column-header header-orange">Case: {{ inputs.customerName }}</div>
 
         <div class="input-row">
             <div class="label">ทุนจดทะเบียน</div>

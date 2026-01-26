@@ -282,6 +282,7 @@ const showDebug = ref(false);
 
 const sheetInputs = computed(() => {
     return {
+        customerName: store.customer?.name || '',
         registeredCapital: registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : 0,
         yearsInBusiness: store.customer?.years_in_business || 0,
         ownership: store.customer?.residence_ownership || '-',
@@ -426,6 +427,11 @@ const autoDownloadDBD = async () => {
                         const excelBlob = excelRes.data;
                         const excelName = data.files.balanceSheet.filename || `DBD_BalanceSheet_${dbdQuery.value}.xlsx`;
                         files.balanceSheet = new File([excelBlob], excelName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    }
+
+                    // Update Years In Business if returned
+                    if (data.yearsInBusiness !== undefined) {
+                        store.updateCustomerData({ years_in_business: data.yearsInBusiness });
                     }
 
                     Swal.fire({
