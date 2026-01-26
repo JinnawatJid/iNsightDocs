@@ -58,7 +58,8 @@ exports.streamDBDProfile = async (req, res) => {
                 '--disable-dev-shm-usage',
                 '--window-size=1920,1080',
                 '--disable-gpu',
-                '--ignore-certificate-errors'
+                '--ignore-certificate-errors',
+                '--disable-http2'
             ]
         });
 
