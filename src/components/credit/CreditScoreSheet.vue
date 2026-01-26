@@ -97,51 +97,29 @@
             </div>
         </div>
 
-        <!-- SECTION 1: COMPANY (C1) -->
-        <div class="score-section">
-            <div class="section-title header-pink">1: ข้อมูลบริษัท (Company Strength)</div>
-            <div class="score-grid-3">
-                <div class="score-item">
-                    <div class="s-label">ระยะเวลาธุรกิจ</div>
-                    <div class="s-val">{{ formatScore(breakdown.c1?.details?.years) }}</div>
-                </div>
-                <div class="score-item">
-                    <div class="s-label">สัดส่วนเครดิต/ทุน</div>
-                    <div class="s-val">{{ formatScore(breakdown.c1?.details?.leverage) }}</div>
-                </div>
-                <div class="score-item">
-                    <div class="s-label">กรรมสิทธิ์ทรัพย์สิน</div>
-                    <div class="s-val">{{ formatScore(breakdown.c1?.details?.asset) }}</div>
-                </div>
-            </div>
-            <div class="sub-total">Total C1: {{ formatScore(breakdown.c1?.total) }}</div>
-        </div>
-
-        <!-- SECTION 2: CASH FLOW (C2) -->
+        <!-- SECTION 3: CASH FLOW (Renamed/Refactored) -->
         <div class="score-section">
              <div class="section-title header-pink">3: CashFlow ของบริษัท</div>
 
-             <!-- Raw Inventory Turnover Display -->
-             <div class="raw-inventory-box">
-                 <div class="inv-label">อัตราการหมุนเวียนของสินค้าคงเหลือ</div>
-                 <div class="inv-value">{{ formatScore(extracted.inventoryTurnover?.value) }}</div>
-             </div>
+             <div class="score-grid-3" style="margin-top: 10px;">
+                 <!-- D/E Ratio -->
+                 <div class="cashflow-box">
+                     <div class="inv-label">D/E Ratio</div>
+                     <div class="inv-value">{{ formatScore(extracted.deRatio?.value) }}</div>
+                 </div>
 
-             <div class="score-grid-3">
-                <div class="score-item">
-                    <div class="s-label">D/E Ratio</div>
-                    <div class="s-val">{{ formatScore(breakdown.c2?.details?.deRatio) }}</div>
-                </div>
-                <div class="score-item">
-                    <div class="s-label">ความสามารถชำระหนี้ (DSCR)</div>
-                    <div class="s-val">{{ formatScore(breakdown.c2?.details?.dscr) }}</div>
-                </div>
-                <div class="score-item">
-                    <div class="s-label">หมุนเวียนสินค้า</div>
-                    <div class="s-val">{{ formatScore(breakdown.c2?.details?.inventory) }}</div>
-                </div>
+                 <!-- Inventory Turnover -->
+                 <div class="cashflow-box">
+                     <div class="inv-label">อัตราการหมุนเวียนของสินค้าคงเหลือ</div>
+                     <div class="inv-value">{{ formatScore(extracted.inventoryTurnover?.value) }}</div>
+                 </div>
+
+                 <!-- DSCR -->
+                 <div class="cashflow-box">
+                     <div class="inv-label">ความสามารถชำระหนี้ (DSCR)</div>
+                     <div class="inv-value">{{ formatScore(calculations.dscr) }}</div>
+                 </div>
              </div>
-             <div class="sub-total">Total C2: {{ formatScore(breakdown.c2?.total) }}</div>
         </div>
 
         <!-- SECTION 3: PURCHASE HISTORY (C3) - TABLE VIEW -->
@@ -229,6 +207,7 @@ const props = defineProps({
 });
 
 const extracted = computed(() => props.analysisResults.extractedData || {});
+const calculations = computed(() => props.analysisResults.calculations || {}); // Added
 const scoring = computed(() => props.analysisResults.scoringResult || {});
 const breakdown = computed(() => scoring.value.breakdown || {});
 const financialSummary = computed(() => props.analysisResults.financialSummary || {});
@@ -541,11 +520,10 @@ const getRevenueYear = (index) => {
 
 .val-gray { background-color: #eee; }
 
-/* RAW INVENTORY */
-.raw-inventory-box {
+/* CASHFLOW / INVENTORY BOXES */
+.cashflow-box {
     text-align: center;
     border: 1px solid #333;
-    margin: 10px 20px;
     background-color: #f4b084;
 }
 .inv-label {
