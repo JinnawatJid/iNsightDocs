@@ -223,21 +223,32 @@ const downloadFile = async (url, destPath) => {
   });
 
   // 7. Install Prod Deps
-  await logger.step('Installing Production Dependencies (with Puppeteer Cache)', async () => {
-    // Create .puppeteerrc.cjs to force local cache
-    const puppeteerConfig = `const path = require('path');
+  await logger.step('Installing Production Dependencies (Excluding Puppeteer)', async () => {
+    // Strategy: Install with --omit=dev but SKIP Puppeteer's chromium download via env var.
+    // This prevents the 170MB+ download in the first place.
+    // Then we uninstall puppeteer to remove the module code.
 
-/**
- * @type {import("puppeteer").Configuration}
- */
-module.exports = {
-  // Changes the cache location for Puppeteer.
-  cacheDirectory: path.join(__dirname, '.cache', 'puppeteer'),
-};
-`;
-    await fs.writeFile(path.join(RELEASE_DIR, 'backend', '.puppeteerrc.cjs'), puppeteerConfig);
+    // Set env var to skip chromium download
+    const installEnv = { ...process.env, PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: 'true' };
+
+    // Run install (skipping binary)
+    // Note: We use child_process.exec directly via runCommand wrapper, but need to pass env.
+    // Since runCommand helper doesn't support custom env args easily in its current form without modification,
+    // we'll modify the command string to set the env var (cross-platform way is tricky in one line).
+    // Better: spawn the process with env.
+
+    // Let's modify runCommand usage or just use exec with options if accessible?
+    // The current runCommand implementation:
+    // const runCommand = (command, cwd = ROOT_DIR) => { ... exec(command, { cwd }, ... ) }
+    // It uses standard process.env.
+
+    // Hack: We can just set process.env globally for this script since it's a build script
+    process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
 
     await runCommand('npm install --omit=dev', path.join(RELEASE_DIR, 'backend'));
+
+    logger.log(chalk.yellow('   Removing Puppeteer module to clean up (Offline Mode)...'));
+    await runCommand('npm uninstall puppeteer', path.join(RELEASE_DIR, 'backend'));
   });
 
   // 8. Configure Environment
