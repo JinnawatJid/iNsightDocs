@@ -41,7 +41,7 @@ const parseAmount = (str) => {
 };
 
 // Helper: Format Thai Date (YYYY-MM -> Month YY)
-const formatThaiMonth = (yyyy_mm) => {
+const formatThaiMonth = (yyyy_mm, isCurrent = false) => {
     if (!yyyy_mm) return '';
     const [yearStr, monthStr] = yyyy_mm.split('-');
     const year = parseInt(yearStr);
@@ -53,7 +53,11 @@ const formatThaiMonth = (yyyy_mm) => {
     ];
 
     const thaiYear = (year + 543) % 100; // Get last 2 digits of BE year
-    return `${thaiMonths[month]} ${thaiYear}`;
+    let label = `${thaiMonths[month]} ${thaiYear}`;
+    if (isCurrent) {
+        label += " (เดือนปัจจุบัน)";
+    }
+    return label;
 };
 
 // Helper: Format Trend from Percentage
@@ -120,17 +124,30 @@ const enrichCustomerData = async (customerNo) => {
             // Sort by month (oldest first) to ensure slicing is correct
             monthlyData.sort((a, b) => a.month.localeCompare(b.month));
 
-            const totalAvailable = monthlyData.length;
+            // Separate Calculation Set (Exclude Current Month - The last one)
+            // If we have at least 1 month, we separate the last one as "Current".
+            // The request is: Show 7, Calculate on 6 (Exclude current).
 
-            // Identify Last 3 Months
-            const last3 = monthlyData.slice(-3);
+            let calcData = [];
+            if (monthlyData.length > 1) {
+                calcData = monthlyData.slice(0, -1);
+            } else {
+                // If only 1 month exists, we can't really exclude it for calculation or everything is 0.
+                // We'll treat it as empty calc but show the month.
+                calcData = [];
+            }
 
-            // Identify Previous 3 Months (for trend)
+            const totalCalcAvailable = calcData.length;
+
+            // Identify Last 3 Months (from Calculation Set)
+            const last3 = calcData.slice(-3);
+
+            // Identify Previous 3 Months (for trend - from Calculation Set)
             let prev3 = [];
-            if (totalAvailable >= 6) {
-                prev3 = monthlyData.slice(-6, -3);
-            } else if (totalAvailable > 3) {
-                prev3 = monthlyData.slice(0, -3);
+            if (totalCalcAvailable >= 6) {
+                prev3 = calcData.slice(-6, -3);
+            } else if (totalCalcAvailable > 3) {
+                prev3 = calcData.slice(0, -3);
             }
 
             // Sum Calculations
@@ -142,8 +159,6 @@ const enrichCustomerData = async (customerNo) => {
             if (sumPrev3 > 0) {
                 trendPercent = ((sumLast3 - sumPrev3) / sumPrev3) * 100;
             } else if (sumLast3 > 0) {
-                // No previous data but current data exists -> 100% growth indicator?
-                // Or just null. Let's use 100% to indicate "New".
                 trendPercent = 100;
             } else {
                 trendPercent = 0;
@@ -152,10 +167,14 @@ const enrichCustomerData = async (customerNo) => {
             const totalPurchaseGrowth = formatTrendPercent(trendPercent);
 
             // Generate Monthly History List (Newest First for UI List)
-            const monthlyHistory = monthlyData.map(m => ({
-                label: formatThaiMonth(m.month),
-                value: formatCurrency(m.amount)
-            })).reverse();
+            // We use the FULL monthlyData here to show everything (including current)
+            const monthlyHistory = monthlyData.map((m, index) => {
+                const isCurrent = index === monthlyData.length - 1;
+                return {
+                    label: formatThaiMonth(m.month, isCurrent),
+                    value: formatCurrency(m.amount)
+                };
+            }).reverse();
 
             financialSummary = {
                 total_purchase_3_months: formatCurrency(sumLast3),
@@ -165,7 +184,7 @@ const enrichCustomerData = async (customerNo) => {
                 monthly_history: monthlyHistory
             };
 
-            // Generate Suggestions Logic (Adapted for Dynamic Data)
+            // Generate Suggestions Logic (Adapted for Dynamic Data - Based on Calc Set)
             // 1. Total Purchase Value Check (Tiered based on Sum Last 3)
             if (sumLast3 > 1000000) {
                 suggestions.push("เป็นลูกค้าชั้นดี มียอดซื้อสะสมสูง");
