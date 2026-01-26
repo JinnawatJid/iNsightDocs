@@ -22,8 +22,8 @@ exports.downloadDBDProfile = async (req, res) => {
         console.log(`[DBD Auto] Starting download for query: ${query}, tmpDir: ${tmpDir}`);
 
         // Launch Puppeteer
-        // DEBUG MODE: Default to visible (headless: false) for debugging as requested
-        const isHeadless = process.env.DBD_HEADLESS === 'true';
+        // Default to headless (true) unless explicitly set to 'false' for debugging
+        const isHeadless = process.env.DBD_HEADLESS !== 'false';
         console.log(`[DBD Auto] Launching Puppeteer (Headless: ${isHeadless})...`);
 
         browser = await puppeteer.launch({
@@ -131,11 +131,12 @@ exports.downloadDBDProfile = async (req, res) => {
         // Or we can check if the URL changes to contain "company/profile".
         console.log('[DBD Auto] Waiting for redirect...');
 
-        const printButtonSelector = 'a.btn-print';
+        // Use a specific selector for the visible print button to avoid the hidden "Request Certificate" button (d-xl-none)
+        const printButtonSelector = 'div.dropdown.print > a.btn-print';
 
-        // Wait up to 20 seconds for the redirect and the button to appear
+        // Wait up to 60 seconds for the redirect and the button to appear (increased from 20s)
         try {
-            await page.waitForSelector(printButtonSelector, { visible: true, timeout: 20000 });
+            await page.waitForSelector(printButtonSelector, { visible: true, timeout: 60000 });
         } catch (e) {
             console.error('[DBD Auto] Print button not found. Checking for list results or errors...');
 
@@ -171,7 +172,17 @@ exports.downloadDBDProfile = async (req, res) => {
                  if (pageContent.includes('captcha') || pageContent.includes('Security Check')) {
                      throw new Error('Blocked by Captcha/Security Check');
                  }
-                 throw new Error('Timeout waiting for company profile page');
+                 // Try fallback: look for button by text content "พิมพ์ข้อมูล"
+                 const manualFind = await page.evaluate(() => {
+                     const btns = Array.from(document.querySelectorAll('a, button'));
+                     const printBtn = btns.find(b => b.innerText && b.innerText.includes('พิมพ์ข้อมูล'));
+                     return !!printBtn;
+                 });
+                 if (manualFind) {
+                     console.log('[DBD Auto] Found print button via text content fallback.');
+                 } else {
+                     throw new Error('Timeout waiting for company profile page');
+                 }
             }
         }
 
@@ -182,7 +193,16 @@ exports.downloadDBDProfile = async (req, res) => {
         // Based on user description: "the dbd will sent pdf file for me... save to my download directory"
         // This implies it triggers a download.
 
-        await page.click(printButtonSelector);
+        try {
+            await page.click(printButtonSelector);
+        } catch (clickErr) {
+            // Fallback click by text
+             await page.evaluate(() => {
+                 const btns = Array.from(document.querySelectorAll('a, button'));
+                 const printBtn = btns.find(b => b.innerText && b.innerText.includes('พิมพ์ข้อมูล'));
+                 if (printBtn) printBtn.click();
+             });
+        }
 
         // 5. Wait for file download
         console.log('[DBD Auto] Waiting for file to appear in temp dir...');
