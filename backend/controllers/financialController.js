@@ -205,6 +205,88 @@ const findValue = (sheet, searchTerms, strategy = 'AMOUNT') => {
   return { value: 0, column: '' };
 };
 
+// Helper: Extract Series of Years (Last N years)
+const findYearlySeries = (sheet, rowKeywords, count = 3) => {
+  const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+  const yearCols = [];
+
+  // 1. Scan Header Rows (0-10) for Years
+  // Check rows 0-10 for year headers
+  for (let r = 0; r < Math.min(data.length, 10); r++) {
+      const row = data[r] || [];
+      for (let c = 0; c < row.length; c++) {
+          const cell = row[c];
+          let yearVal = 0;
+
+          if (typeof cell === 'number' && cell > 2000 && cell < 3000) {
+              yearVal = cell;
+          } else if (typeof cell === 'string') {
+              // Try to find 4 digit year
+              const match = cell.match(/(25\d{2}|20\d{2})/);
+              if (match) {
+                   yearVal = parseInt(match[0]);
+              }
+          }
+
+          if (yearVal > 0) {
+              // Check if we already have this year, keep the first occurrence (usually Amount column)
+              // Actually, often headers are merged. If J4 is 2567, K4 is empty (merged).
+              // So we find 2567 at J4.
+              yearCols.push({ year: yearVal, col: c, row: r });
+          }
+      }
+  }
+
+  // Sort by Year Ascending
+  yearCols.sort((a, b) => a.year - b.year);
+
+  // Deduplicate: If multiple headers for same year, assume the first one (left-most) is the main data column
+  const uniqueYears = [];
+  const seen = new Set();
+  for (const item of yearCols) {
+      if (!seen.has(item.year)) {
+          uniqueYears.push(item);
+          seen.add(item.year);
+      }
+  }
+
+  // Take last 'count' years
+  const targetYears = uniqueYears.slice(-count);
+
+  // 2. Find Row matching Keywords
+  let targetRowIndex = -1;
+  for (let r = 0; r < data.length; r++) {
+      const row = data[r] || [];
+      const rowString = row.join(' ').toLowerCase();
+
+      let match = false;
+      if (Array.isArray(rowKeywords)) {
+          match = rowKeywords.every(k => rowString.includes(k.toLowerCase()));
+      } else {
+          match = rowString.includes(rowKeywords.toLowerCase());
+      }
+
+      if (match) {
+          targetRowIndex = r;
+          break;
+      }
+  }
+
+  if (targetRowIndex === -1) return [];
+
+  // 3. Extract Values
+  const result = targetYears.map(item => {
+      // Data is usually in the identified column
+      const val = data[targetRowIndex][item.col];
+      return {
+          year: item.year,
+          amount: parseAmount(val)
+      };
+  });
+
+  return result;
+};
+
 // --- SCORING LOGIC ---
 
 // C1: Company Strength (Max 49)
@@ -411,7 +493,9 @@ exports.analyzeFinancials = async (req, res) => {
       totalRevenue: { value: 0, column: '' },
       grossProfit: { value: 0, column: '' },
       deRatio: { value: 0, column: '' },
-      inventoryTurnover: { value: 0, column: '' }
+      inventoryTurnover: { value: 0, column: '' },
+      revenueHistory: [],
+      averageRevenue: 0
     };
 
     if (files['balance_sheet'] && files['balance_sheet'][0]) {
@@ -434,6 +518,13 @@ exports.analyzeFinancials = async (req, res) => {
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       results.totalRevenue = findValue(sheet, 'รายได้รวม', 'AMOUNT');
       results.grossProfit = findValue(sheet, 'กำไร(ขาดทุน) ขั้นต้น', 'AMOUNT');
+
+      // NEW: Extract Revenue History (Last 3 Years)
+      results.revenueHistory = findYearlySeries(sheet, 'รายได้รวม', 3);
+      if (results.revenueHistory.length > 0) {
+          const sum = results.revenueHistory.reduce((acc, cur) => acc + cur.amount, 0);
+          results.averageRevenue = sum / results.revenueHistory.length;
+      }
     }
 
     if (files['financial_ratios'] && files['financial_ratios'][0]) {
@@ -569,6 +660,7 @@ exports.analyzeFinancials = async (req, res) => {
         { label: 'กำไรขั้นต้น (Extracted)', value: results.grossProfit.value, column: results.grossProfit.column, weight: '-', score: '-' },
         { label: 'หนี้สินไม่หมุนเวียน (Extracted)', value: results.nonCurrentLiabilities.value, column: results.nonCurrentLiabilities.column, weight: '-', score: '-' },
         { label: 'ส่วนของผู้ถือหุ้น (Extracted)', value: results.shareholdersEquity.value, column: results.shareholdersEquity.column, weight: '-', score: '-' },
+        { label: 'อัตราหมุนเวียนสินค้า (Extracted)', value: results.inventoryTurnover.value, column: results.inventoryTurnover.column, weight: '-', score: '-' },
     ];
 
     const debugData = [
@@ -608,3 +700,6 @@ exports.analyzeFinancials = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to analyze financial documents', error: error.message });
   }
 };
+
+// Export helper for testing
+exports.findYearlySeries = findYearlySeries;
