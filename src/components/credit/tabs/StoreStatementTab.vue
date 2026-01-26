@@ -61,7 +61,7 @@
          </div>
       </div>
 
-      <div class="upload-grid-four" v-if="store.isCompany">
+      <div class="upload-grid-small" v-if="store.isCompany">
         <FileUploader
           label="ข้อมูลบริษัท (Company Profile)"
           v-model="files.companyProfile"
@@ -624,13 +624,6 @@ const shouldShowFinancialAnalysis = computed(() => {
 .upload-grid-three {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.upload-grid-four {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
   gap: 15px;
   margin-bottom: 20px;
 }
