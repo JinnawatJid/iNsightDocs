@@ -1,4 +1,5 @@
-const puppeteer = require('puppeteer');
+// Lazy load puppeteer to prevent startup crash if module is missing (Offline Mode)
+// const puppeteer = require('puppeteer');
 const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
@@ -103,6 +104,13 @@ exports.streamDBDProfile = async (req, res) => {
     });
 
     try {
+        let puppeteer;
+        try {
+            puppeteer = require('puppeteer');
+        } catch (e) {
+            throw new Error('ระบบดาวน์โหลด DBD ไม่สามารถใช้งานได้ในโหมดออฟไลน์ (ไม่พบ Puppeteer)');
+        }
+
         sendSSE(res, { status: 'progress', message: 'กำลังเตรียมระบบดาวน์โหลด...' });
 
         // Create unique temp dir
