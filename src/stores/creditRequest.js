@@ -69,13 +69,19 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     uploadedDocumentCount: (state) => {
       // Use the files object to count, ensuring we have actual files and ignoring empty arrays
-      return Object.values(state.files).filter(f => f && (!Array.isArray(f) || f.length > 0)).length;
+      // Exclude 'other:' keys from the count as they are optional/misc
+      return Object.entries(state.files)
+        .filter(([key, f]) => !key.startsWith('other:') && f && (!Array.isArray(f) || f.length > 0))
+        .length;
     },
 
     approvalChanceLevel: (state) => {
       // Total docs tracked = 5 (2 from GeneralInfo, 2 from Residence, 1 from RequestInfo)
       const totalDocs = 5;
-      const count = Object.values(state.files).filter(f => f && (!Array.isArray(f) || f.length > 0)).length;
+      // Exclude 'other:' keys
+      const count = Object.entries(state.files)
+        .filter(([key, f]) => !key.startsWith('other:') && f && (!Array.isArray(f) || f.length > 0))
+        .length;
       const ratio = count / totalDocs;
 
       if (ratio < 1 / 3) return 'Low';
@@ -85,7 +91,10 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     approvalChancePercent: (state) => {
       const totalDocs = 5;
-      const count = Object.values(state.files).filter(f => f && (!Array.isArray(f) || f.length > 0)).length;
+      // Exclude 'other:' keys
+      const count = Object.entries(state.files)
+        .filter(([key, f]) => !key.startsWith('other:') && f && (!Array.isArray(f) || f.length > 0))
+        .length;
       return Math.min(100, Math.round((count / totalDocs) * 100));
     },
 
@@ -469,6 +478,15 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           this.uploadedDocuments[key] = file.length > 0;
       } else {
           this.uploadedDocuments[key] = !!file;
+      }
+    },
+
+    removeFileKey(key) {
+      if (this.files[key]) {
+          delete this.files[key];
+      }
+      if (this.uploadedDocuments[key]) {
+          delete this.uploadedDocuments[key];
       }
     },
 
