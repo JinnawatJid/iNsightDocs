@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path'); // Added path module
+const morgan = require('morgan');
+const fs = require('fs');
 const db = require('./db');
 const customerRoutes = require('./routes/customerRoutes');
 const creditRequestRoutes = require('./routes/creditRequestRoutes');
@@ -13,6 +15,17 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// Ensure logs directory exists
+const logDirectory = path.join(__dirname, 'logs');
+if (!fs.existsSync(logDirectory)) {
+    fs.mkdirSync(logDirectory);
+}
+
+// Setup access logging
+const accessLogStream = fs.createWriteStream(path.join(logDirectory, 'access.log'), { flags: 'a' });
+app.use(morgan('combined', { stream: accessLogStream })); // Log to file
+app.use(morgan('dev')); // Log to console
 
 // Routes
 app.use('/api/customers', customerRoutes);
