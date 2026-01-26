@@ -81,13 +81,15 @@ const fetchPurchasingBehavior = async (customerNo) => {
     }
 
     try {
+        console.log(`[Financial API] Fetching data for ${customerNo} from ${FINANCIAL_API_URL}`);
         const response = await axios.get(FINANCIAL_API_URL, {
             params: { customer_code: customerNo },
             timeout: 5000
         });
+        console.log(`[Financial API] Success for ${customerNo}`);
         return response.data;
     } catch (error) {
-        console.error(`Error fetching purchasing behavior for ${customerNo}:`, error.message);
+        console.error(`[Financial API] Error fetching purchasing behavior for ${customerNo}:`, error.message);
         // Return null to indicate failure/no data
         return null;
     }
@@ -223,7 +225,7 @@ const calculateC1 = (customer, registeredCapital, requestAmount) => {
   const scoreYears = rawYears * 7.21;
   breakdown.years = scoreYears;
   score += scoreYears;
-  debug.push({ label: 'Years in Business', value: years, weight: 14.42, score: scoreYears, column: '-' });
+  debug.push({ label: 'ระยะเวลาดำเนินธุรกิจ', value: years, weight: 14.42, score: scoreYears, column: '-' });
 
   // 2. Request / Capital (Max 8.64)
   const regCap = parseFloat(registeredCapital || 1);
@@ -239,7 +241,7 @@ const calculateC1 = (customer, registeredCapital, requestAmount) => {
   const scoreLev = rawLev * 4.32;
   breakdown.leverage = scoreLev;
   score += scoreLev;
-  debug.push({ label: 'Request / Capital Ratio', value: leverage.toFixed(2), weight: 8.64, score: scoreLev, column: '-' });
+  debug.push({ label: 'สัดส่วนเครดิตต่อทุน', value: leverage.toFixed(2), weight: 8.64, score: scoreLev, column: '-' });
 
   // 3. Asset Ownership (Max 25.94)
   const ownership = customer.residence_ownership || '';
@@ -256,7 +258,7 @@ const calculateC1 = (customer, registeredCapital, requestAmount) => {
   const scoreAsset = rawAsset * 12.97;
   breakdown.asset = scoreAsset;
   score += scoreAsset;
-  debug.push({ label: 'Asset Ownership', value: ownership, weight: 25.94, score: scoreAsset, column: '-' });
+  debug.push({ label: 'กรรมสิทธิ์ทรัพย์สิน', value: ownership, weight: 25.94, score: scoreAsset, column: '-' });
 
   return { total: score, details: breakdown, debug };
 };
@@ -279,7 +281,7 @@ const calculateC2 = (financials) => {
   const scoreDE = rawDE * 12.38;
   breakdown.deRatio = scoreDE;
   score += scoreDE;
-  debug.push({ label: 'D/E Ratio', value: de, weight: 24.76, score: scoreDE, column: financials.deRatio.column });
+  debug.push({ label: 'อัตราส่วนหนี้สินต่อทุน (D/E)', value: de, weight: 24.76, score: scoreDE, column: financials.deRatio.column });
 
   // 2. Inventory Turnover (Max 13.76)
   const inv = financials.inventoryTurnover.value || 0;
@@ -293,7 +295,7 @@ const calculateC2 = (financials) => {
   const scoreInv = rawInv * 6.88;
   breakdown.inventory = scoreInv;
   score += scoreInv;
-  debug.push({ label: 'Inventory Turnover', value: inv, weight: 13.76, score: scoreInv, column: financials.inventoryTurnover.column });
+  debug.push({ label: 'อัตราหมุนเวียนสินค้าคงเหลือ', value: inv, weight: 13.76, score: scoreInv, column: financials.inventoryTurnover.column });
 
   // 3. DSCR (Max 16.50)
   const dscr = financials.dscr || 0;
@@ -307,7 +309,7 @@ const calculateC2 = (financials) => {
   const scoreDSCR = rawDSCR * 8.25;
   breakdown.dscr = scoreDSCR;
   score += scoreDSCR;
-  debug.push({ label: 'DSCR (Calculated)', value: dscr.toFixed(4), weight: 16.50, score: scoreDSCR, column: '-' });
+  debug.push({ label: 'ความสามารถชำระหนี้ (DSCR)', value: dscr.toFixed(4), weight: 16.50, score: scoreDSCR, column: '-' });
 
   return { total: score, details: breakdown, debug };
 };
@@ -340,7 +342,7 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   const scoreRevCap = rawRevCap * 1.52;
   breakdown.revenueCapital = scoreRevCap;
   score += scoreRevCap;
-  debug.push({ label: 'Revenue / Capital', value: revCapRatio.toFixed(2), weight: 3.04, score: scoreRevCap, column: '-' });
+  debug.push({ label: 'รายได้ต่อทุน', value: revCapRatio.toFixed(2), weight: 3.04, score: scoreRevCap, column: '-' });
 
   // 2. Avg Purchase (3mo) / Requested Credit (Max 35.04)
   const avgPurchase3Mo = secondAccum / 3;
@@ -355,7 +357,7 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   const scoreCapCheck = rawCapCheck * 17.52;
   breakdown.capacityCheck = scoreCapCheck;
   score += scoreCapCheck;
-  debug.push({ label: 'Capacity Check', value: capCheckRatio.toFixed(2), weight: 35.04, score: scoreCapCheck, column: '-' });
+  debug.push({ label: 'ตรวจสอบความสามารถ (Capacity)', value: capCheckRatio.toFixed(2), weight: 35.04, score: scoreCapCheck, column: '-' });
 
   // 3. Purchase / Credit Term (Max 18.28)
   const termFactor = reqDays / 30;
@@ -371,7 +373,7 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   const scoreTurnover = rawTurnover * 9.14;
   breakdown.turnover = scoreTurnover;
   score += scoreTurnover;
-  debug.push({ label: 'Turnover Speed', value: turnoverSpeed.toFixed(2), weight: 18.28, score: scoreTurnover, column: '-' });
+  debug.push({ label: 'ความเร็วในการหมุนเวียน', value: turnoverSpeed.toFixed(2), weight: 18.28, score: scoreTurnover, column: '-' });
 
   // 4. Purchase Trend (Max 28.96)
   const trend = parseFloat(accumData.AccumTrend || 1.0);
@@ -385,13 +387,13 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   const scoreTrend = rawTrend * 14.48;
   breakdown.trend = scoreTrend;
   score += scoreTrend;
-  debug.push({ label: 'Purchase Trend', value: trend.toFixed(2), weight: 28.96, score: scoreTrend, column: '-' });
+  debug.push({ label: 'แนวโน้มการซื้อ', value: trend.toFixed(2), weight: 28.96, score: scoreTrend, column: '-' });
 
   // 5. Customer Duration
   const scoreDuration = 0.5 * 5.33;
   breakdown.duration = scoreDuration;
   score += scoreDuration;
-  debug.push({ label: 'Customer Duration', value: 'Active', weight: 2.67, score: scoreDuration, column: '-' });
+  debug.push({ label: 'ระยะเวลาเป็นลูกค้า', value: 'ปกติ', weight: 2.67, score: scoreDuration, column: '-' });
 
   return { total: score, details: breakdown, debug };
 };
@@ -554,10 +556,10 @@ exports.analyzeFinancials = async (req, res) => {
 
     // Combine Debug Data
     const rawInputs = [
-        { label: 'Total Revenue (Extracted)', value: results.totalRevenue.value, column: results.totalRevenue.column, weight: '-', score: '-' },
-        { label: 'Gross Profit (Extracted)', value: results.grossProfit.value, column: results.grossProfit.column, weight: '-', score: '-' },
-        { label: 'Non-Current Liabilities (Extracted)', value: results.nonCurrentLiabilities.value, column: results.nonCurrentLiabilities.column, weight: '-', score: '-' },
-        { label: 'Shareholders Equity (Extracted)', value: results.shareholdersEquity.value, column: results.shareholdersEquity.column, weight: '-', score: '-' },
+        { label: 'รายได้รวม (Extracted)', value: results.totalRevenue.value, column: results.totalRevenue.column, weight: '-', score: '-' },
+        { label: 'กำไรขั้นต้น (Extracted)', value: results.grossProfit.value, column: results.grossProfit.column, weight: '-', score: '-' },
+        { label: 'หนี้สินไม่หมุนเวียน (Extracted)', value: results.nonCurrentLiabilities.value, column: results.nonCurrentLiabilities.column, weight: '-', score: '-' },
+        { label: 'ส่วนของผู้ถือหุ้น (Extracted)', value: results.shareholdersEquity.value, column: results.shareholdersEquity.column, weight: '-', score: '-' },
     ];
 
     const debugData = [
