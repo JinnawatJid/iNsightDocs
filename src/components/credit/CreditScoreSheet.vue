@@ -210,30 +210,6 @@
 
       </div>
 
-      <!-- ARROW -->
-      <div class="arrow-column">
-        <div class="arrow-box">➜</div>
-      </div>
-
-      <!-- COLUMN 3: FINAL RESULT -->
-      <div class="sheet-column result-column">
-          <div class="result-box">
-              <div class="result-title">ขนาดกิจการ (Size)</div>
-              <div class="result-value">S</div> <!-- Static 'S' based on Excel screenshot, or derive logic? -->
-              <div class="result-score">{{ formatScore(totalScore) }}</div>
-          </div>
-
-          <div class="result-box result-grade" :class="getGradeClass(grade)">
-              <div class="result-title">เกรดของลูกค้า</div>
-              <div class="result-value">{{ grade }}</div>
-          </div>
-
-          <div class="result-box result-limit">
-              <div class="result-title">วงเงินเครดิตใหม่</div>
-              <div class="result-value">{{ formatMoney(recommendedLimit) }}</div>
-          </div>
-      </div>
-
     </div>
   </div>
 </template>
