@@ -115,11 +115,12 @@
               📄 ดูรายละเอียดเต็ม (Full Report)
            </button>
         </div>
-        <CreditScoreSheet :analysisResults="analysisResults" :inputs="sheetInputs" />
-      </div>
 
-      <!-- LEGACY VIEW HIDDEN -->
-      <div v-if="false" class="analysis-results-legacy">
+        <!-- Credit Score Sheet removed from inline view, accessible via Full Report button -->
+        <!-- <CreditScoreSheet :analysisResults="analysisResults" :inputs="sheetInputs" /> -->
+
+        <!-- LEGACY VIEW (Restored) -->
+        <div class="analysis-results-legacy">
 
         <!-- Scoring Highlight -->
         <div v-if="analysisResults.scoringResult" class="score-highlight">
@@ -247,6 +248,7 @@
             <div class="ratio-value">{{ formatDecimal(analysisResults.calculations.creditCapitalRatio) }}</div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   </div>
