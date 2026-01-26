@@ -323,8 +323,14 @@ const getGradeClass = (g) => {
 
 .input-row:last-child { border-bottom: none; }
 
-.input-row .label { font-weight: 500; flex: 1; }
+.input-row .label {
+    font-weight: 500;
+    flex: 1;
+    text-align: left;
+    padding-left: 5px;
+}
 .input-row .value { font-weight: bold; color: #007bff; text-align: right; margin-right: 5px; }
+.input-row .value-text { text-align: right; font-weight: bold; }
 .input-row .unit { color: #888; width: 30px; text-align: right; }
 
 .highlight-green {
