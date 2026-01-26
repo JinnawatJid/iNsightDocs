@@ -164,26 +164,6 @@
                  </div>
              </div>
 
-             <!-- C3 SCORES -->
-             <div class="score-grid-4">
-                 <div class="score-item">
-                    <div class="s-label">Rev/Cap</div>
-                    <div class="s-val">{{ formatScore(breakdown.c3?.details?.revenueCapital) }}</div>
-                </div>
-                 <div class="score-item">
-                    <div class="s-label">Capacity Check</div>
-                    <div class="s-val">{{ formatScore(breakdown.c3?.details?.capacityCheck) }}</div>
-                </div>
-                 <div class="score-item">
-                    <div class="s-label">Turnover Speed</div>
-                    <div class="s-val">{{ formatScore(breakdown.c3?.details?.turnover) }}</div>
-                </div>
-                 <div class="score-item">
-                    <div class="s-label">Trend</div>
-                    <div class="s-val">{{ formatScore(breakdown.c3?.details?.trend) }}</div>
-                </div>
-             </div>
-             <div class="sub-total">Total C3: {{ formatScore(breakdown.c3?.total) }}</div>
         </div>
 
       </div>
