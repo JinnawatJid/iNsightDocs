@@ -32,6 +32,13 @@ exports.streamDBDProfile = async (req, res) => {
     let browser = null;
     let tmpDir = null;
 
+    // Handle Client Disconnect (Cancel)
+    req.on('close', async () => {
+        console.log('[DBD Stream] Client disconnected (Cancel detected). Cleaning up...');
+        if (browser) await browser.close().catch(() => {});
+        if (tmpDir) await fs.remove(tmpDir).catch(() => {});
+    });
+
     try {
         sendSSE(res, { status: 'progress', message: 'กำลังเตรียมระบบดาวน์โหลด...' });
 
