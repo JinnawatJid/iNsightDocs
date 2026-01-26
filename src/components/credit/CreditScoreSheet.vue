@@ -150,16 +150,16 @@
                  <!-- SUMMARY STATS -->
                  <div class="monthly-stats">
                      <div class="stat-box">
-                         <div class="stat-label">ยอดรวม 3 เดือน</div>
-                         <div class="stat-val">{{ formatMoney(stats.sumLast3) }}</div>
+                         <div class="stat-label">เฉลี่ย 1.5 เดือน</div>
+                         <div class="stat-val">{{ formatMoney(stats.sumLast3 / 2) }}</div>
                      </div>
                      <div class="stat-box">
-                         <div class="stat-label">เฉลี่ยต่อเดือน</div>
-                         <div class="stat-val">{{ formatMoney(stats.sumLast3 / 3) }}</div>
+                         <div class="stat-label">แนวโน้ม</div>
+                         <div class="stat-val">{{ formatTrendDecimal(stats.trendRatio) }}</div>
                      </div>
                      <div class="stat-box">
-                         <div class="stat-label">แนวโน้ม (Growth)</div>
-                         <div class="stat-val">{{ formatTrend(stats.trendRatio) }}</div>
+                         <div class="stat-label">SLOPE</div>
+                         <div class="stat-val">{{ formatSlope(stats.slope) }}</div>
                      </div>
                  </div>
              </div>
@@ -223,6 +223,21 @@ const formatTrend = (ratio) => {
     // ratio 1.20 = +20%
     const percent = (ratio - 1) * 100;
     return `${percent > 0 ? '+' : ''}${percent.toFixed(2)}%`;
+};
+
+const formatTrendDecimal = (ratio) => {
+    if (!ratio) return '-';
+    const percent = (ratio - 1) * 100;
+    // Format: +33.00% (1.33 เท่า)
+    return `${percent > 0 ? '+' : ''}${percent.toFixed(0)}% (${ratio.toFixed(2)} เท่า)`;
+};
+
+const formatSlope = (val) => {
+    if (val === undefined || val === null) return '-';
+    // Just a number, no formatting? Or maybe 2 decimals?
+    // User asked "just number", but typically avoiding long floats is good.
+    // Let's use standard number format without currency symbol, maybe 2 decimals.
+    return Number(val).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const getGradeClass = (g) => {

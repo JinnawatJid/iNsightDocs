@@ -205,6 +205,36 @@ const findValue = (sheet, searchTerms, strategy = 'AMOUNT') => {
   return { value: 0, column: '' };
 };
 
+// Helper: Calculate Slope (Linear Regression)
+// Data: Array of { month: 1, amount: X }, { month: 2, amount: Y } ...
+const calculateSlope = (data) => {
+    // Formula: slope = (N * Σ(xy) - Σx * Σy) / (N * Σ(x^2) - (Σx)^2)
+    const n = data.length;
+    if (n < 2) return 0;
+
+    let sumX = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumXX = 0;
+
+    // Use indices 1, 2, 3... as X values
+    for (let i = 0; i < n; i++) {
+        const x = i + 1; // Month 1, 2, 3
+        const y = data[i].amount;
+
+        sumX += x;
+        sumY += y;
+        sumXY += (x * y);
+        sumXX += (x * x);
+    }
+
+    const numerator = (n * sumXY) - (sumX * sumY);
+    const denominator = (n * sumXX) - (sumX * sumX);
+
+    if (denominator === 0) return 0;
+    return numerator / denominator;
+};
+
 // Helper: Extract Series of Years (Last N years)
 const findYearlySeries = (sheet, rowKeywords, count = 3) => {
   const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
@@ -611,9 +641,13 @@ exports.analyzeFinancials = async (req, res) => {
             // AccumTrend = Ratio (e.g., 1.20 for 20% growth)
             const trendRatio = 1 + (trendPercent / 100);
 
+            // Calculate SLOPE for the last 3 months
+            const slope = calculateSlope(last3);
+
             accumData = {
                 SecondAccum: sumLast3,
-                AccumTrend: trendRatio
+                AccumTrend: trendRatio,
+                Slope: slope
             };
 
             // Prepare Monthly History for Frontend (Reverse order: Newest First)
@@ -628,7 +662,7 @@ exports.analyzeFinancials = async (req, res) => {
 
         } else {
              // No Data found
-             accumData = { SecondAccum: 0, AccumTrend: 1.0 };
+             accumData = { SecondAccum: 0, AccumTrend: 1.0, Slope: 0 };
         }
     }
 
@@ -682,7 +716,8 @@ exports.analyzeFinancials = async (req, res) => {
         monthlyHistory,
         stats: {
             sumLast3: accumData ? accumData.SecondAccum : 0,
-            trendRatio: accumData ? accumData.AccumTrend : 1.0
+            trendRatio: accumData ? accumData.AccumTrend : 1.0,
+            slope: accumData ? accumData.Slope : 0
         }
     };
 
@@ -703,3 +738,4 @@ exports.analyzeFinancials = async (req, res) => {
 
 // Export helper for testing
 exports.findYearlySeries = findYearlySeries;
+exports.calculateSlope = calculateSlope;
