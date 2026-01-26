@@ -186,15 +186,27 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
         // Handle Files
         this.files = {};
+        this.uploadedDocuments = {};
         if (data.attachments && data.attachments.length > 0) {
           data.attachments.forEach(att => {
-            // We store it as an object with specific props to indicate it's remote
-            this.files[att.file_type] = {
+            const fileObj = {
               name: att.original_name,
               id: att.id,
               txId: att.tx_id,
               isRemote: true
             };
+
+            // Check if key already exists, if so convert to/append to array
+            if (this.files[att.file_type]) {
+              if (Array.isArray(this.files[att.file_type])) {
+                 this.files[att.file_type].push(fileObj);
+              } else {
+                 // Convert single to array
+                 this.files[att.file_type] = [this.files[att.file_type], fileObj];
+              }
+            } else {
+               this.files[att.file_type] = fileObj;
+            }
             this.uploadedDocuments[att.file_type] = true;
           });
         }
@@ -398,12 +410,22 @@ export const useCreditRequestStore = defineStore('creditRequest', {
               this.files = {};
               this.uploadedDocuments = {};
               resData.attachments.forEach(att => {
-                  this.files[att.file_type] = {
+                  const fileObj = {
                       name: att.original_name,
                       id: att.id,
                       txId: att.tx_id,
                       isRemote: true
                   };
+
+                  if (this.files[att.file_type]) {
+                      if (Array.isArray(this.files[att.file_type])) {
+                          this.files[att.file_type].push(fileObj);
+                      } else {
+                          this.files[att.file_type] = [this.files[att.file_type], fileObj];
+                      }
+                  } else {
+                      this.files[att.file_type] = fileObj;
+                  }
                   this.uploadedDocuments[att.file_type] = true;
               });
           }

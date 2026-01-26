@@ -9,6 +9,7 @@
           :required="isRequiredFile('home_photo')"
           v-model="files.homePhoto"
           :disabled="!isEditing"
+          multiple
         >
           <template #icon>
              <img :src="iconImage" alt="Image" width="24" height="24" />
@@ -21,6 +22,7 @@
           :required="isRequiredFile('land_tax')"
           v-model="files.landTax"
           :disabled="!isEditing"
+          multiple
         />
       </div>
     </div>
