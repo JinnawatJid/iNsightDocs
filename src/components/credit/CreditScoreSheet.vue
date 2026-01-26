@@ -65,15 +65,15 @@
             <div class="score-grid-3">
                 <div class="score-item">
                     <div class="s-label">ระยะเวลาธุรกิจ</div>
-                    <div class="s-val">{{ formatScore(breakdown.c1?.years) }}</div>
+                    <div class="s-val">{{ formatScore(breakdown.c1?.details?.years) }}</div>
                 </div>
                 <div class="score-item">
                     <div class="s-label">สัดส่วนเครดิต/ทุน</div>
-                    <div class="s-val">{{ formatScore(breakdown.c1?.leverage) }}</div>
+                    <div class="s-val">{{ formatScore(breakdown.c1?.details?.leverage) }}</div>
                 </div>
                 <div class="score-item">
                     <div class="s-label">กรรมสิทธิ์ทรัพย์สิน</div>
-                    <div class="s-val">{{ formatScore(breakdown.c1?.asset) }}</div>
+                    <div class="s-val">{{ formatScore(breakdown.c1?.details?.asset) }}</div>
                 </div>
             </div>
             <div class="sub-total">Total C1: {{ formatScore(breakdown.c1?.total) }}</div>
@@ -85,15 +85,15 @@
              <div class="score-grid-3">
                 <div class="score-item">
                     <div class="s-label">D/E Ratio</div>
-                    <div class="s-val">{{ formatScore(breakdown.c2?.deRatio) }}</div>
+                    <div class="s-val">{{ formatScore(breakdown.c2?.details?.deRatio) }}</div>
                 </div>
                 <div class="score-item">
                     <div class="s-label">ความสามารถชำระหนี้ (DSCR)</div>
-                    <div class="s-val">{{ formatScore(breakdown.c2?.dscr) }}</div>
+                    <div class="s-val">{{ formatScore(breakdown.c2?.details?.dscr) }}</div>
                 </div>
                 <div class="score-item">
                     <div class="s-label">หมุนเวียนสินค้า</div>
-                    <div class="s-val">{{ formatScore(breakdown.c2?.inventory) }}</div>
+                    <div class="s-val">{{ formatScore(breakdown.c2?.details?.inventory) }}</div>
                 </div>
              </div>
              <div class="sub-total">Total C2: {{ formatScore(breakdown.c2?.total) }}</div>
@@ -145,19 +145,19 @@
              <div class="score-grid-4">
                  <div class="score-item">
                     <div class="s-label">Rev/Cap</div>
-                    <div class="s-val">{{ formatScore(breakdown.c3?.revenueCapital) }}</div>
+                    <div class="s-val">{{ formatScore(breakdown.c3?.details?.revenueCapital) }}</div>
                 </div>
                  <div class="score-item">
                     <div class="s-label">Capacity Check</div>
-                    <div class="s-val">{{ formatScore(breakdown.c3?.capacityCheck) }}</div>
+                    <div class="s-val">{{ formatScore(breakdown.c3?.details?.capacityCheck) }}</div>
                 </div>
                  <div class="score-item">
                     <div class="s-label">Turnover Speed</div>
-                    <div class="s-val">{{ formatScore(breakdown.c3?.turnover) }}</div>
+                    <div class="s-val">{{ formatScore(breakdown.c3?.details?.turnover) }}</div>
                 </div>
                  <div class="score-item">
                     <div class="s-label">Trend</div>
-                    <div class="s-val">{{ formatScore(breakdown.c3?.trend) }}</div>
+                    <div class="s-val">{{ formatScore(breakdown.c3?.details?.trend) }}</div>
                 </div>
              </div>
              <div class="sub-total">Total C3: {{ formatScore(breakdown.c3?.total) }}</div>
@@ -217,8 +217,12 @@ const grade = computed(() => scoring.value.grade || '-');
 const recommendedLimit = computed(() => scoring.value.recommendedLimit || 0);
 
 const last3Months = computed(() => {
-    const history = financialSummary.value.monthlyHistory || [];
-    // Take first 3 (which are newest 3 due to reverse in backend)
+    let history = financialSummary.value.monthlyHistory || [];
+    // Backend scoring excludes the current (incomplete) month.
+    // Ensure table displays the same 3 months used for calculation.
+    if (history.length > 0 && String(history[0].label).includes('เดือนปัจจุบัน')) {
+        history = history.slice(1);
+    }
     return history.slice(0, 3);
 });
 
