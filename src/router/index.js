@@ -3,6 +3,7 @@ import PendingRequests from '../views/PendingRequests.vue';
 import CustomerSearch from '../views/CustomerSearch.vue';
 import CreateCreditRequest from '../views/CreateCreditRequest.vue';
 import OcrComparison from '../views/OcrComparison.vue';
+import CreditAnalysisReport from '../views/CreditAnalysisReport.vue';
 
 const routes = [
   {
@@ -28,6 +29,11 @@ const routes = [
     path: '/ocr-comparison',
     name: 'OcrComparison',
     component: OcrComparison,
+  },
+  {
+    path: '/report/financial-analysis',
+    name: 'CreditAnalysisReport',
+    component: CreditAnalysisReport,
   },
 ];
 

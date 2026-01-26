@@ -1,5 +1,29 @@
 const xlsx = require('xlsx');
 const db = require('../db');
+const axios = require('axios');
+
+// Configuration
+const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://localhost:8000/api/customer-analytics/monthly-summary";
+const MOCK_FINANCIAL_API = process.env.MOCK_FINANCIAL_API === 'true';
+
+// Mock Data (Matches customerController.js for consistency)
+const MOCK_FINANCIAL_DATA = {
+  "customer": "01013AY",
+  "anchor_date": "2026-01-15",
+  "months": 6,
+  "monthly": [
+    { "month": "2025-07", "amount": 172935.25 },
+    { "month": "2025-08", "amount": 567041.5 },
+    { "month": "2025-09", "amount": 440718.5 },
+    { "month": "2025-10", "amount": 590844.75 },
+    { "month": "2025-11", "amount": 929268.5 },
+    { "month": "2025-12", "amount": 715785.5 },
+    { "month": "2026-01", "amount": 426226.75 }
+  ],
+  "total": 3842820.75
+};
+
+// --- HELPER FUNCTIONS ---
 
 // Helper: Convert 0-based index to Excel Column Letter (0->A, 25->Z, 26->AA)
 const indexToColumn = (i) => {
@@ -27,6 +51,46 @@ const parseAmount = (str) => {
     val = parseFloat(val);
   }
   return isNaN(val) ? 0 : val;
+};
+
+// Helper: Format Thai Date (YYYY-MM -> Month YY)
+const formatThaiMonth = (yyyy_mm, isCurrent = false) => {
+    if (!yyyy_mm) return '';
+    const [yearStr, monthStr] = yyyy_mm.split('-');
+    const year = parseInt(yearStr);
+    const month = parseInt(monthStr);
+
+    const thaiMonths = [
+        "", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+        "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    ];
+
+    const thaiYear = (year + 543) % 100; // Get last 2 digits of BE year
+    let label = `${thaiMonths[month]} ${thaiYear}`;
+    if (isCurrent) {
+        label += " (เดือนปัจจุบัน)";
+    }
+    return label;
+};
+
+// Helper: Fetch Purchasing Behavior from External API
+const fetchPurchasingBehavior = async (customerNo) => {
+    if (MOCK_FINANCIAL_API) {
+        console.log(`[Financial API] Using Mock Data for ${customerNo}`);
+        return MOCK_FINANCIAL_DATA;
+    }
+
+    try {
+        const response = await axios.get(FINANCIAL_API_URL, {
+            params: { customer_code: customerNo },
+            timeout: 5000
+        });
+        return response.data;
+    } catch (error) {
+        console.error(`Error fetching purchasing behavior for ${customerNo}:`, error.message);
+        // Return null to indicate failure/no data
+        return null;
+    }
 };
 
 // Helper to find value in a sheet based on row label (or keywords) and strategy
@@ -383,11 +447,13 @@ exports.analyzeFinancials = async (req, res) => {
       calculations.creditCapitalRatio = reqAmt / regCap;
     }
 
-    // --- 2. FETCH DATABASE INFO ---
+    // --- 2. FETCH DATABASE & API INFO ---
     let customerData = {};
     let accumData = null;
+    let monthlyHistory = [];
 
     if (customer_no) {
+        // Fetch Customer Profile (Years in Business, etc.)
         const custSql = 'SELECT * FROM Customers WHERE No_ = ?';
         let rowsC = [];
         if (db.dbType === 'mssql') {
@@ -399,16 +465,69 @@ exports.analyzeFinancials = async (req, res) => {
         }
         if (rowsC.length > 0) customerData = rowsC[0];
 
-        const accumSql = 'SELECT * FROM AY_ACCUM WHERE custcode = ?';
-        let rowsA = [];
-        if (db.dbType === 'mssql') {
-             const resA = await db.query('SELECT TOP 1 * FROM AY_ACCUM WHERE custcode = ?', [customer_no]);
-             rowsA = resA.rows;
+        // Fetch Financial Data (REPLACED SQL WITH API)
+        const apiData = await fetchPurchasingBehavior(customer_no);
+
+        if (apiData && apiData.monthly && apiData.monthly.length > 0) {
+            const monthlyData = [...apiData.monthly];
+            // Sort by month (oldest first)
+            monthlyData.sort((a, b) => a.month.localeCompare(b.month));
+
+            // Separate Calculation Set (Exclude Current Month)
+            let calcData = [];
+            if (monthlyData.length > 1) {
+                calcData = monthlyData.slice(0, -1);
+            } else {
+                calcData = [];
+            }
+
+            const totalCalcAvailable = calcData.length;
+
+            // Last 3 Months (for SecondAccum)
+            const last3 = calcData.slice(-3);
+            const sumLast3 = last3.reduce((acc, cur) => acc + cur.amount, 0);
+
+            // Previous 3 Months (for Trend)
+            let prev3 = [];
+            if (totalCalcAvailable >= 6) {
+                prev3 = calcData.slice(-6, -3);
+            } else if (totalCalcAvailable > 3) {
+                prev3 = calcData.slice(0, -3);
+            }
+            const sumPrev3 = prev3.reduce((acc, cur) => acc + cur.amount, 0);
+
+            // Calculate Trend %
+            let trendPercent = 0;
+            if (sumPrev3 > 0) {
+                trendPercent = ((sumLast3 - sumPrev3) / sumPrev3) * 100;
+            } else if (sumLast3 > 0) {
+                trendPercent = 100;
+            }
+
+            // Map to legacy "accumData" format for calculateC3
+            // SecondAccum = Sum of Last 3 Months
+            // AccumTrend = Ratio (e.g., 1.20 for 20% growth)
+            const trendRatio = 1 + (trendPercent / 100);
+
+            accumData = {
+                SecondAccum: sumLast3,
+                AccumTrend: trendRatio
+            };
+
+            // Prepare Monthly History for Frontend (Reverse order: Newest First)
+            monthlyHistory = monthlyData.map((m, index) => {
+                const isCurrent = index === monthlyData.length - 1;
+                return {
+                    label: formatThaiMonth(m.month, isCurrent),
+                    month: m.month,
+                    amount: m.amount
+                };
+            }).reverse();
+
         } else {
-             const resA = await db.query('SELECT * FROM AY_ACCUM WHERE custcode = ? LIMIT 1', [customer_no]);
-             rowsA = resA.rows;
+             // No Data found
+             accumData = { SecondAccum: 0, AccumTrend: 1.0 };
         }
-        if (rowsA.length > 0) accumData = rowsA[0];
     }
 
     // --- 3. SCORING ---
@@ -434,7 +553,6 @@ exports.analyzeFinancials = async (req, res) => {
     else if (totalScore >= 120) grade = 'B';
 
     // Combine Debug Data
-    // We want the Extracted Data first, then the Scoring Factors
     const rawInputs = [
         { label: 'Total Revenue (Extracted)', value: results.totalRevenue.value, column: results.totalRevenue.column, weight: '-', score: '-' },
         { label: 'Gross Profit (Extracted)', value: results.grossProfit.value, column: results.grossProfit.column, weight: '-', score: '-' },
@@ -456,12 +574,22 @@ exports.analyzeFinancials = async (req, res) => {
         breakdown: { c1, c2, c3 }
     };
 
+    // Additional Financial Summary for Frontend
+    const financialSummary = {
+        monthlyHistory,
+        stats: {
+            sumLast3: accumData ? accumData.SecondAccum : 0,
+            trendRatio: accumData ? accumData.AccumTrend : 1.0
+        }
+    };
+
     res.json({
       success: true,
       extractedData: results,
       calculations: calculations,
       scoringResult: scoringResult,
-      debugData: debugData // New Field
+      financialSummary: financialSummary, // New Field
+      debugData: debugData
     });
 
   } catch (error) {
