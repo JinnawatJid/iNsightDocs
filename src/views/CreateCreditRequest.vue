@@ -8,6 +8,11 @@
         <button class="btn-close-preview" @click="closePreview">ปิดการดูประวัติ / สร้างคำขอใหม่</button>
     </div>
 
+    <!-- Temporary Debug Banner -->
+    <div class="debug-banner">
+        <span>⚠️ แจ้งเตือน: ปิดการตรวจสอบข้อมูลบังคับชั่วคราวสำหรับการทดสอบ (Validation Disabled)</span>
+    </div>
+
     <div class="page-content">
       <!-- Header row aligned with center column -->
       <div class="main-grid header-row">
@@ -242,6 +247,16 @@ const handleOcrData = (data) => {
 }
 .btn-close-preview:hover {
     background-color: #ddd;
+}
+
+.debug-banner {
+    background-color: #ff9800; /* Orange */
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    font-weight: bold;
+    width: 100%;
+    z-index: 998;
 }
 
 .smart-import-wrapper {
