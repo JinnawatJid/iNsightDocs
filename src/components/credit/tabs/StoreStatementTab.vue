@@ -371,10 +371,13 @@ const autoDownloadDBD = async () => {
     downloadingDBD.value = true;
 
     // Initial Popup
-    Swal.fire({
+    const swalPromise = Swal.fire({
         title: 'กำลังเชื่อมต่อกรมพัฒนาธุรกิจการค้า...',
         text: 'กรุณารอสักครู่ (Please wait)',
         allowOutsideClick: false,
+        showCancelButton: true,
+        cancelButtonText: 'ยกเลิก',
+        showConfirmButton: false,
         didOpen: () => {
             Swal.showLoading();
         }
@@ -382,6 +385,15 @@ const autoDownloadDBD = async () => {
 
     // Use SSE for real-time progress updates
     const evtSource = new EventSource(`/api/external/dbd-stream?taxId=${dbdQuery.value}`);
+
+    // Handle User Cancel
+    swalPromise.then((result) => {
+        if (result.dismiss === Swal.DismissReason.cancel) {
+            console.log('User cancelled DBD download');
+            evtSource.close();
+            downloadingDBD.value = false;
+        }
+    });
 
     evtSource.onmessage = async (event) => {
         try {
