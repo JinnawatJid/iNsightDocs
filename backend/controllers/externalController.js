@@ -30,12 +30,17 @@ exports.downloadDBDProfile = async (req, res) => {
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
-                '--window-size=1280,800',
-                // '--start-maximized' // maximize not always supported in headless
+                '--window-size=1920,1080',
+                '--disable-gpu',
+                '--ignore-certificate-errors',
+                '--disable-features=IsolateOrigins,site-per-process'
             ]
         });
 
         const page = await browser.newPage();
+
+        // Set a realistic User-Agent to avoid bot detection
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
         // Configure download behavior
         const client = await page.target().createCDPSession();
