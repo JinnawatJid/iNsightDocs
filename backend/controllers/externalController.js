@@ -192,9 +192,10 @@ exports.streamDBDProfile = async (req, res) => {
         // --- NEW: Download Balance Sheet (Excel) ---
         sendSSE(res, { status: 'progress', message: 'กำลังเปลี่ยนแท็บไปยังข้อมูลงบการเงิน...' });
 
-        // 4.1 Click "Financial Data" Tab
+        // 4.1 Click "Financial Data" Tab (Dropdown Parent)
         const tabClicked = await page.evaluate(() => {
-            const items = Array.from(document.querySelectorAll('a, li, div'));
+            const items = Array.from(document.querySelectorAll('a, li, div, span'));
+            // Look for the dropdown toggle
             const tab = items.find(el => el.innerText && el.innerText.trim() === 'ข้อมูลงบการเงิน');
             if (tab) {
                 tab.click();
@@ -206,13 +207,36 @@ exports.streamDBDProfile = async (req, res) => {
         if (!tabClicked) {
             // Try partial match if exact match fails
              await page.evaluate(() => {
-                const items = Array.from(document.querySelectorAll('a, li'));
+                const items = Array.from(document.querySelectorAll('a, li, span'));
                 const tab = items.find(el => el.innerText && el.innerText.includes('ข้อมูลงบการเงิน'));
                 if (tab) tab.click();
             });
         }
 
-        // 4.2 Wait for Table (Look for "งบแสดงฐานะการเงิน" text)
+        // Wait for dropdown animation
+        await new Promise(r => setTimeout(r, 1000));
+
+        // 4.2 Click "Financial Statement" Sub-item (งบการเงิน)
+        const subItemClicked = await page.evaluate(() => {
+            const items = Array.from(document.querySelectorAll('a, li'));
+            const tab = items.find(el => el.innerText && el.innerText.trim() === 'งบการเงิน');
+            if (tab) {
+                tab.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (!subItemClicked) {
+             console.warn('Sub-item "งบการเงิน" not found, trying partial match...');
+             await page.evaluate(() => {
+                const items = Array.from(document.querySelectorAll('a, li'));
+                const tab = items.find(el => el.innerText && el.innerText.includes('งบการเงิน'));
+                if (tab) tab.click();
+            });
+        }
+
+        // 4.3 Wait for Table (Look for "งบแสดงฐานะการเงิน" text)
         sendSSE(res, { status: 'progress', message: 'กำลังรอโหลดตารางงบการเงิน...' });
         try {
             await page.waitForFunction(
