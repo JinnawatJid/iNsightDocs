@@ -420,3 +420,6 @@ exports.downloadDBDProfile = async (req, res) => {
         message: 'Please use the SSE endpoint /api/external/dbd-stream?taxId=... for better experience.'
     });
 };
+
+// Export internal helper for testing
+exports.extractAndProcessDBDData = extractAndProcessDBDData;
