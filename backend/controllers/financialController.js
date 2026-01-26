@@ -3,7 +3,7 @@ const db = require('../db');
 const axios = require('axios');
 
 // Configuration
-const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://localhost:8000/api/customer-analytics/monthly-summary";
+const FINANCIAL_API_URL = "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
 const MOCK_FINANCIAL_API = process.env.MOCK_FINANCIAL_API === 'true';
 
 // Mock Data (Matches customerController.js for consistency)

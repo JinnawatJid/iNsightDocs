@@ -5,7 +5,7 @@
         <div class="upload-section" v-if="isUploadsVisible">
         <div class="upload-grid">
             <FileUploader
-            label="เอกสารขอเปิดเครดิต"
+            label="ใบขอเปิดเครดิต"
             required
             v-model="files.creditApp"
             :disabled="!isEditing"

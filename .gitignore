@@ -27,6 +27,7 @@ dist-ssr
 backend/*.db
 backend/*.sqlite
 backend/uploads
+backend/downloads
 temp_uploads/
 
 release

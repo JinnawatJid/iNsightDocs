@@ -50,7 +50,7 @@ exports.streamDBDProfile = async (req, res) => {
 
         const isHeadless = process.env.DBD_HEADLESS !== 'false';
         browser = await puppeteer.launch({
-            headless: isHeadless,
+            headless: false,
             defaultViewport: null,
             args: [
                 '--no-sandbox',
