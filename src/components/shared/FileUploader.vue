@@ -22,17 +22,17 @@
           </div>
           <div class="text-content">
               <span class="main-text" v-if="!disabled">
-                  <span class="link">Click to upload</span> or drag files
+                  <span class="link">คลิกเพื่ออัปโหลด</span> หรือลากไฟล์มาวาง
               </span>
               <span class="main-text disabled-text" v-else>
-                  {{ isEmpty ? 'No documents attached' : 'View attached documents' }}
+                  {{ isEmpty ? 'ไม่มีเอกสารแนบ' : 'ดูเอกสารแนบ' }}
               </span>
           </div>
       </div>
     </div>
 
     <div class="info-text" v-if="!disabled">
-        {{ multiple ? 'Supports multiple files' : 'Supports JPG, PNG, PDF (Max 5MB)' }}
+        {{ multiple ? 'รองรับการอัปโหลดหลายไฟล์' : 'รองรับ JPG, PNG, PDF (สูงสุด 5MB)' }}
     </div>
 
     <!-- File List (Outside box, scrollable) -->
