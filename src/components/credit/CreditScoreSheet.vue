@@ -25,6 +25,16 @@
             <div class="value">{{ formatMoney(extracted.nonCurrentLiabilities?.value) }}</div>
             <div class="unit">บาท</div>
         </div>
+        <div class="input-row">
+            <div class="label">หนี้สินไม่หมุนเวียน 30%</div>
+            <div class="value">{{ formatMoney((extracted.nonCurrentLiabilities?.value || 0) * 0.3) }}</div>
+            <div class="unit">บาท</div>
+        </div>
+        <div class="input-row">
+            <div class="label">หนี้สินรวม</div>
+            <div class="value">{{ formatMoney(extracted.totalLiabilities?.value) }}</div>
+            <div class="unit">บาท</div>
+        </div>
          <div class="input-row">
             <div class="label">ส่วนของผู้ถือหุ้น</div>
             <div class="value">{{ formatMoney(extracted.shareholdersEquity?.value) }}</div>
@@ -48,6 +58,10 @@
             <div class="label">ระยะเวลาเครดิต</div>
             <div class="value">{{ inputs.creditTerm }}</div>
             <div class="unit">วัน</div>
+        </div>
+        <div class="input-row">
+            <div class="label">เงื่อนไขการรวมบิล</div>
+            <div class="value-text">{{ inputs.billingCondition || '-' }}</div>
         </div>
       </div>
 
