@@ -287,7 +287,8 @@ const sheetInputs = computed(() => {
         ownership: store.customer?.residence_ownership || '-',
         customerDuration: store.customer?.years_in_business || '-',
         requestAmount: store.transactionData?.amount || 0,
-        creditTerm: store.transactionData?.request_credit_term || store.transactionData?.term_gs || 0
+        creditTerm: store.transactionData?.request_credit_term || store.transactionData?.term_gs || 0,
+        billingCondition: store.customer?.billing_requirement || '-'
     };
 });
 

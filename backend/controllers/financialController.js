@@ -406,6 +406,7 @@ exports.analyzeFinancials = async (req, res) => {
     // --- 1. EXTRACT FROM EXCEL ---
     const results = {
       nonCurrentLiabilities: { value: 0, column: '' },
+      totalLiabilities: { value: 0, column: '' },
       shareholdersEquity: { value: 0, column: '' },
       totalRevenue: { value: 0, column: '' },
       grossProfit: { value: 0, column: '' },
@@ -417,6 +418,14 @@ exports.analyzeFinancials = async (req, res) => {
       const workbook = xlsx.read(files['balance_sheet'][0].buffer, { type: 'buffer' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       results.nonCurrentLiabilities = findValue(sheet, 'หนี้สินไม่หมุนเวียน', 'AMOUNT');
+
+      // Try 'หนี้สินรวม' first, fallback to 'รวมหนี้สิน'
+      let tl = findValue(sheet, 'หนี้สินรวม', 'AMOUNT');
+      if (tl.value === 0) {
+          tl = findValue(sheet, 'รวมหนี้สิน', 'AMOUNT');
+      }
+      results.totalLiabilities = tl;
+
       results.shareholdersEquity = findValue(sheet, 'ส่วนของผู้ถือหุ้น', 'AMOUNT');
     }
 
