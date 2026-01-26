@@ -385,26 +385,34 @@ const autoDownloadDBD = async () => {
             } else if (data.status === 'complete') {
                 evtSource.close();
 
-                // Fetch the actual file from the static URL
-                Swal.update({ text: 'ดาวน์โหลดไฟล์เสร็จสิ้น กำลังบันทึก...' });
+                Swal.update({ text: 'กำลังบันทึกไฟล์เข้าสู่ระบบ...' });
 
                 try {
-                    const fileRes = await axios.get(data.url, { responseType: 'blob' });
-                    const blob = fileRes.data;
-                    const fileName = data.filename || `DBD_Profile_${dbdQuery.value}.pdf`;
-                    const file = new File([blob], fileName, { type: 'application/pdf' });
+                    // 1. Process Company Profile (PDF)
+                    if (data.files && data.files.profile) {
+                        const pdfRes = await axios.get(data.files.profile.url, { responseType: 'blob' });
+                        const pdfBlob = pdfRes.data;
+                        const pdfName = data.files.profile.filename || `DBD_Profile_${dbdQuery.value}.pdf`;
+                        files.companyProfile = new File([pdfBlob], pdfName, { type: 'application/pdf' });
+                    }
 
-                    files.companyProfile = file;
+                    // 2. Process Balance Sheet (Excel)
+                    if (data.files && data.files.balanceSheet) {
+                        const excelRes = await axios.get(data.files.balanceSheet.url, { responseType: 'blob' });
+                        const excelBlob = excelRes.data;
+                        const excelName = data.files.balanceSheet.filename || `DBD_BalanceSheet_${dbdQuery.value}.xlsx`;
+                        files.balanceSheet = new File([excelBlob], excelName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    }
 
                     Swal.fire({
                         title: 'Success',
-                        text: 'ดาวน์โหลดข้อมูลบริษัทเรียบร้อยแล้ว',
+                        text: 'ดาวน์โหลดและบันทึกข้อมูลเรียบร้อยแล้ว',
                         icon: 'success',
                         timer: 2000
                     });
                 } catch (fetchErr) {
                     console.error(fetchErr);
-                     Swal.fire('Error', 'ไม่สามารถบันทึกไฟล์ได้', 'error');
+                     Swal.fire('Error', 'ไม่สามารถบันทึกไฟล์ได้ (Network Error)', 'error');
                 } finally {
                      downloadingDBD.value = false;
                 }
