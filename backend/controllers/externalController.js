@@ -24,14 +24,14 @@ exports.downloadDBDProfile = async (req, res) => {
         // Launch Puppeteer
         // DEBUG MODE: headless: false to see the browser
         browser = await puppeteer.launch({
-            headless: false,
+            headless: process.env.DBD_HEADLESS !== 'false',
             defaultViewport: null, // Allow browser to size itself
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--window-size=1280,800',
-                '--start-maximized' // Open maximized for better visibility
+                // '--start-maximized' // maximize not always supported in headless
             ]
         });
 
@@ -51,13 +51,69 @@ exports.downloadDBDProfile = async (req, res) => {
         const title = await page.title();
         console.log(`[DBD Auto] Page Title: ${title}`);
 
-        // 2. Search
-        const searchInputSelector = 'input.form-control';
-        console.log('[DBD Auto] Waiting for search input...');
-        await page.waitForSelector(searchInputSelector, { timeout: 30000 });
+        // --- HANDLE POPUPS ---
+        try {
+            console.log('[DBD Auto] Checking for popups...');
+            // Give time for popup to animate in
+            await new Promise(r => setTimeout(r, 2000));
 
-        // Type slowly to mimic human behavior (optional, but good for some sites)
-        await page.type(searchInputSelector, query, { delay: 100 });
+            // Strategy 1: Press Escape (often works for modals)
+            await page.keyboard.press('Escape');
+            await new Promise(r => setTimeout(r, 1000));
+
+            // Strategy 2: Look for "ปิด" (Close) button explicitly
+            const closeClicked = await page.evaluate(() => {
+                const buttons = Array.from(document.querySelectorAll('button, div, span, a'));
+                const closeBtn = buttons.find(el =>
+                    el.innerText && (el.innerText.includes('Close') || el.innerText.includes('ปิด') || el.innerText.includes('X'))
+                );
+                if (closeBtn && closeBtn.offsetParent !== null) { // Check visibility
+                    closeBtn.click();
+                    return true;
+                }
+                return false;
+            });
+            if (closeClicked) console.log('[DBD Auto] Clicked a "Close/ปิด" button.');
+
+            // Strategy 3: Accept Cookies (Critical: Cookie banner often blocks interactions)
+            const cookieClicked = await page.evaluate(() => {
+                const buttons = Array.from(document.querySelectorAll('button, a'));
+                const acceptBtn = buttons.find(el =>
+                    el.innerText && (el.innerText.includes('ยอมรับทั้งหมด') || el.innerText.includes('Accept All'))
+                );
+                if (acceptBtn) {
+                    acceptBtn.click();
+                    return true;
+                }
+                return false;
+            });
+            if (cookieClicked) {
+                console.log('[DBD Auto] Clicked "ยอมรับทั้งหมด".');
+                // Wait for banner to disappear
+                await new Promise(r => setTimeout(r, 2000));
+            }
+
+        } catch (popupErr) {
+            console.warn('[DBD Auto] Popup handling warning:', popupErr.message);
+        }
+        // ---------------------
+
+        // 2. Search
+        // Use a specific attribute selector to avoid selecting hidden inputs
+        const targetSelector = 'input[placeholder*="ค้นหาด้วยชื่อ"]';
+
+        console.log(`[DBD Auto] Waiting for search input (${targetSelector})...`);
+
+        try {
+            await page.waitForSelector(targetSelector, { visible: true, timeout: 10000 });
+        } catch (e) {
+            console.error('[DBD Auto] Search input not found. Dumping HTML for debug...');
+            throw new Error(`Search input '${targetSelector}' not found.`);
+        }
+
+        // Focus and Type
+        await page.click(targetSelector); // Ensure focus
+        await page.type(targetSelector, query, { delay: 100 });
 
         // Press Enter
         await page.keyboard.press('Enter');
