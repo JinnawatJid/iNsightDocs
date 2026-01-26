@@ -59,12 +59,14 @@ exports.streamDBDProfile = async (req, res) => {
                 '--window-size=1920,1080',
                 '--disable-gpu',
                 '--ignore-certificate-errors',
-                '--disable-http2'
+                '--disable-http2',
+                '--disable-blink-features=AutomationControlled'
             ]
         });
 
         const page = await browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+        // Use a modern User-Agent (Chrome 121) to avoid bot detection
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
 
         // Configure download behavior
         const client = await page.target().createCDPSession();
