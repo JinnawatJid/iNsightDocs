@@ -346,46 +346,76 @@ const autoDownloadDBD = async () => {
     if (!dbdQuery.value) return;
 
     downloadingDBD.value = true;
-    try {
-        const response = await axios.post('/api/external/dbd-profile', {
-            taxId: dbdQuery.value
-        }, {
-            responseType: 'blob'
-        });
 
-        // Convert Blob to File
-        const blob = new Blob([response.data], { type: 'application/pdf' });
-        const fileName = `DBD_Profile_${dbdQuery.value}.pdf`;
-        const file = new File([blob], fileName, { type: 'application/pdf' });
-
-        // Assign to uploader
-        // FileUploader expects the raw File object or { name, ... } if remote
-        // But since we just downloaded it, it's a "New" file.
-        // We set it directly. FileUploader v-model usually handles this.
-        files.companyProfile = file;
-
-        Swal.fire({
-            title: 'Success',
-            text: 'ดาวน์โหลดข้อมูลบริษัทเรียบร้อยแล้ว',
-            icon: 'success',
-            timer: 2000
-        });
-
-    } catch (error) {
-        console.error('DBD Download Error:', error);
-        let msg = 'ไม่สามารถดาวน์โหลดข้อมูลได้';
-        if (error.response && error.response.data instanceof Blob) {
-             // Try to parse JSON from Blob
-             try {
-                const text = await error.response.data.text();
-                const json = JSON.parse(text);
-                if (json.message) msg = json.message;
-             } catch (e) {}
+    // Initial Popup
+    Swal.fire({
+        title: 'กำลังเชื่อมต่อกรมพัฒนาธุรกิจการค้า...',
+        text: 'กรุณารอสักครู่ (Please wait)',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
         }
-        Swal.fire('Error', msg, 'error');
-    } finally {
+    });
+
+    // Use SSE for real-time progress updates
+    const evtSource = new EventSource(`/api/external/dbd-stream?taxId=${dbdQuery.value}`);
+
+    evtSource.onmessage = async (event) => {
+        try {
+            const data = JSON.parse(event.data);
+
+            if (data.status === 'progress') {
+                // Update SweetAlert with new status
+                Swal.update({
+                    title: 'กำลังดำเนินการ...',
+                    text: data.message
+                });
+            } else if (data.status === 'complete') {
+                evtSource.close();
+
+                // Fetch the actual file from the static URL
+                Swal.update({ text: 'ดาวน์โหลดไฟล์เสร็จสิ้น กำลังบันทึก...' });
+
+                try {
+                    const fileRes = await axios.get(data.url, { responseType: 'blob' });
+                    const blob = fileRes.data;
+                    const fileName = data.filename || `DBD_Profile_${dbdQuery.value}.pdf`;
+                    const file = new File([blob], fileName, { type: 'application/pdf' });
+
+                    files.companyProfile = file;
+
+                    Swal.fire({
+                        title: 'Success',
+                        text: 'ดาวน์โหลดข้อมูลบริษัทเรียบร้อยแล้ว',
+                        icon: 'success',
+                        timer: 2000
+                    });
+                } catch (fetchErr) {
+                    console.error(fetchErr);
+                     Swal.fire('Error', 'ไม่สามารถบันทึกไฟล์ได้', 'error');
+                } finally {
+                     downloadingDBD.value = false;
+                }
+
+            } else if (data.status === 'error') {
+                evtSource.close();
+                downloadingDBD.value = false;
+                Swal.fire('Error', data.message || 'เกิดข้อผิดพลาดในการดาวน์โหลด', 'error');
+            }
+        } catch (e) {
+            console.error('SSE Parse Error', e);
+        }
+    };
+
+    evtSource.onerror = (err) => {
+        console.error('EventSource failed:', err);
+        evtSource.close();
         downloadingDBD.value = false;
-    }
+        // If readyState is CLOSED (2), it might have just finished normally,
+        // but typically 'complete' event handles that.
+        // If this fires, it's usually a network error or server disconnect.
+        Swal.fire('Error', 'การเชื่อมต่อถูกตัดขาด (Connection lost)', 'error');
+    };
 };
 
 const analyzeFinancials = async () => {

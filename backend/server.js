@@ -21,6 +21,9 @@ app.use('/api/financials', financialRoutes);
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/external', externalRoutes);
 
+// Serve downloaded files
+app.use('/api/downloads', express.static(path.join(__dirname, 'downloads')));
+
 // Health Check
 app.get('/api/health', async (req, res) => {
   try {
