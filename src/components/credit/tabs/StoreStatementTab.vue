@@ -369,6 +369,22 @@ watch(() => store.customer, (val) => {
     }
 }, { immediate: true });
 
+// Helper for Base64 conversion
+const base64ToBlob = (base64, mimeType) => {
+    const byteCharacters = atob(base64);
+    const byteArrays = [];
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+        const slice = byteCharacters.slice(offset, offset + 512);
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) {
+            byteNumbers[i] = slice.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
+    }
+    return new Blob(byteArrays, { type: mimeType });
+};
+
 const autoDownloadDBD = async () => {
     if (!dbdQuery.value) return;
 
@@ -376,8 +392,8 @@ const autoDownloadDBD = async () => {
 
     // Initial Popup
     const swalPromise = Swal.fire({
-        title: 'กำลังเชื่อมต่อกรมพัฒนาธุรกิจการค้า...',
-        text: 'กรุณารอสักครู่ (Please wait)',
+        title: 'กำลังเชื่อมต่อ...',
+        text: 'กำลังค้นหา Local Bridge หรือ Server... (Connecting)',
         allowOutsideClick: false,
         showCancelButton: true,
         cancelButtonText: 'ยกเลิก',
@@ -387,8 +403,21 @@ const autoDownloadDBD = async () => {
         }
     });
 
+    let bridgeUrl = null;
+
+    // Check for Local Bridge (Port 4343)
+    try {
+        await axios.get('http://localhost:4343/health', { timeout: 1000 });
+        bridgeUrl = `http://localhost:4343/stream?taxId=${dbdQuery.value}`;
+        console.log('Connected to Local Bridge');
+        Swal.update({ title: 'Connected to Local Bridge', text: 'กำลังดึงข้อมูลจากเครื่องของคุณ...' });
+    } catch (e) {
+        console.log('Local Bridge not found, using Server');
+        bridgeUrl = `/api/external/dbd-stream?taxId=${dbdQuery.value}`;
+    }
+
     // Use SSE for real-time progress updates
-    const evtSource = new EventSource(`/api/external/dbd-stream?taxId=${dbdQuery.value}`);
+    const evtSource = new EventSource(bridgeUrl);
 
     // Handle User Cancel
     swalPromise.then((result) => {
@@ -416,7 +445,13 @@ const autoDownloadDBD = async () => {
 
                 try {
                     // 1. Process Company Profile (PDF)
-                    if (data.files && data.files.profile) {
+                    // Check if data comes from Bridge (Base64) or Server (URL)
+                    if (data.data && data.data.profile && data.data.profile.content) {
+                         // FROM BRIDGE (Base64)
+                         const blob = base64ToBlob(data.data.profile.content, data.data.profile.mime);
+                         files.companyProfile = new File([blob], data.data.profile.filename, { type: data.data.profile.mime });
+                    } else if (data.files && data.files.profile) {
+                        // FROM SERVER (URL)
                         const pdfRes = await axios.get(data.files.profile.url, { responseType: 'blob' });
                         const pdfBlob = pdfRes.data;
                         const pdfName = data.files.profile.filename || `DBD_Profile_${dbdQuery.value}.pdf`;
@@ -424,7 +459,12 @@ const autoDownloadDBD = async () => {
                     }
 
                     // 2. Process Balance Sheet (Excel)
-                    if (data.files && data.files.balanceSheet) {
+                    if (data.data && data.data.balanceSheet && data.data.balanceSheet.content) {
+                         // FROM BRIDGE (Base64)
+                         const blob = base64ToBlob(data.data.balanceSheet.content, data.data.balanceSheet.mime);
+                         files.balanceSheet = new File([blob], data.data.balanceSheet.filename, { type: data.data.balanceSheet.mime });
+                    } else if (data.files && data.files.balanceSheet) {
+                        // FROM SERVER (URL)
                         const excelRes = await axios.get(data.files.balanceSheet.url, { responseType: 'blob' });
                         const excelBlob = excelRes.data;
                         const excelName = data.files.balanceSheet.filename || `DBD_BalanceSheet_${dbdQuery.value}.xlsx`;
@@ -434,6 +474,8 @@ const autoDownloadDBD = async () => {
                     // Update Years In Business if returned
                     if (data.yearsInBusiness !== undefined) {
                         store.updateCustomerData({ years_in_business: data.yearsInBusiness });
+                    } else if (data.data && data.data.yearsInBusiness !== undefined) {
+                        store.updateCustomerData({ years_in_business: data.data.yearsInBusiness });
                     }
 
                     Swal.fire({
