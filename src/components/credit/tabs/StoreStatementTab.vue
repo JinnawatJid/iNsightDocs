@@ -110,6 +110,11 @@
 
       <!-- Analysis Results -->
       <div v-if="analysisResults" class="analysis-results">
+        <div class="results-actions">
+           <button class="btn-full-report" @click="openFullReport">
+              📄 ดูรายละเอียดเต็ม (Full Report)
+           </button>
+        </div>
         <CreditScoreSheet :analysisResults="analysisResults" :inputs="sheetInputs" />
       </div>
 
@@ -249,7 +254,7 @@
 
 <script setup>
 import { reactive, ref, watch, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
@@ -261,6 +266,7 @@ import { useFormValidation } from '@/composables/useFormValidation';
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
 const route = useRoute();
+const router = useRouter();
 
 const { errors, validateField } = useFormValidation();
 
@@ -476,6 +482,19 @@ const getGradeClass = (grade) => {
     return 'text-danger';
 };
 
+const openFullReport = () => {
+    // Save current data to localStorage to pass to new tab
+    const data = {
+        analysisResults: analysisResults.value,
+        inputs: sheetInputs.value
+    };
+    localStorage.setItem('credit_report_data', JSON.stringify(data));
+
+    // Open in new tab
+    const routeData = router.resolve({ name: 'CreditAnalysisReport' });
+    window.open(routeData.href, '_blank');
+};
+
 // Computed for Diagnostics
 const cleanStatus = computed(() => store.requestStatus ? String(store.requestStatus).trim().toLowerCase() : '');
 const isDraft = computed(() => !store.requestStatus || cleanStatus.value === 'draft' || cleanStatus.value === '');
@@ -641,6 +660,31 @@ const shouldShowFinancialAnalysis = computed(() => {
   padding: 20px;
   border-radius: 8px;
   border: 1px solid #eee;
+}
+
+.results-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 15px;
+}
+
+.btn-full-report {
+    background-color: #0056FF;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+}
+
+.btn-full-report:hover {
+    background-color: #0046cc;
 }
 
 .score-highlight {
