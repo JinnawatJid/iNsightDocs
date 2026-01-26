@@ -2,10 +2,71 @@ const puppeteer = require('puppeteer');
 const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
+const pdf = require('pdf-parse');
+const db = require('../db');
 
 // Helper to send SSE messages
 const sendSSE = (res, data) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
+};
+
+/**
+ * Extract data from DBD Profile PDF and update Customer DB
+ */
+const extractAndProcessDBDData = async (pdfPath, taxId, companyName) => {
+    try {
+        console.log(`[DBD Extract] Reading PDF: ${pdfPath}`);
+        const dataBuffer = await fs.readFile(pdfPath);
+        const data = await pdf(dataBuffer);
+        const text = data.text;
+
+        // Extract Registration Date (วันที่จดทะเบียนจัดตั้ง)
+        // Pattern: "วันที่จดทะเบียนจัดตั้ง : 29/01/2516" or similar
+        const dateRegex = /วันที่จดทะเบียนจัดตั้ง\s*[:]\s*(\d{2}\/\d{2}\/\d{4})/;
+        const match = text.match(dateRegex);
+
+        if (match) {
+            const dateStr = match[1]; // e.g. "29/01/2516"
+            const parts = dateStr.split('/');
+            const yearBE = parseInt(parts[2]);
+            const currentYearBE = new Date().getFullYear() + 543;
+            const yearsInBusiness = currentYearBE - yearBE;
+
+            console.log(`[DBD Extract] Found Registration Date: ${dateStr} (Year ${yearBE}). Years in Business: ${yearsInBusiness}`);
+
+            // Update Database
+            // We prioritize updating by Tax ID if available (likely unique)
+            // If not, we try Company Name, but that's risky.
+            // Usually the UI sends taxId if known.
+
+            let sql = '';
+            let params = [];
+            const taxIdClean = taxId ? taxId.trim() : null;
+
+            // Simple heuristic: If taxId is 13 digits, use it.
+            if (taxIdClean && /^\d{13}$/.test(taxIdClean)) {
+                sql = `UPDATE "Customers" SET "years_in_business" = ? WHERE "VAT Registration No_" = ?`;
+                params = [yearsInBusiness, taxIdClean];
+            } else if (companyName) {
+                 // Fallback to name match? Maybe too risky.
+                 // But if the user searched by Name, maybe we should update by Name?
+                 // Let's stick to Tax ID for safety, or strict Name match.
+                 sql = `UPDATE "Customers" SET "years_in_business" = ? WHERE "Name" = ?`;
+                 params = [yearsInBusiness, companyName];
+            }
+
+            if (sql) {
+                await db.query(sql, params);
+                console.log(`[DBD Extract] Updated Customer DB with years_in_business = ${yearsInBusiness}`);
+                return { success: true, yearsInBusiness };
+            }
+        } else {
+            console.warn('[DBD Extract] Registration Date not found in PDF text.');
+        }
+    } catch (error) {
+        console.error('[DBD Extract] Error:', error.message);
+    }
+    return { success: false };
 };
 
 /**
@@ -310,6 +371,10 @@ exports.streamDBDProfile = async (req, res) => {
             const excelPath = path.join(downloadsDir, excelFilename);
             await fs.move(balanceSheetExcel, excelPath);
         }
+
+        // --- NEW: Extract Data from PDF and Update DB ---
+        sendSSE(res, { status: 'progress', message: 'กำลังประมวลผลข้อมูลจาก PDF...' });
+        await extractAndProcessDBDData(pdfPath, taxId, companyName);
 
         // 7. Complete
         sendSSE(res, {
