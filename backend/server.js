@@ -6,6 +6,7 @@ const customerRoutes = require('./routes/customerRoutes');
 const creditRequestRoutes = require('./routes/creditRequestRoutes');
 const financialRoutes = require('./routes/financialRoutes');
 const ocrRoutes = require('./routes/ocrRoutes');
+const externalRoutes = require('./routes/externalRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/credit-requests', creditRequestRoutes);
 app.use('/api/financials', financialRoutes);
 app.use('/api/ocr', ocrRoutes);
+app.use('/api/external', externalRoutes);
 
 // Health Check
 app.get('/api/health', async (req, res) => {
