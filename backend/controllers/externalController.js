@@ -22,8 +22,8 @@ exports.downloadDBDProfile = async (req, res) => {
         console.log(`[DBD Auto] Starting download for query: ${query}, tmpDir: ${tmpDir}`);
 
         // Launch Puppeteer
-        // DEBUG MODE: set DBD_HEADLESS=false to see the browser
-        const isHeadless = process.env.DBD_HEADLESS !== 'false';
+        // DEBUG MODE: Default to visible (headless: false) for debugging as requested
+        const isHeadless = process.env.DBD_HEADLESS === 'true';
         console.log(`[DBD Auto] Launching Puppeteer (Headless: ${isHeadless})...`);
 
         browser = await puppeteer.launch({
@@ -160,8 +160,9 @@ exports.downloadDBDProfile = async (req, res) => {
             if (resultLink) {
                 console.log('[DBD Auto] Found search result list. Clicked first profile link.');
                 // Wait again for the print button on the new page
+                // Increased timeout to 60s for slow loading
                 try {
-                    await page.waitForSelector(printButtonSelector, { visible: true, timeout: 20000 });
+                    await page.waitForSelector(printButtonSelector, { visible: true, timeout: 60000 });
                 } catch (retryErr) {
                     throw new Error('Timeout waiting for company profile page after clicking result');
                 }
