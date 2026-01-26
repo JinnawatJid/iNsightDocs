@@ -110,6 +110,11 @@
 
       <!-- Analysis Results -->
       <div v-if="analysisResults" class="analysis-results">
+        <CreditScoreSheet :analysisResults="analysisResults" :inputs="sheetInputs" />
+      </div>
+
+      <!-- LEGACY VIEW HIDDEN -->
+      <div v-if="false" class="analysis-results-legacy">
 
         <!-- Scoring Highlight -->
         <div v-if="analysisResults.scoringResult" class="score-highlight">
@@ -248,6 +253,7 @@ import { useRoute } from 'vue-router';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
+import CreditScoreSheet from '../CreditScoreSheet.vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { useFormValidation } from '@/composables/useFormValidation';
@@ -265,6 +271,17 @@ const dbdQuery = ref('');
 const registeredCapital = ref('');
 const analysisResults = ref(null);
 const showDebug = ref(false);
+
+const sheetInputs = computed(() => {
+    return {
+        registeredCapital: registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : 0,
+        yearsInBusiness: store.customer?.years_in_business || 0,
+        ownership: store.customer?.residence_ownership || '-',
+        customerDuration: store.customer?.years_in_business || '-',
+        requestAmount: store.transactionData?.amount || 0,
+        creditTerm: store.transactionData?.request_credit_term || store.transactionData?.term_gs || 0
+    };
+});
 
 const windowUrl = ref('');
 
