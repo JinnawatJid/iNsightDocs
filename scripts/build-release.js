@@ -223,12 +223,29 @@ const downloadFile = async (url, destPath) => {
   });
 
   // 7. Install Prod Deps
-  await logger.step('Installing Production Dependencies', async () => {
+  await logger.step('Installing Production Dependencies (with Puppeteer Cache)', async () => {
+    // Create .puppeteerrc.cjs to force local cache
+    const puppeteerConfig = `const path = require('path');
+
+/**
+ * @type {import("puppeteer").Configuration}
+ */
+module.exports = {
+  // Changes the cache location for Puppeteer.
+  cacheDirectory: path.join(__dirname, '.cache', 'puppeteer'),
+};
+`;
+    await fs.writeFile(path.join(RELEASE_DIR, 'backend', '.puppeteerrc.cjs'), puppeteerConfig);
+
     await runCommand('npm install --omit=dev', path.join(RELEASE_DIR, 'backend'));
   });
 
   // 8. Configure Environment
   await logger.step('Configuring Production Environment', async () => {
+    // Ensure data directories exist
+    await fs.ensureDir(path.join(RELEASE_DIR, 'backend', 'uploads'));
+    await fs.ensureDir(path.join(RELEASE_DIR, 'backend', 'downloads'));
+
     // Create .env
     const envContent = [
       'PORT=3000',
