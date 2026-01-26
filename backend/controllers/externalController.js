@@ -22,9 +22,12 @@ exports.downloadDBDProfile = async (req, res) => {
         console.log(`[DBD Auto] Starting download for query: ${query}, tmpDir: ${tmpDir}`);
 
         // Launch Puppeteer
-        // DEBUG MODE: headless: false to see the browser
+        // DEBUG MODE: set DBD_HEADLESS=false to see the browser
+        const isHeadless = process.env.DBD_HEADLESS !== 'false';
+        console.log(`[DBD Auto] Launching Puppeteer (Headless: ${isHeadless})...`);
+
         browser = await puppeteer.launch({
-            headless: process.env.DBD_HEADLESS !== 'false',
+            headless: isHeadless,
             defaultViewport: null, // Allow browser to size itself
             args: [
                 '--no-sandbox',
@@ -134,13 +137,41 @@ exports.downloadDBDProfile = async (req, res) => {
         try {
             await page.waitForSelector(printButtonSelector, { visible: true, timeout: 20000 });
         } catch (e) {
-            // If button not found, maybe search failed?
-            console.error('[DBD Auto] Print button not found. Search might have failed.');
+            console.error('[DBD Auto] Print button not found. Checking for list results or errors...');
+
+            // Check for "Not Found" message
             const pageContent = await page.content();
             if (pageContent.includes('ไม่พบข้อมูล')) {
                  throw new Error('Customer not found in DBD database');
             }
-            throw new Error('Timeout waiting for company profile page');
+
+            // Check if we are on a search result list (multiple matches)
+            // Strategy: Look for links that contain 'company/profile'
+            const resultLink = await page.evaluate(() => {
+                const links = Array.from(document.querySelectorAll('a'));
+                const profileLink = links.find(l => l.href && l.href.includes('company/profile'));
+                if (profileLink) {
+                    profileLink.click();
+                    return true;
+                }
+                return false;
+            });
+
+            if (resultLink) {
+                console.log('[DBD Auto] Found search result list. Clicked first profile link.');
+                // Wait again for the print button on the new page
+                try {
+                    await page.waitForSelector(printButtonSelector, { visible: true, timeout: 20000 });
+                } catch (retryErr) {
+                    throw new Error('Timeout waiting for company profile page after clicking result');
+                }
+            } else {
+                 // Check for Captcha or other blockers
+                 if (pageContent.includes('captcha') || pageContent.includes('Security Check')) {
+                     throw new Error('Blocked by Captcha/Security Check');
+                 }
+                 throw new Error('Timeout waiting for company profile page');
+            }
         }
 
         console.log('[DBD Auto] Redirect successful. Clicking print...');
@@ -209,9 +240,18 @@ exports.downloadDBDProfile = async (req, res) => {
                     const html = await page.content();
                     await fs.writeFile(debugHtmlPath, html);
                     console.log(`[DBD Auto] Saved debug screenshot to ${debugPath}`);
+                } else {
+                    console.error('[DBD Auto] No pages found to screenshot.');
                 }
             } catch (snapErr) {
                 console.error('[DBD Auto] Failed to save debug screenshot:', snapErr);
+            }
+
+            // If running visibly, keep open for inspection
+            const isHeadless = process.env.DBD_HEADLESS !== 'false';
+            if (!isHeadless) {
+                 console.log('[DBD Auto] Browser is visible. Waiting 30s before closing for inspection...');
+                 await new Promise(r => setTimeout(r, 30000));
             }
         }
 
