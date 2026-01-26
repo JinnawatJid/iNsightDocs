@@ -33,13 +33,13 @@ exports.streamDBDProfile = async (req, res) => {
     let tmpDir = null;
 
     try {
-        sendSSE(res, { status: 'progress', message: 'Initializing download environment...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังเตรียมระบบดาวน์โหลด...' });
 
         // Create unique temp dir
         tmpDir = path.join(os.tmpdir(), `dbd-${Date.now()}-${Math.random().toString(36).substring(7)}`);
         await fs.ensureDir(tmpDir);
 
-        sendSSE(res, { status: 'progress', message: 'Launching browser...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังเปิดเบราว์เซอร์...' });
 
         const isHeadless = process.env.DBD_HEADLESS !== 'false';
         browser = await puppeteer.launch({
@@ -66,12 +66,12 @@ exports.streamDBDProfile = async (req, res) => {
         });
 
         // 1. Navigate
-        sendSSE(res, { status: 'progress', message: 'Opening DBD DataWarehouse...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังเชื่อมต่อกรมพัฒนาธุรกิจการค้า...' });
         console.log('[DBD Stream] Navigating...');
         await page.goto('https://datawarehouse.dbd.go.th/', { waitUntil: 'networkidle2', timeout: 60000 });
 
         // --- POPUP HANDLING ---
-        sendSSE(res, { status: 'progress', message: 'Checking for popups...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังตรวจสอบ Popup...' });
         try {
             // Wait briefly for animations
             await new Promise(r => setTimeout(r, 2000));
@@ -99,7 +99,7 @@ exports.streamDBDProfile = async (req, res) => {
         } catch (e) { console.warn('Popup handling warning:', e.message); }
 
         // 2. Search
-        sendSSE(res, { status: 'progress', message: `Searching for: ${query}...` });
+        sendSSE(res, { status: 'progress', message: `กำลังค้นหานิติบุคคล: ${query}...` });
         const targetSelector = 'input[placeholder*="ค้นหาด้วยชื่อ"]';
         try {
             await page.waitForSelector(targetSelector, { visible: true, timeout: 10000 });
@@ -111,18 +111,18 @@ exports.streamDBDProfile = async (req, res) => {
         }
 
         // 3. Wait for Redirect/Results
-        sendSSE(res, { status: 'progress', message: 'Waiting for search results...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังรอผลการค้นหา...' });
         const printButtonSelector = 'div.dropdown.print > a.btn-print';
 
         try {
             await page.waitForSelector(printButtonSelector, { visible: true, timeout: 60000 });
         } catch (e) {
              // Fallback: Check for result list
-             sendSSE(res, { status: 'progress', message: 'Checking search result list...' });
+             sendSSE(res, { status: 'progress', message: 'กำลังตรวจสอบรายการค้นหา...' });
 
              const pageContent = await page.content();
              if (pageContent.includes('ไม่พบข้อมูล')) {
-                 throw new Error('Company not found in DBD database');
+                 throw new Error('ไม่พบข้อมูลนิติบุคคลในฐานข้อมูล');
              }
 
              const resultLink = await page.evaluate(() => {
@@ -133,7 +133,7 @@ exports.streamDBDProfile = async (req, res) => {
             });
 
             if (resultLink) {
-                 sendSSE(res, { status: 'progress', message: 'Company found. Opening profile...' });
+                 sendSSE(res, { status: 'progress', message: 'พบข้อมูลแล้ว กำลังเปิดหน้าโปรไฟล์...' });
                  try {
                      await page.waitForSelector(printButtonSelector, { visible: true, timeout: 60000 });
                  } catch (retryErr) {
@@ -142,18 +142,18 @@ exports.streamDBDProfile = async (req, res) => {
                          const btns = Array.from(document.querySelectorAll('a, button'));
                          return !!btns.find(b => b.innerText && b.innerText.includes('พิมพ์ข้อมูล'));
                      });
-                     if (!manualFind) throw new Error('Timeout waiting for profile page');
+                     if (!manualFind) throw new Error('หมดเวลาในการรอหน้าโปรไฟล์');
                  }
             } else {
                  if (pageContent.includes('captcha') || pageContent.includes('Security Check')) {
-                     throw new Error('Blocked by Captcha/Security Check');
+                     throw new Error('ถูกระงับโดยระบบ Captcha/Security Check');
                  }
-                 throw new Error('Timeout waiting for company profile page');
+                 throw new Error('หมดเวลาในการค้นหาข้อมูล');
             }
         }
 
-        // 4. Download
-        sendSSE(res, { status: 'progress', message: 'Downloading PDF...' });
+        // 4. Download Profile PDF
+        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดข้อมูลนิติบุคคล (PDF)...' });
 
         try {
             await page.click(printButtonSelector);
@@ -166,39 +166,133 @@ exports.streamDBDProfile = async (req, res) => {
              });
         }
 
-        // 5. Wait for file
-        let downloadedFile = null;
-        const maxWait = 20000;
-        const startTime = Date.now();
+        // Wait for PDF file
+        let profilePdf = null;
+        const maxWait = 30000;
+        let startTime = Date.now();
         while (Date.now() - startTime < maxWait) {
             const files = await fs.readdir(tmpDir);
             const pdfFile = files.find(f => f.toLowerCase().endsWith('.pdf'));
             if (pdfFile) {
-                downloadedFile = path.join(tmpDir, pdfFile);
+                profilePdf = path.join(tmpDir, pdfFile);
                 break;
             }
             await new Promise(r => setTimeout(r, 500));
         }
 
-        if (!downloadedFile) throw new Error('Download timed out');
+        if (!profilePdf) throw new Error('หมดเวลาในการดาวน์โหลด PDF');
 
-        // 6. Move File
-        sendSSE(res, { status: 'progress', message: 'Saving file to server...' });
+        // --- NEW: Download Balance Sheet (Excel) ---
+        sendSSE(res, { status: 'progress', message: 'กำลังเปลี่ยนแท็บไปยังข้อมูลงบการเงิน...' });
+
+        // 4.1 Click "Financial Data" Tab
+        const tabClicked = await page.evaluate(() => {
+            const items = Array.from(document.querySelectorAll('a, li, div'));
+            const tab = items.find(el => el.innerText && el.innerText.trim() === 'ข้อมูลงบการเงิน');
+            if (tab) {
+                tab.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (!tabClicked) {
+            // Try partial match if exact match fails
+             await page.evaluate(() => {
+                const items = Array.from(document.querySelectorAll('a, li'));
+                const tab = items.find(el => el.innerText && el.innerText.includes('ข้อมูลงบการเงิน'));
+                if (tab) tab.click();
+            });
+        }
+
+        // 4.2 Wait for Table (Look for "งบแสดงฐานะการเงิน" text)
+        sendSSE(res, { status: 'progress', message: 'กำลังรอโหลดตารางงบการเงิน...' });
+        try {
+            await page.waitForFunction(
+                () => document.body.innerText.includes('งบแสดงฐานะการเงิน'),
+                { timeout: 30000 }
+            );
+        } catch (e) {
+            console.warn('Timeout waiting for balance sheet text, but continuing...');
+        }
+
+        // 4.3 Click "Print Info" -> "Print Excel"
+        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบการเงิน (Excel)...' });
+
+        // Find the specific "Print Info" button in this tab
+        await page.evaluate(() => {
+             // Re-query buttons because DOM changed
+             const buttons = Array.from(document.querySelectorAll('button, a'));
+             // The button in the screenshot says "พิมพ์ข้อมูล" with a printer icon
+             // We need to be careful not to click the top profile one again if it's still visible
+             // Usually the Financial tab has its own section.
+             // We look for the one inside the financial content area if possible,
+             // or just the last one found which is likely the new one.
+             const printBtns = buttons.filter(b => b.innerText && b.innerText.includes('พิมพ์ข้อมูล'));
+             if (printBtns.length > 0) {
+                 // Click the last one as it's likely the one in the active tab content
+                 printBtns[printBtns.length - 1].click();
+             }
+        });
+
+        // 4.4 Click "Print Excel" in Dropdown
+        await new Promise(r => setTimeout(r, 1000)); // Wait for dropdown
+        await page.evaluate(() => {
+            const links = Array.from(document.querySelectorAll('a, li, span'));
+            const excelBtn = links.find(l => l.innerText && l.innerText.includes('พิมพ์ Excel'));
+            if (excelBtn) excelBtn.click();
+        });
+
+        // 4.5 Wait for Excel File
+        let balanceSheetExcel = null;
+        startTime = Date.now();
+        while (Date.now() - startTime < maxWait) {
+            const files = await fs.readdir(tmpDir);
+            const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
+            if (xlsxFile) {
+                balanceSheetExcel = path.join(tmpDir, xlsxFile);
+                break;
+            }
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        if (!balanceSheetExcel) {
+             console.warn('Excel download timed out');
+             // We don't throw here to ensure we at least return the PDF
+        }
+
+        // 6. Move Files
+        sendSSE(res, { status: 'progress', message: 'กำลังบันทึกไฟล์ลงระบบ...' });
 
         const downloadsDir = path.join(__dirname, '../downloads');
         await fs.ensureDir(downloadsDir);
 
-        // Use a clean filename
-        const finalFilename = `DBD_Profile_${query}_${Date.now()}.pdf`;
-        const finalPath = path.join(downloadsDir, finalFilename);
+        // Process PDF
+        const pdfFilename = `DBD_Profile_${query}_${Date.now()}.pdf`;
+        const pdfPath = path.join(downloadsDir, pdfFilename);
+        await fs.move(profilePdf, pdfPath);
 
-        await fs.move(downloadedFile, finalPath);
+        // Process Excel (if found)
+        let excelFilename = null;
+        if (balanceSheetExcel) {
+            excelFilename = `DBD_BalanceSheet_${query}_${Date.now()}.xlsx`;
+            const excelPath = path.join(downloadsDir, excelFilename);
+            await fs.move(balanceSheetExcel, excelPath);
+        }
 
         // 7. Complete
         sendSSE(res, {
             status: 'complete',
-            url: `/api/downloads/${finalFilename}`,
-            filename: finalFilename
+            files: {
+                profile: {
+                    url: `/api/downloads/${pdfFilename}`,
+                    filename: pdfFilename
+                },
+                balanceSheet: excelFilename ? {
+                    url: `/api/downloads/${excelFilename}`,
+                    filename: excelFilename
+                } : null
+            }
         });
 
     } catch (error) {

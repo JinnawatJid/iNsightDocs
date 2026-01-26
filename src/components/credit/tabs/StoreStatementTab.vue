@@ -67,7 +67,7 @@
           accept=".pdf"
         />
         <FileUploader
-          label="งบดุล (Balance Sheet)"
+          label="งบแสดงฐานะการเงิน (Balance Sheet)"
           v-model="files.balanceSheet"
           :disabled="!isEditing"
           accept=".xlsx, .xls"
