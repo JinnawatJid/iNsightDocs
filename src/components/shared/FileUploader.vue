@@ -1,7 +1,9 @@
 <template>
   <div class="upload-item" :class="{ 'upload-item-large': multiple }">
     <label>{{ label }} <span v-if="required" class="required">*</span></label>
-    <div class="upload-box" :class="{ 'upload-box-large': multiple, 'disabled': disabled, 'border-red-500': showError }" @click="triggerUpload">
+
+    <!-- New Compact Upload Box -->
+    <div class="upload-box-compact" :class="{ 'disabled': disabled, 'border-red-500': showError }" @click="triggerUpload">
       <input
         type="file"
         ref="fileInput"
@@ -11,53 +13,61 @@
         :multiple="multiple"
       />
 
-      <!-- Placeholder State -->
-      <div v-if="isEmpty" class="upload-placeholder">
-        <div v-if="!disabled" class="icon-wrapper" :class="{ 'icon-large': multiple }">
-          <slot name="icon">
-             <!-- Default Icon -->
-             <img v-if="!multiple" :src="iconFileBlue" alt="File" width="24" height="24" />
-             <img v-else :src="iconUploadMulti" alt="Upload" width="48" height="48" />
-          </slot>
-        </div>
-
-        <p v-if="!disabled"><span class="link">คลิกเพื่ออัปโหลด</span> หรือลากไฟล์มาที่นี่</p>
-        <p v-else style="color: #999; font-size: 13px;">ไม่มีเอกสารแนบ</p>
-
-        <span v-if="!disabled" class="info">
-            {{ multiple ? 'สามารถแนบได้หลายไฟล์' : 'รองรับไฟล์รูปภาพและเอกสาร (JPG, PNG, PDF) ขนาดไม่เกิน 5MB' }}
-        </span>
+      <div class="upload-compact-content">
+          <div class="icon-wrapper-small">
+              <slot name="icon">
+                  <img v-if="multiple" :src="iconUploadMulti" alt="Upload" width="24" height="24" />
+                  <img v-else :src="iconFileBlue" alt="File" width="20" height="20" />
+              </slot>
+          </div>
+          <div class="text-content">
+              <span class="main-text" v-if="!disabled">
+                  <span class="link">Click to upload</span> or drag files
+              </span>
+              <span class="main-text disabled-text" v-else>
+                  {{ isEmpty ? 'No documents attached' : 'View attached documents' }}
+              </span>
+          </div>
       </div>
+    </div>
 
-      <!-- Preview State -->
-      <div v-else class="file-preview-container">
+    <div class="info-text" v-if="!disabled">
+        {{ multiple ? 'Supports multiple files' : 'Supports JPG, PNG, PDF (Max 5MB)' }}
+    </div>
+
+    <!-- File List (Outside box, scrollable) -->
+    <div v-if="!isEmpty" class="file-list-container">
         <!-- Single File Preview -->
-        <div v-if="!multiple" class="file-preview">
-          <span class="file-name">{{ file.name }}</span>
+        <div v-if="!multiple && file" class="file-preview-row">
+            <div class="file-info">
+                 <img :src="iconFileBlue" width="16" height="16" class="file-icon"/>
+                 <span class="file-name" :title="file.name">{{ file.name }}</span>
+            </div>
 
-          <!-- Download Button (Always if Remote) -->
-          <button v-if="isRemote(file)" class="download-btn" @click.stop="downloadFile(file)" title="Download">
-             <img src="@/assets/icons/download.svg" alt="Download" />
-          </button>
-
-          <!-- Remove Button (Editable) -->
-          <button v-if="!disabled" class="remove-btn" @click.stop="removeFile()">×</button>
+            <div class="file-actions">
+                 <button v-if="isRemote(file)" class="action-btn download-btn" @click.stop="downloadFile(file)" title="Download">
+                     <img src="@/assets/icons/download.svg" alt="Download" />
+                 </button>
+                 <button v-if="!disabled" class="action-btn remove-btn" @click.stop="removeFile()">×</button>
+            </div>
         </div>
 
         <!-- Multiple Files List -->
-        <ul v-else class="file-list">
-            <li v-for="(f, index) in file" :key="index" class="file-list-item">
-                <span class="file-name">{{ f.name }}</span>
+        <ul v-else-if="multiple && file && file.length > 0" class="file-list-scrollable">
+            <li v-for="(f, index) in file" :key="index" class="file-preview-row">
+                 <div class="file-info">
+                     <img :src="iconFileBlue" width="16" height="16" class="file-icon"/>
+                     <span class="file-name" :title="f.name">{{ f.name }}</span>
+                 </div>
 
-                <!-- Download Button (Always if Remote) -->
-                 <button v-if="isRemote(f)" class="download-btn-small" @click.stop="downloadFile(f)" title="Download">
-                    <img src="@/assets/icons/download.svg" alt="Download" />
-                 </button>
-
-                <button v-if="!disabled" class="remove-btn" @click.stop="removeFile(index)">×</button>
+                 <div class="file-actions">
+                     <button v-if="isRemote(f)" class="action-btn download-btn" @click.stop="downloadFile(f)" title="Download">
+                        <img src="@/assets/icons/download.svg" alt="Download" />
+                     </button>
+                     <button v-if="!disabled" class="action-btn remove-btn" @click.stop="removeFile(index)">×</button>
+                 </div>
             </li>
         </ul>
-      </div>
     </div>
   </div>
 </template>
@@ -73,7 +83,7 @@ export default {
   name: 'FileUploader',
   data() {
     return {
-      file: this.modelValue,
+      file: this.initializeFile(this.modelValue),
       iconFileBlue,
       iconUploadMulti
     };
@@ -81,7 +91,6 @@ export default {
   setup(props) {
       const store = useCreditRequestStore();
       const showError = computed(() => {
-          // Show error if required, empty, and global validation is triggered
           if (props.required && store.showValidationErrors) {
               if (props.multiple) {
                    return !props.modelValue || props.modelValue.length === 0;
@@ -107,7 +116,7 @@ export default {
       default: '.jpg, .jpeg, .png, .pdf'
     },
     modelValue: {
-      type: [Object, Array], // Object for single, Array for multiple
+      type: [Object, Array],
       default: null
     },
     multiple: {
@@ -122,10 +131,26 @@ export default {
   emits: ['update:modelValue', 'file-selected', 'file-removed'],
   watch: {
     modelValue(newVal) {
-      this.file = newVal;
+      this.file = this.initializeFile(newVal);
+    },
+    multiple(newVal) {
+        // Re-initialize if mode changes dynamically
+        this.file = this.initializeFile(this.modelValue);
     }
   },
   methods: {
+    initializeFile(val) {
+        if (!val) {
+            return this.multiple ? [] : null;
+        }
+        if (this.multiple) {
+            // Ensure array
+            return Array.isArray(val) ? val : [val];
+        } else {
+            // Ensure object
+            return Array.isArray(val) ? (val.length > 0 ? val[0] : null) : val;
+        }
+    },
     triggerUpload() {
       if (this.disabled) return;
       this.$refs.fileInput.click();
@@ -137,7 +162,6 @@ export default {
       const validFiles = [];
       const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
-      // Simple extension check helper
       const isExtensionValid = (fileName) => {
           if (this.accept === '*/*') return true;
           const allowedExts = this.accept.split(',').map(ext => ext.trim().toLowerCase());
@@ -148,26 +172,22 @@ export default {
       for (let i = 0; i < files.length; i++) {
           const file = files[i];
 
-          // Size Check
           if (file.size > MAX_SIZE) {
               Swal.fire({
                   icon: 'error',
                   title: 'File too large',
                   text: `File "${file.name}" exceeds the 5MB limit.`
               });
-              // Reset input
               this.$refs.fileInput.value = '';
-              return; // Stop processing
+              return;
           }
 
-          // Extension Check
           if (!isExtensionValid(file.name)) {
                Swal.fire({
                   icon: 'error',
                   title: 'Invalid file type',
                   text: `File "${file.name}" is not allowed. Allowed types: ${this.accept}`
               });
-              // Reset input
               this.$refs.fileInput.value = '';
               return;
           }
@@ -176,22 +196,18 @@ export default {
       }
 
       if (this.multiple) {
-        // Append new files to existing array
         const currentFiles = this.file || [];
         const updatedFiles = [...currentFiles, ...validFiles];
-
         this.file = updatedFiles;
         this.$emit('update:modelValue', updatedFiles);
         this.$emit('file-selected', updatedFiles);
       } else {
-        // Single file mode
         const selectedFile = validFiles[0];
         this.file = selectedFile;
         this.$emit('update:modelValue', selectedFile);
         this.$emit('file-selected', selectedFile);
       }
 
-      // Reset input to allow re-selection of same file if needed
       this.$refs.fileInput.value = '';
     },
     removeFile(index) {
@@ -231,188 +247,187 @@ export default {
 .upload-item {
   display: flex;
   flex-direction: column;
+  margin-bottom: 15px;
 }
 
 label {
-  font-weight: bold;
-  font-size: 14px;
-  margin-bottom: 8px;
-  color: #333;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: #444;
   text-align: left;
 }
 
 .required {
-  color: red;
-  margin-left: 4px;
+  color: #ef4444;
+  margin-left: 3px;
 }
 
-.upload-box {
+/* Compact Upload Box Design */
+.upload-box-compact {
   border: 1px dashed #ccc;
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
+  border-radius: 6px;
+  padding: 10px 15px; /* Compact Padding */
   cursor: pointer;
   background-color: #fff;
-  transition: border-color 0.2s, background-color 0.2s;
-  min-height: 120px;
+  transition: all 0.2s ease;
+  min-height: 48px; /* Fixed small height */
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
-.upload-box.disabled {
-  background-color: #f5f5f5;
-  cursor: default; /* Change from not-allowed to default for better UX when viewing */
-  border-style: solid;
-}
-
-.upload-box-large {
-  border: 2px dashed #e0e0e0;
-  padding: 40px;
-}
-
-.upload-box:hover:not(.disabled) {
+.upload-box-compact:hover:not(.disabled) {
   border-color: #0056FF;
-  background-color: #f8faff;
+  background-color: #f0f7ff;
+}
+
+.upload-box-compact.disabled {
+  background-color: #f9f9f9;
+  cursor: default;
+  border-style: solid;
+  border-color: #eee;
+}
+
+.border-red-500 {
+  border-color: #ef4444 !important;
+  background-color: #fff1f2;
+}
+
+.upload-compact-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.icon-wrapper-small {
+    display: flex;
+    align-items: center;
+    color: #0056FF;
+}
+
+.text-content {
+    flex: 1;
+    font-size: 13px;
+    color: #555;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.link {
+    color: #0056FF;
+    font-weight: 600;
+    text-decoration: none;
+}
+.link:hover {
+    text-decoration: underline;
+}
+
+.disabled-text {
+    color: #999;
+    font-style: italic;
+}
+
+.info-text {
+    font-size: 11px;
+    color: #999;
+    margin-top: 4px;
+    margin-left: 2px;
 }
 
 .hidden-input {
   display: none;
 }
 
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-  width: 100%;
+/* File List Design */
+.file-list-container {
+    margin-top: 8px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background: #fafafa;
 }
 
-.icon-wrapper {
-  color: #0056FF;
-  margin-bottom: 10px;
-}
-
-.icon-large {
-  margin-bottom: 15px;
-}
-
-.upload-placeholder p {
-  margin: 5px 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.upload-placeholder .link {
-  color: #0056FF;
-  font-weight: bold;
-  text-decoration: underline;
-}
-
-.upload-placeholder .info {
-  font-size: 11px;
-  color: #999;
-  margin-top: 5px;
-}
-
-.file-preview-container {
-    width: 100%;
-}
-
-.file-preview {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  justify-content: center;
-}
-
-.file-list {
+.file-list-scrollable {
     list-style: none;
     padding: 0;
     margin: 0;
-    width: 100%;
+    max-height: 120px; /* Limit height to show ~3 items */
+    overflow-y: auto;
 }
 
-.file-list-item {
+.file-preview-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    background-color: #f9f9f9;
-    border-radius: 4px;
-    margin-bottom: 5px;
+    padding: 6px 10px;
+    border-bottom: 1px solid #eee;
+    background: white;
+}
+
+.file-preview-row:last-child {
+    border-bottom: none;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.file-icon {
+    opacity: 0.7;
+    flex-shrink: 0;
 }
 
 .file-name {
-  font-size: 14px;
-  font-weight: bold;
-  color: #28a745;
-  word-break: break-all;
+    font-size: 13px;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px; /* Adjust based on container */
 }
 
-.remove-btn {
-  background: #ff4d4f;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  padding: 0;
-}
-
-.remove-btn:hover {
-  background: #d9363e;
-}
-
-.download-btn {
-    background: #0056FF;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 5px;
-    width: 32px;
-    height: 32px;
+.file-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
-    cursor: pointer;
+    gap: 5px;
 }
 
-.download-btn img {
-    width: 20px;
-    height: 20px;
-    filter: invert(1); /* Make icon white */
-}
-
-.download-btn-small {
+.action-btn {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0;
+    padding: 4px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
-}
-.download-btn-small img {
-    width: 18px;
-    height: 18px;
-    /* color #0056FF */
+    justify-content: center;
+    transition: background 0.2s;
 }
 
-.border-red-500 {
-  border-color: #ef4444 !important;
-  background-color: #fff1f2; /* Light red background for emphasis */
+.download-btn img {
+    width: 16px;
+    height: 16px;
+    filter: invert(32%) sepia(85%) saturate(2220%) hue-rotate(209deg) brightness(96%) contrast(106%); /* #0056FF */
 }
 
-.required {
-    color: #ef4444;
-    margin-left: 4px;
+.download-btn:hover {
+    background-color: #e6f0ff;
 }
+
+.remove-btn {
+    color: #ff4d4f;
+    font-size: 18px;
+    line-height: 1;
+    font-weight: bold;
+}
+
+.remove-btn:hover {
+    background-color: #fff1f0;
+}
+
 </style>

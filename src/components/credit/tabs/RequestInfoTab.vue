@@ -9,12 +9,14 @@
             required
             v-model="files.creditApp"
             :disabled="!isEditing"
+            multiple
             />
             <FileUploader
             label="ใบเสนอราคา"
             :required="isQuotationRequired"
             v-model="files.quotation"
             :disabled="!isEditing"
+            multiple
             />
         </div>
         </div>

@@ -8,12 +8,14 @@
           required
           v-model="files.idCard"
           :disabled="!isEditing"
+          multiple
         />
         <FileUploader
           label="สำเนาทะเบียนบ้าน"
           required
           v-model="files.homeReg"
           :disabled="!isEditing"
+          multiple
         />
       </div>
     </div>

@@ -6,11 +6,13 @@
           label="Bank Guarantee"
           v-model="files.bankGuarantee"
           :disabled="!isEditing"
+          multiple
         />
         <FileUploader
           label="เอกสารค้ำประกัน"
           v-model="files.letterGuarantee"
           :disabled="!isEditing"
+          multiple
         />
     </div>
 
@@ -331,8 +333,8 @@ watch(() => files.companyProfile, (v) => store.updateFile('company_profile_doc',
 
 // Initialize files from store
 watch(() => store.files, (newVal) => {
-  files.bankGuarantee = newVal?.bank_guarantee_doc || null;
-  files.letterGuarantee = newVal?.letter_guarantee_doc || null;
+  files.bankGuarantee = newVal?.bank_guarantee_doc || [];
+  files.letterGuarantee = newVal?.letter_guarantee_doc || [];
   files.balanceSheet = newVal?.balance_sheet_doc || null;
   files.profitLoss = newVal?.profit_loss_doc || null;
   files.financialRatios = newVal?.financial_ratios_doc || null;

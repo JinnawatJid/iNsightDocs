@@ -9,18 +9,21 @@
           :required="isRequiredFile('legal_entity_certificate')"
           v-model="files.legalEntityCertificate"
           :disabled="!isEditing"
+          multiple
         />
         <FileUploader
           label="เอกสารภพ.20"
           :required="isRequiredFile('vat_document')"
           v-model="files.vatDocument"
           :disabled="!isEditing"
+          multiple
         />
         <FileUploader
           label="รูปถ่ายบริษัท"
           :required="isRequiredFile('company_photo')"
           v-model="files.companyPhoto"
           :disabled="!isEditing"
+          multiple
         >
           <template #icon>
             <img :src="iconImage" alt="Image" width="24" height="24" />
@@ -31,6 +34,7 @@
           :required="isRequiredFile('company_land_tax')"
           v-model="files.companyLandTax"
           :disabled="!isEditing"
+          multiple
         />
       </div>
       <!-- Individual/Store Uploads -->
@@ -40,6 +44,7 @@
           :required="isRequiredFile('store_photo')"
           v-model="files.storePhoto"
           :disabled="!isEditing"
+          multiple
         >
           <template #icon>
              <img :src="iconImage" alt="Image" width="24" height="24" />
@@ -50,12 +55,14 @@
           :required="isRequiredFile('commercial_reg')"
           v-model="files.commercialReg"
           :disabled="!isEditing"
+          multiple
         />
         <FileUploader
           label="เอกสารเสียภาษีที่ดินร้านค้า"
           :required="isRequiredFile('store_land_tax')"
           v-model="files.storeLandTax"
           :disabled="!isEditing"
+          multiple
         />
       </div>
     </div>
@@ -282,13 +289,13 @@ const files = reactive({
 
 // Watch store.files to hydrate local files (for Read Only view)
 watch(() => store.files, (newVal) => {
-  files.legalEntityCertificate = newVal?.legal_entity_certificate || null;
-  files.vatDocument = newVal?.vat_document || null;
-  files.companyPhoto = newVal?.company_photo || null;
-  files.companyLandTax = newVal?.company_land_tax || null;
-  files.storePhoto = newVal?.store_photo || null;
-  files.commercialReg = newVal?.commercial_reg || null;
-  files.storeLandTax = newVal?.store_land_tax || null;
+  files.legalEntityCertificate = newVal?.legal_entity_certificate || [];
+  files.vatDocument = newVal?.vat_document || [];
+  files.companyPhoto = newVal?.company_photo || [];
+  files.companyLandTax = newVal?.company_land_tax || [];
+  files.storePhoto = newVal?.store_photo || [];
+  files.commercialReg = newVal?.commercial_reg || [];
+  files.storeLandTax = newVal?.store_land_tax || [];
 }, { immediate: true, deep: true });
 
 watch(() => files.legalEntityCertificate, (v) => { store.updateFile('legal_entity_certificate', v); });
