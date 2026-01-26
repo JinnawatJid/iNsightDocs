@@ -22,13 +22,16 @@ exports.downloadDBDProfile = async (req, res) => {
         console.log(`[DBD Auto] Starting download for query: ${query}, tmpDir: ${tmpDir}`);
 
         // Launch Puppeteer
+        // DEBUG MODE: headless: false to see the browser
         browser = await puppeteer.launch({
-            headless: 'new', // Use new headless mode
+            headless: false,
+            defaultViewport: null, // Allow browser to size itself
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage', // Fixes issues in Docker/containerized environments
-                '--window-size=1280,800'
+                '--disable-dev-shm-usage',
+                '--window-size=1280,800',
+                '--start-maximized' // Open maximized for better visibility
             ]
         });
 
@@ -42,14 +45,19 @@ exports.downloadDBDProfile = async (req, res) => {
         });
 
         // 1. Navigate to DBD Datawarehouse
+        console.log('[DBD Auto] Navigating to https://datawarehouse.dbd.go.th/ ...');
         await page.goto('https://datawarehouse.dbd.go.th/', { waitUntil: 'networkidle2', timeout: 60000 });
+
+        const title = await page.title();
+        console.log(`[DBD Auto] Page Title: ${title}`);
 
         // 2. Search
         const searchInputSelector = 'input.form-control';
-        await page.waitForSelector(searchInputSelector);
+        console.log('[DBD Auto] Waiting for search input...');
+        await page.waitForSelector(searchInputSelector, { timeout: 30000 });
 
         // Type slowly to mimic human behavior (optional, but good for some sites)
-        await page.type(searchInputSelector, query, { delay: 50 });
+        await page.type(searchInputSelector, query, { delay: 100 });
 
         // Press Enter
         await page.keyboard.press('Enter');
@@ -127,6 +135,24 @@ exports.downloadDBDProfile = async (req, res) => {
 
     } catch (error) {
         console.error('[DBD Auto] Error:', error);
+
+        // Debugging: Take screenshot on failure
+        if (browser) {
+            try {
+                const pages = await browser.pages();
+                const page = pages.length > 0 ? pages[0] : null;
+                if (page) {
+                    const debugPath = path.join(__dirname, '..', 'error_dbd.png');
+                    const debugHtmlPath = path.join(__dirname, '..', 'error_dbd.html');
+                    await page.screenshot({ path: debugPath, fullPage: true });
+                    const html = await page.content();
+                    await fs.writeFile(debugHtmlPath, html);
+                    console.log(`[DBD Auto] Saved debug screenshot to ${debugPath}`);
+                }
+            } catch (snapErr) {
+                console.error('[DBD Auto] Failed to save debug screenshot:', snapErr);
+            }
+        }
 
         // Cleanup if error
         if (tmpDir) await fs.remove(tmpDir).catch(() => {});
