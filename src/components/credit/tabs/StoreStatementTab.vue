@@ -251,12 +251,10 @@ import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { useFormValidation } from '@/composables/useFormValidation';
-import { useFeatureFlag } from '@/composables/useFeatureFlag';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
 const route = useRoute();
-const { isFinancialDraftEnabled } = useFeatureFlag();
 
 const { errors, validateField } = useFormValidation();
 
@@ -464,14 +462,15 @@ const getGradeClass = (grade) => {
 // Computed for Diagnostics
 const cleanStatus = computed(() => store.requestStatus ? String(store.requestStatus).trim().toLowerCase() : '');
 const isDraft = computed(() => !store.requestStatus || cleanStatus.value === 'draft' || cleanStatus.value === '');
-const hasFlag = computed(() => {
-    // Check reactivity of composable AND raw window URL
-    return isFinancialDraftEnabled.value || windowUrl.value.includes('feature=financial_draft');
-});
 
 // Visibility Logic for Financial Analysis
 const shouldShowFinancialAnalysis = computed(() => {
-    // 1. Standard Visibility (Downstream roles)
+    // 1. Always visible in Draft (moved to main form)
+    if (isDraft.value) {
+        return true;
+    }
+
+    // 2. Standard Visibility (Downstream roles)
     const visibleStatuses = [
         'opened',
         'regionalsubmitted',
@@ -486,11 +485,6 @@ const shouldShowFinancialAnalysis = computed(() => {
     ];
 
     if (visibleStatuses.some(s => cleanStatus.value.includes(s))) {
-        return true;
-    }
-
-    // 2. Draft Phase Visibility (Controlled by Feature Flag)
-    if (isDraft.value && hasFlag.value) {
         return true;
     }
 
