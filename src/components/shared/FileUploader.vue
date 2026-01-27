@@ -22,7 +22,7 @@
           </div>
           <div class="text-content">
               <span class="main-text" v-if="!disabled">
-                  <span class="link">คลิกเพื่ออัปโหลด</span> หรือลากไฟล์มาวาง
+                  <span class="link">คลิกเพื่ออัปโหลด</span>
               </span>
               <span class="main-text disabled-text" v-else>
                   {{ isEmpty ? 'ไม่มีเอกสารแนบ' : 'ดูเอกสารแนบ' }}
