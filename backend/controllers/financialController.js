@@ -322,7 +322,7 @@ const findYearlySeries = (sheet, rowKeywords, count = 3) => {
 // C1: Company Strength (Max 49)
 const calculateC1 = (customer, registeredCapital, requestAmount) => {
   let score = 0;
-  const breakdown = {};
+  const items = [];
   const debug = [];
 
   // 1. Years in Business (Max 14.42)
@@ -335,8 +335,15 @@ const calculateC1 = (customer, registeredCapital, requestAmount) => {
   else rawYears = 0.25;
 
   const scoreYears = rawYears * 7.21;
-  breakdown.years = scoreYears;
   score += scoreYears;
+  items.push({
+    key: 'years',
+    label: 'ระยะเวลาธุรกิจ',
+    value: years,
+    displayValue: years.toString(),
+    weight: 14.42,
+    score: scoreYears
+  });
   debug.push({ label: 'ระยะเวลาดำเนินธุรกิจ', value: years, weight: 14.42, score: scoreYears, column: '-' });
 
   // 2. Request / Capital (Max 8.64)
@@ -351,8 +358,15 @@ const calculateC1 = (customer, registeredCapital, requestAmount) => {
   else rawLev = 0.25;
 
   const scoreLev = rawLev * 4.32;
-  breakdown.leverage = scoreLev;
   score += scoreLev;
+  items.push({
+    key: 'leverage',
+    label: 'สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน',
+    value: leverage,
+    displayValue: leverage.toFixed(2),
+    weight: 8.64,
+    score: scoreLev
+  });
   debug.push({ label: 'สัดส่วนเครดิตต่อทุน', value: leverage.toFixed(2), weight: 8.64, score: scoreLev, column: '-' });
 
   // 3. Asset Ownership (Max 25.94)
@@ -360,25 +374,39 @@ const calculateC1 = (customer, registeredCapital, requestAmount) => {
   const assetValue = parseAmount(customer.residence_ownership_other || '0');
 
   let rawAsset = 1.0;
+  let displayVal = ownership;
   if (ownership.includes('ตนเอง') || ownership.includes('Own')) {
-    if (assetValue > reqAmt) rawAsset = 2.0;
-    else rawAsset = 1.5;
+    if (assetValue > reqAmt) {
+        rawAsset = 2.0;
+        displayVal = "มูลค่ามากกว่าเครดิตที่ขอ";
+    } else {
+        rawAsset = 1.5;
+        displayVal = "มูลค่าน้อยกว่าเครดิตที่ขอ";
+    }
   } else if (ownership.includes('เช่า') || ownership.includes('Rent')) {
       rawAsset = 1.0;
+      displayVal = "เช่า";
   }
 
   const scoreAsset = rawAsset * 12.97;
-  breakdown.asset = scoreAsset;
   score += scoreAsset;
+  items.push({
+    key: 'asset',
+    label: 'กรรมสิทธิ์ทรัพย์สิน',
+    value: rawAsset, // Use score factor as raw value proxy
+    displayValue: displayVal,
+    weight: 25.94,
+    score: scoreAsset
+  });
   debug.push({ label: 'กรรมสิทธิ์ทรัพย์สิน', value: ownership, weight: 25.94, score: scoreAsset, column: '-' });
 
-  return { total: score, details: breakdown, debug };
+  return { total: score, items, debug };
 };
 
 // C2: Cash Flow (Max 55.02)
 const calculateC2 = (financials) => {
   let score = 0;
-  const breakdown = {};
+  const items = [];
   const debug = [];
 
   // 1. D/E Ratio (Max 24.76)
@@ -391,8 +419,15 @@ const calculateC2 = (financials) => {
   else rawDE = 0;
 
   const scoreDE = rawDE * 12.38;
-  breakdown.deRatio = scoreDE;
   score += scoreDE;
+  items.push({
+    key: 'deRatio',
+    label: 'อัตราการส่วนหนี้สินรวม ต่อส่วนของผู้ถือหุ้น',
+    value: de,
+    displayValue: de.toFixed(4),
+    weight: 24.76,
+    score: scoreDE
+  });
   debug.push({ label: 'อัตราส่วนหนี้สินต่อทุน (D/E)', value: de, weight: 24.76, score: scoreDE, column: financials.deRatio.column });
 
   // 2. Inventory Turnover (Max 13.76)
@@ -405,8 +440,15 @@ const calculateC2 = (financials) => {
   else rawInv = 0;
 
   const scoreInv = rawInv * 6.88;
-  breakdown.inventory = scoreInv;
   score += scoreInv;
+  items.push({
+    key: 'inventory',
+    label: 'อัตราการหมุนเวียนของสินค้าคงเหลือ',
+    value: inv,
+    displayValue: inv.toFixed(2),
+    weight: 13.76,
+    score: scoreInv
+  });
   debug.push({ label: 'อัตราหมุนเวียนสินค้าคงเหลือ', value: inv, weight: 13.76, score: scoreInv, column: financials.inventoryTurnover.column });
 
   // 3. DSCR (Max 16.50)
@@ -419,21 +461,29 @@ const calculateC2 = (financials) => {
   else rawDSCR = 0;
 
   const scoreDSCR = rawDSCR * 8.25;
-  breakdown.dscr = scoreDSCR;
   score += scoreDSCR;
+  items.push({
+    key: 'dscr',
+    label: 'ความสามารถในการชำระหนี้ (DSCR)',
+    value: dscr,
+    displayValue: dscr.toFixed(4),
+    weight: 16.50,
+    score: scoreDSCR
+  });
   debug.push({ label: 'ความสามารถชำระหนี้ (DSCR)', value: dscr.toFixed(4), weight: 16.50, score: scoreDSCR, column: '-' });
 
-  return { total: score, details: breakdown, debug };
+  return { total: score, items, debug };
 };
 
 // C3: Purchase Behavior (Max 95.98)
 const calculateC3 = (accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration) => {
   let score = 0;
-  const breakdown = {};
+  const items = [];
   const debug = [];
 
   if (!accumData) {
-      return { total: 0, details: {}, debug: [] };
+      // Return empty items with correct structure
+      return { total: 0, items: [], debug: [] };
   }
 
   const secondAccum = parseAmount(accumData.SecondAccum);
@@ -452,8 +502,15 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   else rawRevCap = 0.25;
 
   const scoreRevCap = rawRevCap * 1.52;
-  breakdown.revenueCapital = scoreRevCap;
   score += scoreRevCap;
+  items.push({
+    key: 'revenueCapital',
+    label: 'สัดส่วนรายได้ต่อทุนจดทะเบียน',
+    value: revCapRatio,
+    displayValue: revCapRatio.toFixed(4), // Use 4 dec matches sheet
+    weight: 3.04,
+    score: scoreRevCap
+  });
   debug.push({ label: 'รายได้ต่อทุน', value: revCapRatio.toFixed(2), weight: 3.04, score: scoreRevCap, column: '-' });
 
   // 2. Avg Purchase (3mo) / Requested Credit (Max 35.04)
@@ -467,8 +524,15 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   else rawCapCheck = 0.25;
 
   const scoreCapCheck = rawCapCheck * 17.52;
-  breakdown.capacityCheck = scoreCapCheck;
   score += scoreCapCheck;
+  items.push({
+    key: 'capacityCheck',
+    label: 'สัดส่วนยอดซื้อเฉลี่ย ย้อนหลัง 3 เดือนต่อเครดิตที่ขอ',
+    value: capCheckRatio,
+    displayValue: capCheckRatio.toFixed(2),
+    weight: 35.04,
+    score: scoreCapCheck
+  });
   debug.push({ label: 'ตรวจสอบความสามารถ (Capacity)', value: capCheckRatio.toFixed(2), weight: 35.04, score: scoreCapCheck, column: '-' });
 
   // 3. Purchase / Credit Term (Max 18.28)
@@ -483,8 +547,15 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   else rawTurnover = 0.25;
 
   const scoreTurnover = rawTurnover * 9.14;
-  breakdown.turnover = scoreTurnover;
   score += scoreTurnover;
+  items.push({
+    key: 'turnover',
+    label: 'สัดส่วนยอดซื้อต่อระยะเวลาเครดิตที่ขอ',
+    value: turnoverSpeed,
+    displayValue: turnoverSpeed.toFixed(4),
+    weight: 18.28,
+    score: scoreTurnover
+  });
   debug.push({ label: 'ความเร็วในการหมุนเวียน', value: turnoverSpeed.toFixed(2), weight: 18.28, score: scoreTurnover, column: '-' });
 
   // 4. Purchase Trend (Max 28.96)
@@ -497,8 +568,15 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   else rawTrend = 0.25;
 
   const scoreTrend = rawTrend * 14.48;
-  breakdown.trend = scoreTrend;
   score += scoreTrend;
+  items.push({
+    key: 'trend',
+    label: 'แนวโน้มการซื้อ',
+    value: trend,
+    displayValue: trend.toFixed(2),
+    weight: 28.96,
+    score: scoreTrend
+  });
   debug.push({ label: 'แนวโน้มการซื้อ', value: trend.toFixed(2), weight: 28.96, score: scoreTrend, column: '-' });
 
   // 5. Customer Duration
@@ -510,11 +588,18 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   else if (duration >= 1) rawDuration = 0.5;
 
   const scoreDuration = rawDuration * 5.33;
-  breakdown.duration = scoreDuration;
   score += scoreDuration;
+  items.push({
+    key: 'duration',
+    label: 'ระยะเวลาเป็นลูกค้า',
+    value: duration,
+    displayValue: duration.toFixed(2),
+    weight: 10.66,
+    score: scoreDuration
+  });
   debug.push({ label: 'ระยะเวลาเป็นลูกค้า', value: duration, weight: 10.66, score: scoreDuration, column: '-' });
 
-  return { total: score, details: breakdown, debug };
+  return { total: score, items, debug };
 };
 
 exports.analyzeFinancials = async (req, res) => {
@@ -630,10 +715,7 @@ exports.analyzeFinancials = async (req, res) => {
             const slope = calculateSlope(last3);
 
             // NEW FORMULA FOR TREND (AccumTrend)
-            // User Formula: 1 + (SLOPE / ((Average1.5Month * 2) / 3))
-            // Where Average1.5Month = SumLast3 / 2
-            // Simplifies to: 1 + (Slope / (SumLast3 / 3)) -> 1 + (Slope / AveragePerMonth)
-
+            // User Formula: 1 + (Slope / AveragePerMonth)
             let trendRatio = 1.0;
             const averagePerMonth = sumLast3 / 3;
 
@@ -681,9 +763,22 @@ exports.analyzeFinancials = async (req, res) => {
     const recommendedLimit = minLimit + (maxLimit - minLimit) * ratio;
     const roundedLimit = Math.round(recommendedLimit / 1000) * 1000;
 
-    let grade = 'C';
-    if (totalScore >= 160) grade = 'A';
-    else if (totalScore >= 120) grade = 'B';
+    // --- 5. CALCULATE SIZE & GRADE (NEW LOGIC) ---
+    // Size = C1 + C2
+    const sizeScore = c1.total + c2.total;
+    let sizeLabel = "L";
+    if (sizeScore <= 37) sizeLabel = "S";
+    else if (sizeScore <= 68) sizeLabel = "M";
+    else sizeLabel = "L";
+
+    // Grade = C3
+    const gradeScore = c3.total;
+    let gradeLabel = "D";
+    if (gradeScore >= 81) gradeLabel = "A+";
+    else if (gradeScore >= 66) gradeLabel = "A";
+    else if (gradeScore >= 50) gradeLabel = "B+";
+    else if (gradeScore >= 35) gradeLabel = "B";
+    else if (gradeScore >= 20) gradeLabel = "C";
 
     // Combine Debug Data
     const rawInputs = [
@@ -703,9 +798,11 @@ exports.analyzeFinancials = async (req, res) => {
 
     const scoringResult = {
         totalScore: Math.round(totalScore),
-        grade,
+        grade: gradeLabel, // Use new grade label
         recommendedLimit: roundedLimit,
-        breakdown: { c1, c2, c3 }
+        breakdown: { c1, c2, c3 },
+        sizeResult: { score: sizeScore, label: sizeLabel },
+        gradeResult: { score: gradeScore, label: gradeLabel }
     };
 
     // Additional Financial Summary for Frontend
@@ -723,7 +820,7 @@ exports.analyzeFinancials = async (req, res) => {
       extractedData: results,
       calculations: calculations,
       scoringResult: scoringResult,
-      financialSummary: financialSummary, // New Field
+      financialSummary: financialSummary,
       debugData: debugData
     });
 
@@ -736,3 +833,6 @@ exports.analyzeFinancials = async (req, res) => {
 // Export helper for testing
 exports.findYearlySeries = findYearlySeries;
 exports.calculateSlope = calculateSlope;
+exports.calculateC1 = calculateC1;
+exports.calculateC2 = calculateC2;
+exports.calculateC3 = calculateC3;

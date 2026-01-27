@@ -169,11 +169,16 @@
       </div>
 
     </div>
+
+    <!-- SCORING BREAKDOWN GRID -->
+    <ScoringBreakdownGrid :scoringResult="scoring" />
+
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import ScoringBreakdownGrid from './ScoringBreakdownGrid.vue';
 
 const props = defineProps({
   analysisResults: {
