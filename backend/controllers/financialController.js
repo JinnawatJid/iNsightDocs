@@ -626,30 +626,20 @@ exports.analyzeFinancials = async (req, res) => {
             const last3 = calcData.slice(-3);
             const sumLast3 = last3.reduce((acc, cur) => acc + cur.amount, 0);
 
-            // Previous 3 Months (for Trend)
-            let prev3 = [];
-            if (totalCalcAvailable >= 6) {
-                prev3 = calcData.slice(-6, -3);
-            } else if (totalCalcAvailable > 3) {
-                prev3 = calcData.slice(0, -3);
-            }
-            const sumPrev3 = prev3.reduce((acc, cur) => acc + cur.amount, 0);
-
-            // Calculate Trend %
-            let trendPercent = 0;
-            if (sumPrev3 > 0) {
-                trendPercent = ((sumLast3 - sumPrev3) / sumPrev3) * 100;
-            } else if (sumLast3 > 0) {
-                trendPercent = 100;
-            }
-
-            // Map to legacy "accumData" format for calculateC3
-            // SecondAccum = Sum of Last 3 Months
-            // AccumTrend = Ratio (e.g., 1.20 for 20% growth)
-            const trendRatio = 1 + (trendPercent / 100);
-
             // Calculate SLOPE for the last 3 months
             const slope = calculateSlope(last3);
+
+            // NEW FORMULA FOR TREND (AccumTrend)
+            // User Formula: 1 + (SLOPE / ((Average1.5Month * 2) / 3))
+            // Where Average1.5Month = SumLast3 / 2
+            // Simplifies to: 1 + (Slope / (SumLast3 / 3)) -> 1 + (Slope / AveragePerMonth)
+
+            let trendRatio = 1.0;
+            const averagePerMonth = sumLast3 / 3;
+
+            if (averagePerMonth !== 0) {
+                trendRatio = 1 + (slope / averagePerMonth);
+            }
 
             accumData = {
                 SecondAccum: sumLast3,
