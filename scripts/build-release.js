@@ -265,7 +265,8 @@ const downloadFile = async (url, destPath) => {
       'DB_PASSWORD=your_password_here',
       'DB_SERVER=localhost',
       'DB_PORT=1433',
-      'DB_NAME=CreditRequestDB'
+      'DB_NAME=CreditRequestDB',
+      'UPLOAD_PATH=../../uploads'
     ].join('\n');
     await fs.writeFile(path.join(RELEASE_DIR, 'backend', '.env'), envContent);
 

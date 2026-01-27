@@ -3,7 +3,9 @@ const fs = require('fs-extra');
 const path = require('path');
 const mime = require('mime-types');
 
-const UPLOAD_BASE = path.join(__dirname, '../uploads');
+const UPLOAD_BASE = process.env.UPLOAD_PATH
+    ? path.resolve(process.cwd(), process.env.UPLOAD_PATH)
+    : path.join(__dirname, '../uploads');
 
 exports.getCreditRequestDetail = async (req, res) => {
     const { id } = req.params; // tx_id
