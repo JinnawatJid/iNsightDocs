@@ -226,6 +226,7 @@ exports.createCreditRequest = async (req, res) => {
 
             const newRealTxId = `${prefix}${runningNum.toString().padStart(3, '0')}`;
             const oldTxId = txId;
+            const oldRequestId = requestId;
 
             console.log(`Finalizing Draft ${oldTxId} to ${newRealTxId}`);
 
@@ -264,26 +265,42 @@ exports.createCreditRequest = async (req, res) => {
                 await fs.move(oldDir, newDir);
             }
 
-            // 2. Update DB Attachments Paths
+            // 2. Clone Parent Record with New ID (to satisfy FK constraints in MSSQL)
+            // We insert a new record, move children, then delete the old record.
+            const insertSql = `INSERT INTO CreditRequests (
+                tx_id, customer_no, customer_name, status,
+                request_amount, request_reason, request_credit_term,
+                term_gs, term_ae, term_yc, request_type, snapshot_data, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+            const insertResult = await db.runAsync(insertSql, [
+                newRealTxId, existing.customer_no, existing.customer_name, existing.status,
+                existing.request_amount, existing.request_reason, existing.request_credit_term,
+                existing.term_gs, existing.term_ae, existing.term_yc, existing.request_type,
+                existing.snapshot_data, existing.created_at
+            ]);
+
+            const newRequestId = insertResult.id;
+
+            // 3. Update DB Attachments Paths (Move Children)
             // Path format: YYYY/MM/TXID/file.ext
-            // We need to replace the old TXID part with new TXID in the path
             const oldPathSegment = `${oldTxId}/`;
             const newPathSegment = `${newRealTxId}/`;
 
-            // Note: simple REPLACE in SQL might be safer, but let's query and update to be DB-agnostic-ish
-            // Actually, we can just use the fact that we know the structure.
             await db.runAsync(
                 `UPDATE CreditRequestAttachments SET tx_id = ?, file_path = REPLACE(file_path, ?, ?) WHERE tx_id = ?`,
                 [newRealTxId, oldPathSegment, newPathSegment, oldTxId]
             );
 
-            // 3. Update Comments
+            // 4. Update Comments (Move Children)
             await db.runAsync(`UPDATE RequestComments SET tx_id = ? WHERE tx_id = ?`, [newRealTxId, oldTxId]);
 
-            // 4. Update the Request itself (will happen in the main UPDATE below, but we need to update tx_id too)
-            // We'll include tx_id in the main update query or do it here.
-            // Let's do it in the main update to avoid conflicts, but we need to update the variable 'txId'
+            // 5. Delete Old Parent Record
+            await db.runAsync('DELETE FROM CreditRequests WHERE id = ?', [oldRequestId]);
+
+            // 6. Update Variables for subsequent logic
             txId = newRealTxId;
+            requestId = newRequestId;
         }
 
         status = newStatus;
