@@ -99,6 +99,16 @@
             placeholder="ระบุทุนจดทะเบียน (บาท)"
           />
         </div>
+        <div class="form-group">
+          <label>ระยะเวลาการเป็นลูกค้า (Duration)</label>
+          <input
+            type="text"
+            v-model="customerDuration"
+            @input="handleDurationInput"
+            class="form-control"
+            placeholder="ระบุจำนวนปี (Years)"
+          />
+        </div>
         <div class="action-button">
           <button
             @click="analyzeFinancials"
@@ -279,6 +289,7 @@ const analyzing = ref(false);
 const downloadingDBD = ref(false);
 const dbdQuery = ref('');
 const registeredCapital = ref('');
+const customerDuration = ref('');
 const analysisResults = ref(null);
 const showDebug = ref(false);
 
@@ -288,7 +299,7 @@ const sheetInputs = computed(() => {
         registeredCapital: registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : 0,
         yearsInBusiness: store.customer?.years_in_business || 0,
         ownership: store.customer?.residence_ownership || '-',
-        customerDuration: store.customer?.years_in_business || '-',
+        customerDuration: customerDuration.value || 0,
         requestAmount: store.transactionData?.amount || 0,
         creditTerm: store.transactionData?.request_credit_term || store.transactionData?.term_gs || 0,
         billingCondition: store.customer?.billing_requirement || '-'
@@ -355,6 +366,12 @@ const handleCapitalInput = (event) => {
     } else {
         registeredCapital.value = '';
     }
+};
+
+const handleDurationInput = (event) => {
+    let val = event.target.value;
+    val = val.replace(/[^0-9]/g, '');
+    customerDuration.value = val;
 };
 
 // Initialize DBD Query from Customer Data
@@ -528,6 +545,7 @@ const analyzeFinancials = async () => {
   formData.append('profit_loss', files.profitLoss);
   formData.append('financial_ratios', files.financialRatios);
   formData.append('registered_capital', cleanCapital);
+  formData.append('customer_duration', customerDuration.value || '0');
 
   const requestAmount = store.transactionData?.amount || 0;
   formData.append('request_amount', requestAmount);
