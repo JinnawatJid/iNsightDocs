@@ -569,7 +569,7 @@ exports.getSuggestions = async (req, res) => {
           name: row["Name"],
           phone: row["Phone No_"],
           mobile: row["Mobile Phone No_"]
-      })).slice(0, 10); // Limit to 10
+      })).slice(0, 4); // Limit to 4
 
       // If API returns results, use them.
       if (suggestions.length > 0) {
