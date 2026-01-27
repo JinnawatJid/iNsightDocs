@@ -427,7 +427,7 @@ const calculateC2 = (financials) => {
 };
 
 // C3: Purchase Behavior (Max 95.98)
-const calculateC3 = (accumData, financials, registeredCapital, requestAmount, requestTerm) => {
+const calculateC3 = (accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration) => {
   let score = 0;
   const breakdown = {};
   const debug = [];
@@ -502,10 +502,17 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   debug.push({ label: 'แนวโน้มการซื้อ', value: trend.toFixed(2), weight: 28.96, score: scoreTrend, column: '-' });
 
   // 5. Customer Duration
-  const scoreDuration = 0.5 * 5.33;
+  const duration = parseInt(customerDuration || 0);
+  let rawDuration = 0.25;
+  if (duration >= 7) rawDuration = 2.0;
+  else if (duration >= 4) rawDuration = 1.5;
+  else if (duration >= 2) rawDuration = 1.0;
+  else if (duration >= 1) rawDuration = 0.5;
+
+  const scoreDuration = rawDuration * 5.33;
   breakdown.duration = scoreDuration;
   score += scoreDuration;
-  debug.push({ label: 'ระยะเวลาเป็นลูกค้า', value: 'ปกติ', weight: 2.67, score: scoreDuration, column: '-' });
+  debug.push({ label: 'ระยะเวลาเป็นลูกค้า', value: duration, weight: 10.66, score: scoreDuration, column: '-' });
 
   return { total: score, details: breakdown, debug };
 };
@@ -513,7 +520,7 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
 exports.analyzeFinancials = async (req, res) => {
   try {
     const files = req.files;
-    const { registered_capital, request_amount, customer_no } = req.body;
+    const { registered_capital, request_amount, customer_no, customer_duration } = req.body;
 
     // --- 1. EXTRACT FROM EXCEL ---
     const results = {
@@ -672,7 +679,7 @@ exports.analyzeFinancials = async (req, res) => {
     const c2Inputs = { ...results, dscr: calculations.dscr };
     const c2 = calculateC2(c2Inputs);
 
-    const c3 = calculateC3(accumData, results, regCap, reqAmt, 30);
+    const c3 = calculateC3(accumData, results, regCap, reqAmt, 30, customer_duration);
 
     const totalScore = c1.total + c2.total + c3.total;
 
