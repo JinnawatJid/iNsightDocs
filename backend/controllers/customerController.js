@@ -7,6 +7,7 @@ const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
 
 // Configuration
 const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
+const ENABLE_LOCAL_FALLBACK = process.env.ENABLE_LOCAL_FALLBACK === 'true';
 
 // MOCK FLAG for Financial API (Sandbox Environment)
 const MOCK_FINANCIAL_API = process.env.MOCK_FINANCIAL_API === 'true';
@@ -85,6 +86,63 @@ const fetchPurchasingBehavior = async (customerNo) => {
         console.error(`Error fetching purchasing behavior for ${customerNo}:`, error.message);
         throw error;
     }
+};
+
+/**
+ * Helper: Search Customers via API (Split & Merge Strategy)
+ */
+const searchApiCustomers = async (query) => {
+    // Define fields for Split & Merge
+    const searchRequests = [
+        { label: "By ID",   payload: { "No_": { "$like": `%${query}%` } } },
+        { label: "By Name", payload: { "Name": { "$like": `%${query}%` } } },
+        { label: "By Mobile", payload: { "Mobile Phone No_": { "$like": `%${query}%` } } }
+    ];
+
+    // Execute in parallel
+    const promises = searchRequests.map(reqData =>
+         axios.post(API_URL, {
+           page: 1,
+           size: 10,
+           ...reqData.payload
+         }, {
+          headers: {
+            "apikey": API_KEY,
+            "Content-Type": "application/json"
+          },
+          timeout: 5000 // 5s timeout for API to allow quick fallback
+        }).then(response => response.data.data || [])
+    );
+
+    // We need to know if ALL requests failed to trigger fallback
+    const resultsArrays = await Promise.allSettled(promises);
+
+    // Check if all failed (Network error, etc)
+    const allFailed = resultsArrays.every(r => r.status === 'rejected');
+    if (allFailed) {
+        const errors = resultsArrays.map(r => r.reason.message).join('; ');
+        throw new Error(`All API requests failed: ${errors}`);
+    }
+
+    // Collect successful results
+    const allCustomers = resultsArrays
+      .filter(r => r.status === 'fulfilled')
+      .map(r => r.value)
+      .flat();
+
+    // Deduplicate
+    const uniqueCustomers = [];
+    const seenIds = new Set();
+
+    for (const customer of allCustomers) {
+        if (!customer["No_"]) continue;
+        if (!seenIds.has(customer["No_"])) {
+            seenIds.add(customer["No_"]);
+            uniqueCustomers.push(customer);
+        }
+    }
+
+    return uniqueCustomers;
 };
 
 /**
@@ -425,69 +483,13 @@ exports.searchCustomers = async (req, res) => {
 
   // 1. Try API Search
   try {
-      // Define fields for Split & Merge
-      const searchRequests = [
-        { label: "By ID",   payload: { "No_": { "$like": `%${query}%` } } },
-        { label: "By Name", payload: { "Name": { "$like": `%${query}%` } } },
-        { label: "By Mobile", payload: { "Mobile Phone No_": { "$like": `%${query}%` } } }
-      ];
+      const uniqueCustomers = await searchApiCustomers(query);
 
-      // Execute in parallel
-      const promises = searchRequests.map(reqData =>
-         axios.post(API_URL, {
-           page: 1,
-           size: 10,
-           ...reqData.payload
-         }, {
-          headers: {
-            "apikey": API_KEY,
-            "Content-Type": "application/json"
-          },
-          timeout: 5000 // 5s timeout for API to allow quick fallback
-        }).then(response => response.data.data || [])
-          .catch(err => {
-              console.warn(`API Search '${reqData.label}' failed:`, err.message);
-              // If timeout or connection error, we might want to fail the whole thing to trigger fallback?
-              // But here we are doing "best effort" merge.
-              // If ALL fail, we should probably fallback.
-              throw err;
-          })
-      );
-
-      // We need to know if ALL requests failed to trigger fallback
-      const resultsArrays = await Promise.allSettled(promises);
-
-      // Check if all failed
-      const allFailed = resultsArrays.every(r => r.status === 'rejected');
-      if (allFailed) {
-          throw new Error("All API requests failed");
-      }
-
-      // Collect successful results
-      const allCustomers = resultsArrays
-        .filter(r => r.status === 'fulfilled')
-        .map(r => r.value)
-        .flat();
-
-      if (allCustomers.length === 0) {
-          // API returned no results. Should we fallback?
-          // If API is working but returns nothing, database likely has nothing too (assuming API is master).
-          // But to be safe, if API returns nothing, we return empty list from API source.
-          // Unless the user wants fallback on "empty result" too? Usually fallback is for "System Error".
-          // We will return empty list here.
+      if (uniqueCustomers.length === 0) {
+          // API returned no results.
+          // Unless the user wants fallback on "empty result", we return empty list.
+          // Current policy: API is master.
           return res.json([]);
-      }
-
-      // Merge & Deduplicate
-      const uniqueCustomers = [];
-      const seenIds = new Set();
-
-      for (const customer of allCustomers) {
-          if (!customer["No_"]) continue;
-          if (!seenIds.has(customer["No_"])) {
-              seenIds.add(customer["No_"]);
-              uniqueCustomers.push(customer);
-          }
       }
 
       // Map & Enrich
@@ -539,8 +541,14 @@ exports.searchCustomers = async (req, res) => {
 
   } catch (err) {
       // Fallback on any API error (Timeout, Network, 500)
-      console.warn("API Search failed, switching to fallback:", err.message);
-      return searchCustomersFallback(req, res, query);
+      console.warn("API Search failed:", err.message);
+
+      if (ENABLE_LOCAL_FALLBACK) {
+         console.log(`[Search] Switching to fallback for query: "${query}"`);
+         return searchCustomersFallback(req, res, query);
+      } else {
+         return res.status(503).json({ error: "External API Unavailable", details: err.message });
+      }
   }
 };
 
@@ -551,18 +559,41 @@ exports.getSuggestions = async (req, res) => {
     return res.json([]);
   }
 
-  // Use Local DB for suggestions for speed? Or API?
-  // User didn't specify, but suggestions usually need to be fast.
-  // Existing code uses DB. Let's keep DB for now to avoid latency on keypress,
-  // or duplicate the Split&Merge logic (which is heavy).
-  // Strategy: Keep DB for suggestions as it is "hinting".
-  // Note: If DB is out of sync, suggestions might miss new customers.
-  // But given requirements ("Replace legacy SQL search"), I should probably try API for suggestions too?
-  // "Replace the legacy SQL search in backend/controllers/customerController.js with the new Internal API logic"
-  // This likely applies to the main search. `getSuggestions` is a separate endpoint.
-  // I will leave `getSuggestions` as DB for performance/safety unless requested.
-  // Actually, I should update it to match the main search source if possible, but 3 parallel requests per keystroke is bad.
-  // I will Stick to DB for suggestions.
+  try {
+      // 1. Try API Search for suggestions
+      const apiResults = await searchApiCustomers(query);
+
+      // Map to suggestion format
+      const suggestions = apiResults.map(row => ({
+          id: row["No_"],
+          name: row["Name"],
+          phone: row["Phone No_"],
+          mobile: row["Mobile Phone No_"]
+      })).slice(0, 10); // Limit to 10
+
+      // If API returns results, use them.
+      if (suggestions.length > 0) {
+          return res.json(suggestions);
+      }
+
+      // If API returns 0, and we have NO fallback enabled, we return 0.
+      if (!ENABLE_LOCAL_FALLBACK) {
+          return res.json([]);
+      }
+
+      // If Fallback IS enabled, proceed to DB code below...
+      // (Falling through to existing DB code)
+
+  } catch (err) {
+      console.warn("API Suggestion failed:", err.message);
+      if (!ENABLE_LOCAL_FALLBACK) {
+          // If fallback disabled, return empty
+          return res.json([]);
+      }
+      // If fallback enabled, catch block continues to DB code...
+  }
+
+  // --- LOCAL DB FALLBACK FOR SUGGESTIONS ---
 
   let sql;
   if (db.dbType === 'mssql') {
