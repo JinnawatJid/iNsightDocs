@@ -255,7 +255,6 @@ const handleOcrData = (data) => {
     padding: 10px 20px;
     text-align: center;
     font-weight: bold;
-    width: 100%;
     z-index: 998;
 }
 
