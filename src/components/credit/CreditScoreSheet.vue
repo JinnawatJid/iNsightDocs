@@ -108,16 +108,16 @@
                      <div class="inv-value">{{ formatScore(extracted.deRatio?.value) }}</div>
                  </div>
 
-                 <!-- Inventory Turnover -->
-                 <div class="cashflow-box">
-                     <div class="inv-label">อัตราการหมุนเวียนของสินค้าคงเหลือ</div>
-                     <div class="inv-value">{{ formatScore(extracted.inventoryTurnover?.value) }}</div>
-                 </div>
-
                  <!-- DSCR -->
                  <div class="cashflow-box">
                      <div class="inv-label">ความสามารถชำระหนี้ (DSCR)</div>
                      <div class="inv-value">{{ formatScore(calculations.dscr) }}</div>
+                 </div>
+
+                 <!-- Inventory Turnover -->
+                 <div class="cashflow-box">
+                     <div class="inv-label">อัตราการหมุนเวียนของสินค้าคงเหลือ</div>
+                     <div class="inv-value">{{ formatScore(extracted.inventoryTurnover?.value) }}</div>
                  </div>
              </div>
         </div>

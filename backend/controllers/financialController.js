@@ -692,7 +692,12 @@ exports.analyzeFinancials = async (req, res) => {
     const ncl = results.nonCurrentLiabilities.value;
 
     if (ncl !== 0) {
-      calculations.dscr = (gp / ncl) * 0.3;
+      const denominator = ncl * 0.3;
+      if (denominator !== 0) {
+        calculations.dscr = Number((gp / denominator).toFixed(4));
+      } else {
+        calculations.dscr = 0;
+      }
     }
     const regCap = parseFloat(registered_capital || 0);
     const reqAmt = parseFloat(request_amount || 0);
