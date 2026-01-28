@@ -426,7 +426,7 @@ const autoDownloadDBD = async () => {
     // Initial Popup
     const swalPromise = Swal.fire({
         title: 'กำลังเชื่อมต่อ...',
-        text: 'กำลังค้นหา Local Bridge หรือ Server... (Connecting)',
+        text: 'กำลังเชื่อมต่อกับ Server... (Connecting)',
         allowOutsideClick: false,
         showCancelButton: true,
         cancelButtonText: 'ยกเลิก',
@@ -439,6 +439,8 @@ const autoDownloadDBD = async () => {
     let bridgeUrl = null;
 
     // Check for Local Bridge (Port 4343)
+    // DISABLED: Temporarily disable Local Bridge check as per user request
+    /*
     try {
         await axios.get('http://localhost:4343/health', { timeout: 1000 });
         bridgeUrl = `http://localhost:4343/stream?taxId=${dbdQuery.value}`;
@@ -448,6 +450,9 @@ const autoDownloadDBD = async () => {
         console.log('Local Bridge not found, using Server');
         bridgeUrl = `/api/external/dbd-stream?taxId=${dbdQuery.value}`;
     }
+    */
+    // Always use Server
+    bridgeUrl = `/api/external/dbd-stream?taxId=${dbdQuery.value}`;
 
     // Use SSE for real-time progress updates
     const evtSource = new EventSource(bridgeUrl);
