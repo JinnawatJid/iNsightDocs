@@ -4,8 +4,9 @@
       <div class="avatar">
         <img :src="userIcon" alt="User" width="24" height="24" />
       </div>
-      <div class="customer-name" v-if="customerName">
-        {{ customerName }}
+      <div class="customer-info" v-if="customerName">
+        <div class="customer-name">{{ customerName }}</div>
+        <div class="customer-code" v-if="customerCode">ID: {{ customerCode }}</div>
       </div>
       <div class="customer-name placeholder" v-else>
         -- ชื่อลูกค้า --
@@ -65,6 +66,10 @@ export default {
   name: 'CreditHistorySidebar',
   props: {
     customerName: {
+      type: String,
+      default: ''
+    },
+    customerCode: {
       type: String,
       default: ''
     },
@@ -142,6 +147,18 @@ export default {
 
 .customer-name.placeholder {
   color: #aaa;
+}
+
+.customer-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.customer-code {
+  font-size: 14px;
+  color: #666;
+  text-align: left;
+  margin-top: 4px;
 }
 
 .history-section {
