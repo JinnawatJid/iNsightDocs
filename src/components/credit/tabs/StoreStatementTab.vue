@@ -100,6 +100,15 @@
           />
         </div>
         <div class="form-group">
+          <label>ปีที่จัดตั้งธุรกิจ (Years in Business)</label>
+          <input
+            type="number"
+            v-model="yearsInBusiness"
+            class="form-control"
+            placeholder="ระบุอายุธุรกิจ (ปี)"
+          />
+        </div>
+        <div class="form-group">
           <label>ระยะเวลาการเป็นลูกค้า (Duration)</label>
           <input
             type="text"
@@ -289,6 +298,7 @@ const analyzing = ref(false);
 const downloadingDBD = ref(false);
 const dbdQuery = ref('');
 const registeredCapital = ref('');
+const yearsInBusiness = ref('');
 const customerDuration = ref('');
 const analysisResults = ref(null);
 const showDebug = ref(false);
@@ -297,11 +307,11 @@ const sheetInputs = computed(() => {
     return {
         customerName: store.customer?.name || '',
         registeredCapital: registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : 0,
-        yearsInBusiness: store.customer?.years_in_business || 0,
+        yearsInBusiness: yearsInBusiness.value || 0,
         ownership: store.customer?.residence_ownership || '-',
         customerDuration: customerDuration.value || 0,
         requestAmount: store.transactionData?.amount || 0,
-        creditTerm: store.transactionData?.request_credit_term || store.transactionData?.term_gs || 0,
+        creditTerm: store.transactionData?.creditTerm || store.transactionData?.term_gs || 0,
         billingCondition: store.customer?.billing_requirement || '-'
     };
 });
@@ -376,12 +386,18 @@ const handleDurationInput = (event) => {
 
 // Initialize DBD Query from Customer Data
 watch(() => store.customer, (val) => {
-    if (val && !dbdQuery.value) {
-        // Prefer Tax ID, fallback to Name (if company)
-        if (val.tax_id) {
-            dbdQuery.value = val.tax_id;
-        } else if (store.isCompany && val.name) {
-            dbdQuery.value = val.name;
+    if (val) {
+        if (!dbdQuery.value) {
+            // Prefer Tax ID, fallback to Name (if company)
+            if (val.tax_id) {
+                dbdQuery.value = val.tax_id;
+            } else if (store.isCompany && val.name) {
+                dbdQuery.value = val.name;
+            }
+        }
+        // Initialize Years In Business if not set manually yet
+        if (val.years_in_business && !yearsInBusiness.value) {
+            yearsInBusiness.value = val.years_in_business;
         }
     }
 }, { immediate: true });
@@ -546,6 +562,10 @@ const analyzeFinancials = async () => {
   formData.append('financial_ratios', files.financialRatios);
   formData.append('registered_capital', cleanCapital);
   formData.append('customer_duration', customerDuration.value || '0');
+  formData.append('years_in_business', yearsInBusiness.value || '0');
+  formData.append('request_credit_term', store.transactionData?.creditTerm || '30');
+  formData.append('residence_ownership', store.customer?.residence_ownership || '');
+  formData.append('residence_ownership_other', store.customer?.residence_ownership_other || '');
 
   const requestAmount = store.transactionData?.amount || 0;
   formData.append('request_amount', requestAmount);

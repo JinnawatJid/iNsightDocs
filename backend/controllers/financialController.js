@@ -605,7 +605,16 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
 exports.analyzeFinancials = async (req, res) => {
   try {
     const files = req.files;
-    const { registered_capital, request_amount, customer_no, customer_duration } = req.body;
+    const {
+      registered_capital,
+      request_amount,
+      customer_no,
+      customer_duration,
+      years_in_business,
+      request_credit_term,
+      residence_ownership,
+      residence_ownership_other
+    } = req.body;
 
     // --- 1. EXTRACT FROM EXCEL ---
     const results = {
@@ -689,6 +698,11 @@ exports.analyzeFinancials = async (req, res) => {
         }
         if (rowsC.length > 0) customerData = rowsC[0];
 
+        // Merge Manual Overrides (Frontend Inputs take precedence)
+        if (years_in_business) customerData.years_in_business = years_in_business;
+        if (residence_ownership) customerData.residence_ownership = residence_ownership;
+        if (residence_ownership_other) customerData.residence_ownership_other = residence_ownership_other;
+
         // Fetch Financial Data (REPLACED SQL WITH API)
         const apiData = await fetchPurchasingBehavior(customer_no);
 
@@ -751,7 +765,7 @@ exports.analyzeFinancials = async (req, res) => {
     const c2Inputs = { ...results, dscr: calculations.dscr };
     const c2 = calculateC2(c2Inputs);
 
-    const c3 = calculateC3(accumData, results, regCap, reqAmt, 30, customer_duration);
+    const c3 = calculateC3(accumData, results, regCap, reqAmt, request_credit_term || 30, customer_duration);
 
     const totalScore = c1.total + c2.total + c3.total;
 
