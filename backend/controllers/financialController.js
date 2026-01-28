@@ -537,13 +537,17 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   // 2. Avg Purchase (3mo) / Requested Credit (Max 35.04)
   // FIX: Use "Average 1.5 Months" (Sum / 2) instead of "Average 1 Month" (Sum / 3)
   const avg1_5Months = secondAccum / 2;
-  const capCheckRatio = avg1_5Months / reqAmt;
-  let rawCapCheck = 0;
-  if (capCheckRatio >= 1.5) rawCapCheck = 2.0;
-  else if (capCheckRatio >= 1.0) rawCapCheck = 1.5;
-  else if (capCheckRatio >= 0.6) rawCapCheck = 1.0;
-  else if (capCheckRatio >= 0.26) rawCapCheck = 0.5;
-  else rawCapCheck = 0.25;
+  // Apply Rounding to 2 decimal places to match Google Sheet =ROUND(..., 2)
+  const capCheckRatio = Number((avg1_5Months / reqAmt).toFixed(2));
+
+  let rawCapCheck = 0.25;
+  // Updated Logic to strictly match User's IFS formula
+  if (capCheckRatio <= 0.25) rawCapCheck = 0.25;
+  else if (capCheckRatio <= 0.59) rawCapCheck = 0.5;
+  else if (capCheckRatio <= 0.99) rawCapCheck = 1.0;
+  else if (capCheckRatio <= 1.49) rawCapCheck = 1.5;
+  else if (capCheckRatio >= 1.5) rawCapCheck = 2.0;
+  else rawCapCheck = 0.25; // Fallback
 
   const scoreCapCheck = rawCapCheck * 17.52;
   score += scoreCapCheck;
