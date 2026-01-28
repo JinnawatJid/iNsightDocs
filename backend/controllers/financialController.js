@@ -326,7 +326,22 @@ const calculateC1 = (customer, registeredCapital, requestAmount) => {
   const debug = [];
 
   // 1. Years in Business (Max 14.42)
-  const years = parseFloat(customer.years_in_business || 0);
+  const yearsInput = parseFloat(customer.years_in_business || 0);
+  let years = yearsInput;
+
+  // Flexible Rule: If input > 1000, treat as establishment year
+  if (yearsInput > 1000) {
+      const currentYear = new Date().getFullYear();
+      let establishYear = yearsInput;
+      // If BE (e.g. 2568), convert to AD (2568 - 543 = 2025)
+      // Check for reasonably high value typical of BE
+      if (establishYear > 2300) {
+          establishYear = establishYear - 543;
+      }
+      years = currentYear - establishYear;
+      if (years < 0) years = 0;
+  }
+
   let rawYears = 0;
   if (years >= 10) rawYears = 2.0;
   else if (years >= 5) rawYears = 1.5;
@@ -371,21 +386,26 @@ const calculateC1 = (customer, registeredCapital, requestAmount) => {
 
   // 3. Asset Ownership (Max 25.94)
   const ownership = customer.residence_ownership || '';
-  const assetValue = parseAmount(customer.residence_ownership_other || '0');
+  // Removed assetValue logic as per new requirement
 
   let rawAsset = 1.0;
   let displayVal = ownership;
+
+  // Logic: Own (2.0), Parents/Relatives (1.5), Rent/Hire Purchase (1.0)
   if (ownership.includes('ตนเอง') || ownership.includes('Own')) {
-    if (assetValue > reqAmt) {
-        rawAsset = 2.0;
-        displayVal = "มูลค่ามากกว่าเครดิตที่ขอ";
-    } else {
-        rawAsset = 1.5;
-        displayVal = "มูลค่าน้อยกว่าเครดิตที่ขอ";
-    }
+      rawAsset = 2.0;
+  } else if (ownership.includes('ญาติ') || ownership.includes('บิดามารดา') || ownership.includes('Relative') || ownership.includes('Parents')) {
+      rawAsset = 1.5;
   } else if (ownership.includes('เช่า') || ownership.includes('Rent')) {
       rawAsset = 1.0;
-      displayVal = "เช่า";
+  } else {
+      // Default / "Please Select"
+      // If empty or unrecognized, we might want to flag it, but for scoring safety we can default to lowest or 0.
+      // Keeping 1.0 as safe baseline for 'Rent' equivalent if ambiguous, or use 0 if strict.
+      // Given user's formula had "Please select", we'll rely on frontend validation for empty.
+      // If we fall through here with something else, we stick to 1.0 or 0?
+      // Let's assume 1.0 (Rent) is the floor for existing businesses.
+      rawAsset = 1.0;
   }
 
   const scoreAsset = rawAsset * 12.97;
