@@ -38,6 +38,7 @@
           <CreditHistorySidebar
             v-if="store.hasSearched"
             :customerName="store.displayCustomer.name"
+            :customerCode="store.displayCustomer.id"
             :historyItems="store.history"
             :searched="store.hasSearched"
           />
