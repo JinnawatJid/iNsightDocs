@@ -1,91 +1,104 @@
 <template>
   <div class="scoring-breakdown-grid">
     <!-- SECTION 1: SIZE (C1 + C2) -->
-    <div class="grid-section">
-      <!-- HEADER ROW -->
-      <div class="header-row">
-        <div class="header-cell pink-bg c1-header">เกณฑ์การคิดขนาดกิจการ (ประวัติในอดีต)</div>
-        <div class="header-cell yellow-bg c2-header">เกณฑ์การคิด Cashflow ของกิจการ</div>
-        <div class="spacer-cell"></div>
+    <div class="grid-section section-1-grid">
+      <!-- HEADERS -->
+      <!-- C1 Header: Spans 3 columns (1-3) -->
+      <div class="header-cell pink-bg header-c1">เกณฑ์การคิดขนาดกิจการ (ประวัติในอดีต)</div>
+
+      <!-- C2 Header: Spans 3 columns (5-7) -->
+      <div class="header-cell yellow-bg header-c2">เกณฑ์การคิด Cashflow ของกิจการ</div>
+
+      <!-- C1 DATA COLS (Cols 1-3) -->
+      <template v-for="(item, index) in c1Items" :key="'c1-'+index">
+          <div class="cell weight yellow-bg" :style="{ gridColumn: index + 1, gridRow: 2 }">
+            {{ formatNum(item.weight) }}
+          </div>
+          <div class="cell label gray-bg" :style="{ gridColumn: index + 1, gridRow: 3 }">
+            {{ item.label }}
+          </div>
+          <div class="cell value white-bg" :style="{ gridColumn: index + 1, gridRow: 4 }">
+            {{ item.displayValue }}
+          </div>
+          <div class="cell score white-bg" :style="{ gridColumn: index + 1, gridRow: 5 }">
+            {{ formatNum(item.score) }}
+          </div>
+      </template>
+
+      <!-- PLUS SIGN (Col 4, Rows 2-5) -->
+      <div class="plus-sign" style="grid-column: 4; grid-row: 2 / span 4">+</div>
+
+      <!-- C2 DATA COLS (Cols 5-7) -->
+      <template v-for="(item, index) in c2Items" :key="'c2-'+index">
+          <div class="cell weight yellow-bg" :style="{ gridColumn: index + 5, gridRow: 2 }">
+            {{ formatNum(item.weight) }}
+          </div>
+          <div class="cell label gray-bg" :style="{ gridColumn: index + 5, gridRow: 3 }">
+            {{ item.label }}
+          </div>
+          <div class="cell value white-bg" :style="{ gridColumn: index + 5, gridRow: 4 }">
+            {{ item.displayValue }}
+          </div>
+          <div class="cell score white-bg" :style="{ gridColumn: index + 5, gridRow: 5 }">
+             {{ formatNum(item.score) }}
+          </div>
+      </template>
+
+      <!-- ARROW (Col 8, Rows 2-5) -->
+      <div class="arrow-container" style="grid-column: 8; grid-row: 2 / span 4">
+         <div class="arrow-box">➜</div>
       </div>
 
-      <!-- DATA ROW -->
-      <div class="data-row">
-        <!-- C1 COLUMNS -->
-        <div class="criteria-group c1-group">
-           <div class="criteria-col" v-for="item in c1Items" :key="item.key">
-               <div class="row-weight yellow-bg">{{ formatNum(item.weight) }}</div>
-               <div class="row-label gray-bg">{{ item.label }}</div>
-               <div class="row-value white-bg">{{ item.displayValue }}</div>
-               <div class="row-score white-bg">{{ formatNum(item.score) }}</div>
-           </div>
-        </div>
-
-        <!-- PLUS SIGN -->
-        <div class="plus-sign">+</div>
-
-        <!-- C2 COLUMNS -->
-        <div class="criteria-group c2-group">
-            <div class="criteria-col" v-for="item in c2Items" :key="item.key">
-               <div class="row-weight yellow-bg">{{ formatNum(item.weight) }}</div>
-               <div class="row-label gray-bg">{{ item.label }}</div>
-               <div class="row-value white-bg">{{ item.displayValue }}</div>
-               <div class="row-score white-bg">{{ formatNum(item.score) }}</div>
-           </div>
-        </div>
-
-        <!-- ARROW -->
-        <div class="arrow-box">➜</div>
-
-        <!-- RESULT BOX: SIZE -->
-        <div class="result-box green-bg">
-            <div class="res-title">ขนาดกิจการ</div>
-            <div class="res-grade">{{ sizeResult.label }}</div>
-            <div class="res-score">{{ formatNum(sizeResult.score) }}</div>
-        </div>
+      <!-- RESULT: SIZE (Col 9, Rows 2-5) -->
+      <div class="result-box green-bg" style="grid-column: 9; grid-row: 2 / span 4">
+          <div class="res-title">ขนาดกิจการ</div>
+          <div class="res-grade">{{ sizeResult.label }}</div>
+          <div class="res-score">{{ formatNum(sizeResult.score) }}</div>
       </div>
     </div>
 
     <!-- SECTION 2: GRADE (C3) -->
-    <div class="grid-section">
-      <!-- HEADER ROW -->
-      <div class="header-row">
-        <div class="header-cell blue-bg c3-header">เกณฑ์การคิด Grade ของบริษัท (การซื้อขายในปัจจุบัน)</div>
-        <div class="spacer-cell"></div>
+    <div class="grid-section section-2-grid">
+      <!-- HEADER -->
+      <!-- C3 Header: Spans 5 columns (1-5) -->
+      <div class="header-cell blue-bg header-c3">เกณฑ์การคิด Grade ของบริษัท (การซื้อขายในปัจจุบัน)</div>
+
+      <!-- C3 DATA COLS (Cols 1-5) -->
+      <template v-for="(item, index) in c3Items" :key="'c3-'+index">
+          <div class="cell weight yellow-bg" :style="{ gridColumn: index + 1, gridRow: 2 }">
+             {{ formatNum(item.weight) }}
+          </div>
+          <div class="cell label gray-bg" :style="{ gridColumn: index + 1, gridRow: 3 }">
+             {{ item.label }}
+          </div>
+          <div class="cell value white-bg" :style="{ gridColumn: index + 1, gridRow: 4 }">
+             {{ item.displayValue }}
+          </div>
+          <div class="cell score white-bg" :style="{ gridColumn: index + 1, gridRow: 5 }">
+             {{ formatNum(item.score) }}
+          </div>
+      </template>
+
+      <!-- ARROW (Col 6, Rows 2-5) -->
+       <div class="arrow-container" style="grid-column: 6; grid-row: 2 / span 4">
+         <div class="arrow-box">➜</div>
       </div>
 
-       <!-- DATA ROW -->
-      <div class="data-row">
-        <!-- C3 COLUMNS -->
-        <div class="criteria-group c3-group">
-             <div class="criteria-col" v-for="item in c3Items" :key="item.key">
-               <div class="row-weight yellow-bg">{{ formatNum(item.weight) }}</div>
-               <div class="row-label gray-bg">{{ item.label }}</div>
-               <div class="row-value white-bg">{{ item.displayValue }}</div>
-               <div class="row-score white-bg">{{ formatNum(item.score) }}</div>
-           </div>
-        </div>
+      <!-- RESULT: GRADE (Col 7, Rows 2-5) -->
+      <div class="result-box green-bg" style="grid-column: 7; grid-row: 2 / span 4">
+          <div class="res-title">เกรดของลูกค้า</div>
+          <div class="res-grade">{{ gradeResult.label }}</div>
+          <div class="res-score">{{ formatNum(gradeResult.score) }}</div>
+      </div>
 
-        <!-- ARROW -->
-        <div class="arrow-box">➜</div>
-
-        <!-- RESULT BOX: GRADE -->
-        <div class="result-box green-bg">
-            <div class="res-title">เกรดของลูกค้า</div>
-            <div class="res-grade">{{ gradeResult.label }}</div>
-            <div class="res-score">{{ formatNum(gradeResult.score) }}</div>
-        </div>
-
-        <!-- RESULT BOX: LIMIT -->
-        <div class="result-box green-bg limit-box">
+       <!-- RESULT: LIMIT (Col 8, Rows 2-5) -->
+       <div class="result-box green-bg" style="grid-column: 8; grid-row: 2 / span 4">
              <div class="res-title">วงเงินเครดิตใหม่</div>
              <div class="res-grade limit-val">{{ formatMoney(recommendedLimit) }}</div>
              <div class="res-score">{{ formatNum(totalScore) }}</div>
         </div>
 
-      </div>
     </div>
-
   </div>
 </template>
 
@@ -117,7 +130,6 @@ const formatMoney = (val) => {
      if (val === undefined || val === null) return '-';
     return Number(val).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-
 </script>
 
 <style scoped>
@@ -132,25 +144,84 @@ const formatMoney = (val) => {
     overflow-x: auto;
 }
 
+/* Common Grid Setup */
 .grid-section {
+    display: grid;
+    gap: 2px; /* Small gap between cells */
     border: 1px solid #ddd;
     padding: 10px;
+    background-color: #fff;
+    /* Center align text generally */
+    text-align: center;
+}
+
+/* SECTION 1 GRID DEFINITION */
+.section-1-grid {
+    /*
+       Cols:
+       1-3: C1 Items (1fr each)
+       4: Plus (auto)
+       5-7: C2 Items (1fr each)
+       8: Arrow (auto)
+       9: Result (150px fixed)
+    */
+    grid-template-columns: repeat(3, 1fr) auto repeat(3, 1fr) auto 150px;
+
+    /*
+       Rows:
+       1: Header (auto)
+       2: Weight (auto)
+       3: Label (auto - flexible height)
+       4: Value (auto)
+       5: Score (auto)
+    */
+    grid-template-rows: auto auto minmax(50px, auto) auto auto;
+}
+
+/* SECTION 2 GRID DEFINITION */
+.section-2-grid {
+    /*
+       Cols:
+       1-5: C3 Items (1fr each)
+       6: Arrow (auto)
+       7: Result Grade (150px)
+       8: Result Limit (150px)
+    */
+    grid-template-columns: repeat(5, 1fr) auto 150px 150px;
+    grid-template-rows: auto auto minmax(50px, auto) auto auto;
 }
 
 /* HEADERS */
-.header-row {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
 .header-cell {
     padding: 10px;
     font-weight: bold;
-    text-align: center;
     border: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+.header-c1 { grid-column: 1 / span 3; grid-row: 1; }
+.header-c2 { grid-column: 5 / span 3; grid-row: 1; }
+.header-c3 { grid-column: 1 / span 5; grid-row: 1; }
+
+/* CELLS */
+.cell {
+    border: 1px solid #ccc;
+    padding: 8px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85em;
+    min-height: 40px;
+}
+
+.weight { font-weight: bold; }
+.label { line-height: 1.2; }
+.value { color: #333; font-weight: 500; }
+.score { font-weight: bold; }
+
+/* COLORS */
 .pink-bg { background-color: #e6b8af; }
 .yellow-bg { background-color: #ffe699; }
 .blue-bg { background-color: #cfe2f3; }
@@ -158,54 +229,21 @@ const formatMoney = (val) => {
 .gray-bg { background-color: #efefef; }
 .white-bg { background-color: #fff; }
 
-.c1-header { flex: 3; } /* 3 cols */
-.c2-header { flex: 3; } /* 3 cols */
-.c3-header { flex: 5; } /* 5 cols */
-
-/* DATA ROWS */
-.data-row {
-    display: flex;
-    align-items: flex-start; /* Align top */
-    gap: 10px;
-}
-
-.criteria-group {
-    display: flex;
-    gap: 2px;
-    flex-grow: 1;
-}
-
-.criteria-col {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 100px;
-    text-align: center;
-    font-size: 0.85em;
-}
-
-.criteria-col > div {
-    border: 1px solid #ccc;
-    padding: 8px 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 40px; /* Fixed height for alignment */
-}
-
-.row-weight { font-weight: bold; }
-.row-label { font-size: 0.9em; line-height: 1.1; height: 60px !important; }
-.row-value { color: #333; font-weight: 500; height: 50px !important; }
-.row-score { font-weight: bold; }
-
+/* SPECIAL ELEMENTS */
 .plus-sign {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 24px;
     font-weight: bold;
-    padding: 0 5px;
-    height: 150px; /* Approximate height of rows */
+    padding: 0 10px;
+}
+
+.arrow-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
 }
 
 .arrow-box {
@@ -217,51 +255,45 @@ const formatMoney = (val) => {
     width: 40px;
     height: 40px;
     border-radius: 4px;
-    align-self: center;
     font-weight: bold;
 }
 
-/* RESULT BOXES */
+/* RESULTS */
 .result-box {
-    width: 120px;
     border: 1px solid #333;
     display: flex;
     flex-direction: column;
-    text-align: center;
-    align-self: center; /* Center vertically relative to the group */
+    justify-content: space-between;
 }
 
 .res-title {
-    padding: 5px;
+    padding: 8px;
     border-bottom: 1px solid #333;
     font-weight: bold;
     font-size: 0.9em;
+    background-color: #d9ead3;
 }
 
 .res-grade {
     font-size: 2em;
     font-weight: bold;
     padding: 10px;
-    background: white; /* Inner white box usually? Or green? Sheet shows green bg for title, green for box? */
-    /* Sheet Image: Title Green, Grade Box Green BG? Actually looks like Grade Box is Light Green, Title is same. */
-    background-color: #d9ead3;
+    background-color: #fff; /* Inner box white */
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-/* Wait, in sheet: Title Box is Green. Grade "L" is in Green Box. Score is below in Green Box. */
-/* Let's keep it simple: Green Container. */
 
 .res-score {
-    padding: 5px;
+    padding: 8px;
     border-top: 1px solid #333;
     font-weight: bold;
     background-color: #d9ead3;
 }
 
-.limit-box {
-    margin-left: 10px;
-    width: 150px;
-}
 .limit-val {
-    font-size: 1.2em;
+    font-size: 1.1em;
 }
 
 </style>
