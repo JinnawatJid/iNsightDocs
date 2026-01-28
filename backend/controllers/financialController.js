@@ -805,7 +805,7 @@ exports.analyzeFinancials = async (req, res) => {
     // --- 4. RECOMMENDED LIMIT ---
     const minLimit = 50000;
     const maxLimit = 500000;
-    const n = 2;
+    const n = 1.2;
     const ratio = Math.pow((totalScore / 200), n);
     const recommendedLimit = minLimit + (maxLimit - minLimit) * ratio;
     const roundedLimit = Math.round(recommendedLimit / 1000) * 1000;
