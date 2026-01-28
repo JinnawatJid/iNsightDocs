@@ -358,6 +358,18 @@ exports.createCreditRequest = async (req, res) => {
         await fs.ensureDir(targetDir);
 
         for (const file of req.files) {
+            // Fix for Thai characters in fieldname (similar to originalname fix in upload.js)
+            // Browser sends UTF-8, but it might be interpreted as Latin-1 by the parser
+            try {
+                // Only attempt to fix if the string contains only Latin-1 characters (Mojibake usually fits in Latin-1)
+                // If it already contains characters > 255 (e.g. Thai), it is likely already correct/decoded.
+                if (!/[^\u0000-\u00ff]/.test(file.fieldname)) {
+                    file.fieldname = Buffer.from(file.fieldname, 'latin1').toString('utf8');
+                }
+            } catch (e) {
+                console.error('Error fixing encoding for fieldname:', file.fieldname, e);
+            }
+
             const finalPath = path.join(targetDir, file.originalname);
             await fs.move(file.path, finalPath, { overwrite: true });
 
