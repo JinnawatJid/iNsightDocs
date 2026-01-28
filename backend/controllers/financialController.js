@@ -507,13 +507,14 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   }
 
   const secondAccum = parseAmount(accumData.SecondAccum);
-  const totalRevenue = financials.totalRevenue.value || 0;
+  // FIX: Use Average Revenue (3 Years) instead of Latest Revenue
+  const revenueForRatio = financials.averageRevenue || 0;
   const regCap = parseFloat(registeredCapital || 1);
   const reqAmt = parseFloat(requestAmount || 1);
   const reqDays = parseFloat(requestTerm || 30);
 
   // 1. Revenue / Registered Capital (Max 3.04)
-  const revCapRatio = totalRevenue / regCap;
+  const revCapRatio = revenueForRatio / regCap;
   let rawRevCap = 0;
   if (revCapRatio >= 1.5) rawRevCap = 2.0;
   else if (revCapRatio >= 1.0) rawRevCap = 1.5;
@@ -534,8 +535,9 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   debug.push({ label: 'รายได้ต่อทุน', value: revCapRatio.toFixed(2), weight: 3.04, score: scoreRevCap, column: '-' });
 
   // 2. Avg Purchase (3mo) / Requested Credit (Max 35.04)
-  const avgPurchase3Mo = secondAccum / 3;
-  const capCheckRatio = avgPurchase3Mo / reqAmt;
+  // FIX: Use "Average 1.5 Months" (Sum / 2) instead of "Average 1 Month" (Sum / 3)
+  const avg1_5Months = secondAccum / 2;
+  const capCheckRatio = avg1_5Months / reqAmt;
   let rawCapCheck = 0;
   if (capCheckRatio >= 1.5) rawCapCheck = 2.0;
   else if (capCheckRatio >= 1.0) rawCapCheck = 1.5;
@@ -557,7 +559,9 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
 
   // 3. Purchase / Credit Term (Max 18.28)
   const termFactor = reqDays / 30;
-  const turnoverSpeed = (1.5 * (avgPurchase3Mo * termFactor)) / reqAmt;
+  // Note: avg1_5Months is already (Sum/2), which equals 1.5 * (Sum/3).
+  // So we remove the 1.5 multiplier here to avoid double counting.
+  const turnoverSpeed = (avg1_5Months * termFactor) / reqAmt;
 
   let rawTurnover = 0;
   if (turnoverSpeed >= 1.5) rawTurnover = 2.0;
