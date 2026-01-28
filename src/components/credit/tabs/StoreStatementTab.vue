@@ -304,6 +304,13 @@ const analysisResults = ref(null);
 const showDebug = ref(false);
 
 const sheetInputs = computed(() => {
+    // Calculate Max Credit Term from Split Inputs
+    const t1 = parseInt(store.transactionData?.termGS || 0);
+    const t2 = parseInt(store.transactionData?.termAE || 0);
+    const t3 = parseInt(store.transactionData?.termYC || 0);
+    const splitMax = Math.max(t1, t2, t3);
+    const finalTerm = store.transactionData?.creditTerm || splitMax || 0;
+
     return {
         customerName: store.customer?.name || '',
         registeredCapital: registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : 0,
@@ -311,7 +318,7 @@ const sheetInputs = computed(() => {
         ownership: store.customer?.residence_ownership || '-',
         customerDuration: customerDuration.value || 0,
         requestAmount: store.transactionData?.amount || 0,
-        creditTerm: store.transactionData?.creditTerm || store.transactionData?.term_gs || 0,
+        creditTerm: finalTerm,
         billingCondition: store.customer?.billing_requirement || '-'
     };
 });
@@ -568,7 +575,15 @@ const analyzeFinancials = async () => {
   formData.append('registered_capital', cleanCapital);
   formData.append('customer_duration', customerDuration.value || '0');
   formData.append('years_in_business', yearsInBusiness.value || '0');
-  formData.append('request_credit_term', store.transactionData?.creditTerm || '30');
+
+  // Calculate Max Credit Term
+  const t1 = parseInt(store.transactionData?.termGS || 0);
+  const t2 = parseInt(store.transactionData?.termAE || 0);
+  const t3 = parseInt(store.transactionData?.termYC || 0);
+  const splitMax = Math.max(t1, t2, t3);
+  const requestTerm = store.transactionData?.creditTerm || splitMax || '30';
+
+  formData.append('request_credit_term', requestTerm);
   formData.append('residence_ownership', store.customer?.residence_ownership || '');
   formData.append('residence_ownership_other', store.customer?.residence_ownership_other || '');
 
