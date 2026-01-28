@@ -7,7 +7,14 @@ const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     // We will move files to the final destination in the controller
     // For now, save to a temp directory
-    const tempDir = path.join(__dirname, '../../temp_uploads');
+    const UPLOAD_BASE = process.env.UPLOAD_PATH
+        ? path.resolve(process.cwd(), process.env.UPLOAD_PATH)
+        : null;
+
+    const tempDir = UPLOAD_BASE
+        ? path.join(UPLOAD_BASE, 'temp')
+        : path.join(__dirname, '../../temp_uploads');
+
     fs.ensureDirSync(tempDir);
     cb(null, tempDir);
   },

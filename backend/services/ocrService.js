@@ -166,7 +166,13 @@ const ocrService = {
    * EasyOCR extraction via Python script
    */
   async extractEasyOCR(imageBuffer) {
-      const tempDir = path.join(__dirname, '../../uploads/temp');
+      const UPLOAD_BASE = process.env.UPLOAD_PATH
+          ? path.resolve(process.cwd(), process.env.UPLOAD_PATH)
+          : null;
+      const tempDir = UPLOAD_BASE
+          ? path.join(UPLOAD_BASE, 'temp')
+          : path.join(__dirname, '../../uploads/temp');
+
       await fs.ensureDir(tempDir);
       const tempFile = path.join(tempDir, `easyocr_${Date.now()}.jpg`);
       await fs.writeFile(tempFile, imageBuffer);
@@ -297,7 +303,13 @@ const ocrService = {
    */
   async _convertPdfToImage(pdfBuffer) {
     const popplerPath = path.join(__dirname, '../poppler/pdftocairo.exe');
-    const tempDir = path.join(__dirname, '../../uploads/temp');
+    const UPLOAD_BASE = process.env.UPLOAD_PATH
+        ? path.resolve(process.cwd(), process.env.UPLOAD_PATH)
+        : null;
+    const tempDir = UPLOAD_BASE
+        ? path.join(UPLOAD_BASE, 'temp')
+        : path.join(__dirname, '../../uploads/temp');
+
     await fs.ensureDir(tempDir);
 
     const tempPdfPath = path.join(tempDir, `temp_${Date.now()}.pdf`);
