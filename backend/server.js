@@ -9,6 +9,7 @@ const creditRequestRoutes = require('./routes/creditRequestRoutes');
 const financialRoutes = require('./routes/financialRoutes');
 const ocrRoutes = require('./routes/ocrRoutes');
 const externalRoutes = require('./routes/externalRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,6 +34,7 @@ app.use('/api/credit-requests', creditRequestRoutes);
 app.use('/api/financials', financialRoutes);
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/external', externalRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve downloaded files
 app.use('/api/downloads', express.static(path.join(__dirname, 'downloads')));

@@ -4,6 +4,7 @@
       <img src="@/assets/logo.png" alt="Company Logo" class="logo" />
       <router-link to="/create-credit-request" class="nav-link">สร้างคำขอ</router-link>
       <router-link to="/pending-requests" class="nav-link">คำขอทั้งหมด</router-link>
+      <router-link v-if="user.role === 'Admin'" to="/admin" class="nav-link">Admin Dashboard</router-link>
     </div>
     <div class="nav-right">
       <div class="notification-bell">
@@ -35,6 +36,13 @@ export default {
       },
       dropdownOpen: false,
     };
+  },
+  mounted() {
+    // Check local storage for role override (for testing/admin access)
+    const storedRole = localStorage.getItem('user_role');
+    if (storedRole) {
+      this.user.role = storedRole;
+    }
   },
   methods: {
     toggleDropdown() {
