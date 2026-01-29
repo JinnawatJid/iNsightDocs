@@ -632,7 +632,7 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
 
 exports.analyzeFinancials = async (req, res) => {
   try {
-    const files = req.files;
+    const files = req.files || {};
     const {
       registered_capital,
       request_amount,
@@ -658,40 +658,52 @@ exports.analyzeFinancials = async (req, res) => {
     };
 
     if (files['balance_sheet'] && files['balance_sheet'][0]) {
-      const workbook = xlsx.read(files['balance_sheet'][0].buffer, { type: 'buffer' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      results.nonCurrentLiabilities = findValue(sheet, 'หนี้สินไม่หมุนเวียน', 'AMOUNT');
+      try {
+          const workbook = xlsx.read(files['balance_sheet'][0].buffer, { type: 'buffer' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          results.nonCurrentLiabilities = findValue(sheet, 'หนี้สินไม่หมุนเวียน', 'AMOUNT');
 
-      // Try 'หนี้สินรวม' first, fallback to 'รวมหนี้สิน'
-      let tl = findValue(sheet, 'หนี้สินรวม', 'AMOUNT');
-      if (tl.value === 0) {
-          tl = findValue(sheet, 'รวมหนี้สิน', 'AMOUNT');
+          // Try 'หนี้สินรวม' first, fallback to 'รวมหนี้สิน'
+          let tl = findValue(sheet, 'หนี้สินรวม', 'AMOUNT');
+          if (tl.value === 0) {
+              tl = findValue(sheet, 'รวมหนี้สิน', 'AMOUNT');
+          }
+          results.totalLiabilities = tl;
+
+          results.shareholdersEquity = findValue(sheet, 'ส่วนของผู้ถือหุ้น', 'AMOUNT');
+      } catch (e) {
+          console.error("Error parsing balance sheet:", e);
       }
-      results.totalLiabilities = tl;
-
-      results.shareholdersEquity = findValue(sheet, 'ส่วนของผู้ถือหุ้น', 'AMOUNT');
     }
 
     if (files['profit_loss'] && files['profit_loss'][0]) {
-      const workbook = xlsx.read(files['profit_loss'][0].buffer, { type: 'buffer' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      results.totalRevenue = findValue(sheet, 'รายได้รวม', 'AMOUNT');
-      results.grossProfit = findValue(sheet, 'กำไร(ขาดทุน) ขั้นต้น', 'AMOUNT');
+      try {
+          const workbook = xlsx.read(files['profit_loss'][0].buffer, { type: 'buffer' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          results.totalRevenue = findValue(sheet, 'รายได้รวม', 'AMOUNT');
+          results.grossProfit = findValue(sheet, 'กำไร(ขาดทุน) ขั้นต้น', 'AMOUNT');
 
-      // NEW: Extract Revenue History (Last 3 Years)
-      results.revenueHistory = findYearlySeries(sheet, 'รายได้รวม', 3);
-      if (results.revenueHistory.length > 0) {
-          const sum = results.revenueHistory.reduce((acc, cur) => acc + cur.amount, 0);
-          results.averageRevenue = sum / results.revenueHistory.length;
+          // NEW: Extract Revenue History (Last 3 Years)
+          results.revenueHistory = findYearlySeries(sheet, 'รายได้รวม', 3);
+          if (results.revenueHistory.length > 0) {
+              const sum = results.revenueHistory.reduce((acc, cur) => acc + cur.amount, 0);
+              results.averageRevenue = sum / results.revenueHistory.length;
+          }
+      } catch (e) {
+          console.error("Error parsing profit loss:", e);
       }
     }
 
     if (files['financial_ratios'] && files['financial_ratios'][0]) {
-      const workbook = xlsx.read(files['financial_ratios'][0].buffer, { type: 'buffer' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      results.deRatio = findValue(sheet, 'อัตราส่วนหนี้สินรวมต่อส่วนของผู้ถือหุ้น', 'RATIO');
-      // Updated: Search for BOTH 'อัตราการหมุนเวียน' AND 'สินค้าคงเหลือ'
-      results.inventoryTurnover = findValue(sheet, ['อัตราการหมุนเวียน', 'สินค้าคงเหลือ'], 'RATIO');
+      try {
+          const workbook = xlsx.read(files['financial_ratios'][0].buffer, { type: 'buffer' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          results.deRatio = findValue(sheet, 'อัตราส่วนหนี้สินรวมต่อส่วนของผู้ถือหุ้น', 'RATIO');
+          // Updated: Search for BOTH 'อัตราการหมุนเวียน' AND 'สินค้าคงเหลือ'
+          results.inventoryTurnover = findValue(sheet, ['อัตราการหมุนเวียน', 'สินค้าคงเหลือ'], 'RATIO');
+      } catch (e) {
+          console.error("Error parsing financial ratios:", e);
+      }
     }
 
     // Calculations for C2 inputs

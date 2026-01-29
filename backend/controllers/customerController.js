@@ -506,6 +506,9 @@ exports.searchCustomers = async (req, res) => {
           const isCompany = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
           const customerType = isCompany ? 'Company' : 'Individual';
 
+          // Extract Customer Date (New Field)
+          const customerSince = row["Customer Date"] || null;
+
           // Side-load History & Financials from Local DB
           const enriched = await enrichCustomerData(row["No_"]);
 
@@ -524,7 +527,8 @@ exports.searchCustomers = async (req, res) => {
                   address: row["Address"],
                   district: row["City"],
                   province: row["County"],
-                  zipcode: row["Post Code"]
+                  zipcode: row["Post Code"],
+                  customer_since: customerSince
               },
               history: enriched.history,
               financial_summary: enriched.financial_summary,

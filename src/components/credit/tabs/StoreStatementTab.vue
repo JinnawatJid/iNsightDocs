@@ -36,7 +36,7 @@
       <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต (Financial Analysis & Scoring)</div>
 
       <!-- DBD Auto Import Section -->
-      <div class="dbd-section" v-if="isEditing">
+      <div class="dbd-section" v-if="isEditing && store.isCompany">
          <div class="dbd-header">
             <span class="dbd-title">DBD Auto Import</span>
             <span class="dbd-subtitle">ดึงข้อมูลจาก DataWarehouse</span>
@@ -88,8 +88,8 @@
         />
       </div>
 
-      <div class="manual-input-row" v-if="isEditing && store.isCompany">
-        <div class="form-group">
+      <div class="manual-input-row" v-if="isEditing">
+        <div class="form-group" v-if="store.isCompany">
           <label>ทุนจดทะเบียน (Registered Capital)</label>
           <input
             type="text"
@@ -99,7 +99,7 @@
             placeholder="ระบุทุนจดทะเบียน (บาท)"
           />
         </div>
-        <div class="form-group">
+        <div class="form-group" v-if="store.isCompany">
           <label>ปีที่จัดตั้งธุรกิจ (Years in Business)</label>
           <input
             type="number"
@@ -117,6 +117,9 @@
             class="form-control"
             placeholder="ระบุจำนวนปี (Years)"
           />
+          <small v-if="customerSinceDate" class="text-muted d-block mt-1" style="font-size: 0.8em;">
+            Customer Since: {{ formatDate(customerSinceDate) }} ({{ calculatedDuration }} Years)
+          </small>
         </div>
         <div class="action-button">
           <button
@@ -297,11 +300,54 @@ const isEditing = ref(!props.readOnly);
 const analyzing = ref(false);
 const downloadingDBD = ref(false);
 const dbdQuery = ref('');
-const registeredCapital = ref('');
-const yearsInBusiness = ref('');
-const customerDuration = ref('');
 const analysisResults = ref(null);
 const showDebug = ref(false);
+
+// Computed Properties for Data Binding (Audit Trail)
+const registeredCapital = computed({
+    get: () => store.customer.registered_capital ? Number(store.customer.registered_capital).toLocaleString('en-US') : '',
+    set: (val) => {
+        const num = val.replace(/[^0-9]/g, '');
+        store.updateCustomerData({ registered_capital: num });
+    }
+});
+
+const yearsInBusiness = computed({
+    get: () => store.customer.years_in_business,
+    set: (val) => store.updateCustomerData({ years_in_business: val })
+});
+
+const customerDuration = computed({
+    get: () => store.customer.customer_duration_years,
+    set: (val) => store.updateCustomerData({ customer_duration_years: val })
+});
+
+const customerSinceDate = computed(() => store.customer.customer_since);
+
+const calculatedDuration = computed(() => {
+    if (!customerSinceDate.value) return 0;
+    const start = new Date(customerSinceDate.value);
+    const now = new Date();
+    // Simple year difference
+    let age = now.getFullYear() - start.getFullYear();
+    const m = now.getMonth() - start.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < start.getDate())) {
+        age--;
+    }
+    return Math.max(0, age);
+});
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('th-TH');
+};
+
+// Auto-fill Duration from API Data if available and empty
+watch(calculatedDuration, (val) => {
+    if (val !== undefined && val !== null && !customerDuration.value) {
+        customerDuration.value = val;
+    }
+}, { immediate: true });
 
 const sheetInputs = computed(() => {
     // Calculate Max Credit Term from Split Inputs
@@ -378,17 +424,13 @@ watch(() => store.files, (newVal) => {
 const handleCapitalInput = (event) => {
     let val = event.target.value;
     val = val.replace(/[^0-9]/g, '');
-    if (val) {
-        registeredCapital.value = Number(val).toLocaleString('en-US');
-    } else {
-        registeredCapital.value = '';
-    }
+    registeredCapital.value = val; // Triggers setter
 };
 
 const handleDurationInput = (event) => {
     let val = event.target.value;
     val = val.replace(/[^0-9]/g, '');
-    customerDuration.value = val;
+    customerDuration.value = val; // Triggers setter
 };
 
 // Initialize DBD Query from Customer Data
@@ -401,10 +443,6 @@ watch(() => store.customer, (val) => {
             } else if (store.isCompany && val.name) {
                 dbdQuery.value = val.name;
             }
-        }
-        // Initialize Years In Business if not set manually yet
-        if (val.years_in_business && !yearsInBusiness.value) {
-            yearsInBusiness.value = val.years_in_business;
         }
     }
 }, { immediate: true });
@@ -558,20 +596,25 @@ const autoDownloadDBD = async () => {
 };
 
 const analyzeFinancials = async () => {
-  if (!files.balanceSheet || !files.profitLoss || !files.financialRatios) {
-    Swal.fire('Error', 'กรุณาอัปโหลดไฟล์ งบดุล, งบกำไรขาดทุน และ อัตราส่วนทางการเงิน', 'error');
-    return;
-  }
-  const cleanCapital = registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : '';
-  if (!cleanCapital) {
-     Swal.fire('Warning', 'กรุณาระบุทุนจดทะเบียนเพื่อการคำนวณที่ถูกต้อง', 'warning');
+  // Validate Files only if Company
+  if (store.isCompany) {
+      if (!files.balanceSheet || !files.profitLoss || !files.financialRatios) {
+        Swal.fire('Error', 'กรุณาอัปโหลดไฟล์ งบดุล, งบกำไรขาดทุน และ อัตราส่วนทางการเงิน', 'error');
+        return;
+      }
+      const cleanCapital = registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : '';
+      if (!cleanCapital) {
+         Swal.fire('Warning', 'กรุณาระบุทุนจดทะเบียนเพื่อการคำนวณที่ถูกต้อง', 'warning');
+      }
   }
 
   analyzing.value = true;
   const formData = new FormData();
-  formData.append('balance_sheet', files.balanceSheet);
-  formData.append('profit_loss', files.profitLoss);
-  formData.append('financial_ratios', files.financialRatios);
+  if (files.balanceSheet) formData.append('balance_sheet', files.balanceSheet);
+  if (files.profitLoss) formData.append('profit_loss', files.profitLoss);
+  if (files.financialRatios) formData.append('financial_ratios', files.financialRatios);
+
+  const cleanCapital = registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : '0';
   formData.append('registered_capital', cleanCapital);
   formData.append('customer_duration', customerDuration.value || '0');
   formData.append('years_in_business', yearsInBusiness.value || '0');
