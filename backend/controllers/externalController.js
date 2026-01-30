@@ -266,9 +266,18 @@ exports.streamDBDProfile = async (req, res) => {
         // --- NEW: Download Balance Sheet (Excel) ---
         sendSSE(res, { status: 'progress', message: 'กำลังเปลี่ยนแท็บไปยังข้อมูลงบการเงิน...' });
 
+        // Helper to find element by XPath (replaces page.$x which is deprecated)
+        const getElementByXPath = async (page, xpath) => {
+            return await page.evaluateHandle((xpath) => {
+                const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                return result.singleNodeValue;
+            }, xpath);
+        };
+
         // 4.1 Hover over "Financial Data" Tab to reveal Dropdown
         // Using XPath to find the element containing the text "ข้อมูลงบการเงิน"
-        const [financialTab] = await page.$x("//a[contains(., 'ข้อมูลงบการเงิน')]");
+        const financialTabHandle = await getElementByXPath(page, "//a[contains(., 'ข้อมูลงบการเงิน')]");
+        const financialTab = financialTabHandle.asElement();
 
         if (financialTab) {
             console.log('[DBD Stream] Hovering over Financial Data tab...');
@@ -279,7 +288,9 @@ exports.streamDBDProfile = async (req, res) => {
 
             // 4.2 Click "Financial Statement" (งบการเงิน)
             console.log('[DBD Stream] Clicking Financial Statement submenu...');
-            const [statementLink] = await page.$x("//a[contains(., 'งบการเงิน')]");
+            // FIXED: Use strict text matching to avoid matching the main menu "ข้อมูลนิติบุคคลและงบการเงิน" which links to /juristic
+            const statementLinkHandle = await getElementByXPath(page, "//a[normalize-space(.)='งบการเงิน']");
+            const statementLink = statementLinkHandle.asElement();
 
             if (statementLink) {
                  // Ensure it's visible before clicking
@@ -342,7 +353,9 @@ exports.streamDBDProfile = async (req, res) => {
         await new Promise(r => setTimeout(r, 1000)); // Wait for dropdown
 
         // Use XPath for Excel button to be safer
-        const [excelBtn] = await page.$x("//a[contains(., 'พิมพ์ Excel') or contains(., 'Excel')]");
+        const excelBtnHandle = await getElementByXPath(page, "//a[contains(., 'พิมพ์ Excel') or contains(., 'Excel')]");
+        const excelBtn = excelBtnHandle.asElement();
+
         if (excelBtn) {
             await excelBtn.click();
         } else {
