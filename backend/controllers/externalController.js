@@ -266,47 +266,34 @@ exports.streamDBDProfile = async (req, res) => {
         // --- NEW: Download Balance Sheet (Excel) ---
         sendSSE(res, { status: 'progress', message: 'กำลังเปลี่ยนแท็บไปยังข้อมูลงบการเงิน...' });
 
-        // 4.1 Click "Financial Data" Tab (Dropdown Parent)
-        const tabClicked = await page.evaluate(() => {
-            const items = Array.from(document.querySelectorAll('a, li, div, span'));
-            // Look for the dropdown toggle
-            const tab = items.find(el => el.innerText && el.innerText.trim() === 'ข้อมูลงบการเงิน');
-            if (tab) {
-                tab.click();
-                return true;
+        // 4.1 Hover over "Financial Data" Tab to reveal Dropdown
+        // Using XPath to find the element containing the text "ข้อมูลงบการเงิน"
+        const [financialTab] = await page.$x("//a[contains(., 'ข้อมูลงบการเงิน')]");
+
+        if (financialTab) {
+            console.log('[DBD Stream] Hovering over Financial Data tab...');
+            await financialTab.hover();
+
+            // Wait for the dropdown menu to appear (looking for "งบการเงิน")
+            await new Promise(r => setTimeout(r, 1000)); // Animation wait
+
+            // 4.2 Click "Financial Statement" (งบการเงิน)
+            console.log('[DBD Stream] Clicking Financial Statement submenu...');
+            const [statementLink] = await page.$x("//a[contains(., 'งบการเงิน')]");
+
+            if (statementLink) {
+                 // Ensure it's visible before clicking
+                 await statementLink.click();
+            } else {
+                 throw new Error('ไม่พบเมนูย่อย "งบการเงิน"');
             }
-            return false;
-        });
-
-        if (!tabClicked) {
-            // Try partial match if exact match fails
-             await page.evaluate(() => {
-                const items = Array.from(document.querySelectorAll('a, li, span'));
-                const tab = items.find(el => el.innerText && el.innerText.includes('ข้อมูลงบการเงิน'));
-                if (tab) tab.click();
-            });
-        }
-
-        // Wait for dropdown animation
-        await new Promise(r => setTimeout(r, 1000));
-
-        // 4.2 Click "Financial Statement" Sub-item (งบการเงิน)
-        const subItemClicked = await page.evaluate(() => {
-            const items = Array.from(document.querySelectorAll('a, li'));
-            const tab = items.find(el => el.innerText && el.innerText.trim() === 'งบการเงิน');
-            if (tab) {
-                tab.click();
-                return true;
-            }
-            return false;
-        });
-
-        if (!subItemClicked) {
-             console.warn('Sub-item "งบการเงิน" not found, trying partial match...');
-             await page.evaluate(() => {
-                const items = Array.from(document.querySelectorAll('a, li'));
-                const tab = items.find(el => el.innerText && el.innerText.includes('งบการเงิน'));
-                if (tab) tab.click();
+        } else {
+            console.warn('[DBD Stream] Financial Data tab not found via XPath, trying legacy generic search...');
+             // Fallback to legacy evaluator if XPath fails
+            await page.evaluate(() => {
+                const items = Array.from(document.querySelectorAll('a, li, div, span'));
+                const tab = items.find(el => el.innerText && el.innerText.trim() === 'ข้อมูลงบการเงิน');
+                if (tab) tab.click(); // Try clicking if hover logic failed/not found
             });
         }
 
@@ -324,29 +311,48 @@ exports.streamDBDProfile = async (req, res) => {
         // 4.3 Click "Print Info" -> "Print Excel"
         sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบการเงิน (Excel)...' });
 
-        // Find the specific "Print Info" button in this tab
+        // We need to be more precise: Find the "Print Info" button specifically for the Balance Sheet
+        // The Balance Sheet is usually in a container like .tab-content or similar.
+        // We will look for the button that is *visible* and contains "พิมพ์ข้อมูล".
+
+        // Wait specifically for the button to be interactive
+        const printBtnXPath = "//button[contains(., 'พิมพ์ข้อมูล') or contains(., 'Print')] | //a[contains(., 'พิมพ์ข้อมูล') or contains(., 'Print')]";
+        // We might find multiple. We want the one currently visible on screen.
+
         await page.evaluate(() => {
-             // Re-query buttons because DOM changed
-             const buttons = Array.from(document.querySelectorAll('button, a'));
-             // The button in the screenshot says "พิมพ์ข้อมูล" with a printer icon
-             // We need to be careful not to click the top profile one again if it's still visible
-             // Usually the Financial tab has its own section.
-             // We look for the one inside the financial content area if possible,
-             // or just the last one found which is likely the new one.
-             const printBtns = buttons.filter(b => b.innerText && b.innerText.includes('พิมพ์ข้อมูล'));
-             if (printBtns.length > 0) {
-                 // Click the last one as it's likely the one in the active tab content
-                 printBtns[printBtns.length - 1].click();
-             }
+            const buttons = Array.from(document.querySelectorAll('button, a'));
+            const printBtns = buttons.filter(b => {
+                if (!b.innerText) return false;
+                const text = b.innerText.trim();
+                return text.includes('พิมพ์ข้อมูล') && b.offsetParent !== null; // offsetParent != null checks visibility
+            });
+
+            if (printBtns.length > 0) {
+                // If multiple visible, the last one is likely the deepest/newest loaded (Financial one)
+                // The Profile one at the top might still be visible, so we need to be careful.
+                // However, usually the profile header scrolls away or the new tab content is the focus.
+                // Let's try the last one.
+                printBtns[printBtns.length - 1].click();
+            } else {
+                 console.warn('Visible Print button not found via JS filter');
+            }
         });
 
         // 4.4 Click "Print Excel" in Dropdown
         await new Promise(r => setTimeout(r, 1000)); // Wait for dropdown
-        await page.evaluate(() => {
-            const links = Array.from(document.querySelectorAll('a, li, span'));
-            const excelBtn = links.find(l => l.innerText && l.innerText.includes('พิมพ์ Excel'));
-            if (excelBtn) excelBtn.click();
-        });
+
+        // Use XPath for Excel button to be safer
+        const [excelBtn] = await page.$x("//a[contains(., 'พิมพ์ Excel') or contains(., 'Excel')]");
+        if (excelBtn) {
+            await excelBtn.click();
+        } else {
+             // Fallback JS
+            await page.evaluate(() => {
+                const links = Array.from(document.querySelectorAll('a, li, span'));
+                const btn = links.find(l => l.innerText && l.innerText.includes('พิมพ์ Excel'));
+                if (btn) btn.click();
+            });
+        }
 
         // 4.5 Wait for Excel File
         let balanceSheetExcel = null;

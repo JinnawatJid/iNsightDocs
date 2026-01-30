@@ -22,7 +22,7 @@
     "pdf-parse": "^1.1.1",
     "pdf-poppler": "^0.2.3",
     "pdfmake": "^0.2.20",
-    "puppeteer": "^24.36.0",
+    "puppeteer": "^24.36.1",
     "sqlite3": "^5.1.7",
     "tesseract.js": "^7.0.0",
     "thai-address-database": "^0.0.30",
