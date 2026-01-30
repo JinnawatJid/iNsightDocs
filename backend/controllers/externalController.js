@@ -78,8 +78,9 @@ const extractAndProcessDBDData = async (pdfPath, taxId, companyName) => {
  */
 exports.streamDBDProfile = async (req, res) => {
     // Note: EventSource uses GET, so params are in query
-    const { taxId, companyName } = req.query;
+    const { taxId, companyName, customerCode } = req.query;
     const query = taxId || companyName;
+    const fileIdentifier = customerCode || taxId || companyName || 'Unknown';
 
     if (!query) {
         return res.status(400).json({ success: false, message: 'Tax ID or Company Name is required' });
@@ -330,42 +331,88 @@ exports.streamDBDProfile = async (req, res) => {
         const printBtnXPath = "//button[contains(., 'พิมพ์ข้อมูล') or contains(., 'Print')] | //a[contains(., 'พิมพ์ข้อมูล') or contains(., 'Print')]";
         // We might find multiple. We want the one currently visible on screen.
 
-        await page.evaluate(() => {
-            const buttons = Array.from(document.querySelectorAll('button, a'));
-            const printBtns = buttons.filter(b => {
-                if (!b.innerText) return false;
-                const text = b.innerText.trim();
-                return text.includes('พิมพ์ข้อมูล') && b.offsetParent !== null; // offsetParent != null checks visibility
-            });
+        const clickVisiblePrintButton = async () => {
+             // Retry loop to handle transient UI states
+             let success = false;
+             for (let i = 0; i < 3; i++) {
+                 try {
+                     const clicked = await page.evaluate(() => {
+                        const buttons = Array.from(document.querySelectorAll('button, a'));
+                        const printBtns = buttons.filter(b => {
+                            if (!b.innerText) return false;
+                            const text = b.innerText.trim();
+                            return text.includes('พิมพ์ข้อมูล') && b.offsetParent !== null; // offsetParent != null checks visibility
+                        });
 
-            if (printBtns.length > 0) {
-                // If multiple visible, the last one is likely the deepest/newest loaded (Financial one)
-                // The Profile one at the top might still be visible, so we need to be careful.
-                // However, usually the profile header scrolls away or the new tab content is the focus.
-                // Let's try the last one.
-                printBtns[printBtns.length - 1].click();
-            } else {
-                 console.warn('Visible Print button not found via JS filter');
-            }
-        });
+                        if (printBtns.length > 0) {
+                            // If multiple visible, the last one is likely the deepest/newest loaded
+                            // We use click() directly which usually works, but sometimes element might be covered
+                            printBtns[printBtns.length - 1].click();
+                            return true;
+                        }
+                        return false;
+                    });
+
+                    if (clicked) {
+                        success = true;
+                        break;
+                    }
+                 } catch (e) {
+                     console.warn(`Attempt ${i+1} to click Print button failed: ${e.message}`);
+                 }
+                 await new Promise(r => setTimeout(r, 1000));
+             }
+
+             if (!success) console.warn('Visible Print button not found or clickable via JS filter');
+        };
+
+        await clickVisiblePrintButton();
 
         // 4.4 Click "Print Excel" in Dropdown
-        await new Promise(r => setTimeout(r, 1000)); // Wait for dropdown
+        await new Promise(r => setTimeout(r, 1500)); // Wait for dropdown animation
 
         // Use XPath for Excel button to be safer
-        const excelBtnHandle = await getElementByXPath(page, "//a[contains(., 'พิมพ์ Excel') or contains(., 'Excel')]");
-        const excelBtn = excelBtnHandle.asElement();
+        const clickExcelButton = async () => {
+             // Try up to 3 times to find and click the Excel button
+             for (let i = 0; i < 3; i++) {
+                 try {
+                     const excelBtnHandle = await getElementByXPath(page, "//a[contains(., 'พิมพ์ Excel') or contains(., 'Excel')]");
+                     const excelBtn = excelBtnHandle ? excelBtnHandle.asElement() : null;
 
-        if (excelBtn) {
-            await excelBtn.click();
-        } else {
-             // Fallback JS
-            await page.evaluate(() => {
-                const links = Array.from(document.querySelectorAll('a, li, span'));
-                const btn = links.find(l => l.innerText && l.innerText.includes('พิมพ์ Excel'));
-                if (btn) btn.click();
-            });
-        }
+                     if (excelBtn) {
+                         // Ensure visible
+                         const isVisible = await excelBtn.boundingBox();
+                         if (isVisible) {
+                             await excelBtn.click();
+                             return; // Success
+                         }
+                     }
+
+                     // Fallback JS
+                     const jsClicked = await page.evaluate(() => {
+                         const links = Array.from(document.querySelectorAll('a, li, span'));
+                         // Find one that is visible
+                         const btn = links.find(l => {
+                             return l.innerText && l.innerText.includes('พิมพ์ Excel') && l.offsetParent !== null;
+                         });
+                         if (btn) {
+                             btn.click();
+                             return true;
+                         }
+                         return false;
+                     });
+
+                     if (jsClicked) return; // Success
+
+                 } catch (e) {
+                     console.warn(`Attempt ${i+1} to click Excel button failed: ${e.message}`);
+                 }
+                 await new Promise(r => setTimeout(r, 1000));
+             }
+             console.warn('Failed to click Excel button after retries');
+        };
+
+        await clickExcelButton();
 
         // 4.5 Wait for Excel File
         let balanceSheetExcel = null;
@@ -381,27 +428,99 @@ exports.streamDBDProfile = async (req, res) => {
         }
 
         if (!balanceSheetExcel) {
-             console.warn('Excel download timed out');
-             // We don't throw here to ensure we at least return the PDF
+             console.warn('Balance Sheet Excel download timed out');
         }
 
-        // 6. Move Files
-        sendSSE(res, { status: 'progress', message: 'กำลังบันทึกไฟล์ลงระบบ...' });
+        // 6. Move Files (Balance Sheet and Profile)
+        sendSSE(res, { status: 'progress', message: 'กำลังบันทึกไฟล์ (1/2)...' });
 
         const downloadsDir = path.join(__dirname, '../downloads');
         await fs.ensureDir(downloadsDir);
 
         // Process PDF
-        const pdfFilename = `DBD_Profile_${query}_${Date.now()}.pdf`;
+        const pdfFilename = `DBD_Profile_${fileIdentifier}_${Date.now()}.pdf`;
         const pdfPath = path.join(downloadsDir, pdfFilename);
-        await fs.move(profilePdf, pdfPath);
+        if (await fs.pathExists(profilePdf)) {
+             await fs.move(profilePdf, pdfPath);
+        }
 
-        // Process Excel (if found)
+        // Process Balance Sheet Excel (if found)
         let excelFilename = null;
         if (balanceSheetExcel) {
-            excelFilename = `DBD_BalanceSheet_${query}_${Date.now()}.xlsx`;
+            excelFilename = `DBD_BalanceSheet_${fileIdentifier}_${Date.now()}.xlsx`;
             const excelPath = path.join(downloadsDir, excelFilename);
             await fs.move(balanceSheetExcel, excelPath);
+        }
+
+        // --- NEW: Download Income Statement (งบกำไรขาดทุน) ---
+        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบกำไรขาดทุน...' });
+
+        // 4.6 Click "Income Statement" (งบกำไรขาดทุน)
+        // Try precise XPath first using normalize-space to handle whitespace
+        let incomeTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='งบกำไรขาดทุน'] | //a[normalize-space(.)='งบกำไรขาดทุน']");
+
+        // If not found, try contains but be careful
+        if (!incomeTabHandle) {
+             incomeTabHandle = await getElementByXPath(page, "//button[contains(., 'งบกำไรขาดทุน')] | //a[contains(., 'งบกำไรขาดทุน')]");
+        }
+
+        const incomeTab = incomeTabHandle ? incomeTabHandle.asElement() : null;
+
+        if (incomeTab) {
+            console.log('[DBD Stream] Clicking Income Statement tab...');
+            await incomeTab.click();
+        } else {
+            console.warn('[DBD Stream] Income Statement tab not found via XPath, trying JS fallback...');
+             // Fallback JS with strict matching
+            await page.evaluate(() => {
+                const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
+                const tab = items.find(el => el.innerText && el.innerText.trim() === 'งบกำไรขาดทุน');
+                if (tab) tab.click();
+            });
+        }
+
+        // Wait for Table (Look for specific table header "รายได้หลัก" which appears in Income Statement)
+        sendSSE(res, { status: 'progress', message: 'กำลังรอโหลดตารางงบกำไรขาดทุน...' });
+        try {
+            await page.waitForFunction(
+                () => document.body.innerText.includes('รายได้หลัก') || document.body.innerText.includes('ต้นทุนขาย'),
+                { timeout: 15000 }
+            );
+        } catch (e) {
+            console.warn('Timeout waiting for Income Statement specific text, but continuing...');
+        }
+
+        // Small buffer for animations
+        await new Promise(r => setTimeout(r, 1000));
+
+        // Click Print Info again
+        console.log('[DBD Stream] Clicking Print Info for Income Statement...');
+        await clickVisiblePrintButton();
+
+        // Click Print Excel again
+        console.log('[DBD Stream] Clicking Print Excel for Income Statement...');
+        await clickExcelButton();
+
+        // Wait for Income Statement Excel
+        let incomeStatementExcel = null;
+        startTime = Date.now();
+        while (Date.now() - startTime < maxWait) {
+            const files = await fs.readdir(tmpDir);
+            // Since we moved the previous xlsx, the only xlsx should be the new one
+            const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
+            if (xlsxFile) {
+                incomeStatementExcel = path.join(tmpDir, xlsxFile);
+                break;
+            }
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        // Move Income Statement
+        let incomeFilename = null;
+        if (incomeStatementExcel) {
+            incomeFilename = `DBD_IncomeStatement_${fileIdentifier}_${Date.now()}.xlsx`;
+            const incomePath = path.join(downloadsDir, incomeFilename);
+            await fs.move(incomeStatementExcel, incomePath);
         }
 
         // --- NEW: Extract Data from PDF and Update DB ---
@@ -419,6 +538,10 @@ exports.streamDBDProfile = async (req, res) => {
                 balanceSheet: excelFilename ? {
                     url: `/api/downloads/${excelFilename}`,
                     filename: excelFilename
+                } : null,
+                incomeStatement: incomeFilename ? {
+                    url: `/api/downloads/${incomeFilename}`,
+                    filename: incomeFilename
                 } : null
             },
             yearsInBusiness: extractionResult?.yearsInBusiness

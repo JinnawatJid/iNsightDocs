@@ -497,7 +497,12 @@ const autoDownloadDBD = async () => {
     }
     */
     // Always use Server
-    bridgeUrl = `/api/external/dbd-stream?taxId=${dbdQuery.value}`;
+    const customerNo = store.customer?.id || store.customer?.No_;
+    const queryParams = new URLSearchParams({
+        taxId: dbdQuery.value,
+        customerCode: customerNo || ''
+    });
+    bridgeUrl = `/api/external/dbd-stream?${queryParams.toString()}`;
 
     // Use SSE for real-time progress updates
     const evtSource = new EventSource(bridgeUrl);
@@ -552,6 +557,19 @@ const autoDownloadDBD = async () => {
                         const excelBlob = excelRes.data;
                         const excelName = data.files.balanceSheet.filename || `DBD_BalanceSheet_${dbdQuery.value}.xlsx`;
                         files.balanceSheet = new File([excelBlob], excelName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    }
+
+                    // 3. Process Income Statement (Excel)
+                    if (data.data && data.data.incomeStatement && data.data.incomeStatement.content) {
+                         // FROM BRIDGE (Base64)
+                         const blob = base64ToBlob(data.data.incomeStatement.content, data.data.incomeStatement.mime);
+                         files.profitLoss = new File([blob], data.data.incomeStatement.filename, { type: data.data.incomeStatement.mime });
+                    } else if (data.files && data.files.incomeStatement) {
+                        // FROM SERVER (URL)
+                        const excelRes = await axios.get(data.files.incomeStatement.url, { responseType: 'blob' });
+                        const excelBlob = excelRes.data;
+                        const excelName = data.files.incomeStatement.filename || `DBD_IncomeStatement_${dbdQuery.value}.xlsx`;
+                        files.profitLoss = new File([excelBlob], excelName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     }
 
                     // Update Years In Business if returned
