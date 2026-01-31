@@ -148,20 +148,33 @@
 
         <!-- Scoring Highlight -->
         <div v-if="analysisResults.scoringResult" class="score-highlight">
-            <div class="score-card">
-                <div class="score-title">ขนาดธุรกิจ (Size)</div>
-                <div class="score-val text-primary">
-                    {{ analysisResults.scoringResult.sizeResult?.label || '-' }}
-                </div>
-                <div class="score-grade">Score {{ formatNumber(analysisResults.scoringResult.sizeResult?.score) }}</div>
-            </div>
+            <!-- Card 1: Credit Score -->
             <div class="score-card">
                 <div class="score-title">คะแนนเครดิต (Credit Score)</div>
                 <div class="score-val" :class="getGradeClass(analysisResults.scoringResult.grade)">
                     {{ analysisResults.scoringResult.totalScore }} / 200
                 </div>
-                <div class="score-grade">เกรด {{ analysisResults.scoringResult.grade }}</div>
             </div>
+
+            <!-- Card 2: Size & Grade -->
+            <div class="score-card">
+                <div class="score-title">ขนาดธุรกิจ (Size) & เกรด (Grade)</div>
+                <div class="dual-score-row">
+                    <div class="dual-item">
+                         <div class="dual-label">Size</div>
+                         <div class="dual-val text-primary">{{ analysisResults.scoringResult.sizeResult?.label || '-' }}</div>
+                         <div class="dual-sub">Score {{ formatNumber(analysisResults.scoringResult.sizeResult?.score) }}</div>
+                    </div>
+                    <div class="dual-divider"></div>
+                    <div class="dual-item">
+                         <div class="dual-label">Grade</div>
+                         <div class="dual-val" :class="getGradeClass(analysisResults.scoringResult.grade)">{{ analysisResults.scoringResult.grade }}</div>
+                         <div class="dual-sub">Score {{ formatNumber(analysisResults.scoringResult.gradeResult?.score) }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Limit -->
             <div class="limit-card">
                 <div class="score-title">วงเงินแนะนำ (Recommended Limit)</div>
                 <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
@@ -941,6 +954,44 @@ const shouldShowFinancialAnalysis = computed(() => {
     font-size: 2em;
     font-weight: bold;
     margin: 10px 0;
+}
+
+.dual-score-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.dual-item {
+    text-align: center;
+}
+
+.dual-label {
+    font-size: 0.8em;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.dual-val {
+    font-size: 2em;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.dual-sub {
+    font-size: 0.75em;
+    color: #888;
+    margin-top: 4px;
+}
+
+.dual-divider {
+    width: 1px;
+    height: 40px;
+    background-color: #ddd;
 }
 
 .limit-val {

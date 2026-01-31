@@ -10,7 +10,15 @@
                 <span class="score-number">{{ creditScore.totalScore }}</span>
                 <span class="score-max">/ 200</span>
             </div>
-            <div class="score-grade-text">Grade {{ creditScore.grade }}</div>
+
+            <div class="score-badges-row">
+                 <div class="grade-badge" :class="getGradeClass(creditScore.grade)">
+                    Grade {{ creditScore.grade }}
+                 </div>
+                 <div class="size-badge text-primary" v-if="creditScore.sizeResult">
+                    Size {{ creditScore.sizeResult.label }}
+                 </div>
+            </div>
         </div>
 
         <div class="limit-display">
@@ -229,6 +237,29 @@ export default {
     font-weight: bold;
     font-size: 18px;
     margin-top: 5px;
+}
+
+.score-badges-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.grade-badge, .size-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.grade-badge.grade-a { background-color: #d4edda; color: #155724; }
+.grade-badge.grade-b { background-color: #fff3cd; color: #856404; }
+.grade-badge.grade-c { background-color: #f8d7da; color: #721c24; }
+
+.size-badge {
+    background-color: #cce5ff;
+    color: #004085;
 }
 
 .limit-display {
