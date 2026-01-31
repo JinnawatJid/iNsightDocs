@@ -90,7 +90,7 @@
 
       <div class="manual-input-row" v-if="isEditing">
         <div class="form-group" v-if="store.isCompany">
-          <label>ทุนจดทะเบียน (Registered Capital)</label>
+          <label>ทุนจดทะเบียน</label>
           <input
             type="text"
             v-model="registeredCapital"
@@ -151,8 +151,9 @@
             <!-- Card 1: Credit Score (Narrower) -->
             <div class="score-card card-narrow">
                 <div class="score-title">คะแนนเครดิต</div>
-                <div class="score-val" :class="getGradeClass(analysisResults.scoringResult.grade)">
-                    {{ analysisResults.scoringResult.totalScore }} / 200
+                <div class="score-val-container" :class="getGradeClass(analysisResults.scoringResult.grade)">
+                    <div class="score-main">{{ analysisResults.scoringResult.totalScore }}</div>
+                    <div class="score-max">/ 200</div>
                 </div>
             </div>
 
@@ -974,6 +975,27 @@ const shouldShowFinancialAnalysis = computed(() => {
     color: #555;
     margin-bottom: 10px;
     min-height: 24px; /* Ensure alignment */
+}
+
+/* New Score Value Container */
+.score-val-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 5px;
+    line-height: 1;
+}
+
+.score-main {
+    font-size: 2.8em; /* Bigger */
+    font-weight: bold;
+}
+
+.score-max {
+    font-size: 1em; /* Smaller */
+    color: #888;
+    margin-top: 2px;
 }
 
 .score-val {
