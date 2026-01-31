@@ -149,6 +149,13 @@
         <!-- Scoring Highlight -->
         <div v-if="analysisResults.scoringResult" class="score-highlight">
             <div class="score-card">
+                <div class="score-title">ขนาดธุรกิจ (Size)</div>
+                <div class="score-val text-primary">
+                    {{ analysisResults.scoringResult.sizeResult?.label || '-' }}
+                </div>
+                <div class="score-grade">Score {{ formatNumber(analysisResults.scoringResult.sizeResult?.score) }}</div>
+            </div>
+            <div class="score-card">
                 <div class="score-title">คะแนนเครดิต (Credit Score)</div>
                 <div class="score-val" :class="getGradeClass(analysisResults.scoringResult.grade)">
                     {{ analysisResults.scoringResult.totalScore }} / 200
@@ -375,6 +382,13 @@ onMounted(() => {
     // Capture URL on mount to ensure we have the browser's true state
     windowUrl.value = window.location.href;
 });
+
+// Initialize Analysis Results from Store (Persistence)
+watch(() => store.financialSummary, (val) => {
+    if (val && val.analysis_result) {
+        analysisResults.value = val.analysis_result;
+    }
+}, { immediate: true, deep: true });
 
 watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
@@ -670,6 +684,10 @@ const analyzeFinancials = async () => {
               ...response.data.scoringResult
           };
       }
+
+      // Auto-save transaction data (including analysis result & inputs)
+      await store.saveTransactionData();
+
       Swal.fire('Success', 'วิเคราะห์ข้อมูลเรียบร้อยแล้ว', 'success');
     }
   } catch (error) {
@@ -932,6 +950,7 @@ const shouldShowFinancialAnalysis = computed(() => {
     margin: 10px 0;
 }
 
+.text-primary { color: #007bff; }
 .text-success { color: #28a745; }
 .text-warning { color: #ffc107; }
 .text-danger { color: #dc3545; }
