@@ -227,7 +227,7 @@ exports.streamDBDProfile = async (req, res) => {
                     // Wait for Excel Button to be VISIBLE
                     // This is the key fix: We wait specifically for the menu to render
                     let excelVisible = false;
-                    for(let j=0; j<20; j++) { // Wait up to 2 seconds (20 * 100ms)
+                    for(let j=0; j<150; j++) { // Wait up to 15 seconds (150 * 100ms)
                         excelVisible = await page.evaluate(() => {
                              const links = Array.from(document.querySelectorAll('a, li, span'));
                              const btn = links.find(l => {
@@ -289,7 +289,7 @@ exports.streamDBDProfile = async (req, res) => {
         // 1. Navigate
         sendSSE(res, { status: 'progress', message: 'กำลังเชื่อมต่อกรมพัฒนาธุรกิจการค้า...' });
         console.log('[DBD Stream] Navigating...');
-        await page.goto('https://datawarehouse.dbd.go.th/', { waitUntil: 'networkidle2', timeout: 60000 });
+        await page.goto('https://datawarehouse.dbd.go.th/', { waitUntil: 'networkidle2', timeout: 90000 });
 
         // --- POPUP HANDLING (Initial) ---
         sendSSE(res, { status: 'progress', message: 'กำลังตรวจสอบ Popup...' });
@@ -305,7 +305,7 @@ exports.streamDBDProfile = async (req, res) => {
                 // Re-check popups before typing if retrying
                 if (i > 0) await handlePopups();
 
-                await page.waitForSelector(targetSelector, { visible: true, timeout: 10000 });
+                await page.waitForSelector(targetSelector, { visible: true, timeout: 30000 });
 
                 // Clear input first
                 await page.click(targetSelector, { clickCount: 3 });
@@ -388,7 +388,7 @@ exports.streamDBDProfile = async (req, res) => {
 
         // Wait for PDF file
         let profilePdf = null;
-        const maxWait = 30000;
+        const maxWait = 60000;
         let startTime = Date.now();
         while (Date.now() - startTime < maxWait) {
             const files = await fs.readdir(tmpDir);
@@ -443,7 +443,7 @@ exports.streamDBDProfile = async (req, res) => {
         try {
             await page.waitForFunction(
                 () => document.body.innerText.includes('งบแสดงฐานะการเงิน'),
-                { timeout: 30000 }
+                { timeout: 60000 }
             );
         } catch (e) {
             console.warn('Timeout waiting for balance sheet text, but continuing...');
@@ -523,7 +523,7 @@ exports.streamDBDProfile = async (req, res) => {
         try {
             await page.waitForFunction(
                 () => document.body.innerText.includes('รายได้หลัก') || document.body.innerText.includes('ต้นทุนขาย'),
-                { timeout: 15000 }
+                { timeout: 60000 }
             );
         } catch (e) {
             console.warn('Timeout waiting for Income Statement specific text, but continuing...');
@@ -587,7 +587,7 @@ exports.streamDBDProfile = async (req, res) => {
         try {
             await page.waitForFunction(
                 () => document.body.innerText.includes('อัตราส่วนสภาพคล่อง') || document.body.innerText.includes('อัตราส่วนหนี้สินต่อส่วนของผู้ถือหุ้น'),
-                { timeout: 15000 }
+                { timeout: 60000 }
             );
         } catch (e) {
             console.warn('Timeout waiting for Financial Ratios text, but continuing...');

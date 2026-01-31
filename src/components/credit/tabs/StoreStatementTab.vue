@@ -572,6 +572,19 @@ const autoDownloadDBD = async () => {
                         files.profitLoss = new File([excelBlob], excelName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     }
 
+                    // 4. Process Financial Ratios (Excel)
+                    if (data.data && data.data.financialRatios && data.data.financialRatios.content) {
+                         // FROM BRIDGE (Base64)
+                         const blob = base64ToBlob(data.data.financialRatios.content, data.data.financialRatios.mime);
+                         files.financialRatios = new File([blob], data.data.financialRatios.filename, { type: data.data.financialRatios.mime });
+                    } else if (data.files && data.files.financialRatios) {
+                        // FROM SERVER (URL)
+                        const excelRes = await axios.get(data.files.financialRatios.url, { responseType: 'blob' });
+                        const excelBlob = excelRes.data;
+                        const excelName = data.files.financialRatios.filename || `DBD_FinancialRatios_${dbdQuery.value}.xlsx`;
+                        files.financialRatios = new File([excelBlob], excelName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    }
+
                     // Update Years In Business if returned
                     if (data.yearsInBusiness !== undefined) {
                         store.updateCustomerData({ years_in_business: data.yearsInBusiness });
