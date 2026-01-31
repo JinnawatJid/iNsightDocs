@@ -3,7 +3,7 @@
 
     <!-- NEW: Credit Score Section -->
     <div v-if="creditScore && creditScore.totalScore !== undefined" class="score-section">
-        <h3>Credit Score Result</h3>
+        <h3>ผลคะแนนเครดิต</h3>
 
         <div class="score-display">
             <div class="score-circle" :class="getGradeClass(creditScore.grade)">
@@ -13,32 +13,32 @@
 
             <div class="score-badges-row">
                  <div class="grade-badge" :class="getGradeClass(creditScore.grade)">
-                    Grade {{ creditScore.grade }}
+                    เกรด {{ creditScore.grade }}
                  </div>
                  <div class="size-badge text-primary" v-if="creditScore.sizeResult">
-                    Size {{ creditScore.sizeResult.label }}
+                    ขนาด {{ creditScore.sizeResult.label }}
                  </div>
             </div>
         </div>
 
         <div class="limit-display">
-            <div class="limit-label">Recommended Limit</div>
-            <div class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} THB</div>
+            <div class="limit-label">วงเงินแนะนำ</div>
+            <div class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} บาท</div>
         </div>
 
         <hr class="divider" />
 
         <div class="score-breakdown">
             <div class="breakdown-item">
-                <span>C1: Company Strength</span>
+                <span>C1: ความแข็งแกร่งของบริษัท</span>
                 <span class="breakdown-val">{{ formatDecimal(creditScore.breakdown?.c1?.total) }}</span>
             </div>
             <div class="breakdown-item">
-                <span>C2: Cash Flow</span>
+                <span>C2: กระแสเงินสดและสภาพคล่อง</span>
                 <span class="breakdown-val">{{ formatDecimal(creditScore.breakdown?.c2?.total) }}</span>
             </div>
             <div class="breakdown-item">
-                <span>C3: Purchase Behavior</span>
+                <span>C3: พฤติกรรมการซื้อและประวัติ</span>
                 <span class="breakdown-val">{{ formatDecimal(creditScore.breakdown?.c3?.total) }}</span>
             </div>
         </div>

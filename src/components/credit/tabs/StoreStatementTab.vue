@@ -33,7 +33,7 @@
 
     <!-- Financial Analysis Section -->
     <div class="financial-analysis-section" v-if="shouldShowFinancialAnalysis" data-testid="financial-analysis-section">
-      <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต (Financial Analysis & Scoring)</div>
+      <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต</div>
 
       <!-- DBD Auto Import Section -->
       <div class="dbd-section" v-if="isEditing && store.isCompany">
@@ -100,7 +100,7 @@
           />
         </div>
         <div class="form-group" v-if="store.isCompany">
-          <label>ปีที่จัดตั้งธุรกิจ (Years in Business)</label>
+          <label>ปีที่จัดตั้งธุรกิจ</label>
           <input
             type="number"
             v-model="yearsInBusiness"
@@ -109,16 +109,16 @@
           />
         </div>
         <div class="form-group">
-          <label>ระยะเวลาการเป็นลูกค้า (Duration)</label>
+          <label>ระยะเวลาการเป็นลูกค้า</label>
           <input
             type="text"
             v-model="customerDuration"
             @input="handleDurationInput"
             class="form-control"
-            placeholder="ระบุจำนวนปี (Years)"
+            placeholder="ระบุจำนวนปี"
           />
           <small v-if="customerSinceDate" class="text-muted d-block mt-1" style="font-size: 0.8em;">
-            Customer Since: {{ formatDate(customerSinceDate) }} ({{ calculatedDuration }} Years)
+            เป็นลูกค้าตั้งแต่: {{ formatDate(customerSinceDate) }} ({{ calculatedDuration }} ปี)
           </small>
         </div>
         <div class="action-button">
@@ -136,7 +136,7 @@
       <div v-if="analysisResults" class="analysis-results">
         <div class="results-actions">
            <button class="btn-full-report" @click="openFullReport">
-              📄 ดูรายละเอียดเต็ม (Full Report)
+              📄 ดูรายละเอียดเต็ม
            </button>
         </div>
 
@@ -150,7 +150,7 @@
         <div v-if="analysisResults.scoringResult" class="score-highlight">
             <!-- Card 1: Credit Score -->
             <div class="score-card">
-                <div class="score-title">คะแนนเครดิต (Credit Score)</div>
+                <div class="score-title">คะแนนเครดิต</div>
                 <div class="score-val" :class="getGradeClass(analysisResults.scoringResult.grade)">
                     {{ analysisResults.scoringResult.totalScore }} / 200
                 </div>
@@ -158,16 +158,17 @@
 
             <!-- Card 2: Size & Grade -->
             <div class="score-card">
-                <div class="score-title">ขนาดธุรกิจ (Size) & เกรด (Grade)</div>
+                <!-- Title removed as requested since labels are inside -->
+                 <div class="score-title">&nbsp;</div>
                 <div class="dual-score-row">
                     <div class="dual-item">
-                         <div class="dual-label">Size</div>
+                         <div class="dual-label">ขนาด</div>
                          <div class="dual-val text-primary">{{ analysisResults.scoringResult.sizeResult?.label || '-' }}</div>
                          <div class="dual-sub">Score {{ formatNumber(analysisResults.scoringResult.sizeResult?.score) }}</div>
                     </div>
                     <div class="dual-divider"></div>
                     <div class="dual-item">
-                         <div class="dual-label">Grade</div>
+                         <div class="dual-label">เกรด</div>
                          <div class="dual-val" :class="getGradeClass(analysisResults.scoringResult.grade)">{{ analysisResults.scoringResult.grade }}</div>
                          <div class="dual-sub">Score {{ formatNumber(analysisResults.scoringResult.gradeResult?.score) }}</div>
                     </div>
@@ -176,9 +177,9 @@
 
             <!-- Card 3: Limit -->
             <div class="limit-card">
-                <div class="score-title">วงเงินแนะนำ (Recommended Limit)</div>
+                <div class="score-title">วงเงินแนะนำ</div>
                 <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
-                <div class="limit-unit">บาท (THB)</div>
+                <div class="limit-unit">บาท</div>
             </div>
         </div>
 
@@ -189,19 +190,16 @@
                  <!-- C1 -->
                  <div class="breakdown-card">
                      <div class="bd-title">C1: ความแข็งแกร่งของบริษัท</div>
-                     <div class="bd-subtitle">(Company Strength)</div>
                      <div class="bd-value">{{ formatDecimal(analysisResults.scoringResult.breakdown.c1.total) }}</div>
                  </div>
                  <!-- C2 -->
                  <div class="breakdown-card">
                      <div class="bd-title">C2: กระแสเงินสดและสภาพคล่อง</div>
-                     <div class="bd-subtitle">(Cash Flow & Liquidity)</div>
                      <div class="bd-value">{{ formatDecimal(analysisResults.scoringResult.breakdown.c2.total) }}</div>
                  </div>
                  <!-- C3 -->
                  <div class="breakdown-card">
                      <div class="bd-title">C3: พฤติกรรมการซื้อและประวัติ</div>
-                     <div class="bd-subtitle">(Purchase Behavior)</div>
                      <div class="bd-value">{{ formatDecimal(analysisResults.scoringResult.breakdown.c3.total) }}</div>
                  </div>
              </div>
@@ -245,37 +243,37 @@
         <!-- NORMAL GRID VIEW -->
         <div v-else class="result-grid">
           <div class="result-item">
-            <span class="label">รายได้รวม (Total Revenue):</span>
+            <span class="label">รายได้รวม:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.totalRevenue?.value) }}
             </span>
           </div>
           <div class="result-item">
-            <span class="label">กำไรขั้นต้น (Gross Profit):</span>
+            <span class="label">กำไรขั้นต้น:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.grossProfit?.value) }}
             </span>
           </div>
           <div class="result-item">
-            <span class="label">หนี้สินไม่หมุนเวียน (Non-Current Liabilities):</span>
+            <span class="label">หนี้สินไม่หมุนเวียน:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.nonCurrentLiabilities?.value) }}
             </span>
           </div>
           <div class="result-item">
-            <span class="label">ส่วนของผู้ถือหุ้น (Equity):</span>
+            <span class="label">ส่วนของผู้ถือหุ้น:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.shareholdersEquity?.value) }}
             </span>
           </div>
            <div class="result-item">
-            <span class="label">อัตราหมุนเวียนสินค้าคงเหลือ (Inventory Turnover):</span>
+            <span class="label">อัตราหมุนเวียนสินค้าคงเหลือ:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.inventoryTurnover?.value) }}
             </span>
           </div>
            <div class="result-item">
-            <span class="label">อัตราส่วนหนี้สินต่อทุน (D/E Ratio):</span>
+            <span class="label">อัตราส่วนหนี้สินต่อทุน:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.deRatio?.value) }}
             </span>
