@@ -122,7 +122,7 @@ exports.streamDBDProfile = async (req, res) => {
 
         const isHeadless = process.env.DBD_HEADLESS !== 'false';
         browser = await puppeteer.launch({
-            headless: false,
+            headless: true,
             defaultViewport: null,
             args: [
                 '--no-sandbox',
@@ -332,11 +332,32 @@ exports.streamDBDProfile = async (req, res) => {
         // We might find multiple. We want the one currently visible on screen.
 
         const clickVisiblePrintButton = async () => {
+             // 1. Try Puppeteer Click on precise CSS selector (Best for event triggering)
+             try {
+                 const selector = '.tab-pane.active .dropdown.print > a';
+                 if (await page.$(selector)) {
+                     await page.click(selector);
+                     return;
+                 }
+             } catch (e) { console.warn('Precise click failed:', e.message); }
+
              // Retry loop to handle transient UI states
              let success = false;
              for (let i = 0; i < 3; i++) {
                  try {
                      const clicked = await page.evaluate(() => {
+                        // 1. Priority: Check in active tab pane first (Scoped)
+                        const activePane = document.querySelector('.tab-pane.active');
+                        if (activePane) {
+                            const scopedBtn = Array.from(activePane.querySelectorAll('button, a'))
+                                .find(b => b.innerText && b.innerText.includes('พิมพ์ข้อมูล') && b.offsetParent !== null);
+                            if (scopedBtn) {
+                                scopedBtn.click();
+                                return true;
+                            }
+                        }
+
+                        // 2. Fallback: Global search (Legacy)
                         const buttons = Array.from(document.querySelectorAll('button, a'));
                         const printBtns = buttons.filter(b => {
                             if (!b.innerText) return false;
@@ -496,6 +517,9 @@ exports.streamDBDProfile = async (req, res) => {
         // Click Print Info again
         console.log('[DBD Stream] Clicking Print Info for Income Statement...');
         await clickVisiblePrintButton();
+
+        // Wait for dropdown animation
+        await new Promise(r => setTimeout(r, 1500));
 
         // Click Print Excel again
         console.log('[DBD Stream] Clicking Print Excel for Income Statement...');
