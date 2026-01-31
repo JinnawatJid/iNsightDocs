@@ -3,34 +3,42 @@
 
     <!-- NEW: Credit Score Section -->
     <div v-if="creditScore && creditScore.totalScore !== undefined" class="score-section">
-        <h3>Credit Score Result</h3>
+        <h3>ผลคะแนนเครดิต</h3>
 
         <div class="score-display">
             <div class="score-circle" :class="getGradeClass(creditScore.grade)">
                 <span class="score-number">{{ creditScore.totalScore }}</span>
                 <span class="score-max">/ 200</span>
             </div>
-            <div class="score-grade-text">Grade {{ creditScore.grade }}</div>
+
+            <div class="score-badges-row">
+                 <div class="grade-badge" :class="getGradeClass(creditScore.grade)">
+                    เกรด {{ creditScore.grade }}
+                 </div>
+                 <div class="size-badge text-primary" v-if="creditScore.sizeResult">
+                    ขนาด {{ creditScore.sizeResult.label }}
+                 </div>
+            </div>
         </div>
 
         <div class="limit-display">
-            <div class="limit-label">Recommended Limit</div>
-            <div class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} THB</div>
+            <div class="limit-label">วงเงินแนะนำ</div>
+            <div class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} บาท</div>
         </div>
 
         <hr class="divider" />
 
         <div class="score-breakdown">
             <div class="breakdown-item">
-                <span>C1: Company Strength</span>
+                <span>C1: ความแข็งแกร่งของบริษัท</span>
                 <span class="breakdown-val">{{ formatDecimal(creditScore.breakdown?.c1?.total) }}</span>
             </div>
             <div class="breakdown-item">
-                <span>C2: Cash Flow</span>
+                <span>C2: กระแสเงินสดและสภาพคล่อง</span>
                 <span class="breakdown-val">{{ formatDecimal(creditScore.breakdown?.c2?.total) }}</span>
             </div>
             <div class="breakdown-item">
-                <span>C3: Purchase Behavior</span>
+                <span>C3: พฤติกรรมการซื้อและประวัติ</span>
                 <span class="breakdown-val">{{ formatDecimal(creditScore.breakdown?.c3?.total) }}</span>
             </div>
         </div>
@@ -229,6 +237,29 @@ export default {
     font-weight: bold;
     font-size: 18px;
     margin-top: 5px;
+}
+
+.score-badges-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.grade-badge, .size-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.grade-badge.grade-a { background-color: #d4edda; color: #155724; }
+.grade-badge.grade-b { background-color: #fff3cd; color: #856404; }
+.grade-badge.grade-c { background-color: #f8d7da; color: #721c24; }
+
+.size-badge {
+    background-color: #cce5ff;
+    color: #004085;
 }
 
 .limit-display {

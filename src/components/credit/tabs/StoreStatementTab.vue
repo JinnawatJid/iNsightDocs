@@ -33,7 +33,7 @@
 
     <!-- Financial Analysis Section -->
     <div class="financial-analysis-section" v-if="shouldShowFinancialAnalysis" data-testid="financial-analysis-section">
-      <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต (Financial Analysis & Scoring)</div>
+      <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต</div>
 
       <!-- DBD Auto Import Section -->
       <div class="dbd-section" v-if="isEditing && store.isCompany">
@@ -90,7 +90,7 @@
 
       <div class="manual-input-row" v-if="isEditing">
         <div class="form-group" v-if="store.isCompany">
-          <label>ทุนจดทะเบียน (Registered Capital)</label>
+          <label>ทุนจดทะเบียน</label>
           <input
             type="text"
             v-model="registeredCapital"
@@ -100,7 +100,7 @@
           />
         </div>
         <div class="form-group" v-if="store.isCompany">
-          <label>ปีที่จัดตั้งธุรกิจ (Years in Business)</label>
+          <label>ปีที่จัดตั้งธุรกิจ</label>
           <input
             type="number"
             v-model="yearsInBusiness"
@@ -109,16 +109,16 @@
           />
         </div>
         <div class="form-group">
-          <label>ระยะเวลาการเป็นลูกค้า (Duration)</label>
+          <label>ระยะเวลาการเป็นลูกค้า</label>
           <input
             type="text"
             v-model="customerDuration"
             @input="handleDurationInput"
             class="form-control"
-            placeholder="ระบุจำนวนปี (Years)"
+            placeholder="ระบุจำนวนปี"
           />
           <small v-if="customerSinceDate" class="text-muted d-block mt-1" style="font-size: 0.8em;">
-            Customer Since: {{ formatDate(customerSinceDate) }} ({{ calculatedDuration }} Years)
+            เป็นลูกค้าตั้งแต่: {{ formatDate(customerSinceDate) }} ({{ calculatedDuration }} ปี)
           </small>
         </div>
         <div class="action-button">
@@ -136,7 +136,7 @@
       <div v-if="analysisResults" class="analysis-results">
         <div class="results-actions">
            <button class="btn-full-report" @click="openFullReport">
-              📄 ดูรายละเอียดเต็ม (Full Report)
+              📄 ดูรายละเอียดเต็ม
            </button>
         </div>
 
@@ -148,17 +148,42 @@
 
         <!-- Scoring Highlight -->
         <div v-if="analysisResults.scoringResult" class="score-highlight">
-            <div class="score-card">
-                <div class="score-title">คะแนนเครดิต (Credit Score)</div>
-                <div class="score-val" :class="getGradeClass(analysisResults.scoringResult.grade)">
-                    {{ analysisResults.scoringResult.totalScore }} / 200
+            <!-- Card 1: Credit Score (Narrower) -->
+            <div class="score-card card-narrow">
+                <div class="score-title">คะแนนเครดิต</div>
+                <div class="score-val-container" :class="getGradeClass(analysisResults.scoringResult.grade)">
+                    <div class="score-main">{{ analysisResults.scoringResult.totalScore }}</div>
+                    <div class="score-max">/ 200</div>
                 </div>
-                <div class="score-grade">เกรด {{ analysisResults.scoringResult.grade }}</div>
             </div>
+
+            <!-- Card 2: Size & Grade (Wider, Split Header) -->
+            <div class="score-card card-wide">
+                <div class="dual-layout">
+                    <!-- Column 1: Size -->
+                    <div class="dual-col">
+                        <div class="score-title text-center">ขนาด</div>
+                        <div class="dual-val text-primary">{{ analysisResults.scoringResult.sizeResult?.label || '-' }}</div>
+                        <div class="dual-sub">คะแนน {{ formatNumber(analysisResults.scoringResult.sizeResult?.score) }}</div>
+                    </div>
+                    
+                    <!-- Divider -->
+                    <div class="dual-divider-vertical"></div>
+
+                    <!-- Column 2: Grade -->
+                    <div class="dual-col">
+                        <div class="score-title text-center">เกรด</div>
+                        <div class="dual-val" :class="getGradeClass(analysisResults.scoringResult.grade)">{{ analysisResults.scoringResult.grade }}</div>
+                        <div class="dual-sub">คะแนน {{ formatNumber(analysisResults.scoringResult.gradeResult?.score) }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Limit -->
             <div class="limit-card">
-                <div class="score-title">วงเงินแนะนำ (Recommended Limit)</div>
+                <div class="score-title">วงเงินแนะนำ</div>
                 <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
-                <div class="limit-unit">บาท (THB)</div>
+                <div class="limit-unit">บาท</div>
             </div>
         </div>
 
@@ -169,19 +194,16 @@
                  <!-- C1 -->
                  <div class="breakdown-card">
                      <div class="bd-title">C1: ความแข็งแกร่งของบริษัท</div>
-                     <div class="bd-subtitle">(Company Strength)</div>
                      <div class="bd-value">{{ formatDecimal(analysisResults.scoringResult.breakdown.c1.total) }}</div>
                  </div>
                  <!-- C2 -->
                  <div class="breakdown-card">
                      <div class="bd-title">C2: กระแสเงินสดและสภาพคล่อง</div>
-                     <div class="bd-subtitle">(Cash Flow & Liquidity)</div>
                      <div class="bd-value">{{ formatDecimal(analysisResults.scoringResult.breakdown.c2.total) }}</div>
                  </div>
                  <!-- C3 -->
                  <div class="breakdown-card">
                      <div class="bd-title">C3: พฤติกรรมการซื้อและประวัติ</div>
-                     <div class="bd-subtitle">(Purchase Behavior)</div>
                      <div class="bd-value">{{ formatDecimal(analysisResults.scoringResult.breakdown.c3.total) }}</div>
                  </div>
              </div>
@@ -225,37 +247,37 @@
         <!-- NORMAL GRID VIEW -->
         <div v-else class="result-grid">
           <div class="result-item">
-            <span class="label">รายได้รวม (Total Revenue):</span>
+            <span class="label">รายได้รวม:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.totalRevenue?.value) }}
             </span>
           </div>
           <div class="result-item">
-            <span class="label">กำไรขั้นต้น (Gross Profit):</span>
+            <span class="label">กำไรขั้นต้น:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.grossProfit?.value) }}
             </span>
           </div>
           <div class="result-item">
-            <span class="label">หนี้สินไม่หมุนเวียน (Non-Current Liabilities):</span>
+            <span class="label">หนี้สินไม่หมุนเวียน:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.nonCurrentLiabilities?.value) }}
             </span>
           </div>
           <div class="result-item">
-            <span class="label">ส่วนของผู้ถือหุ้น (Equity):</span>
+            <span class="label">ส่วนของผู้ถือหุ้น:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.shareholdersEquity?.value) }}
             </span>
           </div>
            <div class="result-item">
-            <span class="label">อัตราหมุนเวียนสินค้าคงเหลือ (Inventory Turnover):</span>
+            <span class="label">อัตราหมุนเวียนสินค้าคงเหลือ:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.inventoryTurnover?.value) }}
             </span>
           </div>
            <div class="result-item">
-            <span class="label">อัตราส่วนหนี้สินต่อทุน (D/E Ratio):</span>
+            <span class="label">อัตราส่วนหนี้สินต่อทุน:</span>
             <span class="value">
               {{ formatNumber(analysisResults.extractedData.deRatio?.value) }}
             </span>
@@ -375,6 +397,13 @@ onMounted(() => {
     // Capture URL on mount to ensure we have the browser's true state
     windowUrl.value = window.location.href;
 });
+
+// Initialize Analysis Results from Store (Persistence)
+watch(() => store.financialSummary, (val) => {
+    if (val && val.analysis_result) {
+        analysisResults.value = val.analysis_result;
+    }
+}, { immediate: true, deep: true });
 
 watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
@@ -670,6 +699,10 @@ const analyzeFinancials = async () => {
               ...response.data.scoringResult
           };
       }
+      
+      // Auto-save transaction data (including analysis result & inputs)
+      await store.saveTransactionData();
+      
       Swal.fire('Success', 'วิเคราะห์ข้อมูลเรียบร้อยแล้ว', 'success');
     }
   } catch (error) {
@@ -904,25 +937,104 @@ const shouldShowFinancialAnalysis = computed(() => {
 
 .score-highlight {
     display: flex;
-    gap: 20px;
+    gap: 15px;
     margin-bottom: 20px;
     padding-bottom: 20px;
     border-bottom: 1px solid #ddd;
+    align-items: stretch;
 }
 
 .score-card, .limit-card {
-    flex: 1;
     background: white;
     padding: 15px;
     border-radius: 8px;
     text-align: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+/* Flex sizing adjustments */
+.card-narrow {
+    flex: 0.8; /* Uses less space */
+    min-width: 120px;
+}
+
+.card-wide {
+    flex: 1.5; /* Uses more space */
+}
+
+.limit-card {
+    flex: 1;
+}
+
+.score-title {
+    font-size: 1em; /* Standardized title size */
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 10px;
+    min-height: 24px; /* Ensure alignment */
+}
+
+/* New Score Value Container */
+.score-val-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 5px;
+    line-height: 1;
+}
+
+.score-main {
+    font-size: 2.8em; /* Bigger */
+    font-weight: bold;
+}
+
+.score-max {
+    font-size: 1em; /* Smaller */
+    color: #888;
+    margin-top: 2px;
 }
 
 .score-val {
     font-size: 2em;
     font-weight: bold;
-    margin: 10px 0;
+    margin-top: 5px;
+}
+
+/* Dual Layout for Size & Grade */
+.dual-layout {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+}
+
+.dual-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.dual-divider-vertical {
+    width: 1px;
+    background-color: #e0e0e0;
+    margin: 0 10px;
+}
+
+.dual-val {
+    font-size: 2.2em; /* Slightly larger for emphasis */
+    font-weight: bold;
+    line-height: 1.2;
+    margin-top: 5px;
+}
+
+.dual-sub {
+    font-size: 0.8em;
+    color: #888;
+    margin-top: auto; /* Push to bottom if needed */
 }
 
 .limit-val {
@@ -932,6 +1044,7 @@ const shouldShowFinancialAnalysis = computed(() => {
     margin: 10px 0;
 }
 
+.text-primary { color: #007bff; }
 .text-success { color: #28a745; }
 .text-warning { color: #ffc107; }
 .text-danger { color: #dc3545; }
