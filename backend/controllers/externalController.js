@@ -558,6 +558,70 @@ exports.streamDBDProfile = async (req, res) => {
             await fs.move(incomeStatementExcel, incomePath);
         }
 
+        // --- NEW: Download Financial Ratios (อัตราส่วนทางการเงิน) ---
+        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดอัตราส่วนทางการเงิน...' });
+
+        // Click "Financial Ratios" Tab
+        let ratioTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='อัตราส่วนทางการเงิน'] | //a[normalize-space(.)='อัตราส่วนทางการเงิน']");
+
+        if (!ratioTabHandle) {
+             ratioTabHandle = await getElementByXPath(page, "//button[contains(., 'อัตราส่วนทางการเงิน')] | //a[contains(., 'อัตราส่วนทางการเงิน')]");
+        }
+
+        const ratioTab = ratioTabHandle ? ratioTabHandle.asElement() : null;
+
+        if (ratioTab) {
+            console.log('[DBD Stream] Clicking Financial Ratios tab...');
+            await ratioTab.click();
+        } else {
+             console.warn('[DBD Stream] Financial Ratios tab not found via XPath, trying JS fallback...');
+             await page.evaluate(() => {
+                const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
+                const tab = items.find(el => el.innerText && el.innerText.trim() === 'อัตราส่วนทางการเงิน');
+                if (tab) tab.click();
+            });
+        }
+
+        // Wait for Ratios Table (Look for text like "อัตราส่วนสภาพคล่อง" - Liquidity Ratio)
+        sendSSE(res, { status: 'progress', message: 'กำลังรอโหลดตารางอัตราส่วนทางการเงิน...' });
+        try {
+            await page.waitForFunction(
+                () => document.body.innerText.includes('อัตราส่วนสภาพคล่อง') || document.body.innerText.includes('อัตราส่วนหนี้สินต่อส่วนของผู้ถือหุ้น'),
+                { timeout: 15000 }
+            );
+        } catch (e) {
+            console.warn('Timeout waiting for Financial Ratios text, but continuing...');
+        }
+
+        // Small buffer
+        await new Promise(r => setTimeout(r, 1000));
+
+        // Click Print Info and Download (Ratios)
+        console.log('[DBD Stream] Clicking Print Info for Financial Ratios...');
+        await downloadExcel('FinancialRatios');
+
+        // Wait for Ratios Excel
+        let ratioExcel = null;
+        startTime = Date.now();
+        while (Date.now() - startTime < maxWait) {
+            const files = await fs.readdir(tmpDir);
+            const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
+            if (xlsxFile) {
+                ratioExcel = path.join(tmpDir, xlsxFile);
+                break;
+            }
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        // Move Financial Ratios
+        let ratioFilename = null;
+        if (ratioExcel) {
+            ratioFilename = `DBD_FinancialRatios_${fileIdentifier}_${Date.now()}.xlsx`;
+            const ratioPath = path.join(downloadsDir, ratioFilename);
+            await fs.move(ratioExcel, ratioPath);
+        }
+
+
         // --- NEW: Extract Data from PDF and Update DB ---
         sendSSE(res, { status: 'progress', message: 'กำลังประมวลผลข้อมูลจาก PDF...' });
         const extractionResult = await extractAndProcessDBDData(pdfPath, taxId, companyName);
@@ -577,6 +641,10 @@ exports.streamDBDProfile = async (req, res) => {
                 incomeStatement: incomeFilename ? {
                     url: `/api/downloads/${incomeFilename}`,
                     filename: incomeFilename
+                } : null,
+                financialRatios: ratioFilename ? {
+                    url: `/api/downloads/${ratioFilename}`,
+                    filename: ratioFilename
                 } : null
             },
             yearsInBusiness: extractionResult?.yearsInBusiness
