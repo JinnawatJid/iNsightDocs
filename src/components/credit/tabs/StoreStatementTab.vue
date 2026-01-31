@@ -148,29 +148,32 @@
 
         <!-- Scoring Highlight -->
         <div v-if="analysisResults.scoringResult" class="score-highlight">
-            <!-- Card 1: Credit Score -->
-            <div class="score-card">
+            <!-- Card 1: Credit Score (Narrower) -->
+            <div class="score-card card-narrow">
                 <div class="score-title">คะแนนเครดิต</div>
                 <div class="score-val" :class="getGradeClass(analysisResults.scoringResult.grade)">
                     {{ analysisResults.scoringResult.totalScore }} / 200
                 </div>
             </div>
 
-            <!-- Card 2: Size & Grade -->
-            <div class="score-card">
-                <!-- Title removed as requested since labels are inside -->
-                 <div class="score-title">&nbsp;</div>
-                <div class="dual-score-row">
-                    <div class="dual-item">
-                         <div class="dual-label">ขนาด</div>
-                         <div class="dual-val text-primary">{{ analysisResults.scoringResult.sizeResult?.label || '-' }}</div>
-                         <div class="dual-sub">Score {{ formatNumber(analysisResults.scoringResult.sizeResult?.score) }}</div>
+            <!-- Card 2: Size & Grade (Wider, Split Header) -->
+            <div class="score-card card-wide">
+                <div class="dual-layout">
+                    <!-- Column 1: Size -->
+                    <div class="dual-col">
+                        <div class="score-title text-center">ขนาด</div>
+                        <div class="dual-val text-primary">{{ analysisResults.scoringResult.sizeResult?.label || '-' }}</div>
+                        <div class="dual-sub">Score {{ formatNumber(analysisResults.scoringResult.sizeResult?.score) }}</div>
                     </div>
-                    <div class="dual-divider"></div>
-                    <div class="dual-item">
-                         <div class="dual-label">เกรด</div>
-                         <div class="dual-val" :class="getGradeClass(analysisResults.scoringResult.grade)">{{ analysisResults.scoringResult.grade }}</div>
-                         <div class="dual-sub">Score {{ formatNumber(analysisResults.scoringResult.gradeResult?.score) }}</div>
+
+                    <!-- Divider -->
+                    <div class="dual-divider-vertical"></div>
+
+                    <!-- Column 2: Grade -->
+                    <div class="dual-col">
+                        <div class="score-title text-center">เกรด</div>
+                        <div class="dual-val" :class="getGradeClass(analysisResults.scoringResult.grade)">{{ analysisResults.scoringResult.grade }}</div>
+                        <div class="dual-sub">Score {{ formatNumber(analysisResults.scoringResult.gradeResult?.score) }}</div>
                     </div>
                 </div>
             </div>
@@ -933,63 +936,83 @@ const shouldShowFinancialAnalysis = computed(() => {
 
 .score-highlight {
     display: flex;
-    gap: 20px;
+    gap: 15px;
     margin-bottom: 20px;
     padding-bottom: 20px;
     border-bottom: 1px solid #ddd;
+    align-items: stretch;
 }
 
 .score-card, .limit-card {
-    flex: 1;
     background: white;
     padding: 15px;
     border-radius: 8px;
     text-align: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+/* Flex sizing adjustments */
+.card-narrow {
+    flex: 0.8; /* Uses less space */
+    min-width: 120px;
+}
+
+.card-wide {
+    flex: 1.5; /* Uses more space */
+}
+
+.limit-card {
+    flex: 1;
+}
+
+.score-title {
+    font-size: 1em; /* Standardized title size */
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 10px;
+    min-height: 24px; /* Ensure alignment */
 }
 
 .score-val {
     font-size: 2em;
     font-weight: bold;
-    margin: 10px 0;
+    margin-top: 5px;
 }
 
-.dual-score-row {
+/* Dual Layout for Size & Grade */
+.dual-layout {
     display: flex;
+    align-items: stretch;
+    height: 100%;
+}
+
+.dual-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 20px;
-    margin-top: 10px;
 }
 
-.dual-item {
-    text-align: center;
-}
-
-.dual-label {
-    font-size: 0.8em;
-    color: #666;
-    text-transform: uppercase;
-    font-weight: bold;
-    margin-bottom: 2px;
+.dual-divider-vertical {
+    width: 1px;
+    background-color: #e0e0e0;
+    margin: 0 10px;
 }
 
 .dual-val {
-    font-size: 2em;
+    font-size: 2.2em; /* Slightly larger for emphasis */
     font-weight: bold;
-    line-height: 1;
+    line-height: 1.2;
+    margin-top: 5px;
 }
 
 .dual-sub {
-    font-size: 0.75em;
+    font-size: 0.8em;
     color: #888;
-    margin-top: 4px;
-}
-
-.dual-divider {
-    width: 1px;
-    height: 40px;
-    background-color: #ddd;
+    margin-top: auto; /* Push to bottom if needed */
 }
 
 .limit-val {
