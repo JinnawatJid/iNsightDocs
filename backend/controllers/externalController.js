@@ -11,6 +11,19 @@ const sendSSE = (res, data) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
 };
 
+// Helper to capture debug screenshots
+const captureScreenshot = async (page, name) => {
+    try {
+        const screenshotDir = path.join(__dirname, '../debug_screenshots');
+        await fs.ensureDir(screenshotDir);
+        const screenshotPath = path.join(screenshotDir, `${name}_${Date.now()}.png`);
+        await page.screenshot({ path: screenshotPath, fullPage: true });
+        console.log(`[DBD Debug] Screenshot saved: ${screenshotPath}`);
+    } catch (e) {
+        console.error('[DBD Debug] Failed to capture screenshot:', e.message);
+    }
+};
+
 /**
  * Extract data from DBD Profile PDF and update Customer DB
  */
@@ -153,43 +166,77 @@ exports.streamDBDProfile = async (req, res) => {
         await page.goto('https://datawarehouse.dbd.go.th/', { waitUntil: 'networkidle2', timeout: 60000 });
 
         // --- POPUP HANDLING ---
+        const closePopups = async () => {
+            try {
+                // Wait briefly for animations
+                await new Promise(r => setTimeout(r, 1000));
+                await page.keyboard.press('Escape');
+
+                // Close buttons (Generic)
+                await page.evaluate(() => {
+                    const buttons = Array.from(document.querySelectorAll('button, div, span, a'));
+                    const closeBtn = buttons.find(el =>
+                        el.innerText && (el.innerText.includes('Close') || el.innerText.includes('ปิด') || el.innerText.includes('X'))
+                    );
+                    if (closeBtn && closeBtn.offsetParent) closeBtn.click();
+                });
+
+                // Cookie Consent
+                const cookieClicked = await page.evaluate(() => {
+                    const buttons = Array.from(document.querySelectorAll('button, a'));
+                    const acceptBtn = buttons.find(el =>
+                        el.innerText && (el.innerText.includes('ยอมรับทั้งหมด') || el.innerText.includes('Accept All'))
+                    );
+                    if (acceptBtn) { acceptBtn.click(); return true; }
+                    return false;
+                });
+                if (cookieClicked) await new Promise(r => setTimeout(r, 1000));
+            } catch (e) { console.warn('Popup handling warning:', e.message); }
+        };
+
         sendSSE(res, { status: 'progress', message: 'กำลังตรวจสอบ Popup...' });
-        try {
-            // Wait briefly for animations
-            await new Promise(r => setTimeout(r, 2000));
-            await page.keyboard.press('Escape');
+        await closePopups();
 
-            // Close buttons
-            await page.evaluate(() => {
-                const buttons = Array.from(document.querySelectorAll('button, div, span, a'));
-                const closeBtn = buttons.find(el =>
-                    el.innerText && (el.innerText.includes('Close') || el.innerText.includes('ปิด') || el.innerText.includes('X'))
-                );
-                if (closeBtn && closeBtn.offsetParent) closeBtn.click();
-            });
-
-            // Cookie Consent
-            const cookieClicked = await page.evaluate(() => {
-                const buttons = Array.from(document.querySelectorAll('button, a'));
-                const acceptBtn = buttons.find(el =>
-                    el.innerText && (el.innerText.includes('ยอมรับทั้งหมด') || el.innerText.includes('Accept All'))
-                );
-                if (acceptBtn) { acceptBtn.click(); return true; }
-                return false;
-            });
-            if (cookieClicked) await new Promise(r => setTimeout(r, 1000));
-        } catch (e) { console.warn('Popup handling warning:', e.message); }
-
-        // 2. Search
+        // 2. Search (With Retry & Validation)
         sendSSE(res, { status: 'progress', message: `กำลังค้นหานิติบุคคล: ${query}...` });
         const targetSelector = 'input[placeholder*="ค้นหาด้วยชื่อ"]';
+
         try {
-            await page.waitForSelector(targetSelector, { visible: true, timeout: 10000 });
-            await page.click(targetSelector);
-            await page.type(targetSelector, query, { delay: 100 });
-            await page.keyboard.press('Enter');
+            await page.waitForSelector(targetSelector, { visible: true, timeout: 15000 });
+
+            // Search Retry Loop (Handles Focus Loss)
+            let searchSuccess = false;
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    await page.click(targetSelector);
+                    // Clear input first
+                    await page.evaluate((sel) => { document.querySelector(sel).value = ''; }, targetSelector);
+                    await page.type(targetSelector, query, { delay: 100 });
+
+                    // Verify Input Value
+                    const inputValue = await page.$eval(targetSelector, el => el.value);
+                    if (inputValue !== query) {
+                        console.warn(`[DBD Stream] Search input mismatch (Expected: ${query}, Got: ${inputValue}). Focus might be lost. Retrying...`);
+                        await closePopups(); // Try closing popups again
+                        await new Promise(r => setTimeout(r, 1000));
+                        continue; // Retry
+                    }
+
+                    // Press Enter
+                    await page.keyboard.press('Enter');
+                    searchSuccess = true;
+                    break;
+                } catch (innerErr) {
+                    console.warn(`[DBD Stream] Search attempt ${attempt + 1} failed: ${innerErr.message}`);
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+            }
+
+            if (!searchSuccess) throw new Error('ไม่สามารถกรอกคำค้นหาได้ (Input Verification Failed)');
+
         } catch (e) {
-            throw new Error(`Search input not found: ${e.message}`);
+            await captureScreenshot(page, 'search_error');
+            throw new Error(`Search input not found or failed: ${e.message}`);
         }
 
         // 3. Wait for Redirect/Results
@@ -323,114 +370,83 @@ exports.streamDBDProfile = async (req, res) => {
         // 4.3 Click "Print Info" -> "Print Excel"
         sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบการเงิน (Excel)...' });
 
-        // We need to be more precise: Find the "Print Info" button specifically for the Balance Sheet
-        // The Balance Sheet is usually in a container like .tab-content or similar.
-        // We will look for the button that is *visible* and contains "พิมพ์ข้อมูล".
-
-        // Wait specifically for the button to be interactive
-        const printBtnXPath = "//button[contains(., 'พิมพ์ข้อมูล') or contains(., 'Print')] | //a[contains(., 'พิมพ์ข้อมูล') or contains(., 'Print')]";
-        // We might find multiple. We want the one currently visible on screen.
-
+        // Robust Click Strategy for "Print Info" Dropdown
         const clickVisiblePrintButton = async () => {
-             // 1. Try Puppeteer Click on precise CSS selector (Best for event triggering)
+             // 1. Try Standard Click
              try {
                  const selector = '.tab-pane.active .dropdown.print > a';
                  if (await page.$(selector)) {
                      await page.click(selector);
-                     return;
+                     await new Promise(r => setTimeout(r, 500));
                  }
              } catch (e) { console.warn('Precise click failed:', e.message); }
 
-             // Retry loop to handle transient UI states
-             let success = false;
-             for (let i = 0; i < 3; i++) {
-                 try {
-                     const clicked = await page.evaluate(() => {
-                        // 1. Priority: Check in active tab pane first (Scoped)
-                        const activePane = document.querySelector('.tab-pane.active');
-                        if (activePane) {
-                            const scopedBtn = Array.from(activePane.querySelectorAll('button, a'))
-                                .find(b => b.innerText && b.innerText.includes('พิมพ์ข้อมูล') && b.offsetParent !== null);
-                            if (scopedBtn) {
-                                scopedBtn.click();
-                                return true;
-                            }
-                        }
+             // 2. Check if Dropdown is open (has 'open' or 'show' class or menu is visible)
+             const isDropdownOpen = await page.evaluate(() => {
+                 const activePane = document.querySelector('.tab-pane.active');
+                 if (!activePane) return false;
+                 const dropdown = activePane.querySelector('.dropdown.print');
+                 if (!dropdown) return false;
 
-                        // 2. Fallback: Global search (Legacy)
-                        const buttons = Array.from(document.querySelectorAll('button, a'));
-                        const printBtns = buttons.filter(b => {
-                            if (!b.innerText) return false;
-                            const text = b.innerText.trim();
-                            return text.includes('พิมพ์ข้อมูล') && b.offsetParent !== null; // offsetParent != null checks visibility
-                        });
+                 return dropdown.classList.contains('open') ||
+                        dropdown.classList.contains('show') ||
+                        dropdown.querySelector('.dropdown-menu')?.style.display === 'block';
+             });
 
-                        if (printBtns.length > 0) {
-                            // If multiple visible, the last one is likely the deepest/newest loaded
-                            // We use click() directly which usually works, but sometimes element might be covered
-                            printBtns[printBtns.length - 1].click();
-                            return true;
-                        }
-                        return false;
-                    });
-
-                    if (clicked) {
-                        success = true;
-                        break;
-                    }
-                 } catch (e) {
-                     console.warn(`Attempt ${i+1} to click Print button failed: ${e.message}`);
-                 }
-                 await new Promise(r => setTimeout(r, 1000));
+             if (isDropdownOpen) {
+                 console.log('[DBD Stream] Dropdown opened successfully.');
+                 return;
              }
 
-             if (!success) console.warn('Visible Print button not found or clickable via JS filter');
+             console.warn('[DBD Stream] Dropdown not open after click. Attempting Force Open...');
+
+             // 3. Force Open Dropdown via JS (Fallback)
+             await page.evaluate(() => {
+                 const activePane = document.querySelector('.tab-pane.active');
+                 if (activePane) {
+                     const dropdown = activePane.querySelector('.dropdown.print');
+                     if (dropdown) {
+                         dropdown.classList.add('open');
+                         dropdown.classList.add('show');
+                         const menu = dropdown.querySelector('.dropdown-menu');
+                         if (menu) menu.style.display = 'block';
+                     }
+                 }
+             });
+             await new Promise(r => setTimeout(r, 500));
         };
 
         await clickVisiblePrintButton();
 
         // 4.4 Click "Print Excel" in Dropdown
-        await new Promise(r => setTimeout(r, 1500)); // Wait for dropdown animation
-
-        // Use XPath for Excel button to be safer
         const clickExcelButton = async () => {
-             // Try up to 3 times to find and click the Excel button
-             for (let i = 0; i < 3; i++) {
-                 try {
-                     const excelBtnHandle = await getElementByXPath(page, "//a[contains(., 'พิมพ์ Excel') or contains(., 'Excel')]");
-                     const excelBtn = excelBtnHandle ? excelBtnHandle.asElement() : null;
+             console.log('[DBD Stream] Attempting to click Excel button...');
 
-                     if (excelBtn) {
-                         // Ensure visible
-                         const isVisible = await excelBtn.boundingBox();
-                         if (isVisible) {
-                             await excelBtn.click();
-                             return; // Success
-                         }
-                     }
+             // 1. Direct JS Click (Most reliable when forced open)
+             const jsClicked = await page.evaluate(() => {
+                 // Search in active pane first
+                 const activePane = document.querySelector('.tab-pane.active');
+                 const container = activePane || document;
 
-                     // Fallback JS
-                     const jsClicked = await page.evaluate(() => {
-                         const links = Array.from(document.querySelectorAll('a, li, span'));
-                         // Find one that is visible
-                         const btn = links.find(l => {
-                             return l.innerText && l.innerText.includes('พิมพ์ Excel') && l.offsetParent !== null;
-                         });
-                         if (btn) {
-                             btn.click();
-                             return true;
-                         }
-                         return false;
-                     });
+                 const links = Array.from(container.querySelectorAll('a, button, li, span'));
+                 const excelBtn = links.find(l => l.innerText && (l.innerText.includes('พิมพ์ Excel') || l.innerText.includes('Excel')));
 
-                     if (jsClicked) return; // Success
-
-                 } catch (e) {
-                     console.warn(`Attempt ${i+1} to click Excel button failed: ${e.message}`);
+                 if (excelBtn) {
+                     excelBtn.click();
+                     return true;
                  }
-                 await new Promise(r => setTimeout(r, 1000));
+                 return false;
+             });
+
+             if (jsClicked) return;
+
+             // 2. Fallback to Puppeteer Click
+             try {
+                const excelBtnHandle = await getElementByXPath(page, "//a[contains(., 'พิมพ์ Excel') or contains(., 'Excel')]");
+                if (excelBtnHandle) await excelBtnHandle.click();
+             } catch (e) {
+                 console.warn('[DBD Stream] Puppeteer click for Excel failed:', e.message);
              }
-             console.warn('Failed to click Excel button after retries');
         };
 
         await clickExcelButton();
