@@ -164,9 +164,9 @@
                     <div class="dual-col">
                         <div class="score-title text-center">ขนาด</div>
                         <div class="dual-val text-primary">{{ analysisResults.scoringResult.sizeResult?.label || '-' }}</div>
-                        <div class="dual-sub">Score {{ formatNumber(analysisResults.scoringResult.sizeResult?.score) }}</div>
+                        <div class="dual-sub">คะแนน {{ formatNumber(analysisResults.scoringResult.sizeResult?.score) }}</div>
                     </div>
-
+                    
                     <!-- Divider -->
                     <div class="dual-divider-vertical"></div>
 
@@ -174,7 +174,7 @@
                     <div class="dual-col">
                         <div class="score-title text-center">เกรด</div>
                         <div class="dual-val" :class="getGradeClass(analysisResults.scoringResult.grade)">{{ analysisResults.scoringResult.grade }}</div>
-                        <div class="dual-sub">Score {{ formatNumber(analysisResults.scoringResult.gradeResult?.score) }}</div>
+                        <div class="dual-sub">คะแนน {{ formatNumber(analysisResults.scoringResult.gradeResult?.score) }}</div>
                     </div>
                 </div>
             </div>
@@ -699,10 +699,10 @@ const analyzeFinancials = async () => {
               ...response.data.scoringResult
           };
       }
-
+      
       // Auto-save transaction data (including analysis result & inputs)
       await store.saveTransactionData();
-
+      
       Swal.fire('Success', 'วิเคราะห์ข้อมูลเรียบร้อยแล้ว', 'success');
     }
   } catch (error) {
