@@ -90,7 +90,7 @@ app.get('/stream', async (req, res) => {
     });
 
     try {
-        sendSSE(res, { status: 'progress', message: 'Starting Local Bridge Browser...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังเปิดเบราว์เซอร์...' });
 
         tmpDir = path.join(os.tmpdir(), `dbd-bridge-${Date.now()}`);
         await fs.ensureDir(tmpDir);
@@ -203,12 +203,12 @@ app.get('/stream', async (req, res) => {
         };
 
         // --- EXECUTION ---
-        sendSSE(res, { status: 'progress', message: 'Navigating to DBD...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังเข้าสู่เว็บไซต์ DBD...' });
         await page.goto('https://datawarehouse.dbd.go.th/', { waitUntil: 'networkidle2', timeout: 90000 });
         await handlePopups();
 
         // Search
-        sendSSE(res, { status: 'progress', message: `Searching for: ${query}...` });
+        sendSSE(res, { status: 'progress', message: `กำลังค้นหา: ${query}...` });
         const targetSelector = 'input[placeholder*="ค้นหาด้วยชื่อ"]';
         let searchSuccess = false;
         for(let i=0; i<3; i++) {
@@ -229,7 +229,7 @@ app.get('/stream', async (req, res) => {
 
         if (!searchSuccess) throw new Error('Failed to type search query.');
 
-        sendSSE(res, { status: 'progress', message: 'Waiting for results...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังรอผลการค้นหา...' });
         const printButtonSelector = 'div.dropdown.print > a.btn-print';
 
         try {
@@ -243,7 +243,7 @@ app.get('/stream', async (req, res) => {
             });
 
             if (resultLink) {
-                 sendSSE(res, { status: 'progress', message: 'Profile found. Opening...' });
+                 sendSSE(res, { status: 'progress', message: 'พบข้อมูลบริษัท กำลังเปิดหน้าโปรไฟล์...' });
                  try {
                      await page.waitForSelector(printButtonSelector, { visible: true, timeout: 60000 });
                  } catch (retryErr) {
@@ -255,7 +255,7 @@ app.get('/stream', async (req, res) => {
         }
 
         // 1. Download Profile PDF
-        sendSSE(res, { status: 'progress', message: 'Downloading Profile (PDF)...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดไฟล์ข้อมูลนิติบุคคล (PDF)...' });
         try {
             await page.click(printButtonSelector);
         } catch (clickErr) {
@@ -276,7 +276,7 @@ app.get('/stream', async (req, res) => {
         }
 
         // 2. Download Balance Sheet
-        sendSSE(res, { status: 'progress', message: 'Switching to Balance Sheet...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังไปที่หน้างบแสดงฐานะการเงิน...' });
         const financialTabHandle = await getElementByXPath(page, "//a[contains(., 'ข้อมูลงบการเงิน')]");
         const financialTab = financialTabHandle.asElement();
 
@@ -300,7 +300,7 @@ app.get('/stream', async (req, res) => {
             );
         } catch (e) {}
 
-        sendSSE(res, { status: 'progress', message: 'Downloading Balance Sheet...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบแสดงฐานะการเงิน...' });
         await downloadExcel('BalanceSheet');
 
         let balanceSheetExcel = null;
@@ -319,7 +319,7 @@ app.get('/stream', async (req, res) => {
         }
 
         // 3. Download Income Statement
-        sendSSE(res, { status: 'progress', message: 'Downloading Income Statement...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบกำไรขาดทุน...' });
         let incomeTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='งบกำไรขาดทุน'] | //a[normalize-space(.)='งบกำไรขาดทุน']");
         if (!incomeTabHandle) incomeTabHandle = await getElementByXPath(page, "//button[contains(., 'งบกำไรขาดทุน')] | //a[contains(., 'งบกำไรขาดทุน')]");
 
@@ -358,7 +358,7 @@ app.get('/stream', async (req, res) => {
         }
 
         // 4. Download Financial Ratios
-        sendSSE(res, { status: 'progress', message: 'Downloading Financial Ratios...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดอัตราส่วนทางการเงิน...' });
         let ratioTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='อัตราส่วนทางการเงิน'] | //a[normalize-space(.)='อัตราส่วนทางการเงิน']");
         if (!ratioTabHandle) ratioTabHandle = await getElementByXPath(page, "//button[contains(., 'อัตราส่วนทางการเงิน')] | //a[contains(., 'อัตราส่วนทางการเงิน')]");
 
@@ -402,7 +402,7 @@ app.get('/stream', async (req, res) => {
         }
 
         // Prepare Base64 Data
-        sendSSE(res, { status: 'progress', message: 'Processing files...' });
+        sendSSE(res, { status: 'progress', message: 'กำลังประมวลผลไฟล์...' });
 
         const profileB64 = profilePdf ? await readFileAsBase64(profilePdf) : null;
         const balanceB64 = balanceSheetExcel ? await readFileAsBase64(balanceSheetExcel) : null;

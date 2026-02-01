@@ -500,7 +500,7 @@ const autoDownloadDBD = async () => {
     // Initial Popup
     const swalPromise = Swal.fire({
         title: 'กำลังเชื่อมต่อ...',
-        text: 'กำลังเชื่อมต่อกับ Server... (Connecting)',
+        text: 'กำลังเชื่อมต่อกับ Server...',
         allowOutsideClick: false,
         showCancelButton: true,
         cancelButtonText: 'ยกเลิก',
@@ -522,7 +522,7 @@ const autoDownloadDBD = async () => {
         });
         bridgeUrl = `http://localhost:4343/stream?${queryParams.toString()}`;
         console.log('Connected to Local Bridge');
-        Swal.update({ title: 'Connected to Local Bridge', text: 'กำลังดึงข้อมูลจากเครื่องของคุณ...' });
+        Swal.update({ title: 'เชื่อมต่อกับ Local Bridge แล้ว', text: 'กำลังดึงข้อมูลจากเครื่องของคุณ...' });
     } catch (e) {
         console.log('Local Bridge not found, using Server');
         const customerNo = store.customer?.id || store.customer?.No_;
