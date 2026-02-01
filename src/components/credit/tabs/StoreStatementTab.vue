@@ -513,25 +513,25 @@ const autoDownloadDBD = async () => {
     let bridgeUrl = null;
 
     // Check for Local Bridge (Port 4343)
-    // DISABLED: Temporarily disable Local Bridge check as per user request
-    /*
     try {
         await axios.get('http://localhost:4343/health', { timeout: 1000 });
-        bridgeUrl = `http://localhost:4343/stream?taxId=${dbdQuery.value}`;
+        const customerNo = store.customer?.id || store.customer?.No_;
+        const queryParams = new URLSearchParams({
+            taxId: dbdQuery.value,
+            customerCode: customerNo || ''
+        });
+        bridgeUrl = `http://localhost:4343/stream?${queryParams.toString()}`;
         console.log('Connected to Local Bridge');
         Swal.update({ title: 'Connected to Local Bridge', text: 'กำลังดึงข้อมูลจากเครื่องของคุณ...' });
     } catch (e) {
         console.log('Local Bridge not found, using Server');
-        bridgeUrl = `/api/external/dbd-stream?taxId=${dbdQuery.value}`;
+        const customerNo = store.customer?.id || store.customer?.No_;
+        const queryParams = new URLSearchParams({
+            taxId: dbdQuery.value,
+            customerCode: customerNo || ''
+        });
+        bridgeUrl = `/api/external/dbd-stream?${queryParams.toString()}`;
     }
-    */
-    // Always use Server
-    const customerNo = store.customer?.id || store.customer?.No_;
-    const queryParams = new URLSearchParams({
-        taxId: dbdQuery.value,
-        customerCode: customerNo || ''
-    });
-    bridgeUrl = `/api/external/dbd-stream?${queryParams.toString()}`;
 
     // Use SSE for real-time progress updates
     const evtSource = new EventSource(bridgeUrl);
