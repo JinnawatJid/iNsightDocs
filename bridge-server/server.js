@@ -9,8 +9,24 @@ const pdf = require('pdf-parse');
 const app = express();
 const PORT = 4343;
 
+// Middleware to handle Private Network Access (PNA) Preflight
+// MUST be placed BEFORE cors() middleware so it applies to Preflight (OPTIONS)
+app.use((req, res, next) => {
+    // Chrome requires this header to allow a public/private website to talk to localhost
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    next();
+});
+
 // Enable CORS for all origins (since this is a local tool)
-app.use(cors());
+// IMPORTANT: For Private Network Access (PNA), we need strict CORS and specific headers
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow all origins (since this is a local bridge intended for internal use)
+        // In a strict prod environment, we might list specific IPs.
+        callback(null, true);
+    },
+    credentials: true,
+}));
 
 // Helper to send SSE messages
 const sendSSE = (res, data) => {
@@ -77,7 +93,8 @@ app.get('/stream', async (req, res) => {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': req.headers.origin || '*',
+        'Access-Control-Allow-Private-Network': 'true'
     });
 
     let browser = null;
