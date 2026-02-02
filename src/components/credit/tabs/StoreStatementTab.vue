@@ -350,13 +350,13 @@ const showBridgeHelp = () => {
         html: `
             <div style="text-align: left; font-size: 0.9em;">
                 <p>หากคุณใช้ <b>HTTP</b> (ไม่ใช่ HTTPS) และพยายามเชื่อมต่อ IP ภายใน (เช่น 10.x.x.x) เบราว์เซอร์อาจบล็อกการเชื่อมต่อ (Private Network Access).</p>
-                <p><b>วิธีแก้ไข (ทำที่เครื่องของคุณ):</b></p>
+                <p><b>วิธีแก้ไข (เลือก 1 วิธี):</b></p>
                 <ol>
-                    <li>เปิด Tab ใหม่ พิมพ์ <code>chrome://flags/#block-insecure-private-network-requests</code></li>
-                    <li>เปลี่ยนค่าเป็น <b>Disabled</b></li>
-                    <li>ค้นหา <code>chrome://flags/#private-network-access-respect-preflight-results</code> (ถ้ามี) เลือก <b>Disabled</b></li>
-                    <li>กดปุ่ม <b>Relaunch</b> ด้านล่างขวาของเบราว์เซอร์</li>
+                    <li><b>วิธีที่ 1 (ใหม่):</b> ค้นหา <code>chrome://flags/#private-network-access-checks</code> หรือ <b>"Local Network Access Checks"</b> แล้วเลือก <b>Disabled</b></li>
+                    <li><b>วิธีที่ 2 (เก่า):</b> ค้นหา <code>chrome://flags/#block-insecure-private-network-requests</code> แล้วเลือก <b>Disabled</b> (หากมี)</li>
+                    <li><b>วิธีที่ 3 (ทางเลือก):</b> ค้นหา <code>chrome://flags/#private-network-access-respect-preflight-results</code> แล้วเลือก <b>Disabled</b></li>
                 </ol>
+                <p class="mt-2 text-danger"><b>อย่าลืมกดปุ่ม Relaunch ด้านล่างขวาหลังเปลี่ยนค่า</b></p>
             </div>
         `,
         icon: 'info',
@@ -596,7 +596,7 @@ const autoDownloadDBD = async () => {
                             <p>ไม่สามารถเชื่อมต่อไปยัง <b>${customBridgeHost.value}</b> ได้</p>
                             <p class="text-danger" style="font-weight: bold;">เบราว์เซอร์อาจบล็อกการเชื่อมต่อนี้ (Private Network Access)</p>
                             <hr/>
-                            <p>ลองปิด <b>Block insecure private network requests</b> ใน chrome://flags</p>
+                            <p>ลองปิด <b>Local Network Access Checks</b> ใน chrome://flags</p>
                         </div>
                      `,
                      icon: 'warning',
