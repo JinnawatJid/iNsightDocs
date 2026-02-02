@@ -344,6 +344,27 @@ const showDebug = ref(false);
 const showBridgeInput = ref(false);
 const customBridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 
+const showBridgeHelp = () => {
+    Swal.fire({
+        title: 'วิธีแก้ปัญหาการเชื่อมต่อ (Browser Block)',
+        html: `
+            <div style="text-align: left; font-size: 0.9em;">
+                <p>หากคุณใช้ <b>HTTP</b> (ไม่ใช่ HTTPS) และพยายามเชื่อมต่อ IP ภายใน (เช่น 10.x.x.x) เบราว์เซอร์อาจบล็อกการเชื่อมต่อ (Private Network Access).</p>
+                <p><b>วิธีแก้ไข (ทำที่เครื่องของคุณ):</b></p>
+                <ol>
+                    <li>เปิด Tab ใหม่ พิมพ์ <code>chrome://flags/#block-insecure-private-network-requests</code></li>
+                    <li>เปลี่ยนค่าเป็น <b>Disabled</b></li>
+                    <li>ค้นหา <code>chrome://flags/#private-network-access-respect-preflight-results</code> (ถ้ามี) เลือก <b>Disabled</b></li>
+                    <li>กดปุ่ม <b>Relaunch</b> ด้านล่างขวาของเบราว์เซอร์</li>
+                </ol>
+            </div>
+        `,
+        icon: 'info',
+        confirmButtonText: 'เข้าใจแล้ว',
+        width: 600
+    });
+};
+
 watch(customBridgeHost, (newVal) => {
     localStorage.setItem('bridgeHost', newVal);
 });
@@ -559,6 +580,35 @@ const autoDownloadDBD = async () => {
          if (res) {
              isBridgeAvailable = true;
              bridgeBaseUrl = res;
+         } else {
+             // Diagnostic for PNA (Private Network Access) Block
+             // If on HTTP and trying to reach a different IP, Chrome likely blocks it.
+             if (window.location.protocol === 'http:') {
+                 console.warn('Bridge connection failed on HTTP. Likely PNA block.');
+                 // We don't block flow here, just warn asynchronously or show if user persists
+                 // But since this is priority 0, user explicitly asked for it.
+                 // Let's show a toast or small alert?
+                 // Better: Use a confirm to let them see the help immediately.
+                 await Swal.fire({
+                     title: 'การเชื่อมต่อล้มเหลว',
+                     html: `
+                        <div style="text-align: left;">
+                            <p>ไม่สามารถเชื่อมต่อไปยัง <b>${customBridgeHost.value}</b> ได้</p>
+                            <p class="text-danger" style="font-weight: bold;">เบราว์เซอร์อาจบล็อกการเชื่อมต่อนี้ (Private Network Access)</p>
+                            <hr/>
+                            <p>ลองปิด <b>Block insecure private network requests</b> ใน chrome://flags</p>
+                        </div>
+                     `,
+                     icon: 'warning',
+                     showCancelButton: true,
+                     confirmButtonText: 'ดูวิธีแก้ไข',
+                     cancelButtonText: 'ข้ามไปใช้วิธีอื่น'
+                 }).then((res) => {
+                     if (res.isConfirmed) {
+                         showBridgeHelp();
+                     }
+                 });
+             }
          }
     }
 
