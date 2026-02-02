@@ -516,19 +516,42 @@ const autoDownloadDBD = async () => {
     let isBridgeAvailable = false;
     let bridgeBaseUrl = 'http://localhost:4343';
 
-    try {
-        // Try localhost first
-        await axios.get('http://localhost:4343/health', { timeout: 3000 });
-        isBridgeAvailable = true;
-    } catch (e) {
-        console.warn('Bridge check localhost failed:', e.message);
+    const checkBridge = async (host) => {
         try {
-            // Fallback to 127.0.0.1
-            await axios.get('http://127.0.0.1:4343/health', { timeout: 3000 });
+            const url = `http://${host}:4343`;
+            await axios.get(`${url}/health`, { timeout: 3000 });
+            return url;
+        } catch (e) {
+            console.warn(`Bridge check ${host} failed:`, e.message);
+            return null;
+        }
+    };
+
+    // Priority 1: Current Hostname (Fixes PNA issue for Private IP access)
+    const currentHost = window.location.hostname;
+    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+        const res = await checkBridge(currentHost);
+        if (res) {
             isBridgeAvailable = true;
-            bridgeBaseUrl = 'http://127.0.0.1:4343';
-        } catch (e2) {
-            console.warn('Bridge check 127.0.0.1 failed:', e2.message);
+            bridgeBaseUrl = res;
+        }
+    }
+
+    // Priority 2: localhost
+    if (!isBridgeAvailable) {
+        const res = await checkBridge('localhost');
+        if (res) {
+            isBridgeAvailable = true;
+            bridgeBaseUrl = res;
+        }
+    }
+
+    // Priority 3: 127.0.0.1
+    if (!isBridgeAvailable) {
+        const res = await checkBridge('127.0.0.1');
+        if (res) {
+            isBridgeAvailable = true;
+            bridgeBaseUrl = res;
         }
     }
 
