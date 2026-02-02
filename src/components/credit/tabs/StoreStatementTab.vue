@@ -59,6 +59,23 @@
                 <span v-else>Auto Download</span>
             </button>
          </div>
+         <!-- Manual Bridge Host Override -->
+         <div class="dbd-host-setting">
+            <small class="text-muted cursor-pointer" @click="showBridgeInput = !showBridgeInput">
+               ⚙️ ตั้งค่า Bridge IP {{ showBridgeInput ? '(ซ่อน)' : '' }}
+            </small>
+            <div v-if="showBridgeInput" class="mt-1">
+                <input
+                    type="text"
+                    v-model="customBridgeHost"
+                    class="form-control form-control-sm"
+                    placeholder="เช่น 10.10.10.9 หรือ localhost"
+                >
+                <small class="text-secondary" style="font-size: 0.75em;">
+                    หากเชื่อมต่อไม่ได้ ให้ใส่ IP ของเครื่องคุณ (ดูจาก VPN/WiFi)
+                </small>
+            </div>
+         </div>
       </div>
 
       <div class="upload-grid-small" v-if="store.isCompany">
@@ -324,6 +341,12 @@ const downloadingDBD = ref(false);
 const dbdQuery = ref('');
 const analysisResults = ref(null);
 const showDebug = ref(false);
+const showBridgeInput = ref(false);
+const customBridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
+
+watch(customBridgeHost, (newVal) => {
+    localStorage.setItem('bridgeHost', newVal);
+});
 
 // Computed Properties for Data Binding (Audit Trail)
 const registeredCapital = computed({
@@ -530,13 +553,24 @@ const autoDownloadDBD = async () => {
         }
     };
 
-    // Priority 1: Current Hostname (Fixes PNA issue for Private IP access)
-    const currentHost = window.location.hostname;
-    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-        const res = await checkBridge(currentHost);
-        if (res) {
-            isBridgeAvailable = true;
-            bridgeBaseUrl = res;
+    // Priority 0: Custom Manual Host (Highest Priority if set)
+    if (customBridgeHost.value && customBridgeHost.value !== 'localhost') {
+         const res = await checkBridge(customBridgeHost.value);
+         if (res) {
+             isBridgeAvailable = true;
+             bridgeBaseUrl = res;
+         }
+    }
+
+    if (!isBridgeAvailable) {
+        // Priority 1: Current Hostname (Fixes PNA issue for Private IP access)
+        const currentHost = window.location.hostname;
+        if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+            const res = await checkBridge(currentHost);
+            if (res) {
+                isBridgeAvailable = true;
+                bridgeBaseUrl = res;
+            }
         }
     }
 
@@ -888,6 +922,10 @@ const shouldShowFinancialAnalysis = computed(() => {
     border-radius: 8px;
     margin-bottom: 20px;
     border: 1px solid #90caf9;
+}
+
+.cursor-pointer {
+    cursor: pointer;
 }
 
 .dbd-header {
