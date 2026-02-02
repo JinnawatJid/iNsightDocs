@@ -128,6 +128,9 @@
           <small v-if="customerSinceDate" class="text-muted d-block mt-1" style="font-size: 0.8em;">
             เป็นลูกค้าตั้งแต่: {{ formatDate(customerSinceDate) }} ({{ calculatedDuration }} ปี)
           </small>
+          <small v-if="isInvalidDuration" class="text-danger d-block mt-1" style="font-size: 0.8em;">
+             ⚠️ ข้อมูลระยะเวลาดูไม่ถูกต้อง ({{ calculatedDuration }} ปี) กรุณาระบุใหม่
+          </small>
         </div>
         <div class="action-button">
           <button
@@ -368,6 +371,10 @@ const calculatedDuration = computed(() => {
     return Math.max(0, age);
 });
 
+const isInvalidDuration = computed(() => {
+    return calculatedDuration.value > 100;
+});
+
 const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('th-TH');
@@ -375,6 +382,9 @@ const formatDate = (dateStr) => {
 
 // Auto-fill Duration from API Data if available and empty
 watch(calculatedDuration, (val) => {
+    // If duration is invalid (> 100 years), do not auto-fill
+    if (isInvalidDuration.value) return;
+
     if (val !== undefined && val !== null && !customerDuration.value) {
         customerDuration.value = val;
     }
