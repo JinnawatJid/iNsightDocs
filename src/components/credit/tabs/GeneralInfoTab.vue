@@ -180,9 +180,9 @@
               :class="{ 'border-red-500': errors.yearsInBusiness, 'disabled': !isEditing }"
               :disabled="!isEditing"
               v-model="formData.yearsInBusiness"
-              placeholder="ระบุจำนวนปี"
+              placeholder="ระบุจำนวนปี (หรือปี พ.ศ. ที่จัดตั้ง)"
               @input="(e) => { restrictNumeric(e); validateField('yearsInBusiness', formData.yearsInBusiness, ['required']); }"
-              @blur="saveToBackend"
+              @blur="handleYearsInBusinessBlur"
             />
             <span v-if="errors.yearsInBusiness" class="error-text">{{ errors.yearsInBusiness }}</span>
           </div>
@@ -263,6 +263,34 @@ function restrictNumeric(e) {
   val = val.replace(/[^0-9]/g, '');
   e.target.value = val;
   formData.yearsInBusiness = val;
+}
+
+function handleYearsInBusinessBlur() {
+    let val = formData.yearsInBusiness;
+    if (!val) {
+        saveToBackend();
+        return;
+    }
+
+    // Smart Input Logic:
+    // If user enters a 4-digit year (e.g. 2560), calculate duration.
+    // If user enters <= 3 digits (e.g. 5), treat as duration.
+
+    // Check if it's a 4-digit year (Buddhist Era)
+    if (val.length === 4) {
+        const inputYear = parseInt(val);
+        const currentYear = new Date().getFullYear() + 543; // Current Buddhist Year
+
+        // Simple sanity check: Year must be <= Current Year
+        if (inputYear <= currentYear && inputYear > 2400) {
+            const diff = currentYear - inputYear;
+            // Ensure non-negative
+            formData.yearsInBusiness = Math.max(0, diff).toString();
+        }
+    }
+
+    validateField('yearsInBusiness', formData.yearsInBusiness, ['required']);
+    saveToBackend();
 }
 
 // Initialize from store

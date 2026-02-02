@@ -116,15 +116,6 @@
             placeholder="ระบุทุนจดทะเบียน (บาท)"
           />
         </div>
-        <div class="form-group" v-if="store.isCompany">
-          <label>ปีที่จัดตั้งธุรกิจ</label>
-          <input
-            type="number"
-            v-model="yearsInBusiness"
-            class="form-control"
-            placeholder="ระบุอายุธุรกิจ (ปี)"
-          />
-        </div>
         <div class="form-group">
           <label>ระยะเวลาการเป็นลูกค้า</label>
           <input
@@ -357,11 +348,6 @@ const registeredCapital = computed({
     }
 });
 
-const yearsInBusiness = computed({
-    get: () => store.customer.years_in_business,
-    set: (val) => store.updateCustomerData({ years_in_business: val })
-});
-
 const customerDuration = computed({
     get: () => store.customer.customer_duration_years,
     set: (val) => store.updateCustomerData({ customer_duration_years: val })
@@ -405,7 +391,7 @@ const sheetInputs = computed(() => {
     return {
         customerName: store.customer?.name || '',
         registeredCapital: registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : 0,
-        yearsInBusiness: yearsInBusiness.value || 0,
+        yearsInBusiness: store.customer.years_in_business || 0,
         ownership: store.customer?.residence_ownership || '-',
         customerDuration: customerDuration.value || 0,
         requestAmount: store.transactionData?.amount || 0,
@@ -758,7 +744,7 @@ const analyzeFinancials = async () => {
   const cleanCapital = registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : '0';
   formData.append('registered_capital', cleanCapital);
   formData.append('customer_duration', customerDuration.value || '0');
-  formData.append('years_in_business', yearsInBusiness.value || '0');
+  formData.append('years_in_business', store.customer.years_in_business || '0');
 
   // Calculate Max Credit Term
   const t1 = parseInt(store.transactionData?.termGS || 0);
