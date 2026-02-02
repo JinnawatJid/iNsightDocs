@@ -17,8 +17,8 @@
         </div>
         <div class="input-row">
             <div class="label">ปีที่จัดตั้งธุรกิจ</div>
-            <div class="value">{{ inputs.yearsInBusiness }}</div>
-            <div class="unit">ปี</div>
+            <div class="value">{{ formatEstablishmentYear(inputs.yearsInBusiness) }}</div>
+            <div class="unit"></div>
         </div>
         <div class="input-row">
             <div class="label">หนี้สินไม่หมุนเวียน</div>
@@ -255,6 +255,15 @@ const getRevenueYear = (index) => {
     const history = extracted.value.revenueHistory || [];
     if (history[index]) return history[index].amount;
     return 0;
+};
+
+const formatEstablishmentYear = (duration) => {
+    if (!duration) return '-';
+    // duration is number of years (e.g. 5)
+    // We want to show the establishment year (e.g. 2564)
+    const currentYear = new Date().getFullYear() + 543;
+    const estYear = currentYear - parseInt(duration);
+    return estYear;
 };
 
 </script>
