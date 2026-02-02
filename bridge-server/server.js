@@ -9,22 +9,34 @@ const pdf = require('pdf-parse');
 const app = express();
 const PORT = 4343;
 
-// Middleware to handle Private Network Access (PNA) Preflight
-// MUST be placed BEFORE cors() middleware so it applies to Preflight (OPTIONS)
+// 1. GLOBAL HEADER MIDDLEWARE (Applies to everything)
 app.use((req, res, next) => {
-    // Chrome requires this header to allow a public/private website to talk to localhost
+    // Critical for PNA (Private Network Access)
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
+
+    // Explicit CORS headers for safety, though `cors()` middleware below handles most logic
+    // We allow the dynamic origin to support PNA from 192.x to localhost
+    const origin = req.headers.origin || '*';
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+
     next();
 });
 
-// Enable CORS for all origins (since this is a local tool)
-// IMPORTANT: For Private Network Access (PNA), we need strict CORS and specific headers
+// 2. EXPLICIT PREFLIGHT (OPTIONS) HANDLER
+// We handle this manually to ensure the PNA header is absolutely present on the Preflight response
+app.options('*', (req, res) => {
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.sendStatus(204);
+});
+
+// 3. CORS MIDDLEWARE (For normal requests)
 app.use(cors({
-    origin: (origin, callback) => {
-        // Allow all origins (since this is a local bridge intended for internal use)
-        // In a strict prod environment, we might list specific IPs.
-        callback(null, true);
-    },
+    origin: true, // Reflects the request origin
     credentials: true,
 }));
 
@@ -89,12 +101,12 @@ app.get('/stream', async (req, res) => {
     }
 
     // Set headers for SSE
+    // Note: The global middleware already sets Access-Control-Allow-Origin/Private-Network
+    // But we set Content-Type specifically for SSE
     res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': req.headers.origin || '*',
-        'Access-Control-Allow-Private-Network': 'true'
+        'Connection': 'keep-alive'
     });
 
     let browser = null;

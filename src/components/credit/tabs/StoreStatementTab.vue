@@ -519,7 +519,10 @@ const autoDownloadDBD = async () => {
     const checkBridge = async (host) => {
         try {
             const url = `http://${host}:4343`;
-            await axios.get(`${url}/health`, { timeout: 3000 });
+            console.log(`Checking bridge at ${url}...`);
+            // We use a simple fetch to avoid complex axios interceptors if any
+            // And we can catch network errors more directly
+            await axios.get(`${url}/health`, { timeout: 2000 });
             return url;
         } catch (e) {
             console.warn(`Bridge check ${host} failed:`, e.message);
@@ -537,7 +540,7 @@ const autoDownloadDBD = async () => {
         }
     }
 
-    // Priority 2: localhost
+    // Priority 2: localhost (Fallback if user is on localhost or if hostname fails)
     if (!isBridgeAvailable) {
         const res = await checkBridge('localhost');
         if (res) {
@@ -546,7 +549,7 @@ const autoDownloadDBD = async () => {
         }
     }
 
-    // Priority 3: 127.0.0.1
+    // Priority 3: 127.0.0.1 (Last resort)
     if (!isBridgeAvailable) {
         const res = await checkBridge('127.0.0.1');
         if (res) {
@@ -566,8 +569,15 @@ const autoDownloadDBD = async () => {
         console.log(`Connected to Local Bridge at ${bridgeBaseUrl}`);
         Swal.update({ title: 'เชื่อมต่อกับ Local Bridge แล้ว', text: 'กำลังดึงข้อมูลจากเครื่องของคุณ...' });
     } else {
-        console.log('Local Bridge not found, using Server');
+        console.log('Local Bridge not found, using Server Fallback');
+        // Fallback to Server
         bridgeUrl = `/api/external/dbd-stream?${queryParams.toString()}`;
+
+        // Notify user if we suspect they expected the bridge
+        const isOfflineMode = window.location.hostname !== 'localhost' && !window.location.hostname.includes('vercel.app');
+        if (isOfflineMode) {
+             console.warn('Warning: Local Bridge not found in offline environment. Falling back to server which may fail if Puppeteer is missing.');
+        }
     }
 
     // Use SSE for real-time progress updates
