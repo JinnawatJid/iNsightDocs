@@ -513,23 +513,37 @@ const autoDownloadDBD = async () => {
     let bridgeUrl = null;
 
     // Check for Local Bridge (Port 4343)
+    let isBridgeAvailable = false;
+    let bridgeBaseUrl = 'http://localhost:4343';
+
     try {
-        await axios.get('http://localhost:4343/health', { timeout: 1000 });
-        const customerNo = store.customer?.id || store.customer?.No_;
-        const queryParams = new URLSearchParams({
-            taxId: dbdQuery.value,
-            customerCode: customerNo || ''
-        });
-        bridgeUrl = `http://localhost:4343/stream?${queryParams.toString()}`;
-        console.log('Connected to Local Bridge');
-        Swal.update({ title: 'เชื่อมต่อกับ Local Bridge แล้ว', text: 'กำลังดึงข้อมูลจากเครื่องของคุณ...' });
+        // Try localhost first
+        await axios.get('http://localhost:4343/health', { timeout: 3000 });
+        isBridgeAvailable = true;
     } catch (e) {
+        console.warn('Bridge check localhost failed:', e.message);
+        try {
+            // Fallback to 127.0.0.1
+            await axios.get('http://127.0.0.1:4343/health', { timeout: 3000 });
+            isBridgeAvailable = true;
+            bridgeBaseUrl = 'http://127.0.0.1:4343';
+        } catch (e2) {
+            console.warn('Bridge check 127.0.0.1 failed:', e2.message);
+        }
+    }
+
+    const customerNo = store.customer?.id || store.customer?.No_;
+    const queryParams = new URLSearchParams({
+        taxId: dbdQuery.value,
+        customerCode: customerNo || ''
+    });
+
+    if (isBridgeAvailable) {
+        bridgeUrl = `${bridgeBaseUrl}/stream?${queryParams.toString()}`;
+        console.log(`Connected to Local Bridge at ${bridgeBaseUrl}`);
+        Swal.update({ title: 'เชื่อมต่อกับ Local Bridge แล้ว', text: 'กำลังดึงข้อมูลจากเครื่องของคุณ...' });
+    } else {
         console.log('Local Bridge not found, using Server');
-        const customerNo = store.customer?.id || store.customer?.No_;
-        const queryParams = new URLSearchParams({
-            taxId: dbdQuery.value,
-            customerCode: customerNo || ''
-        });
         bridgeUrl = `/api/external/dbd-stream?${queryParams.toString()}`;
     }
 
