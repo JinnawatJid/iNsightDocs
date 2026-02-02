@@ -469,6 +469,6 @@ app.get('/stream', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`DBD Bridge Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`DBD Bridge Server running on http://0.0.0.0:${PORT} (Accessible via Local IP)`);
 });
