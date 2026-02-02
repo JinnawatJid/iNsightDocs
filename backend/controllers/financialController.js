@@ -562,17 +562,62 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   debug.push({ label: 'ตรวจสอบความสามารถ (Capacity)', value: capCheckRatio.toFixed(2), weight: 35.04, score: scoreCapCheck, column: '-' });
 
   // 3. Purchase / Credit Term (Max 18.28)
-  const termFactor = reqDays / 30;
-  // Note: avg1_5Months is already (Sum/2), which equals 1.5 * (Sum/3).
-  // So we remove the 1.5 multiplier here to avoid double counting.
-  const turnoverSpeed = (avg1_5Months * termFactor) / reqAmt;
+  // FIX: Updated Logic to match Google Sheet IFS formula
+  // Formula: =IFS(B11=7, K10/4, B11=14, K10/2, B11=15, K10/2, B11=30, K10/1, B11=45, K10/0.75, B11=60, SUM(I10:I11), TRUE, "Error")/B10
+  // Where K10 = avg1_5Months (Sum Last 3 Months / 2)
+  // And for 60 Days: SUM(I10:I11) means Sum of Month 1 and Month 2 (Oldest 2 months of the 3-month set)
+
+  let numerator = 0;
+  const term = parseInt(reqDays);
+
+  switch (term) {
+    case 7:
+        numerator = avg1_5Months / 4;
+        break;
+    case 14:
+    case 15:
+        numerator = avg1_5Months / 2;
+        break;
+    case 30:
+        numerator = avg1_5Months;
+        break;
+    case 45:
+        numerator = avg1_5Months / 0.75;
+        break;
+    case 60:
+        // Special Case: Sum of First 2 Months (Oldest 2)
+        if (accumData && accumData.last3Months && accumData.last3Months.length >= 2) {
+            // last3Months is [Oldest, Middle, Newest]
+            numerator = accumData.last3Months[0].amount + accumData.last3Months[1].amount;
+        } else {
+            // Fallback if data missing (should be rare if accumData exists)
+            // Fallback logic: 2/3 of Total Sum
+            numerator = (accumData.SecondAccum / 3) * 2;
+        }
+        break;
+    default:
+        // User requested Error for invalid terms
+        // However, throwing an error might break the whole analysis page.
+        // We will return 0 and flag it in debug.
+        numerator = 0;
+        console.warn(`[C3 Calculation] Invalid Credit Term: ${term}. Allowed: 7, 14, 15, 30, 45, 60.`);
+        break;
+  }
+
+  const turnoverSpeed = numerator / reqAmt;
 
   let rawTurnover = 0;
+  // If numerator is 0 (Invalid Term), score is 0 (or should it be error handling?)
+  // Assuming 0 score for invalid term to prompt user to fix input.
+
   if (turnoverSpeed >= 1.5) rawTurnover = 2.0;
   else if (turnoverSpeed >= 1.0) rawTurnover = 1.5;
   else if (turnoverSpeed >= 0.6) rawTurnover = 1.0;
   else if (turnoverSpeed >= 0.26) rawTurnover = 0.5;
   else rawTurnover = 0.25;
+
+  // If invalid term, force score to 0
+  if (numerator === 0) rawTurnover = 0;
 
   const scoreTurnover = rawTurnover * 9.14;
   score += scoreTurnover;
@@ -582,7 +627,8 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
     value: turnoverSpeed,
     displayValue: turnoverSpeed.toFixed(4),
     weight: 18.28,
-    score: scoreTurnover
+    score: scoreTurnover,
+    error: numerator === 0 ? "Invalid Term" : null
   });
   debug.push({ label: 'ความเร็วในการหมุนเวียน', value: turnoverSpeed.toFixed(2), weight: 18.28, score: scoreTurnover, column: '-' });
 
@@ -785,7 +831,8 @@ exports.analyzeFinancials = async (req, res) => {
             accumData = {
                 SecondAccum: sumLast3,
                 AccumTrend: trendRatio,
-                Slope: slope
+                Slope: slope,
+                last3Months: last3 // Store raw data for C3 specific calculations (e.g. 60-day term)
             };
 
             // Prepare Monthly History for Frontend (Reverse order: Newest First)
