@@ -528,7 +528,9 @@ exports.searchCustomers = async (req, res) => {
                   district: row["City"],
                   province: row["County"],
                   zipcode: row["Post Code"],
-                  customer_since: customerSince
+                  customer_since: customerSince,
+                  payment_terms_code: row["Payment Terms Code"],
+                  current_credit_limit: row["Fixed Credit Limit"]
               },
               history: enriched.history,
               financial_summary: enriched.financial_summary,

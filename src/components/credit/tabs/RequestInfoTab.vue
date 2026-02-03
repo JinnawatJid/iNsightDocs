@@ -129,8 +129,8 @@
                 :class="{ 'border-red-500': errors.amount, 'disabled': !canEditAmount }"
                 :disabled="!canEditAmount"
                 placeholder="ระบุวงเงินที่ต้องการ"
-                v-model="store.transactionData.amount"
-                @input="restrictCreditAmountInput"
+                v-model="formattedAmount"
+                @input="handleAmountInput"
               />
               <span v-if="errors.amount" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
@@ -616,16 +616,22 @@ function removeCreditRow(index) {
     }
 }
 
-// Helper for credit amount input formatting
-function restrictCreditAmountInput(e) {
-    let value = e.target.value.replace(/[^0-9.]/g, '');
-    const parts = value.split('.');
-    if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
+const formattedAmount = computed({
+    get: () => store.transactionData.amount ? Number(store.transactionData.amount).toLocaleString('en-US') : '',
+    set: (val) => {
+        const num = val.replace(/[^0-9]/g, '');
+        store.transactionData.amount = num;
+    }
+});
 
-    // Update model directly
-    store.transactionData.amount = value;
-    e.target.value = value;
-}
+const handleAmountInput = (event) => {
+    let val = event.target.value;
+    val = val.replace(/[^0-9]/g, '');
+    // The setter in computed property handles the store update,
+    // but we can ensure clean value in input if needed, though v-model handles it.
+    // Similar to handleCapitalInput pattern in StoreStatementTab
+    formattedAmount.value = val;
+};
 
 // Helper for phone/numeric inputs to ensure model update
 function handlePhoneInput(e, storeKey) {
