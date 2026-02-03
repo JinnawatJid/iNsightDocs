@@ -424,7 +424,7 @@ const calculateC1 = (customer, registeredCapital, requestAmount) => {
 };
 
 // C2: Cash Flow (Max 55.02)
-const calculateC2 = (financials) => {
+const calculateC2 = (financials, isCompany = true) => {
   let score = 0;
   const items = [];
   const debug = [];
@@ -438,7 +438,9 @@ const calculateC2 = (financials) => {
   else if (de <= 3) rawDE = 1.0;
   else rawDE = 0;
 
-  const scoreDE = rawDE * 12.38;
+  let scoreDE = rawDE * 12.38;
+  if (!isCompany) scoreDE = 0; // Force 0 for Individual
+
   score += scoreDE;
   items.push({
     key: 'deRatio',
@@ -459,7 +461,9 @@ const calculateC2 = (financials) => {
   else if (inv >= 4) rawInv = 0.5;
   else rawInv = 0;
 
-  const scoreInv = rawInv * 6.88;
+  let scoreInv = rawInv * 6.88;
+  if (!isCompany) scoreInv = 0; // Force 0 for Individual
+
   score += scoreInv;
   items.push({
     key: 'inventory',
@@ -480,7 +484,9 @@ const calculateC2 = (financials) => {
   else if (dscr >= 0.25) rawDSCR = 0.5;
   else rawDSCR = 0;
 
-  const scoreDSCR = rawDSCR * 8.25;
+  let scoreDSCR = rawDSCR * 8.25;
+  if (!isCompany) scoreDSCR = 0; // Force 0 for Individual
+
   score += scoreDSCR;
   items.push({
     key: 'dscr',
@@ -688,6 +694,7 @@ exports.analyzeFinancials = async (req, res) => {
       registered_capital,
       request_amount,
       customer_no,
+      customer_name,
       customer_duration,
       years_in_business,
       request_credit_term,
@@ -859,8 +866,18 @@ exports.analyzeFinancials = async (req, res) => {
     // --- 3. SCORING ---
     const c1 = calculateC1(customerData, regCap, reqAmt);
 
+    // Determine if Company (Check Name)
+    // Use customer_name from body (latest) or DB (fallback)
+    const finalName = customer_name || customerData.Name || "";
+    const isCompany = (name) => {
+        if (!name) return false;
+        const keywords = ['บริษัท', 'ห้างหุ้นส่วนจำกัด', 'บ.', 'หจก.'];
+        return keywords.some(keyword => name.includes(keyword));
+    };
+    const isCorp = isCompany(finalName);
+
     const c2Inputs = { ...results, dscr: calculations.dscr };
-    const c2 = calculateC2(c2Inputs);
+    const c2 = calculateC2(c2Inputs, isCorp);
 
     const c3 = calculateC3(accumData, results, regCap, reqAmt, request_credit_term || 30, customer_duration);
 
