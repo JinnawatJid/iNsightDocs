@@ -33,6 +33,7 @@ To solve this, we utilize a **Local Bridge (Sidecar) Approach**.
 -   **Data Handling:** Handles two types of responses:
     -   **URL-based:** `{ files: { profile: { url: '...' } } }` (Standard Mode)
     -   **Content-based:** `{ data: { profile: { content: 'Base64...', mime: '...' } } }` (Bridge Mode)
+-   **Manual Bridge IP:** Users can specify a custom IP (e.g., VPN IP) via the settings icon if `localhost` connectivity is blocked by network policies.
 
 ### Bridge Application (`bridge-server/`)
 -   **Location:** `/bridge-server` in the project root.
@@ -40,6 +41,9 @@ To solve this, we utilize a **Local Bridge (Sidecar) Approach**.
 -   **Endpoints:**
     -   `GET /health`: Returns `{ status: 'ok' }`.
     -   `GET /stream?taxId=...`: Initiates the scraping process.
+-   **Configuration:**
+    -   Binds to `0.0.0.0` (All interfaces) to support VPN/LAN connections.
+    -   Supports **Private Network Access (PNA)** via CORS headers.
 -   **Logic:**
     -   Launches a hidden Chrome browser.
     -   Navigates to `datawarehouse.dbd.go.th`.
@@ -77,3 +81,25 @@ If the DBD website changes its layout (which happens occasionally), the scraping
 -   **"Local Bridge not found":** Ensure the user has started the bridge server (`npm start`) and the terminal shows "Running on http://localhost:4343".
 -   **"Connection Refused":** Check if a firewall is blocking port 4343 on the local machine.
 -   **"Puppeteer Error":** If the bridge fails to launch the browser, ensure Chrome is installed or allow `npm install` to download Chromium.
+
+### Hosted App & VPN (Private Network Access)
+
+If the web application is hosted on a server (e.g., `192.168.1.50`) but the user is running the Bridge locally (`127.0.0.1` or `10.10.x.x`), browsers (Chrome/Edge) may block the connection due to **Private Network Access (PNA)** security policies.
+
+**Symptoms:**
+- The bridge is running (`http://localhost:4343` works in a separate tab).
+- The web app (on HTTP) cannot connect to the bridge.
+- Console shows: `Block insecure private network requests`.
+
+**Solution:**
+1.  **Frontend Setting:** Click the **Gear Icon (⚙️)** in the DBD Auto Import section and enter your machine's VPN/LAN IP (e.g., `10.10.10.5`). Do not use `localhost`.
+2.  **Browser Configuration (Chrome/Edge):**
+    -   Open `chrome://flags` or `edge://flags`.
+    -   Search for **"Local Network Access Checks"** (previously "Block Insecure Private Network Requests").
+    -   Set it to **Disabled**.
+    -   Click **Relaunch**.
+3.  **Bridge Server:** Ensure the bridge server is listening on `0.0.0.0` (this is the default in the updated version).
+
+**Technical Details:**
+- The bridge server sends `Access-Control-Allow-Private-Network: true` to satisfy the PNA preflight check.
+- The browser flag is currently required because the spec is still evolving and browsers default to strict blocking for mixed-content (Public/Private) on HTTP.
