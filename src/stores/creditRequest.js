@@ -332,6 +332,19 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           if (!this.customer.years_in_business) this.customer.years_in_business = '';
           if (!this.customer.customer_since) this.customer.customer_since = '';
 
+          // Autofill Credit Limit & Terms from API (if available)
+          if (this.customer.current_credit_limit) {
+              // Convert to string just in case
+              this.transactionData.amount = String(this.customer.current_credit_limit);
+          }
+          if (this.customer.payment_terms_code) {
+              const code = String(this.customer.payment_terms_code);
+              this.transactionData.creditTerm = code;
+              this.transactionData.termGS = code;
+              this.transactionData.termAE = code;
+              this.transactionData.termYC = code;
+          }
+
           // Parse existing_credits
           if (this.customer.existing_credits) {
               this.customer.existing_credits = this.parseExistingCredits(this.customer.existing_credits);

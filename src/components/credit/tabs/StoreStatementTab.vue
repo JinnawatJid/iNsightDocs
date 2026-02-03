@@ -195,6 +195,9 @@
                 <div class="score-title">วงเงินแนะนำ</div>
                 <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
                 <div class="limit-unit">บาท</div>
+                <div v-if="store.customer.current_credit_limit" class="current-limit-sub">
+                    (ปัจจุบัน: {{ formatNumber(Number(store.customer.current_credit_limit)) }})
+                </div>
             </div>
         </div>
 
@@ -1186,6 +1189,12 @@ const shouldShowFinancialAnalysis = computed(() => {
     font-weight: bold;
     color: #28a745;
     margin: 10px 0;
+}
+
+.current-limit-sub {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 5px;
 }
 
 .text-primary { color: #007bff; }
