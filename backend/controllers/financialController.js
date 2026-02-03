@@ -610,11 +610,16 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   // If numerator is 0 (Invalid Term), score is 0 (or should it be error handling?)
   // Assuming 0 score for invalid term to prompt user to fix input.
 
-  if (turnoverSpeed >= 1.5) rawTurnover = 2.0;
-  else if (turnoverSpeed >= 1.0) rawTurnover = 1.5;
-  else if (turnoverSpeed >= 0.6) rawTurnover = 1.0;
-  else if (turnoverSpeed >= 0.26) rawTurnover = 0.5;
-  else rawTurnover = 0.25;
+  // Logic Updated:
+  // <= 0.5 -> 0.5
+  // <= 0.9 -> 1.0
+  // <= 1.5 -> 1.5
+  // <= 1.99 -> 2.0
+  // > 1.99 -> 2.0 (TRUE condition)
+  if (turnoverSpeed <= 0.5) rawTurnover = 0.5;
+  else if (turnoverSpeed <= 0.9) rawTurnover = 1.0;
+  else if (turnoverSpeed <= 1.5) rawTurnover = 1.5;
+  else rawTurnover = 2.0;
 
   // If invalid term, force score to 0
   if (numerator === 0) rawTurnover = 0;
