@@ -15,13 +15,13 @@ set "LOCAL_NODE_DIR=%~dp0node_bin"
 :: 1. Check for Node.js
 node --version >nul 2>&1
 if %errorlevel% equ 0 (
-    echo [INFO] ตรวจพบ Node.js ในเครื่องแล้ว (Found Node.js)
+    echo [INFO] ตรวจพบ Node.js ในเครื่องแล้ว (Found Node.js^)
     goto :INSTALL_DEPS
 )
 
 :: Check for Local Node.js
 if exist "%LOCAL_NODE_DIR%\node.exe" (
-    echo [INFO] ใช้ Node.js แบบพกพา (Using Portable Node.js)
+    echo [INFO] ใช้ Node.js แบบพกพา (Using Portable Node.js^)
     set "PATH=%LOCAL_NODE_DIR%;%PATH%"
     goto :INSTALL_DEPS
 )
@@ -55,7 +55,7 @@ echo.
 echo [INFO] ตรวจสอบความพร้อมของระบบ... (Checking dependencies)
 if not exist "%~dp0node_modules" (
     echo [INFO] กำลังติดตั้งส่วนเสริม (ครั้งแรกอาจใช้เวลานาน 1-2 นาที)...
-    echo        (Installing dependencies, please wait...)
+    echo        - Installing dependencies, please wait...
     call npm install --omit=dev --no-audit --no-fund --loglevel=error
 )
 
