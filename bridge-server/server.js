@@ -313,7 +313,8 @@ app.get('/stream', async (req, res) => {
             await financialTab.hover();
             await new Promise(r => setTimeout(r, 1000));
             const statementLinkHandle = await getElementByXPath(page, "//a[normalize-space(.)='งบการเงิน']");
-            if (statementLinkHandle) await statementLinkHandle.asElement().click();
+            const statementLink = statementLinkHandle.asElement();
+            if (statementLink) await statementLink.click();
         } else {
             await page.evaluate(() => {
                 const items = Array.from(document.querySelectorAll('a, li, div, span'));
@@ -350,9 +351,13 @@ app.get('/stream', async (req, res) => {
         // 3. Download Income Statement
         sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบกำไรขาดทุน...' });
         let incomeTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='งบกำไรขาดทุน'] | //a[normalize-space(.)='งบกำไรขาดทุน']");
-        if (!incomeTabHandle) incomeTabHandle = await getElementByXPath(page, "//button[contains(., 'งบกำไรขาดทุน')] | //a[contains(., 'งบกำไรขาดทุน')]");
 
-        if (incomeTabHandle) await incomeTabHandle.asElement().click();
+        if (!incomeTabHandle.asElement()) {
+             incomeTabHandle = await getElementByXPath(page, "//button[contains(., 'งบกำไรขาดทุน')] | //a[contains(., 'งบกำไรขาดทุน')]");
+        }
+
+        const incomeTab = incomeTabHandle.asElement();
+        if (incomeTab) await incomeTab.click();
         else {
              await page.evaluate(() => {
                 const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
@@ -389,9 +394,13 @@ app.get('/stream', async (req, res) => {
         // 4. Download Financial Ratios
         sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดอัตราส่วนทางการเงิน...' });
         let ratioTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='อัตราส่วนทางการเงิน'] | //a[normalize-space(.)='อัตราส่วนทางการเงิน']");
-        if (!ratioTabHandle) ratioTabHandle = await getElementByXPath(page, "//button[contains(., 'อัตราส่วนทางการเงิน')] | //a[contains(., 'อัตราส่วนทางการเงิน')]");
 
-        if (ratioTabHandle) await ratioTabHandle.asElement().click();
+        if (!ratioTabHandle.asElement()) {
+             ratioTabHandle = await getElementByXPath(page, "//button[contains(., 'อัตราส่วนทางการเงิน')] | //a[contains(., 'อัตราส่วนทางการเงิน')]");
+        }
+
+        const ratioTab = ratioTabHandle.asElement();
+        if (ratioTab) await ratioTab.click();
         else {
              await page.evaluate(() => {
                 const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
