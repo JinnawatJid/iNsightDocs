@@ -68,17 +68,128 @@ const extractDBDData = async (pdfPath) => {
         const data = await pdf(dataBuffer);
         const text = data.text;
 
-        const dateRegex = /วันที่จดทะเบียนจัดตั้ง\s*[:]\s*(\d{2}\/\d{2}\/\d{4})/;
-        const match = text.match(dateRegex);
+        // DEBUG: Find relevant text area
+        const debugIndex = text.indexOf('จดทะเบียน');
+        const debugSnippet = debugIndex !== -1 ? text.substring(debugIndex - 50, debugIndex + 100) : text.substring(0, 200);
+        console.log('[DBD Bridge Debug] PDF Snippet:', debugSnippet);
 
-        if (match) {
-            const dateStr = match[1];
-            const parts = dateStr.split('/');
-            const yearBE = parseInt(parts[2]);
-            const currentYearBE = new Date().getFullYear() + 543;
-            const yearsInBusiness = currentYearBE - yearBE;
-            return { success: true, yearsInBusiness };
+        const result = {
+            success: true,
+            debug: {
+                snippet: debugSnippet,
+                rawTextLength: text.length
+            }
+        };
+
+        // 1. Registration Date
+        // Strategy A: Find "Registration Date" label, then search next 300 chars for a date pattern.
+        // Strategy B (Fallback): Find all dates in the text. Ignore dates > Current Year (likely Print Date). Pick the first valid past date.
+
+        const labelDateRegex = /\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e08\u0e14\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19(?:\u0e08\u0e31\u0e14\u0e15\u0e31\u0e49\u0e07)?/;
+        const dateMatchIndex = text.search(labelDateRegex);
+
+        let dateFound = false;
+        const currentYearBE = new Date().getFullYear() + 543;
+
+        // Try Strategy A
+        if (dateMatchIndex !== -1) {
+            const searchWindow = text.substring(dateMatchIndex, dateMatchIndex + 300);
+            const datePattern = /(\d{2}\/\d{2}\/\d{4})/;
+            const match = searchWindow.match(datePattern);
+            if (match) {
+                const dateStr = match[1];
+                result.registrationDate = dateStr;
+                const parts = dateStr.split('/');
+                const yearBE = parseInt(parts[2]);
+                result.yearsInBusiness = currentYearBE - yearBE;
+                dateFound = true;
+                result.debug.strategy = 'Label Window';
+            }
         }
+
+        // Try Strategy B (Fallback)
+        if (!dateFound) {
+             console.log('[DBD Bridge Debug] Strategy A failed. Trying Strategy B (Scan All Dates)...');
+             const allDates = text.match(/(\d{2}\/\d{2}\/\d{4})/g);
+             result.debug.allDatesFound = allDates; // Log for debug
+
+             if (allDates && allDates.length > 0) {
+                 // Filter out dates that are likely the "Print Date" (current year or future)
+                 // or very old invalid dates.
+                 const validDates = allDates.filter(d => {
+                     const parts = d.split('/');
+                     const y = parseInt(parts[2]);
+                     // Valid if year is less than or equal to current year (allow same year registration)
+                     // But usually print date is >= current year.
+                     // If print date is today (e.g. 2568), and reg date is 2568, it's ambiguous.
+                     // However, usually Print Date is the FIRST date found in the header.
+                     return y <= currentYearBE;
+                 });
+
+                 // Heuristic: If we have multiple dates, and the first one is the "Print Date" (top of page),
+                 // the second one is likely the Registration Date.
+                 // If the first date is indeed the registration date (unlikely to have print date?), use it.
+
+                 // Let's pick the first date that is NOT the current Print Date (if we can guess it).
+                 // Simple logic: Pick the second date if available, else the first.
+                 // Refined: Pick the first date that is < Current Year. If none, pick the first date.
+
+                 let chosenDate = null;
+                 const historicalDates = validDates.filter(d => parseInt(d.split('/')[2]) < currentYearBE);
+
+                 if (historicalDates.length > 0) {
+                     chosenDate = historicalDates[0];
+                 } else if (validDates.length > 1) {
+                     // If all dates are this year, maybe pick the second one?
+                     chosenDate = validDates[1];
+                 } else if (validDates.length === 1) {
+                     chosenDate = validDates[0];
+                 }
+
+                 if (chosenDate) {
+                    result.registrationDate = chosenDate;
+                    const parts = chosenDate.split('/');
+                    const yearBE = parseInt(parts[2]);
+                    result.yearsInBusiness = currentYearBE - yearBE;
+                    dateFound = true;
+                    result.debug.strategy = 'Fallback Scan';
+                 }
+             }
+        }
+
+        if (!dateFound) {
+             console.log('[DBD Bridge Debug] Date Extraction FAILED');
+             result.debug.dateError = 'All strategies failed';
+        }
+
+        // 2. Registered Capital
+        // Strategy: Find "Registered Capital" label, then search next 300 chars for a number.
+        // Label: ทุนจดทะเบียน (Unicode)
+        const labelCapRegex = /\u0e17\u0e38\u0e19\u0e08\u0e14\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19/;
+        const capMatchIndex = text.search(labelCapRegex);
+
+        let capFound = false;
+        if (capMatchIndex !== -1) {
+             const searchWindow = text.substring(capMatchIndex, capMatchIndex + 300);
+             // Look for number like 1,000,000.00
+             // Must exclude "Year" numbers (like 2563). Capital usually has commas or .00
+             // Or simpler: just the first large number or number with comma/dot
+             const capPattern = /([\d,]+\.\d{2})/;
+             const match = searchWindow.match(capPattern);
+             if (match) {
+                 const rawCap = match[1].replace(/,/g, '');
+                 result.registeredCapital = parseFloat(rawCap);
+                 capFound = true;
+             }
+        }
+
+        if (!capFound) {
+             console.log('[DBD Bridge Debug] Capital Extraction FAILED');
+             result.debug.capitalError = 'Label found but no capital in window, or label not found';
+        }
+
+        return result;
+
     } catch (error) {
         console.error('[DBD Bridge] Extraction Error:', error.message);
     }
@@ -476,7 +587,10 @@ app.get('/stream', async (req, res) => {
                     mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     filename: `DBD_FinancialRatios_${fileIdentifier}.xlsx`
                 } : null,
-                yearsInBusiness: extractionResult.yearsInBusiness
+                yearsInBusiness: extractionResult.yearsInBusiness,
+                registeredCapital: extractionResult.registeredCapital,
+                registrationDate: extractionResult.registrationDate,
+                debug: extractionResult.debug
             }
         });
 
