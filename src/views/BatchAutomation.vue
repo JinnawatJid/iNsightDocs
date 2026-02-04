@@ -155,7 +155,7 @@ watch(bridgeHost, (val) => {
 
 // Computed
 const processedCount = computed(() => {
-  return queue.value.filter(i => ['Done', 'Error', 'Skipped'].includes(i.status)).length;
+  return queue.value.filter(i => ['Done', 'Done (Int)', 'Error', 'Skipped'].includes(i.status)).length;
 });
 
 // Helper: Format Number
@@ -180,6 +180,7 @@ const translateStatus = (status) => {
     'Pending': 'รอคิว',
     'Processing': 'กำลังทำ',
     'Done': 'เสร็จสิ้น',
+    'Done (Int)': 'เสร็จสิ้น (ภายใน)',
     'Error': 'ผิดพลาด',
     'Skipped': 'ข้าม'
   };
@@ -402,7 +403,7 @@ const startBatch = async () => {
     if (shouldStop.value) break;
 
     const item = queue.value[i];
-    if (item.status === 'Done' || item.status === 'Skipped') continue;
+    if (item.status === 'Done' || item.status === 'Done (Int)' || item.status === 'Skipped') continue;
 
     item.status = 'Processing';
     item.log = 'กำลังเริ่มต้น...';
@@ -422,22 +423,36 @@ const startBatch = async () => {
       item.taxId = customer.customer.tax_id;
       item.currentLimit = customer.customer.current_credit_limit;
       item.paymentTerms = customer.customer.payment_terms_code;
-      // Extract Total Purchase Last 3 Months
-      if (customer.financial_summary && customer.financial_summary.total_purchase_3_months) {
-          item.totalPurchase3Months = customer.financial_summary.total_purchase_3_months;
+
+      // Fix: Safely Extract Total Purchase (Handle NaN)
+      item.totalPurchase3Months = 0;
+      if (customer.financial_summary?.total_purchase_3_months) {
+          const val = Number(customer.financial_summary.total_purchase_3_months);
+          item.totalPurchase3Months = isNaN(val) ? 0 : val;
       }
+
+      // Calculate Customer Duration (Years)
+      let customerDuration = 0;
+      if (customer.customer.customer_since) {
+          const start = new Date(customer.customer.customer_since);
+          const now = new Date();
+          const age = (now - start) / (365.25 * 24 * 60 * 60 * 1000);
+          customerDuration = age > 0 ? Math.floor(age) : 0;
+      }
+      item.customerDuration = customerDuration;
 
       // RULE: Skip DBD if no Tax ID (Individual) OR Name doesn't look like a company
       let skipDBD = false;
-      const corporateKeywords = ['บริษัท', 'ห้างหุ้นส่วน', 'บ.', 'หจก.', 'ltd', 'limited', 'co.', 'plc', 'corp'];
+      // Expanded keyword list for better detection
+      const corporateKeywords = ['บริษัท', 'ห้างหุ้นส่วน', 'บ.', 'หจก.', 'ltd', 'limited', 'co.', 'plc', 'corp', 'inc', 'company'];
       const nameLower = (item.name || '').toLowerCase();
       const isCorporate = corporateKeywords.some(k => nameLower.includes(k));
 
-      if (!item.taxId) {
-        item.log = 'บุคคลธรรมดา (ไม่มี Tax ID)';
+      if (!item.taxId || item.taxId.length < 5) {
+        item.log = 'ข้าม DBD (ไม่มี Tax ID)';
         skipDBD = true;
       } else if (!isCorporate) {
-        item.log = 'บุคคลธรรมดา (ชื่อไม่ใช่นิติบุคคล)';
+        item.log = 'ข้าม DBD (ไม่ใช่บริษัท)';
         skipDBD = true;
       }
 
@@ -497,14 +512,17 @@ const startBatch = async () => {
           }
       }
 
+      // Store yearsInBusiness for report
+      item.yearsInBusiness = yearsInBusiness;
+
       // Append Meta Data
       formData.append('customer_no', item.customerId);
       formData.append('customer_name', item.name);
       formData.append('registered_capital', '0');
-      formData.append('customer_duration', '0');
+      formData.append('customer_duration', String(customerDuration)); // Use calculated duration
       formData.append('years_in_business', String(yearsInBusiness));
       formData.append('request_credit_term', item.paymentTerms || '30');
-      formData.append('request_amount', '0');
+      formData.append('request_amount', String(item.currentLimit || 0)); // Fallback to current limit
 
       // 4. Call Analysis API
       const analyzeRes = await axios.post('/api/financials/analyze', formData, {
@@ -516,8 +534,8 @@ const startBatch = async () => {
          item.newLimit = analyzeRes.data.scoringResult?.recommendedLimit || 0;
          item.score = analyzeRes.data.scoringResult?.totalScore || 0;
          item.grade = analyzeRes.data.scoringResult?.grade || '-';
-         item.status = 'Done';
-         item.log = 'สำเร็จ';
+         item.status = skipDBD ? 'Done (Int)' : 'Done';
+         item.log = 'เสร็จสิ้น';
       } else {
          throw new Error('การวิเคราะห์ล้มเหลว');
       }
@@ -545,8 +563,14 @@ const openReport = (item) => {
         analysisResults: item.analysisResult,
         inputs: {
             customerId: item.customerId,
-            name: item.name,
-            taxId: item.taxId
+            customerName: item.name,
+            taxId: item.taxId,
+            registeredCapital: item.analysisResult.extractedData?.registeredCapital || 0,
+            yearsInBusiness: item.yearsInBusiness || 0,
+            customerDuration: item.customerDuration || 0,
+            requestAmount: item.currentLimit || 0,
+            creditTerm: item.paymentTerms || 30,
+            billingCondition: '-'
         }
     };
 
@@ -755,12 +779,14 @@ button:disabled {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid #eee;
+  min-width: 100px; /* Ensure columns aren't too narrow */
 }
 
 .data-table th {
   background: #f8f9fa;
   font-weight: 600;
   color: #333;
+  white-space: nowrap; /* Prevent header wrapping */
 }
 
 .row-active {
