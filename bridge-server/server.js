@@ -82,37 +82,58 @@ const extractDBDData = async (pdfPath) => {
         };
 
         // 1. Registration Date
-        // Use Unicode to avoid encoding issues and allow flexible matching
-        // Pattern: วันที่ (Wan Thi) ... จดทะเบียน (Jod Ta Bian) ... [จัดตั้ง (Jad Tang)]?
-        const dateRegexStrict = /\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e08\u0e14\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19\u0e08\u0e31\u0e14\u0e15\u0e31\u0e49\u0e07\s*[:]\s*(\d{2}\/\d{2}\/\d{4})/;
-        const dateRegexFlex = /\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\s*\u0e08\u0e14\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19(?:[\s\u0e08\u0e31\u0e14\u0e15\u0e31\u0e49\u0e07]*)\s*[:]\s*(\d{2}\/\d{2}\/\d{4})/;
+        // Strategy: Find "Registration Date" label, then search next 300 chars for a date pattern.
+        // Label: วันที่จดทะเบียนจัดตั้ง (Unicode)
+        const labelDateRegex = /\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e08\u0e14\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19(?:\u0e08\u0e31\u0e14\u0e15\u0e31\u0e49\u0e07)?/;
+        const dateMatchIndex = text.search(labelDateRegex);
 
-        const match = text.match(dateRegexStrict) || text.match(dateRegexFlex);
+        let dateFound = false;
+        if (dateMatchIndex !== -1) {
+            const searchWindow = text.substring(dateMatchIndex, dateMatchIndex + 300);
+            const datePattern = /(\d{2}\/\d{2}\/\d{4})/;
+            const match = searchWindow.match(datePattern);
+            if (match) {
+                const dateStr = match[1];
+                result.registrationDate = dateStr;
 
-        if (match) {
-            const dateStr = match[1];
-            result.registrationDate = dateStr;
+                const parts = dateStr.split('/');
+                const yearBE = parseInt(parts[2]);
+                const currentYearBE = new Date().getFullYear() + 543;
+                const yearsInBusiness = currentYearBE - yearBE;
+                result.yearsInBusiness = yearsInBusiness;
+                dateFound = true;
+            }
+        }
 
-            const parts = dateStr.split('/');
-            const yearBE = parseInt(parts[2]);
-            const currentYearBE = new Date().getFullYear() + 543;
-            const yearsInBusiness = currentYearBE - yearBE;
-            result.yearsInBusiness = yearsInBusiness;
-        } else {
-             console.log('[DBD Bridge Debug] Date Regex FAILED');
-             result.debug.dateError = 'Regex did not match';
+        if (!dateFound) {
+             console.log('[DBD Bridge Debug] Date Extraction FAILED');
+             result.debug.dateError = 'Label found but no date in window, or label not found';
         }
 
         // 2. Registered Capital
-        // Unicode for: ทุนจดทะเบียน (Tun Jod Ta Bian)
-        const capitalRegex = /\u0e17\u0e38\u0e19\u0e08\u0e14\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19\s*(?:\(\u0e1a\u0e32\u0e17\))?\s*[:]\s*([\d,]+\.?\d*)/;
-        const capMatch = text.match(capitalRegex);
-        if (capMatch) {
-            const rawCap = capMatch[1].replace(/,/g, '');
-            result.registeredCapital = parseFloat(rawCap);
-        } else {
-             console.log('[DBD Bridge Debug] Capital Regex FAILED');
-             result.debug.capitalError = 'Regex did not match';
+        // Strategy: Find "Registered Capital" label, then search next 300 chars for a number.
+        // Label: ทุนจดทะเบียน (Unicode)
+        const labelCapRegex = /\u0e17\u0e38\u0e19\u0e08\u0e14\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19/;
+        const capMatchIndex = text.search(labelCapRegex);
+
+        let capFound = false;
+        if (capMatchIndex !== -1) {
+             const searchWindow = text.substring(capMatchIndex, capMatchIndex + 300);
+             // Look for number like 1,000,000.00
+             // Must exclude "Year" numbers (like 2563). Capital usually has commas or .00
+             // Or simpler: just the first large number or number with comma/dot
+             const capPattern = /([\d,]+\.\d{2})/;
+             const match = searchWindow.match(capPattern);
+             if (match) {
+                 const rawCap = match[1].replace(/,/g, '');
+                 result.registeredCapital = parseFloat(rawCap);
+                 capFound = true;
+             }
+        }
+
+        if (!capFound) {
+             console.log('[DBD Bridge Debug] Capital Extraction FAILED');
+             result.debug.capitalError = 'Label found but no capital in window, or label not found';
         }
 
         return result;
