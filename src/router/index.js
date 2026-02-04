@@ -4,6 +4,7 @@ import CustomerSearch from '../views/CustomerSearch.vue';
 import CreateCreditRequest from '../views/CreateCreditRequest.vue';
 import OcrComparison from '../views/OcrComparison.vue';
 import CreditAnalysisReport from '../views/CreditAnalysisReport.vue';
+import BatchAutomation from '../views/BatchAutomation.vue';
 
 const routes = [
   {
@@ -34,6 +35,11 @@ const routes = [
     path: '/report/financial-analysis',
     name: 'CreditAnalysisReport',
     component: CreditAnalysisReport,
+  },
+  {
+    path: '/batch-automation',
+    name: 'BatchAutomation',
+    component: BatchAutomation,
   },
 ];
 
