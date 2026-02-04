@@ -427,10 +427,17 @@ const startBatch = async () => {
           item.totalPurchase3Months = customer.financial_summary.total_purchase_3_months;
       }
 
-      // RULE: Skip DBD if no Tax ID (Individual)
+      // RULE: Skip DBD if no Tax ID (Individual) OR Name doesn't look like a company
       let skipDBD = false;
+      const corporateKeywords = ['บริษัท', 'ห้างหุ้นส่วน', 'บ.', 'หจก.', 'ltd', 'limited', 'co.', 'plc', 'corp'];
+      const nameLower = (item.name || '').toLowerCase();
+      const isCorporate = corporateKeywords.some(k => nameLower.includes(k));
+
       if (!item.taxId) {
-        item.log = 'บุคคลธรรมดา (ข้าม DBD)';
+        item.log = 'บุคคลธรรมดา (ไม่มี Tax ID)';
+        skipDBD = true;
+      } else if (!isCorporate) {
+        item.log = 'บุคคลธรรมดา (ชื่อไม่ใช่นิติบุคคล)';
         skipDBD = true;
       }
 
@@ -491,14 +498,13 @@ const startBatch = async () => {
       }
 
       // Append Meta Data
+      formData.append('customer_no', item.customerId);
+      formData.append('customer_name', item.name);
       formData.append('registered_capital', '0');
       formData.append('customer_duration', '0');
       formData.append('years_in_business', String(yearsInBusiness));
-      formData.append('request_credit_term', item.paymentTerms || '30'); // Default to 30 if null
-      formData.append('request_amount', '0'); // Batch mode usually assumes checking purely on financials? Or we should assume current limit?
-      // User said "auto calculate new suggest credit without input anything".
-      // Usually requires request amount. If 0, formula might yield weird results?
-      // Let's send 0. The logic handles 0 request.
+      formData.append('request_credit_term', item.paymentTerms || '30');
+      formData.append('request_amount', '0');
 
       // 4. Call Analysis API
       const analyzeRes = await axios.post('/api/financials/analyze', formData, {
