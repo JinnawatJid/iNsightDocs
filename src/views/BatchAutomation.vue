@@ -177,6 +177,69 @@ const translateStatus = (status) => {
 const handleFileSelect = (e) => processFile(e.target.files[0]);
 const handleDrop = (e) => processFile(e.dataTransfer.files[0]);
 
+const findBestIdColumn = (data) => {
+    if (!data || data.length === 0) return null;
+
+    const headers = Object.keys(data[0]);
+
+    // Calculate score for each column to determine which is the Customer ID
+    const candidates = headers.map(header => {
+        let score = 0;
+
+        // 1. Header Name Heuristics
+        const h = header.toLowerCase().trim();
+        // Strong preference for explicit ID headers
+        if (h === 'customer id' || h === 'no.' || h === 'no_' || h === 'id' || h === 'code') score += 20;
+        else if (h.includes('id') || h.includes('no') || h.includes('code')) score += 10;
+
+        // 2. Content Analysis (Check first 20 rows to avoid performance hit)
+        const samples = data.slice(0, 20).map(row => String(row[header] || '').trim());
+        const nonEmptySamples = samples.filter(s => s);
+
+        if (nonEmptySamples.length === 0) return { header, score: -100 }; // Empty column
+
+        // A. Uniqueness (IDs should be unique)
+        const uniqueCount = new Set(nonEmptySamples).size;
+        const uniquenessRatio = uniqueCount / nonEmptySamples.length;
+
+        if (uniquenessRatio === 1.0) score += 25; // Perfect uniqueness
+        else if (uniquenessRatio >= 0.9) score += 15;
+        else if (uniquenessRatio < 0.5) score -= 40; // High duplication -> Penalty (e.g. "AY", "AY", "AY")
+        else if (uniquenessRatio < 0.8) score -= 20;
+
+        // B. Format Checks
+        const hasSpaces = nonEmptySamples.some(s => s.includes(' '));
+        const hasThai = nonEmptySamples.some(s => /[\u0E00-\u0E7F]/.test(s));
+
+        if (hasThai) score -= 50; // IDs rarely contain Thai characters
+        if (hasSpaces) score -= 20; // IDs rarely contain spaces (Names do)
+
+        // C. Alphanumeric Pattern
+        // Check if values look like codes (e.g., 00001AY, CUST-01)
+        const isAlphanumeric = nonEmptySamples.every(s => /^[A-Z0-9\-_.]+$/i.test(s));
+        if (isAlphanumeric) score += 15;
+
+        // D. Digits Check (IDs often have numbers, prefixes often don't)
+        const hasDigits = nonEmptySamples.some(s => /\d/.test(s));
+        if (hasDigits) score += 25;
+
+        // E. Length
+        // IDs are usually short (e.g. < 20 chars). Names/Descriptions are long.
+        const avgLength = nonEmptySamples.reduce((a, b) => a + b.length, 0) / nonEmptySamples.length;
+        if (avgLength > 25) score -= 10;
+
+        return { header, score };
+    });
+
+    // Sort by score descending
+    candidates.sort((a, b) => b.score - a.score);
+
+    // Log for debugging
+    console.log('[Batch] Column Analysis:', candidates);
+
+    return candidates[0]?.header;
+};
+
 const processFile = (file) => {
   if (!file) return;
 
@@ -188,13 +251,19 @@ const processFile = (file) => {
     const worksheet = workbook.Sheets[firstSheetName];
     const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
+    // Smart detection of ID column
+    const idKey = findBestIdColumn(jsonData);
+    if (!idKey) {
+        Swal.fire('ข้อผิดพลาด', 'ไม่พบคอลัมน์ที่ระบุรหัสลูกค้า (Customer ID)', 'error');
+        return;
+    }
+    console.log(`[Batch] Detected ID Column: "${idKey}"`);
+
     // Map to Queue Format
-    // Expecting column "Customer ID" or "No_" or first column
     queue.value = jsonData.map(row => {
-      // Try to find ID
-      const id = row['Customer ID'] || row['No_'] || row['ID'] || Object.values(row)[0];
+      const id = row[idKey];
       return {
-        customerId: String(id).trim(),
+        customerId: String(id || '').trim(),
         name: '',
         taxId: '',
         currentLimit: 0,
@@ -207,9 +276,9 @@ const processFile = (file) => {
         files: {}, // to store downloaded blobs
         analysisResult: null
       };
-    }).filter(i => i.customerId); // Filter empty rows
+    }).filter(i => i.customerId && i.customerId !== 'undefined'); // Filter empty rows
 
-    Swal.fire('โหลดข้อมูลสำเร็จ', `โหลดรายชื่อลูกค้า ${queue.value.length} รายการ`, 'success');
+    Swal.fire('โหลดข้อมูลสำเร็จ', `โหลดรายชื่อลูกค้า ${queue.value.length} รายการ (ใช้คอลัมน์: ${idKey})`, 'success');
   };
   reader.readAsArrayBuffer(file);
 };
