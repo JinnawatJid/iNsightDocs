@@ -115,7 +115,7 @@
             </td>
             <td>
               <button
-                v-if="item.status === 'Done'"
+                v-if="['Done', 'Done (Int)'].includes(item.status)"
                 class="btn-view-report"
                 @click="openReport(item)"
                 title="ดูรายงาน"
