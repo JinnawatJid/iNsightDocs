@@ -83,11 +83,13 @@
             <th>รหัสลูกค้า</th>
             <th>ชื่อลูกค้า</th>
             <th>เลขผู้เสียภาษี</th>
+            <th>ยอดซื้อรวม 3 เดือน</th>
+            <th>ระยะเวลาเครดิต</th>
             <th>วงเงินปัจจุบัน</th>
             <th>วงเงินใหม่</th>
             <th>คะแนน</th>
             <th>สถานะ</th>
-            <th>ข้อความ</th>
+            <th>การดำเนินการ</th>
           </tr>
         </thead>
         <tbody>
@@ -96,6 +98,8 @@
             <td>{{ item.customerId }}</td>
             <td>{{ item.name || '-' }}</td>
             <td>{{ item.taxId || '-' }}</td>
+            <td>{{ formatNumber(item.totalPurchase3Months) }}</td>
+            <td>{{ item.paymentTerms || '-' }}</td>
             <td>{{ formatNumber(item.currentLimit) }}</td>
             <td class="text-bold">{{ formatNumber(item.newLimit) }}</td>
             <td>
@@ -109,10 +113,20 @@
                 {{ translateStatus(item.status) }}
               </span>
             </td>
-            <td class="log-message" :title="item.log">{{ item.log }}</td>
+            <td>
+              <button
+                v-if="item.status === 'Done'"
+                class="btn-view-report"
+                @click="openReport(item)"
+                title="ดูรายงาน"
+              >
+                📄 ดูรายงาน
+              </button>
+              <span v-else class="log-message" :title="item.log">{{ item.log }}</span>
+            </td>
           </tr>
           <tr v-if="queue.length === 0">
-            <td colspan="9" class="text-center">ไม่มีข้อมูล กรุณาอัปโหลดไฟล์ Excel</td>
+            <td colspan="11" class="text-center">ไม่มีข้อมูล กรุณาอัปโหลดไฟล์ Excel</td>
           </tr>
         </tbody>
       </table>
@@ -266,6 +280,7 @@ const processFile = (file) => {
         customerId: String(id || '').trim(),
         name: '',
         taxId: '',
+        totalPurchase3Months: 0,
         currentLimit: 0,
         paymentTerms: '',
         newLimit: null,
@@ -407,33 +422,40 @@ const startBatch = async () => {
       item.taxId = customer.customer.tax_id;
       item.currentLimit = customer.customer.current_credit_limit;
       item.paymentTerms = customer.customer.payment_terms_code;
-
-      // RULE: Skip if no Tax ID
-      if (!item.taxId) {
-        item.status = 'Skipped';
-        item.log = 'ไม่พบเลขผู้เสียภาษี';
-        continue;
+      // Extract Total Purchase Last 3 Months
+      if (customer.financial_summary && customer.financial_summary.total_purchase_3_months) {
+          item.totalPurchase3Months = customer.financial_summary.total_purchase_3_months;
       }
 
-      // 2. Download from Bridge (Retry Logic)
-      item.log = 'กำลังดาวน์โหลดไฟล์ DBD...';
-      let downloadResult = null;
-      let retries = 0;
-      const maxRetries = 2;
+      // RULE: Skip DBD if no Tax ID (Individual)
+      let skipDBD = false;
+      if (!item.taxId) {
+        item.log = 'บุคคลธรรมดา (ข้าม DBD)';
+        skipDBD = true;
+      }
 
-      while (retries <= maxRetries && !downloadResult) {
-         try {
-            downloadResult = await connectToBridge(item.taxId, item.customerId);
-         } catch (e) {
-            retries++;
-            if (retries > maxRetries) {
-                console.warn('Bridge failed, proceeding with fallback');
-            } else {
-                item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
-                // Wait 2 seconds before retry
-                await new Promise(r => setTimeout(r, 2000));
-            }
-         }
+      // 2. Download from Bridge (Retry Logic) - Only if not skipped
+      let downloadResult = null;
+
+      if (!skipDBD) {
+          item.log = 'กำลังดาวน์โหลดไฟล์ DBD...';
+          let retries = 0;
+          const maxRetries = 2;
+
+          while (retries <= maxRetries && !downloadResult) {
+             try {
+                downloadResult = await connectToBridge(item.taxId, item.customerId);
+             } catch (e) {
+                retries++;
+                if (retries > maxRetries) {
+                    console.warn('Bridge failed, proceeding with fallback');
+                } else {
+                    item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
+                    // Wait 2 seconds before retry
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+             }
+          }
       }
 
       // 3. Prepare for Analysis
@@ -507,12 +529,34 @@ const startBatch = async () => {
   }
 };
 
-// --- Export ---
+// --- Report & Export ---
+
+const openReport = (item) => {
+    if (!item.analysisResult) return;
+
+    // Construct report data format
+    const reportData = {
+        analysisResults: item.analysisResult,
+        inputs: {
+            customerId: item.customerId,
+            name: item.name,
+            taxId: item.taxId
+        }
+    };
+
+    // Save to localStorage for the report page to consume
+    localStorage.setItem('credit_report_data', JSON.stringify(reportData));
+
+    // Open in new tab
+    const routeData = window.open('/report/financial-analysis', '_blank');
+};
+
 const exportReport = () => {
    const data = queue.value.map(item => ({
       'รหัสลูกค้า': item.customerId,
       'ชื่อลูกค้า': item.name,
       'เลขผู้เสียภาษี': item.taxId,
+      'ยอดซื้อ 3 เดือน': item.totalPurchase3Months,
       'เครดิตเทอม': item.paymentTerms || '-',
       'วงเงินปัจจุบัน': item.currentLimit,
       'วงเงินใหม่ (แนะนำ)': item.newLimit,
@@ -654,6 +698,22 @@ button:disabled {
 .btn-primary { background: #0056FF; color: white; }
 .btn-danger { background: #dc3545; color: white; }
 .btn-success { background: #28a745; color: white; }
+
+.btn-view-report {
+  background: #17a2b8;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-view-report:hover {
+  background: #138496;
+}
 
 .progress-info {
   flex: 1;
