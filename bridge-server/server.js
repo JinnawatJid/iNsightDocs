@@ -71,8 +71,12 @@ const extractDBDData = async (pdfPath) => {
         const result = { success: true };
 
         // 1. Registration Date
-        const dateRegex = /วันที่จดทะเบียนจัดตั้ง\s*[:]\s*(\d{2}\/\d{2}\/\d{4})/;
-        const match = text.match(dateRegex);
+        // Use Unicode to avoid encoding issues and allow flexible matching
+        // Pattern: วันที่ (Wan Thi) ... จดทะเบียน (Jod Ta Bian) ... [จัดตั้ง (Jad Tang)]?
+        const dateRegexStrict = /\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e08\u0e14\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19\u0e08\u0e31\u0e14\u0e15\u0e31\u0e49\u0e07\s*[:]\s*(\d{2}\/\d{2}\/\d{4})/;
+        const dateRegexFlex = /\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\s*\u0e08\u0e14\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19(?:[\s\u0e08\u0e31\u0e14\u0e15\u0e31\u0e49\u0e07]*)\s*[:]\s*(\d{2}\/\d{2}\/\d{4})/;
+
+        const match = text.match(dateRegexStrict) || text.match(dateRegexFlex);
 
         if (match) {
             const dateStr = match[1];
@@ -86,7 +90,8 @@ const extractDBDData = async (pdfPath) => {
         }
 
         // 2. Registered Capital
-        const capitalRegex = /ทุนจดทะเบียน\s*\(บาท\)\s*[:]\s*([\d,]+\.?\d*)/;
+        // Unicode for: ทุนจดทะเบียน (Tun Jod Ta Bian)
+        const capitalRegex = /\u0e17\u0e38\u0e19\u0e08\u0e14\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19\s*(?:\(\u0e1a\u0e32\u0e17\))?\s*[:]\s*([\d,]+\.?\d*)/;
         const capMatch = text.match(capitalRegex);
         if (capMatch) {
             const rawCap = capMatch[1].replace(/,/g, '');
