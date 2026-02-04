@@ -115,7 +115,7 @@
             </td>
             <td>
               <button
-                v-if="item.status === 'Done'"
+                v-if="['Done', 'Done (Int)'].includes(item.status)"
                 class="btn-view-report"
                 @click="openReport(item)"
                 title="ดูรายงาน"
@@ -337,6 +337,9 @@ const connectToBridge = (taxId, customerCode) => {
         } else if (data.status === 'complete') {
            evtSource.close();
            // Process Data
+           let registeredCapital = 0;
+           let registrationDate = null;
+
            if (data.data) {
              resultFiles = {
                 profile: data.data.profile,
@@ -345,8 +348,10 @@ const connectToBridge = (taxId, customerCode) => {
                 financialRatios: data.data.financialRatios
              };
              yearsInBusiness = data.data.yearsInBusiness || 0;
+             registeredCapital = data.data.registeredCapital || 0;
+             registrationDate = data.data.registrationDate || null;
            }
-           resolve({ files: resultFiles, yearsInBusiness });
+           resolve({ files: resultFiles, yearsInBusiness, registeredCapital, registrationDate });
         } else if (data.status === 'error') {
            evtSource.close();
            reject(new Error(data.message || 'Bridge Error'));
@@ -487,6 +492,7 @@ const startBatch = async () => {
       const formData = new FormData();
 
       let yearsInBusiness = 0;
+      let registeredCapital = 0;
 
       if (downloadResult) {
           // Append Files
@@ -503,6 +509,7 @@ const startBatch = async () => {
              formData.append('financial_ratios', base64ToBlob(f.content, f.mime), f.filename);
           }
           yearsInBusiness = downloadResult.yearsInBusiness || 0;
+          registeredCapital = downloadResult.registeredCapital || 0;
       } else {
           // Fallback: Use Customer Date
           item.log = 'DBD ล้มเหลว ใช้วันที่ลูกค้าแทน...';
@@ -516,11 +523,12 @@ const startBatch = async () => {
 
       // Store yearsInBusiness for report
       item.yearsInBusiness = yearsInBusiness;
+      item.registeredCapital = registeredCapital;
 
       // Append Meta Data
       formData.append('customer_no', item.customerId);
       formData.append('customer_name', item.name);
-      formData.append('registered_capital', '0');
+      formData.append('registered_capital', String(registeredCapital));
       formData.append('customer_duration', String(customerDuration)); // Use calculated duration
       formData.append('years_in_business', String(yearsInBusiness));
       formData.append('request_credit_term', item.paymentTerms || '30');
@@ -567,7 +575,7 @@ const openReport = (item) => {
             customerId: item.customerId,
             customerName: item.name,
             taxId: item.taxId,
-            registeredCapital: item.analysisResult.extractedData?.registeredCapital || 0,
+            registeredCapital: item.registeredCapital || 0,
             yearsInBusiness: item.yearsInBusiness || 0,
             customerDuration: item.customerDuration || 0,
             requestAmount: item.currentLimit || 0,

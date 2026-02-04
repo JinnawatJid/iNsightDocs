@@ -68,17 +68,33 @@ const extractDBDData = async (pdfPath) => {
         const data = await pdf(dataBuffer);
         const text = data.text;
 
+        const result = { success: true };
+
+        // 1. Registration Date
         const dateRegex = /วันที่จดทะเบียนจัดตั้ง\s*[:]\s*(\d{2}\/\d{2}\/\d{4})/;
         const match = text.match(dateRegex);
 
         if (match) {
             const dateStr = match[1];
+            result.registrationDate = dateStr;
+
             const parts = dateStr.split('/');
             const yearBE = parseInt(parts[2]);
             const currentYearBE = new Date().getFullYear() + 543;
             const yearsInBusiness = currentYearBE - yearBE;
-            return { success: true, yearsInBusiness };
+            result.yearsInBusiness = yearsInBusiness;
         }
+
+        // 2. Registered Capital
+        const capitalRegex = /ทุนจดทะเบียน\s*\(บาท\)\s*[:]\s*([\d,]+\.?\d*)/;
+        const capMatch = text.match(capitalRegex);
+        if (capMatch) {
+            const rawCap = capMatch[1].replace(/,/g, '');
+            result.registeredCapital = parseFloat(rawCap);
+        }
+
+        return result;
+
     } catch (error) {
         console.error('[DBD Bridge] Extraction Error:', error.message);
     }
@@ -476,7 +492,9 @@ app.get('/stream', async (req, res) => {
                     mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     filename: `DBD_FinancialRatios_${fileIdentifier}.xlsx`
                 } : null,
-                yearsInBusiness: extractionResult.yearsInBusiness
+                yearsInBusiness: extractionResult.yearsInBusiness,
+                registeredCapital: extractionResult.registeredCapital,
+                registrationDate: extractionResult.registrationDate
             }
         });
 
