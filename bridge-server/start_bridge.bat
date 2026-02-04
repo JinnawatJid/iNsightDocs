@@ -15,20 +15,20 @@ set "LOCAL_NODE_DIR=%~dp0node_bin"
 :: 1. Check for Node.js
 node --version >nul 2>&1
 if %errorlevel% equ 0 (
-    echo [INFO] ตรวจพบ Node.js ในเครื่องแล้ว (Found Node.js^)
+    echo [INFO] ตรวจพบ Node.js ในเครื่องแล้ว - Found Node.js
     goto :INSTALL_DEPS
 )
 
 :: Check for Local Node.js
 if exist "%LOCAL_NODE_DIR%\node.exe" (
-    echo [INFO] ใช้ Node.js แบบพกพา (Using Portable Node.js^)
+    echo [INFO] ใช้ Node.js แบบพกพา - Using Portable Node.js
     set "PATH=%LOCAL_NODE_DIR%;%PATH%"
     goto :INSTALL_DEPS
 )
 
 :: 2. Download Node.js if missing
 echo [INFO] ไม่พบโปรแกรม Node.js กำลังดาวน์โหลดอัตโนมัติ...
-echo        (Downloading Node.js portable version...)
+echo        - Downloading Node.js portable version...
 echo.
 
 if not exist "%~dp0temp_node.zip" (
@@ -40,10 +40,10 @@ if not exist "%~dp0temp_node.zip" (
     )
 )
 
-echo [INFO] กำลังแตกไฟล์ระบบ... (Extracting...)
+echo [INFO] กำลังแตกไฟล์ระบบ... - Extracting...
 powershell -Command "Expand-Archive -Path '%~dp0temp_node.zip' -DestinationPath '%~dp0temp_extract' -Force"
 
-echo [INFO] กำลังตั้งค่าระบบ... (Configuring...)
+echo [INFO] กำลังตั้งค่าระบบ... - Configuring...
 move "%~dp0temp_extract\%NODE_DIST%" "%LOCAL_NODE_DIR%" >nul
 rmdir "%~dp0temp_extract" /s /q
 del "%~dp0temp_node.zip"
@@ -52,9 +52,9 @@ set "PATH=%LOCAL_NODE_DIR%;%PATH%"
 
 :INSTALL_DEPS
 echo.
-echo [INFO] ตรวจสอบความพร้อมของระบบ... (Checking dependencies)
+echo [INFO] ตรวจสอบความพร้อมของระบบ... - Checking dependencies
 if not exist "%~dp0node_modules" (
-    echo [INFO] กำลังติดตั้งส่วนเสริม (ครั้งแรกอาจใช้เวลานาน 1-2 นาที)...
+    echo [INFO] กำลังติดตั้งส่วนเสริม - ครั้งแรกอาจใช้เวลานาน 1-2 นาที -...
     echo        - Installing dependencies, please wait...
     call npm install --omit=dev --no-audit --no-fund --loglevel=error
 )
@@ -62,7 +62,7 @@ if not exist "%~dp0node_modules" (
 echo.
 echo =========================================================
 echo      พร้อมใช้งาน! กรุณาอย่าปิดหน้าต่างนี้
-echo      (Ready! Do not close this window)
+echo      - Ready! Do not close this window
 echo =========================================================
 echo.
 
