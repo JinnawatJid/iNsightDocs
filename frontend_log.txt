@@ -1,0 +1,9 @@
+
+> insightdocs@0.0.0 dev
+> vite --port 5173
+
+
+  VITE v7.3.0  ready in 1470 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
