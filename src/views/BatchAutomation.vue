@@ -1,8 +1,8 @@
 <template>
   <div class="batch-automation-container">
     <div class="header-section">
-      <h2>Batch Credit Automation</h2>
-      <p class="subtitle">Upload customer list to auto-calculate credit scores and limits.</p>
+      <h2>ระบบคำนวณวงเงินสินเชื่ออัตโนมัติ (Batch)</h2>
+      <p class="subtitle">อัปโหลดรายชื่อลูกค้าเพื่อคำนวณคะแนนและวงเงินสินเชื่ออัตโนมัติ</p>
     </div>
 
     <!-- Configuration & Upload -->
@@ -17,23 +17,23 @@
         />
         <div class="upload-content" @click="$refs.fileInput.click()">
           <span class="upload-icon">📂</span>
-          <span v-if="!queue.length">Click or Drag Excel File Here</span>
-          <span v-else>{{ queue.length }} Customers Loaded</span>
+          <span v-if="!queue.length">คลิกหรือลากไฟล์ Excel มาวางที่นี่</span>
+          <span v-else>โหลดข้อมูลแล้ว {{ queue.length }} รายการ</span>
         </div>
       </div>
 
       <div class="settings-area">
-        <label>Bridge Connection:</label>
+        <label>การเชื่อมต่อ Bridge:</label>
         <div class="input-group">
           <input
             type="text"
             v-model="bridgeHost"
-            placeholder="Localhost or Bridge IP"
+            placeholder="Localhost หรือ Bridge IP"
             class="form-control"
           />
-          <button class="btn-check" @click="checkBridgeConnection">Check</button>
+          <button class="btn-check" @click="checkBridgeConnection">ตรวจสอบ</button>
         </div>
-        <small class="text-muted">Status: {{ bridgeStatus }}</small>
+        <small class="text-muted">สถานะ: {{ bridgeStatus }}</small>
       </div>
     </div>
 
@@ -44,7 +44,7 @@
         @click="startBatch"
         :disabled="isProcessing || queue.length === 0"
       >
-        {{ isProcessing ? 'Processing...' : '▶ Start Batch' }}
+        {{ isProcessing ? 'กำลังประมวลผล...' : '▶ เริ่มประมวลผล' }}
       </button>
 
       <button
@@ -52,7 +52,7 @@
         @click="stopBatch"
         :disabled="!isProcessing"
       >
-        ⏹ Stop
+        ⏹ หยุด
       </button>
 
       <button
@@ -60,11 +60,11 @@
         @click="exportReport"
         :disabled="queue.length === 0"
       >
-        📊 Export Report
+        📊 ส่งออกรายงาน
       </button>
 
       <div class="progress-info" v-if="queue.length > 0">
-        <span>Processed: {{ processedCount }} / {{ queue.length }}</span>
+        <span>ประมวลผลแล้ว: {{ processedCount }} / {{ queue.length }}</span>
         <div class="progress-bar">
           <div
             class="progress-fill"
@@ -80,14 +80,14 @@
         <thead>
           <tr>
             <th style="width: 50px">#</th>
-            <th>Customer ID</th>
-            <th>Name</th>
-            <th>Tax ID</th>
-            <th>Current Limit</th>
-            <th>New Limit</th>
-            <th>Score</th>
-            <th>Status</th>
-            <th>Message</th>
+            <th>รหัสลูกค้า</th>
+            <th>ชื่อลูกค้า</th>
+            <th>เลขผู้เสียภาษี</th>
+            <th>วงเงินปัจจุบัน</th>
+            <th>วงเงินใหม่</th>
+            <th>คะแนน</th>
+            <th>สถานะ</th>
+            <th>ข้อความ</th>
           </tr>
         </thead>
         <tbody>
@@ -106,13 +106,13 @@
             </td>
             <td>
               <span class="status-badge" :class="item.status.toLowerCase()">
-                {{ item.status }}
+                {{ translateStatus(item.status) }}
               </span>
             </td>
             <td class="log-message" :title="item.log">{{ item.log }}</td>
           </tr>
           <tr v-if="queue.length === 0">
-            <td colspan="9" class="text-center">No data loaded. Please upload an Excel file.</td>
+            <td colspan="9" class="text-center">ไม่มีข้อมูล กรุณาอัปโหลดไฟล์ Excel</td>
           </tr>
         </tbody>
       </table>
@@ -132,7 +132,7 @@ const queue = ref([]);
 const isProcessing = ref(false);
 const shouldStop = ref(false);
 const bridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
-const bridgeStatus = ref('Unknown');
+const bridgeStatus = ref('ไม่ทราบสถานะ');
 
 // Watch bridge host to save
 watch(bridgeHost, (val) => {
@@ -159,6 +159,17 @@ const getGradeClass = (grade) => {
 const getRowClass = (item) => {
   if (item.status === 'Processing') return 'row-active';
   return '';
+};
+
+const translateStatus = (status) => {
+  const map = {
+    'Pending': 'รอคิว',
+    'Processing': 'กำลังทำ',
+    'Done': 'เสร็จสิ้น',
+    'Error': 'ผิดพลาด',
+    'Skipped': 'ข้าม'
+  };
+  return map[status] || status;
 };
 
 // --- File Handling ---
@@ -198,7 +209,7 @@ const processFile = (file) => {
       };
     }).filter(i => i.customerId); // Filter empty rows
 
-    Swal.fire('Loaded', `${queue.value.length} customers loaded.`, 'success');
+    Swal.fire('โหลดข้อมูลสำเร็จ', `โหลดรายชื่อลูกค้า ${queue.value.length} รายการ`, 'success');
   };
   reader.readAsArrayBuffer(file);
 };
@@ -206,14 +217,14 @@ const processFile = (file) => {
 // --- Bridge Logic ---
 
 const checkBridgeConnection = async () => {
-  bridgeStatus.value = 'Checking...';
+  bridgeStatus.value = 'กำลังตรวจสอบ...';
   try {
     const url = `http://${bridgeHost.value}:4343/health`;
     await axios.get(url, { timeout: 2000 });
-    bridgeStatus.value = 'Connected ✅';
+    bridgeStatus.value = 'เชื่อมต่อสำเร็จ ✅';
     return true;
   } catch (e) {
-    bridgeStatus.value = 'Unreachable ❌';
+    bridgeStatus.value = 'ไม่สามารถเชื่อมต่อได้ ❌';
     return false;
   }
 };
@@ -263,7 +274,7 @@ const connectToBridge = (taxId, customerCode) => {
 
     evtSource.onerror = (err) => {
        evtSource.close();
-       reject(new Error('Connection failed'));
+       reject(new Error('การเชื่อมต่อล้มเหลว'));
     };
   });
 };
@@ -296,7 +307,7 @@ const startBatch = async () => {
   // Check Bridge first
   const isBridgeReady = await checkBridgeConnection();
   if (!isBridgeReady) {
-    Swal.fire('Error', 'Cannot connect to Local Bridge. Please check settings.', 'error');
+    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับ Local Bridge กรุณาตรวจสอบการตั้งค่า', 'error');
     return;
   }
 
@@ -310,17 +321,17 @@ const startBatch = async () => {
     if (item.status === 'Done' || item.status === 'Skipped') continue;
 
     item.status = 'Processing';
-    item.log = 'Starting...';
+    item.log = 'กำลังเริ่มต้น...';
 
     try {
       // 1. Fetch Customer Data
-      item.log = 'Fetching Customer Info...';
+      item.log = 'กำลังดึงข้อมูลลูกค้า...';
       const searchRes = await CustomerService.searchCustomers(item.customerId);
       // Find exact match or first close match
       const customer = searchRes.find(c => c.customer.id === item.customerId) || searchRes[0];
 
       if (!customer) {
-        throw new Error('Customer not found in API');
+        throw new Error('ไม่พบข้อมูลลูกค้าในระบบ');
       }
 
       item.name = customer.customer.name;
@@ -331,12 +342,12 @@ const startBatch = async () => {
       // RULE: Skip if no Tax ID
       if (!item.taxId) {
         item.status = 'Skipped';
-        item.log = 'Missing Tax ID (Option A)';
+        item.log = 'ไม่พบเลขผู้เสียภาษี';
         continue;
       }
 
       // 2. Download from Bridge (Retry Logic)
-      item.log = 'Downloading DBD Files...';
+      item.log = 'กำลังดาวน์โหลดไฟล์ DBD...';
       let downloadResult = null;
       let retries = 0;
       const maxRetries = 2;
@@ -346,37 +357,52 @@ const startBatch = async () => {
             downloadResult = await connectToBridge(item.taxId, item.customerId);
          } catch (e) {
             retries++;
-            if (retries > maxRetries) throw e;
-            item.log = `Retry DBD (${retries}/${maxRetries})...`;
-            // Wait 2 seconds before retry
-            await new Promise(r => setTimeout(r, 2000));
+            if (retries > maxRetries) {
+                console.warn('Bridge failed, proceeding with fallback');
+            } else {
+                item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
+                // Wait 2 seconds before retry
+                await new Promise(r => setTimeout(r, 2000));
+            }
          }
       }
 
       // 3. Prepare for Analysis
-      item.log = 'Analyzing...';
+      item.log = 'กำลังวิเคราะห์...';
       const formData = new FormData();
 
-      // Append Files
-      if (downloadResult.files.balanceSheet) {
-         const f = downloadResult.files.balanceSheet;
-         formData.append('balance_sheet', base64ToBlob(f.content, f.mime), f.filename);
-      }
-      if (downloadResult.files.incomeStatement) { // Correct key mapping
-         const f = downloadResult.files.incomeStatement;
-         formData.append('profit_loss', base64ToBlob(f.content, f.mime), f.filename);
-      }
-      if (downloadResult.files.financialRatios) {
-         const f = downloadResult.files.financialRatios;
-         formData.append('financial_ratios', base64ToBlob(f.content, f.mime), f.filename);
+      let yearsInBusiness = 0;
+
+      if (downloadResult) {
+          // Append Files
+          if (downloadResult.files.balanceSheet) {
+             const f = downloadResult.files.balanceSheet;
+             formData.append('balance_sheet', base64ToBlob(f.content, f.mime), f.filename);
+          }
+          if (downloadResult.files.incomeStatement) {
+             const f = downloadResult.files.incomeStatement;
+             formData.append('profit_loss', base64ToBlob(f.content, f.mime), f.filename);
+          }
+          if (downloadResult.files.financialRatios) {
+             const f = downloadResult.files.financialRatios;
+             formData.append('financial_ratios', base64ToBlob(f.content, f.mime), f.filename);
+          }
+          yearsInBusiness = downloadResult.yearsInBusiness || 0;
+      } else {
+          // Fallback: Use Customer Date
+          item.log = 'DBD ล้มเหลว ใช้วันที่ลูกค้าแทน...';
+          if (customer.customer.customer_since) {
+             const start = new Date(customer.customer.customer_since);
+             const now = new Date();
+             const diff = now.getFullYear() - start.getFullYear();
+             yearsInBusiness = diff > 0 ? diff : 0;
+          }
       }
 
       // Append Meta Data
-      // Use defaults if missing
-      formData.append('registered_capital', '0'); // Will be extracted from file content ideally, but API handles extraction too?
-      // Actually API extracts from Excel content usually.
+      formData.append('registered_capital', '0');
       formData.append('customer_duration', '0');
-      formData.append('years_in_business', String(downloadResult.yearsInBusiness || 0));
+      formData.append('years_in_business', String(yearsInBusiness));
       formData.append('request_credit_term', item.paymentTerms || '30'); // Default to 30 if null
       formData.append('request_amount', '0'); // Batch mode usually assumes checking purely on financials? Or we should assume current limit?
       // User said "auto calculate new suggest credit without input anything".
@@ -394,9 +420,9 @@ const startBatch = async () => {
          item.score = analyzeRes.data.scoringResult?.totalScore || 0;
          item.grade = analyzeRes.data.scoringResult?.grade || '-';
          item.status = 'Done';
-         item.log = 'Success';
+         item.log = 'สำเร็จ';
       } else {
-         throw new Error('Analysis Failed');
+         throw new Error('การวิเคราะห์ล้มเหลว');
       }
 
     } catch (err) {
@@ -408,27 +434,28 @@ const startBatch = async () => {
 
   isProcessing.value = false;
   if (!shouldStop.value) {
-     Swal.fire('Complete', 'Batch processing finished.', 'success');
+     Swal.fire('เสร็จสมบูรณ์', 'การประมวลผลแบบ Batch เสร็จสิ้น', 'success');
   }
 };
 
 // --- Export ---
 const exportReport = () => {
    const data = queue.value.map(item => ({
-      'Customer ID': item.customerId,
-      'Name': item.name,
-      'Tax ID': item.taxId,
-      'Current Limit': item.currentLimit,
-      'Suggested Limit': item.newLimit,
-      'Score': item.score,
-      'Grade': item.grade,
-      'Status': item.status,
-      'Log': item.log
+      'รหัสลูกค้า': item.customerId,
+      'ชื่อลูกค้า': item.name,
+      'เลขผู้เสียภาษี': item.taxId,
+      'เครดิตเทอม': item.paymentTerms || '-',
+      'วงเงินปัจจุบัน': item.currentLimit,
+      'วงเงินใหม่ (แนะนำ)': item.newLimit,
+      'คะแนน': item.score,
+      'เกรด': item.grade,
+      'สถานะ': translateStatus(item.status),
+      'บันทึกข้อความ': item.log
    }));
 
    const ws = XLSX.utils.json_to_sheet(data);
    const wb = XLSX.utils.book_new();
-   XLSX.utils.book_append_sheet(wb, ws, "Batch Report");
+   XLSX.utils.book_append_sheet(wb, ws, "รายงาน Batch");
    XLSX.writeFile(wb, "Batch_Credit_Automation_Report.xlsx");
 };
 
@@ -439,6 +466,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.hidden-input {
+  display: none;
+}
 .batch-automation-container {
   padding: 20px;
   max-width: 1200px;
