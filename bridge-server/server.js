@@ -68,7 +68,18 @@ const extractDBDData = async (pdfPath) => {
         const data = await pdf(dataBuffer);
         const text = data.text;
 
-        const result = { success: true };
+        // DEBUG: Find relevant text area
+        const debugIndex = text.indexOf('จดทะเบียน');
+        const debugSnippet = debugIndex !== -1 ? text.substring(debugIndex - 50, debugIndex + 100) : text.substring(0, 200);
+        console.log('[DBD Bridge Debug] PDF Snippet:', debugSnippet);
+
+        const result = {
+            success: true,
+            debug: {
+                snippet: debugSnippet,
+                rawTextLength: text.length
+            }
+        };
 
         // 1. Registration Date
         // Use Unicode to avoid encoding issues and allow flexible matching
@@ -87,6 +98,9 @@ const extractDBDData = async (pdfPath) => {
             const currentYearBE = new Date().getFullYear() + 543;
             const yearsInBusiness = currentYearBE - yearBE;
             result.yearsInBusiness = yearsInBusiness;
+        } else {
+             console.log('[DBD Bridge Debug] Date Regex FAILED');
+             result.debug.dateError = 'Regex did not match';
         }
 
         // 2. Registered Capital
@@ -96,6 +110,9 @@ const extractDBDData = async (pdfPath) => {
         if (capMatch) {
             const rawCap = capMatch[1].replace(/,/g, '');
             result.registeredCapital = parseFloat(rawCap);
+        } else {
+             console.log('[DBD Bridge Debug] Capital Regex FAILED');
+             result.debug.capitalError = 'Regex did not match';
         }
 
         return result;
@@ -499,7 +516,8 @@ app.get('/stream', async (req, res) => {
                 } : null,
                 yearsInBusiness: extractionResult.yearsInBusiness,
                 registeredCapital: extractionResult.registeredCapital,
-                registrationDate: extractionResult.registrationDate
+                registrationDate: extractionResult.registrationDate,
+                debug: extractionResult.debug
             }
         });
 

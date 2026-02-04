@@ -341,6 +341,10 @@ const connectToBridge = (taxId, customerCode) => {
            let registrationDate = null;
 
            if (data.data) {
+             if (data.data.debug) {
+                 console.log('[Batch Bridge Debug]', data.data.debug);
+             }
+
              resultFiles = {
                 profile: data.data.profile,
                 balanceSheet: data.data.balanceSheet,
