@@ -424,10 +424,12 @@ const startBatch = async () => {
       item.currentLimit = customer.customer.current_credit_limit;
       item.paymentTerms = customer.customer.payment_terms_code;
 
-      // Fix: Safely Extract Total Purchase (Handle NaN)
+      // Fix: Safely Extract Total Purchase (Handle NaN and Commas)
       item.totalPurchase3Months = 0;
       if (customer.financial_summary?.total_purchase_3_months) {
-          const val = Number(customer.financial_summary.total_purchase_3_months);
+          // Remove commas before parsing
+          const rawVal = String(customer.financial_summary.total_purchase_3_months).replace(/,/g, '');
+          const val = Number(rawVal);
           item.totalPurchase3Months = isNaN(val) ? 0 : val;
       }
 
@@ -768,6 +770,7 @@ button:disabled {
   border: 1px solid #ddd;
   border-radius: 8px;
   overflow: hidden;
+  overflow-x: auto; /* Enable horizontal scrolling */
 }
 
 .data-table {
@@ -779,7 +782,6 @@ button:disabled {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid #eee;
-  min-width: 100px; /* Ensure columns aren't too narrow */
 }
 
 .data-table th {
@@ -787,6 +789,20 @@ button:disabled {
   font-weight: 600;
   color: #333;
   white-space: nowrap; /* Prevent header wrapping */
+}
+
+/* Fix # Column Width */
+.data-table th:first-child,
+.data-table td:first-child {
+  width: 50px;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* Default min-width for other columns */
+.data-table th:not(:first-child),
+.data-table td:not(:first-child) {
+  min-width: 100px;
 }
 
 .row-active {
