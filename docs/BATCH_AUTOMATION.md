@@ -87,7 +87,7 @@ When exporting the "Full Detail" report, the system must adhere to the following
 
 3.  **Sales History Layout:**
     *   **Exclusion:** The **Current Month** (incomplete data) must be excluded from the report.
-    *   **Range:** The report must show the **6 months prior** to the current month.
+    *   **Range:** The report must show the **7 months prior** to the current month.
     *   **Order:** Columns must be ordered from **Oldest (Left)** to **Newest (Right)**.
     *   **Spacer:** There must be an empty spacer column between the analysis data and the sales history columns to visually separate the sections.
 
