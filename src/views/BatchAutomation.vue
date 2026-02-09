@@ -713,9 +713,9 @@ const exportFullDetailReport = () => {
            const history = item.analysisResult.financialSummary.monthlyHistory;
            // History is [Current, M-1, M-2, M-3...] (Newest First)
 
-           // We want to exclude Current (Index 0) and take next 6
-           // Slice(1, 7) gives indices 1, 2, 3, 4, 5, 6 (6 items)
-           const recent6Months = history.slice(1, 7);
+           // We want to exclude Current (Index 0) and take next 7
+           // Slice(1, 8) gives indices 1, 2, 3, 4, 5, 6, 7 (7 items)
+           const recent6Months = history.slice(1, 8);
 
            // Reverse to get Oldest -> Newest (Left -> Right)
            const exportMonths = recent6Months.reverse();
