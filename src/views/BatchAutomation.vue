@@ -421,13 +421,6 @@ const stopBatch = () => {
 const startBatch = async () => {
   if (isProcessing.value) return;
 
-  // Check Bridge first
-  const isBridgeReady = await checkBridgeConnection();
-  if (!isBridgeReady) {
-    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับ Local Bridge กรุณาตรวจสอบการตั้งค่า', 'error');
-    return;
-  }
-
   isProcessing.value = true;
   shouldStop.value = false;
 
@@ -490,91 +483,155 @@ const startBatch = async () => {
         skipDBD = true;
       }
 
-      // 2. Download from Bridge (Retry Logic) - Only if not skipped
-      let downloadResult = null;
-
+      // --- NEW CACHE LOGIC ---
+      let useCache = false;
       if (!skipDBD) {
-          item.log = 'กำลังดาวน์โหลดไฟล์ DBD...';
-          let retries = 0;
-          const maxRetries = 2;
-
-          while (retries <= maxRetries && !downloadResult) {
-             try {
-                downloadResult = await connectToBridge(item.taxId, item.customerId);
-             } catch (e) {
-                retries++;
-                if (retries > maxRetries) {
-                    console.warn('Bridge failed, proceeding with fallback');
-                } else {
-                    item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
-                    // Wait 2 seconds before retry
-                    await new Promise(r => setTimeout(r, 2000));
-                }
+         try {
+             const cacheCheck = await axios.get('/api/financials/cache-check', {
+                 params: { customer_code: item.customerId }
+             });
+             if (cacheCheck.data.hasCache) {
+                 useCache = true;
+                 item.log = 'วิเคราะห์ (จากแคช)...'; // Analyzing (Cached)
              }
-          }
+         } catch (e) {
+             console.warn('Cache check failed:', e);
+         }
       }
 
-      // 3. Prepare for Analysis
-      item.log = 'กำลังวิเคราะห์...';
-      const formData = new FormData();
+      let analysisResultData = null;
 
-      let yearsInBusiness = 0;
-      let registeredCapital = 0;
+      // PATH A: USE CACHE (Skip Bridge)
+      if (useCache) {
+         try {
+             // We still need to construct the payload, but no files needed
+             const payload = {
+                 customer_no: item.customerId,
+                 customer_name: item.name,
+                 customer_duration: String(customerDuration),
+                 request_credit_term: item.paymentTerms || '30',
+                 request_amount: String(item.currentLimit || 0)
+                 // Note: years_in_business and registered_capital usually come from Bridge/DBD
+                 // If using cache, the backend might need to rely on DB or what's in the Excel?
+                 // For now, let's assume performAnalysis extracts/defaults them or we send what we have.
+             };
 
-      if (downloadResult) {
-          // Append Files
-          if (downloadResult.files.balanceSheet) {
-             const f = downloadResult.files.balanceSheet;
-             formData.append('balance_sheet', base64ToBlob(f.content, f.mime), f.filename);
-          }
-          if (downloadResult.files.incomeStatement) {
-             const f = downloadResult.files.incomeStatement;
-             formData.append('profit_loss', base64ToBlob(f.content, f.mime), f.filename);
-          }
-          if (downloadResult.files.financialRatios) {
-             const f = downloadResult.files.financialRatios;
-             formData.append('financial_ratios', base64ToBlob(f.content, f.mime), f.filename);
-          }
-          yearsInBusiness = downloadResult.yearsInBusiness || 0;
-          registeredCapital = downloadResult.registeredCapital || 0;
-      } else {
-          // Fallback: Use Customer Date
-          item.log = 'DBD ล้มเหลว ใช้วันที่ลูกค้าแทน...';
-          if (customer.customer.customer_since) {
-             const start = new Date(customer.customer.customer_since);
-             const now = new Date();
-             const diff = now.getFullYear() - start.getFullYear();
-             yearsInBusiness = diff > 0 ? diff : 0;
-          }
+             const res = await axios.post('/api/financials/analyze-cached', payload);
+             if (res.data.success) {
+                 analysisResultData = res.data;
+                 item.status = 'Done (Cached)'; // New Status
+             } else {
+                 throw new Error('Analysis (Cached) Failed');
+             }
+         } catch (e) {
+             item.log = 'แคชล้มเหลว ลองโหลดใหม่...';
+             useCache = false; // Fallback to normal flow
+         }
       }
 
-      // Store yearsInBusiness for report
-      item.yearsInBusiness = yearsInBusiness;
-      item.registeredCapital = registeredCapital;
+      // PATH B: NORMAL FLOW (Bridge + Upload)
+      if (!useCache) {
+          // Check Bridge Connection ONLY if we actually need to download
+          if (!skipDBD) {
+               // We do a quick check here if haven't already
+               const isBridgeReady = await checkBridgeConnection();
+               if (!isBridgeReady) {
+                   throw new Error('Bridge ไม่พร้อมใช้งาน');
+               }
+          }
 
-      // Append Meta Data
-      formData.append('customer_no', item.customerId);
-      formData.append('customer_name', item.name);
-      formData.append('registered_capital', String(registeredCapital));
-      formData.append('customer_duration', String(customerDuration)); // Use calculated duration
-      formData.append('years_in_business', String(yearsInBusiness));
-      formData.append('request_credit_term', item.paymentTerms || '30');
-      formData.append('request_amount', String(item.currentLimit || 0)); // Fallback to current limit
+          // 2. Download from Bridge (Retry Logic) - Only if not skipped
+          let downloadResult = null;
 
-      // 4. Call Analysis API
-      const analyzeRes = await axios.post('/api/financials/analyze', formData, {
-         headers: { 'Content-Type': 'multipart/form-data' }
-      });
+          if (!skipDBD) {
+              item.log = 'กำลังโหลด DBD...'; // Downloading DBD
+              let retries = 0;
+              const maxRetries = 2;
 
-      if (analyzeRes.data.success) {
-         item.analysisResult = analyzeRes.data;
-         item.newLimit = analyzeRes.data.scoringResult?.recommendedLimit || 0;
-         item.score = analyzeRes.data.scoringResult?.totalScore || 0;
-         item.grade = analyzeRes.data.scoringResult?.grade || '-';
-         item.status = skipDBD ? 'Done (Int)' : 'Done';
-         item.log = 'เสร็จสิ้น';
-      } else {
-         throw new Error('การวิเคราะห์ล้มเหลว');
+              while (retries <= maxRetries && !downloadResult) {
+                 try {
+                    downloadResult = await connectToBridge(item.taxId, item.customerId);
+                 } catch (e) {
+                    retries++;
+                    if (retries > maxRetries) {
+                        console.warn('Bridge failed, proceeding with fallback');
+                    } else {
+                        item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
+                        // Wait 2 seconds before retry
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
+                 }
+              }
+          }
+
+          // 3. Prepare for Analysis
+          item.log = 'กำลังวิเคราะห์...';
+          const formData = new FormData();
+
+          let yearsInBusiness = 0;
+          let registeredCapital = 0;
+
+          if (downloadResult) {
+              // Append Files
+              if (downloadResult.files.balanceSheet) {
+                 const f = downloadResult.files.balanceSheet;
+                 formData.append('balance_sheet', base64ToBlob(f.content, f.mime), f.filename);
+              }
+              if (downloadResult.files.incomeStatement) {
+                 const f = downloadResult.files.incomeStatement;
+                 formData.append('profit_loss', base64ToBlob(f.content, f.mime), f.filename);
+              }
+              if (downloadResult.files.financialRatios) {
+                 const f = downloadResult.files.financialRatios;
+                 formData.append('financial_ratios', base64ToBlob(f.content, f.mime), f.filename);
+              }
+              yearsInBusiness = downloadResult.yearsInBusiness || 0;
+              registeredCapital = downloadResult.registeredCapital || 0;
+          } else {
+              // Fallback: Use Customer Date
+              item.log = 'DBD ล้มเหลว ใช้วันที่ลูกค้าแทน...';
+              if (customer.customer.customer_since) {
+                 const start = new Date(customer.customer.customer_since);
+                 const now = new Date();
+                 const diff = now.getFullYear() - start.getFullYear();
+                 yearsInBusiness = diff > 0 ? diff : 0;
+              }
+          }
+
+          // Store yearsInBusiness for report
+          item.yearsInBusiness = yearsInBusiness;
+          item.registeredCapital = registeredCapital;
+
+          // Append Meta Data
+          formData.append('customer_no', item.customerId);
+          formData.append('customer_name', item.name);
+          formData.append('registered_capital', String(registeredCapital));
+          formData.append('customer_duration', String(customerDuration)); // Use calculated duration
+          formData.append('years_in_business', String(yearsInBusiness));
+          formData.append('request_credit_term', item.paymentTerms || '30');
+          formData.append('request_amount', String(item.currentLimit || 0)); // Fallback to current limit
+
+          // 4. Call Analysis API
+          const analyzeRes = await axios.post('/api/financials/analyze', formData, {
+             headers: { 'Content-Type': 'multipart/form-data' }
+          });
+
+          if (analyzeRes.data.success) {
+             analysisResultData = analyzeRes.data;
+             item.status = skipDBD ? 'Done (Int)' : 'Done';
+          } else {
+             throw new Error('การวิเคราะห์ล้มเหลว');
+          }
+      } // End Path B
+
+      // Finalize Result
+      if (analysisResultData) {
+         item.analysisResult = analysisResultData;
+         item.newLimit = analysisResultData.scoringResult?.recommendedLimit || 0;
+         item.score = analysisResultData.scoringResult?.totalScore || 0;
+         item.grade = analysisResultData.scoringResult?.grade || '-';
+         // Status already set in Path A or Path B
+         item.log = item.status === 'Done (Cached)' ? 'เสร็จสิ้น (แคช)' : 'เสร็จสิ้น';
       }
 
     } catch (err) {

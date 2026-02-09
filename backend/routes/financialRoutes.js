@@ -14,5 +14,7 @@ const cpUpload = upload.fields([
 ]);
 
 router.post('/analyze', cpUpload, financialController.analyzeFinancials);
+router.post('/analyze-cached', financialController.analyzeCachedFinancials);
+router.get('/cache-check', financialController.checkCacheStatus);
 
 module.exports = router;

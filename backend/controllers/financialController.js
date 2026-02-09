@@ -1,6 +1,7 @@
 const xlsx = require('xlsx');
 const db = require('../db');
 const axios = require('axios');
+const dbdCacheService = require('../services/dbdCacheService');
 
 // Configuration
 const FINANCIAL_API_URL = "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
@@ -687,101 +688,88 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   return { total: score, items, debug };
 };
 
-exports.analyzeFinancials = async (req, res) => {
-  try {
-    const files = req.files || {};
+/**
+ * CORE ANALYSIS FUNCTION (Internal)
+ * Reusable by both Upload and Cache strategies
+ */
+const performAnalysis = async (fileBuffers, inputData) => {
     const {
-      registered_capital,
-      request_amount,
-      customer_no,
-      customer_name,
-      customer_duration,
-      years_in_business,
-      request_credit_term,
-      residence_ownership,
-      residence_ownership_other
-    } = req.body;
+        registered_capital,
+        request_amount,
+        customer_no,
+        customer_name,
+        customer_duration,
+        years_in_business,
+        request_credit_term,
+        residence_ownership,
+        residence_ownership_other
+    } = inputData;
 
     // --- 1. EXTRACT FROM EXCEL ---
     const results = {
-      nonCurrentLiabilities: { value: 0, column: '' },
-      totalLiabilities: { value: 0, column: '' },
-      shareholdersEquity: { value: 0, column: '' },
-      totalRevenue: { value: 0, column: '' },
-      grossProfit: { value: 0, column: '' },
-      deRatio: { value: 0, column: '' },
-      inventoryTurnover: { value: 0, column: '' },
-      revenueHistory: [],
-      averageRevenue: 0
+        nonCurrentLiabilities: { value: 0, column: '' },
+        totalLiabilities: { value: 0, column: '' },
+        shareholdersEquity: { value: 0, column: '' },
+        totalRevenue: { value: 0, column: '' },
+        grossProfit: { value: 0, column: '' },
+        deRatio: { value: 0, column: '' },
+        inventoryTurnover: { value: 0, column: '' },
+        revenueHistory: [],
+        averageRevenue: 0
     };
 
-    if (files['balance_sheet'] && files['balance_sheet'][0]) {
-      try {
-          const workbook = xlsx.read(files['balance_sheet'][0].buffer, { type: 'buffer' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          results.nonCurrentLiabilities = findValue(sheet, 'หนี้สินไม่หมุนเวียน', 'AMOUNT');
+    // Helper to get buffer
+    const getBuffer = (key) => {
+        if (!fileBuffers[key]) return null;
+        return fileBuffers[key].buffer || fileBuffers[key]; // Handle Multer object or raw Buffer
+    };
 
-          // Try 'หนี้สินรวม' first, fallback to 'รวมหนี้สิน'
-          let tl = findValue(sheet, 'หนี้สินรวม', 'AMOUNT');
-          if (tl.value === 0) {
-              tl = findValue(sheet, 'รวมหนี้สิน', 'AMOUNT');
-          }
-          results.totalLiabilities = tl;
-
-          results.shareholdersEquity = findValue(sheet, 'ส่วนของผู้ถือหุ้น', 'AMOUNT');
-      } catch (e) {
-          console.error("Error parsing balance sheet:", e);
-      }
+    if (getBuffer('balance_sheet')) {
+        try {
+            const workbook = xlsx.read(getBuffer('balance_sheet'), { type: 'buffer' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            results.nonCurrentLiabilities = findValue(sheet, 'หนี้สินไม่หมุนเวียน', 'AMOUNT');
+            let tl = findValue(sheet, 'หนี้สินรวม', 'AMOUNT');
+            if (tl.value === 0) tl = findValue(sheet, 'รวมหนี้สิน', 'AMOUNT');
+            results.totalLiabilities = tl;
+            results.shareholdersEquity = findValue(sheet, 'ส่วนของผู้ถือหุ้น', 'AMOUNT');
+        } catch (e) { console.error("Error parsing balance sheet:", e); }
     }
 
-    if (files['profit_loss'] && files['profit_loss'][0]) {
-      try {
-          const workbook = xlsx.read(files['profit_loss'][0].buffer, { type: 'buffer' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          results.totalRevenue = findValue(sheet, 'รายได้รวม', 'AMOUNT');
-          results.grossProfit = findValue(sheet, 'กำไร(ขาดทุน) ขั้นต้น', 'AMOUNT');
-
-          // NEW: Extract Revenue History (Last 3 Years)
-          results.revenueHistory = findYearlySeries(sheet, 'รายได้รวม', 3);
-          if (results.revenueHistory.length > 0) {
-              const sum = results.revenueHistory.reduce((acc, cur) => acc + cur.amount, 0);
-              results.averageRevenue = sum / results.revenueHistory.length;
-          }
-      } catch (e) {
-          console.error("Error parsing profit loss:", e);
-      }
+    if (getBuffer('profit_loss')) {
+        try {
+            const workbook = xlsx.read(getBuffer('profit_loss'), { type: 'buffer' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            results.totalRevenue = findValue(sheet, 'รายได้รวม', 'AMOUNT');
+            results.grossProfit = findValue(sheet, 'กำไร(ขาดทุน) ขั้นต้น', 'AMOUNT');
+            results.revenueHistory = findYearlySeries(sheet, 'รายได้รวม', 3);
+            if (results.revenueHistory.length > 0) {
+                const sum = results.revenueHistory.reduce((acc, cur) => acc + cur.amount, 0);
+                results.averageRevenue = sum / results.revenueHistory.length;
+            }
+        } catch (e) { console.error("Error parsing profit loss:", e); }
     }
 
-    if (files['financial_ratios'] && files['financial_ratios'][0]) {
-      try {
-          const workbook = xlsx.read(files['financial_ratios'][0].buffer, { type: 'buffer' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          results.deRatio = findValue(sheet, 'อัตราส่วนหนี้สินรวมต่อส่วนของผู้ถือหุ้น', 'RATIO');
-          // Updated: Search for BOTH 'อัตราการหมุนเวียน' AND 'สินค้าคงเหลือ'
-          results.inventoryTurnover = findValue(sheet, ['อัตราการหมุนเวียน', 'สินค้าคงเหลือ'], 'RATIO');
-      } catch (e) {
-          console.error("Error parsing financial ratios:", e);
-      }
+    if (getBuffer('financial_ratios')) {
+        try {
+            const workbook = xlsx.read(getBuffer('financial_ratios'), { type: 'buffer' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            results.deRatio = findValue(sheet, 'อัตราส่วนหนี้สินรวมต่อส่วนของผู้ถือหุ้น', 'RATIO');
+            results.inventoryTurnover = findValue(sheet, ['อัตราการหมุนเวียน', 'สินค้าคงเหลือ'], 'RATIO');
+        } catch (e) { console.error("Error parsing financial ratios:", e); }
     }
 
-    // Calculations for C2 inputs
+    // Calculations
     const calculations = { dscr: 0, creditCapitalRatio: 0 };
     const gp = results.grossProfit.value;
     const ncl = results.nonCurrentLiabilities.value;
-
     if (ncl !== 0) {
-      const denominator = ncl * 0.3;
-      if (denominator !== 0) {
-        calculations.dscr = Number((gp / denominator).toFixed(4));
-      } else {
-        calculations.dscr = 0;
-      }
+        const denominator = ncl * 0.3;
+        calculations.dscr = denominator !== 0 ? Number((gp / denominator).toFixed(4)) : 0;
     }
     const regCap = parseFloat(registered_capital || 0);
     const reqAmt = parseFloat(request_amount || 0);
-    if (regCap !== 0) {
-      calculations.creditCapitalRatio = reqAmt / regCap;
-    }
+    if (regCap !== 0) calculations.creditCapitalRatio = reqAmt / regCap;
 
     // --- 2. FETCH DATABASE & API INFO ---
     let customerData = {};
@@ -789,7 +777,6 @@ exports.analyzeFinancials = async (req, res) => {
     let monthlyHistory = [];
 
     if (customer_no) {
-        // Fetch Customer Profile (Years in Business, etc.)
         const custSql = 'SELECT * FROM Customers WHERE No_ = ?';
         let rowsC = [];
         if (db.dbType === 'mssql') {
@@ -801,53 +788,30 @@ exports.analyzeFinancials = async (req, res) => {
         }
         if (rowsC.length > 0) customerData = rowsC[0];
 
-        // Merge Manual Overrides (Frontend Inputs take precedence)
         if (years_in_business) customerData.years_in_business = years_in_business;
         if (residence_ownership) customerData.residence_ownership = residence_ownership;
         if (residence_ownership_other) customerData.residence_ownership_other = residence_ownership_other;
 
-        // Fetch Financial Data (REPLACED SQL WITH API)
         const apiData = await fetchPurchasingBehavior(customer_no);
-
         if (apiData && apiData.monthly && apiData.monthly.length > 0) {
             const monthlyData = [...apiData.monthly];
-            // Sort by month (oldest first)
             monthlyData.sort((a, b) => a.month.localeCompare(b.month));
 
-            // Separate Calculation Set (Exclude Current Month)
-            let calcData = [];
-            if (monthlyData.length > 1) {
-                calcData = monthlyData.slice(0, -1);
-            } else {
-                calcData = [];
-            }
-
-            const totalCalcAvailable = calcData.length;
-
-            // Last 3 Months (for SecondAccum)
+            let calcData = monthlyData.length > 1 ? monthlyData.slice(0, -1) : [];
             const last3 = calcData.slice(-3);
             const sumLast3 = last3.reduce((acc, cur) => acc + cur.amount, 0);
-
-            // Calculate SLOPE for the last 3 months
             const slope = calculateSlope(last3);
-
-            // NEW FORMULA FOR TREND (AccumTrend)
-            // User Formula: 1 + (Slope / AveragePerMonth)
             let trendRatio = 1.0;
             const averagePerMonth = sumLast3 / 3;
-
-            if (averagePerMonth !== 0) {
-                trendRatio = 1 + (slope / averagePerMonth);
-            }
+            if (averagePerMonth !== 0) trendRatio = 1 + (slope / averagePerMonth);
 
             accumData = {
                 SecondAccum: sumLast3,
                 AccumTrend: trendRatio,
                 Slope: slope,
-                last3Months: last3 // Store raw data for C3 specific calculations (e.g. 60-day term)
+                last3Months: last3
             };
 
-            // Prepare Monthly History for Frontend (Reverse order: Newest First)
             monthlyHistory = monthlyData.map((m, index) => {
                 const isCurrent = index === monthlyData.length - 1;
                 return {
@@ -856,18 +820,13 @@ exports.analyzeFinancials = async (req, res) => {
                     amount: m.amount
                 };
             }).reverse();
-
         } else {
-             // No Data found
              accumData = { SecondAccum: 0, AccumTrend: 1.0, Slope: 0 };
         }
     }
 
     // --- 3. SCORING ---
     const c1 = calculateC1(customerData, regCap, reqAmt);
-
-    // Determine if Company (Check Name)
-    // Use customer_name from body (latest) or DB (fallback)
     const finalName = customer_name || customerData.Name || "";
     const isCompany = (name) => {
         if (!name) return false;
@@ -875,12 +834,9 @@ exports.analyzeFinancials = async (req, res) => {
         return keywords.some(keyword => name.includes(keyword));
     };
     const isCorp = isCompany(finalName);
-
     const c2Inputs = { ...results, dscr: calculations.dscr };
     const c2 = calculateC2(c2Inputs, isCorp);
-
     const c3 = calculateC3(accumData, results, regCap, reqAmt, request_credit_term || 30, customer_duration);
-
     const totalScore = c1.total + c2.total + c3.total;
 
     // --- 4. RECOMMENDED LIMIT ---
@@ -891,15 +847,11 @@ exports.analyzeFinancials = async (req, res) => {
     const recommendedLimit = minLimit + (maxLimit - minLimit) * ratio;
     const roundedLimit = Math.round(recommendedLimit / 1000) * 1000;
 
-    // --- 5. CALCULATE SIZE & GRADE (NEW LOGIC) ---
-    // Size = C1 + C2
     const sizeScore = c1.total + c2.total;
     let sizeLabel = "L";
     if (sizeScore <= 37) sizeLabel = "S";
     else if (sizeScore <= 68) sizeLabel = "M";
-    else sizeLabel = "L";
 
-    // Grade = C3
     const gradeScore = c3.total;
     let gradeLabel = "D";
     if (gradeScore >= 81) gradeLabel = "A+";
@@ -908,7 +860,6 @@ exports.analyzeFinancials = async (req, res) => {
     else if (gradeScore >= 35) gradeLabel = "B";
     else if (gradeScore >= 20) gradeLabel = "C";
 
-    // Combine Debug Data
     const rawInputs = [
         { label: 'รายได้รวม (Extracted)', value: results.totalRevenue.value, column: results.totalRevenue.column, weight: '-', score: '-' },
         { label: 'กำไรขั้นต้น (Extracted)', value: results.grossProfit.value, column: results.grossProfit.column, weight: '-', score: '-' },
@@ -917,23 +868,17 @@ exports.analyzeFinancials = async (req, res) => {
         { label: 'อัตราหมุนเวียนสินค้า (Extracted)', value: results.inventoryTurnover.value, column: results.inventoryTurnover.column, weight: '-', score: '-' },
     ];
 
-    const debugData = [
-        ...rawInputs,
-        ...c1.debug,
-        ...c2.debug,
-        ...c3.debug
-    ];
+    const debugData = [...rawInputs, ...c1.debug, ...c2.debug, ...c3.debug];
 
     const scoringResult = {
         totalScore: Math.round(totalScore),
-        grade: gradeLabel, // Use new grade label
+        grade: gradeLabel,
         recommendedLimit: roundedLimit,
         breakdown: { c1, c2, c3 },
         sizeResult: { score: sizeScore, label: sizeLabel },
         gradeResult: { score: gradeScore, label: gradeLabel }
     };
 
-    // Additional Financial Summary for Frontend
     const financialSummary = {
         monthlyHistory,
         stats: {
@@ -943,14 +888,74 @@ exports.analyzeFinancials = async (req, res) => {
         }
     };
 
-    res.json({
-      success: true,
-      extractedData: results,
-      calculations: calculations,
-      scoringResult: scoringResult,
-      financialSummary: financialSummary,
-      debugData: debugData
-    });
+    return {
+        success: true,
+        extractedData: results,
+        calculations: calculations,
+        scoringResult: scoringResult,
+        financialSummary: financialSummary,
+        debugData: debugData
+    };
+};
+
+/**
+ * Endpoint: Check Cache
+ */
+exports.checkCacheStatus = async (req, res) => {
+    try {
+        const { customer_code } = req.query;
+        if (!customer_code) return res.status(400).json({ error: 'Customer Code required' });
+
+        const result = await dbdCacheService.checkCache(customer_code);
+        res.json({
+            hasCache: result.exists,
+            year: result.year
+        });
+    } catch (e) {
+        console.error("Cache Check Error:", e);
+        res.status(500).json({ error: e.message });
+    }
+};
+
+/**
+ * Endpoint: Analyze Cached Financials
+ */
+exports.analyzeCachedFinancials = async (req, res) => {
+    try {
+        const { customer_code, ...inputData } = req.body;
+
+        // 1. Load Files from Cache
+        const files = await dbdCacheService.getCachedFiles(customer_code);
+
+        // 2. Perform Analysis
+        const result = await performAnalysis(files, { customer_no: customer_code, ...inputData });
+
+        res.json(result);
+
+    } catch (e) {
+        console.error("Analyze Cache Error:", e);
+        res.status(500).json({ success: false, message: e.message });
+    }
+};
+
+/**
+ * Endpoint: Analyze & Save (Upload)
+ */
+exports.analyzeFinancials = async (req, res) => {
+  try {
+    const files = req.files || {};
+    const inputData = req.body;
+
+    // 1. Save to Cache (Async, non-blocking)
+    if (inputData.customer_no) {
+        dbdCacheService.saveToCache(inputData.customer_no, files)
+            .catch(err => console.error("Cache Save Error:", err));
+    }
+
+    // 2. Perform Analysis
+    const result = await performAnalysis(files, inputData);
+
+    res.json(result);
 
   } catch (error) {
     console.error('Financial Analysis Error:', error);
@@ -958,7 +963,7 @@ exports.analyzeFinancials = async (req, res) => {
   }
 };
 
-// Export helper for testing
+// Export helpers
 exports.findYearlySeries = findYearlySeries;
 exports.calculateSlope = calculateSlope;
 exports.calculateC1 = calculateC1;
