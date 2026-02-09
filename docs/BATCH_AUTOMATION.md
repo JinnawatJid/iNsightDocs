@@ -72,3 +72,28 @@ We use `EventSource` to listen for progress updates from the bridge.
 
 ## 6. Deployment
 This view is **hidden** by default. To make it accessible to general users, add a navigation link in `src/components/Sidebar.vue` pointing to `/batch-automation`.
+
+## 7. Export Logic & Business Rules
+
+### Full Detail Report Requirements
+When exporting the "Full Detail" report, the system must adhere to the following specific business rules:
+
+1.  **Branch Extraction (สาขา):**
+    *   The branch code is **always** the last 2 characters of the Customer ID.
+    *   Format: `XXXXXYY` -> Branch is `YY`.
+
+2.  **Financial Ratios:**
+    *   **Capacity Check (สัดส่วนยอดซื้อเฉลี่ย 1.5 เดือนย้อนหลัง 3 เดือน):** This value corresponds to the backend calculation `Average 1.5 Months` (Sum of Last 3 Months / 2) divided by the Requested Credit Amount. It matches the logic used for the "Capacity Check" score.
+
+3.  **Sales History Layout:**
+    *   **Exclusion:** The **Current Month** (incomplete data) must be excluded from the report.
+    *   **Range:** The report must show the **6 months prior** to the current month.
+    *   **Order:** Columns must be ordered from **Oldest (Left)** to **Newest (Right)**.
+    *   **Spacer:** There must be an empty spacer column between the analysis data and the sales history columns to visually separate the sections.
+
+### Summary Report
+The standard report includes:
+*   Customer ID, Name, Tax ID
+*   Total Purchase (Last 3 Months)
+*   Credit Term, Current Limit, Recommended Limit
+*   Score, Grade, Status
