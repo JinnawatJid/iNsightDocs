@@ -55,13 +55,20 @@
         ⏹ หยุด
       </button>
 
-      <button
-        class="btn-success"
-        @click="exportReport"
-        :disabled="queue.length === 0"
-      >
-        📊 ส่งออกรายงาน
-      </button>
+      <!-- DROPDOWN FOR EXPORT -->
+      <div class="dropdown" v-click-outside="closeExportDropdown">
+        <button
+          class="btn-success dropdown-toggle"
+          @click="toggleExportDropdown"
+          :disabled="queue.length === 0"
+        >
+          📊 ส่งออกรายงาน
+        </button>
+        <div class="dropdown-menu" v-if="isExportDropdownOpen">
+          <a class="dropdown-item" @click="exportSummarizedReport">📄 แบบย่อ (Summary)</a>
+          <a class="dropdown-item" @click="exportFullDetailReport">📊 แบบละเอียด (Full Detail)</a>
+        </div>
+      </div>
 
       <div class="progress-info" v-if="queue.length > 0">
         <span>ประมวลผลแล้ว: {{ processedCount }} / {{ queue.length }}</span>
@@ -147,6 +154,22 @@ const isProcessing = ref(false);
 const shouldStop = ref(false);
 const bridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 const bridgeStatus = ref('ไม่ทราบสถานะ');
+const isExportDropdownOpen = ref(false); // State for dropdown
+
+// Click Outside Directive (Simple Implementation)
+const vClickOutside = {
+  mounted(el, binding) {
+    el.clickOutsideEvent = (event) => {
+      if (!(el === event.target || el.contains(event.target))) {
+        binding.value(event);
+      }
+    };
+    document.body.addEventListener('click', el.clickOutsideEvent);
+  },
+  unmounted(el) {
+    document.body.removeEventListener('click', el.clickOutsideEvent);
+  },
+};
 
 // Watch bridge host to save
 watch(bridgeHost, (val) => {
@@ -595,7 +618,16 @@ const openReport = (item) => {
     const routeData = window.open('/report/financial-analysis', '_blank');
 };
 
-const exportReport = () => {
+const toggleExportDropdown = () => {
+    isExportDropdownOpen.value = !isExportDropdownOpen.value;
+};
+
+const closeExportDropdown = () => {
+    isExportDropdownOpen.value = false;
+};
+
+const exportSummarizedReport = () => {
+   closeExportDropdown();
    const data = queue.value.map(item => ({
       'รหัสลูกค้า': item.customerId,
       'ชื่อลูกค้า': item.name,
@@ -616,9 +648,97 @@ const exportReport = () => {
    XLSX.writeFile(wb, "Batch_Credit_Automation_Report.xlsx");
 };
 
-onMounted(() => {
-    checkBridgeConnection();
-});
+// Helper to safely extract analysis items
+const extractFinancialValue = (item, key) => {
+    if (!item.analysisResult || !item.analysisResult.scoringResult || !item.analysisResult.scoringResult.breakdown) {
+        return '-';
+    }
+    // Search in C1, C2, C3 breakdown items
+    const groups = ['c1', 'c2', 'c3'];
+    for (const g of groups) {
+        const breakdown = item.analysisResult.scoringResult.breakdown[g];
+        if (breakdown && breakdown.items) {
+            const found = breakdown.items.find(i => i.key === key);
+            if (found) return found.displayValue || found.value;
+        }
+    }
+    return '-';
+};
+
+const exportFullDetailReport = () => {
+   closeExportDropdown();
+
+   const data = queue.value.map(item => {
+      // 1. Branch Extraction (Last 2 chars)
+      const branchCode = item.customerId && item.customerId.length > 2
+          ? item.customerId.slice(-2)
+          : '-';
+
+      // 2. Base Data
+      const row = {
+          'สาขา': branchCode,
+          'ชื่อบริษัท/ร้านค้า': item.name || '-',
+          'หมายเลขนิติบุคคล/หมายเลขประจำตัวผู้เสียภาษีมูลค่าเพิ่ม': item.taxId || '-',
+          'ทุนจดทะเบียน': formatNumber(item.registeredCapital),
+          'ระยะเวลาของธุรกิจ': item.yearsInBusiness || 0,
+          'คะแนนเกรดของระบบ': item.analysisResult?.scoringResult?.gradeResult?.score || 0,
+          'เกรดของระบบ': item.analysisResult?.scoringResult?.gradeResult?.label || '-',
+          'คะแนนขนาดของระบบ': item.analysisResult?.scoringResult?.sizeResult?.score || 0,
+          'ขนาดของระบบ': item.analysisResult?.scoringResult?.sizeResult?.label || '-',
+
+          // Financial Ratios
+          'สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน': extractFinancialValue(item, 'leverage'),
+          'กรรมสิทธิ์ทรัพย์สิน': extractFinancialValue(item, 'asset'),
+          'อัตราการส่วนหนี้สินรวม ต่อส่วนของผู้ถือหุุ้น': extractFinancialValue(item, 'deRatio'),
+          'ความสามารถในการชำระหนี้ (DSCR)': extractFinancialValue(item, 'dscr'),
+          'อัตราการหมุนเวียนของสินค้าคงเหลือ': extractFinancialValue(item, 'inventory'),
+          'สัดส่วนรายได้ต่อทุนจดทะเบียน': extractFinancialValue(item, 'revenueCapital'),
+          'สัดส่วนยอดซื้อเฉลี่ย ย้อนหลัง 3 เดือนต่อเครดิตที่ขอ': extractFinancialValue(item, 'capacityCheck'),
+          'สัดส่วนยอดซื้อเฉลี่ย 1.5 เดือนย้อนหลัง 3 เดือน': extractFinancialValue(item, 'capacityCheck'), // Matches user request to reuse capacityCheck logic
+          'สัดส่วนยอดซื้อต่อระยะเวลาเครดิตที่ขอ': extractFinancialValue(item, 'turnover'),
+          'แนวโน้มการซื้อ': extractFinancialValue(item, 'trend'),
+          'ระยะเวลาของการเป็นลูกค้า': extractFinancialValue(item, 'duration'),
+
+          // Credit Info
+          'เครดิตที่ขอ': formatNumber(item.currentLimit),
+          'ระยะเวลาเครดิต': item.paymentTerms || '-',
+          'เครดิตของระบบ': formatNumber(item.newLimit),
+
+          // Spacer
+          '_spacer': ''
+      };
+
+      // 3. Sales History Logic
+      if (item.analysisResult && item.analysisResult.financialSummary && item.analysisResult.financialSummary.monthlyHistory) {
+           const history = item.analysisResult.financialSummary.monthlyHistory;
+           // History is [Current, M-1, M-2, M-3...] (Newest First)
+
+           // We want to exclude Current (Index 0) and take next 6
+           // Slice(1, 7) gives indices 1, 2, 3, 4, 5, 6 (6 items)
+           const recent6Months = history.slice(1, 7);
+
+           // Reverse to get Oldest -> Newest (Left -> Right)
+           const exportMonths = recent6Months.reverse();
+
+           exportMonths.forEach(m => {
+               row[m.label] = m.amount ? Number(m.amount) : 0;
+           });
+      }
+
+      return row;
+   });
+
+   const ws = XLSX.utils.json_to_sheet(data);
+   const wb = XLSX.utils.book_new();
+   XLSX.utils.book_append_sheet(wb, ws, "รายงาน Full Detail");
+   XLSX.writeFile(wb, "Batch_Credit_Automation_Full_Report.xlsx");
+};
+
+// Deprecated: old export button called this, now handled by dropdown
+const exportReport = () => {
+    // Left for safety if button reused, defaults to Summary
+    exportSummarizedReport();
+};
 
 </script>
 
@@ -846,5 +966,59 @@ button:disabled {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Dropdown Styles */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+.dropdown-toggle::after {
+  display: inline-block;
+  margin-left: 0.255em;
+  vertical-align: 0.255em;
+  content: "";
+  border-top: 0.3em solid;
+  border-right: 0.3em solid transparent;
+  border-bottom: 0;
+  border-left: 0.3em solid transparent;
+}
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  display: block;
+  float: left;
+  min-width: 10rem;
+  padding: 0.5rem 0;
+  margin: 0.125rem 0 0;
+  font-size: 1rem;
+  color: #212529;
+  text-align: left;
+  list-style: none;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid rgba(0,0,0,.15);
+  border-radius: 0.25rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 0.25rem 1.5rem;
+  clear: both;
+  font-weight: 400;
+  color: #212529;
+  text-align: inherit;
+  white-space: nowrap;
+  background-color: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.dropdown-item:hover, .dropdown-item:focus {
+  color: #16181b;
+  text-decoration: none;
+  background-color: #f8f9fa;
 }
 </style>
