@@ -152,9 +152,9 @@ exports.createCreditRequest = async (req, res) => {
 
   try {
     // Check for existing active request for this customer
-    // Legacy statuses: Submitted, Reviewed, PendingSales (ชั่วคราว), PendingFinance (ชั่วคราว)
+    // Legacy statuses: Submitted, Reviewed
     // New statuses: RegionalSubmitted, SalesSubmitted, Reviewed
-    const activeStatuses = ['Draft', 'Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)', 'Submitted'];
+    const activeStatuses = ['Draft', 'Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed', 'Submitted'];
     const statusPlaceholders = activeStatuses.map(() => '?').join(',');
 
     let existingSql;
@@ -489,7 +489,7 @@ exports.cancelCreditRequest = async (req, res) => {
     }
 
     // Allow cancel for any active status
-    const activeStatuses = ['Draft', 'Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)', 'Submitted'];
+    const activeStatuses = ['Draft', 'Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed', 'Submitted'];
     const request = rows[0];
 
     if (!activeStatuses.includes(request.status)) {
