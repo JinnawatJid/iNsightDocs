@@ -110,7 +110,7 @@
            </div>
 
            <div class="category-list">
-              <div v-for="(cat, idx) in financial.category_breakdown" :key="idx" class="category-row">
+              <div v-for="(cat, idx) in visibleCategories" :key="idx" class="category-row">
                   <div class="cat-info">
                       <span class="cat-label">Category {{ cat.label }}</span>
                       <span class="cat-value">{{ cat.formattedValue }} บาท</span>
@@ -118,6 +118,12 @@
                   <div class="progress-bar-bg">
                       <div class="progress-bar-fill" :style="{ width: cat.percentage + '%' }"></div>
                   </div>
+              </div>
+
+              <div v-if="financial.category_breakdown.length > 3" class="cat-toggle-container">
+                  <button class="toggle-link" @click="showAllCategories = !showAllCategories">
+                      {{ showAllCategories ? 'แสดงน้อยลง' : 'ดูทั้งหมด' }}
+                  </button>
               </div>
            </div>
         </div>
@@ -151,7 +157,8 @@ export default {
     return {
       iconCheckCircle,
       iconShoppingCart,
-      showMonthlyDetails: false
+      showMonthlyDetails: false,
+      showAllCategories: false
     };
   },
   props: {
@@ -170,6 +177,15 @@ export default {
     suggestions: {
       type: Array,
       default: () => []
+    }
+  },
+  computed: {
+    visibleCategories() {
+        if (!this.financial?.category_breakdown) return [];
+        if (this.showAllCategories) {
+            return this.financial.category_breakdown;
+        }
+        return this.financial.category_breakdown.slice(0, 3);
     }
   },
   setup() {
@@ -540,6 +556,27 @@ h3 {
   background-color: #0d6efd; /* Bootstrap Primary Blue */
   border-radius: 3px;
   transition: width 0.5s ease-in-out;
+}
+
+.cat-toggle-container {
+    text-align: center;
+    margin-top: 10px;
+    padding-top: 5px;
+    border-top: 1px dashed #e0e0e0;
+}
+
+.toggle-link {
+    background: none;
+    border: none;
+    color: #007bff;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 5px 10px;
+}
+
+.toggle-link:hover {
+    color: #0056b3;
 }
 
 /* Alternate colors for variety if needed, but keeping it simple blue for now is clean */
