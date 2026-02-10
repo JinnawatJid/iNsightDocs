@@ -9,6 +9,29 @@
     </div>
 
     <div v-if="hasData" :key="store.customer.id" class="form-content-wrapper">
+      <!-- Request Type Selection (Standard Form Header) -->
+      <div class="request-type-selector">
+          <label for="requestType">ประเภทคำขอ (Request Type):</label>
+          <div class="select-wrapper">
+            <select
+                id="requestType"
+                v-model="selectedType"
+                :disabled="isTypeLocked"
+                class="form-select"
+            >
+                <option :value="null" disabled>-- กรุณาเลือกประเภทคำขอ --</option>
+                <option
+                    v-for="type in availableCreditTypes"
+                    :key="type.value"
+                    :value="type.value"
+                    :disabled="type.disabled"
+                >
+                    {{ type.label }} {{ type.disabled ? `(${type.reason})` : '' }}
+                </option>
+            </select>
+          </div>
+      </div>
+
     <div class="unified-card">
       <div class="card-header">
         <h3>เอกสารประกอบการพิจารณา</h3>
@@ -83,6 +106,65 @@ import { useFeatureFlag } from '@/composables/useFeatureFlag';
 
 const store = useCreditRequestStore();
 const { isFinancialDraftEnabled } = useFeatureFlag();
+
+// Request Type Logic
+const selectedType = computed({
+    get: () => store.transactionData.requestType,
+    set: (val) => {
+        store.updateTransactionData({ requestType: val });
+        if (store.requestId) {
+            store.saveTransactionData();
+        }
+    }
+});
+
+const availableCreditTypes = computed(() => {
+  const currentLimit = Number(store.customer.current_credit_limit || 0);
+  const isExisting = currentLimit > 0;
+
+  return [
+    {
+      label: 'เครดิตใหม่ (New Credit)',
+      value: 'เครดิตใหม่',
+      disabled: isExisting,
+      reason: isExisting ? 'มีวงเงินแล้ว' : ''
+    },
+    {
+      label: 'เครดิตเพิ่ม (Increase Limit)',
+      value: 'เครดิตเพิ่ม',
+      disabled: !isExisting,
+      reason: !isExisting ? 'ต้องมีวงเงินก่อน' : ''
+    },
+    {
+      label: 'เครดิตโครงการ (Project Credit)',
+      value: 'เครดิตโครงการ',
+      disabled: !isExisting,
+      reason: !isExisting ? 'ต้องมีวงเงินก่อน' : ''
+    },
+    {
+      label: 'เปลี่ยนแปลงระยะเวลาเครดิต (Change Terms)',
+      value: 'เปลี่ยนแปลงระยะเวลาเครดิต',
+      disabled: !isExisting,
+      reason: !isExisting ? 'ต้องมีวงเงินก่อน' : ''
+    },
+    {
+      label: 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน (Change Payment Condition)',
+      value: 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน',
+      disabled: !isExisting,
+      reason: !isExisting ? 'ต้องมีวงเงินก่อน' : ''
+    }
+  ];
+});
+
+// Type is locked if the request is already finalized (approved/rejected) or if user is reviewing history
+// But if viewing history, isReadOnly is true.
+// We want this dropdown to be active only if we are in "Create" or "Draft" mode.
+const isTypeLocked = computed(() => {
+    if (store.viewingHistory) return true;
+    if (requestStatus.value !== 'Draft' && requestStatus.value) return true;
+    return false;
+});
+
 
 // Local State for View Mode
 const showAllDetails = ref(false);
@@ -432,6 +514,46 @@ const submitTransaction = async (btn) => {
   display: flex;
   justify-content: flex-end;
   gap: 15px;
+}
+
+/* Request Type Selector */
+.request-type-selector {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.request-type-selector label {
+  font-weight: bold;
+  font-size: 16px;
+  color: #333;
+  white-space: nowrap;
+}
+
+.select-wrapper {
+  flex-grow: 1;
+  max-width: 500px;
+}
+
+.form-select {
+  width: 100%;
+  padding: 10px 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.form-select:focus {
+  border-color: #0056FF;
+  outline: none;
 }
 
 /* Button Variants */
