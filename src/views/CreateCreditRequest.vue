@@ -25,33 +25,39 @@
                 📷 Smart Import (Thai ID)
              </button>
           </div>
-          <CreditRequestHeader @search="store.searchCustomer" />
 
-          <!-- Create Request Button (Outside Header) -->
-          <div v-if="store.hasSearched" class="action-bar">
-            <div class="action-bar-content">
-                <label>ดำเนินการสร้างคำขอเครดิต</label>
-                <div class="dropdown-container" ref="typeDropdown">
-                    <button class="btn-create-request" @click="toggleTypeDropdown">
-                    {{ selectedType || 'สร้างคำขอเครดิต +' }}
-                    <span class="arrow-down">▼</span>
-                    </button>
+          <!-- Search & Action Container (Side-by-Side) -->
+          <div class="search-action-container">
+            <!-- Search Header -->
+            <CreditRequestHeader @search="store.searchCustomer" class="flex-grow-header" />
 
-                    <div v-if="showTypeDropdown" class="type-dropdown-menu">
-                    <div
-                        v-for="type in availableCreditTypes"
-                        :key="type.value"
-                        class="type-item"
-                        :class="{ disabled: type.disabled, active: selectedType === type.value }"
-                        @click="selectType(type)"
-                    >
-                        {{ type.label }}
-                        <span v-if="type.disabled" class="disabled-reason">({{ type.reason }})</span>
-                    </div>
+            <!-- Create Request Action Bar (Outside Header) -->
+            <div v-if="store.hasSearched" class="action-bar flex-fixed-action">
+                <div class="action-bar-content">
+                    <label>ดำเนินการสร้างคำขอเครดิต</label>
+                    <div class="dropdown-container" ref="typeDropdown">
+                        <button class="btn-create-request" @click="toggleTypeDropdown">
+                        {{ selectedType || 'สร้างคำขอเครดิต +' }}
+                        <span class="arrow-down">▼</span>
+                        </button>
+
+                        <div v-if="showTypeDropdown" class="type-dropdown-menu">
+                        <div
+                            v-for="type in availableCreditTypes"
+                            :key="type.value"
+                            class="type-item"
+                            :class="{ disabled: type.disabled, active: selectedType === type.value }"
+                            @click="selectType(type)"
+                        >
+                            {{ type.label }}
+                            <span v-if="type.disabled" class="disabled-reason">({{ type.reason }})</span>
+                        </div>
+                        </div>
                     </div>
                 </div>
             </div>
           </div>
+
         </div>
         <div class="grid-col right">
           <DocumentChecklist v-if="store.hasSearched" />
@@ -387,33 +393,64 @@ onUnmounted(() => {
   box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
-/* Action Bar (New) */
+/* --- New Layout Styles --- */
+
+.search-action-container {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+  margin-bottom: 20px;
+}
+
+/* Make header grow to fill space */
+.flex-grow-header {
+  flex: 1;
+  margin-bottom: 0 !important; /* Override default margin */
+  height: 100%;
+}
+
+/* Action Bar Styles */
 .action-bar {
   background: white;
   padding: 15px 20px;
   border-radius: 8px;
   border: 1px solid #e0e0e0;
-  margin-bottom: 20px;
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* Align to right */
+  justify-content: center;
+  flex-shrink: 0; /* Don't shrink */
+  min-width: 300px; /* Fixed min width for island */
+}
+
+/* Responsive: Stack on small screens */
+@media (max-width: 1400px) {
+    .search-action-container {
+        flex-direction: column;
+    }
+    .action-bar {
+        width: 100%;
+        justify-content: flex-end;
+    }
 }
 
 .action-bar-content {
   display: flex;
-  align-items: center;
-  gap: 15px;
+  flex-direction: column; /* Stack label and dropdown */
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
 }
 
 .action-bar-content label {
     font-weight: bold;
     color: #333;
+    font-size: 14px;
 }
 
 /* Dropdown Styles reused */
 .dropdown-container {
   position: relative;
-  width: 260px;
+  width: 100%; /* Fill container */
 }
 
 .btn-create-request {
