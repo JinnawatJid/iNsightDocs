@@ -1,0 +1,126 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - navigation [ref=e4]:
+      - generic [ref=e5]:
+        - img [ref=e6]
+        - link [ref=e7] [cursor=pointer]:
+          - /url: /create-credit-request
+          - text: สร้างคำขอ
+        - link [ref=e8] [cursor=pointer]:
+          - /url: /pending-requests
+          - text: คำขอทั้งหมด
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - img [ref=e11]
+          - generic [ref=e12]: "1"
+        - generic [ref=e13] [cursor=pointer]: "AY : จิณณวัฒน์ จิตเสนาะ"
+    - generic [ref=e14]: "⚠️ แจ้งเตือน: ปิดการตรวจสอบข้อมูลบังคับชั่วคราวสำหรับการทดสอบ (Validation Disabled)"
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e18]:
+          - generic [ref=e19]: เลขที่คำขอ:REQ-001
+          - generic [ref=e20]:
+            - generic [ref=e21]: "สถานะ:"
+            - generic [ref=e23]: Draft
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - generic [ref=e28]: ค้นหาข้อมูลลูกค้า
+            - generic [ref=e29]: Live API
+          - generic [ref=e30]:
+            - img [ref=e32]
+            - textbox [ref=e33]:
+              - /placeholder: ค้นหาด้วย รหัสลูกค้า, ชื่อ, เบอร์โทร หรือ ชื่อบริษัท
+              - text: 01013AY
+            - button [ref=e34] [cursor=pointer]: ค้นหา
+        - generic [ref=e37] [cursor=pointer]:
+          - generic [ref=e38]:
+            - generic [ref=e39]: รายการเอกสารที่ต้องใช้
+            - generic [ref=e40]: 0/6
+            - img [ref=e41]
+          - generic [ref=e43]: กรุณาแนบเอกสารให้ครบถ้วนเพื่อการพิจารณา
+      - generic [ref=e44]:
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - img [ref=e49]
+            - generic [ref=e50]:
+              - generic [ref=e51]: Test Customer (Mocked)
+              - generic [ref=e52]: "ID: 01013AY"
+          - generic [ref=e53]:
+            - heading [level=3] [ref=e54]: ประวัติการขอเครดิต
+            - generic [ref=e55]: ลูกค้าไม่เคยได้รับเครดิตมาก่อน
+        - generic [ref=e57]:
+          - generic [ref=e59]:
+            - generic [ref=e60]: ⚠️
+            - generic [ref=e61]: คำขอถูกส่งเรียบร้อยแล้ว (Read Only) หากต้องการแก้ไขข้อมูล กรุณายกเลิกคำขอก่อน
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - generic [ref=e64]:
+                - heading [level=2] [ref=e65]: Test Customer (Mocked)
+                - generic [ref=e66]: "ID: 01013AY"
+              - button [ref=e68] [cursor=pointer]: + สร้างคำขอ (Start Request)
+            - generic [ref=e69]:
+              - heading [level=3] [ref=e71]: เอกสารประกอบการพิจารณา
+              - generic [ref=e72]:
+                - generic [ref=e74]:
+                  - generic [ref=e75] [cursor=pointer]: ข้อมูลคำขอ
+                  - generic [ref=e76] [cursor=pointer]: ข้อมูลทั่วไป
+                  - generic [ref=e77] [cursor=pointer]: ที่อยู่ร้านค้า
+                  - generic [ref=e78] [cursor=pointer]: ที่อยู่อาศัย
+                  - generic [ref=e79] [cursor=pointer]: เอกสารการเงิน
+                - generic [ref=e81]:
+                  - generic [ref=e82]:
+                    - heading [level=3] [ref=e84]: ตรวจสอบข้อมูลผู้ติดต่อ
+                    - generic [ref=e85]:
+                      - generic [ref=e86]:
+                        - generic [ref=e87]: ชื่อผู้ติดต่อ *
+                        - textbox [disabled] [ref=e88]:
+                          - /placeholder: ระบุชื่อผู้ติดต่อ
+                      - generic [ref=e89]:
+                        - generic [ref=e90]: ตำแหน่ง *
+                        - textbox [disabled] [ref=e91]:
+                          - /placeholder: ระบุตำแหน่ง
+                      - generic [ref=e92]:
+                        - generic [ref=e93]: แผนก
+                        - textbox [disabled] [ref=e94]:
+                          - /placeholder: ระบุแผนก
+                      - generic [ref=e95]:
+                        - generic [ref=e96]: ฝ่าย
+                        - textbox [disabled] [ref=e97]:
+                          - /placeholder: ระบุฝ่าย
+                      - generic [ref=e98]:
+                        - generic [ref=e99]: เบอร์โทรผู้ติดต่อ *
+                        - textbox [disabled] [ref=e100]:
+                          - /placeholder: 0XX-XXX-XXXX
+                  - heading [level=3] [ref=e105]: ข้อมูลบริษัทที่ท่านมีเครดิตอยู่
+            - generic [ref=e106]:
+              - generic [ref=e107]:
+                - heading [level=4] [ref=e109]: บันทึกการพิจารณา
+                - generic [ref=e111]:
+                  - heading [level=5] [ref=e112]: "ความคิดเห็น: ผู้จัดการสาขา"
+                  - textbox [disabled] [ref=e113]:
+                    - /placeholder: ระบุวัตถุประสงค์การขอเครดิต, ประวัติลูกค้า, และรายละเอียดโครงการเพื่อประกอบการพิจารณา...
+              - generic [ref=e114]: "Current Role: ผู้จัดการสาขา"
+              - generic [ref=e115]:
+                - button [ref=e116] [cursor=pointer]: บันทึกแบบร่าง
+                - button [ref=e117] [cursor=pointer]: ส่งคำขอ
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - heading [level=3] [ref=e121]: พฤติกรรมการซื้อ
+            - generic [ref=e122]:
+              - generic [ref=e124]:
+                - img [ref=e125]
+                - generic [ref=e126]: ยอดซื้อรวม 3 เดือน
+              - generic [ref=e127]: บาท
+            - generic [ref=e128]:
+              - generic [ref=e129]:
+                - generic [ref=e130]: ฿
+                - generic [ref=e131]: ค่าเฉลี่ยต่อรอบการจ่ายเงิน
+              - generic [ref=e132]: บาท
+          - heading [level=3] [ref=e134]: คำแนะนำ
+  - dialog "กำลังค้นหาข้อมูลลูกค้า" [active] [ref=e136]:
+    - heading "กำลังค้นหาข้อมูลลูกค้า" [level=2] [ref=e137]
+    - text: "!"
+```

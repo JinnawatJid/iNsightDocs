@@ -9,26 +9,30 @@
     </div>
 
     <div v-if="hasData" :key="store.customer.id" class="form-content-wrapper">
-      <!-- Request Type Selection (Standard Form Header) -->
-      <div class="request-type-selector">
-          <label for="requestType">ประเภทคำขอ (Request Type):</label>
-          <div class="select-wrapper">
-            <select
-                id="requestType"
-                v-model="selectedType"
-                :disabled="isTypeLocked"
-                class="form-select"
-            >
-                <option :value="null" disabled>-- กรุณาเลือกประเภทคำขอ --</option>
-                <option
-                    v-for="type in availableCreditTypes"
-                    :key="type.value"
-                    :value="type.value"
-                    :disabled="type.disabled"
-                >
-                    {{ type.label }} {{ type.disabled ? `(${type.reason})` : '' }}
-                </option>
-            </select>
+
+      <!-- Contextual Dashboard Header -->
+      <div class="context-header">
+          <div class="customer-identity">
+              <h2>{{ store.customer.name }}</h2>
+              <span class="customer-id">ID: {{ store.customer.id }}</span>
+          </div>
+
+          <div class="context-actions">
+              <!-- If no request type selected, show "Start Request" button -->
+              <button
+                v-if="!store.transactionData.requestType"
+                class="btn-start-request"
+                @click="showTypeSelectionModal = true"
+              >
+                + สร้างคำขอ (Start Request)
+              </button>
+
+              <!-- If request type selected, show current type badge -->
+              <div v-else class="active-request-badge">
+                  <span class="badge-label">กำลังสร้างคำขอ:</span>
+                  <span class="badge-value">{{ currentRequestTypeLabel }}</span>
+                  <button v-if="!isTypeLocked" class="btn-change-type" @click="showTypeSelectionModal = true">เปลี่ยน (Change)</button>
+              </div>
           </div>
       </div>
 
@@ -90,6 +94,31 @@
       @close="showChangeSummary = false"
       @confirm="handleConfirmChanges"
     />
+
+    <!-- Type Selection Modal -->
+    <div v-if="showTypeSelectionModal" class="modal-overlay" @click="showTypeSelectionModal = false">
+        <div class="modal-card" @click.stop>
+            <div class="modal-header">
+                <h3>เลือกประเภทคำขอ (Select Request Type)</h3>
+                <button class="btn-close" @click="showTypeSelectionModal = false">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="type-grid">
+                    <button
+                        v-for="type in availableCreditTypes"
+                        :key="type.value"
+                        class="type-option-btn"
+                        :class="{ disabled: type.disabled, active: selectedType === type.value }"
+                        :disabled="type.disabled"
+                        @click="selectType(type.value)"
+                    >
+                        <div class="type-label">{{ type.label }}</div>
+                        <div v-if="type.disabled" class="type-reason">{{ type.reason }}</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
   </div>
 </template>
 
@@ -107,15 +136,23 @@ import { useFeatureFlag } from '@/composables/useFeatureFlag';
 const store = useCreditRequestStore();
 const { isFinancialDraftEnabled } = useFeatureFlag();
 
-// Request Type Logic
-const selectedType = computed({
-    get: () => store.transactionData.requestType,
-    set: (val) => {
-        store.updateTransactionData({ requestType: val });
-        if (store.requestId) {
-            store.saveTransactionData();
-        }
+// Contextual Logic
+const showTypeSelectionModal = ref(false);
+
+const selectType = (typeValue) => {
+    store.updateTransactionData({ requestType: typeValue });
+    if (store.requestId) {
+        store.saveTransactionData();
     }
+    showTypeSelectionModal.value = false;
+};
+
+// Request Type Logic (retained for reference but driven by modal now)
+const selectedType = computed(() => store.transactionData.requestType);
+
+const currentRequestTypeLabel = computed(() => {
+    const type = availableCreditTypes.value.find(t => t.value === selectedType.value);
+    return type ? type.label : selectedType.value;
 });
 
 const availableCreditTypes = computed(() => {
@@ -156,9 +193,7 @@ const availableCreditTypes = computed(() => {
   ];
 });
 
-// Type is locked if the request is already finalized (approved/rejected) or if user is reviewing history
-// But if viewing history, isReadOnly is true.
-// We want this dropdown to be active only if we are in "Create" or "Draft" mode.
+// Type is locked logic
 const isTypeLocked = computed(() => {
     if (store.viewingHistory) return true;
     if (requestStatus.value !== 'Draft' && requestStatus.value) return true;
@@ -516,44 +551,186 @@ const submitTransaction = async (btn) => {
   gap: 15px;
 }
 
-/* Request Type Selector */
-.request-type-selector {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 20px;
+/* Context Header (Dashboard Style) */
+.context-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+  padding: 0 5px;
+}
+
+.customer-identity h2 {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0;
+  color: #333;
+}
+
+.customer-id {
+  font-size: 14px;
+  color: #666;
+  background-color: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 5px;
+  display: inline-block;
+}
+
+.btn-start-request {
+  background-color: #0056FF;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,86,255,0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-start-request:hover {
+  background-color: #0046cc;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,86,255,0.25);
+}
+
+.active-request-badge {
   display: flex;
   align-items: center;
-  gap: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  gap: 10px;
+  background-color: #e6f0ff;
+  padding: 8px 15px;
+  border-radius: 20px;
+  border: 1px solid #b3d1ff;
 }
 
-.request-type-selector label {
+.badge-label {
+  font-size: 12px;
+  color: #0056FF;
+}
+
+.badge-value {
   font-weight: bold;
-  font-size: 16px;
+  color: #0056FF;
+  font-size: 14px;
+}
+
+.btn-change-type {
+  background: none;
+  border: none;
+  color: #666;
+  text-decoration: underline;
+  font-size: 12px;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-card {
+  background: white;
+  width: 500px;
+  max-width: 90%;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fafafa;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
   color: #333;
-  white-space: nowrap;
 }
 
-.select-wrapper {
-  flex-grow: 1;
-  max-width: 500px;
-}
-
-.form-select {
-  width: 100%;
-  padding: 10px 15px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 15px;
-  background-color: #fff;
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: #999;
   cursor: pointer;
 }
 
-.form-select:focus {
+.modal-body {
+  padding: 20px;
+}
+
+.type-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.type-option-btn {
+  background: white;
+  border: 1px solid #e0e0e0;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.type-option-btn:hover:not(:disabled) {
   border-color: #0056FF;
-  outline: none;
+  background-color: #f5f9ff;
+  transform: translateX(5px);
+}
+
+.type-option-btn.active {
+  border-color: #0056FF;
+  background-color: #e6f0ff;
+  font-weight: bold;
+}
+
+.type-option-btn:disabled {
+  background-color: #f9f9f9;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.type-label {
+  font-size: 16px;
+  color: #333;
+}
+
+.type-option-btn:disabled .type-label {
+  color: #aaa;
+}
+
+.type-reason {
+  font-size: 12px;
+  color: #dc3545;
+  margin-top: 4px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 /* Button Variants */
