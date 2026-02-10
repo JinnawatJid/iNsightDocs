@@ -26,6 +26,32 @@
              </button>
           </div>
           <CreditRequestHeader @search="store.searchCustomer" />
+
+          <!-- Create Request Button (Outside Header) -->
+          <div v-if="store.hasSearched" class="action-bar">
+            <div class="action-bar-content">
+                <label>ดำเนินการสร้างคำขอเครดิต</label>
+                <div class="dropdown-container" ref="typeDropdown">
+                    <button class="btn-create-request" @click="toggleTypeDropdown">
+                    {{ selectedType || 'สร้างคำขอเครดิต +' }}
+                    <span class="arrow-down">▼</span>
+                    </button>
+
+                    <div v-if="showTypeDropdown" class="type-dropdown-menu">
+                    <div
+                        v-for="type in availableCreditTypes"
+                        :key="type.value"
+                        class="type-item"
+                        :class="{ disabled: type.disabled, active: selectedType === type.value }"
+                        @click="selectType(type)"
+                    >
+                        {{ type.label }}
+                        <span v-if="type.disabled" class="disabled-reason">({{ type.reason }})</span>
+                    </div>
+                    </div>
+                </div>
+            </div>
+          </div>
         </div>
         <div class="grid-col right">
           <DocumentChecklist v-if="store.hasSearched" />
@@ -90,11 +116,13 @@ import SmartImportModal from '@/components/credit/SmartImportModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFeatureFlag } from '@/composables/useFeatureFlag';
 import iconSearchLarge from '@/assets/icons/search-large.svg';
-import { ref } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 const store = useCreditRequestStore();
 const { isOcrEnabled } = useFeatureFlag();
 const showSmartImport = ref(false);
+const showTypeDropdown = ref(false);
+const typeDropdown = ref(null);
 
 const closePreview = () => {
     store.resetState();
@@ -143,6 +171,79 @@ const handleOcrData = (data) => {
   store.displayCustomer = { ...store.customer };
   store.hasSearched = true; // Unlock the form
 };
+
+// Create Request Logic (Moved from Header)
+const selectedType = computed(() => store.transactionData.requestType);
+
+const availableCreditTypes = computed(() => {
+  const currentLimit = Number(store.customer.current_credit_limit || 0);
+  const isExisting = currentLimit > 0;
+
+  return [
+    {
+      label: 'เครดิตใหม่',
+      value: 'เครดิตใหม่',
+      disabled: isExisting,
+      reason: isExisting ? 'มีวงเงินเครดิตอยู่แล้ว' : ''
+    },
+    {
+      label: 'เครดิตเพิ่ม',
+      value: 'เครดิตเพิ่ม',
+      disabled: !isExisting,
+      reason: !isExisting ? 'ต้องมีวงเงินเครดิตก่อน' : ''
+    },
+    {
+      label: 'เครดิตโครงการ',
+      value: 'เครดิตโครงการ',
+      disabled: !isExisting,
+      reason: !isExisting ? 'ต้องมีวงเงินเครดิตก่อน' : ''
+    },
+    {
+      label: 'เปลี่ยนแปลงระยะเวลาเครดิต',
+      value: 'เปลี่ยนแปลงระยะเวลาเครดิต',
+      disabled: !isExisting,
+      reason: !isExisting ? 'ต้องมีวงเงินเครดิตก่อน' : ''
+    },
+    {
+      label: 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน',
+      value: 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน',
+      disabled: !isExisting,
+      reason: !isExisting ? 'ต้องมีวงเงินเครดิตก่อน' : ''
+    }
+  ];
+});
+
+const updateType = (typeValue) => {
+  store.updateTransactionData({ requestType: typeValue });
+  if (store.requestId) {
+    store.saveTransactionData();
+  }
+};
+
+const toggleTypeDropdown = () => {
+  showTypeDropdown.value = !showTypeDropdown.value;
+};
+
+const selectType = (type) => {
+  if (type.disabled) return;
+  updateType(type.value);
+  showTypeDropdown.value = false;
+};
+
+// Click Outside
+const handleClickOutside = (event) => {
+  if (typeDropdown.value && !typeDropdown.value.contains(event.target)) {
+    showTypeDropdown.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <style scoped>
@@ -284,5 +385,112 @@ const handleOcrData = (data) => {
 .btn-smart-import:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Action Bar (New) */
+.action-bar {
+  background: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* Align to right */
+}
+
+.action-bar-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.action-bar-content label {
+    font-weight: bold;
+    color: #333;
+}
+
+/* Dropdown Styles reused */
+.dropdown-container {
+  position: relative;
+  width: 260px;
+}
+
+.btn-create-request {
+  width: 100%;
+  padding: 10px 15px;
+  background-color: #0056FF;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.btn-create-request:hover {
+  background-color: #0046cc;
+}
+
+.arrow-down {
+  font-size: 12px;
+}
+
+.type-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1001;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.type-item {
+  padding: 12px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  color: #333;
+  text-align: left;
+  transition: background 0.2s;
+  font-size: 14px;
+}
+
+.type-item:last-child {
+  border-bottom: none;
+}
+
+.type-item:hover {
+  background-color: #f5f5f5;
+}
+
+.type-item.active {
+  background-color: #e6f0ff;
+  color: #0056FF;
+  font-weight: bold;
+}
+
+.type-item.disabled {
+  color: #aaa;
+  cursor: not-allowed;
+  background-color: #fafafa;
+}
+
+.type-item.disabled:hover {
+  background-color: #fafafa;
+}
+
+.disabled-reason {
+  font-size: 11px;
+  color: #999;
+  margin-left: 5px;
+  font-style: italic;
 }
 </style>
