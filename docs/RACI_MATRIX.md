@@ -27,9 +27,9 @@ This document defines the Roles and Responsibilities for the Credit Request Appl
 | **1. Create New Request** | **R** | A | - | - | - | - |
 | **2. Edit Customer Data** | **R** | **R** | - | - | - | - |
 | **3. Upload Documents** | **R** | A | - | - | - | - |
-| **4. Submit to HQ** <br>*(Opened -> Submitted)* | I | **R** / A | I | - | - | - |
-| **5. Sales Review** <br>*(Submitted -> PendingSales)* | I | I | **R** / A | - | I | - |
-| **6. Finance Screening** <br>*(Check Docs & Scores)* | I | I | I | **R** | A | - |
+| **4. Submit to Regional** <br>*(Opened -> RegionalSubmitted)* | I | **R** / A | I | - | - | - |
+| **5. Sales Review** <br>*(RegionalSubmitted -> SalesSubmitted)* | I | I | **R** / A | - | I | - |
+| **6. Finance Screening** <br>*(SalesSubmitted -> Reviewed)* | I | I | I | **R** | A | - |
 | **7. Final Approval (<= 300k)** | I | I | I | C | **R** / A | - |
 | **8. Final Approval (> 300k)** | I | I | I | C | C | **R** / A |
 | **9. Rejection Decision** | I | I | I | - | **A** / R | - |
