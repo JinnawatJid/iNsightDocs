@@ -91,7 +91,8 @@ const changesToConfirm = ref([]);
 const pendingActionBtn = ref(null);
 
 // Computeds
-const isReadOnly = computed(() => store.isReadOnly);
+// ReadOnly if explicitly read-only OR if no request type selected (Review Mode)
+const isReadOnly = computed(() => store.isReadOnly || !store.transactionData.requestType);
 const comments = computed(() => store.comments);
 const requestStatus = computed(() => store.requestStatus || 'Draft'); // Default to Draft
 const currentRoleLabel = computed(() => roleLabels[requestStatus.value] || store.currentRole);

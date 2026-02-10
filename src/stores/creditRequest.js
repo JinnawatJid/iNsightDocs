@@ -38,7 +38,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       termAE: '',
       termYC: '',
       reason: '',
-      requestType: 'เครดิตใหม่'
+      requestType: null
     },
 
     // List of requests (Pending/History)
@@ -471,7 +471,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
               termAE: resData.term_ae || '',
               termYC: resData.term_yc || '',
               reason: resData.request_reason || '',
-              requestType: resData.request_type || 'เครดิตใหม่'
+              requestType: resData.request_type || null
             };
           }
         }
@@ -560,7 +560,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         formData.append('term_gs', this.transactionData.termGS || '');
         formData.append('term_ae', this.transactionData.termAE || '');
         formData.append('term_yc', this.transactionData.termYC || '');
-        formData.append('request_type', this.transactionData.requestType || 'เครดิตใหม่');
+        formData.append('request_type', this.transactionData.requestType || '');
 
         formData.append('snapshot_data', JSON.stringify(this.getSnapshot()));
 
@@ -747,7 +747,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termAE: '',
         termYC: '',
         reason: '',
-        requestType: 'เครดิตใหม่'
+        requestType: null
       };
     },
 
@@ -778,7 +778,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termAE: '',
         termYC: '',
         reason: '',
-        requestType: 'เครดิตใหม่'
+        requestType: null
       };
     },
 
@@ -814,7 +814,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         formData.append('term_gs', this.transactionData.termGS || '');
         formData.append('term_ae', this.transactionData.termAE || '');
         formData.append('term_yc', this.transactionData.termYC || '');
-        formData.append('request_type', this.transactionData.requestType || 'เครดิตใหม่');
+        formData.append('request_type', this.transactionData.requestType || '');
 
         // Pass full snapshot
         formData.append('snapshot_data', JSON.stringify(this.getSnapshot()));

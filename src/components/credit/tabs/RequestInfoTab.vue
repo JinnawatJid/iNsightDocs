@@ -2,7 +2,7 @@
   <div class="request-info-tab">
     <!-- Upload Section -->
     <transition name="slide-fade">
-        <div class="upload-section" v-if="isUploadsVisible">
+        <div class="upload-section" v-if="isUploadsVisible && store.transactionData.requestType">
         <div class="upload-grid">
             <FileUploader
             label="ใบขอเปิดเครดิต"
@@ -102,7 +102,7 @@
     </transition>
 
     <!-- Credit Details Section -->
-    <div class="personal-info-section">
+    <div class="personal-info-section" v-if="store.transactionData.requestType">
       <div class="section-header">
         <h3>รายละเอียดคำขอเครดิต</h3>
       </div>

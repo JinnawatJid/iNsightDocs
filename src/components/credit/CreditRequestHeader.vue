@@ -1,15 +1,6 @@
 <template>
   <div class="credit-header">
-    <div class="header-section">
-      <label>ประเภทคำขอเครดิต</label>
-      <select class="form-select" v-model="selectedType" @change="updateType">
-        <option value="เครดิตใหม่">เครดิตใหม่</option>
-        <option value="เครดิตเพิ่ม">เครดิตเพิ่ม</option>
-        <option value="เครดิตโครงการ">เครดิตโครงการ</option>
-        <option value="เปลี่ยนแปลงระยะเวลาเครดิต">เปลี่ยนแปลงระยะเวลาเครดิต</option>
-        <option value="เปลี่ยนแปลงเงื่อนไขการชำระเงิน">เปลี่ยนแปลงเงื่อนไขการชำระเงิน</option>
-      </select>
-    </div>
+    <!-- Left Section: Search (Moved from Right) -->
     <div class="header-section flex-grow">
       <div class="label-row">
         <label>ค้นหาข้อมูลลูกค้า</label>
@@ -57,6 +48,30 @@
         </div>
       </div>
     </div>
+
+    <!-- Right Section: Create Request Button (New) -->
+    <div class="header-section" v-if="creditStore.hasSearched">
+      <label>ดำเนินการ</label>
+      <div class="dropdown-container" ref="typeDropdown">
+        <button class="btn-create-request" @click="toggleTypeDropdown">
+          {{ selectedType || 'สร้างคำขอเครดิต +' }}
+          <span class="arrow-down">▼</span>
+        </button>
+
+        <div v-if="showTypeDropdown" class="type-dropdown-menu">
+          <div
+            v-for="type in availableCreditTypes"
+            :key="type.value"
+            class="type-item"
+            :class="{ disabled: type.disabled, active: selectedType === type.value }"
+            @click="selectType(type)"
+          >
+            {{ type.label }}
+            <span v-if="type.disabled" class="disabled-reason">({{ type.reason }})</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -65,164 +80,209 @@ import debounce from 'lodash/debounce';
 import CustomerService from '@/services/CustomerService';
 import iconSearchBi from '@/assets/icons/search-bi.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 
 export default {
   name: 'CreditRequestHeader',
-  setup() {
+  setup(props, { emit }) {
     const creditStore = useCreditRequestStore();
-    return { creditStore };
-  },
-  data() {
-    return {
-      iconSearchBi,
-      selectedType: 'เครดิตใหม่',
-      searchQuery: '',
-      suggestions: [],
-      showDropdown: false,
-    };
-  },
-  watch: {
-    // Sync local state with store when loading a request
-    'creditStore.transactionData.requestType': {
-      immediate: true,
-      handler(newVal) {
-        if (newVal) {
-          this.selectedType = newVal;
-        }
-      }
-    }
-  },
-  computed: {
-    showExportButton() {
-      // Show button if status is Opened (Branch Manager) or later
-      const status = this.creditStore.requestStatus;
+
+    // State
+    const iconSearchBiSrc = iconSearchBi;
+    const searchQuery = ref('');
+    const suggestions = ref([]);
+    const showDropdown = ref(false); // Search suggestions
+    const showTypeDropdown = ref(false); // Request type dropdown
+    const searchContainer = ref(null);
+    const typeDropdown = ref(null);
+
+    // Sync selected type with store
+    const selectedType = computed(() => creditStore.transactionData.requestType);
+
+    // Computed
+    const dataSource = computed(() => creditStore.dataSource);
+    const sourceLabel = computed(() => {
+        if (dataSource.value === 'api') return 'Live API';
+        if (dataSource.value === 'database') return 'Offline Mode';
+        return '';
+    });
+    const sourceClass = computed(() => {
+        if (dataSource.value === 'api') return 'badge-live';
+        if (dataSource.value === 'database') return 'badge-offline';
+        return '';
+    });
+
+    const showExportButton = computed(() => {
+      const status = creditStore.requestStatus;
       const validStatuses = [
-        'Opened',
-        'Submitted',
-        'PendingSales (ชั่วคราว)',
-        'Reviewed',
-        'PendingFinance (ชั่วคราว)',
-        'Approved',
-        'Rejected',
-        'Closed',
-        'Canceled'
+        'Opened', 'Submitted', 'PendingSales (ชั่วคราว)',
+        'Reviewed', 'PendingFinance (ชั่วคราว)',
+        'Approved', 'Rejected', 'Closed', 'Canceled'
       ];
       return validStatuses.includes(status);
-    },
-    dataSource() {
-      return this.creditStore.dataSource;
-    },
-    sourceLabel() {
-        if (this.dataSource === 'api') return 'Live API';
-        if (this.dataSource === 'database') return 'Offline Mode';
-        return '';
-    },
-    sourceClass() {
-        if (this.dataSource === 'api') return 'badge-live';
-        if (this.dataSource === 'database') return 'badge-offline';
-        return '';
-    }
-  },
-  created() {
-    this.debouncedFetchSuggestions = debounce(this.fetchSuggestions, 300);
-  },
-  mounted() {
-    document.addEventListener('click', this.handleClickOutside);
-  },
-  beforeUnmount() {
-    document.removeEventListener('click', this.handleClickOutside);
-  },
-  methods: {
-    updateType() {
-      this.creditStore.updateTransactionData({ requestType: this.selectedType });
-      // Trigger save if we have a customer loaded
-      if (this.creditStore.requestId) {
-        this.creditStore.saveTransactionData();
+    });
+
+    const availableCreditTypes = computed(() => {
+      const currentLimit = Number(creditStore.customer.current_credit_limit || 0);
+      const isExisting = currentLimit > 0;
+
+      return [
+        {
+          label: 'เครดิตใหม่',
+          value: 'เครดิตใหม่',
+          disabled: isExisting,
+          reason: isExisting ? 'มีวงเงินเครดิตอยู่แล้ว' : ''
+        },
+        {
+          label: 'เครดิตเพิ่ม',
+          value: 'เครดิตเพิ่ม',
+          disabled: !isExisting,
+          reason: !isExisting ? 'ต้องมีวงเงินเครดิตก่อน' : ''
+        },
+        {
+          label: 'เครดิตโครงการ',
+          value: 'เครดิตโครงการ',
+          disabled: !isExisting,
+          reason: !isExisting ? 'ต้องมีวงเงินเครดิตก่อน' : ''
+        },
+        {
+          label: 'เปลี่ยนแปลงระยะเวลาเครดิต',
+          value: 'เปลี่ยนแปลงระยะเวลาเครดิต',
+          disabled: !isExisting,
+          reason: !isExisting ? 'ต้องมีวงเงินเครดิตก่อน' : ''
+        },
+        {
+          label: 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน',
+          value: 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน',
+          disabled: !isExisting,
+          reason: !isExisting ? 'ต้องมีวงเงินเครดิตก่อน' : ''
+        }
+      ];
+    });
+
+    // Methods
+    const updateType = (typeValue) => {
+      creditStore.updateTransactionData({ requestType: typeValue });
+      if (creditStore.requestId) {
+        creditStore.saveTransactionData();
       }
-    },
-    onInput() {
-      if (this.searchQuery.length >= 3) {
-        this.debouncedFetchSuggestions();
+    };
+
+    const toggleTypeDropdown = () => {
+      showTypeDropdown.value = !showTypeDropdown.value;
+    };
+
+    const selectType = (type) => {
+      if (type.disabled) return;
+      updateType(type.value);
+      showTypeDropdown.value = false;
+    };
+
+    // Search Logic
+    const onInput = () => {
+      if (searchQuery.value.length >= 3) {
+        debouncedFetchSuggestions();
       } else {
-        this.showDropdown = false;
-        this.suggestions = [];
+        showDropdown.value = false;
+        suggestions.value = [];
       }
-    },
-    onFocus() {
-       if (this.searchQuery.length >= 3) {
-         // Re-trigger fetch or just show if we have data?
-         // Better to re-fetch to be safe
-         this.fetchSuggestions();
+    };
+
+    const onFocus = () => {
+       if (searchQuery.value.length >= 3) {
+         fetchSuggestions();
        }
-    },
-    async fetchSuggestions() {
-      if (!this.searchQuery) return;
-      
-      const results = await CustomerService.getSuggestions(this.searchQuery);
-      this.suggestions = results;
-      this.showDropdown = true;
-    },
-    getDisplayText(item) {
-      const q = this.searchQuery.toLowerCase().replace(/[- ]/g, ''); // Normalize query
-      
+    };
+
+    const fetchSuggestions = async () => {
+      if (!searchQuery.value) return;
+      const results = await CustomerService.getSuggestions(searchQuery.value);
+      suggestions.value = results;
+      showDropdown.value = true;
+    };
+
+    const debouncedFetchSuggestions = debounce(fetchSuggestions, 300);
+
+    const getDisplayText = (item) => {
+      const q = searchQuery.value.toLowerCase().replace(/[- ]/g, '');
       const normalize = (val) => val ? val.replace(/[- ]/g, '') : '';
-      
       const phone = normalize(item.phone);
       const mobile = normalize(item.mobile);
       
       const phoneMatch = phone.includes(q) || mobile.includes(q);
-      const idMatch = item.id.toLowerCase().includes(this.searchQuery.toLowerCase());
+      const idMatch = item.id.toLowerCase().includes(searchQuery.value.toLowerCase());
 
       if (phoneMatch) {
-        // Use whichever phone matched, or default to phone then mobile
         let displayPhone = item.phone || item.mobile;
         return `${displayPhone} - ${item.name}`;
       }
-      
       if (idMatch) {
         return `${item.id} - ${item.name}`;
       }
-
-      // Default: Name - ID
       return `${item.name} - ${item.id}`;
-    },
-    selectSuggestion(item) {
-      // Set query to ID as requested by my plan logic to ensure search works exact
-      // User said: "using the 10013AY - Some Company Name is great" for display.
-      // But for searching, the backend searchCustomers uses LIKE.
-      // If I set the text to "10013AY", it will find it.
-      // If I set "10013AY - Some Company", it might fail if backend doesn't handle that format.
-      // I will set it to ID to be safe and trigger search.
-      this.searchQuery = item.id;
-      this.showDropdown = false;
-      this.$emit('search', this.searchQuery);
-    },
-    performSearch() {
-      this.showDropdown = false;
-      this.$emit('search', this.searchQuery);
-    },
-    exportPDF() {
-      // Fixed: use requestId instead of non-existent transactionId
-      const txId = this.creditStore.requestId;
+    };
 
-      console.log('Exporting PDF for txId:', txId);
+    const selectSuggestion = (item) => {
+      searchQuery.value = item.id;
+      showDropdown.value = false;
+      emit('search', searchQuery.value);
+    };
 
-      if (!txId) {
-        console.warn('Cannot export PDF: Missing Transaction ID (requestId is null)');
-        return;
-      }
+    const performSearch = () => {
+      showDropdown.value = false;
+      emit('search', searchQuery.value);
+    };
 
+    const exportPDF = () => {
+      const txId = creditStore.requestId;
+      if (!txId) return;
       const encodedId = encodeURIComponent(txId);
       const url = `/api/credit-requests/${encodedId}/pdf`;
-      console.log('PDF URL:', url);
       window.open(url, '_blank');
-    },
-    handleClickOutside(event) {
-      const container = this.$refs.searchContainer;
-      if (container && !container.contains(event.target)) {
-        this.showDropdown = false;
+    };
+
+    // Click Outside
+    const handleClickOutside = (event) => {
+      if (searchContainer.value && !searchContainer.value.contains(event.target)) {
+        showDropdown.value = false;
       }
-    }
+      if (typeDropdown.value && !typeDropdown.value.contains(event.target)) {
+        showTypeDropdown.value = false;
+      }
+    };
+
+    onMounted(() => {
+      document.addEventListener('click', handleClickOutside);
+    });
+
+    onUnmounted(() => {
+      document.removeEventListener('click', handleClickOutside);
+    });
+
+    return {
+      creditStore,
+      iconSearchBi: iconSearchBiSrc,
+      searchQuery,
+      suggestions,
+      showDropdown,
+      showTypeDropdown,
+      searchContainer,
+      typeDropdown,
+      selectedType,
+      availableCreditTypes,
+      dataSource,
+      sourceLabel,
+      sourceClass,
+      showExportButton,
+      onInput,
+      onFocus,
+      performSearch,
+      selectSuggestion,
+      getDisplayText,
+      exportPDF,
+      toggleTypeDropdown,
+      selectType
+    };
   }
 };
 </script>
@@ -264,16 +324,7 @@ label {
   text-align: left;
 }
 
-.form-select {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 14px;
-  width: 180px; /* Reduced from 220px to fit layout */
-  background-color: #f9f9f9;
-  color: black;
-}
-
+/* Search Styles */
 .search-group {
   display: flex;
   align-items: center;
@@ -295,7 +346,7 @@ label {
   font-size: 14px;
   background-color: #ffffff;
   color: #000;
-  width: 260px; /* Reduced from 340px to fit layout */
+  width: 260px;
   margin-right: 16px;
 }
 
@@ -332,7 +383,7 @@ label {
   background-color: #f0f5ff;
 }
 
-/* Dropdown Styles */
+/* Dropdown Suggestions (Search) */
 .suggestions-dropdown {
   position: absolute;
   top: 100%;
@@ -340,7 +391,7 @@ label {
   width: 340px; /* Match input width */
   background: white;
   border: 1px solid #ccc;
-  border-radius: 0 0 8px 8px; /* Rounded bottom */
+  border-radius: 0 0 8px 8px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   z-index: 1000;
   max-height: 300px;
@@ -371,6 +422,7 @@ label {
   font-style: italic;
 }
 
+/* Badge Styles */
 .source-badge {
     font-size: 11px;
     padding: 2px 6px;
@@ -389,5 +441,89 @@ label {
     background-color: #fff3cd;
     color: #856404;
     border: 1px solid #ffeeba;
+}
+
+/* New Dropdown Button Styles */
+.dropdown-container {
+  position: relative;
+  width: 260px; /* Match similar width */
+}
+
+.btn-create-request {
+  width: 100%;
+  padding: 10px 15px;
+  background-color: #0056FF;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.btn-create-request:hover {
+  background-color: #0046cc;
+}
+
+.arrow-down {
+  font-size: 12px;
+}
+
+.type-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1001;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.type-item {
+  padding: 12px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  color: #333;
+  text-align: left;
+  transition: background 0.2s;
+  font-size: 14px;
+}
+
+.type-item:last-child {
+  border-bottom: none;
+}
+
+.type-item:hover {
+  background-color: #f5f5f5;
+}
+
+.type-item.active {
+  background-color: #e6f0ff;
+  color: #0056FF;
+  font-weight: bold;
+}
+
+.type-item.disabled {
+  color: #aaa;
+  cursor: not-allowed;
+  background-color: #fafafa;
+}
+
+.type-item.disabled:hover {
+  background-color: #fafafa;
+}
+
+.disabled-reason {
+  font-size: 11px;
+  color: #999;
+  margin-left: 5px;
+  font-style: italic;
 }
 </style>
