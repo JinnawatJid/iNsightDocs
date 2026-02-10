@@ -106,13 +106,13 @@
         <div class="stat-item" v-if="financial.category_breakdown && financial.category_breakdown.length > 0">
            <div class="stat-icon">
               <span class="currency-symbol">📊</span> <!-- You can replace with an SVG icon if preferred -->
-              <span>สัดส่วนสินค้าที่ซื้อ (6 เดือนย้อนหลัง)</span>
+              <span>สัดส่วนสินค้าที่ซื้อ</span>
            </div>
 
            <div class="category-list">
               <div v-for="(cat, idx) in visibleCategories" :key="idx" class="category-row">
                   <div class="cat-info">
-                      <span class="cat-label">Category {{ cat.label }}</span>
+                      <span class="cat-label">{{ cat.label }}</span>
                       <span class="cat-value">{{ cat.formattedValue }} บาท</span>
                   </div>
                   <div class="progress-bar-bg">

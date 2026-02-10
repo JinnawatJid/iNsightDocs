@@ -86,6 +86,19 @@ const formatTrendPercent = (percent) => {
     return `คงที่ 0% จากรอบก่อน`;
 };
 
+// Helper: Map Category Code to Label
+const getCategoryLabel = (code) => {
+    const map = {
+        'A': 'อลูมิเนียม (A)',
+        'G': 'กระจก (G)',
+        'Y': 'ยิปซั่ม (Y)',
+        'C': 'ซีลาย (C)',
+        'E': 'Accessory (E)',
+        'S': 'กาว (S)'
+    };
+    return map[code] || `Category ${code}`;
+};
+
 const fetchPurchasingBehavior = async (customerNo) => {
     if (MOCK_FINANCIAL_API) {
         console.log(`[Financial API] Using Mock Data for ${customerNo}`);
@@ -210,7 +223,7 @@ const enrichCustomerData = async (customerNo) => {
              const totalSales = entries.reduce((sum, [_, val]) => sum + val, 0);
 
              categoryBreakdown = entries.map(([key, value]) => ({
-                 label: key, // e.g. "A", "B"
+                 label: getCategoryLabel(key),
                  value: value,
                  formattedValue: formatCurrency(value),
                  percentage: totalSales > 0 ? (value / totalSales) * 100 : 0
@@ -681,7 +694,7 @@ exports.getSuggestions = async (req, res) => {
   }
 
   const searchPattern = `%${query}%`;
-  const params = [searchPattern, searchPattern, searchPattern, searchPattern];
+  const params = [searchPattern, searchPattern, searchPattern, searchPattern, searchPattern];
 
   try {
     const { rows } = await db.query(sql, params);
