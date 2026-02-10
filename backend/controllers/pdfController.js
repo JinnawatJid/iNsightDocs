@@ -299,7 +299,7 @@ const generateCreditRequestPDF = async (req, res) => {
                 // Use absolute centering logic or just expanded width
                 {
                     stack: [
-                        { text: 'สรุปคำขอสินเชื่อ', style: 'header', alignment: 'center' },
+                        { text: 'คำขอเครดิต', style: 'header', alignment: 'center' },
                         { text: `เลขที่คำขอ: ${data.tx_id}`, alignment: 'center', fontSize: 10, margin: [0, 5, 0, 0] },
                         { text: `วันที่: ${formatDate(data.created_at)}`, alignment: 'center', fontSize: 10 }
                     ],
@@ -341,17 +341,17 @@ const generateCreditRequestPDF = async (req, res) => {
         },
 
         // --- SECTION 1.5: ADDRESS INFO (Split as requested) ---
-        { text: 'ที่อยู่และสถานที่ประกอบการ', style: 'subheader' },
+        { text: 'สถานที่ประกอบการและที่อยู่อาศัย', style: 'subheader' },
         {
           table: {
             widths: ['15%', '85%'], // 2-Column layout for address
             body: [
-               // Residence
-               [{ text: 'ที่อยู่อาศัย:', bold: true }, fullAddress],
-               [{ text: 'กรรมสิทธิ์:', bold: true }, resOwnDisplay],
                // Store
                [{ text: 'ที่อยู่ร้านค้า:', bold: true }, fullStoreAddress !== '-' ? fullStoreAddress : 'เดียวกับที่อยู่บริษัท'],
-               [{ text: 'กรรมสิทธิ์:', bold: true }, storeOwnDisplay]
+               [{ text: 'กรรมสิทธิ์:', bold: true }, storeOwnDisplay],
+               // Residence
+               [{ text: 'ที่อยู่อาศัย:', bold: true }, fullAddress],
+               [{ text: 'กรรมสิทธิ์:', bold: true }, resOwnDisplay]
             ]
           },
           layout: 'lightHorizontalLines',
@@ -442,13 +442,7 @@ const generateCreditRequestPDF = async (req, res) => {
             margin: [0, 0, 0, 15]
         },
 
-        // --- SECTION 5: ATTACHMENTS (Moved to LAST) ---
-        { text: 'เอกสารแนบ', style: 'subheader' },
-        {
-            text: attachmentSummary || 'ไม่มีเอกสารแนบ',
-            fontSize: 10,
-            margin: [0, 0, 0, 15]
-        }
+        // --- SECTION 5: ATTACHMENTS (Removed as requested) ---
       ],
       styles: {
         header: {
