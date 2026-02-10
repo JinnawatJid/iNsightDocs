@@ -101,6 +101,32 @@
               {{ financial.avg_monthly_trend }}
           </div>
         </div>
+
+        <!-- Category Breakdown -->
+        <div class="stat-item" v-if="financial.category_breakdown && financial.category_breakdown.length > 0">
+           <div class="stat-icon">
+              <span class="currency-symbol">📊</span> <!-- You can replace with an SVG icon if preferred -->
+              <span>สัดส่วนสินค้าที่ซื้อ</span>
+           </div>
+
+           <div class="category-list">
+              <div v-for="(cat, idx) in visibleCategories" :key="idx" class="category-row">
+                  <div class="cat-info">
+                      <span class="cat-label">{{ cat.label }}</span>
+                      <span class="cat-value">{{ cat.formattedValue }} บาท</span>
+                  </div>
+                  <div class="progress-bar-bg">
+                      <div class="progress-bar-fill" :style="{ width: cat.percentage + '%' }"></div>
+                  </div>
+              </div>
+
+              <div v-if="financial.category_breakdown.length > 3" class="cat-toggle-container">
+                  <button class="toggle-link" @click="showAllCategories = !showAllCategories">
+                      {{ showAllCategories ? 'แสดงน้อยลง' : 'ดูทั้งหมด' }}
+                  </button>
+              </div>
+           </div>
+        </div>
       </template>
     </div>
 
@@ -131,7 +157,8 @@ export default {
     return {
       iconCheckCircle,
       iconShoppingCart,
-      showMonthlyDetails: false
+      showMonthlyDetails: false,
+      showAllCategories: false
     };
   },
   props: {
@@ -150,6 +177,15 @@ export default {
     suggestions: {
       type: Array,
       default: () => []
+    }
+  },
+  computed: {
+    visibleCategories() {
+        if (!this.financial?.category_breakdown) return [];
+        if (this.showAllCategories) {
+            return this.financial.category_breakdown;
+        }
+        return this.financial.category_breakdown.slice(0, 3);
     }
   },
   setup() {
@@ -474,6 +510,76 @@ h3 {
   font-size: 14px;
   margin-bottom: 10px;
 }
+
+.category-list {
+  margin-top: 15px;
+  padding: 10px;
+  background: #f8f9fa; /* Light background for contrast */
+  border-radius: 8px;
+}
+
+.category-row {
+  margin-bottom: 12px;
+}
+
+.category-row:last-child {
+  margin-bottom: 0;
+}
+
+.cat-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.cat-label {
+  font-weight: 600;
+  color: #555;
+}
+
+.cat-value {
+  color: #333;
+  font-weight: bold;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background-color: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #0d6efd; /* Bootstrap Primary Blue */
+  border-radius: 3px;
+  transition: width 0.5s ease-in-out;
+}
+
+.cat-toggle-container {
+    text-align: center;
+    margin-top: 10px;
+    padding-top: 5px;
+    border-top: 1px dashed #e0e0e0;
+}
+
+.toggle-link {
+    background: none;
+    border: none;
+    color: #007bff;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 5px 10px;
+}
+
+.toggle-link:hover {
+    color: #0056b3;
+}
+
+/* Alternate colors for variety if needed, but keeping it simple blue for now is clean */
 
 @media (max-width: 1366px) {
   .credit-score-summary {
