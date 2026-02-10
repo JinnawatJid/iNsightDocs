@@ -341,17 +341,17 @@ const generateCreditRequestPDF = async (req, res) => {
         },
 
         // --- SECTION 1.5: ADDRESS INFO (Split as requested) ---
-        { text: 'ที่อยู่และสถานที่ประกอบการ', style: 'subheader' },
+        { text: 'สถานที่ประกอบการและที่อยู่อาศัย', style: 'subheader' },
         {
           table: {
             widths: ['15%', '85%'], // 2-Column layout for address
             body: [
-               // Residence
-               [{ text: 'ที่อยู่อาศัย:', bold: true }, fullAddress],
-               [{ text: 'กรรมสิทธิ์:', bold: true }, resOwnDisplay],
                // Store
                [{ text: 'ที่อยู่ร้านค้า:', bold: true }, fullStoreAddress !== '-' ? fullStoreAddress : 'เดียวกับที่อยู่บริษัท'],
-               [{ text: 'กรรมสิทธิ์:', bold: true }, storeOwnDisplay]
+               [{ text: 'กรรมสิทธิ์:', bold: true }, storeOwnDisplay],
+               // Residence
+               [{ text: 'ที่อยู่อาศัย:', bold: true }, fullAddress],
+               [{ text: 'กรรมสิทธิ์:', bold: true }, resOwnDisplay]
             ]
           },
           layout: 'lightHorizontalLines',
