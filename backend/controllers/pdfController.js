@@ -299,7 +299,7 @@ const generateCreditRequestPDF = async (req, res) => {
                 // Use absolute centering logic or just expanded width
                 {
                     stack: [
-                        { text: 'สรุปคำขอสินเชื่อ', style: 'header', alignment: 'center' },
+                        { text: 'คำขอเครดิต', style: 'header', alignment: 'center' },
                         { text: `เลขที่คำขอ: ${data.tx_id}`, alignment: 'center', fontSize: 10, margin: [0, 5, 0, 0] },
                         { text: `วันที่: ${formatDate(data.created_at)}`, alignment: 'center', fontSize: 10 }
                     ],
