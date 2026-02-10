@@ -442,13 +442,7 @@ const generateCreditRequestPDF = async (req, res) => {
             margin: [0, 0, 0, 15]
         },
 
-        // --- SECTION 5: ATTACHMENTS (Moved to LAST) ---
-        { text: 'เอกสารแนบ', style: 'subheader' },
-        {
-            text: attachmentSummary || 'ไม่มีเอกสารแนบ',
-            fontSize: 10,
-            margin: [0, 0, 0, 15]
-        }
+        // --- SECTION 5: ATTACHMENTS (Removed as requested) ---
       ],
       styles: {
         header: {
