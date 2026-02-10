@@ -101,6 +101,26 @@
               {{ financial.avg_monthly_trend }}
           </div>
         </div>
+
+        <!-- Category Breakdown -->
+        <div class="stat-item" v-if="financial.category_breakdown && financial.category_breakdown.length > 0">
+           <div class="stat-icon">
+              <span class="currency-symbol">📊</span> <!-- You can replace with an SVG icon if preferred -->
+              <span>สัดส่วนสินค้าที่ซื้อ (6 เดือนย้อนหลัง)</span>
+           </div>
+
+           <div class="category-list">
+              <div v-for="(cat, idx) in financial.category_breakdown" :key="idx" class="category-row">
+                  <div class="cat-info">
+                      <span class="cat-label">Category {{ cat.label }}</span>
+                      <span class="cat-value">{{ cat.formattedValue }} บาท</span>
+                  </div>
+                  <div class="progress-bar-bg">
+                      <div class="progress-bar-fill" :style="{ width: cat.percentage + '%' }"></div>
+                  </div>
+              </div>
+           </div>
+        </div>
       </template>
     </div>
 
@@ -474,6 +494,55 @@ h3 {
   font-size: 14px;
   margin-bottom: 10px;
 }
+
+.category-list {
+  margin-top: 15px;
+  padding: 10px;
+  background: #f8f9fa; /* Light background for contrast */
+  border-radius: 8px;
+}
+
+.category-row {
+  margin-bottom: 12px;
+}
+
+.category-row:last-child {
+  margin-bottom: 0;
+}
+
+.cat-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.cat-label {
+  font-weight: 600;
+  color: #555;
+}
+
+.cat-value {
+  color: #333;
+  font-weight: bold;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background-color: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #0d6efd; /* Bootstrap Primary Blue */
+  border-radius: 3px;
+  transition: width 0.5s ease-in-out;
+}
+
+/* Alternate colors for variety if needed, but keeping it simple blue for now is clean */
 
 @media (max-width: 1366px) {
   .credit-score-summary {

@@ -27,6 +27,22 @@ const MOCK_FINANCIAL_DATA = {
   "total": 3842820.75
 };
 
+const MOCK_CATEGORY_DATA = {
+  "customer": "01013AY",
+  "anchor_date": "2026-01-15",
+  "months": 6,
+  "by_category": {
+    "A": 2948830,
+    "G": 391941.25,
+    "Y": 78640,
+    "C": 21141.25,
+    "E": 17114.5,
+    "S": 88
+  },
+  "relevant_category": "A",
+  "relevant_sales": 2948830
+};
+
 // Helper to format currency
 const formatCurrency = (val) => {
     if (!val) return "0";
@@ -86,6 +102,13 @@ const fetchPurchasingBehavior = async (customerNo) => {
         console.error(`Error fetching purchasing behavior for ${customerNo}:`, error.message);
         throw error;
     }
+};
+
+const fetchCategorySummary = async (customerNo) => {
+    // For now, we only Mock because the internal IP is not accessible
+    // In production, check process.env or similar
+    console.log(`[Category API] Using Mock Data for ${customerNo}`);
+    return MOCK_CATEGORY_DATA;
 };
 
 /**
@@ -174,7 +197,28 @@ const enrichCustomerData = async (customerNo) => {
 
     // 2. Fetch Financial Data (New API)
     try {
-        const apiData = await fetchPurchasingBehavior(customerNo);
+        const [apiData, categoryData] = await Promise.all([
+            fetchPurchasingBehavior(customerNo),
+            fetchCategorySummary(customerNo)
+        ]);
+
+        // Process Category Breakdown
+        let categoryBreakdown = [];
+        if (categoryData && categoryData.by_category) {
+             const entries = Object.entries(categoryData.by_category);
+             // Calculate Total for Percentage
+             const totalSales = entries.reduce((sum, [_, val]) => sum + val, 0);
+
+             categoryBreakdown = entries.map(([key, value]) => ({
+                 label: key, // e.g. "A", "B"
+                 value: value,
+                 formattedValue: formatCurrency(value),
+                 percentage: totalSales > 0 ? (value / totalSales) * 100 : 0
+             }));
+
+             // Sort Descending
+             categoryBreakdown.sort((a, b) => b.value - a.value);
+        }
 
         if (apiData && apiData.monthly && apiData.monthly.length > 0) {
             const monthlyData = apiData.monthly;
@@ -239,7 +283,8 @@ const enrichCustomerData = async (customerNo) => {
                 total_purchase_growth: totalPurchaseGrowth,
                 avg_monthly: formatCurrency(sumLast3 / 3),
                 avg_monthly_trend: totalPurchaseGrowth, // Reuse trend for avg (math is same)
-                monthly_history: monthlyHistory
+                monthly_history: monthlyHistory,
+                category_breakdown: categoryBreakdown
             };
 
             // Generate Suggestions Logic (Adapted for Dynamic Data - Based on Calc Set)
@@ -284,7 +329,8 @@ const enrichCustomerData = async (customerNo) => {
                 total_purchase_growth: null,
                 avg_monthly: "0",
                 avg_monthly_trend: null,
-                monthly_history: []
+                monthly_history: [],
+                category_breakdown: categoryBreakdown
             };
             suggestions.push("ไม่พบข้อมูลประวัติการซื้อ");
         }
@@ -297,6 +343,7 @@ const enrichCustomerData = async (customerNo) => {
             avg_monthly: "0",
             avg_monthly_trend: null,
             monthly_history: [],
+            category_breakdown: [],
             error: "ไม่สามารถเรียกข้อมูลพฤติกรรมการซื้อได้"
         };
     }
