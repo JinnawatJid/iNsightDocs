@@ -423,7 +423,7 @@ onUnmounted(() => {
 }
 
 /* Responsive: Stack on small screens */
-@media (max-width: 1400px) {
+@media (max-width: 992px) {
     .search-action-container {
         flex-direction: column;
     }
