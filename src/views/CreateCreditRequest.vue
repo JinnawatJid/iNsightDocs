@@ -34,7 +34,6 @@
             <!-- Create Request Action Bar (Outside Header) -->
             <div v-if="store.hasSearched" class="action-bar flex-fixed-action">
                 <div class="action-bar-content">
-                    <label>ดำเนินการสร้างคำขอเครดิต</label>
                     <div class="dropdown-container" ref="typeDropdown">
                         <button class="btn-create-request" @click="toggleTypeDropdown">
                         {{ selectedType || 'สร้างคำขอเครดิต +' }}
@@ -409,17 +408,15 @@ onUnmounted(() => {
   height: 100%;
 }
 
-/* Action Bar Styles */
+/* Action Bar Styles (Button Only) */
 .action-bar {
-  background: white;
-  padding: 15px 20px;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  /* Removed island styles */
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0; /* Don't shrink */
-  min-width: 300px; /* Fixed min width for island */
+  align-items: flex-end; /* Align bottom to match input line */
+  justify-content: flex-end;
+  flex-shrink: 0;
+  min-width: 250px;
+  padding-bottom: 20px; /* Align with header padding bottom */
 }
 
 /* Responsive: Stack on small screens */
@@ -430,21 +427,15 @@ onUnmounted(() => {
     .action-bar {
         width: 100%;
         justify-content: flex-end;
+        padding-bottom: 0;
     }
 }
 
 .action-bar-content {
   display: flex;
-  flex-direction: column; /* Stack label and dropdown */
-  align-items: flex-start;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-end;
   width: 100%;
-}
-
-.action-bar-content label {
-    font-weight: bold;
-    color: #333;
-    font-size: 14px;
 }
 
 /* Dropdown Styles reused */
