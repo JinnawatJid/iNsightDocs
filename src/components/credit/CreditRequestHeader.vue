@@ -1,15 +1,77 @@
 <template>
   <div class="credit-header">
     <div class="header-section">
-      <label>ประเภทคำขอเครดิต</label>
-      <select class="form-select" v-model="selectedType" @change="updateType">
-        <option value="เครดิตใหม่">เครดิตใหม่</option>
-        <option value="เครดิตเพิ่ม">เครดิตเพิ่ม</option>
-        <option value="เครดิตโครงการ">เครดิตโครงการ</option>
-        <option value="เปลี่ยนแปลงระยะเวลาเครดิต">เปลี่ยนแปลงระยะเวลาเครดิต</option>
-        <option value="เปลี่ยนแปลงเงื่อนไขการชำระเงิน">เปลี่ยนแปลงเงื่อนไขการชำระเงิน</option>
-      </select>
+
+      <!-- State 1: Before Search (Placeholder) -->
+      <div v-if="!hasSearched" class="placeholder-wrapper">
+         <label class="text-muted">กรุณาค้นหาลูกค้าก่อน</label>
+         <div class="disabled-fake-input">เลือกประเภทคำขอ...</div>
+      </div>
+
+      <!-- State 2: Context Mode (Start Button) -->
+      <div v-else-if="hasSearched && !isRequestStarted" class="action-wrapper" ref="menuContainer">
+         <label class="action-label">การดำเนินการ</label>
+         <button class="btn-start-request" @click="toggleMenu">
+            + เพิ่มคำขอเครดิตใหม่
+         </button>
+
+         <!-- Popover Menu -->
+         <div v-if="showMenu" class="request-menu">
+            <div class="menu-header">เลือกประเภทคำขอ</div>
+            <div
+               class="menu-item"
+               :class="{ disabled: !canRequestNew }"
+               @click="handleMenuSelect('เครดิตใหม่')"
+            >
+               เครดิตใหม่
+               <span v-if="!canRequestNew" class="reason-hint">(ลูกค้ามีเครดิตแล้ว)</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div
+               class="menu-item"
+               :class="{ disabled: !canRequestExisting }"
+               @click="handleMenuSelect('เครดิตเพิ่ม')"
+            >
+               เครดิตเพิ่ม
+            </div>
+            <div
+               class="menu-item"
+               :class="{ disabled: !canRequestExisting }"
+               @click="handleMenuSelect('เครดิตโครงการ')"
+            >
+               เครดิตโครงการ
+            </div>
+            <div
+               class="menu-item"
+               :class="{ disabled: !canRequestExisting }"
+               @click="handleMenuSelect('เปลี่ยนแปลงระยะเวลาเครดิต')"
+            >
+               เปลี่ยนแปลงระยะเวลาเครดิต
+            </div>
+             <div
+               class="menu-item"
+               :class="{ disabled: !canRequestExisting }"
+               @click="handleMenuSelect('เปลี่ยนแปลงเงื่อนไขการชำระเงิน')"
+            >
+               เปลี่ยนแปลงเงื่อนไขการชำระเงิน
+            </div>
+         </div>
+      </div>
+
+      <!-- State 3: Form Mode (Standard Selector) -->
+      <div v-else class="selector-wrapper">
+        <label>ประเภทคำขอเครดิต</label>
+        <select class="form-select" v-model="selectedType" @change="updateType">
+            <option value="เครดิตใหม่" :disabled="!canRequestNew">เครดิตใหม่</option>
+            <option value="เครดิตเพิ่ม" :disabled="!canRequestExisting">เครดิตเพิ่ม</option>
+            <option value="เครดิตโครงการ" :disabled="!canRequestExisting">เครดิตโครงการ</option>
+            <option value="เปลี่ยนแปลงระยะเวลาเครดิต" :disabled="!canRequestExisting">เปลี่ยนแปลงระยะเวลาเครดิต</option>
+            <option value="เปลี่ยนแปลงเงื่อนไขการชำระเงิน" :disabled="!canRequestExisting">เปลี่ยนแปลงเงื่อนไขการชำระเงิน</option>
+        </select>
+      </div>
+
     </div>
+
     <div class="header-section flex-grow">
       <div class="label-row">
         <label>ค้นหาข้อมูลลูกค้า</label>
@@ -65,12 +127,70 @@ import debounce from 'lodash/debounce';
 import CustomerService from '@/services/CustomerService';
 import iconSearchBi from '@/assets/icons/search-bi.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 
 export default {
   name: 'CreditRequestHeader',
-  setup() {
+  props: {
+      isRequestStarted: {
+          type: Boolean,
+          default: false
+      }
+  },
+  setup(props, { emit }) {
     const creditStore = useCreditRequestStore();
-    return { creditStore };
+    const showMenu = ref(false);
+    const menuContainer = ref(null);
+
+    const hasSearched = computed(() => creditStore.hasSearched);
+
+    // Logic for Request Types
+    const currentLimit = computed(() => {
+        const val = creditStore.customer?.current_credit_limit;
+        return val ? parseFloat(val) : 0;
+    });
+
+    const canRequestNew = computed(() => currentLimit.value <= 0);
+    const canRequestExisting = computed(() => currentLimit.value > 0);
+
+    const toggleMenu = () => {
+        showMenu.value = !showMenu.value;
+    };
+
+    const handleMenuSelect = (type) => {
+        // Validate selection against logic
+        if (type === 'เครดิตใหม่' && !canRequestNew.value) return;
+        if (type !== 'เครดิตใหม่' && !canRequestExisting.value) return;
+
+        emit('start-request', type);
+        showMenu.value = false;
+    };
+
+    // Click outside for menu
+    const closeMenu = (e) => {
+        if (menuContainer.value && !menuContainer.value.contains(e.target)) {
+            showMenu.value = false;
+        }
+    };
+
+    onMounted(() => {
+        document.addEventListener('click', closeMenu);
+    });
+
+    onUnmounted(() => {
+        document.removeEventListener('click', closeMenu);
+    });
+
+    return {
+        creditStore,
+        hasSearched,
+        canRequestNew,
+        canRequestExisting,
+        showMenu,
+        menuContainer,
+        toggleMenu,
+        handleMenuSelect
+    };
   },
   data() {
     return {
@@ -126,12 +246,6 @@ export default {
   created() {
     this.debouncedFetchSuggestions = debounce(this.fetchSuggestions, 300);
   },
-  mounted() {
-    document.addEventListener('click', this.handleClickOutside);
-  },
-  beforeUnmount() {
-    document.removeEventListener('click', this.handleClickOutside);
-  },
   methods: {
     updateType() {
       this.creditStore.updateTransactionData({ requestType: this.selectedType });
@@ -150,8 +264,6 @@ export default {
     },
     onFocus() {
        if (this.searchQuery.length >= 3) {
-         // Re-trigger fetch or just show if we have data?
-         // Better to re-fetch to be safe
          this.fetchSuggestions();
        }
     },
@@ -163,7 +275,7 @@ export default {
       this.showDropdown = true;
     },
     getDisplayText(item) {
-      const q = this.searchQuery.toLowerCase().replace(/[- ]/g, ''); // Normalize query
+      const q = this.searchQuery.toLowerCase().replace(/[- ]/g, '');
       
       const normalize = (val) => val ? val.replace(/[- ]/g, '') : '';
       
@@ -174,7 +286,6 @@ export default {
       const idMatch = item.id.toLowerCase().includes(this.searchQuery.toLowerCase());
 
       if (phoneMatch) {
-        // Use whichever phone matched, or default to phone then mobile
         let displayPhone = item.phone || item.mobile;
         return `${displayPhone} - ${item.name}`;
       }
@@ -183,16 +294,9 @@ export default {
         return `${item.id} - ${item.name}`;
       }
 
-      // Default: Name - ID
       return `${item.name} - ${item.id}`;
     },
     selectSuggestion(item) {
-      // Set query to ID as requested by my plan logic to ensure search works exact
-      // User said: "using the 10013AY - Some Company Name is great" for display.
-      // But for searching, the backend searchCustomers uses LIKE.
-      // If I set the text to "10013AY", it will find it.
-      // If I set "10013AY - Some Company", it might fail if backend doesn't handle that format.
-      // I will set it to ID to be safe and trigger search.
       this.searchQuery = item.id;
       this.showDropdown = false;
       this.$emit('search', this.searchQuery);
@@ -202,10 +306,7 @@ export default {
       this.$emit('search', this.searchQuery);
     },
     exportPDF() {
-      // Fixed: use requestId instead of non-existent transactionId
       const txId = this.creditStore.requestId;
-
-      console.log('Exporting PDF for txId:', txId);
 
       if (!txId) {
         console.warn('Cannot export PDF: Missing Transaction ID (requestId is null)');
@@ -214,15 +315,21 @@ export default {
 
       const encodedId = encodeURIComponent(txId);
       const url = `/api/credit-requests/${encodedId}/pdf`;
-      console.log('PDF URL:', url);
       window.open(url, '_blank');
     },
     handleClickOutside(event) {
-      const container = this.$refs.searchContainer;
-      if (container && !container.contains(event.target)) {
-        this.showDropdown = false;
-      }
+        // Handled by setup() logic for menu, and here for search
+        const container = this.$refs.searchContainer;
+        if (container && !container.contains(event.target)) {
+            this.showDropdown = false;
+        }
     }
+  },
+  mounted() {
+      document.addEventListener('click', this.handleClickOutside);
+  },
+  beforeUnmount() {
+      document.removeEventListener('click', this.handleClickOutside);
   }
 };
 </script>
@@ -269,7 +376,7 @@ label {
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 14px;
-  width: 180px; /* Reduced from 220px to fit layout */
+  width: 220px;
   background-color: #f9f9f9;
   color: black;
 }
@@ -389,5 +496,128 @@ label {
     background-color: #fff3cd;
     color: #856404;
     border: 1px solid #ffeeba;
+}
+
+/* NEW: Styles for Action Wrapper and Menu */
+.action-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.placeholder-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.text-muted {
+    color: #888;
+    font-size: 14px;
+}
+
+.disabled-fake-input {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f5f5f5;
+    color: #aaa;
+    width: 220px;
+    font-size: 14px;
+}
+
+.btn-start-request {
+    padding: 10px 16px;
+    background-color: #0056FF;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    width: 220px;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+
+.btn-start-request:hover {
+    background-color: #0046cc;
+}
+
+.request-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 260px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1001;
+    margin-top: 8px;
+    overflow: hidden;
+    padding: 8px 0;
+}
+
+.menu-header {
+    padding: 8px 16px;
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    font-weight: bold;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 4px;
+}
+
+.menu-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    transition: background-color 0.1s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.menu-item:hover {
+    background-color: #f5f5f5;
+    color: #0056FF;
+}
+
+.menu-item.disabled {
+    color: #ccc;
+    cursor: not-allowed;
+    background-color: white;
+}
+
+.menu-item.disabled:hover {
+    color: #ccc;
+    background-color: white;
+}
+
+.menu-divider {
+    height: 1px;
+    background-color: #f0f0f0;
+    margin: 4px 0;
+}
+
+.reason-hint {
+    font-size: 11px;
+    color: #bbb;
+}
+
+.action-label {
+    font-weight: bold;
+    font-size: 16px;
+    color: #000;
+    text-align: left;
+}
+
+.selector-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 </style>
