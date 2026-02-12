@@ -535,6 +535,10 @@ const startBatch = async () => {
              const f = downloadResult.files.financialRatios;
              formData.append('financial_ratios', base64ToBlob(f.content, f.mime), f.filename);
           }
+          if (downloadResult.files.profile) {
+             const f = downloadResult.files.profile;
+             formData.append('company_profile', base64ToBlob(f.content, f.mime), f.filename);
+          }
           yearsInBusiness = downloadResult.yearsInBusiness || 0;
           registeredCapital = downloadResult.registeredCapital || 0;
       } else {

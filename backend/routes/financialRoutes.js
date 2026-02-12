@@ -10,7 +10,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 const cpUpload = upload.fields([
   { name: 'balance_sheet', maxCount: 1 },
   { name: 'profit_loss', maxCount: 1 },
-  { name: 'financial_ratios', maxCount: 1 }
+  { name: 'financial_ratios', maxCount: 1 },
+  { name: 'company_profile', maxCount: 1 }
 ]);
 
 router.post('/analyze', cpUpload, financialController.analyzeFinancials);

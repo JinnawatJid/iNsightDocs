@@ -1,6 +1,8 @@
 const xlsx = require('xlsx');
 const db = require('../db');
 const axios = require('axios');
+const fs = require('fs-extra');
+const path = require('path');
 
 // Configuration
 const FINANCIAL_API_URL = "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
@@ -701,6 +703,44 @@ exports.analyzeFinancials = async (req, res) => {
       residence_ownership,
       residence_ownership_other
     } = req.body;
+
+    // --- PERSISTENT STORAGE (Project Requirement) ---
+    // Save uploaded files to SP682/customers/{CustomerCode}/{YYYYMMDD}/
+    if (customer_no) {
+        try {
+            // Determine Date Folder (YYYYMMDD)
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const dateFolder = `${yyyy}${mm}${dd}`;
+
+            // Determine Root Path (SP682/customers)
+            // Current: .../SP682_v_x/release/backend/controllers
+            // Target:  .../customers
+            const projectRoot = path.resolve(__dirname, '../../../../');
+            const customerDir = path.join(projectRoot, 'customers', customer_no, dateFolder);
+
+            await fs.ensureDir(customerDir);
+            console.log(`[Financial Persistent] Saving files to: ${customerDir}`);
+
+            // Helper to save buffer
+            const saveFile = async (field, filename) => {
+                if (files[field] && files[field][0]) {
+                    const dest = path.join(customerDir, filename);
+                    await fs.outputFile(dest, files[field][0].buffer);
+                }
+            };
+
+            await saveFile('company_profile', 'DBD_Profile.pdf');
+            await saveFile('balance_sheet', 'DBD_BalanceSheet.xlsx');
+            await saveFile('profit_loss', 'DBD_IncomeStatement.xlsx');
+            await saveFile('financial_ratios', 'DBD_FinancialRatios.xlsx');
+
+        } catch (persistErr) {
+            console.error('[Financial Persistent] Error saving files:', persistErr.message);
+        }
+    }
 
     // --- 1. EXTRACT FROM EXCEL ---
     const results = {
