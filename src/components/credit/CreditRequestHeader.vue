@@ -1,14 +1,13 @@
 <template>
   <div class="credit-header">
-    <div class="header-section">
+    <!-- Only show Request Type if one is selected -->
+    <div v-if="creditStore.hasSelectedType" class="header-section">
       <label>ประเภทคำขอเครดิต</label>
-      <select class="form-select" v-model="selectedType" @change="updateType">
-        <option value="เครดิตใหม่">เครดิตใหม่</option>
-        <option value="เครดิตเพิ่ม">เครดิตเพิ่ม</option>
-        <option value="เครดิตโครงการ">เครดิตโครงการ</option>
-        <option value="เปลี่ยนแปลงระยะเวลาเครดิต">เปลี่ยนแปลงระยะเวลาเครดิต</option>
-        <option value="เปลี่ยนแปลงเงื่อนไขการชำระเงิน">เปลี่ยนแปลงเงื่อนไขการชำระเงิน</option>
-      </select>
+      <div class="selected-type-display">
+        <span class="type-label">{{ creditStore.transactionData.requestType }}</span>
+        <!-- Allow changing type if not finalized (assuming logic permits) -->
+        <button class="btn-change-type" @click="changeType">เปลี่ยน</button>
+      </div>
     </div>
     <div class="header-section flex-grow">
       <div class="label-row">
@@ -134,11 +133,11 @@ export default {
   },
   methods: {
     updateType() {
-      this.creditStore.updateTransactionData({ requestType: this.selectedType });
-      // Trigger save if we have a customer loaded
-      if (this.creditStore.requestId) {
-        this.creditStore.saveTransactionData();
-      }
+      // Legacy method, no longer used with readonly display
+    },
+    changeType() {
+      // Clear selection to go back to Action Menu
+      this.creditStore.clearRequestType();
     },
     onInput() {
       if (this.searchQuery.length >= 3) {
@@ -264,14 +263,33 @@ label {
   text-align: left;
 }
 
-.form-select {
-  padding: 10px;
-  border: 1px solid #ccc;
+.selected-type-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #f0f7ff;
+  border: 1px solid #cce5ff;
+  padding: 8px 12px;
   border-radius: 8px;
-  font-size: 14px;
-  width: 180px; /* Reduced from 220px to fit layout */
-  background-color: #f9f9f9;
-  color: black;
+}
+
+.type-label {
+  font-weight: bold;
+  color: #004085;
+}
+
+.btn-change-type {
+  font-size: 12px;
+  color: #666;
+  text-decoration: underline;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-change-type:hover {
+  color: #333;
 }
 
 .search-group {

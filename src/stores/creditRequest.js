@@ -38,8 +38,11 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       termAE: '',
       termYC: '',
       reason: '',
-      requestType: 'เครดิตใหม่'
+      requestType: '' // Initialize empty until selected
     },
+
+    // UI State for Selection Flow
+    hasSelectedType: false,
 
     // List of requests (Pending/History)
     requestsList: [],
@@ -239,6 +242,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         };
 
         this.hasSearched = true; // To show the form
+        this.hasSelectedType = true; // Viewing existing request implies type is selected
 
       } catch (err) {
         console.error('Failed to load request detail', err);
@@ -363,10 +367,11 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           this.dataSource = data._source || null;
           this.hasSearched = true;
 
-          await this.createCreditRequest(this.customer.id, this.customer.name);
+          // await this.createCreditRequest(this.customer.id, this.customer.name);
+          // Don't create request immediately on search. Wait for type selection.
 
           // Fetch comments
-          await this.fetchComments();
+          // await this.fetchComments();
 
           Swal.close();
         } else {
@@ -719,6 +724,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     resetState() {
       this.hasSearched = false;
+      this.hasSelectedType = false;
       this.customer = {
         payment_method: '',
         billing_requirement: '',
@@ -747,11 +753,12 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termAE: '',
         termYC: '',
         reason: '',
-        requestType: 'เครดิตใหม่'
+        requestType: ''
       };
     },
 
     clearFormData() {
+      this.hasSelectedType = false; // Reset selection on new search
       this.customer = {
         payment_method: '',
         billing_requirement: '',
@@ -778,8 +785,22 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termAE: '',
         termYC: '',
         reason: '',
-        requestType: 'เครดิตใหม่'
+        requestType: ''
       };
+    },
+
+    selectRequestType(type) {
+        this.transactionData.requestType = type;
+        this.hasSelectedType = true;
+        // Now we can create the transaction if needed, or wait until save
+        if (this.customer.id && !this.requestId) {
+             this.createCreditRequest(this.customer.id, this.customer.name);
+        }
+    },
+
+    clearRequestType() {
+        this.hasSelectedType = false;
+        this.transactionData.requestType = '';
     },
 
     triggerValidation() {

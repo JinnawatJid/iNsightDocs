@@ -28,7 +28,7 @@
           <CreditRequestHeader @search="store.searchCustomer" />
         </div>
         <div class="grid-col right">
-          <DocumentChecklist v-if="store.hasSearched" />
+          <DocumentChecklist v-if="store.hasSelectedType" />
         </div>
       </div>
 
@@ -46,6 +46,7 @@
 
         <!-- Center Column: Purpose/Form -->
         <div class="grid-col center">
+           <!-- State 1: Search Placeholder -->
            <div v-if="!store.hasSearched" class="placeholder-state">
              <div class="placeholder-content">
                <img :src="iconSearchLarge" alt="Search" width="64" height="64" />
@@ -53,13 +54,25 @@
              </div>
            </div>
 
+           <!-- State 2: Action Menu (Search Done, Type Not Selected) -->
+           <div v-else-if="!store.hasSelectedType" class="action-menu-wrapper">
+              <CreditActionMenu
+                 :customerName="store.displayCustomer.name"
+                 :customerCode="store.displayCustomer.id"
+                 :currentCredit="store.displayCustomer.current_credit_limit"
+                 :currentTerms="store.displayCustomer.payment_terms_code"
+                 @select="handleTypeSelection"
+              />
+           </div>
+
+           <!-- State 3: Full Form (Type Selected) -->
            <CreditRequestForm v-else />
         </div>
 
         <!-- Right Column: Idea/Summary -->
         <div class="grid-col right">
            <CreditScoreSummary
-             v-if="store.hasSearched"
+             v-if="store.hasSelectedType"
              :financial="store.financialSummary"
              :canRequest="store.creditScore.can_request_credit"
              :badges="store.creditScore.badges"
@@ -84,6 +97,7 @@ import CreditRequestHeader from '@/components/credit/CreditRequestHeader.vue';
 import CreditHistorySidebar from '@/components/credit/CreditHistorySidebar.vue';
 import RequestStatus from '@/components/credit/RequestStatus.vue';
 import CreditRequestForm from '@/components/credit/CreditRequestForm.vue';
+import CreditActionMenu from '@/components/credit/CreditActionMenu.vue';
 import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
 import DocumentChecklist from '@/components/credit/DocumentChecklist.vue';
 import SmartImportModal from '@/components/credit/SmartImportModal.vue';
@@ -142,6 +156,10 @@ const handleOcrData = (data) => {
   // 4. Force UI Update
   store.displayCustomer = { ...store.customer };
   store.hasSearched = true; // Unlock the form
+};
+
+const handleTypeSelection = (type) => {
+  store.selectRequestType(type);
 };
 </script>
 
