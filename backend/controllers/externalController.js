@@ -626,6 +626,65 @@ exports.streamDBDProfile = async (req, res) => {
         sendSSE(res, { status: 'progress', message: 'กำลังประมวลผลข้อมูลจาก PDF...' });
         const extractionResult = await extractAndProcessDBDData(pdfPath, taxId, companyName);
 
+        // --- PERSISTENT STORAGE (Project Requirement) ---
+        // Save files to SP682/customers/{CustomerCode}/{YYYYMMDD}/
+        if (customerCode) {
+            try {
+                // Determine Date Folder Name (YYYYMMDD)
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const dd = String(now.getDate()).padStart(2, '0');
+                const dateFolder = `${yyyy}${mm}${dd}`;
+
+                // Determine Root Path (SP682/customers)
+                // Current: .../SP682_v_x/release/backend/controllers
+                // Target:  .../customers
+                const projectRoot = path.resolve(__dirname, '../../../../');
+                const customerDir = path.join(projectRoot, 'customers', customerCode, dateFolder);
+
+                await fs.ensureDir(customerDir);
+                console.log(`[DBD Persistent] Saving files to: ${customerDir}`);
+
+                // Copy files with standardized names (Overwrite allowed)
+
+                // 1. Profile
+                if (await fs.pathExists(pdfPath)) {
+                    await fs.copy(pdfPath, path.join(customerDir, 'DBD_Profile.pdf'), { overwrite: true });
+                }
+
+                // 2. Balance Sheet
+                if (excelFilename) {
+                     const src = path.join(downloadsDir, excelFilename);
+                     if (await fs.pathExists(src)) {
+                         await fs.copy(src, path.join(customerDir, 'DBD_BalanceSheet.xlsx'), { overwrite: true });
+                     }
+                }
+
+                // 3. Income Statement
+                if (incomeFilename) {
+                     const src = path.join(downloadsDir, incomeFilename);
+                     if (await fs.pathExists(src)) {
+                         await fs.copy(src, path.join(customerDir, 'DBD_IncomeStatement.xlsx'), { overwrite: true });
+                     }
+                }
+
+                // 4. Financial Ratios
+                if (ratioFilename) {
+                     const src = path.join(downloadsDir, ratioFilename);
+                     if (await fs.pathExists(src)) {
+                         await fs.copy(src, path.join(customerDir, 'DBD_FinancialRatios.xlsx'), { overwrite: true });
+                     }
+                }
+
+            } catch (persistErr) {
+                console.error('[DBD Persistent] Error saving files:', persistErr.message);
+                // We do NOT stop the process, just log the error
+            }
+        } else {
+            console.warn('[DBD Persistent] Skipped: customerCode is missing.');
+        }
+
         // 7. Complete
         sendSSE(res, {
             status: 'complete',
