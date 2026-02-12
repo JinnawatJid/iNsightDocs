@@ -521,6 +521,26 @@ const startBatch = async () => {
       let yearsInBusiness = 0;
       let registeredCapital = 0;
 
+      // STRICT VALIDATION: Ensure Companies have all 4 DBD files
+      if (!skipDBD) {
+          if (!downloadResult) {
+              throw new Error('ดาวน์โหลด DBD ไม่สำเร็จ (กรุณาลองใหม่)');
+          }
+          const required = ['profile', 'balanceSheet', 'incomeStatement', 'financialRatios'];
+          const missing = required.filter(k => !downloadResult.files[k]);
+          if (missing.length > 0) {
+               // Translate keys to readable names
+               const names = {
+                   profile: 'Company Profile',
+                   balanceSheet: 'งบดุล',
+                   incomeStatement: 'งบกำไรขาดทุน',
+                   financialRatios: 'อัตราส่วนทางการเงิน'
+               };
+               const missingNames = missing.map(k => names[k] || k).join(', ');
+               throw new Error(`DBD ไม่ครบ: ขาด ${missingNames}`);
+          }
+      }
+
       if (downloadResult) {
           // Append Files
           if (downloadResult.files.balanceSheet) {
@@ -542,8 +562,8 @@ const startBatch = async () => {
           yearsInBusiness = downloadResult.yearsInBusiness || 0;
           registeredCapital = downloadResult.registeredCapital || 0;
       } else {
-          // Fallback: Use Customer Date
-          item.log = 'DBD ล้มเหลว ใช้วันที่ลูกค้าแทน...';
+          // Fallback: Use Customer Date (Only for skipped items)
+          item.log = 'ใช้ข้อมูลภายใน (ข้าม DBD)...';
           if (customer.customer.customer_since) {
              const start = new Date(customer.customer.customer_since);
              const now = new Date();
