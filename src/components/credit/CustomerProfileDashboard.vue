@@ -104,7 +104,7 @@ export default {
     });
 
     const customerTypeLabel = computed(() => {
-      if (customer.value.type) return customer.value.type;
+      // Prioritize name-based check to fix issues where individual names are flagged as companies
       const name = customer.value.name || '';
       if (name.includes('บริษัท') || name.includes('จำกัด') || name.includes('หจก')) {
         return 'Corporate';
