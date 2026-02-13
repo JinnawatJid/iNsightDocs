@@ -7,6 +7,7 @@ const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
 
 // Configuration
 const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
+const CATEGORY_API_URL = process.env.CATEGORY_API_URL || "http://192.192.0.37:8000/api/customer-analytics/category-summary";
 const ENABLE_LOCAL_FALLBACK = process.env.ENABLE_LOCAL_FALLBACK === 'true';
 
 // MOCK FLAG for Financial API (Sandbox Environment)
@@ -25,22 +26,6 @@ const MOCK_FINANCIAL_DATA = {
     { "month": "2026-01", "amount": 426226.75 }
   ],
   "total": 3842820.75
-};
-
-const MOCK_CATEGORY_DATA = {
-  "customer": "01013AY",
-  "anchor_date": "2026-01-15",
-  "months": 6,
-  "by_category": {
-    "A": 2948830,
-    "G": 391941.25,
-    "Y": 78640,
-    "C": 21141.25,
-    "E": 17114.5,
-    "S": 88
-  },
-  "relevant_category": "A",
-  "relevant_sales": 2948830
 };
 
 // Helper to format currency
@@ -118,10 +103,16 @@ const fetchPurchasingBehavior = async (customerNo) => {
 };
 
 const fetchCategorySummary = async (customerNo) => {
-    // For now, we only Mock because the internal IP is not accessible
-    // In production, check process.env or similar
-    console.log(`[Category API] Using Mock Data for ${customerNo}`);
-    return MOCK_CATEGORY_DATA;
+    try {
+        const response = await axios.get(CATEGORY_API_URL, {
+            params: { customer_code: customerNo },
+            timeout: 5000
+        });
+        return response.data;
+    } catch (error) {
+        console.error(`Error fetching category summary for ${customerNo}:`, error.message);
+        throw error;
+    }
 };
 
 /**
