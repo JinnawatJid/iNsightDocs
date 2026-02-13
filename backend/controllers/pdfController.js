@@ -101,36 +101,84 @@ const generateCreditRequestPDF = async (req, res) => {
       return Number(val).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
-    // Address Logic
-    const address = snapCust.address || data.db_address || '';
-    const subdistrict = snapCust.subdistrict || '';
-    const district = snapCust.district || data.db_district || '';
-    const province = snapCust.province || data.db_province || '';
-    const zipcode = snapCust.zipcode || data.db_zipcode || '';
-    // const residenceMap = snapCust.residence_map_code || data.residence_map_code || '-'; // Removed as requested
+    // --- IDENTIFY CUSTOMER TYPE ---
+    const corporateKeywords = ['บริษัท', 'จำกัด', 'หจก', 'Company', 'Limited', 'Ltd'];
+    const isCompany = corporateKeywords.some(keyword => customerName.includes(keyword));
 
-    // Residence Ownership Logic
-    const residenceOwnership = snapCust.residence_ownership || data.residence_ownership || '-';
-    const residenceOwnershipOther = snapCust.residence_ownership_other || data.residence_ownership_other || '';
-    let resOwnDisplay = residenceOwnership;
-    if (residenceOwnershipOther) {
-        // If it's a number (cost/value), format it. If text, just append.
-        const numVal = parseFloat(residenceOwnershipOther.replace(/,/g, ''));
-        const displayVal = !isNaN(numVal) ? formatCurrency(numVal) + ' บาท' : residenceOwnershipOther;
-        resOwnDisplay = `${residenceOwnership} (${displayVal})`;
+    // --- ADDRESS EXTRACTION LOGIC ---
+
+    // 1. Main Business Address (Company Address or Store Address)
+    // For Company: address keys (Company Address)
+    // For Individual: store_ keys (Shop Address)
+
+    // Define source keys based on type
+    const mainKeys = isCompany ?
+        { addr: 'address', sub: 'subdistrict', dist: 'district', prov: 'province', zip: 'zipcode' } :
+        { addr: 'store_address', sub: 'store_subdistrict', dist: 'store_district', prov: 'store_province', zip: 'store_zipcode' };
+
+    // Extract Main Address components
+    const mainAddressVal = snapCust[mainKeys.addr] || (isCompany ? data.db_address : '') || '';
+    const mainSub = snapCust[mainKeys.sub] || '';
+    const mainDist = snapCust[mainKeys.dist] || (isCompany ? data.db_district : '') || '';
+    const mainProv = snapCust[mainKeys.prov] || (isCompany ? data.db_province : '') || '';
+    const mainZip = snapCust[mainKeys.zip] || (isCompany ? data.db_zipcode : '') || '';
+
+    const fullMainAddress = [mainAddressVal, mainSub, mainDist, mainProv, mainZip]
+        .filter(part => part && part.trim() !== '')
+        .join(' ');
+
+    // 2. Residence Address (Authorized Person or Personal Residence)
+    // For Company: residence_ keys (Authorized Person)
+    // For Individual: address keys (Personal Residence)
+
+    const resKeys = isCompany ?
+        { addr: 'residence_address', sub: 'residence_subdistrict', dist: 'residence_district', prov: 'residence_province', zip: 'residence_zipcode' } :
+        { addr: 'address', sub: 'subdistrict', dist: 'district', prov: 'province', zip: 'zipcode' };
+
+    // Extract Residence Address components
+    const resAddressVal = snapCust[resKeys.addr] || (!isCompany ? data.db_address : '') || '';
+    const resSub = snapCust[resKeys.sub] || '';
+    const resDist = snapCust[resKeys.dist] || (!isCompany ? data.db_district : '') || '';
+    const resProv = snapCust[resKeys.prov] || (!isCompany ? data.db_province : '') || '';
+    const resZip = snapCust[resKeys.zip] || (!isCompany ? data.db_zipcode : '') || '';
+
+    const fullResidenceAddress = [resAddressVal, resSub, resDist, resProv, resZip]
+        .filter(part => part && part.trim() !== '')
+        .join(' ');
+
+
+    // --- DISPLAY LOGIC ---
+
+    // Field 1: Business Place
+    // Label: "ที่อยู่บริษัท:" (Company) or "ที่อยู่ร้านค้า:" (Individual)
+    const businessPlaceLabel = isCompany ? 'ที่อยู่บริษัท:' : 'ที่อยู่ร้านค้า:';
+    // Value: fullMainAddress
+    const businessPlaceValue = fullMainAddress || '-';
+
+    // Field 2: Residence
+    // Label: "ที่อยู่อาศัย:" (Fixed)
+    const residenceLabel = 'ที่อยู่อาศัย:';
+    // Value: Check equality
+    let residenceValue = fullResidenceAddress;
+
+    // Normalize for comparison
+    const normMain = fullMainAddress.replace(/\s+/g, '').toLowerCase();
+    const normRes = fullResidenceAddress.replace(/\s+/g, '').toLowerCase();
+
+    // Condition: If effective addresses are same, show special text
+    // Also if residence is empty but main is present, it might imply same address in some contexts,
+    // but strict check is safer.
+    if (normMain && normRes && normMain === normRes) {
+        residenceValue = 'เดียวกับที่อยู่ร้านค้า/บริษัท';
+    } else if (!residenceValue) {
+        // If empty, standard fallback
+        residenceValue = '-';
     }
 
-    const fullAddress = `${address} ${subdistrict} ${district} ${province} ${zipcode}`.trim();
 
-    // Store Address Logic
-    const storeAddress = snapCust.store_address || '-';
-    const storeSubdistrict = snapCust.store_subdistrict || '';
-    const storeDistrict = snapCust.store_district || '';
-    const storeProvince = snapCust.store_province || '';
-    const storeZipcode = snapCust.store_zipcode || '';
-    // const storeMap = snapCust.store_map_code || data.store_map_code || '-'; // Removed as requested
+    // --- OWNERSHIP LOGIC ---
 
-    // Store Ownership Logic
+    // Store Ownership (Corresponds to Business Place Row)
     const storeOwnership = snapCust.store_ownership || data.store_ownership || '-';
     const storeOwnershipOther = snapCust.store_ownership_other || data.store_ownership_other || '';
     let storeOwnDisplay = storeOwnership;
@@ -140,7 +188,15 @@ const generateCreditRequestPDF = async (req, res) => {
         storeOwnDisplay = `${storeOwnership} (${displayVal})`;
     }
 
-    const fullStoreAddress = `${storeAddress} ${storeSubdistrict} ${storeDistrict} ${storeProvince} ${storeZipcode}`.trim();
+    // Residence Ownership (Corresponds to Residence Row)
+    const residenceOwnership = snapCust.residence_ownership || data.residence_ownership || '-';
+    const residenceOwnershipOther = snapCust.residence_ownership_other || data.residence_ownership_other || '';
+    let resOwnDisplay = residenceOwnership;
+    if (residenceOwnershipOther) {
+        const numVal = parseFloat(residenceOwnershipOther.replace(/,/g, ''));
+        const displayVal = !isNaN(numVal) ? formatCurrency(numVal) + ' บาท' : residenceOwnershipOther;
+        resOwnDisplay = `${residenceOwnership} (${displayVal})`;
+    }
 
 
     // Contact Logic
@@ -346,11 +402,11 @@ const generateCreditRequestPDF = async (req, res) => {
           table: {
             widths: ['15%', '85%'], // 2-Column layout for address
             body: [
-               // Store
-               [{ text: 'ที่อยู่ร้านค้า:', bold: true }, fullStoreAddress !== '-' ? fullStoreAddress : 'เดียวกับที่อยู่บริษัท'],
+               // Row 1: Business Place (Dynamic Label: Store/Company)
+               [{ text: businessPlaceLabel, bold: true }, businessPlaceValue],
                [{ text: 'กรรมสิทธิ์:', bold: true }, storeOwnDisplay],
-               // Residence
-               [{ text: 'ที่อยู่อาศัย:', bold: true }, fullAddress],
+               // Row 2: Residence (Fixed Label)
+               [{ text: residenceLabel, bold: true }, residenceValue],
                [{ text: 'กรรมสิทธิ์:', bold: true }, resOwnDisplay]
             ]
           },
