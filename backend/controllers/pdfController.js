@@ -117,11 +117,13 @@ const generateCreditRequestPDF = async (req, res) => {
         { addr: 'store_address', sub: 'store_subdistrict', dist: 'store_district', prov: 'store_province', zip: 'store_zipcode' };
 
     // Extract Main Address components
-    const mainAddressVal = snapCust[mainKeys.addr] || (isCompany ? data.db_address : '') || '';
+    // Logic update: For Individuals, if specific store_address is missing, fallback to main DB address
+    // This allows "Store Address" to default to "Home Address" if not specified, matching "Same as..." logic.
+    const mainAddressVal = snapCust[mainKeys.addr] || data.db_address || '';
     const mainSub = snapCust[mainKeys.sub] || '';
-    const mainDist = snapCust[mainKeys.dist] || (isCompany ? data.db_district : '') || '';
-    const mainProv = snapCust[mainKeys.prov] || (isCompany ? data.db_province : '') || '';
-    const mainZip = snapCust[mainKeys.zip] || (isCompany ? data.db_zipcode : '') || '';
+    const mainDist = snapCust[mainKeys.dist] || data.db_district || '';
+    const mainProv = snapCust[mainKeys.prov] || data.db_province || '';
+    const mainZip = snapCust[mainKeys.zip] || data.db_zipcode || '';
 
     const fullMainAddress = [mainAddressVal, mainSub, mainDist, mainProv, mainZip]
         .filter(part => part && part.trim() !== '')
