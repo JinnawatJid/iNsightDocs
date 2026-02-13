@@ -3,6 +3,7 @@ const db = require('../db');
 const axios = require('axios');
 const fs = require('fs-extra');
 const path = require('path');
+const { calculateSlope, calculateTrendRatio } = require('../services/financialCalculator');
 
 // Configuration
 const FINANCIAL_API_URL = "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
@@ -207,35 +208,6 @@ const findValue = (sheet, searchTerms, strategy = 'AMOUNT') => {
   return { value: 0, column: '' };
 };
 
-// Helper: Calculate Slope (Linear Regression)
-// Data: Array of { month: 1, amount: X }, { month: 2, amount: Y } ...
-const calculateSlope = (data) => {
-    // Formula: slope = (N * Σ(xy) - Σx * Σy) / (N * Σ(x^2) - (Σx)^2)
-    const n = data.length;
-    if (n < 2) return 0;
-
-    let sumX = 0;
-    let sumY = 0;
-    let sumXY = 0;
-    let sumXX = 0;
-
-    // Use indices 1, 2, 3... as X values
-    for (let i = 0; i < n; i++) {
-        const x = i + 1; // Month 1, 2, 3
-        const y = data[i].amount;
-
-        sumX += x;
-        sumY += y;
-        sumXY += (x * y);
-        sumXX += (x * x);
-    }
-
-    const numerator = (n * sumXY) - (sumX * sumY);
-    const denominator = (n * sumXX) - (sumX * sumX);
-
-    if (denominator === 0) return 0;
-    return numerator / denominator;
-};
 
 // Helper: Extract Series of Years (Last N years)
 const findYearlySeries = (sheet, rowKeywords, count = 3) => {
@@ -873,12 +845,8 @@ exports.analyzeFinancials = async (req, res) => {
 
             // NEW FORMULA FOR TREND (AccumTrend)
             // User Formula: 1 + (Slope / AveragePerMonth)
-            let trendRatio = 1.0;
             const averagePerMonth = sumLast3 / 3;
-
-            if (averagePerMonth !== 0) {
-                trendRatio = 1 + (slope / averagePerMonth);
-            }
+            const trendRatio = calculateTrendRatio(slope, averagePerMonth);
 
             accumData = {
                 SecondAccum: sumLast3,
