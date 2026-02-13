@@ -1,11 +1,62 @@
 <template>
   <div class="credit-header">
+
+    <!-- Section 1: Search (Left Side) -->
+    <div class="header-section flex-grow">
+      <div class="label-row">
+        <label>ค้นหาข้อมูลลูกค้า</label>
+        <span v-if="dataSource" class="source-badge" :class="sourceClass">
+            {{ sourceLabel }}
+        </span>
+      </div>
+      <div class="search-group" ref="searchContainer">
+        <div class="search-icon">
+           <img :src="iconSearchBi" alt="Search" width="16" height="16" />
+        </div>
+        <input
+          type="text"
+          class="form-input"
+          placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ, เบอร์โทร หรือ ชื่อบริษัท"
+          v-model="searchQuery"
+          @input="onInput"
+          @focus="onFocus"
+          @keyup.enter="performSearch"
+        />
+        <button class="btn-search" @click="performSearch">ค้นหา</button>
+
+        <button
+          v-if="showExportButton"
+          class="btn-export"
+          @click="exportPDF"
+        >
+          ดาวน์โหลด PDF
+        </button>
+
+        <!-- Dropdown Suggestions -->
+        <div v-if="showDropdown" class="suggestions-dropdown">
+           <div v-if="suggestions.length === 0" class="no-results">
+             ไม่พบข้อมูลลูกค้า
+           </div>
+           <div
+             v-else
+             v-for="item in suggestions"
+             :key="item.id"
+             class="suggestion-item"
+             @click="selectSuggestion(item)"
+           >
+             {{ getDisplayText(item) }}
+           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Action (Right Side) -->
     <div class="header-section">
 
       <!-- State 1: Before Search (Placeholder) -->
       <div v-if="!hasSearched" class="placeholder-wrapper">
-         <label class="text-muted">กรุณาค้นหาลูกค้าก่อน</label>
-         <div class="disabled-fake-input">เลือกประเภทคำขอ...</div>
+         <label class="text-muted">การดำเนินการ</label>
+         <div class="disabled-fake-input">กรุณาค้นหาลูกค้าก่อน...</div>
       </div>
 
       <!-- State 2: Context Mode (Start Button) -->
@@ -72,53 +123,6 @@
 
     </div>
 
-    <div class="header-section flex-grow">
-      <div class="label-row">
-        <label>ค้นหาข้อมูลลูกค้า</label>
-        <span v-if="dataSource" class="source-badge" :class="sourceClass">
-            {{ sourceLabel }}
-        </span>
-      </div>
-      <div class="search-group" ref="searchContainer">
-        <div class="search-icon">
-           <img :src="iconSearchBi" alt="Search" width="16" height="16" />
-        </div>
-        <input
-          type="text"
-          class="form-input"
-          placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ, เบอร์โทร หรือ ชื่อบริษัท"
-          v-model="searchQuery"
-          @input="onInput"
-          @focus="onFocus"
-          @keyup.enter="performSearch"
-        />
-        <button class="btn-search" @click="performSearch">ค้นหา</button>
-
-        <button
-          v-if="showExportButton"
-          class="btn-export"
-          @click="exportPDF"
-        >
-          ดาวน์โหลด PDF
-        </button>
-
-        <!-- Dropdown Suggestions -->
-        <div v-if="showDropdown" class="suggestions-dropdown">
-           <div v-if="suggestions.length === 0" class="no-results">
-             ไม่พบข้อมูลลูกค้า
-           </div>
-           <div
-             v-else
-             v-for="item in suggestions"
-             :key="item.id"
-             class="suggestion-item"
-             @click="selectSuggestion(item)"
-           >
-             {{ getDisplayText(item) }}
-           </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -514,7 +518,8 @@ label {
 
 .text-muted {
     color: #888;
-    font-size: 14px;
+    font-size: 16px; /* Matched label size */
+    font-weight: bold;
 }
 
 .disabled-fake-input {
@@ -548,7 +553,7 @@ label {
 .request-menu {
     position: absolute;
     top: 100%;
-    left: 0;
+    right: 0; /* Align right since it's on the right edge */
     width: 260px;
     background: white;
     border: 1px solid #ddd;
