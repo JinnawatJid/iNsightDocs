@@ -633,6 +633,22 @@ const startBatch = async () => {
     return;
   }
 
+  // RETRY LOGIC: If starting again, reset errors to pending
+  const errorItems = queue.value.filter(i => i.status === 'Error');
+  if (errorItems.length > 0) {
+      errorItems.forEach(i => {
+          i.status = 'Pending';
+          i.log = 'รอคิว (Retry)';
+      });
+  }
+
+  // Double check if there is anything to process
+  const pendingCount = queue.value.filter(i => i.status === 'Pending').length;
+  if (pendingCount === 0) {
+      Swal.fire('เสร็จสมบูรณ์', 'ไม่มีรายการที่ต้องประมวลผล', 'info');
+      return;
+  }
+
   isProcessing.value = true;
   shouldStop.value = false;
   activeWorkers.value = 0;
