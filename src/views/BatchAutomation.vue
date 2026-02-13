@@ -34,6 +34,12 @@
           <button class="btn-check" @click="checkBridgeConnection">ตรวจสอบ</button>
         </div>
         <small class="text-muted">สถานะ: {{ bridgeStatus }}</small>
+
+        <div class="mt-2">
+           <label>จำนวน Process พร้อมกัน:</label>
+           <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 80px;" />
+           <small class="text-muted">แนะนำ 2-4 (สูงสุด 8)</small>
+        </div>
       </div>
     </div>
 
@@ -71,7 +77,13 @@
       </div>
 
       <div class="progress-info" v-if="queue.length > 0">
-        <span>ประมวลผลแล้ว: {{ processedCount }} / {{ queue.length }}</span>
+        <div class="d-flex justify-content-between">
+           <span>ประมวลผลแล้ว: {{ processedCount }} / {{ queue.length }}</span>
+           <span v-if="activeWorkers > 0" class="text-primary processing-badge">
+             <span class="spinner-border spinner-border-sm"></span>
+             กำลังทำงาน: {{ activeWorkers }}
+           </span>
+        </div>
         <div class="progress-bar">
           <div
             class="progress-fill"
@@ -152,6 +164,8 @@ import CustomerService from '@/services/CustomerService';
 const queue = ref([]);
 const isProcessing = ref(false);
 const shouldStop = ref(false);
+const concurrency = ref(2);
+const activeWorkers = ref(0);
 const bridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 const bridgeStatus = ref('ไม่ทราบสถานะ');
 const isExportDropdownOpen = ref(false); // State for dropdown
@@ -418,6 +432,197 @@ const stopBatch = () => {
   isProcessing.value = false;
 };
 
+// Worker function to process items one by one from the shared queue
+const processNextItem = async () => {
+  while (!shouldStop.value) {
+      // Find next pending item
+      // We must be careful about race conditions if multiple workers pick the same item.
+      // JS is single-threaded, so array access is safe, but async gaps are not.
+      // We will search for the first 'Pending' item and mark it immediately.
+
+      const index = queue.value.findIndex(i => i.status === 'Pending');
+      if (index === -1) {
+          // No more items
+          return;
+      }
+
+      const item = queue.value[index];
+      item.status = 'Processing';
+      item.log = 'กำลังเริ่มต้น...';
+
+      activeWorkers.value++;
+
+      try {
+        // 1. Fetch Customer Data
+        item.log = 'กำลังดึงข้อมูลลูกค้า...';
+        const searchRes = await CustomerService.searchCustomers(item.customerId);
+        // Find exact match or first close match
+        const customer = searchRes.find(c => c.customer.id === item.customerId) || searchRes[0];
+
+        if (!customer) {
+            throw new Error('ไม่พบข้อมูลลูกค้าในระบบ');
+        }
+
+        item.name = customer.customer.name;
+        item.taxId = customer.customer.tax_id;
+        item.currentLimit = customer.customer.current_credit_limit;
+        item.paymentTerms = customer.customer.payment_terms_code;
+
+        // Fix: Safely Extract Total Purchase (Handle NaN and Commas)
+        item.totalPurchase3Months = 0;
+        if (customer.financial_summary?.total_purchase_3_months) {
+            // Remove commas before parsing
+            const rawVal = String(customer.financial_summary.total_purchase_3_months).replace(/,/g, '');
+            const val = Number(rawVal);
+            item.totalPurchase3Months = isNaN(val) ? 0 : val;
+        }
+
+        // Calculate Customer Duration (Years)
+        let customerDuration = 0;
+        if (customer.customer.customer_since) {
+            const start = new Date(customer.customer.customer_since);
+            const now = new Date();
+            const age = (now - start) / (365.25 * 24 * 60 * 60 * 1000);
+            customerDuration = age > 0 ? Math.floor(age) : 0;
+        }
+        item.customerDuration = customerDuration;
+
+        // RULE: Skip DBD if no Tax ID (Individual) OR Name doesn't look like a company
+        let skipDBD = false;
+        // Expanded keyword list for better detection
+        const corporateKeywords = ['บริษัท', 'ห้างหุ้นส่วน', 'บ.', 'หจก.', 'ltd', 'limited', 'co.', 'plc', 'corp', 'inc', 'company'];
+        const nameLower = (item.name || '').toLowerCase();
+        const isCorporate = corporateKeywords.some(k => nameLower.includes(k));
+
+        if (!item.taxId || item.taxId.length < 5) {
+            item.log = 'ข้าม DBD (ไม่มี Tax ID)';
+            skipDBD = true;
+        } else if (!isCorporate) {
+            item.log = 'ข้าม DBD (ไม่ใช่บริษัท)';
+            skipDBD = true;
+        }
+
+        // 2. Download from Bridge (Retry Logic) - Only if not skipped
+        let downloadResult = null;
+
+        if (!skipDBD) {
+            item.log = 'กำลังดาวน์โหลดไฟล์ DBD...';
+            let retries = 0;
+            const maxRetries = 2;
+
+            while (retries <= maxRetries && !downloadResult) {
+                try {
+                    downloadResult = await connectToBridge(item.taxId, item.customerId);
+                } catch (e) {
+                    retries++;
+                    if (retries > maxRetries) {
+                        console.warn('Bridge failed, proceeding with fallback');
+                    } else {
+                        item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
+                        // Wait 2 seconds before retry
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
+                }
+            }
+        }
+
+        // 3. Prepare for Analysis
+        item.log = 'กำลังวิเคราะห์...';
+        const formData = new FormData();
+
+        let yearsInBusiness = 0;
+        let registeredCapital = 0;
+
+        // STRICT VALIDATION: Ensure Companies have all 4 DBD files
+        if (!skipDBD) {
+            if (!downloadResult) {
+                throw new Error('ดาวน์โหลด DBD ไม่สำเร็จ (กรุณาลองใหม่)');
+            }
+            const required = ['profile', 'balanceSheet', 'incomeStatement', 'financialRatios'];
+            const missing = required.filter(k => !downloadResult.files[k]);
+            if (missing.length > 0) {
+                // Translate keys to readable names
+                const names = {
+                    profile: 'Company Profile',
+                    balanceSheet: 'งบดุล',
+                    incomeStatement: 'งบกำไรขาดทุน',
+                    financialRatios: 'อัตราส่วนทางการเงิน'
+                };
+                const missingNames = missing.map(k => names[k] || k).join(', ');
+                throw new Error(`DBD ไม่ครบ: ขาด ${missingNames}`);
+            }
+        }
+
+        if (downloadResult) {
+            // Append Files
+            if (downloadResult.files.balanceSheet) {
+                const f = downloadResult.files.balanceSheet;
+                formData.append('balance_sheet', base64ToBlob(f.content, f.mime), f.filename);
+            }
+            if (downloadResult.files.incomeStatement) {
+                const f = downloadResult.files.incomeStatement;
+                formData.append('profit_loss', base64ToBlob(f.content, f.mime), f.filename);
+            }
+            if (downloadResult.files.financialRatios) {
+                const f = downloadResult.files.financialRatios;
+                formData.append('financial_ratios', base64ToBlob(f.content, f.mime), f.filename);
+            }
+            if (downloadResult.files.profile) {
+                const f = downloadResult.files.profile;
+                formData.append('company_profile', base64ToBlob(f.content, f.mime), f.filename);
+            }
+            yearsInBusiness = downloadResult.yearsInBusiness || 0;
+            registeredCapital = downloadResult.registeredCapital || 0;
+        } else {
+            // Fallback: Use Customer Date (Only for skipped items)
+            item.log = 'ใช้ข้อมูลภายใน (ข้าม DBD)...';
+            if (customer.customer.customer_since) {
+                const start = new Date(customer.customer.customer_since);
+                const now = new Date();
+                const diff = now.getFullYear() - start.getFullYear();
+                yearsInBusiness = diff > 0 ? diff : 0;
+            }
+        }
+
+        // Store yearsInBusiness for report
+        item.yearsInBusiness = yearsInBusiness;
+        item.registeredCapital = registeredCapital;
+
+        // Append Meta Data
+        formData.append('customer_no', item.customerId);
+        formData.append('customer_name', item.name);
+        formData.append('registered_capital', String(registeredCapital));
+        formData.append('customer_duration', String(customerDuration)); // Use calculated duration
+        formData.append('years_in_business', String(yearsInBusiness));
+        formData.append('request_credit_term', item.paymentTerms || '30');
+        formData.append('request_amount', String(item.currentLimit || 0)); // Fallback to current limit
+
+        // 4. Call Analysis API
+        const analyzeRes = await axios.post('/api/financials/analyze', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        if (analyzeRes.data.success) {
+            item.analysisResult = analyzeRes.data;
+            item.newLimit = analyzeRes.data.scoringResult?.recommendedLimit || 0;
+            item.score = analyzeRes.data.scoringResult?.totalScore || 0;
+            item.grade = analyzeRes.data.scoringResult?.grade || '-';
+            item.status = skipDBD ? 'Done (Int)' : 'Done';
+            item.log = 'เสร็จสิ้น';
+        } else {
+            throw new Error('การวิเคราะห์ล้มเหลว');
+        }
+
+      } catch (err) {
+        item.status = 'Error';
+        item.log = err.message;
+        console.error(err);
+      } finally {
+        activeWorkers.value--;
+      }
+  }
+};
+
 const startBatch = async () => {
   if (isProcessing.value) return;
 
@@ -430,183 +635,21 @@ const startBatch = async () => {
 
   isProcessing.value = true;
   shouldStop.value = false;
+  activeWorkers.value = 0;
 
-  for (let i = 0; i < queue.value.length; i++) {
-    if (shouldStop.value) break;
+  // Validate concurrency
+  let maxWorkers = parseInt(concurrency.value);
+  if (isNaN(maxWorkers) || maxWorkers < 1) maxWorkers = 1;
+  if (maxWorkers > 8) maxWorkers = 8;
+  concurrency.value = maxWorkers; // Update UI to reflect limit
 
-    const item = queue.value[i];
-    if (item.status === 'Done' || item.status === 'Done (Int)' || item.status === 'Skipped') continue;
-
-    item.status = 'Processing';
-    item.log = 'กำลังเริ่มต้น...';
-
-    try {
-      // 1. Fetch Customer Data
-      item.log = 'กำลังดึงข้อมูลลูกค้า...';
-      const searchRes = await CustomerService.searchCustomers(item.customerId);
-      // Find exact match or first close match
-      const customer = searchRes.find(c => c.customer.id === item.customerId) || searchRes[0];
-
-      if (!customer) {
-        throw new Error('ไม่พบข้อมูลลูกค้าในระบบ');
-      }
-
-      item.name = customer.customer.name;
-      item.taxId = customer.customer.tax_id;
-      item.currentLimit = customer.customer.current_credit_limit;
-      item.paymentTerms = customer.customer.payment_terms_code;
-
-      // Fix: Safely Extract Total Purchase (Handle NaN and Commas)
-      item.totalPurchase3Months = 0;
-      if (customer.financial_summary?.total_purchase_3_months) {
-          // Remove commas before parsing
-          const rawVal = String(customer.financial_summary.total_purchase_3_months).replace(/,/g, '');
-          const val = Number(rawVal);
-          item.totalPurchase3Months = isNaN(val) ? 0 : val;
-      }
-
-      // Calculate Customer Duration (Years)
-      let customerDuration = 0;
-      if (customer.customer.customer_since) {
-          const start = new Date(customer.customer.customer_since);
-          const now = new Date();
-          const age = (now - start) / (365.25 * 24 * 60 * 60 * 1000);
-          customerDuration = age > 0 ? Math.floor(age) : 0;
-      }
-      item.customerDuration = customerDuration;
-
-      // RULE: Skip DBD if no Tax ID (Individual) OR Name doesn't look like a company
-      let skipDBD = false;
-      // Expanded keyword list for better detection
-      const corporateKeywords = ['บริษัท', 'ห้างหุ้นส่วน', 'บ.', 'หจก.', 'ltd', 'limited', 'co.', 'plc', 'corp', 'inc', 'company'];
-      const nameLower = (item.name || '').toLowerCase();
-      const isCorporate = corporateKeywords.some(k => nameLower.includes(k));
-
-      if (!item.taxId || item.taxId.length < 5) {
-        item.log = 'ข้าม DBD (ไม่มี Tax ID)';
-        skipDBD = true;
-      } else if (!isCorporate) {
-        item.log = 'ข้าม DBD (ไม่ใช่บริษัท)';
-        skipDBD = true;
-      }
-
-      // 2. Download from Bridge (Retry Logic) - Only if not skipped
-      let downloadResult = null;
-
-      if (!skipDBD) {
-          item.log = 'กำลังดาวน์โหลดไฟล์ DBD...';
-          let retries = 0;
-          const maxRetries = 2;
-
-          while (retries <= maxRetries && !downloadResult) {
-             try {
-                downloadResult = await connectToBridge(item.taxId, item.customerId);
-             } catch (e) {
-                retries++;
-                if (retries > maxRetries) {
-                    console.warn('Bridge failed, proceeding with fallback');
-                } else {
-                    item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
-                    // Wait 2 seconds before retry
-                    await new Promise(r => setTimeout(r, 2000));
-                }
-             }
-          }
-      }
-
-      // 3. Prepare for Analysis
-      item.log = 'กำลังวิเคราะห์...';
-      const formData = new FormData();
-
-      let yearsInBusiness = 0;
-      let registeredCapital = 0;
-
-      // STRICT VALIDATION: Ensure Companies have all 4 DBD files
-      if (!skipDBD) {
-          if (!downloadResult) {
-              throw new Error('ดาวน์โหลด DBD ไม่สำเร็จ (กรุณาลองใหม่)');
-          }
-          const required = ['profile', 'balanceSheet', 'incomeStatement', 'financialRatios'];
-          const missing = required.filter(k => !downloadResult.files[k]);
-          if (missing.length > 0) {
-               // Translate keys to readable names
-               const names = {
-                   profile: 'Company Profile',
-                   balanceSheet: 'งบดุล',
-                   incomeStatement: 'งบกำไรขาดทุน',
-                   financialRatios: 'อัตราส่วนทางการเงิน'
-               };
-               const missingNames = missing.map(k => names[k] || k).join(', ');
-               throw new Error(`DBD ไม่ครบ: ขาด ${missingNames}`);
-          }
-      }
-
-      if (downloadResult) {
-          // Append Files
-          if (downloadResult.files.balanceSheet) {
-             const f = downloadResult.files.balanceSheet;
-             formData.append('balance_sheet', base64ToBlob(f.content, f.mime), f.filename);
-          }
-          if (downloadResult.files.incomeStatement) {
-             const f = downloadResult.files.incomeStatement;
-             formData.append('profit_loss', base64ToBlob(f.content, f.mime), f.filename);
-          }
-          if (downloadResult.files.financialRatios) {
-             const f = downloadResult.files.financialRatios;
-             formData.append('financial_ratios', base64ToBlob(f.content, f.mime), f.filename);
-          }
-          if (downloadResult.files.profile) {
-             const f = downloadResult.files.profile;
-             formData.append('company_profile', base64ToBlob(f.content, f.mime), f.filename);
-          }
-          yearsInBusiness = downloadResult.yearsInBusiness || 0;
-          registeredCapital = downloadResult.registeredCapital || 0;
-      } else {
-          // Fallback: Use Customer Date (Only for skipped items)
-          item.log = 'ใช้ข้อมูลภายใน (ข้าม DBD)...';
-          if (customer.customer.customer_since) {
-             const start = new Date(customer.customer.customer_since);
-             const now = new Date();
-             const diff = now.getFullYear() - start.getFullYear();
-             yearsInBusiness = diff > 0 ? diff : 0;
-          }
-      }
-
-      // Store yearsInBusiness for report
-      item.yearsInBusiness = yearsInBusiness;
-      item.registeredCapital = registeredCapital;
-
-      // Append Meta Data
-      formData.append('customer_no', item.customerId);
-      formData.append('customer_name', item.name);
-      formData.append('registered_capital', String(registeredCapital));
-      formData.append('customer_duration', String(customerDuration)); // Use calculated duration
-      formData.append('years_in_business', String(yearsInBusiness));
-      formData.append('request_credit_term', item.paymentTerms || '30');
-      formData.append('request_amount', String(item.currentLimit || 0)); // Fallback to current limit
-
-      // 4. Call Analysis API
-      const analyzeRes = await axios.post('/api/financials/analyze', formData, {
-         headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      if (analyzeRes.data.success) {
-         item.analysisResult = analyzeRes.data;
-         item.newLimit = analyzeRes.data.scoringResult?.recommendedLimit || 0;
-         item.score = analyzeRes.data.scoringResult?.totalScore || 0;
-         item.grade = analyzeRes.data.scoringResult?.grade || '-';
-         item.status = skipDBD ? 'Done (Int)' : 'Done';
-         item.log = 'เสร็จสิ้น';
-      } else {
-         throw new Error('การวิเคราะห์ล้มเหลว');
-      }
-
-    } catch (err) {
-      item.status = 'Error';
-      item.log = err.message;
-      console.error(err);
-    }
+  // Start Worker Pool
+  const workers = [];
+  for (let i = 0; i < maxWorkers; i++) {
+      workers.push(processNextItem());
   }
+
+  await Promise.all(workers);
 
   isProcessing.value = false;
   if (!shouldStop.value) {
@@ -974,6 +1017,10 @@ button:disabled {
 
 .status-badge.pending { background: #eee; color: #555; }
 .status-badge.processing { background: #cce5ff; color: #004085; }
+.processing-badge { font-weight: bold; margin-left: 10px; font-size: 0.9em; display: flex; align-items: center; gap: 5px; }
+.mt-2 { margin-top: 10px; }
+.d-flex { display: flex; align-items: center; }
+.justify-content-between { justify-content: space-between; }
 .status-badge.done { background: #d4edda; color: #155724; }
 .status-badge.error { background: #f8d7da; color: #721c24; }
 .status-badge.skipped { background: #e2e3e5; color: #383d41; }
