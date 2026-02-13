@@ -232,7 +232,9 @@ app.get('/stream', async (req, res) => {
     try {
         sendSSE(res, { status: 'progress', message: 'กำลังเปิดเบราว์เซอร์...' });
 
-        tmpDir = path.join(os.tmpdir(), `dbd-bridge-${Date.now()}`);
+        // Ensure unique temp directory for concurrency
+        const uniqueId = Math.random().toString(36).substring(7);
+        tmpDir = path.join(os.tmpdir(), `dbd-bridge-${Date.now()}-${uniqueId}`);
         await fs.ensureDir(tmpDir);
 
         const isHeadless = process.env.DBD_HEADLESS !== 'false';

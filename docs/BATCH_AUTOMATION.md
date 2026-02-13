@@ -10,10 +10,10 @@ The **Batch Credit Automation** feature allows users to upload an Excel file con
 **Location:** `/batch-automation` (Hidden/Admin Route)
 
 ## 2. Architecture
-The system uses a **Frontend-Coordinator Pattern**. Since the browser automation (Puppeteer) runs on the client's machine (via the Local Bridge) and is single-threaded (one browser instance at a time), the Vue.js frontend acts as the queue manager.
+The system uses a **Frontend-Coordinator Pattern**. Since the browser automation (Puppeteer) runs on the client's machine (via the Local Bridge), the Vue.js frontend acts as the queue manager and worker pool controller.
 
 ### Components:
-*   **Frontend (`BatchAutomation.vue`):** Manages the queue, UI state, and sequential processing.
+*   **Frontend (`BatchAutomation.vue`):** Manages the queue, UI state, and concurrent worker pool (2-8 workers).
 *   **Local Bridge (Port 4343):** A standalone Node.js app running on the user's machine that controls the browser to scrape DBD data.
 *   **Backend API (`/api/financials/analyze`):** Performs the financial ratio calculations and scoring.
 
@@ -21,18 +21,23 @@ The system uses a **Frontend-Coordinator Pattern**. Since the browser automation
 
 1.  **Input:** User uploads `.xlsx`. System looks for `Customer ID` or `No_` column.
 2.  **Queue:** A list of customers is generated with status `Pending`.
-3.  **Processing Loop (Sequential):**
-    *   The system picks the next `Pending` customer.
+3.  **Processing Loop (Concurrent Worker Pool):**
+    *   The system spawns `N` workers (defined by user, default 2).
+    *   Each worker picks the next `Pending` customer from the shared queue.
     *   **Step A (Fetch):** Query `CustomerService.searchCustomers(id)` to get Tax ID, Payment Terms, and Current Limit.
         *   *Rule:* If **Tax ID is missing**, the status is set to `Skipped` (Option A).
     *   **Step B (Bridge):** Connect to `http://<BRIDGE_IP>:4343/stream` via Server-Sent Events (SSE).
-        *   The bridge opens a browser, logs in, downloads the 4 files (Profile, BalSheet, IncStmt, Ratios), and streams them back as Base64.
+        *   The bridge opens a browser instance (isolated via unique temp directory), logs in, downloads the 4 files, and streams them back as Base64.
         *   *Retry:* If connection fails or times out, it retries up to 2 times.
     *   **Step C (Analyze):** The 4 files are sent to the backend API.
     *   **Step D (Result):** The computed Score and Limit are saved to the queue item.
 4.  **Export:** User clicks "Export Report" to generate an Excel file with all results.
 
 ## 4. Key Implementation Details
+
+### Concurrency
+*   **Worker Pool:** The frontend allows users to set a concurrency level (1-8).
+*   **Isolation:** The Bridge Server (`bridge-server`) creates a unique temporary directory for each request (`dbd-bridge-{timestamp}-{randomId}`) to prevent file conflicts when multiple browsers are downloading files simultaneously.
 
 ### File Upload
 We use `xlsx` library to parse the browser-side file.
