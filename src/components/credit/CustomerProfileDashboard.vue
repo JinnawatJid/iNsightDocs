@@ -3,7 +3,7 @@
     <!-- Identity Section -->
     <div class="dashboard-card identity-card">
       <div class="card-header">
-        <h3 class="card-title">ข้อมูลลูกค้า (Customer Profile)</h3>
+        <h3 class="card-title">ข้อมูลลูกค้า</h3>
         <span class="badge-type" :class="customerTypeClass">{{ customerTypeLabel }}</span>
       </div>
       <div class="card-body">
@@ -107,13 +107,13 @@ export default {
       // Prioritize name-based check to fix issues where individual names are flagged as companies
       const name = customer.value.name || '';
       if (name.includes('บริษัท') || name.includes('จำกัด') || name.includes('หจก')) {
-        return 'Corporate';
+        return 'ลูกค้าบริษัท';
       }
-      return 'Individual';
+      return 'ลูกค้าช่าง/ร้านค้า';
     });
 
     const customerTypeClass = computed(() => {
-      return customerTypeLabel.value === 'Corporate' ? 'badge-corp' : 'badge-indiv';
+      return customerTypeLabel.value === 'ลูกค้าบริษัท' ? 'badge-corp' : 'badge-indiv';
     });
 
     const avatarInitials = computed(() => {
@@ -138,14 +138,16 @@ export default {
     const paymentTermsLabel = computed(() => {
       const code = customer.value.payment_terms_code;
       if (!code) return 'N/A';
-      return `${code} Days`;
+      return `${code} วัน`;
     });
 
     const customerSinceYear = computed(() => {
        const val = customer.value.customer_since;
        if (!val) return '-';
        try {
-           return String(val).split('-')[0];
+           const date = new Date(val);
+           if (isNaN(date.getTime())) return val;
+           return date.getFullYear() + 543;
        } catch (e) {
            return val;
        }
@@ -372,7 +374,7 @@ export default {
 
 .action-hint {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
   background-color: #fff8e1;
   border: 1px solid #ffe082;
