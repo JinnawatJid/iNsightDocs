@@ -9,6 +9,10 @@ const pdf = require('pdf-parse');
 const app = express();
 const PORT = 4343;
 
+// Ensure debug directory exists
+const DEBUG_DIR = path.join(__dirname, 'debug_downloads');
+fs.ensureDirSync(DEBUG_DIR);
+
 // 1. GLOBAL HEADER MIDDLEWARE (Applies to everything)
 app.use((req, res, next) => {
     // Critical for PNA (Private Network Access)
@@ -57,6 +61,34 @@ const readFileAsBase64 = async (filePath) => {
     }
     return null;
 };
+
+// Helper to check file size and save if suspicious
+const checkAndSaveDebug = async (filePath, type, identifier) => {
+    try {
+        if (await fs.pathExists(filePath)) {
+            const stats = await fs.stat(filePath);
+            const size = stats.size;
+
+            // If < 6KB, it's likely empty/header-only Excel
+            if (size < 6144) {
+                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                 const ext = type === 'Profile' ? '.pdf' : '.xlsx';
+                 const destName = `${timestamp}_${identifier}_${type}${ext}`;
+                 const destPath = path.join(DEBUG_DIR, destName);
+                 await fs.copy(filePath, destPath);
+                 console.log(`[Bridge Debug] Saved suspicious file (${size} bytes) to: ${destPath}`);
+            }
+
+            // Return human readable size
+            const sizeKB = (size / 1024).toFixed(2) + ' KB';
+            return { size: sizeKB, bytes: size };
+        }
+    } catch (e) {
+        console.warn(`Failed to check debug file: ${filePath}`, e);
+    }
+    return { size: '0 KB', bytes: 0 };
+};
+
 
 /**
  * Extract data from DBD Profile PDF (No DB interaction)
@@ -555,6 +587,12 @@ app.get('/stream', async (req, res) => {
         // Prepare Base64 Data
         sendSSE(res, { status: 'progress', message: 'กำลังประมวลผลไฟล์...' });
 
+        // -- DEBUG: Check file sizes --
+        const profileInfo = profilePdf ? await checkAndSaveDebug(profilePdf, 'Profile', fileIdentifier) : { size: '0 KB', bytes: 0 };
+        const balanceInfo = balanceSheetExcel ? await checkAndSaveDebug(balanceSheetExcel, 'BalanceSheet', fileIdentifier) : { size: '0 KB', bytes: 0 };
+        const incomeInfo = incomeStatementExcel ? await checkAndSaveDebug(incomeStatementExcel, 'IncomeStatement', fileIdentifier) : { size: '0 KB', bytes: 0 };
+        const ratioInfo = ratioExcel ? await checkAndSaveDebug(ratioExcel, 'FinancialRatios', fileIdentifier) : { size: '0 KB', bytes: 0 };
+
         const profileB64 = profilePdf ? await readFileAsBase64(profilePdf) : null;
         const balanceB64 = balanceSheetExcel ? await readFileAsBase64(balanceSheetExcel) : null;
         const incomeB64 = incomeStatementExcel ? await readFileAsBase64(incomeStatementExcel) : null;
@@ -572,22 +610,26 @@ app.get('/stream', async (req, res) => {
                 profile: profileB64 ? {
                     content: profileB64,
                     mime: 'application/pdf',
-                    filename: `DBD_Profile_${fileIdentifier}.pdf`
+                    filename: `DBD_Profile_${fileIdentifier}.pdf`,
+                    ...profileInfo
                 } : null,
                 balanceSheet: balanceB64 ? {
                     content: balanceB64,
                     mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    filename: `DBD_BalanceSheet_${fileIdentifier}.xlsx`
+                    filename: `DBD_BalanceSheet_${fileIdentifier}.xlsx`,
+                    ...balanceInfo
                 } : null,
                 incomeStatement: incomeB64 ? {
                     content: incomeB64,
                     mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    filename: `DBD_IncomeStatement_${fileIdentifier}.xlsx`
+                    filename: `DBD_IncomeStatement_${fileIdentifier}.xlsx`,
+                    ...incomeInfo
                 } : null,
                 financialRatios: ratioB64 ? {
                     content: ratioB64,
                     mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    filename: `DBD_FinancialRatios_${fileIdentifier}.xlsx`
+                    filename: `DBD_FinancialRatios_${fileIdentifier}.xlsx`,
+                    ...ratioInfo
                 } : null,
                 yearsInBusiness: extractionResult.yearsInBusiness,
                 registeredCapital: extractionResult.registeredCapital,

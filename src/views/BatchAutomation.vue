@@ -108,6 +108,7 @@
             <th>วงเงินใหม่</th>
             <th>คะแนน</th>
             <th>สถานะ</th>
+            <th>ไฟล์ (Debug)</th>
             <th>การดำเนินการ</th>
           </tr>
         </thead>
@@ -131,6 +132,17 @@
               <span class="status-badge" :class="item.status.toLowerCase()">
                 {{ translateStatus(item.status) }}
               </span>
+            </td>
+            <td>
+                <button
+                    v-if="item.debugFiles"
+                    class="btn-debug-files"
+                    @click="showDebugFiles(item)"
+                    :class="{ 'btn-warning-blink': hasSmallFiles(item) }"
+                >
+                    📁 {{ hasSmallFiles(item) ? '⚠️ Files' : 'Files' }}
+                </button>
+                <span v-else class="text-muted small">-</span>
             </td>
             <td>
               <button
@@ -327,6 +339,7 @@ const processFile = (file) => {
         status: 'Pending',
         log: '',
         files: {}, // to store downloaded blobs
+        debugFiles: null, // to store file metadata for debug
         analysisResult: null
       };
     }).filter(i => i.customerId && i.customerId !== 'undefined'); // Filter empty rows
@@ -423,6 +436,86 @@ const base64ToBlob = (base64, mimeType) => {
         byteArrays.push(byteArray);
     }
     return new Blob(byteArrays, { type: mimeType });
+};
+
+// --- Debug Logic ---
+
+const hasSmallFiles = (item) => {
+    if (!item.debugFiles) return false;
+    return Object.values(item.debugFiles).some(f => f && f.bytes < 6144); // 6KB
+};
+
+const showDebugFiles = async (item) => {
+    if (!item.debugFiles) return;
+
+    const files = [
+        { key: 'profile', label: 'Company Profile (PDF)', icon: '📄' },
+        { key: 'balanceSheet', label: 'งบดุล (XLSX)', icon: '📊' },
+        { key: 'incomeStatement', label: 'งบกำไรขาดทุน (XLSX)', icon: '📈' },
+        { key: 'financialRatios', label: 'อัตราส่วนการเงิน (XLSX)', icon: '📉' }
+    ];
+
+    let htmlContent = '<div style="text-align: left; padding: 10px;">';
+    htmlContent += '<p style="margin-bottom: 15px;">คลิกที่ปุ่มเพื่อดาวน์โหลดไฟล์ต้นฉบับ:</p>';
+
+    files.forEach(f => {
+        const fileData = item.debugFiles[f.key];
+        if (fileData) {
+            const size = fileData.size || 'Unknown';
+            const isSmall = fileData.bytes < 6144; // 6KB
+            const style = isSmall ? 'color: red; font-weight: bold;' : 'color: #333;';
+            const icon = isSmall ? '⚠️' : f.icon;
+
+            // Generate a unique ID for the button
+            const btnId = `btn-dl-${f.key}`;
+
+            htmlContent += `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 8px; border: 1px solid #eee; border-radius: 4px; background: ${isSmall ? '#fff0f0' : '#fff'};">
+                    <span style="${style}">
+                        ${icon} ${f.label} <br>
+                        <small style="color: #666;">Size: ${size}</small>
+                    </span>
+                    <button id="${btnId}" class="swal2-confirm swal2-styled" style="padding: 5px 10px; font-size: 0.8em; margin: 0;">Download</button>
+                </div>
+            `;
+        } else {
+            htmlContent += `
+                <div style="margin-bottom: 10px; padding: 8px; color: #999; border: 1px dashed #ccc;">
+                    ❌ ${f.label} (Not Found)
+                </div>
+            `;
+        }
+    });
+    htmlContent += '</div>';
+
+    const result = await Swal.fire({
+        title: 'Debug Files',
+        html: htmlContent,
+        showCloseButton: true,
+        showConfirmButton: false,
+        didOpen: () => {
+             // Attach event listeners to buttons
+             files.forEach(f => {
+                 const fileData = item.debugFiles[f.key];
+                 if (fileData) {
+                     const btn = document.getElementById(`btn-dl-${f.key}`);
+                     if (btn) {
+                         btn.onclick = () => {
+                             const blob = base64ToBlob(fileData.content, fileData.mime);
+                             const url = window.URL.createObjectURL(blob);
+                             const a = document.createElement('a');
+                             a.href = url;
+                             a.download = fileData.filename || `debug_${f.key}.file`;
+                             document.body.appendChild(a);
+                             a.click();
+                             window.URL.revokeObjectURL(url);
+                             document.body.removeChild(a);
+                         };
+                     }
+                 }
+             });
+        }
+    });
 };
 
 // --- Batch Logic ---
@@ -554,6 +647,9 @@ const processNextItem = async () => {
         }
 
         if (downloadResult) {
+            // Save debug info
+            item.debugFiles = downloadResult.files;
+
             // Append Files
             if (downloadResult.files.balanceSheet) {
                 const f = downloadResult.files.balanceSheet;
@@ -960,6 +1056,32 @@ button:disabled {
 }
 .btn-view-report:hover {
   background: #138496;
+}
+
+.btn-debug-files {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.btn-debug-files:hover {
+    background: #5a6268;
+}
+.btn-warning-blink {
+    background: #ffc107;
+    color: #000;
+    animation: blink 2s infinite;
+}
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
 }
 
 .progress-info {
