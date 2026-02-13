@@ -1,5 +1,6 @@
 const db = require('../db');
 const axios = require('axios');
+const { calculateSlope, calculateTrendRatio } = require('../services/financialCalculator');
 
 // Configuration
 const API_URL = process.env.CUSTOMER_API_URL || "http://192.192.0.37:8280/customer-sp682/1.0.0";
@@ -62,13 +63,24 @@ const formatThaiMonth = (yyyy_mm, isCurrent = false) => {
     return label;
 };
 
-// Helper: Format Trend from Percentage
-const formatTrendPercent = (percent) => {
-    if (percent === null || isNaN(percent)) return null;
+// Helper: Format Trend from Trend Ratio (1.10 -> +10%)
+const formatTrendFromRatio = (ratio) => {
+    if (ratio === null || isNaN(ratio)) return null;
+    const percent = (ratio - 1) * 100;
     const absVal = Math.abs(percent).toFixed(2);
-    if (percent > 0) return `เพิ่มขึ้น ${absVal}% จากรอบก่อน`;
-    if (percent < 0) return `ลดลง ${absVal}% จากรอบก่อน`;
-    return `คงที่ 0% จากรอบก่อน`;
+    // User requested format: "แนวโน้มการซื้อลดลง 10%"
+    if (percent > 0.001) return `แนวโน้มการซื้อเพิ่มขึ้น ${absVal}%`;
+    if (percent < -0.001) return `แนวโน้มการซื้อลดลง ${absVal}%`;
+    return `แนวโน้มการซื้อคงที่ 0.00%`;
+};
+
+// Helper: Format Average Monthly Change from Slope
+const formatAvgMonthlyChange = (slope) => {
+    if (slope === null || isNaN(slope)) return null;
+    const absVal = formatCurrency(Math.abs(slope)); // Use existing currency formatter
+    if (slope > 0.001) return `เฉลี่ยซื้อเพิ่มขึ้นเดือนละ ${absVal} บาท`;
+    if (slope < -0.001) return `เฉลี่ยซื้อลดลงเดือนละ ${absVal} บาท`;
+    return `เฉลี่ยซื้อคงที่ 0.00 บาท`;
 };
 
 // Helper: Map Category Code to Label
@@ -258,19 +270,14 @@ const enrichCustomerData = async (customerNo) => {
 
             // Sum Calculations
             const sumLast3 = last3.reduce((acc, cur) => acc + cur.amount, 0);
-            const sumPrev3 = prev3.reduce((acc, cur) => acc + cur.amount, 0);
 
-            // Trend Calculation: ((Current - Previous) / Previous) * 100
-            let trendPercent = 0;
-            if (sumPrev3 > 0) {
-                trendPercent = ((sumLast3 - sumPrev3) / sumPrev3) * 100;
-            } else if (sumLast3 > 0) {
-                trendPercent = 100;
-            } else {
-                trendPercent = 0;
-            }
+            // Slope & Trend Ratio Calculation
+            const slope = calculateSlope(last3);
+            const averagePerMonth = sumLast3 / 3;
+            const trendRatio = calculateTrendRatio(slope, averagePerMonth);
 
-            const totalPurchaseGrowth = formatTrendPercent(trendPercent);
+            const totalPurchaseGrowth = formatTrendFromRatio(trendRatio);
+            const avgMonthlyTrend = formatAvgMonthlyChange(slope);
 
             // Generate Monthly History List (Newest First for UI List)
             // We use the FULL monthlyData here to show everything (including current)
@@ -286,7 +293,7 @@ const enrichCustomerData = async (customerNo) => {
                 total_purchase_3_months: formatCurrency(sumLast3),
                 total_purchase_growth: totalPurchaseGrowth,
                 avg_monthly: formatCurrency(sumLast3 / 3),
-                avg_monthly_trend: totalPurchaseGrowth, // Reuse trend for avg (math is same)
+                avg_monthly_trend: avgMonthlyTrend, // Use distinct Slope-based string
                 monthly_history: monthlyHistory,
                 category_breakdown: categoryBreakdown
             };
@@ -316,11 +323,15 @@ const enrichCustomerData = async (customerNo) => {
                 suggestions.push("ไม่มียอดซื้อในเดือนล่าสุด ควรติดต่อลูกค้าเพื่อสอบถามสถานะ");
             }
 
-            // 3. Trend Check
-            if (trendPercent > 0) {
-                suggestions.push("ลูกค้ามีแนวโน้มการซื้อที่ดีและเพิ่มขึ้นอย่างต่อเนื่อง");
-            } else if (trendPercent < 0) {
-                suggestions.push("ยอดการสั่งซื้อมีแนวโน้มลดลง ควรติดตามสาเหตุ");
+            // 3. Trend Check (Updated to use Slope)
+            if (slope > 0) {
+                const growthAmt = formatCurrency(Math.abs(slope));
+                suggestions.push(`ลูกค้ามีแนวโน้มการเติบโตยอดซื้อที่ดี (เฉลี่ยเพิ่มขึ้น ${growthAmt} บาท/เดือน)`);
+            } else if (slope < 0) {
+                const dropAmt = formatCurrency(Math.abs(slope));
+                suggestions.push(`ยอดซื้อมีแนวโน้มลดลง (เฉลี่ยลดลง ${dropAmt} บาท/เดือน) ควรติดตามสาเหตุ`);
+            } else if (sumLast3 > 0) {
+                suggestions.push("ยอดซื้อสม่ำเสมอ");
             }
 
             suggestions.push("มีการชำระเงินตรงเวลา");
