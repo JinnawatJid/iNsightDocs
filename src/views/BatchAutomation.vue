@@ -39,10 +39,10 @@
            <small class="text-muted cursor-pointer" @click="showConcurrencySettings = !showConcurrencySettings">
              ⚙️ ตั้งค่าความเร็ว (Advanced)
            </small>
-           <div v-if="showConcurrencySettings" class="mt-2">
-             <label>จำนวน Process พร้อมกัน:</label>
-             <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 80px;" />
-             <small class="text-muted">แนะนำ 2-4 (สูงสุด 8)</small>
+           <div v-if="showConcurrencySettings" class="mt-2 d-flex align-items-center" style="gap: 10px;">
+             <label class="mb-0">จำนวน Process พร้อมกัน:</label>
+             <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 60px; display: inline-block;" />
+             <small class="text-muted">แนะนำ 2-4</small>
            </div>
         </div>
       </div>
@@ -106,7 +106,6 @@
             <th style="width: 50px">#</th>
             <th>รหัสลูกค้า</th>
             <th>ชื่อลูกค้า</th>
-            <th>เลขผู้เสียภาษี</th>
             <th>ยอดซื้อรวม 3 เดือน</th>
             <th>ระยะเวลาเครดิต</th>
             <th>วงเงินปัจจุบัน</th>
@@ -122,7 +121,6 @@
             <td>{{ index + 1 }}</td>
             <td>{{ item.customerId }}</td>
             <td>{{ item.name || '-' }}</td>
-            <td>{{ item.taxId || '-' }}</td>
             <td>{{ formatNumber(item.totalPurchase3Months) }}</td>
             <td>{{ item.paymentTerms || '-' }}</td>
             <td>{{ formatNumber(item.currentLimit) }}</td>
