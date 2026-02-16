@@ -3,7 +3,7 @@ const db = require('../db');
 const axios = require('axios');
 const fs = require('fs-extra');
 const path = require('path');
-const { calculateSlope, calculateTrendRatio } = require('../services/financialCalculator');
+const { calculateSlope, calculateTrendRatio, generateContinuousTimeline } = require('../services/financialCalculator');
 
 // Configuration
 const FINANCIAL_API_URL = "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
@@ -835,35 +835,17 @@ exports.analyzeFinancials = async (req, res) => {
         // Fetch Financial Data (REPLACED SQL WITH API)
         const apiData = await fetchPurchasingBehavior(customer_no);
 
-        if (apiData && apiData.monthly && apiData.monthly.length > 0) {
-            const monthlyData = [...apiData.monthly];
-            // Sort by month (oldest first)
-            monthlyData.sort((a, b) => a.month.localeCompare(b.month));
+        if (apiData && apiData.monthly) {
+            // New Logic: Use Continuous Timeline
+            const timeline = generateContinuousTimeline(apiData.monthly);
 
-            // Determine Current System Month (YYYY-MM)
             const now = new Date();
             const currentYear = now.getFullYear();
             const currentMonthIdx = now.getMonth() + 1; // 1-12
             const currentSystemMonth = `${currentYear}-${String(currentMonthIdx).padStart(2, '0')}`;
 
-            // Separate Calculation Set (Exclude Current Month)
-            // Logic Update: Only exclude the last month if it MATCHES the current system month.
-            let calcData = [];
-            const lastMonthData = monthlyData[monthlyData.length - 1];
-
-            if (monthlyData.length > 0) {
-                 if (lastMonthData.month === currentSystemMonth) {
-                     // Last month is current (incomplete) -> Exclude
-                     if (monthlyData.length > 1) {
-                         calcData = monthlyData.slice(0, -1);
-                     } else {
-                         calcData = [];
-                     }
-                 } else {
-                     // Last month is past (complete) -> Include all
-                     calcData = monthlyData;
-                 }
-            }
+            // Calculation Set: Always exclude the last item (Current Month)
+            const calcData = timeline.slice(0, -1);
 
             const totalCalcAvailable = calcData.length;
 
@@ -887,7 +869,7 @@ exports.analyzeFinancials = async (req, res) => {
             };
 
             // Prepare Monthly History for Frontend (Reverse order: Newest First)
-            monthlyHistory = monthlyData.map((m, index) => {
+            monthlyHistory = timeline.map((m) => {
                 const isCurrent = m.month === currentSystemMonth;
                 return {
                     label: formatThaiMonth(m.month, isCurrent),

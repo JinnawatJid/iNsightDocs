@@ -1,6 +1,6 @@
 const db = require('../db');
 const axios = require('axios');
-const { calculateSlope, calculateTrendRatio } = require('../services/financialCalculator');
+const { calculateSlope, calculateTrendRatio, generateContinuousTimeline } = require('../services/financialCalculator');
 
 // Configuration
 const API_URL = process.env.CUSTOMER_API_URL || "http://192.192.0.37:8280/customer-sp682/1.0.0";
@@ -236,39 +236,20 @@ const enrichCustomerData = async (customerNo) => {
              categoryBreakdown.sort((a, b) => b.value - a.value);
         }
 
-        if (apiData && apiData.monthly && apiData.monthly.length > 0) {
-            const monthlyData = apiData.monthly;
+        if (apiData && apiData.monthly) {
+            // New Logic: Use Continuous Timeline (Fixes gap issues)
+            // This returns 7 months: [Month-6, Month-5, ..., Month-1, CurrentMonth]
+            // Gaps are filled with 0.
+            const timeline = generateContinuousTimeline(apiData.monthly);
 
-            // Sort by month (oldest first) to ensure slicing is correct
-            monthlyData.sort((a, b) => a.month.localeCompare(b.month));
-
-            // Determine Current System Month (YYYY-MM)
             const now = new Date();
             const currentYear = now.getFullYear();
             const currentMonthIdx = now.getMonth() + 1; // 1-12
             const currentSystemMonth = `${currentYear}-${String(currentMonthIdx).padStart(2, '0')}`;
 
-            // Separate Calculation Set (Exclude Current Month - The last one)
-            // Logic Update: Only exclude the last month if it MATCHES the current system month.
-            // If the last month in the list is partially complete (current), we exclude it from stats.
-            // If the last month in the list is a past month, we include it.
-
-            let calcData = [];
-            const lastMonthData = monthlyData[monthlyData.length - 1];
-
-            if (monthlyData.length > 0) {
-                 if (lastMonthData.month === currentSystemMonth) {
-                     // Last month is current (incomplete) -> Exclude
-                     if (monthlyData.length > 1) {
-                         calcData = monthlyData.slice(0, -1);
-                     } else {
-                         calcData = [];
-                     }
-                 } else {
-                     // Last month is past (complete) -> Include all
-                     calcData = monthlyData;
-                 }
-            }
+            // Calculation Set: ALWAYS Exclude the last item (which is strictly the Current System Month)
+            // The generateContinuousTimeline function guarantees the last item is 'Current System Month'.
+            const calcData = timeline.slice(0, -1); // Take first 6 items (the completed months)
 
             const totalCalcAvailable = calcData.length;
 
@@ -295,8 +276,8 @@ const enrichCustomerData = async (customerNo) => {
             const avgMonthlyTrend = formatAvgMonthlyChange(slope);
 
             // Generate Monthly History List (Newest First for UI List)
-            // We use the FULL monthlyData here to show everything (including current)
-            const monthlyHistory = monthlyData.map((m, index) => {
+            // We use the FULL timeline here to show everything (including current month, even if 0)
+            const monthlyHistory = timeline.map((m) => {
                 const isCurrent = m.month === currentSystemMonth;
                 return {
                     label: formatThaiMonth(m.month, isCurrent),

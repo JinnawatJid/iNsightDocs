@@ -91,10 +91,9 @@ When exporting the "Full Detail" report, the system must adhere to the following
     *   **Capacity Check (สัดส่วนยอดซื้อเฉลี่ย 1.5 เดือนย้อนหลัง 3 เดือน):** This value corresponds to the backend calculation `Average 1.5 Months` (Sum of Last 3 Months / 2) divided by the Requested Credit Amount. It matches the logic used for the "Capacity Check" score.
 
 3.  **Sales History Layout:**
-    *   **Exclusion (Dynamic):** The **Current Month** is determined by comparing the data's month (YYYY-MM) with the actual system date.
-        *   If the data month matches the system date, it is considered "Incomplete" and excluded.
-        *   If the data month is in the past (even if it is the last item in the list), it is considered "Complete" and included.
-    *   **Range:** The report must show the **7 months prior** to the current month.
+    *   **Timeline Logic:** The system generates a continuous timeline of the last **6 completed months** + the **Current Month** (Total 7 columns).
+    *   **Gap Filling:** Any month with missing data from the API is explicitly filled with **0.00** to ensure a strictly continuous timeline.
+    *   **Exclusion:** The **Current Month** (the 7th item) is excluded from financial calculations (Average, Slope) but is displayed in the UI/Report for reference.
     *   **Order:** Columns must be ordered from **Oldest (Left)** to **Newest (Right)**.
     *   **Spacer:** There must be an empty spacer column between the analysis data and the sales history columns to visually separate the sections.
 
