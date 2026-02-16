@@ -36,9 +36,14 @@
         <small class="text-muted">สถานะ: {{ bridgeStatus }}</small>
 
         <div class="mt-2">
-           <label>จำนวน Process พร้อมกัน:</label>
-           <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 80px;" />
-           <small class="text-muted">แนะนำ 2-4 (สูงสุด 8)</small>
+           <small class="text-muted cursor-pointer" @click="showConcurrencySettings = !showConcurrencySettings">
+             ⚙️ ตั้งค่าความเร็ว (Advanced)
+           </small>
+           <div v-if="showConcurrencySettings" class="mt-2 d-flex align-items-center" style="gap: 10px;">
+             <label class="mb-0">จำนวน Process พร้อมกัน:</label>
+             <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 60px; display: inline-block;" />
+             <small class="text-muted">แนะนำ 2-4</small>
+           </div>
         </div>
       </div>
     </div>
@@ -101,14 +106,13 @@
             <th style="width: 50px">#</th>
             <th>รหัสลูกค้า</th>
             <th>ชื่อลูกค้า</th>
-            <th>เลขผู้เสียภาษี</th>
             <th>ยอดซื้อรวม 3 เดือน</th>
             <th>ระยะเวลาเครดิต</th>
             <th>วงเงินปัจจุบัน</th>
             <th>วงเงินใหม่</th>
             <th>คะแนน</th>
             <th>สถานะ</th>
-            <th>ไฟล์ (Debug)</th>
+            <th>ไฟล์</th>
             <th>การดำเนินการ</th>
           </tr>
         </thead>
@@ -117,7 +121,6 @@
             <td>{{ index + 1 }}</td>
             <td>{{ item.customerId }}</td>
             <td>{{ item.name || '-' }}</td>
-            <td>{{ item.taxId || '-' }}</td>
             <td>{{ formatNumber(item.totalPurchase3Months) }}</td>
             <td>{{ item.paymentTerms || '-' }}</td>
             <td>{{ formatNumber(item.currentLimit) }}</td>
@@ -138,9 +141,8 @@
                     v-if="item.debugFiles"
                     class="btn-debug-files"
                     @click="showDebugFiles(item)"
-                    :class="{ 'btn-warning-blink': hasSmallFiles(item) }"
                 >
-                    📁 {{ hasSmallFiles(item) ? '⚠️ Files' : 'Files' }}
+                    📁 Files
                 </button>
                 <span v-else class="text-muted small">-</span>
             </td>
@@ -176,7 +178,8 @@ import CustomerService from '@/services/CustomerService';
 const queue = ref([]);
 const isProcessing = ref(false);
 const shouldStop = ref(false);
-const concurrency = ref(2);
+const concurrency = ref(1);
+const showConcurrencySettings = ref(false);
 const activeWorkers = ref(0);
 const bridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 const bridgeStatus = ref('ไม่ทราบสถานะ');
@@ -440,11 +443,6 @@ const base64ToBlob = (base64, mimeType) => {
 
 // --- Debug Logic ---
 
-const hasSmallFiles = (item) => {
-    if (!item.debugFiles) return false;
-    return Object.values(item.debugFiles).some(f => f && f.bytes < 6144); // 6KB
-};
-
 const showDebugFiles = async (item) => {
     if (!item.debugFiles) return;
 
@@ -462,15 +460,14 @@ const showDebugFiles = async (item) => {
         const fileData = item.debugFiles[f.key];
         if (fileData) {
             const size = fileData.size || 'Unknown';
-            const isSmall = fileData.bytes < 6144; // 6KB
-            const style = isSmall ? 'color: red; font-weight: bold;' : 'color: #333;';
-            const icon = isSmall ? '⚠️' : f.icon;
+            const style = 'color: #333;';
+            const icon = f.icon;
 
             // Generate a unique ID for the button
             const btnId = `btn-dl-${f.key}`;
 
             htmlContent += `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 8px; border: 1px solid #eee; border-radius: 4px; background: ${isSmall ? '#fff0f0' : '#fff'};">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 8px; border: 1px solid #eee; border-radius: 4px; background: #fff;">
                     <span style="${style}">
                         ${icon} ${f.label} <br>
                         <small style="color: #666;">Size: ${size}</small>
@@ -1092,16 +1089,6 @@ button:disabled {
 .btn-debug-files:hover {
     background: #5a6268;
 }
-.btn-warning-blink {
-    background: #ffc107;
-    color: #000;
-    animation: blink 2s infinite;
-}
-@keyframes blink {
-    0% { opacity: 1; }
-    50% { opacity: 0.6; }
-    100% { opacity: 1; }
-}
 
 .progress-info {
   flex: 1;
@@ -1182,6 +1169,7 @@ button:disabled {
 .status-badge.error { background: #f8d7da; color: #721c24; }
 .status-badge.skipped { background: #e2e3e5; color: #383d41; }
 
+.cursor-pointer { cursor: pointer; }
 .text-bold { font-weight: bold; }
 .text-success { color: #28a745; }
 .text-warning { color: #ffc107; }
