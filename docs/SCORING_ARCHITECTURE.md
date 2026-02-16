@@ -1,0 +1,69 @@
+# Scoring Architecture
+
+## Overview
+The credit scoring system uses a **Policy-Based Strategy Pattern** (Decision Engine) to select the appropriate scoring model based on the customer's relationship with the company.
+
+This architecture separates the "Controller" (which handles HTTP requests and data gathering) from the "Scoring Logic" (which calculates the grade and limit).
+
+## Directory Structure
+```text
+backend/services/scoring/
+├── ScoringEngine.js           # The Factory: Decides which strategy to use
+├── strategies/
+│   ├── BaseScorecard.js       # Shared logic (C1, C2, Helper methods)
+│   ├── NewCustomerScorecard.js      # Logic for New Customers (Cap 500k)
+│   └── ExistingCustomerScorecard.js # Logic for Existing Customers (Limit Adjustment)
+```
+
+## Strategies
+
+### 1. New Customer (`NewCustomerScorecard.js`)
+- **Trigger:** Customer has `Current Credit Limit <= 0`.
+- **Focus:** Financial stability and potential.
+- **Output:**
+  - Recommended Limit: **50,000 - 500,000 THB** (Calculated based on Score).
+  - Grade: A+ to D.
+
+### 2. Existing Customer (`ExistingCustomerScorecard.js`)
+- **Trigger:** Customer has `Current Credit Limit > 0`.
+- **Focus:** Purchase behavior and Payment history.
+- **Output:**
+  - Recommended Limit: **Current Limit * Adjustment Factor**.
+  - **Adjustment Factors:**
+    - Grade A+ (Score >= 81): **+20%**
+    - Grade A  (Score >= 66): **+10%**
+    - Grade B+ (Score >= 50): **+0%** (Maintain)
+    - Grade B  (Score >= 35): **-10%** (Reduce)
+    - Grade C  (Score >= 20): **-20%** (Reduce)
+    - Grade D  (Score < 20):  **-50%** (Drastic Reduction)
+
+## Adding New Features
+
+### Implementing Late Payment Logic
+Currently, `ExistingCustomerScorecard.js` contains a placeholder method `calculateLatePaymentScore`. To implement the real logic:
+
+1. Update `financialController.js` to fetch the Late Payment data from the new API.
+2. Pass this data into the `scoringContext` object.
+3. Update `ExistingCustomerScorecard.js`:
+
+```javascript
+    calculateLatePaymentScore(paymentData) {
+        // Example Implementation
+        if (!paymentData) return 0;
+
+        const avgLateDays = paymentData.averageDaysLate;
+
+        if (avgLateDays > 30) return -20; // Heavy penalty
+        if (avgLateDays > 7) return -10;  // Moderate penalty
+        return 0; // Good payer
+    }
+```
+
+## Maintenance Guide
+- **To Change Weights:** Edit the `weight` property in the `items.push(...)` calls within the specific Scorecard file.
+- **To Change Thresholds:** Edit the `if/else` logic in the `calculateC1`, `calculateC2`, etc., methods.
+- **To Add a New Strategy:**
+  1. Create `strategies/VIPScorecard.js`.
+  2. Extend `BaseScorecard`.
+  3. Implement `calculateScore`.
+  4. Update `ScoringEngine.js` to add the condition for selecting the VIP strategy.
