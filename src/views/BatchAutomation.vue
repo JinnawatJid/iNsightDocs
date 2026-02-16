@@ -731,10 +731,10 @@ const exportSummarizedReport = () => {
    XLSX.writeFile(wb, "Batch_Credit_Automation_Report.xlsx");
 };
 
-// Helper to safely extract analysis items
-const extractFinancialValue = (item, key) => {
+// Helper to safely extract analysis items (value or score)
+const extractFinancialData = (item, key, prop = 'displayValue') => {
     if (!item.analysisResult || !item.analysisResult.scoringResult || !item.analysisResult.scoringResult.breakdown) {
-        return '-';
+        return prop === 'score' ? 0 : '-';
     }
     // Search in C1, C2, C3 breakdown items
     const groups = ['c1', 'c2', 'c3'];
@@ -742,10 +742,13 @@ const extractFinancialValue = (item, key) => {
         const breakdown = item.analysisResult.scoringResult.breakdown[g];
         if (breakdown && breakdown.items) {
             const found = breakdown.items.find(i => i.key === key);
-            if (found) return found.displayValue || found.value;
+            if (found) {
+                if (prop === 'score') return found.score || 0;
+                return found.displayValue || found.value;
+            }
         }
     }
-    return '-';
+    return prop === 'score' ? 0 : '-';
 };
 
 const exportFullDetailReport = () => {
@@ -757,6 +760,11 @@ const exportFullDetailReport = () => {
           ? item.customerId.slice(-2)
           : '-';
 
+      const breakdown = item.analysisResult?.scoringResult?.breakdown || {};
+      const c1Total = breakdown.c1?.total || 0;
+      const c2Total = breakdown.c2?.total || 0;
+      const c3Total = breakdown.c3?.total || 0;
+
       // 2. Base Data
       const row = {
           'สาขา': branchCode,
@@ -764,25 +772,36 @@ const exportFullDetailReport = () => {
           'หมายเลขนิติบุคคล/หมายเลขประจำตัวผู้เสียภาษีมูลค่าเพิ่ม': item.taxId || '-',
           'ทุนจดทะเบียน': formatNumber(item.registeredCapital),
           'ระยะเวลาของธุรกิจ': item.yearsInBusiness || 0,
-          'คะแนนเกรดของระบบ': item.analysisResult?.scoringResult?.gradeResult?.score || 0,
-          'เกรดของระบบ': item.analysisResult?.scoringResult?.gradeResult?.label || '-',
-          'คะแนนขนาดของระบบ': item.analysisResult?.scoringResult?.sizeResult?.score || 0,
-          'ขนาดของระบบ': item.analysisResult?.scoringResult?.sizeResult?.label || '-',
+          'คะแนนระยะเวลาธุรกิจ': extractFinancialData(item, 'years', 'score'),
+          'สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน': extractFinancialData(item, 'leverage'),
+          'คะแนน สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน': extractFinancialData(item, 'leverage', 'score'),
+          'กรรมสิทธิ์ทรัพย์สิน': extractFinancialData(item, 'asset'),
+          'คะแนน กรรมสิทธิ์ทรัพย์สิน': extractFinancialData(item, 'asset', 'score'),
+          'รวมหมวดคะแนนหมวด C1 Performance ของธุรกิจ': c1Total,
 
-          // Financial Ratios
-          'สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน': extractFinancialValue(item, 'leverage'),
-          'กรรมสิทธิ์ทรัพย์สิน': extractFinancialValue(item, 'asset'),
-          'อัตราการส่วนหนี้สินรวม ต่อส่วนของผู้ถือหุุ้น': extractFinancialValue(item, 'deRatio'),
-          'ความสามารถในการชำระหนี้ (DSCR)': extractFinancialValue(item, 'dscr'),
-          'อัตราการหมุนเวียนของสินค้าคงเหลือ': extractFinancialValue(item, 'inventory'),
-          'สัดส่วนรายได้ต่อทุนจดทะเบียน': extractFinancialValue(item, 'revenueCapital'),
-          'สัดส่วนยอดซื้อเฉลี่ย ย้อนหลัง 3 เดือนต่อเครดิตที่ขอ': extractFinancialValue(item, 'capacityCheck'),
-          'สัดส่วนยอดซื้อเฉลี่ย 1.5 เดือนย้อนหลัง 3 เดือน': extractFinancialValue(item, 'capacityCheck'), // Matches user request to reuse capacityCheck logic
-          'สัดส่วนยอดซื้อต่อระยะเวลาเครดิตที่ขอ': extractFinancialValue(item, 'turnover'),
-          'แนวโน้มการซื้อ': extractFinancialValue(item, 'trend'),
-          'ระยะเวลาของการเป็นลูกค้า': extractFinancialValue(item, 'duration'),
+          'อัตราการส่วนหนี้สินรวม ต่อส่วนของผู้ถือหุ้น': extractFinancialData(item, 'deRatio'),
+          'คะแนน อัตราการส่วนหนี้สินรวม ต่อส่วนของผู้ถือหุุ้น': extractFinancialData(item, 'deRatio', 'score'),
+          'อัตราการหมุนเวียนของสินค้าคงเหลือ': extractFinancialData(item, 'inventory'),
+          'คะแนน อัตราการหมุนเวียนของสินค้าคงเหลือ': extractFinancialData(item, 'inventory', 'score'),
+          'ความสามารถในการชำระหนี้ (DSCR)': extractFinancialData(item, 'dscr'),
+          'คะแนนอัตราส่วนความสามารถในการชำระหนี้ (DSCR)': extractFinancialData(item, 'dscr', 'score'),
+          'รวมหมวด C2 CashFlow ของธุรกิจ': c2Total,
 
-          // Credit Info
+          'รวมคะแนน C1 + C2': c1Total + c2Total,
+
+          'สัดส่วนรายได้ต่อทุนจดทะเบียน': extractFinancialData(item, 'revenueCapital'),
+          'คะแนนสัดส่วนรายได้ ต่อทุนจดทะเบียน': extractFinancialData(item, 'revenueCapital', 'score'),
+          'สัดส่วนยอดซื้อเฉลี่ย ย้อนหลัง 3 เดือนต่อเครดิตที่ขอ': extractFinancialData(item, 'capacityCheck'),
+          'คะแนน สัดส่วนยอดซื้อเฉลี่ยย้อนหลัง 3 เดือนต่อเครดิตที่ขอ': extractFinancialData(item, 'capacityCheck', 'score'),
+          'สัดส่วนยอดซื้อต่อระยะเวลาเครดิตที่ขอ': extractFinancialData(item, 'turnover'),
+          'คะแนน ยอดซื้อต่อระยะเวลาเครดิตที่ขอ': extractFinancialData(item, 'turnover', 'score'),
+          'แนวโน้มการซื้อ': extractFinancialData(item, 'trend'),
+          'คะแนน แนวโน้มการซื้อ': extractFinancialData(item, 'trend', 'score'),
+          'ระยะเวลาของการเป็นลูกค้า': extractFinancialData(item, 'duration'),
+          'คะแนน ระยะเวลาการเป็นลูกค้า': extractFinancialData(item, 'duration', 'score'),
+          'รวมหมวด C3 พฤติกรรมการซื้อ': c3Total,
+
+          'คะแนนรวม': item.score || 0,
           'เครดิตที่ขอ': formatNumber(item.currentLimit),
           'ระยะเวลาเครดิต': item.paymentTerms || '-',
           'เครดิตของระบบ': formatNumber(item.newLimit),
