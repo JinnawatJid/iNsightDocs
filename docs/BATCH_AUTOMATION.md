@@ -39,3 +39,9 @@ To optimize performance and reduce costs, the system checks for existing local f
 Users can download the files used for analysis via the **Files** column in the Batch Automation table.
 *   **Bridge Files**: Downloaded directly from memory (Base64).
 *   **Local Files**: Downloaded from the server via `/api/financials/download-local/{Customer_ID}/{FileKey}`.
+
+## File Metadata & Extraction
+The system enhances the "Local Files" check to provide more context:
+*   **Metadata**: The `check-local` endpoint now returns file size (bytes) and modification date (`mtime`) for each file. This is displayed in the "Debug Files" popup.
+*   **Extraction Fallback**: If a request uses local files but lacks "Registered Capital" or "Years in Business" data (e.g., from an incomplete Excel upload), the backend (`financialController.js`) automatically extracts this data from the stored `DBD_Profile.pdf` using a dedicated utility (`backend/utils/pdfExtractor.js`).
+*   **Download Links**: The `/download-local` endpoint supports both snake_case (`balance_sheet`) and camelCase (`balanceSheet`) keys to ensure compatibility with the frontend.

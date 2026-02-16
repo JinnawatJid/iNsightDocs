@@ -5,6 +5,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const { calculateSlope, calculateTrendRatio, generateContinuousTimeline, findYearlySeries } = require('../services/financialCalculator');
 const ScoringEngine = require('../services/scoring/ScoringEngine');
+const { extractDBDData } = require('../utils/pdfExtractor');
 
 // Configuration
 const FINANCIAL_API_URL = "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
@@ -227,6 +228,9 @@ exports.analyzeFinancials = async (req, res) => {
     } = req.body;
 
     // --- LOCAL FILE HANDLING ---
+    let localRegisteredCapital = 0;
+    let localYearsInBusiness = 0;
+
     if (req.body.use_local === 'true' && customer_no) {
         try {
              let projectRoot = path.resolve(__dirname, '../../../../');
@@ -267,7 +271,19 @@ exports.analyzeFinancials = async (req, res) => {
 
                      // Profile is not used for analysis yet, but good to have if needed
                      const cp = await loadFile('DBD_Profile.pdf');
-                     if (cp) files['company_profile'] = [{ buffer: cp }];
+                     if (cp) {
+                         files['company_profile'] = [{ buffer: cp }];
+
+                         // Try to extract Registered Capital / Years if not provided
+                         if (!registered_capital || registered_capital == 0 || !years_in_business) {
+                             const extraction = await extractDBDData(cp);
+                             if (extraction.success) {
+                                 console.log('[Financial Analysis] Extracted from Local PDF:', extraction);
+                                 if (extraction.registeredCapital) localRegisteredCapital = extraction.registeredCapital;
+                                 if (extraction.yearsInBusiness) localYearsInBusiness = extraction.yearsInBusiness;
+                             }
+                         }
+                     }
                  }
              }
         } catch (localErr) {
@@ -395,7 +411,8 @@ exports.analyzeFinancials = async (req, res) => {
         calculations.dscr = 0;
       }
     }
-    const regCap = parseFloat(registered_capital || 0);
+    // Use Local Extraction Fallback if request body is empty
+    const regCap = parseFloat(registered_capital || localRegisteredCapital || 0);
     const reqAmt = parseFloat(request_amount || 0);
     if (regCap !== 0) {
       calculations.creditCapitalRatio = reqAmt / regCap;
@@ -420,7 +437,10 @@ exports.analyzeFinancials = async (req, res) => {
         if (rowsC.length > 0) customerData = rowsC[0];
 
         // Merge Manual Overrides (Frontend Inputs take precedence)
-        if (years_in_business) customerData.years_in_business = years_in_business;
+        // Also apply Local Extraction fallback for Years in Business
+        const finalYears = years_in_business || localYearsInBusiness || customerData.years_in_business;
+        if (finalYears) customerData.years_in_business = finalYears;
+
         if (residence_ownership) customerData.residence_ownership = residence_ownership;
         if (residence_ownership_other) customerData.residence_ownership_other = residence_ownership_other;
 
@@ -588,18 +608,37 @@ exports.checkLocalFiles = async (req, res) => {
     const latestPath = path.join(customerRoot, latestFolder);
 
     // Check required files
-    const requiredFiles = ['DBD_Profile.pdf', 'DBD_BalanceSheet.xlsx', 'DBD_IncomeStatement.xlsx', 'DBD_FinancialRatios.xlsx'];
+    const requiredFiles = [
+        { key: 'profile', name: 'DBD_Profile.pdf' },
+        { key: 'balanceSheet', name: 'DBD_BalanceSheet.xlsx' },
+        { key: 'incomeStatement', name: 'DBD_IncomeStatement.xlsx' },
+        { key: 'financialRatios', name: 'DBD_FinancialRatios.xlsx' }
+    ];
+
+    const fileDetails = {};
+
     for (const file of requiredFiles) {
-        if (!await fs.pathExists(path.join(latestPath, file))) {
-            return res.json({ exists: false, reason: `Missing file: ${file}` });
+        const filePath = path.join(latestPath, file.name);
+        if (!await fs.pathExists(filePath)) {
+            return res.json({ exists: false, reason: `Missing file: ${file.name}` });
         }
+
+        // Get File Stats
+        const stats = await fs.stat(filePath);
+        fileDetails[file.key] = {
+            filename: file.name,
+            size: stats.size,
+            date: stats.mtime, // Modification time
+            path: filePath
+        };
     }
 
     return res.json({
         exists: true,
         date: latestFolder,
         daysOld: diffDays,
-        path: latestPath
+        path: latestPath,
+        files: fileDetails
     });
 
   } catch (error) {
@@ -613,12 +652,16 @@ exports.downloadLocalFile = async (req, res) => {
         const { customer_no, file_key } = req.params;
         if (!customer_no || !file_key) return res.status(400).send('Missing parameters');
 
-        // Mapping
+        // Mapping (Supports snake_case and camelCase)
         const fileMap = {
             'profile': 'DBD_Profile.pdf',
             'balance_sheet': 'DBD_BalanceSheet.xlsx',
             'income_statement': 'DBD_IncomeStatement.xlsx',
-            'financial_ratios': 'DBD_FinancialRatios.xlsx'
+            'financial_ratios': 'DBD_FinancialRatios.xlsx',
+            // CamelCase aliases for Frontend compatibility
+            'balanceSheet': 'DBD_BalanceSheet.xlsx',
+            'incomeStatement': 'DBD_IncomeStatement.xlsx',
+            'financialRatios': 'DBD_FinancialRatios.xlsx'
         };
 
         const filename = fileMap[file_key];
