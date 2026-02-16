@@ -498,15 +498,24 @@ const showDebugFiles = async (item) => {
                      const btn = document.getElementById(`btn-dl-${f.key}`);
                      if (btn) {
                          btn.onclick = () => {
-                             const blob = base64ToBlob(fileData.content, fileData.mime);
-                             const url = window.URL.createObjectURL(blob);
-                             const a = document.createElement('a');
-                             a.href = url;
-                             a.download = fileData.filename || `debug_${f.key}.file`;
-                             document.body.appendChild(a);
-                             a.click();
-                             window.URL.revokeObjectURL(url);
-                             document.body.removeChild(a);
+                             // Case A: Local File (Server Download)
+                             if (fileData.type === 'local') {
+                                 // Construct URL: /api/financials/download-local/:customerId/:fileKey
+                                 const url = `/api/financials/download-local/${item.customerId}/${f.key}`;
+                                 window.open(url, '_blank');
+                             }
+                             // Case B: Bridge File (Base64 Blob)
+                             else {
+                                 const blob = base64ToBlob(fileData.content, fileData.mime);
+                                 const url = window.URL.createObjectURL(blob);
+                                 const a = document.createElement('a');
+                                 a.href = url;
+                                 a.download = fileData.filename || `debug_${f.key}.file`;
+                                 document.body.appendChild(a);
+                                 a.click();
+                                 window.URL.revokeObjectURL(url);
+                                 document.body.removeChild(a);
+                             }
                          };
                      }
                  }
@@ -592,10 +601,38 @@ const processNextItem = async () => {
             skipDBD = true;
         }
 
-        // 2. Download from Bridge (Retry Logic) - Only if not skipped
+        // 2. Check for Local Files First
+        let useLocalFiles = false;
         let downloadResult = null;
+        let localCheck = null;
 
         if (!skipDBD) {
+            try {
+                item.log = 'กำลังตรวจสอบไฟล์ในระบบ...';
+                const checkRes = await axios.get(`/api/financials/check-local/${item.customerId}`);
+                localCheck = checkRes.data;
+
+                if (localCheck && localCheck.exists) {
+                    useLocalFiles = true;
+                    item.log = 'ใช้ข้อมูลที่มีอยู่ (Local)';
+
+                    // Create metadata for debugFiles (No Base64 content)
+                    // We map the same keys as Bridge: profile, balanceSheet, incomeStatement, financialRatios
+                    item.debugFiles = {
+                        profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' },
+                        balanceSheet: { type: 'local', filename: 'DBD_BalanceSheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                        incomeStatement: { type: 'local', filename: 'DBD_IncomeStatement.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                        financialRatios: { type: 'local', filename: 'DBD_FinancialRatios.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+                    };
+                }
+            } catch (err) {
+                console.warn('Local check failed:', err);
+                // Proceed to Bridge on error
+            }
+        }
+
+        // 3. Download from Bridge (Retry Logic) - Only if not skipped AND not local
+        if (!skipDBD && !useLocalFiles) {
             item.log = 'กำลังดาวน์โหลดไฟล์ DBD...';
             let retries = 0;
             const maxRetries = 2;
@@ -616,64 +653,86 @@ const processNextItem = async () => {
             }
         }
 
-        // 3. Prepare for Analysis
-        item.log = 'กำลังวิเคราะห์...';
+        // 4. Prepare for Analysis
+        if (!useLocalFiles) {
+             item.log = 'กำลังวิเคราะห์...';
+        }
+
         const formData = new FormData();
 
         let yearsInBusiness = 0;
         let registeredCapital = 0;
 
-        // STRICT VALIDATION: Ensure Companies have all 4 DBD files
-        if (!skipDBD) {
-            if (!downloadResult) {
-                throw new Error('ดาวน์โหลด DBD ไม่สำเร็จ (กรุณาลองใหม่)');
-            }
-            const required = ['profile', 'balanceSheet', 'incomeStatement', 'financialRatios'];
-            const missing = required.filter(k => !downloadResult.files[k]);
-            if (missing.length > 0) {
-                // Translate keys to readable names
-                const names = {
-                    profile: 'Company Profile',
-                    balanceSheet: 'งบดุล',
-                    incomeStatement: 'งบกำไรขาดทุน',
-                    financialRatios: 'อัตราส่วนทางการเงิน'
-                };
-                const missingNames = missing.map(k => names[k] || k).join(', ');
-                throw new Error(`DBD ไม่ครบ: ขาด ${missingNames}`);
-            }
-        }
-
-        if (downloadResult) {
-            // Save debug info
-            item.debugFiles = downloadResult.files;
-
-            // Append Files
-            if (downloadResult.files.balanceSheet) {
-                const f = downloadResult.files.balanceSheet;
-                formData.append('balance_sheet', base64ToBlob(f.content, f.mime), f.filename);
-            }
-            if (downloadResult.files.incomeStatement) {
-                const f = downloadResult.files.incomeStatement;
-                formData.append('profit_loss', base64ToBlob(f.content, f.mime), f.filename);
-            }
-            if (downloadResult.files.financialRatios) {
-                const f = downloadResult.files.financialRatios;
-                formData.append('financial_ratios', base64ToBlob(f.content, f.mime), f.filename);
-            }
-            if (downloadResult.files.profile) {
-                const f = downloadResult.files.profile;
-                formData.append('company_profile', base64ToBlob(f.content, f.mime), f.filename);
-            }
-            yearsInBusiness = downloadResult.yearsInBusiness || 0;
-            registeredCapital = downloadResult.registeredCapital || 0;
-        } else {
-            // Fallback: Use Customer Date (Only for skipped items)
-            item.log = 'ใช้ข้อมูลภายใน (ข้าม DBD)...';
-            if (customer.customer.customer_since) {
+        if (useLocalFiles) {
+            // Logic for Local Files
+            formData.append('use_local', 'true');
+            // We still need to pass yearsInBusiness if possible, or let backend fetch it?
+            // Current backend logic for 'use_local' fetches files but relies on passed params for some data.
+            // If local files are used, we might miss 'yearsInBusiness' from the Bridge metadata.
+            // However, customer data from DB has 'customer_since'.
+             if (customer.customer.customer_since) {
                 const start = new Date(customer.customer.customer_since);
                 const now = new Date();
                 const diff = now.getFullYear() - start.getFullYear();
                 yearsInBusiness = diff > 0 ? diff : 0;
+            }
+            // Registered Capital might be missing without Bridge metadata.
+            // Ideally backend could parse it from Profile, but for now we might default to 0 or DB value.
+
+        } else {
+            // Logic for Bridge Download or Skip
+            // STRICT VALIDATION: Ensure Companies have all 4 DBD files
+            if (!skipDBD) {
+                if (!downloadResult) {
+                    throw new Error('ดาวน์โหลด DBD ไม่สำเร็จ (กรุณาลองใหม่)');
+                }
+                const required = ['profile', 'balanceSheet', 'incomeStatement', 'financialRatios'];
+                const missing = required.filter(k => !downloadResult.files[k]);
+                if (missing.length > 0) {
+                    // Translate keys to readable names
+                    const names = {
+                        profile: 'Company Profile',
+                        balanceSheet: 'งบดุล',
+                        incomeStatement: 'งบกำไรขาดทุน',
+                        financialRatios: 'อัตราส่วนทางการเงิน'
+                    };
+                    const missingNames = missing.map(k => names[k] || k).join(', ');
+                    throw new Error(`DBD ไม่ครบ: ขาด ${missingNames}`);
+                }
+            }
+
+            if (downloadResult) {
+                // Save debug info
+                item.debugFiles = downloadResult.files;
+
+                // Append Files
+                if (downloadResult.files.balanceSheet) {
+                    const f = downloadResult.files.balanceSheet;
+                    formData.append('balance_sheet', base64ToBlob(f.content, f.mime), f.filename);
+                }
+                if (downloadResult.files.incomeStatement) {
+                    const f = downloadResult.files.incomeStatement;
+                    formData.append('profit_loss', base64ToBlob(f.content, f.mime), f.filename);
+                }
+                if (downloadResult.files.financialRatios) {
+                    const f = downloadResult.files.financialRatios;
+                    formData.append('financial_ratios', base64ToBlob(f.content, f.mime), f.filename);
+                }
+                if (downloadResult.files.profile) {
+                    const f = downloadResult.files.profile;
+                    formData.append('company_profile', base64ToBlob(f.content, f.mime), f.filename);
+                }
+                yearsInBusiness = downloadResult.yearsInBusiness || 0;
+                registeredCapital = downloadResult.registeredCapital || 0;
+            } else {
+                // Fallback: Use Customer Date (Only for skipped items)
+                item.log = 'ใช้ข้อมูลภายใน (ข้าม DBD)...';
+                if (customer.customer.customer_since) {
+                    const start = new Date(customer.customer.customer_since);
+                    const now = new Date();
+                    const diff = now.getFullYear() - start.getFullYear();
+                    yearsInBusiness = diff > 0 ? diff : 0;
+                }
             }
         }
 

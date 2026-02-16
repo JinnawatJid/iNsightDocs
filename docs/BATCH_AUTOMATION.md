@@ -1,113 +1,41 @@
-# Batch Credit Automation Implementation Guide
+# Batch Automation Documentation
 
-## 1. Overview
-The **Batch Credit Automation** feature allows users to upload an Excel file containing a list of customer IDs. The system then automatically:
-1.  Fetches customer details from the ERP API.
-2.  Connects to the **Local DBD Bridge** to download financial documents (Balance Sheet, Income Statement, etc.).
-3.  Analyzes the financial data to generate a **Credit Score** and **Recommended Limit**.
-4.  Exports the results into a summary Excel report.
+## Overview
+The Batch Automation system (`/batch-automation`) allows users to upload a list of customers (Excel) and automatically:
+1.  Fetch customer data from the internal database.
+2.  Download DBD documents (Financial Statements, Company Profile) via the **Bridge Server**.
+3.  Analyze the financial data to generate credit scores and recommended limits.
 
-**Location:** `/batch-automation` (Hidden/Admin Route)
+## Folder Structure
+The system stores downloaded DBD documents for future use to avoid redundant downloads. The structure is as follows:
 
-## 2. Architecture
-The system uses a **Frontend-Coordinator Pattern**. Since the browser automation (Puppeteer) runs on the client's machine (via the Local Bridge), the Vue.js frontend acts as the queue manager and worker pool controller.
-
-### Components:
-*   **Frontend (`BatchAutomation.vue`):** Manages the queue, UI state, and concurrent worker pool (2-8 workers).
-*   **Local Bridge (Port 4343):** A standalone Node.js app running on the user's machine that controls the browser to scrape DBD data.
-*   **Backend API (`/api/financials/analyze`):** Performs the financial ratio calculations and scoring.
-
-## 3. Data Flow
-
-1.  **Input:** User uploads `.xlsx`. System looks for `Customer ID` or `No_` column.
-2.  **Queue:** A list of customers is generated with status `Pending`.
-3.  **Processing Loop (Concurrent Worker Pool):**
-    *   The system spawns `N` workers (defined by user, default 2).
-    *   Each worker picks the next `Pending` customer from the shared queue.
-    *   **Step A (Fetch):** Query `CustomerService.searchCustomers(id)` to get Tax ID, Payment Terms, and Current Limit.
-        *   *Rule:* If **Tax ID is missing**, the status is set to `Skipped` (Option A).
-    *   **Step B (File Check):** The worker calls `GET /api/financials/check-local/{id}`.
-        *   *Check:* If valid DBD files exist in `SP682/customers/{ID}/{YYYYMMDD}` and are less than **180 days old**, the worker skips Step C and flags `use_local=true`.
-    *   **Step C (Bridge):** (Only if Local Files Missing/Old) Connect to `http://<BRIDGE_IP>:4343/stream` via SSE.
-        *   The bridge opens a browser instance, logs in, downloads the 4 files, and streams them back as Base64.
-        *   *Retry:* If connection fails or times out, it retries up to 2 times.
-    *   **Step D (Analyze):** The files (or `use_local=true` flag) are sent to the backend API.
-    *   **Step E (Result):** The computed Score and Limit are saved to the queue item.
-4.  **Export:** User clicks "Export Report" to generate an Excel file with all results.
-
-## 4. Key Implementation Details
-
-### Local File Reuse (Caching)
-*   **Storage:** Files are stored in `SP682/customers/{CustomerCode}/{YYYYMMDD}/`.
-*   **Policy:** The system reuses local files if the folder date is within the last **180 days**.
-*   **Endpoint:** `GET /api/financials/check-local/:id` performs this check.
-*   **Benefit:** Reduces redundant downloads and speeds up re-runs significantly.
-
-### Concurrency
-*   **Worker Pool:** The frontend allows users to set a concurrency level (1-8).
-*   **Isolation:** The Bridge Server (`bridge-server`) creates a unique temporary directory for each request (`dbd-bridge-{timestamp}-{randomId}`) to prevent file conflicts when multiple browsers are downloading files simultaneously.
-
-### File Upload
-We use `xlsx` library to parse the browser-side file.
-```javascript
-const workbook = XLSX.read(data, { type: 'array' });
-const jsonData = XLSX.utils.sheet_to_json(worksheet);
+```
+SP682/
+  customers/
+    {Customer_ID}/
+      {YYYYMMDD}/
+        DBD_Profile.pdf
+        DBD_BalanceSheet.xlsx
+        DBD_IncomeStatement.xlsx
+        DBD_FinancialRatios.xlsx
 ```
 
-### Bridge Integration (SSE)
-We use `EventSource` to listen for progress updates from the bridge.
-*   **Host Configuration:** Stored in `localStorage` key `bridgeHost`. Defaults to `localhost`.
-*   **PNA (Private Network Access):** If the user is on `https` or a different IP, Chrome may block access to `localhost`. The UI includes a "Check Connection" feature to diagnose this.
+*   **Customer_ID**: The unique identifier of the customer (e.g., `01013AY`).
+*   **YYYYMMDD**: The date the files were downloaded (e.g., `20251025`).
 
-### Error Handling
-*   **Missing Tax ID:** Immediately skipped. Logged as "Missing Tax ID (Option A)".
-*   **Bridge Failure:** Retried 2 times with a 2-second delay. If all fail, marked as `Error`.
-*   **Analysis Failure:** If the API returns success:false, marked as `Error`.
+## Local File Priority Logic
+To optimize performance and reduce costs, the system checks for existing local files before connecting to the Bridge.
 
-## 5. Maintenance & Debugging
+1.  **Check**: The system calls `GET /api/financials/check-local/{Customer_ID}`.
+2.  **Validity**: Files are considered valid if:
+    *   They exist in the `SP682/customers/{Customer_ID}/{LatestDate}` folder.
+    *   The folder date is within **180 days** of the current date.
+    *   All 4 required files are present.
+3.  **Action**:
+    *   **If Valid**: The system skips the Bridge download and uses the local files for analysis (`use_local=true`). The status will reflect "Done (Local)".
+    *   **If Invalid/Missing**: The system proceeds to download fresh files from the Bridge.
 
-### Common Issues
-1.  **"Unreachable ❌" Status:**
-    *   Check if the Bridge App is running (Black console window).
-    *   Check if `bridgeHost` is correct (e.g., `localhost` vs `192.168.x.x`).
-    *   Check Browser Console for "Private Network Access" errors.
-
-2.  **Bridge stops mid-process:**
-    *   The bridge handles one request at a time. If the user closes the browser window manually, the current item fails, and the loop moves to the next.
-
-3.  **Captcha/Login Failures:**
-    *   The bridge requires a valid DBD account. If the password changes or Captcha becomes too hard, the bridge logic (`bridge-server`) needs updating.
-
-### Updating Logic
-*   **Frontend Logic:** `src/views/BatchAutomation.vue`
-*   **Backend Analysis:** `backend/controllers/financialController.js`
-*   **Bridge Logic:** `bridge-server/server.js` (Separate deployment)
-
-## 6. Deployment
-This view is **hidden** by default. To make it accessible to general users, add a navigation link in `src/components/Sidebar.vue` pointing to `/batch-automation`.
-
-## 7. Export Logic & Business Rules
-
-### Full Detail Report Requirements
-When exporting the "Full Detail" report, the system must adhere to the following specific business rules:
-
-1.  **Branch Extraction (สาขา):**
-    *   The branch code is **always** the last 2 characters of the Customer ID.
-    *   Format: `XXXXXYY` -> Branch is `YY`.
-
-2.  **Financial Ratios:**
-    *   **Capacity Check (สัดส่วนยอดซื้อเฉลี่ย 1.5 เดือนย้อนหลัง 3 เดือน):** This value corresponds to the backend calculation `Average 1.5 Months` (Sum of Last 3 Months / 2) divided by the Requested Credit Amount. It matches the logic used for the "Capacity Check" score.
-
-3.  **Sales History Layout:**
-    *   **Timeline Logic:** The system generates a continuous timeline of the last **6 completed months** + the **Current Month** (Total 7 columns).
-    *   **Gap Filling:** Any month with missing data from the API is explicitly filled with **0.00** to ensure a strictly continuous timeline.
-    *   **Exclusion:** The **Current Month** (the 7th item) is excluded from financial calculations (Average, Slope) but is displayed in the UI/Report for reference.
-    *   **Order:** Columns must be ordered from **Oldest (Left)** to **Newest (Right)**.
-    *   **Spacer:** There must be an empty spacer column between the analysis data and the sales history columns to visually separate the sections.
-
-### Summary Report
-The standard report includes:
-*   Customer ID, Name, Tax ID
-*   Total Purchase (Last 3 Months)
-*   Credit Term, Current Limit, Recommended Limit
-*   Score, Grade, Status
+## File Access
+Users can download the files used for analysis via the **Files** column in the Batch Automation table.
+*   **Bridge Files**: Downloaded directly from memory (Base64).
+*   **Local Files**: Downloaded from the server via `/api/financials/download-local/{Customer_ID}/{FileKey}`.

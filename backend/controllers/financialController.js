@@ -608,5 +608,49 @@ exports.checkLocalFiles = async (req, res) => {
   }
 };
 
+exports.downloadLocalFile = async (req, res) => {
+    try {
+        const { customer_no, file_key } = req.params;
+        if (!customer_no || !file_key) return res.status(400).send('Missing parameters');
+
+        // Mapping
+        const fileMap = {
+            'profile': 'DBD_Profile.pdf',
+            'balance_sheet': 'DBD_BalanceSheet.xlsx',
+            'income_statement': 'DBD_IncomeStatement.xlsx',
+            'financial_ratios': 'DBD_FinancialRatios.xlsx'
+        };
+
+        const filename = fileMap[file_key];
+        if (!filename) return res.status(400).send('Invalid file key');
+
+        // Locate Folder
+        let projectRoot = path.resolve(__dirname, '../../../../');
+        if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
+            projectRoot = path.resolve(__dirname, '../../');
+        }
+
+        const customerRoot = path.join(projectRoot, 'customers', customer_no);
+        if (!await fs.pathExists(customerRoot)) return res.status(404).send('Customer folder not found');
+
+        const subdirs = await fs.readdir(customerRoot);
+        const dateFolders = subdirs.filter(d => /^\d{8}$/.test(d)).sort().reverse();
+
+        if (dateFolders.length === 0) return res.status(404).send('No date folders found');
+
+        // Use Latest Folder
+        const latestPath = path.join(customerRoot, dateFolders[0]);
+        const filePath = path.join(latestPath, filename);
+
+        if (!await fs.pathExists(filePath)) return res.status(404).send('File not found');
+
+        res.download(filePath);
+
+    } catch (error) {
+        console.error('Download Local File Error:', error);
+        res.status(500).send('Internal Server Error');
+    }
+};
+
 // Export helper for testing
 exports.findYearlySeries = findYearlySeries;
