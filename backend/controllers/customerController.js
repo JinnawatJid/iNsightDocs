@@ -242,17 +242,32 @@ const enrichCustomerData = async (customerNo) => {
             // Sort by month (oldest first) to ensure slicing is correct
             monthlyData.sort((a, b) => a.month.localeCompare(b.month));
 
+            // Determine Current System Month (YYYY-MM)
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonthIdx = now.getMonth() + 1; // 1-12
+            const currentSystemMonth = `${currentYear}-${String(currentMonthIdx).padStart(2, '0')}`;
+
             // Separate Calculation Set (Exclude Current Month - The last one)
-            // If we have at least 1 month, we separate the last one as "Current".
-            // The request is: Show 7, Calculate on 6 (Exclude current).
+            // Logic Update: Only exclude the last month if it MATCHES the current system month.
+            // If the last month in the list is partially complete (current), we exclude it from stats.
+            // If the last month in the list is a past month, we include it.
 
             let calcData = [];
-            if (monthlyData.length > 1) {
-                calcData = monthlyData.slice(0, -1);
-            } else {
-                // If only 1 month exists, we can't really exclude it for calculation or everything is 0.
-                // We'll treat it as empty calc but show the month.
-                calcData = [];
+            const lastMonthData = monthlyData[monthlyData.length - 1];
+
+            if (monthlyData.length > 0) {
+                 if (lastMonthData.month === currentSystemMonth) {
+                     // Last month is current (incomplete) -> Exclude
+                     if (monthlyData.length > 1) {
+                         calcData = monthlyData.slice(0, -1);
+                     } else {
+                         calcData = [];
+                     }
+                 } else {
+                     // Last month is past (complete) -> Include all
+                     calcData = monthlyData;
+                 }
             }
 
             const totalCalcAvailable = calcData.length;
@@ -282,7 +297,7 @@ const enrichCustomerData = async (customerNo) => {
             // Generate Monthly History List (Newest First for UI List)
             // We use the FULL monthlyData here to show everything (including current)
             const monthlyHistory = monthlyData.map((m, index) => {
-                const isCurrent = index === monthlyData.length - 1;
+                const isCurrent = m.month === currentSystemMonth;
                 return {
                     label: formatThaiMonth(m.month, isCurrent),
                     value: formatCurrency(m.amount)
