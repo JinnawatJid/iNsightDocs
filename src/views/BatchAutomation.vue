@@ -23,22 +23,27 @@
       </div>
 
       <div class="settings-area">
-        <label>การเชื่อมต่อ Bridge:</label>
-        <div class="input-group">
-          <input
-            type="text"
-            v-model="bridgeHost"
-            placeholder="Localhost หรือ Bridge IP"
-            class="form-control"
-          />
-          <button class="btn-check" @click="checkBridgeConnection">ตรวจสอบ</button>
-        </div>
-        <small class="text-muted">สถานะ: {{ bridgeStatus }}</small>
+        <label @click="toggleDebugSettings" style="cursor: pointer; user-select: none; font-size: 0.9em; color: #666;">
+          ⚙️ ตั้งค่า Bridge IP (ซ่อน)
+        </label>
 
-        <div class="mt-2">
-           <label>จำนวน Process พร้อมกัน:</label>
-           <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 80px;" />
-           <small class="text-muted">แนะนำ 2-4 (สูงสุด 8)</small>
+        <div v-if="showDebugSettings" class="mt-2">
+          <div class="input-group">
+            <input
+              type="text"
+              v-model="bridgeHost"
+              placeholder="Localhost หรือ Bridge IP"
+              class="form-control"
+            />
+            <button class="btn-check" @click="checkBridgeConnection">ตรวจสอบ</button>
+          </div>
+          <small class="text-muted d-block mb-2">สถานะ: {{ bridgeStatus }}</small>
+
+          <div class="mt-2">
+             <label>จำนวน Process พร้อมกัน:</label>
+             <input type="number" min="1" max="8" v-model="concurrency" class="form-control d-inline-block ml-2" style="width: 80px;" />
+           <small class="text-muted">แนะนำ 2-4</small>
+          </div>
         </div>
       </div>
     </div>
@@ -108,7 +113,7 @@
             <th>วงเงินใหม่</th>
             <th>คะแนน</th>
             <th>สถานะ</th>
-            <th>การดำเนินการ</th>
+            <th>ไฟล์</th>
           </tr>
         </thead>
         <tbody>
@@ -164,11 +169,16 @@ import CustomerService from '@/services/CustomerService';
 const queue = ref([]);
 const isProcessing = ref(false);
 const shouldStop = ref(false);
-const concurrency = ref(2);
+const concurrency = ref(1);
 const activeWorkers = ref(0);
 const bridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 const bridgeStatus = ref('ไม่ทราบสถานะ');
 const isExportDropdownOpen = ref(false); // State for dropdown
+const showDebugSettings = ref(false);
+
+const toggleDebugSettings = () => {
+    showDebugSettings.value = !showDebugSettings.value;
+};
 
 // Click Outside Directive (Simple Implementation)
 const vClickOutside = {

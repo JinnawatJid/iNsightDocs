@@ -77,6 +77,16 @@ const formatThaiMonth = (yyyy_mm, isCurrent = false) => {
     return label;
 };
 
+// Helper: Get Customer Root Directory (Handles Prod vs Dev paths)
+const getCustomerRoot = async (customerNo) => {
+    let projectRoot = path.resolve(__dirname, '../../../../');
+    // Fallback for dev/sandbox environment (2 levels up)
+    if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
+        projectRoot = path.resolve(__dirname, '../../');
+    }
+    return path.join(projectRoot, 'customers', customerNo);
+};
+
 // Helper: Fetch Purchasing Behavior from External API
 const fetchPurchasingBehavior = async (customerNo) => {
     if (MOCK_FINANCIAL_API) {
@@ -229,13 +239,7 @@ exports.analyzeFinancials = async (req, res) => {
     // --- LOCAL FILE HANDLING ---
     if (req.body.use_local === 'true' && customer_no) {
         try {
-             let projectRoot = path.resolve(__dirname, '../../../../');
-             // Fallback for dev/sandbox environment (2 levels up)
-             if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
-                 projectRoot = path.resolve(__dirname, '../../');
-             }
-
-             const customerRoot = path.join(projectRoot, 'customers', customer_no);
+             const customerRoot = await getCustomerRoot(customer_no);
 
              // Find latest folder logic again (safety)
              if (await fs.pathExists(customerRoot)) {
@@ -291,13 +295,8 @@ exports.analyzeFinancials = async (req, res) => {
             // Determine Root Path (SP682/customers)
             // Current: .../SP682_v_x/release/backend/controllers
             // Target:  .../customers
-            let projectRoot = path.resolve(__dirname, '../../../../');
-            // Fallback for dev/sandbox environment (2 levels up)
-            if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
-                projectRoot = path.resolve(__dirname, '../../');
-            }
-
-            const customerDir = path.join(projectRoot, 'customers', customer_no, dateFolder);
+            const customerRoot = await getCustomerRoot(customer_no);
+            const customerDir = path.join(customerRoot, dateFolder);
 
             await fs.ensureDir(customerDir);
             console.log(`[Financial Persistent] Saving files to: ${customerDir}`);
@@ -549,13 +548,7 @@ exports.checkLocalFiles = async (req, res) => {
     if (!customer_no) return res.status(400).json({ success: false, message: 'Customer No required' });
 
     // Use same path resolution as persist logic
-    let projectRoot = path.resolve(__dirname, '../../../../');
-    // Fallback for dev/sandbox environment (2 levels up)
-    if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
-        projectRoot = path.resolve(__dirname, '../../');
-    }
-
-    const customerRoot = path.join(projectRoot, 'customers', customer_no);
+    const customerRoot = await getCustomerRoot(customer_no);
 
     if (!await fs.pathExists(customerRoot)) {
         return res.json({ exists: false, reason: 'No customer directory' });
