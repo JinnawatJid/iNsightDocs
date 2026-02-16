@@ -26,14 +26,22 @@ The system uses a **Frontend-Coordinator Pattern**. Since the browser automation
     *   Each worker picks the next `Pending` customer from the shared queue.
     *   **Step A (Fetch):** Query `CustomerService.searchCustomers(id)` to get Tax ID, Payment Terms, and Current Limit.
         *   *Rule:* If **Tax ID is missing**, the status is set to `Skipped` (Option A).
-    *   **Step B (Bridge):** Connect to `http://<BRIDGE_IP>:4343/stream` via Server-Sent Events (SSE).
-        *   The bridge opens a browser instance (isolated via unique temp directory), logs in, downloads the 4 files, and streams them back as Base64.
+    *   **Step B (File Check):** The worker calls `GET /api/financials/check-local/{id}`.
+        *   *Check:* If valid DBD files exist in `SP682/customers/{ID}/{YYYYMMDD}` and are less than **180 days old**, the worker skips Step C and flags `use_local=true`.
+    *   **Step C (Bridge):** (Only if Local Files Missing/Old) Connect to `http://<BRIDGE_IP>:4343/stream` via SSE.
+        *   The bridge opens a browser instance, logs in, downloads the 4 files, and streams them back as Base64.
         *   *Retry:* If connection fails or times out, it retries up to 2 times.
-    *   **Step C (Analyze):** The 4 files are sent to the backend API.
-    *   **Step D (Result):** The computed Score and Limit are saved to the queue item.
+    *   **Step D (Analyze):** The files (or `use_local=true` flag) are sent to the backend API.
+    *   **Step E (Result):** The computed Score and Limit are saved to the queue item.
 4.  **Export:** User clicks "Export Report" to generate an Excel file with all results.
 
 ## 4. Key Implementation Details
+
+### Local File Reuse (Caching)
+*   **Storage:** Files are stored in `SP682/customers/{CustomerCode}/{YYYYMMDD}/`.
+*   **Policy:** The system reuses local files if the folder date is within the last **180 days**.
+*   **Endpoint:** `GET /api/financials/check-local/:id` performs this check.
+*   **Benefit:** Reduces redundant downloads and speeds up re-runs significantly.
 
 ### Concurrency
 *   **Worker Pool:** The frontend allows users to set a concurrency level (1-8).

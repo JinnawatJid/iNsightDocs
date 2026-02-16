@@ -226,9 +226,60 @@ exports.analyzeFinancials = async (req, res) => {
       residence_ownership_other
     } = req.body;
 
+    // --- LOCAL FILE HANDLING ---
+    if (req.body.use_local === 'true' && customer_no) {
+        try {
+             let projectRoot = path.resolve(__dirname, '../../../../');
+             // Fallback for dev/sandbox environment (2 levels up)
+             if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
+                 projectRoot = path.resolve(__dirname, '../../');
+             }
+
+             const customerRoot = path.join(projectRoot, 'customers', customer_no);
+
+             // Find latest folder logic again (safety)
+             if (await fs.pathExists(customerRoot)) {
+                 const subdirs = await fs.readdir(customerRoot);
+                 const dateFolders = subdirs.filter(d => /^\d{8}$/.test(d)).sort().reverse();
+
+                 if (dateFolders.length > 0) {
+                     const latestPath = path.join(customerRoot, dateFolders[0]);
+                     console.log(`[Financial Analysis] Using Local Files from: ${latestPath}`);
+
+                     // Helper inside scope
+                     const loadFile = async (filename) => {
+                         const filePath = path.join(latestPath, filename);
+                         if (await fs.pathExists(filePath)) {
+                             return await fs.readFile(filePath);
+                         }
+                         return null;
+                     };
+
+                     // Map local files to multer-like structure
+                     const bs = await loadFile('DBD_BalanceSheet.xlsx');
+                     if (bs) files['balance_sheet'] = [{ buffer: bs }];
+
+                     const pl = await loadFile('DBD_IncomeStatement.xlsx');
+                     if (pl) files['profit_loss'] = [{ buffer: pl }];
+
+                     const fr = await loadFile('DBD_FinancialRatios.xlsx');
+                     if (fr) files['financial_ratios'] = [{ buffer: fr }];
+
+                     // Profile is not used for analysis yet, but good to have if needed
+                     const cp = await loadFile('DBD_Profile.pdf');
+                     if (cp) files['company_profile'] = [{ buffer: cp }];
+                 }
+             }
+        } catch (localErr) {
+            console.error('[Financial Analysis] Error loading local files:', localErr);
+        }
+    }
+
+
     // --- PERSISTENT STORAGE (Project Requirement) ---
     // Save uploaded files to SP682/customers/{CustomerCode}/{YYYYMMDD}/
-    if (customer_no) {
+    // Only save if NOT using local files (avoid duplication)
+    if (customer_no && req.body.use_local !== 'true') {
         try {
             // Determine Date Folder (YYYYMMDD)
             const now = new Date();
@@ -240,7 +291,12 @@ exports.analyzeFinancials = async (req, res) => {
             // Determine Root Path (SP682/customers)
             // Current: .../SP682_v_x/release/backend/controllers
             // Target:  .../customers
-            const projectRoot = path.resolve(__dirname, '../../../../');
+            let projectRoot = path.resolve(__dirname, '../../../../');
+            // Fallback for dev/sandbox environment (2 levels up)
+            if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
+                projectRoot = path.resolve(__dirname, '../../');
+            }
+
             const customerDir = path.join(projectRoot, 'customers', customer_no, dateFolder);
 
             await fs.ensureDir(customerDir);
@@ -484,6 +540,71 @@ exports.analyzeFinancials = async (req, res) => {
   } catch (error) {
     console.error('Financial Analysis Error:', error);
     res.status(500).json({ success: false, message: 'Failed to analyze financial documents', error: error.message });
+  }
+};
+
+exports.checkLocalFiles = async (req, res) => {
+  try {
+    const { customer_no } = req.params;
+    if (!customer_no) return res.status(400).json({ success: false, message: 'Customer No required' });
+
+    // Use same path resolution as persist logic
+    let projectRoot = path.resolve(__dirname, '../../../../');
+    // Fallback for dev/sandbox environment (2 levels up)
+    if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
+        projectRoot = path.resolve(__dirname, '../../');
+    }
+
+    const customerRoot = path.join(projectRoot, 'customers', customer_no);
+
+    if (!await fs.pathExists(customerRoot)) {
+        return res.json({ exists: false, reason: 'No customer directory' });
+    }
+
+    const subdirs = await fs.readdir(customerRoot);
+    // Filter for 8-digit folders (YYYYMMDD) and sort descending (latest first)
+    const dateFolders = subdirs.filter(d => /^\d{8}$/.test(d)).sort().reverse();
+
+    if (dateFolders.length === 0) {
+        return res.json({ exists: false, reason: 'No date folders' });
+    }
+
+    const latestFolder = dateFolders[0];
+
+    // Check Freshness (180 days)
+    const folderDate = new Date(
+        parseInt(latestFolder.substring(0, 4)),
+        parseInt(latestFolder.substring(4, 6)) - 1,
+        parseInt(latestFolder.substring(6, 8))
+    );
+    const now = new Date();
+    const diffTime = Math.abs(now - folderDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 180) {
+        return res.json({ exists: false, reason: 'Files too old', days: diffDays, limit: 180 });
+    }
+
+    const latestPath = path.join(customerRoot, latestFolder);
+
+    // Check required files
+    const requiredFiles = ['DBD_Profile.pdf', 'DBD_BalanceSheet.xlsx', 'DBD_IncomeStatement.xlsx', 'DBD_FinancialRatios.xlsx'];
+    for (const file of requiredFiles) {
+        if (!await fs.pathExists(path.join(latestPath, file))) {
+            return res.json({ exists: false, reason: `Missing file: ${file}` });
+        }
+    }
+
+    return res.json({
+        exists: true,
+        date: latestFolder,
+        daysOld: diffDays,
+        path: latestPath
+    });
+
+  } catch (error) {
+    console.error('Check Local Files Error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 

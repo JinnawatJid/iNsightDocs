@@ -502,25 +502,42 @@ const processNextItem = async () => {
             skipDBD = true;
         }
 
-        // 2. Download from Bridge (Retry Logic) - Only if not skipped
+        // 2. Local File Check & Download
         let downloadResult = null;
+        let usingLocalFiles = false;
 
         if (!skipDBD) {
-            item.log = 'กำลังดาวน์โหลดไฟล์ DBD...';
-            let retries = 0;
-            const maxRetries = 2;
+            // A. CHECK LOCAL FILES FIRST
+            try {
+                item.log = 'เช็คไฟล์เดิม...';
+                const checkRes = await axios.get(`/api/financials/check-local/${item.customerId}`);
+                if (checkRes.data.exists) {
+                    usingLocalFiles = true;
+                    item.log = `ใช้ไฟล์เดิม (${checkRes.data.date})`;
+                    console.log(`[Batch] Reusing local files for ${item.customerId} from ${checkRes.data.date}`);
+                }
+            } catch (e) {
+                console.warn('[Batch] Check local files failed:', e);
+            }
 
-            while (retries <= maxRetries && !downloadResult) {
-                try {
-                    downloadResult = await connectToBridge(item.taxId, item.customerId);
-                } catch (e) {
-                    retries++;
-                    if (retries > maxRetries) {
-                        console.warn('Bridge failed, proceeding with fallback');
-                    } else {
-                        item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
-                        // Wait 2 seconds before retry
-                        await new Promise(r => setTimeout(r, 2000));
+            // B. DOWNLOAD IF NOT LOCAL
+            if (!usingLocalFiles) {
+                item.log = 'กำลังดาวน์โหลดไฟล์ DBD...';
+                let retries = 0;
+                const maxRetries = 2;
+
+                while (retries <= maxRetries && !downloadResult) {
+                    try {
+                        downloadResult = await connectToBridge(item.taxId, item.customerId);
+                    } catch (e) {
+                        retries++;
+                        if (retries > maxRetries) {
+                            console.warn('Bridge failed, proceeding with fallback');
+                        } else {
+                            item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
+                            // Wait 2 seconds before retry
+                            await new Promise(r => setTimeout(r, 2000));
+                        }
                     }
                 }
             }
@@ -535,25 +552,42 @@ const processNextItem = async () => {
 
         // STRICT VALIDATION: Ensure Companies have all 4 DBD files
         if (!skipDBD) {
-            if (!downloadResult) {
+            if (!usingLocalFiles && !downloadResult) {
                 throw new Error('ดาวน์โหลด DBD ไม่สำเร็จ (กรุณาลองใหม่)');
             }
-            const required = ['profile', 'balanceSheet', 'incomeStatement', 'financialRatios'];
-            const missing = required.filter(k => !downloadResult.files[k]);
-            if (missing.length > 0) {
-                // Translate keys to readable names
-                const names = {
-                    profile: 'Company Profile',
-                    balanceSheet: 'งบดุล',
-                    incomeStatement: 'งบกำไรขาดทุน',
-                    financialRatios: 'อัตราส่วนทางการเงิน'
-                };
-                const missingNames = missing.map(k => names[k] || k).join(', ');
-                throw new Error(`DBD ไม่ครบ: ขาด ${missingNames}`);
+
+            if (!usingLocalFiles && downloadResult) {
+                 const required = ['profile', 'balanceSheet', 'incomeStatement', 'financialRatios'];
+                 const missing = required.filter(k => !downloadResult.files[k]);
+                 if (missing.length > 0) {
+                     const names = {
+                         profile: 'Company Profile',
+                         balanceSheet: 'งบดุล',
+                         incomeStatement: 'งบกำไรขาดทุน',
+                         financialRatios: 'อัตราส่วนทางการเงิน'
+                     };
+                     const missingNames = missing.map(k => names[k] || k).join(', ');
+                     throw new Error(`DBD ไม่ครบ: ขาด ${missingNames}`);
+                 }
             }
         }
 
-        if (downloadResult) {
+        if (usingLocalFiles) {
+            // Signal Backend to use local files
+            formData.append('use_local', 'true');
+            // We don't have metadata from bridge, so we rely on customer data or backend extraction
+            if (customer.customer.customer_since) {
+                const start = new Date(customer.customer.customer_since);
+                const now = new Date();
+                const diff = now.getFullYear() - start.getFullYear();
+                yearsInBusiness = diff > 0 ? diff : 0;
+            }
+            // Registered Capital is often extracted from Excel by backend, so we might send 0 here
+            // The backend logic extracts "Capital" from Excel if available, but here we sent it as param
+            // If we have it in DB, use it.
+            // Note: bridge usually returns reg capital from Profile PDF text, which we miss here.
+            // Ideally, the backend extraction should fill this if missing.
+        } else if (downloadResult) {
             // Append Files
             if (downloadResult.files.balanceSheet) {
                 const f = downloadResult.files.balanceSheet;
