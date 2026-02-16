@@ -104,8 +104,8 @@ The Score (0-200) is calculated from three pillars.
 | :--- | :---: | :--- | :---: |
 | **1. Revenue / Registered Capital**<br>*(Efficiency)* | **1.52%** | ≥ 1.5x: 2.0<br>1.00 - 1.49x: 1.5<br>0.60 - 0.99x: 1.0<br>0.26 - 0.59x: 0.5<br>≤ 0.25x: 0.25 | **3.04** |
 | **2. Avg Purchase (3mo) / Requested Credit**<br>*(Capacity Check)* | **17.52%** | ≥ 1.5x: 2.0<br>1.00 - 1.49x: 1.5<br>0.60 - 0.99x: 1.0<br>0.26 - 0.59x: 0.5<br>≤ 0.25x: 0.25 | **35.04** |
-| **3. Purchase / Credit Term**<br>*(Turnover Speed)* | **9.14%** | **Formula:** $\frac{1.5 \times (AvgPurchase \times \frac{ReqDays}{30})}{ReqCredit}$<br><br>≥ 1.5x: 2.0<br>1.00 - 1.49x: 1.5<br>0.60 - 0.99x: 1.0<br>0.26 - 0.59x: 0.5<br>≤ 0.25x: 0.25 | **18.28** |
-| **4. Purchase Trend**<br>*(Growth)* | **14.48%** | Increase ≥ 1.20: 2.0<br>Increase 1.05-1.19: 1.5<br>Stable 0.95-1.04: 1.0<br>Decrease 0.80-0.94: 0.5<br>Decrease ≤ 0.80: 0.25 | **28.96** |
+| **3. Purchase / Credit Term**<br>*(Turnover Speed)* | **9.14%** | **Formula:** $\frac{1.5 \times (AvgPurchase \times \frac{ReqDays}{30})}{ReqCredit}$<br><br>≥ 1.5x: 2.0<br>1.00 - 1.49x: 1.5<br>0.60 - 0.99x: 1.0<br>0.26 - 0.59x: 0.5<br>≤ 0.25x: 0.25<br>(If Ratio=0 with valid Term, Score is 0.5) | **18.28** |
+| **4. Purchase Trend**<br>*(Growth)* | **14.48%** | **Based on Linear Regression Slope (Amount):**<br>Slope > 16,008.34: 2.0<br>Slope ≥ 205.52: 1.5<br>Slope ≥ -0.01: 1.0<br>Slope ≥ -4,654.54: 0.5<br>Else: 0.25<br>(If Total Purchase (3mo) = 0, Score is 0) | **28.96** |
 | **5. Customer Duration**<br>*(Loyalty)* | **5.33%** | ≥ 7 yrs: 2.0<br>4 - 6 yrs: 1.5<br>1 - 3 yrs: 1.0<br>< 1 yr: 0.5 | **10.66** |
 | **Total C3** | **48.0%** | | **95.98** |
 

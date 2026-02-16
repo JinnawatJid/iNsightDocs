@@ -548,6 +548,7 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   // And for 60 Days: SUM(I10:I11) means Sum of Month 1 and Month 2 (Oldest 2 months of the 3-month set)
 
   let numerator = 0;
+  let isTermValid = true;
   const term = parseInt(reqDays);
 
   switch (term) {
@@ -577,9 +578,8 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
         break;
     default:
         // User requested Error for invalid terms
-        // However, throwing an error might break the whole analysis page.
-        // We will return 0 and flag it in debug.
         numerator = 0;
+        isTermValid = false;
         console.warn(`[C3 Calculation] Invalid Credit Term: ${term}. Allowed: 7, 14, 15, 30, 45, 60.`);
         break;
   }
@@ -587,11 +587,8 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   const turnoverSpeed = numerator / reqAmt;
 
   let rawTurnover = 0;
-  // If numerator is 0 (Invalid Term), score is 0 (or should it be error handling?)
-  // Assuming 0 score for invalid term to prompt user to fix input.
-
   // Logic Updated:
-  // <= 0.5 -> 0.5
+  // <= 0.5 -> 0.5 (Includes 0, provided Term is valid)
   // <= 0.9 -> 1.0
   // <= 1.5 -> 1.5
   // <= 1.99 -> 2.0
@@ -602,7 +599,7 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
   else rawTurnover = 2.0;
 
   // If invalid term, force score to 0
-  if (numerator === 0) rawTurnover = 0;
+  if (!isTermValid) rawTurnover = 0;
 
   const scoreTurnover = rawTurnover * 9.14;
   score += scoreTurnover;
@@ -613,30 +610,47 @@ const calculateC3 = (accumData, financials, registeredCapital, requestAmount, re
     displayValue: turnoverSpeed.toFixed(4),
     weight: 18.28,
     score: scoreTurnover,
-    error: numerator === 0 ? "Invalid Term" : null
+    error: !isTermValid ? "Invalid Term" : null
   });
   debug.push({ label: 'ความเร็วในการหมุนเวียน', value: turnoverSpeed.toFixed(2), weight: 18.28, score: scoreTurnover, column: '-' });
 
   // 4. Purchase Trend (Max 28.96)
-  const trend = parseFloat(accumData.AccumTrend || 1.0);
+  // FIX: Switch from Trend Ratio to SLOPE Value based on User Request
+  // Formula:
+  // IF(Total3Months = 0, 0,
+  //   IF(Slope > 16008.34, 2,
+  //     IF(Slope >= 205.52, 1.5,
+  //       IF(Slope >= -0.01, 1,
+  //         IF(Slope >= -4654.54, 0.5, 0.25))))) * 14.48
+
+  const slope = accumData.Slope || 0;
+  const totalPurchase3Months = accumData.SecondAccum || 0;
   let rawTrend = 0;
-  if (trend >= 1.20) rawTrend = 2.0;
-  else if (trend >= 1.05) rawTrend = 1.5;
-  else if (trend >= 0.95) rawTrend = 1.0;
-  else if (trend >= 0.80) rawTrend = 0.5;
-  else rawTrend = 0.25;
+
+  if (totalPurchase3Months === 0) {
+      rawTrend = 0;
+  } else {
+      if (slope > 16008.34) rawTrend = 2.0;
+      else if (slope >= 205.52) rawTrend = 1.5;
+      else if (slope >= -0.01) rawTrend = 1.0;
+      else if (slope >= -4654.54) rawTrend = 0.5;
+      else rawTrend = 0.25;
+  }
 
   const scoreTrend = rawTrend * 14.48;
   score += scoreTrend;
+
+  // NOTE: We still display the calculated Slope and potentially the old Ratio in debug/UI if needed,
+  // but scoring is now strictly based on Slope.
   items.push({
     key: 'trend',
-    label: 'แนวโน้มการซื้อ',
-    value: trend,
-    displayValue: trend.toFixed(2),
+    label: 'แนวโน้มการซื้อ (Slope)',
+    value: slope,
+    displayValue: slope.toFixed(2),
     weight: 28.96,
     score: scoreTrend
   });
-  debug.push({ label: 'แนวโน้มการซื้อ', value: trend.toFixed(2), weight: 28.96, score: scoreTrend, column: '-' });
+  debug.push({ label: 'แนวโน้มการซื้อ (Slope)', value: slope.toFixed(2), weight: 28.96, score: scoreTrend, column: '-' });
 
   // 5. Customer Duration
   const duration = parseInt(customerDuration || 0);
