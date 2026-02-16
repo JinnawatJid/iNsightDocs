@@ -16,5 +16,6 @@ const cpUpload = upload.fields([
 
 router.post('/analyze', cpUpload, financialController.analyzeFinancials);
 router.get('/check-local/:customer_no', financialController.checkLocalFiles);
+router.get('/download-local/:customer_no/:file_key', financialController.downloadLocalFile);
 
 module.exports = router;
