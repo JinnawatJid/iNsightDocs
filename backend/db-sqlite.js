@@ -55,10 +55,15 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                             if (row.count === 0 && rows.length > 0) {
                                 // Insert data
                                 const placeholders = columns.map(() => '?').join(',');
-                                const insertSQL = `INSERT INTO ${tableName} ("${columns.join('","')}") VALUES (${placeholders})`;
+                                // Use INSERT OR IGNORE to handle duplicate keys gracefully
+                                const insertSQL = `INSERT OR IGNORE INTO ${tableName} ("${columns.join('","')}") VALUES (${placeholders})`;
                                 const stmt = db.prepare(insertSQL);
 
                                 rows.forEach(row => {
+                                    // Skip rows with empty primary key if defined
+                                    if (primaryKey && (!row[primaryKey] || row[primaryKey].trim() === '')) {
+                                        return;
+                                    }
                                     // Ensure values are ordered according to headers
                                     const values = columns.map(col => row[col]);
                                     stmt.run(values);
