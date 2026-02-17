@@ -184,6 +184,37 @@ const searchApiCustomers = async (query) => {
     return uniqueCustomers;
 };
 
+// Helper: Check Blacklist Status
+const checkBlacklist = async (taxId) => {
+    if (!taxId) return null;
+    // Normalize: Remove spaces, dashes
+    const normalized = String(taxId).replace(/[^0-9a-zA-Z]/g, '');
+    if (!normalized) return null;
+
+    // Query matching normalized ID
+    // Note: We use REPLACE to handle formatting in the DB
+    const sql = `SELECT * FROM CustomerBlacklist WHERE REPLACE(REPLACE("เลขที่บัตรประชาชน", ' ', ''), '-', '') = ? LIMIT 1`;
+
+    try {
+        const { rows } = await db.query(sql, [normalized]);
+        console.log(`[Blacklist] Checking ${normalized}. Found: ${rows.length}`);
+        if (rows && rows.length > 0) {
+            console.log(`[Blacklist] MATCH:`, rows[0]);
+            return {
+                is_blacklisted: true,
+                blacklist_data: {
+                    status: rows[0]['สถานะ'],
+                    remark: rows[0]['หมายเหตุ']
+                }
+            };
+        }
+    } catch (e) {
+        // console.error('Error checking blacklist:', e.message);
+        // Table might not exist or other error
+    }
+    return { is_blacklisted: false, blacklist_data: null };
+};
+
 /**
  * Enriches a customer object with local database data (History, Financials).
  * @param {string} customerNo - The customer ID (No_).
@@ -448,7 +479,9 @@ const searchCustomersFallback = async (req, res, query) => {
         }
 
         // Enrich with History & Financials
+        // Enrich with History & Financials
         const enriched = await enrichCustomerData(row["No_"]);
+        const blacklistInfo = await checkBlacklist(row["VAT Registration No_"]);
 
         return {
           customer: {
@@ -510,7 +543,11 @@ const searchCustomersFallback = async (req, res, query) => {
             billing_email: row["billing_email"] || ""
           },
           history: enriched.history,
-          financial_summary: enriched.financial_summary,
+          financial_summary: {
+              ...enriched.financial_summary,
+              is_blacklisted: blacklistInfo.is_blacklisted,
+              blacklist_data: blacklistInfo.blacklist_data
+          },
           credit_score: {
                can_request_credit: true,
                badges: [],
@@ -569,6 +606,7 @@ exports.searchCustomers = async (req, res) => {
 
           // Side-load History & Financials from Local DB
           const enriched = await enrichCustomerData(row["No_"]);
+          const blacklistInfo = await checkBlacklist(row["VAT Registration No_"]);
 
           return {
               customer: {
@@ -591,7 +629,11 @@ exports.searchCustomers = async (req, res) => {
                   current_credit_limit: row["Fixed Credit Limit"]
               },
               history: enriched.history,
-              financial_summary: enriched.financial_summary,
+              financial_summary: {
+                  ...enriched.financial_summary,
+                  is_blacklisted: blacklistInfo.is_blacklisted,
+                  blacklist_data: blacklistInfo.blacklist_data
+              },
               credit_score: {
                    can_request_credit: true,
                    badges: [],
@@ -692,7 +734,10 @@ exports.getSuggestions = async (req, res) => {
   }
 
   const searchPattern = `%${query}%`;
-  const params = [searchPattern, searchPattern, searchPattern, searchPattern, searchPattern];
+  // Fix: Removed extra param for SQLite (4 placeholders vs 5 params)
+  const params = db.dbType === 'mssql'
+      ? [searchPattern, searchPattern, searchPattern, searchPattern]
+      : [searchPattern, searchPattern, searchPattern, searchPattern];
 
   try {
     const { rows } = await db.query(sql, params);

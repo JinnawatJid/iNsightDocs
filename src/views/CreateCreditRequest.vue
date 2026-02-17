@@ -90,7 +90,8 @@ import SmartImportModal from '@/components/credit/SmartImportModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFeatureFlag } from '@/composables/useFeatureFlag';
 import iconSearchLarge from '@/assets/icons/search-large.svg';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
+import Swal from 'sweetalert2';
 
 const store = useCreditRequestStore();
 const { isOcrEnabled } = useFeatureFlag();
@@ -99,6 +100,37 @@ const showSmartImport = ref(false);
 const closePreview = () => {
     store.resetState();
 };
+
+// Watch for Blacklist Alert
+watch(
+  () => store.blacklistAlert,
+  (newVal) => {
+    if (newVal) {
+      Swal.fire({
+        icon: 'error',
+        title: 'แจ้งเตือน: ลูกค้ารายนี้อยู่ในบัญชี Blacklist',
+        html: `
+          <div style="text-align: left; font-size: 14px; margin-top: 10px;">
+             <p><strong>สถานะ:</strong> <span style="color: red;">${newVal.status || 'N/A'}</span></p>
+             <p><strong>หมายเหตุ:</strong> ${newVal.remark || '-'}</p>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'ดำเนินการต่อ (Proceed)',
+        cancelButtonText: 'ยกเลิก (Cancel)',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        reverseButtons: true
+      }).then((result) => {
+        if (!result.isConfirmed) {
+          // If cancelled, clear state (reset search)
+          store.resetState();
+        }
+        // If confirmed, do nothing (stay on page)
+      });
+    }
+  }
+);
 
 const handleOcrData = (data) => {
   // Map extracted data to store

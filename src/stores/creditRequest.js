@@ -50,6 +50,9 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     // Validation State
     showValidationErrors: false,
 
+    // Blacklist State
+    blacklistAlert: null,
+
     // UI State
     activeTab: 'requestInfo',
 
@@ -358,6 +361,14 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           this.displayCustomer = { ...this.customer }; // Init display copy
           this.history = data.history || [];
           this.financialSummary = data.financial_summary || {};
+
+          // Extract Blacklist Info (Store locally, trigger alert AFTER Swal.close)
+          let foundBlacklistData = null;
+          if (this.financialSummary.is_blacklisted) {
+              foundBlacklistData = this.financialSummary.blacklist_data;
+          }
+          this.blacklistAlert = null; // Clear initially
+
           this.creditScore = data.credit_score || {};
           // Set data source if provided (fallback to api if unknown, though backend should send it)
           this.dataSource = data._source || null;
@@ -369,6 +380,14 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           await this.fetchComments();
 
           Swal.close();
+
+          // Trigger Blacklist Alert (if any)
+          if (foundBlacklistData) {
+             // Small delay to ensure Swal closed cleanly
+             setTimeout(() => {
+                 this.blacklistAlert = foundBlacklistData;
+             }, 300);
+          }
         } else {
           this.resetState();
           Swal.fire({
@@ -740,6 +759,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.comments = [];
       this.viewingHistory = false;
       this.showValidationErrors = false;
+      this.blacklistAlert = null;
       this.transactionData = {
         amount: '',
         creditTerm: '',
@@ -771,6 +791,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       this.files = {};
       this.comments = [];
       this.showValidationErrors = false;
+      this.blacklistAlert = null;
       this.transactionData = {
         amount: '',
         creditTerm: '',
