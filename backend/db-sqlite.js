@@ -6,6 +6,18 @@ const csv = require('csv-parser');
 const dbPath = path.resolve(__dirname, 'database.sqlite');
 const db = new sqlite3.Database(dbPath);
 
+// Attach runAsync method to support Promise-based execution for INSERT/UPDATE
+// Defined early so it can be used if needed, though createTableFromCSV uses callbacks currently.
+db.runAsync = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) return reject(err);
+            // 'this' refers to the statement context, containing lastID and changes
+            resolve({ id: this.lastID, changes: this.changes });
+        });
+    });
+};
+
 // Helper to create table from CSV if not exists
 const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
     return new Promise((resolve, reject) => {
@@ -15,6 +27,10 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
             .pipe(csv())
             .on('headers', (headerList) => {
                 headers = headerList.map(h => h.trim());
+                // Add normalized_id column for CustomerBlacklist
+                if (tableName === 'CustomerBlacklist') {
+                    headers.push('normalized_id');
+                }
             })
             .on('data', (row) => {
                 // Normalize row keys (trim)
@@ -22,6 +38,13 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                 Object.keys(row).forEach(key => {
                     newRow[key.trim()] = row[key];
                 });
+
+                // Add normalized_id value for CustomerBlacklist
+                if (tableName === 'CustomerBlacklist') {
+                    const rawId = newRow['เลขที่บัตรประชาชน'] || '';
+                    newRow['normalized_id'] = rawId.replace(/\D/g, '');
+                }
+
                 rows.push(newRow);
             })
             .on('end', () => {
@@ -88,6 +111,8 @@ const initDB = async () => {
         await createTableFromCSV('AY_ACCUM', path.resolve(__dirname, 'AY_ACCUM_rows.csv'), 'custcode');
 
         // Initialize CustomerBlacklist
+        // Drop table first to ensure schema update (adding normalized_id)
+        await db.runAsync('DROP TABLE IF EXISTS CustomerBlacklist');
         await createTableFromCSV('CustomerBlacklist', path.resolve(__dirname, 'CustomerBlacklist_rows.csv'), 'เลขที่บัตรประชาชน');
 
         // Ensure Coordinate and Landmark columns exist in Customers table
@@ -246,17 +271,6 @@ db.query = (sql, params = []) => {
         db.all(sql, params, (err, rows) => {
             if (err) return reject(err);
             resolve({ rows });
-        });
-    });
-};
-
-// Attach runAsync method to support Promise-based execution for INSERT/UPDATE
-db.runAsync = (sql, params = []) => {
-    return new Promise((resolve, reject) => {
-        db.run(sql, params, function (err) {
-            if (err) return reject(err);
-            // 'this' refers to the statement context, containing lastID and changes
-            resolve({ id: this.lastID, changes: this.changes });
         });
     });
 };

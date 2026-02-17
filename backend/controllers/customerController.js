@@ -187,13 +187,13 @@ const searchApiCustomers = async (query) => {
 // Helper: Check Blacklist Status
 const checkBlacklist = async (taxId) => {
     if (!taxId) return null;
-    // Normalize: Remove spaces, dashes
-    const normalized = String(taxId).replace(/[^0-9a-zA-Z]/g, '');
+    // Normalize: Remove non-digits to match DB import logic
+    const normalized = String(taxId).replace(/\D/g, '');
     if (!normalized) return null;
 
     // Query matching normalized ID
-    // Note: We use REPLACE to handle formatting in the DB
-    const sql = `SELECT * FROM CustomerBlacklist WHERE REPLACE(REPLACE("เลขที่บัตรประชาชน", ' ', ''), '-', '') = ? LIMIT 1`;
+    // Note: We use normalized_id column which is populated on import
+    const sql = `SELECT * FROM CustomerBlacklist WHERE normalized_id = ? LIMIT 1`;
 
     try {
         const { rows } = await db.query(sql, [normalized]);
