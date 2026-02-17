@@ -67,6 +67,14 @@
         {{ financial.error }}
       </div>
 
+      <!-- Blacklist Warning Panel -->
+      <div v-if="financial.is_blacklisted" class="blacklist-warning-panel">
+          <div class="warning-icon">⚠️</div>
+          <div class="warning-text">
+              คำเตือน: ลูกค้ารายนี้อยู่ในบัญชี Blacklist โปรดพิจารณาอย่างรอบคอบ
+          </div>
+      </div>
+
       <template v-else>
         <div class="stat-item">
           <div class="stat-icon-row">
@@ -563,6 +571,27 @@ h3 {
     margin-top: 10px;
     padding-top: 5px;
     border-top: 1px dashed #e0e0e0;
+}
+
+.blacklist-warning-panel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #fff3cd;
+    border: 1px solid #ffecb5;
+    color: #856404;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.blacklist-warning-panel .warning-icon {
+    font-size: 20px;
+}
+
+.blacklist-warning-panel .warning-text {
+    font-weight: bold;
+    font-size: 14px;
 }
 
 .toggle-link {

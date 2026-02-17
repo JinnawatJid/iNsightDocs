@@ -14,9 +14,16 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
         fs.createReadStream(csvFilePath)
             .pipe(csv())
             .on('headers', (headerList) => {
-                headers = headerList;
+                headers = headerList.map(h => h.trim());
             })
-            .on('data', (row) => rows.push(row))
+            .on('data', (row) => {
+                // Normalize row keys (trim)
+                const newRow = {};
+                Object.keys(row).forEach(key => {
+                    newRow[key.trim()] = row[key];
+                });
+                rows.push(newRow);
+            })
             .on('end', () => {
                 if (headers.length === 0) {
                      console.log(`No headers in ${csvFilePath}, skipping table creation for ${tableName}`);
@@ -74,6 +81,9 @@ const initDB = async () => {
 
         // Initialize AY_ACCUM
         await createTableFromCSV('AY_ACCUM', path.resolve(__dirname, 'AY_ACCUM_rows.csv'), 'custcode');
+
+        // Initialize CustomerBlacklist
+        await createTableFromCSV('CustomerBlacklist', path.resolve(__dirname, 'CustomerBlacklist_rows.csv'), 'เลขที่บัตรประชาชน');
 
         // Ensure Coordinate and Landmark columns exist in Customers table
         const coordinateColumns = [
