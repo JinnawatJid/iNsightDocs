@@ -589,6 +589,9 @@ exports.searchCustomers = async (req, res) => {
 
       // Map & Enrich
       const mappedResults = await Promise.all(uniqueCustomers.map(async (row) => {
+          // DEBUG: Log the raw row to inspect Tax ID field
+          console.log(`[Search] Processing customer: ${row["No_"]}. Tax ID (VAT Registration No_): '${row["VAT Registration No_"]}'`);
+
           // Address Concatenation
           const addressParts = [
               row["Address"],
@@ -606,7 +609,22 @@ exports.searchCustomers = async (req, res) => {
 
           // Side-load History & Financials from Local DB
           const enriched = await enrichCustomerData(row["No_"]);
-          const blacklistInfo = await checkBlacklist(row["VAT Registration No_"]);
+
+          // Improved Blacklist Logic: Fallback to Local Tax ID if API returns empty
+          let taxId = row["VAT Registration No_"];
+          if (!taxId || taxId.trim() === '') {
+              try {
+                  const localRow = await db.query(`SELECT "VAT Registration No_" FROM Customers WHERE "No_" = ? LIMIT 1`, [row["No_"]]);
+                  if (localRow && localRow.rows && localRow.rows.length > 0) {
+                      taxId = localRow.rows[0]['VAT Registration No_'];
+                      console.log(`[Blacklist] Using Local DB Tax ID for ${row["No_"]}: ${taxId}`);
+                  }
+              } catch (e) {
+                  console.error(`[Blacklist] Failed to lookup local Tax ID for ${row["No_"]}`, e);
+              }
+          }
+
+          const blacklistInfo = await checkBlacklist(taxId);
 
           return {
               customer: {
