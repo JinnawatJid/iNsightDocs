@@ -2,6 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
+const { normalizeName } = require('./utils/nameNormalizer');
 
 const dbPath = path.resolve(__dirname, 'database.sqlite');
 const db = new sqlite3.Database(dbPath);
@@ -27,9 +28,11 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
             .pipe(csv())
             .on('headers', (headerList) => {
                 headers = headerList.map(h => h.trim());
-                // Add normalized_id column for CustomerBlacklist
+                // Add normalized columns for CustomerBlacklist
                 if (tableName === 'CustomerBlacklist') {
                     headers.push('normalized_id');
+                    headers.push('normalized_name');
+                    headers.push('normalized_shop');
                 }
             })
             .on('data', (row) => {
@@ -39,10 +42,19 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                     newRow[key.trim()] = row[key];
                 });
 
-                // Add normalized_id value for CustomerBlacklist
+                // Add normalized values for CustomerBlacklist
                 if (tableName === 'CustomerBlacklist') {
+                    // Tax ID
                     const rawId = newRow['เลขที่บัตรประชาชน'] || '';
                     newRow['normalized_id'] = rawId.replace(/\D/g, '');
+
+                    // Customer Name (Person)
+                    const rawName = newRow['ชื่อ - ลูกค้า'] || '';
+                    newRow['normalized_name'] = normalizeName(rawName);
+
+                    // Shop Name (Business)
+                    const rawShop = newRow['ชื่อ - ร้าน'] || '';
+                    newRow['normalized_shop'] = normalizeName(rawShop);
                 }
 
                 rows.push(newRow);

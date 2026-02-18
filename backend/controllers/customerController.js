@@ -1,6 +1,7 @@
 const db = require('../db');
 const axios = require('axios');
 const { calculateSlope, calculateTrendRatio, generateContinuousTimeline } = require('../services/financialCalculator');
+const { normalizeName, extractLastName } = require('../utils/nameNormalizer');
 
 // Configuration
 const API_URL = process.env.CUSTOMER_API_URL || "http://192.192.0.37:8280/customer-sp682/1.0.0";
@@ -184,34 +185,115 @@ const searchApiCustomers = async (query) => {
     return uniqueCustomers;
 };
 
-// Helper: Check Blacklist Status
-const checkBlacklist = async (taxId) => {
-    if (!taxId) return null;
-    // Normalize: Remove non-digits to match DB import logic
-    const normalized = String(taxId).replace(/\D/g, '');
-    if (!normalized) return null;
+// Helper: Check Blacklist Status (Advanced)
+const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) => {
+    let warningMatch = null;
 
-    // Query matching normalized ID
-    // Note: We use normalized_id column which is populated on import
-    const sql = `SELECT * FROM CustomerBlacklist WHERE normalized_id = ? LIMIT 1`;
-
-    try {
-        const { rows } = await db.query(sql, [normalized]);
-        console.log(`[Blacklist] Checking ${normalized}. Found: ${rows.length}`);
-        if (rows && rows.length > 0) {
-            console.log(`[Blacklist] MATCH:`, rows[0]);
-            return {
-                is_blacklisted: true,
-                blacklist_data: {
-                    status: rows[0]['สถานะ'],
-                    remark: rows[0]['หมายเหตุ']
+    // 1. Check Tax ID (Highest Confidence / Block)
+    if (taxId) {
+        const normalized = String(taxId).replace(/\D/g, '');
+        if (normalized) {
+            const sql = `SELECT * FROM CustomerBlacklist WHERE normalized_id = ? LIMIT 1`;
+            try {
+                const { rows } = await db.query(sql, [normalized]);
+                if (rows && rows.length > 0) {
+                    console.log(`[Blacklist] MATCH Tax ID:`, rows[0]);
+                    return {
+                        is_blacklisted: true,
+                        blacklist_data: {
+                            status: rows[0]['สถานะ'],
+                            remark: rows[0]['หมายเหตุ'],
+                            match_type: 'Tax ID',
+                            match_value: taxId
+                        }
+                    };
                 }
-            };
+            } catch (e) { console.error('Error checking blacklist TaxID:', e.message); }
         }
-    } catch (e) {
-        // console.error('Error checking blacklist:', e.message);
-        // Table might not exist or other error
     }
+
+    // 2. Check Person Names (Full Name & Last Name)
+    for (const name of personNames) {
+        if (!name || typeof name !== 'string') continue;
+        const normalizedInput = normalizeName(name);
+        if (!normalizedInput) continue;
+
+        // 2.1 Full Name Match (High Confidence / Block)
+        try {
+            const sql = `SELECT * FROM CustomerBlacklist WHERE normalized_name = ? LIMIT 1`;
+            const { rows } = await db.query(sql, [normalizedInput]);
+            if (rows && rows.length > 0) {
+                 console.log(`[Blacklist] MATCH Full Name:`, rows[0]);
+                 return {
+                    is_blacklisted: true,
+                    blacklist_data: {
+                        status: rows[0]['สถานะ'],
+                        remark: rows[0]['หมายเหตุ'],
+                        match_type: 'Full Name',
+                        match_value: name
+                    }
+                };
+            }
+        } catch (e) { console.error('Error checking blacklist FullName:', e.message); }
+
+        // 2.2 Last Name Match (Warning / Low Confidence)
+        // Only record warning if we don't already have one (or prioritize?)
+        // We continue checking for Blocks.
+        if (!warningMatch) {
+            const lastName = extractLastName(normalizedInput);
+            if (lastName) {
+                 try {
+                    // Match exact normalized name = Lastname OR ends with " Lastname"
+                    const sql = `SELECT * FROM CustomerBlacklist WHERE normalized_name = ? OR normalized_name LIKE ? LIMIT 1`;
+                    const { rows } = await db.query(sql, [lastName, `% ${lastName}`]);
+
+                    if (rows && rows.length > 0) {
+                        console.log(`[Blacklist] MATCH Last Name (Warning stored):`, rows[0]);
+                        warningMatch = {
+                            is_blacklisted: true,
+                            blacklist_data: {
+                                status: rows[0]['สถานะ'],
+                                remark: `(ตรงกับนามสกุลในระบบ Blacklist) ${rows[0]['หมายเหตุ']}`,
+                                match_type: 'Last Name',
+                                match_value: lastName,
+                                severity: 'warning'
+                            }
+                        };
+                    }
+                 } catch (e) { console.error('Error checking blacklist LastName:', e.message); }
+            }
+        }
+    }
+
+    // 3. Check Company Names (Shop Name) - Block
+    for (const company of companyNames) {
+        if (!company || typeof company !== 'string') continue;
+        const normalizedComp = normalizeName(company);
+        if (!normalizedComp) continue;
+
+        try {
+            const sql = `SELECT * FROM CustomerBlacklist WHERE normalized_shop = ? LIMIT 1`;
+            const { rows } = await db.query(sql, [normalizedComp]);
+             if (rows && rows.length > 0) {
+                 console.log(`[Blacklist] MATCH Company Name:`, rows[0]);
+                 return {
+                    is_blacklisted: true,
+                    blacklist_data: {
+                        status: rows[0]['สถานะ'],
+                        remark: rows[0]['หมายเหตุ'],
+                        match_type: 'Company Name',
+                        match_value: company
+                    }
+                };
+            }
+        } catch (e) { console.error('Error checking blacklist Company:', e.message); }
+    }
+
+    // If no Block found, return Warning (if exists)
+    if (warningMatch) {
+        return warningMatch;
+    }
+
     return { is_blacklisted: false, blacklist_data: null };
 };
 
@@ -480,9 +562,24 @@ const searchCustomersFallback = async (req, res, query) => {
         }
 
         // Enrich with History & Financials
-        // Enrich with History & Financials
         const enriched = await enrichCustomerData(row["No_"]);
-        const blacklistInfo = await checkBlacklist(row["VAT Registration No_"]);
+
+        // Blacklist Check (Advanced)
+        const isCompanyRec = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
+        const personNamesRec = [row["Contact"], row["authorized_person"], row["authorized_person_2"]];
+        const companyNamesRec = [];
+
+        if (isCompanyRec) {
+            companyNamesRec.push(row["Name"]);
+        } else {
+            personNamesRec.push(row["Name"]);
+        }
+
+        const blacklistInfo = await checkBlacklist({
+            taxId: row["VAT Registration No_"],
+            personNames: personNamesRec,
+            companyNames: companyNamesRec
+        });
 
         return {
           customer: {
@@ -613,21 +710,44 @@ exports.searchCustomers = async (req, res) => {
           // Side-load History & Financials from Local DB
           const enriched = await enrichCustomerData(row["No_"]);
 
-          // Improved Blacklist Logic: Fallback to Local Tax ID if API returns empty
+          // Improved Blacklist Logic: Gather Tax ID and Names (from API + Local Fallback)
           let taxId = row["VAT Registration No_"];
-          if (!taxId || taxId.trim() === '') {
-              try {
-                  const localRow = await db.query(`SELECT "VAT Registration No_" FROM Customers WHERE "No_" = ? LIMIT 1`, [row["No_"]]);
-                  if (localRow && localRow.rows && localRow.rows.length > 0) {
-                      taxId = localRow.rows[0]['VAT Registration No_'];
-                      console.log(`[Blacklist] Using Local DB Tax ID for ${row["No_"]}: ${taxId}`);
-                  }
-              } catch (e) {
-                  console.error(`[Blacklist] Failed to lookup local Tax ID for ${row["No_"]}`, e);
-              }
+          const personNames = [row["Contact"]]; // API Contact
+          const companyNames = [];
+
+          // API Name Field classification
+          const isCompanyCheck = taxId && taxId.trim().length > 0;
+          if (isCompanyCheck) {
+               companyNames.push(row["Name"]);
+          } else {
+               personNames.push(row["Name"]);
           }
 
-          const blacklistInfo = await checkBlacklist(taxId);
+          // Fetch additional local data for comprehensive check (Authorized Persons, Local Tax ID)
+          try {
+              const localRes = await db.query(`SELECT "VAT Registration No_", "authorized_person", "authorized_person_2", "Contact", "Name" FROM Customers WHERE "No_" = ? LIMIT 1`, [row["No_"]]);
+              if (localRes && localRes.rows && localRes.rows.length > 0) {
+                  const localData = localRes.rows[0];
+
+                  // Fallback Tax ID
+                  if (!taxId || taxId.trim() === '') {
+                      taxId = localData['VAT Registration No_'];
+                      console.log(`[Blacklist] Using Local DB Tax ID for ${row["No_"]}: ${taxId}`);
+                  }
+
+                  // Add Local Names
+                  if (localData['authorized_person']) personNames.push(localData['authorized_person']);
+                  if (localData['authorized_person_2']) personNames.push(localData['authorized_person_2']);
+              }
+          } catch (e) {
+              console.error(`[Blacklist] Failed to lookup local data for ${row["No_"]}`, e);
+          }
+
+          const blacklistInfo = await checkBlacklist({
+              taxId,
+              personNames,
+              companyNames
+          });
 
           return {
               customer: {
@@ -911,3 +1031,5 @@ exports.updateCustomer = async (req, res) => {
     res.status(500).json({ error: "Failed to update customer" });
   }
 };
+
+exports.checkBlacklist = checkBlacklist;
