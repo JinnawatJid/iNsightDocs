@@ -2,13 +2,12 @@
   <div class="credit-header">
     <div class="header-section">
       <label>ประเภทคำขอเครดิต</label>
-      <select class="form-select" v-model="selectedType" @change="updateType">
-        <option value="เครดิตใหม่">เครดิตใหม่</option>
-        <option value="เครดิตเพิ่ม">เครดิตเพิ่ม</option>
-        <option value="เครดิตโครงการ">เครดิตโครงการ</option>
-        <option value="เปลี่ยนแปลงระยะเวลาเครดิต">เปลี่ยนแปลงระยะเวลาเครดิต</option>
-        <option value="เปลี่ยนแปลงเงื่อนไขการชำระเงิน">เปลี่ยนแปลงเงื่อนไขการชำระเงิน</option>
-      </select>
+      <MultiSelectDropdown
+        :options="requestTypeOptions"
+        :modelValue="selectedTypes"
+        :optionDisabledFn="isOptionDisabled"
+        @update:modelValue="handleSelectionChange"
+      />
     </div>
     <div class="header-section flex-grow">
       <div class="label-row">
@@ -65,9 +64,13 @@ import debounce from 'lodash/debounce';
 import CustomerService from '@/services/CustomerService';
 import iconSearchBi from '@/assets/icons/search-bi.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import MultiSelectDropdown from '@/components/shared/MultiSelectDropdown.vue';
 
 export default {
   name: 'CreditRequestHeader',
+  components: {
+    MultiSelectDropdown
+  },
   setup() {
     const creditStore = useCreditRequestStore();
     return { creditStore };
@@ -75,7 +78,14 @@ export default {
   data() {
     return {
       iconSearchBi,
-      selectedType: 'เครดิตใหม่',
+      requestTypeOptions: [
+        { label: 'เครดิตใหม่', value: 'เครดิตใหม่' },
+        { label: 'เครดิตเพิ่ม', value: 'เครดิตเพิ่ม' },
+        { label: 'เครดิตโครงการ', value: 'เครดิตโครงการ' },
+        { label: 'เปลี่ยนแปลงระยะเวลาเครดิต', value: 'เปลี่ยนแปลงระยะเวลาเครดิต' },
+        { label: 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน', value: 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน' }
+      ],
+      selectedTypes: ['เครดิตใหม่'],
       searchQuery: '',
       suggestions: [],
       showDropdown: false,
@@ -87,7 +97,17 @@ export default {
       immediate: true,
       handler(newVal) {
         if (newVal) {
-          this.selectedType = newVal;
+          // If comma separated string, split it
+          if (newVal.includes(',')) {
+              this.selectedTypes = newVal.split(',');
+          } else {
+              this.selectedTypes = [newVal];
+          }
+        } else {
+            // Default if empty? Maybe nothing or default to 'เครดิตใหม่'
+            // Only set default if truly empty/null to avoid overriding user's clear action?
+            // Actually store init sets it to 'เครดิตใหม่'
+            this.selectedTypes = ['เครดิตใหม่'];
         }
       }
     }
@@ -133,8 +153,52 @@ export default {
     document.removeEventListener('click', this.handleClickOutside);
   },
   methods: {
+    isOptionDisabled(option) {
+      // Allow all interactions to support auto-switching logic
+      return false;
+    },
+    handleSelectionChange(newVal) {
+      const oldVal = this.selectedTypes;
+      // Find what was added
+      const added = newVal.filter(x => !oldVal.includes(x));
+
+      let final = [...newVal];
+      const exclusives = ['เครดิตใหม่', 'เครดิตโครงการ'];
+
+      if (added.length > 0) {
+          const newItem = added[0];
+
+          if (exclusives.includes(newItem)) {
+              // If added an exclusive item, it becomes the ONLY item
+              final = [newItem];
+          } else {
+              // If added a combinable item, remove any exclusive items
+              final = final.filter(x => !exclusives.includes(x));
+          }
+      } else {
+          // Nothing added (item removed), usually fine.
+          // But check if we removed the last item?
+          if (final.length === 0) {
+               // Optional: prevent empty selection?
+               // For now allow it, or default back to 'เครดิตใหม่'?
+               // User might be clearing to select something else.
+               // Let's leave it empty or maybe enforce at least one?
+               // If empty, maybe default to 'เครดิตใหม่' to be safe?
+               // No, let user decide.
+          }
+      }
+
+      this.selectedTypes = final;
+      this.updateType();
+    },
     updateType() {
-      this.creditStore.updateTransactionData({ requestType: this.selectedType });
+      // Sort the types to ensure consistent string order? Not strictly necessary but good practice
+      // But maybe order matters? 'Increase' then 'Change Term'.
+      // Let's just join them.
+      const typeStr = this.selectedTypes.join(',');
+
+      this.creditStore.updateTransactionData({ requestType: typeStr });
+
       // Trigger save if we have a customer loaded
       if (this.creditStore.requestId) {
         this.creditStore.saveTransactionData();

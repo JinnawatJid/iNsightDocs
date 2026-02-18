@@ -499,10 +499,10 @@ const isDraftMode = computed(() => {
   return !store.requestStatus || store.requestStatus === 'Draft';
 });
 
-const isRequestIncrease = computed(() => store.transactionData.requestType === 'เครดิตเพิ่ม');
-const isChangePayment = computed(() => store.transactionData.requestType === 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน');
-const isChangeTerm = computed(() => store.transactionData.requestType === 'เปลี่ยนแปลงระยะเวลาเครดิต');
-const isNewRequest = computed(() => store.transactionData.requestType === 'เครดิตใหม่');
+const isRequestIncrease = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตเพิ่ม'));
+const isChangePayment = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เปลี่ยนแปลงเงื่อนไขการชำระเงิน'));
+const isChangeTerm = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เปลี่ยนแปลงระยะเวลาเครดิต'));
+const isNewRequest = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตใหม่'));
 
 const isQuotationRequired = computed(() => {
     return store.transactionData.reason === 'ขออนุมัติเครดิต (มีใบสั่งซื้อแนบมาพร้อม)';
@@ -532,8 +532,8 @@ const isBillingVisible = computed(() => {
 });
 
 // Field Visibility / Editability Logic
-const canEditAmount = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || store.transactionData.requestType === 'เครดิตใหม่'));
-const canEditTerms = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isChangeTerm.value || store.transactionData.requestType === 'เครดิตใหม่'));
+const canEditAmount = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isNewRequest.value));
+const canEditTerms = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isChangeTerm.value || isNewRequest.value));
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
