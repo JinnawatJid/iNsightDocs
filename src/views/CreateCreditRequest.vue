@@ -116,8 +116,8 @@ watch(
           </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'ดำเนินการต่อ (Proceed)',
-        cancelButtonText: 'ยกเลิก (Cancel)',
+        confirmButtonText: 'ดำเนินการต่อ',
+        cancelButtonText: 'ยกเลิก',
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
         reverseButtons: true
