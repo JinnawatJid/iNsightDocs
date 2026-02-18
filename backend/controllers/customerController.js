@@ -362,7 +362,6 @@ const enrichCustomerData = async (customerNo) => {
             }
 
             suggestions.push("มีการชำระเงินตรงเวลา");
-            suggestions.push("ไม่เคยมีประวัติหนี้เสีย");
 
         } else {
             // Empty Data

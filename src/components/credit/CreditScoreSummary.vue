@@ -144,7 +144,6 @@
         <li
           v-for="(suggestion, index) in suggestions"
           :key="index"
-          :class="{ 'suggestion-positive': isPositiveSuggestion(suggestion) }"
         >
           {{ suggestion }}
         </li>
@@ -210,9 +209,6 @@ export default {
           if (trendString.includes('เพิ่มขึ้น')) return 'up';
           if (trendString.includes('ลดลง')) return 'down';
           return 'neutral';
-      },
-      isPositiveSuggestion(text) {
-        return text === 'ไม่เคยมีประวัติหนี้เสีย';
       },
       toggleMonthlyDetails() {
         this.showMonthlyDetails = !this.showMonthlyDetails;
