@@ -44,7 +44,8 @@ The API returns a JSON object containing the credit details.
 ```json
 {
   "customer_id": "01016AY",
-  "status": "Approved",
+  "customer_name": "ABC Construction Co., Ltd.",
+  "status": "N",
   "credit_limit": 500000.00,
   "credit_terms": {
     "gs": 30,
@@ -54,6 +55,12 @@ The API returns a JSON object containing the credit details.
   "updated_at": "2023-10-25T14:30:00Z"
 }
 ```
+
+**Status Codes (Health Status):**
+*   `N` - **Normal**: Customer with active credit and good standing.
+*   `P` - **Problem**: Customer with potential issues (e.g., late payments).
+*   `NPL` - **Non-Performing Loan**: Customer with debts overdue > 90 days.
+*   `L` - **Legal/Loss**: Bad debt customer involved in legal action.
 
 #### Errors
 

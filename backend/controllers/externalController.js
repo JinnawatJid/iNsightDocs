@@ -733,5 +733,124 @@ exports.downloadDBDProfile = async (req, res) => {
     });
 };
 
+/**
+ * Get Credit Status for External Systems (ERP/Sales)
+ * Returns current credit limit, terms, and health status (N, P, NPL, L)
+ */
+exports.getCreditStatus = async (req, res) => {
+    const { customerId } = req.params;
+
+    if (!customerId) {
+        return res.status(400).json({ error: 'Customer ID is required' });
+    }
+
+    try {
+        // 1. Fetch Customer Status and Fallback Data
+        let customerSql;
+        if (db.dbType === 'mssql') {
+             customerSql = `
+                SELECT TOP 1 "No_", "credit_status", "Credit Limit (LCY)", "Payment Terms Code", "Name"
+                FROM Customers WHERE "No_" = ?
+            `;
+        } else {
+             customerSql = `
+                SELECT "No_", "credit_status", "Credit Limit (LCY)", "Payment Terms Code", "Name"
+                FROM Customers WHERE "No_" = ? LIMIT 1
+            `;
+        }
+
+        const { rows: customerRows } = await db.query(customerSql, [customerId]);
+
+        if (!customerRows || customerRows.length === 0) {
+            return res.status(404).json({ error: 'Customer not found' });
+        }
+
+        const customer = customerRows[0];
+        const status = customer.credit_status || 'N'; // Default to Normal
+
+        // 2. Fetch Latest Active Credit Request (Approved/Submitted)
+        // We prioritize the request data as it reflects the latest approved terms
+        const activeStatuses = ['Submitted', 'Reviewed', 'RegionalSubmitted', 'SalesSubmitted'];
+        const statusPlaceholders = activeStatuses.map(() => '?').join(',');
+
+        let requestSql;
+        if (db.dbType === 'mssql') {
+            requestSql = `
+                SELECT TOP 1 request_amount, term_gs, term_ae, term_yc, updated_at
+                FROM CreditRequests
+                WHERE customer_no = ? AND status IN (${statusPlaceholders})
+                ORDER BY updated_at DESC
+            `;
+        } else {
+            requestSql = `
+                SELECT request_amount, term_gs, term_ae, term_yc, updated_at
+                FROM CreditRequests
+                WHERE customer_no = ? AND status IN (${statusPlaceholders})
+                ORDER BY updated_at DESC
+                LIMIT 1
+            `;
+        }
+
+        const { rows: requestRows } = await db.query(requestSql, [customerId, ...activeStatuses]);
+        const latestRequest = (requestRows && requestRows.length > 0) ? requestRows[0] : null;
+
+        // 3. Determine Final Values
+        let creditLimit = 0;
+        let creditTerms = { gs: 0, ae: 0, yc: 0 };
+        let lastUpdated = new Date().toISOString();
+
+        if (latestRequest) {
+            // Case A: Have a recent request
+            creditLimit = latestRequest.request_amount;
+            creditTerms = {
+                gs: latestRequest.term_gs || 0,
+                ae: latestRequest.term_ae || 0,
+                yc: latestRequest.term_yc || 0
+            };
+            lastUpdated = latestRequest.updated_at;
+        } else {
+            // Case B: Fallback to Customer Table (Legacy/Synced Data)
+            // Parse "Credit Limit (LCY)" (might be string with commas)
+            const rawLimit = customer['Credit Limit (LCY)'];
+            if (rawLimit) {
+                if (typeof rawLimit === 'number') {
+                    creditLimit = rawLimit;
+                } else if (typeof rawLimit === 'string') {
+                    creditLimit = parseFloat(rawLimit.replace(/,/g, ''));
+                }
+            }
+
+            // Parse "Payment Terms Code" (e.g., "30 Days", "60 Days") if needed
+            // For now, we return 0 for breakdown if not explicitly known
+            // Or try to parse simple integer from string
+            const termsCode = customer['Payment Terms Code'];
+            if (termsCode) {
+                 const match = termsCode.match(/\d+/);
+                 if (match) {
+                     // Assume standard term applies to all (or just GS?) - Logic TBD
+                     // For safety, let's just leave 0 unless specific mapping rules exist
+                     // creditTerms.gs = parseInt(match[0]);
+                 }
+            }
+        }
+
+        // 4. Construct Response
+        const responseData = {
+            customer_id: customer['No_'],
+            customer_name: customer['Name'], // Added for convenience
+            status: status,
+            credit_limit: creditLimit,
+            credit_terms: creditTerms,
+            updated_at: lastUpdated
+        };
+
+        res.status(200).json(responseData);
+
+    } catch (error) {
+        console.error('Error in getCreditStatus:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 // Export internal helper for testing
 exports.extractAndProcessDBDData = extractAndProcessDBDData;
