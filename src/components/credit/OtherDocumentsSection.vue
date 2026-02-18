@@ -1,9 +1,9 @@
 <template>
   <div class="other-documents-section">
     <div class="section-header-row">
-      <h3 class="section-title">เอกสารอื่นๆ (Other Documents)</h3>
+      <h3 class="section-title">เอกสารอื่นๆ</h3>
       <button v-if="isEditing" class="btn-add-category" @click="addCategory">
-        + เพิ่มเอกสารอื่นๆ (Add Other)
+        + เพิ่มเอกสารอื่นๆ
       </button>
     </div>
 
@@ -12,7 +12,7 @@
         <div class="doc-header">
            <span class="doc-label">{{ getLabel(key) }}</span>
            <button v-if="isEditing" class="btn-remove-category" @click="removeCategory(key)">
-             ลบ (Remove)
+             ลบ
            </button>
         </div>
         <FileUploader
@@ -63,12 +63,12 @@ const getLabel = (key) => {
 
 const addCategory = async () => {
   const { value: label } = await Swal.fire({
-    title: 'ระบุชื่อเอกสาร (Document Name)',
+    title: 'ระบุชื่อเอกสาร',
     input: 'text',
     inputPlaceholder: 'เช่น รูปถ่ายหน้างาน, เอกสารสัญญา',
     showCancelButton: true,
-    confirmButtonText: 'เพิ่ม (Add)',
-    cancelButtonText: 'ยกเลิก (Cancel)',
+    confirmButtonText: 'เพิ่ม',
+    cancelButtonText: 'ยกเลิก',
     inputValidator: (value) => {
       if (!value) {
         return 'กรุณาระบุชื่อเอกสาร';
@@ -96,8 +96,8 @@ const removeCategory = async (key) => {
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'ลบ (Delete)',
-        cancelButtonText: 'ยกเลิก (Cancel)'
+        confirmButtonText: 'ลบ',
+        cancelButtonText: 'ยกเลิก'
     });
 
     if (result.isConfirmed) {

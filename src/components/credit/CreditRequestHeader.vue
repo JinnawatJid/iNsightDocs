@@ -133,8 +133,8 @@ export default {
       return this.creditStore.dataSource;
     },
     sourceLabel() {
-        if (this.dataSource === 'api') return 'Live API';
-        if (this.dataSource === 'database') return 'Offline Mode';
+        if (this.dataSource === 'api') return 'ออนไลน์';
+        if (this.dataSource === 'database') return 'ออฟไลน์';
         return '';
     },
     sourceClass() {

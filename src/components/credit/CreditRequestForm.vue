@@ -4,7 +4,7 @@
     <div v-if="isReadOnly" class="readonly-banner">
       <div class="banner-content">
         <span class="warning-icon">⚠️</span>
-        <span>คำขอถูกส่งเรียบร้อยแล้ว (Read Only) หากต้องการแก้ไขข้อมูล กรุณายกเลิกคำขอก่อน</span>
+        <span>คำขอถูกส่งเรียบร้อยแล้ว หากต้องการแก้ไขข้อมูล กรุณายกเลิกคำขอก่อน</span>
       </div>
     </div>
 
@@ -17,7 +17,7 @@
             class="toggle-details-btn"
             @click="showAllDetails = !showAllDetails"
         >
-            {{ showAllDetails ? 'ซ่อนข้อมูลทั้งหมด (Hide All)' : 'แสดงข้อมูลทั้งหมด (Show All)' }}
+            {{ showAllDetails ? 'ซ่อนข้อมูลทั้งหมด' : 'แสดงข้อมูลทั้งหมด' }}
         </button>
       </div>
       <ApplicationTabs :readOnly="isReadOnly" :viewMode="viewMode" />
@@ -34,7 +34,7 @@
         />
 
         <div class="footer-info">
-            <span class="author">Current Role: {{ currentRoleLabel }}</span>
+            <span class="author">สถานะปัจจุบัน: {{ currentRoleLabel }}</span>
         </div>
 
         <div class="action-buttons">

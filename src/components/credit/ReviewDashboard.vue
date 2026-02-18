@@ -3,28 +3,28 @@
     <!-- Section 1: Deal Summary -->
     <div class="dashboard-card deal-summary">
       <div class="card-header">
-        <h3>สรุปข้อมูลคำขอ (Request Summary)</h3>
+        <h3>สรุปข้อมูลคำขอ</h3>
         <div class="request-meta">
             <span class="badge type">{{ store.transactionData.requestType }}</span>
-            <span class="badge status">{{ store.requestStatus || 'Draft' }}</span>
+            <span class="badge status">{{ store.requestStatus || 'ร่าง' }}</span>
         </div>
       </div>
 
       <div class="deal-grid">
         <div class="deal-item highlight">
-            <label>วงเงินที่ขอ (Requested Amount)</label>
-            <div class="value amount">{{ formatNumber(store.transactionData.amount) }} THB</div>
+            <label>วงเงินที่ขอ</label>
+            <div class="value amount">{{ formatNumber(store.transactionData.amount) }} บาท</div>
         </div>
         <div class="deal-item">
             <label>เครดิตเทอม (GS/AE/YC)</label>
             <div class="value">{{ formatTerms(store.transactionData) }}</div>
         </div>
         <div class="deal-item">
-            <label>วิธีชำระเงิน (Payment)</label>
+            <label>วิธีชำระเงิน</label>
             <div class="value">{{ store.customer.payment_method || '-' }}</div>
         </div>
          <div class="deal-item full-width">
-            <label>เหตุผล/วัตถุประสงค์ (Objective)</label>
+            <label>เหตุผล/วัตถุประสงค์</label>
             <div class="value reason-text">{{ store.transactionData.reason || '-' }}</div>
         </div>
       </div>
@@ -33,7 +33,7 @@
     <!-- Section 2: Key Documents Snapshot -->
     <div class="dashboard-card documents-snapshot">
         <div class="card-header">
-            <h3>สถานะเอกสาร (Document Status)</h3>
+            <h3>สถานะเอกสาร</h3>
             <span class="doc-count">ครบแล้ว {{ uploadedCount }}/{{ documents.length }} รายการ</span>
         </div>
 
@@ -59,8 +59,8 @@
     <!-- Section 3: Full Details Toggle -->
     <div class="details-toggle-section">
         <button class="btn-toggle-details" @click="showFullDetails = !showFullDetails">
-            <span v-if="!showFullDetails">ดูรายละเอียดข้อมูลลูกค้าแบบเต็ม (View Full Application)</span>
-            <span v-else>ซ่อนรายละเอียด (Hide Details)</span>
+            <span v-if="!showFullDetails">ดูรายละเอียดข้อมูลลูกค้าแบบเต็ม</span>
+            <span v-else>ซ่อนรายละเอียด</span>
             <svg :class="{ 'rotate': showFullDetails }" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
     </div>

@@ -109,7 +109,7 @@
       <div class="form-grid-three-columns">
             <!-- Field 1: Current Limit (Read Only) - Only for Credit Increase -->
             <div class="form-group" v-if="isRequestIncrease && isDraftMode">
-              <label>วงเงินปัจจุบัน (Current Limit)</label>
+              <label>วงเงินปัจจุบัน</label>
               <input
                 type="text"
                 class="form-input disabled"
@@ -120,7 +120,7 @@
 
             <div class="form-group" v-if="isDraftMode">
               <label>
-                  {{ isRequestIncrease ? 'วงเงินใหม่ที่ต้องการ (New Total Limit)' : 'วงเงินเครดิตที่ต้องการ (บาท)' }}
+                  {{ isRequestIncrease ? 'วงเงินรวมใหม่ที่ต้องการ' : 'วงเงินเครดิตที่ต้องการ (บาท)' }}
                   <span v-if="isRequired('amount')" class="text-red-500">*</span>
               </label>
               <input
@@ -142,7 +142,7 @@
                     ระยะเวลาเครดิต (กระจก, กาว)
                     <!-- Show current if special mode -->
                     <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
-                        (Current: {{ store.originalCustomer.credit_term }})
+                        (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
                 </label>
                 <input
@@ -159,7 +159,7 @@
                 <label>
                     ระยะเวลาเครดิต (อลูมิเนียม, Acc)
                     <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
-                        (Current: {{ store.originalCustomer.credit_term }})
+                        (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
                 </label>
                 <input
@@ -176,7 +176,7 @@
                 <label>
                     ระยะเวลาเครดิต (ยิปซั่ม, ซีลาย)
                     <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
-                        (Current: {{ store.originalCustomer.credit_term }})
+                        (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
                 </label>
                 <input
