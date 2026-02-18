@@ -186,7 +186,22 @@
                 </select>
                 <span v-if="errors.propertyOwnership" class="error-text">{{ errors.propertyOwnership }}</span>
              </div>
-             <div class="form-group span-2">
+             <div class="form-group">
+                <label>{{ residenceValueLabel }} <span v-if="isRequired('residence_value')" class="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  class="form-control"
+                  :class="{ 'border-red-500': errors.residenceValue, 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.residenceValue"
+                  placeholder="ระบุจำนวนเงิน"
+                  @input="handleInput('residenceValue', $event)"
+                  @blur="onBlurValue('residenceValue')"
+                  @focus="onFocusValue('residenceValue')"
+                />
+                <span v-if="errors.residenceValue" class="error-text">{{ errors.residenceValue }}</span>
+             </div>
+             <div class="form-group">
                 <label>คำอธิบายเพิ่มเติม</label>
                 <input
                   type="text"
@@ -281,12 +296,61 @@ const formData = reactive({
   locationTypeSelect: '',
   locationTypeOther: '',
   ownershipSelect: '',
+  residenceValue: '',
   mapCode: '',
   landmark: '',
   note: ''
 });
 
 const isCompany = computed(() => store.isCompany);
+
+const residenceValueLabel = computed(() => {
+  const ownership = formData.ownershipSelect;
+  if (ownership === 'บ้านเช่า' || ownership === 'เช่าซื้อ') {
+    return 'ค่าเช่า';
+  }
+  return 'มูลค่าทรัพย์สิน';
+});
+
+function formatCurrency(val) {
+  if (!val) return '';
+  const num = String(val).replace(/,/g, '');
+  if (isNaN(num)) return val;
+  return new Intl.NumberFormat('en-US').format(num);
+}
+
+function handleInput(key, event) {
+  // Allow only numbers and dot
+  let val = event.target.value.replace(/[^0-9.]/g, '');
+
+  // Prevent multiple dots
+  const parts = val.split('.');
+  if (parts.length > 2) {
+      val = parts[0] + '.' + parts.slice(1).join('');
+  }
+
+  formData[key] = val;
+  // Don't validate here immediately if we want to allow intermediate typing (e.g. empty string temporarily)
+  // But required check is good.
+  // We validate on blur mostly, but if we want real-time red border removal:
+  if (val) validateField(key, val, ['required']);
+}
+
+function onBlurValue(key) {
+  const val = formData[key];
+  if (val) {
+     formData[key] = formatCurrency(val);
+  }
+  validateField(key, formData[key], ['required']);
+}
+
+function onFocusValue(key) {
+  const val = formData[key];
+  if (val) {
+      // Strip commas for editing
+      formData[key] = val.replace(/,/g, '');
+  }
+}
 
 // Watch isSameAddress for toggling
 watch(isSameAddress, (isSame) => {
@@ -309,6 +373,18 @@ watch(isSameAddress, (isSame) => {
         formData.locationTypeSelect = store.customer.store_location_type || '';
         formData.locationTypeOther = store.customer.store_location_type_other || '';
         formData.ownershipSelect = store.customer.store_ownership || '';
+        // Note: For Individual, we map residence_value (NEW) or stick to store_value if logic dictates?
+        // Plan says: Individual -> Residence Value maps to residence_value.
+        // Wait, the block above is: "if (isSame && store.customer)".
+        // If Same Address, we copy FROM Store TO Residence form.
+        // So we should copy store.customer.store_value TO formData.residenceValue?
+        // Yes, if "Same Address", Residence Value = Store Value?
+        // Or "Residence is same as Store". So if Store has value, Residence has same value?
+        // Actually, "Property Value" might differ if it's the same building?
+        // "Property Value" of the building is the same.
+        // So yes, copy store_value.
+        formData.residenceValue = formatCurrency(store.customer.store_value) || '';
+
     } else {
         // Company: Source = address keys (Company Address)
         formData.houseAddress = store.customer.address || '';
@@ -327,6 +403,7 @@ watch(isSameAddress, (isSame) => {
         formData.locationTypeSelect = store.customer.store_location_type || '';
         formData.locationTypeOther = store.customer.store_location_type_other || '';
         formData.ownershipSelect = store.customer.store_ownership || '';
+        formData.residenceValue = formatCurrency(store.customer.store_value) || '';
     }
   } else {
      // Revert / Clear or Reload from original Residence Fields
@@ -348,6 +425,7 @@ watch(isSameAddress, (isSame) => {
             formData.locationTypeSelect = store.customer.residence_location_type || '';
             formData.locationTypeOther = store.customer.residence_location_type_other || '';
             formData.ownershipSelect = store.customer.residence_ownership || '';
+            formData.residenceValue = formatCurrency(store.customer.residence_value) || '';
         } else {
             // Company: Load 'residence_' fields (if any)
             formData.houseAddress = store.customer.residence_address || '';
@@ -365,6 +443,7 @@ watch(isSameAddress, (isSame) => {
             formData.locationTypeSelect = store.customer.residence_location_type || '';
             formData.locationTypeOther = store.customer.residence_location_type_other || '';
             formData.ownershipSelect = store.customer.residence_ownership || '';
+            formData.residenceValue = formatCurrency(store.customer.residence_value) || '';
         }
      }
   }
@@ -378,6 +457,7 @@ watch(isSameAddress, (isSame) => {
   validateField('phone', formData.phone, ['required']);
   validateField('locationType', formData.locationTypeSelect, ['required']);
   validateField('propertyOwnership', formData.ownershipSelect, ['required']);
+  validateField('residenceValue', formData.residenceValue, ['required']);
 });
 
 // Watch store.customer for changes
@@ -412,6 +492,13 @@ watch(() => store.customer, (newVal) => {
         formData.locationTypeSelect = newVal.residence_location_type || '';
         formData.locationTypeOther = newVal.residence_location_type_other || '';
         formData.ownershipSelect = newVal.residence_ownership || '';
+
+        // Only update residenceValue if it differs from current form state (to avoid fighting with onFocus)
+        const storeVal = String(newVal.residence_value || '');
+        const currentFormVal = String(formData.residenceValue || '').replace(/,/g, '');
+        if (storeVal !== currentFormVal) {
+             formData.residenceValue = formatCurrency(storeVal);
+        }
     }
   }
 }, { immediate: true, deep: true });
@@ -453,6 +540,8 @@ watch(formData, (newVal) => {
   updates.residence_location_type = newVal.locationTypeSelect;
   updates.residence_location_type_other = newVal.locationTypeOther;
   updates.residence_ownership = newVal.ownershipSelect;
+  // Save raw number to store
+  updates.residence_value = String(newVal.residenceValue || '').replace(/,/g, '');
 
   store.updateCustomerData(updates);
 }, { deep: true });
@@ -494,6 +583,7 @@ watch(() => store.showValidationErrors, (val) => {
         // New Fields
         validateField('locationType', formData.locationTypeSelect, ['required']);
         validateField('propertyOwnership', formData.ownershipSelect, ['required']);
+        validateField('residenceValue', formData.residenceValue, ['required']);
     }
 }, { immediate: true });
 </script>

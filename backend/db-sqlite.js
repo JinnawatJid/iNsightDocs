@@ -168,7 +168,10 @@ const initDB = async () => {
             'payment_condition',
             'payment_bank_name',
             'payment_bank_branch',
-            'payment_account_no'
+            'payment_account_no',
+            // New columns for Property Value
+            'residence_value',
+            'store_value'
         ];
 
         for (const col of coordinateColumns) {

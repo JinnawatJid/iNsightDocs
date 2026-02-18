@@ -211,10 +211,26 @@
                   <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
                   <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
                   <option value="เช่าซื้อ">เช่าซื้อ</option>
+                  <option value="เช่า">เช่า</option>
                 </select>
                 <span v-if="errors.propertyOwnership" class="error-text">{{ errors.propertyOwnership }}</span>
              </div>
-             <div class="form-group span-2">
+             <div class="form-group">
+                <label>{{ storeValueLabel }} <span v-if="isRequired('store_value')" class="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  class="form-control"
+                  :class="{ 'border-red-500': errors.storeValue, 'disabled': !isEditing }"
+                  :disabled="!isEditing"
+                  v-model="formData.storeValue"
+                  placeholder="ระบุจำนวนเงิน"
+                  @input="handleInput('storeValue', $event)"
+                  @blur="onBlurValue('storeValue')"
+                  @focus="onFocusValue('storeValue')"
+                />
+                <span v-if="errors.storeValue" class="error-text">{{ errors.storeValue }}</span>
+             </div>
+             <div class="form-group">
                 <label>คำอธิบายเพิ่มเติม</label>
                 <input
                   type="text"
@@ -318,6 +334,7 @@ const formData = reactive({
   locationTypeSelect: '',
   locationTypeOther: '',
   ownershipSelect: '',
+  storeValue: '',
   mapCode: '',
   landmark: '',
   note: ''
@@ -326,6 +343,51 @@ const formData = reactive({
 const isCompany = computed(() => {
   return store.isCompany;
 });
+
+const storeValueLabel = computed(() => {
+  const ownership = formData.ownershipSelect;
+  if (ownership === 'เช่าซื้อ' || ownership === 'เช่า') {
+    return 'ค่าเช่า';
+  }
+  return 'มูลค่าทรัพย์สิน';
+});
+
+function formatCurrency(val) {
+  if (!val) return '';
+  const num = String(val).replace(/,/g, '');
+  if (isNaN(num)) return val;
+  return new Intl.NumberFormat('en-US').format(num);
+}
+
+function handleInput(key, event) {
+  // Allow only numbers and dot
+  let val = event.target.value.replace(/[^0-9.]/g, '');
+
+  // Prevent multiple dots
+  const parts = val.split('.');
+  if (parts.length > 2) {
+      val = parts[0] + '.' + parts.slice(1).join('');
+  }
+
+  formData[key] = val;
+  if (val) validateField(key, val, ['required']);
+}
+
+function onBlurValue(key) {
+  const val = formData[key];
+  if (val) {
+     formData[key] = formatCurrency(val);
+  }
+  validateField(key, formData[key], ['required']);
+}
+
+function onFocusValue(key) {
+  const val = formData[key];
+  if (val) {
+      // Strip commas for editing
+      formData[key] = val.replace(/,/g, '');
+  }
+}
 
 function formatPhoneNumber(phone) {
   if (!phone) return '';
@@ -365,6 +427,14 @@ watch(() => store.customer, (newVal) => {
         formData.locationTypeSelect = newVal.store_location_type || '';
         formData.locationTypeOther = newVal.store_location_type_other || '';
         formData.ownershipSelect = newVal.store_ownership || '';
+
+        // Only update if changed (avoid focus fighting)
+        const storeVal = String(newVal.store_value || '');
+        const currentFormVal = String(formData.storeValue || '').replace(/,/g, '');
+        if (storeVal !== currentFormVal) {
+             formData.storeValue = formatCurrency(storeVal);
+        }
+
     } else {
         // COMPANY
         formData.houseAddress = newVal.address || '';
@@ -391,6 +461,13 @@ watch(() => store.customer, (newVal) => {
         formData.locationTypeSelect = newVal.store_location_type || '';
         formData.locationTypeOther = newVal.store_location_type_other || '';
         formData.ownershipSelect = newVal.store_ownership || '';
+
+        // Only update if changed
+        const storeVal = String(newVal.store_value || '');
+        const currentFormVal = String(formData.storeValue || '').replace(/,/g, '');
+        if (storeVal !== currentFormVal) {
+             formData.storeValue = formatCurrency(storeVal);
+        }
     }
   }
 }, { immediate: true, deep: true });
@@ -419,6 +496,8 @@ watch(formData, (newVal) => {
       store_location_type: newVal.locationTypeSelect,
       store_location_type_other: newVal.locationTypeOther,
       store_ownership: newVal.ownershipSelect,
+      // Save raw
+      store_value: String(newVal.storeValue || '').replace(/,/g, ''),
     };
     store.updateCustomerData(updates);
   } else {
@@ -439,6 +518,8 @@ watch(formData, (newVal) => {
       store_location_type: newVal.locationTypeSelect,
       store_location_type_other: newVal.locationTypeOther,
       store_ownership: newVal.ownershipSelect,
+      // Save raw
+      store_value: String(newVal.storeValue || '').replace(/,/g, ''),
     };
     store.updateCustomerData(updates);
   }
@@ -480,6 +561,7 @@ watch(() => store.showValidationErrors, (val) => {
         // New Fields
         validateField('locationType', formData.locationTypeSelect, ['required']);
         validateField('propertyOwnership', formData.ownershipSelect, ['required']);
+        validateField('storeValue', formData.storeValue, ['required']);
     }
 }, { immediate: true });
 </script>
