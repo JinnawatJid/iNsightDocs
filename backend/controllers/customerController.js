@@ -423,8 +423,10 @@ const searchCustomersFallback = async (req, res, query) => {
           "existing_credits",
           "residence_location_type", "residence_location_type_other",
           "residence_ownership", "residence_ownership_other",
+          "residence_value",
           "store_location_type", "store_location_type_other",
-          "store_ownership", "store_ownership_other"
+          "store_ownership", "store_ownership_other",
+          "store_value"
         FROM "Customers"
         WHERE
           "Name" LIKE ? OR
@@ -518,10 +520,12 @@ const searchCustomersFallback = async (req, res, query) => {
             residence_location_type_other: row["residence_location_type_other"] || "",
             residence_ownership: row["residence_ownership"] || "",
             residence_ownership_other: row["residence_ownership_other"] || "",
+            residence_value: row["residence_value"] || "",
             store_location_type: row["store_location_type"] || "",
             store_location_type_other: row["store_location_type_other"] || "",
             store_ownership: row["store_ownership"] || "",
             store_ownership_other: row["store_ownership_other"] || "",
+            store_value: row["store_value"] || "",
             authorized_person_2: row["authorized_person_2"] || "",
             authorized_position_2: row["authorized_position_2"] || "",
             business_type: row["business_type"] || "",
@@ -801,10 +805,12 @@ exports.updateCustomer = async (req, res) => {
     'residence_location_type_other',
     'residence_ownership',
     'residence_ownership_other',
+    'residence_value',
     'store_location_type',
     'store_location_type_other',
     'store_ownership',
     'store_ownership_other',
+    'store_value',
     'authorized_person_2',
     'authorized_position_2',
     'business_type',

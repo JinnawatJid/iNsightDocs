@@ -29,8 +29,10 @@ export const mandatoryStoreKeys = {
         // Updated keys to match ResidenceTab.vue / StoreCompanyTab.vue
         'residence_location_type',
         'residence_ownership',
+        'residence_value',
         'store_location_type',
-        'store_ownership'
+        'store_ownership',
+        'store_value'
     ],
     // Files mapping to store.files keys
     files: {
