@@ -308,9 +308,10 @@ exports.createCreditRequest = async (req, res) => {
         status = newStatus;
 
         // Update Query (including tx_id in case it changed)
+        const updatedAt = new Date().toISOString();
         await db.runAsync(
-          'UPDATE CreditRequests SET tx_id = ?, request_amount = ?, request_reason = ?, request_credit_term = ?, term_gs = ?, term_ae = ?, term_yc = ?, request_type = ?, snapshot_data = ?, status = ? WHERE id = ?',
-          [txId, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data, status, requestId]
+          'UPDATE CreditRequests SET tx_id = ?, request_amount = ?, request_reason = ?, request_credit_term = ?, term_gs = ?, term_ae = ?, term_yc = ?, request_type = ?, snapshot_data = ?, status = ?, updated_at = ? WHERE id = ?',
+          [txId, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data, status, updatedAt, requestId]
         );
 
         // Handle Comment insertion

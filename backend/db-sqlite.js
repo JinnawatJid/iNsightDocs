@@ -169,6 +169,8 @@ const initDB = async () => {
             'payment_bank_name',
             'payment_bank_branch',
             'payment_account_no',
+            // Credit Status (N, P, NPL, L)
+            'credit_status'
             // New columns for Property Value
             'residence_value',
             'store_value'
@@ -177,7 +179,12 @@ const initDB = async () => {
         for (const col of coordinateColumns) {
             try {
                 // Try to add column. If it exists, SQLite will throw an error, which we catch.
-                await db.runAsync(`ALTER TABLE Customers ADD COLUMN ${col} TEXT`);
+                let alterSql = `ALTER TABLE Customers ADD COLUMN ${col} TEXT`;
+                // Set default for credit_status
+                if (col === 'credit_status') {
+                    alterSql += ` DEFAULT 'N'`;
+                }
+                await db.runAsync(alterSql);
                 console.log(`Added column ${col} to Customers`);
             } catch (err) {
                 // Ignore error if column already exists
@@ -210,7 +217,8 @@ const initDB = async () => {
             { name: 'term_gs', type: 'INTEGER' },
             { name: 'term_ae', type: 'INTEGER' },
             { name: 'term_yc', type: 'INTEGER' },
-            { name: 'request_type', type: 'TEXT' }
+            { name: 'request_type', type: 'TEXT' },
+            { name: 'updated_at', type: 'DATETIME' }
         ];
 
         for (const col of creditRequestColumns) {
