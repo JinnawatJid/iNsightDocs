@@ -114,11 +114,13 @@ SELECT
         ELSE 'ON-TIME'
     END AS Status
 
-FROM [Cust. Ledger Entry] CLE
+-- อัปเดตชื่อตาราง Cust. Ledger Entry ให้ตรงกับ GUID ที่ใช้ในตารางอื่นๆ
+FROM [TNG LIV$Cust_ Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972] CLE
 
 -- 1. หา Payment (Detailed Cust Ledger)
-LEFT JOIN [Detailed Cust. Ledg. Entry] DCLE_PAY
-    ON CLE.[Entry No_] = DCLE_PAY.[Cust. Ledger Entry No_]
+-- ใช้ LEFT JOIN เพื่อดึงรายการจ่ายเงิน (ถ้ามี)
+LEFT JOIN [TNG LIV$Detailed Cust_ Ledg_ Entry$437dbf0e-84ff-417a-965d-ed2bb9650972] DCLE_PAY
+    ON CLE.[Entry No_] = DCLE_PAY.[Cust_ Ledger Entry No_]
     AND DCLE_PAY.[Entry Type] = 2    -- Application
     AND DCLE_PAY.[Document Type] = 1 -- Payment
 
