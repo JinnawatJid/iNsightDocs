@@ -4,11 +4,17 @@
 The **Customer Blacklist** feature is a risk management tool integrated into the **Create Credit Request** workflow. Its purpose is to immediately alert users (Branch Managers/Sales) if they attempt to request credit for a customer who is on the company's restricted list (e.g., due to legal execution, bankruptcy, or bad debt).
 
 ## 2. Key Identification Logic
-The system uses the **Tax ID (เลขที่บัตรประชาชน / เลขผู้เสียภาษี)** as the **sole identifier** for blacklist checks.
+The system now uses a **Multi-Factor Identification Strategy** to detect high-risk customers, checking both individuals and businesses.
 
-*   **Primary Key:** Tax ID (`VAT Registration No_` / `เลขที่บัตรประชาชน`)
-*   **Case Sensitivity:** Not applicable (numeric/string comparison).
-*   **Normalization:** All non-digit characters (spaces, dashes) are stripped before comparison.
+### A. Primary Identifiers (High Confidence)
+Matches on these fields are considered definite hits (Blocked).
+1.  **Tax ID (เลขที่บัตรประชาชน / เลขผู้เสียภาษี)**: Numeric-only match.
+2.  **Full Name (ชื่อ-นามสกุล)**: Matches against the "Customer Name" in the blacklist, after stripping titles (e.g., นาย, นาง, คุณ).
+3.  **Shop/Company Name (ชื่อร้าน/บริษัท)**: Matches against the "Shop Name" in the blacklist, after stripping business keywords (e.g., หจก., บจก.).
+
+### B. Secondary Identifiers (Warning)
+Matches on these fields trigger a "Warning" but may not be the same person.
+1.  **Last Name Only (นามสกุล)**: Checks if the candidate's last name matches a blacklisted person's last name. Useful for catching family members of blacklisted individuals.
 
 ## 3. Data Source & Import Process
 The blacklist data is sourced from a CSV file maintained by the Credit Department.
@@ -18,46 +24,51 @@ The blacklist data is sourced from a CSV file maintained by the Credit Departmen
 *   **Import Behavior (at Server Startup):**
     1.  The system reads the CSV file.
     2.  It creates the `CustomerBlacklist` table if it doesn't exist.
-    3.  **Normalization Step:** During import, the system automatically strips all non-digit characters from the `เลขที่บัตรประชาชน` column and stores the clean numeric string in a hidden column called `normalized_id`.
-    4.  **Conflict Handling:** Duplicate Tax IDs are handled via `INSERT OR IGNORE` to prevent startup crashes.
+    3.  **Normalization Step:**
+        *   **Tax ID:** Strips non-digits -> `normalized_id`.
+        *   **Customer Name:** Strips titles (Thai/English) and spaces -> `normalized_name`.
+        *   **Shop Name:** Strips business prefixes -> `normalized_shop`.
+    4.  **Conflict Handling:** Duplicate Tax IDs are handled via `INSERT OR IGNORE`.
 
 ## 4. Search & Detection Workflow
 
-When a user searches for a customer in the `Create Credit Request` page:
+When a user searches for a customer in the `Create Credit Request` page, the system gathers the following fields from the search result (API or Local DB):
+1.  **Tax ID**
+2.  **Customer/Company Name**
+3.  **Contact Person Name**
+4.  **Authorized Signatory 1 & 2** (if available locally)
 
-1.  **API Search:** The system first queries the live Customer API.
-2.  **Tax ID Extraction:** It retrieves the `VAT Registration No_` from the API response.
-3.  **Smart Fallback:** If the API response is missing the Tax ID (empty or null), the system automatically queries the local `Customers` database using the Customer ID (`No_`) to find a stored Tax ID.
-4.  **Blacklist Check:**
-    *   The system normalizes the customer's Tax ID (removes non-digits).
-    *   It queries the `CustomerBlacklist` table: `SELECT * FROM CustomerBlacklist WHERE normalized_id = ?`.
-5.  **Result:**
-    *   **Match Found:** Returns `is_blacklisted: true` along with the `Status` (สถานะ) and `Remark` (หมายเหตุ).
-    *   **No Match:** Returns `is_blacklisted: false`.
+The system performs the following checks in order:
+
+1.  **Tax ID Check:** `normalized_id` match. (Result: **Blocked**)
+2.  **Person Name Check:** Checks Contact & Authorized Persons against `normalized_name`.
+    *   **Full Name Match:** (Result: **Blocked**)
+    *   **Last Name Match:** Checks if the name *ends with* a blacklisted last name. (Result: **Warning**)
+3.  **Company Name Check:** Checks Company Name against `normalized_shop`. (Result: **Blocked**)
 
 ## 5. User Interface Behavior
 
-If a customer is identified as blacklisted:
+If a match is found:
 
 ### A. Immediate Modal Alert
-A blocking modal (SweetAlert2) appears immediately after the search:
+A blocking modal (SweetAlert2) appears immediately after the search.
 *   **Title:** "แจ้งเตือน: ลูกค้ารายนี้อยู่ในบัญชี Blacklist"
-*   **Content:** Displays the specific **Status** (e.g., บังคับคดี) and **Remark** (e.g., ค้างชำระ 115,000 บาท).
+*   **Content:**
+    *   Displays **Status** (e.g., บังคับคดี) and **Remark**.
+    *   **Match Detail:** Indicates *why* it matched (e.g., "Tax ID", "Full Name", "Last Name").
 *   **Action Buttons:**
-    *   **"ยกเลิก" (Cancel):** Clears the search result and resets the page to a blank state.
-    *   **"ดำเนินการต่อ" (Proceed):** Closes the modal but keeps a persistent warning on the screen.
+    *   **"ยกเลิก" (Cancel):** Clears the search result.
+    *   **"ดำเนินการต่อ" (Proceed):** Allows proceeding (typically for "Warning" or manual override).
 
 ### B. Persistent Warning Panel
-If the user chooses to "Proceed", a yellow warning panel remains visible in the **Purchase Behavior (พฤติกรรมการซื้อ)** section:
-*   **Icon:** ⚠️
-*   **Text:** "คำเตือน: ลูกค้ารายนี้อยู่ในบัญชี Blacklist โปรดพิจารณาอย่างรอบคอบ"
+If the user chooses to "Proceed", a yellow warning panel remains visible in the **Purchase Behavior (พฤติกรรมการซื้อ)** section.
 
 ## 6. Technical Implementation Details
 
 ### Backend
 *   **File:** `backend/controllers/customerController.js`
-*   **Function:** `checkBlacklist(taxId)`
-*   **Query:** Uses the pre-calculated `normalized_id` column for 100% reliable matching, avoiding runtime SQL string manipulation issues.
+*   **Function:** `checkBlacklist({ taxId, personNames, companyNames })`
+*   **Utility:** `backend/utils/nameNormalizer.js` handles title stripping and normalization.
 
 ### Frontend
 *   **File:** `src/views/CreateCreditRequest.vue`
