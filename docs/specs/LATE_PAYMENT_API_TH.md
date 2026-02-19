@@ -112,7 +112,11 @@ Query ตาราง **Cust. Ledger Entry (Table 21)** เพื่อหาใ
     *   `Document No.`
     *   `Posting Date`
     *   `Due Date`
-    *   `Remaining Amount`
+    *   **การคำนวณ `Remaining Amount` (สำคัญ):**
+        *   ห้ามดึงจากตาราง Cust. Ledger Entry โดยตรงถ้าเป็น FlowField
+        *   ให้ **Join** กับ **Detailed Cust. Ledg. Entry (Table 379)** ด้วยเงื่อนไข `Cust. Ledger Entry No.` = `Entry No.`
+        *   **สูตรคำนวณ:** `SUM(Detailed Cust. Ledg. Entry.Debit Amount) - SUM(Detailed Cust. Ledg. Entry.Credit Amount)`
+        *   ต้อง Group ตาม `Entry No.` เพื่อให้ได้ยอดคงเหลือที่ถูกต้องต่อบิล
     *   `Original Amount` (คำนวณจาก Detailed Entries หรือใช้ `Sales (LCY)`)
 
 ### Step 2: ค้นหาการจ่ายเงิน (Find Payment Details)
@@ -162,7 +166,7 @@ Query ตาราง **Cust. Ledger Entry (Table 21)** เพื่อหาใ
 | `document_no` | Cust. Ledger Entry (21) | 6 | `Document No.` | |
 | `posting_date` | Cust. Ledger Entry (21) | 20 | `Posting Date` | |
 | `due_date` | Cust. Ledger Entry (21) | 24 | `Due Date` | |
-| `amount` | Cust. Ledger Entry (21) | 13 | `Amount` | (Check flow field) |
+| `amount` | Detailed Cust. Ledg. Entry (379) | | `Debit - Credit` | **ต้อง Sum จาก Detailed Entries** |
 | **Payment Info** | | | | |
 | `payment_doc_no` | Detailed Cust. Ledg. Entry (379) | 6 | `Document No.` | Filter `Entry Type`=`Application` |
 | `payment_date` | Detailed Cust. Ledg. Entry (379) | 4 | `Posting Date` | ใช้วันนี้ถ้าไม่มีเช็ค |

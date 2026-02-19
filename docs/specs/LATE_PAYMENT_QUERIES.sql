@@ -3,22 +3,36 @@
 -- กรุณาเปลี่ยนชื่อตารางให้ตรงกับใน Database ของคุณ
 
 ----------------------------------------------------------------------------------------
--- 1. ค้นหา Invoice (ใบแจ้งหนี้) ของลูกค้า
+-- 1. ค้นหา Invoice (ใบแจ้งหนี้) และคำนวณยอดคงเหลือ (Remaining Amount)
 ----------------------------------------------------------------------------------------
+-- ใน Business Central ยอดคงเหลือ (Remaining Amount) เป็น FlowField
+-- ต้องคำนวณจาก Detailed Cust. Ledg. Entry (Debit - Credit)
 SELECT
-    [Entry No_],       -- ใช้สำหรับ Join ในขั้นตอนต่อไป (สำคัญมาก)
-    [Document No_],    -- เลขที่เอกสาร (เช่น AYVR...)
-    [Posting Date],    -- วันที่ตั้งหนี้
-    [Due Date],        -- วันครบกำหนดชำระ
-    [Remaining Amount], -- ยอดคงเหลือ
-    [Original Amount]   -- ยอดหนี้เต็มจำนวน (ถ้ามี)
-FROM [Cust_ Ledger Entry]
+    CLE.[Entry No_],       -- ใช้สำหรับ Join ในขั้นตอนต่อไป (สำคัญมาก)
+    CLE.[Document No_],    -- เลขที่เอกสาร (เช่น AYVR...)
+    CLE.[Posting Date],    -- วันที่ตั้งหนี้
+    CLE.[Due Date],        -- วันครบกำหนดชำระ
+
+    -- คำนวณยอดคงเหลือจริง (Remaining Amount)
+    SUM(DCLE.[Debit Amount]) - SUM(DCLE.[Credit Amount]) AS [Remaining Amount],
+
+    -- ยอดหนี้เต็มจำนวน (Original Amount) ดึงจาก Sales (LCY) หรือคำนวณเอา
+    CLE.[Sales (LCY)] AS [Original Amount]
+FROM [Cust_ Ledger Entry] CLE
+JOIN [Detailed Cust_ Ledg_ Entry] DCLE
+    ON CLE.[Entry No_] = DCLE.[Cust_ Ledger Entry No_]
 WHERE
-    [Customer No_] = 'CUST-001'    -- **เปลี่ยนรหัสลูกค้าที่นี่**
-    AND [Document Type] = 2         -- 2 = Invoice (ใบแจ้งหนี้)
-    AND [Document No_] LIKE 'AYVR%' -- กรองเฉพาะบิลขายเชื่อ (ตามเงื่อนไขบริษัท)
-    AND [Posting Date] >= '2023-01-01' -- กรองวันที่เริ่มต้น
-ORDER BY [Posting Date] DESC;
+    CLE.[Customer No_] = 'CUST-001'    -- **เปลี่ยนรหัสลูกค้าที่นี่**
+    AND CLE.[Document Type] = 2         -- 2 = Invoice (ใบแจ้งหนี้)
+    AND CLE.[Document No_] LIKE 'AYVR%' -- กรองเฉพาะบิลขายเชื่อ (ตามเงื่อนไขบริษัท)
+    AND CLE.[Posting Date] >= '2023-01-01' -- กรองวันที่เริ่มต้น
+GROUP BY
+    CLE.[Entry No_],
+    CLE.[Document No_],
+    CLE.[Posting Date],
+    CLE.[Due Date],
+    CLE.[Sales (LCY)]
+ORDER BY CLE.[Posting Date] DESC;
 
 
 ----------------------------------------------------------------------------------------
@@ -55,14 +69,21 @@ WHERE
 ----------------------------------------------------------------------------------------
 -- 4. (Advance) SQL แบบ JOIN ตารางเดียวจบ (ถ้าต้องการดูภาพรวม)
 ----------------------------------------------------------------------------------------
+-- หมายเหตุ: Logic การหา Remaining Amount ใน Query รวมนี้ จะซับซ้อนขึ้น
+-- เพราะเรา Join Detailed Entry (Payment) ซ้ำซ้อน
+-- แนะนำให้ใช้ Query แยกในข้อ 1-3 เพื่อความแม่นยำในการตรวจสอบเบื้องต้น
+
 SELECT
     CLE.[Document No_] AS Invoice_No,
     CLE.[Posting Date] AS Invoice_Date,
     CLE.[Due Date],
-    DCLE.[Document No_] AS Payment_Doc_No,
-    DCLE.[Posting Date] AS Payment_Date, -- วันจ่าย (เบื้องต้น)
-    CHLE.[Check Date],                   -- วันหน้าเช็ค (ถ้ามี)
-    CHLE.[Cleared Date],                 -- วันเช็คผ่าน (ถ้ามี)
+
+    -- หมายเหตุ: Remaining Amount คำนวณยากใน Query นี้เนื่องจากการ Group
+
+    DCLE_PAY.[Document No_] AS Payment_Doc_No,
+    DCLE_PAY.[Posting Date] AS Payment_Date, -- วันจ่าย (เบื้องต้น)
+    CHLE.[Check Date],                       -- วันหน้าเช็ค (ถ้ามี)
+    CHLE.[Cleared Date],                     -- วันเช็คผ่าน (ถ้ามี)
 
     -- คำนวณวันจ่ายจริง (Effective Date) ตาม Logic 5 วัน
     CASE
@@ -73,7 +94,7 @@ SELECT
                 -- ถ้าเกิน 5 วัน ให้ใช้วันเช็คผ่าน
                 ELSE CHLE.[Cleared Date]
             END
-        ELSE DCLE.[Posting Date] -- ถ้าไม่ใช่เช็ค ใช้วันที่จ่ายเลย
+        ELSE DCLE_PAY.[Posting Date] -- ถ้าไม่ใช่เช็ค ใช้วันที่จ่ายเลย
     END AS Effective_Payment_Date,
 
     -- ตรวจสอบว่า Late หรือไม่
@@ -82,22 +103,23 @@ SELECT
             CASE
                 WHEN CHLE.[Check Date] IS NOT NULL THEN
                     CASE WHEN DATEDIFF(day, CHLE.[Check Date], CHLE.[Cleared Date]) <= 5 THEN CHLE.[Check Date] ELSE CHLE.[Cleared Date] END
-                ELSE DCLE.[Posting Date]
+                ELSE DCLE_PAY.[Posting Date]
             END
         ) > CLE.[Due Date] THEN 'LATE'
         ELSE 'ON-TIME'
     END AS Status
 
 FROM [Cust_ Ledger Entry] CLE
--- Join หา Payment
-LEFT JOIN [Detailed Cust_ Ledg_ Entry] DCLE
-    ON CLE.[Entry No_] = DCLE.[Cust_ Ledger Entry No_]
-    AND DCLE.[Entry Type] = 2      -- Application
-    AND DCLE.[Document Type] = 1   -- Payment
+
+-- Join หา Payment (เฉพาะรายการ Application ที่เป็น Payment)
+LEFT JOIN [Detailed Cust_ Ledg_ Entry] DCLE_PAY
+    ON CLE.[Entry No_] = DCLE_PAY.[Cust_ Ledger Entry No_]
+    AND DCLE_PAY.[Entry Type] = 2      -- Application
+    AND DCLE_PAY.[Document Type] = 1   -- Payment
 
 -- Join หา Cheque (ถ้ามี)
 LEFT JOIN [Check Ledger Entry] CHLE
-    ON DCLE.[Document No_] = CHLE.[Document No_]
+    ON DCLE_PAY.[Document No_] = CHLE.[Document No_]
 
 WHERE
     CLE.[Customer No_] = 'CUST-001'    -- **เปลี่ยนรหัสลูกค้า**

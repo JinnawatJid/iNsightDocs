@@ -112,8 +112,12 @@ Query the **Cust. Ledger Entry (Table 21)** to find the invoices.
     *   `Document No.`
     *   `Posting Date`
     *   `Due Date`
-    *   `Remaining Amount`
-    *   `Original Amount` (Calculated from Detailed Entries if needed, or use `Sales (LCY)`)
+    *   **`Remaining Amount` Calculation (Crucial):**
+        *   Do NOT pull `Remaining Amount` directly from Table 21 if it is a FlowField.
+        *   Instead, **Join** with **Detailed Cust. Ledg. Entry (Table 379)** on `Cust. Ledger Entry No.` = `Entry No.`
+        *   **Calculation:** `SUM(Detailed Cust. Ledg. Entry.Debit Amount) - SUM(Detailed Cust. Ledg. Entry.Credit Amount)`
+        *   Group by the `Entry No.` to get the correct balance per invoice.
+    *   `Original Amount` (Calculated from Detailed Entries or use `Sales (LCY)`)
 
 ### Step 2: Find Payment Details (The Application)
 For each Invoice found in Step 1, query the **Detailed Cust. Ledg. Entry (Table 379)** to find how it was paid.
@@ -162,7 +166,7 @@ Combine the data from steps 1-3:
 | `document_no` | Cust. Ledger Entry (21) | 6 | `Document No.` | |
 | `posting_date` | Cust. Ledger Entry (21) | 20 | `Posting Date` | |
 | `due_date` | Cust. Ledger Entry (21) | 24 | `Due Date` | |
-| `amount` | Cust. Ledger Entry (21) | 13 | `Amount` | (Check flow field) |
+| `amount` | Detailed Cust. Ledg. Entry (379) | | `Debit - Credit` | **Must calculate sum from Detailed Entries** |
 | **Payment Info** | | | | |
 | `payment_doc_no` | Detailed Cust. Ledg. Entry (379) | 6 | `Document No.` | Filter `Entry Type`=`Application` |
 | `payment_date` | Detailed Cust. Ledg. Entry (379) | 4 | `Posting Date` | Default date if no check |
