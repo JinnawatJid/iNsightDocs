@@ -7,6 +7,7 @@
 ----------------------------------------------------------------------------------------
 -- ใน Business Central ยอดคงเหลือ (Remaining Amount) เป็น FlowField
 -- ต้องคำนวณจาก Detailed Cust. Ledg. Entry (Debit - Credit)
+
 SELECT
     CLE.[Entry No_],       -- ใช้สำหรับ Join ในขั้นตอนต่อไป (สำคัญมาก)
     CLE.[Document No_],    -- เลขที่เอกสาร (เช่น AYVR...)
@@ -77,8 +78,6 @@ SELECT
     CLE.[Document No_] AS Invoice_No,
     CLE.[Posting Date] AS Invoice_Date,
     CLE.[Due Date],
-
-    -- หมายเหตุ: Remaining Amount คำนวณยากใน Query นี้เนื่องจากการ Group
 
     DCLE_PAY.[Document No_] AS Payment_Doc_No,
     DCLE_PAY.[Posting Date] AS Payment_Date, -- วันจ่าย (เบื้องต้น)
