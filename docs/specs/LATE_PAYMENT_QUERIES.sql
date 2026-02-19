@@ -1,6 +1,6 @@
 -- SQL สำหรับทดสอบการดึงข้อมูล Late Payment Analysis ใน DBeaver
 -- หมายเหตุ: **สำคัญมาก** ชื่อตารางและชื่อ Column ที่ลงท้ายด้วย GUID (เช่น $6ad92336...)
--- จะแตกต่างกันไปตาม Environment ของแต่ละบริษัท กรุณาตรวจสอบชื่อจริงใน Database ของคุณก่อนใช้งาน
+-- เป็นชื่อเฉพาะของ Environment นี้ (TNG LIV) กรุณาตรวจสอบชื่อจริงใน Database ของคุณก่อนใช้งานใน Environment อื่น
 
 -- =====================================================================================
 -- 1. ค้นหา Invoice (ใบแจ้งหนี้)
@@ -14,10 +14,10 @@ SELECT
     -- การคำนวณยอดคงเหลือ (Remaining Amount) จาก Detailed Customer Ledger Entries
     -- สูตร: ผลรวม (Debit - Credit) ของ Entry นี้
     (SELECT SUM(D.[Debit Amount]) - SUM(D.[Credit Amount])
-     FROM [Detailed Cust. Ledg. Entry] D
-     WHERE D.[Cust. Ledger Entry No_] = CLE.[Entry No_]) AS [Remaining Amount],
+     FROM [TNG LIV$Detailed Cust_ Ledg_ Entry$437dbf0e-84ff-417a-965d-ed2bb9650972] D
+     WHERE D.[Cust_ Ledger Entry No_] = CLE.[Entry No_]) AS [Remaining Amount],
     CLE.[Sales (LCY)] AS [Original Amount]
-FROM [Cust. Ledger Entry] CLE
+FROM [TNG LIV$Cust_ Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972] CLE
 WHERE
     CLE.[Customer No_] = 'CUST-001'    -- **เปลี่ยนรหัสลูกค้าที่นี่**
     AND CLE.[Document Type] = 2        -- 2 = Invoice
@@ -38,18 +38,17 @@ SELECT
     [Amount],
     [Entry Type],
     [Document Type]
-FROM [Detailed Cust. Ledg. Entry]
+FROM [TNG LIV$Detailed Cust_ Ledg_ Entry$437dbf0e-84ff-417a-965d-ed2bb9650972]
 WHERE
-    [Cust. Ledger Entry No_] = 12345 -- **เปลี่ยนเป็น Entry No_ จากผลลัพธ์ข้อ 1**
+    [Cust_ Ledger Entry No_] = 12345 -- **เปลี่ยนเป็น Entry No_ จากผลลัพธ์ข้อ 1**
     AND [Entry Type] = 2             -- Application (การจับคู่ชำระ)
     AND [Document Type] = 1;         -- Payment (การจ่ายเงิน)
 GO
 
 
 -- =====================================================================================
--- 3. ตรวจสอบสถานะเช็ค (Cheque Status) - *แก้ไขตาม User Request*
+-- 3. ตรวจสอบสถานะเช็ค (Cheque Status)
 -- =====================================================================================
--- ตัวอย่าง Query ที่ใช้งานจริง (สังเกตชื่อ Column ที่มี GUID ต่อท้าย)
 
 SELECT
     Check_Main.[Document No_],
@@ -86,14 +85,12 @@ SELECT
     Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] AS [Cleared Date],
 
     -- คำนวณวันจ่ายจริง (Effective Date)
-    -- Logic: ถ้าจ่ายเช็ค ให้ใช้วันที่เช็คเคลียร์ (หรือเงื่อนไข 5 วัน) ถ้าไม่ใช่เช็ค ใช้วันที่ Posting Date ของ Payment
     CASE
         WHEN Check_Main.[Check Date] IS NOT NULL THEN
-            -- ตัวอย่าง Logic 5 วัน (ปรับตาม Business Logic จริง)
             CASE
                 WHEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] IS NOT NULL
                 THEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]
-                ELSE Check_Main.[Check Date] -- Fallback
+                ELSE Check_Main.[Check Date]
             END
         ELSE DCLE_PAY.[Posting Date]
     END AS Effective_Payment_Date,
@@ -114,27 +111,22 @@ SELECT
         ELSE 'ON-TIME'
     END AS Status
 
--- อัปเดตชื่อตาราง Cust. Ledger Entry ให้ตรงกับ GUID ที่ใช้ในตารางอื่นๆ
 FROM [TNG LIV$Cust_ Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972] CLE
 
--- 1. หา Payment (Detailed Cust Ledger)
--- ใช้ LEFT JOIN เพื่อดึงรายการจ่ายเงิน (ถ้ามี)
 LEFT JOIN [TNG LIV$Detailed Cust_ Ledg_ Entry$437dbf0e-84ff-417a-965d-ed2bb9650972] DCLE_PAY
     ON CLE.[Entry No_] = DCLE_PAY.[Cust_ Ledger Entry No_]
-    AND DCLE_PAY.[Entry Type] = 2    -- Application
-    AND DCLE_PAY.[Document Type] = 1 -- Payment
+    AND DCLE_PAY.[Entry Type] = 2
+    AND DCLE_PAY.[Document Type] = 1
 
--- 2. หา Cheque Main (Check Ledger Entry)
 LEFT JOIN [TNG LIV$Check Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972] Check_Main
     ON DCLE_PAY.[Document No_] = Check_Main.[Document No_]
 
--- 3. หา Cheque Ext (Check Ledger Entry Ext)
 LEFT JOIN [TNG LIV$Check Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972$ext] Check_Ext
     ON Check_Main.[Entry No_] = Check_Ext.[Entry No_]
 
 WHERE
-    CLE.[Customer No_] = 'CUST-001'    -- **เปลี่ยนรหัสลูกค้าที่นี่**
-    AND CLE.[Document Type] = 2        -- Invoice
+    CLE.[Customer No_] = '04003AY' -- **เปลี่ยนรหัสลูกค้าที่นี่**
+    AND CLE.[Document Type] = 2
     AND CLE.[Document No_] LIKE 'AYVR%'
     AND CLE.[Posting Date] >= '2023-01-01'
 ORDER BY CLE.[Posting Date] DESC;
