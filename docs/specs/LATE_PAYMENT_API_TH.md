@@ -167,7 +167,9 @@ Query ตาราง **Cust. Ledger Entry (Table 21)** เพื่อหาใ
 
 ## 5. ตารางอ้างอิงฟิลด์ (Mapping Reference)
 
-| Spec Field | Dynamics Table | Dynamics Field ID | Field Name | Note |
+**หมายเหตุ:** ฟิลด์ในตาราง Extension มักจะมีรหัส GUID ต่อท้าย (เช่น `Check Status$6ad9...`) โปรดตรวจสอบ Schema ในระบบของท่าน
+
+| Spec Field | Dynamics Table | Dynamics Field ID | Field Name Example | Note |
 | :--- | :--- | :--- | :--- | :--- |
 | **Invoice Info** | | | | |
 | `document_no` | Cust. Ledger Entry (21) | 6 | `Document No.` | |
@@ -179,12 +181,12 @@ Query ตาราง **Cust. Ledger Entry (Table 21)** เพื่อหาใ
 | `payment_date` | Detailed Cust. Ledg. Entry (379) | 4 | `Posting Date` | ใช้วันนี้ถ้าไม่มีเช็ค |
 | **Check Info** | | | | |
 | `check_date` | Check Ledger Entry (272) | 9 | `Check Date` | |
-| `check_status` | Check Ledger Entry **Ext** | 50411 | `Check Status` | **ต้อง Join ด้วย Entry No.** |
-| `check_status_date` | Check Ledger Entry **Ext** | 50420 | `Check Status Date` | **ต้อง Join ด้วย Entry No.** |
-| `on_hand_date` | Check Ledger Entry **Ext** | 50422 | `On Hand Date` | **ต้อง Join ด้วย Entry No.** |
-| `deposit_date` | Check Ledger Entry **Ext** | 50423 | `Deposit Date` | **ต้อง Join ด้วย Entry No.** |
-| `pass_date` | Check Ledger Entry **Ext** | 50424 | `Pass Date` | **ต้อง Join ด้วย Entry No.** |
-| `cleared_date` | Check Ledger Entry **Ext** | 50425 | `Cleared Date` | **ต้อง Join ด้วย Entry No.** |
+| `check_status` | Check Ledger Entry **Ext** | 50411 | `Check Status$6ad9...` | **ต้อง Join ด้วย Entry No.** |
+| `check_status_date` | Check Ledger Entry **Ext** | 50420 | `Check Status Date$6ad9...` | **ต้อง Join ด้วย Entry No.** |
+| `on_hand_date` | Check Ledger Entry **Ext** | 50422 | `On Hand Date$6ad9...` | **ต้อง Join ด้วย Entry No.** |
+| `deposit_date` | Check Ledger Entry **Ext** | 50423 | `Deposit Date$6ad9...` | **ต้อง Join ด้วย Entry No.** |
+| `pass_date` | Check Ledger Entry **Ext** | 50424 | `Pass Date$6ad9...` | **ต้อง Join ด้วย Entry No.** |
+| `cleared_date` | Check Ledger Entry **Ext** | 50425 | `Cleared Date$6ad9...` | **ต้อง Join ด้วย Entry No.** |
 
 ---
 

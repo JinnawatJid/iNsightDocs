@@ -167,7 +167,9 @@ Combine the data from steps 1-3:
 
 ## 5. Standard Mapping Reference
 
-| Spec Field | Dynamics Table | Dynamics Field ID | Field Name | Note |
+**Note:** Extension fields (Check Status, Dates) often have GUID suffixes (e.g., `Check Status$6ad9...`). Please check your specific environment schema.
+
+| Spec Field | Dynamics Table | Dynamics Field ID | Field Name Example | Note |
 | :--- | :--- | :--- | :--- | :--- |
 | **Invoice Info** | | | | |
 | `document_no` | Cust. Ledger Entry (21) | 6 | `Document No.` | |
@@ -179,12 +181,12 @@ Combine the data from steps 1-3:
 | `payment_date` | Detailed Cust. Ledg. Entry (379) | 4 | `Posting Date` | Default date if no check |
 | **Check Info** | | | | |
 | `check_date` | Check Ledger Entry (272) | 9 | `Check Date` | |
-| `check_status` | Check Ledger Entry **Ext** | 50411 | `Check Status` | **Requires Join on Entry No.** |
-| `check_status_date` | Check Ledger Entry **Ext** | 50420 | `Check Status Date` | **Requires Join on Entry No.** |
-| `on_hand_date` | Check Ledger Entry **Ext** | 50422 | `On Hand Date` | **Requires Join on Entry No.** |
-| `deposit_date` | Check Ledger Entry **Ext** | 50423 | `Deposit Date` | **Requires Join on Entry No.** |
-| `pass_date` | Check Ledger Entry **Ext** | 50424 | `Pass Date` | **Requires Join on Entry No.** |
-| `cleared_date` | Check Ledger Entry **Ext** | 50425 | `Cleared Date` | **Requires Join on Entry No.** |
+| `check_status` | Check Ledger Entry **Ext** | 50411 | `Check Status$6ad9...` | **Requires Join on Entry No.** |
+| `check_status_date` | Check Ledger Entry **Ext** | 50420 | `Check Status Date$6ad9...` | **Requires Join on Entry No.** |
+| `on_hand_date` | Check Ledger Entry **Ext** | 50422 | `On Hand Date$6ad9...` | **Requires Join on Entry No.** |
+| `deposit_date` | Check Ledger Entry **Ext** | 50423 | `Deposit Date$6ad9...` | **Requires Join on Entry No.** |
+| `pass_date` | Check Ledger Entry **Ext** | 50424 | `Pass Date$6ad9...` | **Requires Join on Entry No.** |
+| `cleared_date` | Check Ledger Entry **Ext** | 50425 | `Cleared Date$6ad9...` | **Requires Join on Entry No.** |
 
 ---
 

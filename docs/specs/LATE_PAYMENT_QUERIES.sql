@@ -1,9 +1,6 @@
 -- SQL สำหรับทดสอบการดึงข้อมูล Late Payment Analysis ใน DBeaver
--- หมายเหตุ: **สำคัญมาก** กรุณาเปลี่ยนชื่อตารางให้ตรงกับชื่อตารางจริงใน Database ของคุณ
--- 1. [Cust. Ledger Entry] -> เช่น [TNG LIV$Cust. Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972]
--- 2. [Detailed Cust. Ledg. Entry] -> เช่น [TNG LIV$Detailed Cust. Ledg. Entry$437dbf0e-84ff-417a-965d-ed2bb9650972]
--- 3. [Check Ledger Entry] (Main) -> เช่น [TNG LIV$Check Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972]
--- 4. [Check Ledger Entry Ext] (Extension) -> เช่น [TNG LIV$Check Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972ext]
+-- หมายเหตุ: **สำคัญมาก** ชื่อตารางและชื่อ Column ที่ลงท้ายด้วย GUID (เช่น $6ad92336...)
+-- จะแตกต่างกันไปตาม Environment ของแต่ละบริษัท กรุณาตรวจสอบชื่อจริงใน Database ของคุณก่อนใช้งาน
 
 -- =====================================================================================
 -- 1. ค้นหา Invoice (ใบแจ้งหนี้)
@@ -52,19 +49,19 @@ GO
 -- =====================================================================================
 -- 3. ตรวจสอบสถานะเช็ค (Cheque Status) - *แก้ไขตาม User Request*
 -- =====================================================================================
--- ต้อง Join ตาราง Extension (ลงท้ายด้วย ext) ด้วย Entry No_ เพื่อดึงสถานะและวันที่สถานะ
+-- ตัวอย่าง Query ที่ใช้งานจริง (สังเกตชื่อ Column ที่มี GUID ต่อท้าย)
 
 SELECT
     Check_Main.[Document No_],
     Check_Main.[Check Date],
-    Check_Ext.[Check Status],      -- สถานะเช็ค (Integer/Option)
-    Check_Ext.[Check Status Date], -- วันที่เปลี่ยนสถานะล่าสุด
-    Check_Ext.[On Hand Date],      -- วันที่รับเช็ค
-    Check_Ext.[Deposit Date],      -- วันที่นำฝาก
-    Check_Ext.[Pass Date],         -- วันที่ผ่าน
-    Check_Ext.[Cleared Date]       -- วันที่เคลียร์เช็ค
-FROM [Check Ledger Entry] Check_Main
-JOIN [Check Ledger Entry Ext] Check_Ext
+    Check_Ext.[Check Status$6ad92336-3ccf-49e0-a46a-31561b26a7ad] AS [Check Status],           -- สถานะเช็ค
+    Check_Ext.[Check Status Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] AS [Check Status Date], -- วันที่เปลี่ยนสถานะล่าสุด
+    Check_Ext.[On Hand Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] AS [On Hand Date],           -- วันที่รับเช็ค
+    Check_Ext.[Deposit Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] AS [Deposit Date],           -- วันที่นำฝาก
+    Check_Ext.[Pass Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] AS [Pass Date],                 -- วันที่ผ่าน
+    Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] AS [Cleared Date]            -- วันที่เคลียร์เช็ค
+FROM [TNG LIV$Check Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972] Check_Main
+JOIN [TNG LIV$Check Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972$ext] Check_Ext
     ON Check_Main.[Entry No_] = Check_Ext.[Entry No_]
 WHERE
     Check_Main.[Document No_] = 'PAY-DOCUMENT-NO'; -- **เปลี่ยนเป็น Document No_ จากผลลัพธ์ข้อ 2**
@@ -85,8 +82,8 @@ SELECT
 
     -- ข้อมูลเช็ค (ถ้ามี)
     Check_Main.[Check Date],
-    Check_Ext.[Check Status],
-    Check_Ext.[Cleared Date],
+    Check_Ext.[Check Status$6ad92336-3ccf-49e0-a46a-31561b26a7ad] AS [Check Status],
+    Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] AS [Cleared Date],
 
     -- คำนวณวันจ่ายจริง (Effective Date)
     -- Logic: ถ้าจ่ายเช็ค ให้ใช้วันที่เช็คเคลียร์ (หรือเงื่อนไข 5 วัน) ถ้าไม่ใช่เช็ค ใช้วันที่ Posting Date ของ Payment
@@ -94,7 +91,8 @@ SELECT
         WHEN Check_Main.[Check Date] IS NOT NULL THEN
             -- ตัวอย่าง Logic 5 วัน (ปรับตาม Business Logic จริง)
             CASE
-                WHEN Check_Ext.[Cleared Date] IS NOT NULL THEN Check_Ext.[Cleared Date]
+                WHEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] IS NOT NULL
+                THEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]
                 ELSE Check_Main.[Check Date] -- Fallback
             END
         ELSE DCLE_PAY.[Posting Date]
@@ -105,7 +103,11 @@ SELECT
         WHEN (
             CASE
                 WHEN Check_Main.[Check Date] IS NOT NULL THEN
-                    CASE WHEN Check_Ext.[Cleared Date] IS NOT NULL THEN Check_Ext.[Cleared Date] ELSE Check_Main.[Check Date] END
+                    CASE
+                        WHEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] IS NOT NULL
+                        THEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]
+                        ELSE Check_Main.[Check Date]
+                    END
                 ELSE DCLE_PAY.[Posting Date]
             END
         ) > CLE.[Due Date] THEN 'LATE'
@@ -121,11 +123,11 @@ LEFT JOIN [Detailed Cust. Ledg. Entry] DCLE_PAY
     AND DCLE_PAY.[Document Type] = 1 -- Payment
 
 -- 2. หา Cheque Main (Check Ledger Entry)
-LEFT JOIN [Check Ledger Entry] Check_Main
+LEFT JOIN [TNG LIV$Check Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972] Check_Main
     ON DCLE_PAY.[Document No_] = Check_Main.[Document No_]
 
 -- 3. หา Cheque Ext (Check Ledger Entry Ext)
-LEFT JOIN [Check Ledger Entry Ext] Check_Ext
+LEFT JOIN [TNG LIV$Check Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972$ext] Check_Ext
     ON Check_Main.[Entry No_] = Check_Ext.[Entry No_]
 
 WHERE
