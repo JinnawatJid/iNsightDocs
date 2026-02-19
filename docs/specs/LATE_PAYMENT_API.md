@@ -1,0 +1,175 @@
+# Late Payment Analysis API Specification
+
+## 1. Overview
+This document outlines the requirements and technical specifications for the **Late Payment Analysis API**. This API is designed to retrieve consolidated payment behavior data for a specific customer from the Dynamics 365 ERP system.
+
+The primary goal is to determine if a customer pays their invoices on time, considering both direct payments (Cash/Transfer) and Cheque payments (with specific clearing logic).
+
+### Key Features
+- **Aggregated Data:** Returns a single list of invoices with their corresponding payment status, eliminating the need for multiple round-trips.
+- **Business Logic Encapsulation:** Handles complex logic (e.g., check clearing dates, partial payments) on the backend.
+- **Auditability:** Includes a `_meta_debug` field to trace data back to original ERP records.
+
+---
+
+## 2. API Contract
+
+### Endpoint
+`GET /api/v1/customers/{customer_no}/payment-behavior`
+
+### Request Parameters
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `customer_no` | string | Yes | The Customer No. (e.g., `CUST-001`) |
+| `start_date` | date | No | Filter invoices posted on or after this date (YYYY-MM-DD). Default: 1 year ago. |
+| `end_date` | date | No | Filter invoices posted on or before this date (YYYY-MM-DD). Default: Today. |
+
+### Response Schema (JSON)
+
+```json
+{
+  "customer_no": "CUST-001",
+  "summary": {
+    "total_invoices": 12,
+    "on_time_payments": 10,
+    "late_payments": 2,
+    "average_late_days": 3.5
+  },
+  "invoices": [
+    {
+      "document_no": "INV-2023-1001",
+      "posting_date": "2023-01-01",
+      "due_date": "2023-01-31",
+      "amount": 10000.00,
+      "remaining_amount": 0.00,
+      "status": "Paid",
+      "payment_detail": {
+        "payment_date": "2023-02-02",
+        "payment_method": "Cheque",
+        "is_late": false,
+        "late_days": 0,
+        "remark": "Paid within 5-day buffer period"
+      },
+      "_meta_debug": {
+        "cust_ledger_entry_no": 1050,
+        "detailed_ledger_entry_no": 5021,
+        "check_ledger_entry_no": 8890,
+        "original_check_date": "2023-01-31",
+        "original_cleared_date": "2023-02-02"
+      }
+    },
+    {
+      "document_no": "INV-2023-1005",
+      "posting_date": "2023-02-01",
+      "due_date": "2023-02-28",
+      "amount": 5000.00,
+      "remaining_amount": 5000.00,
+      "status": "Outstanding",
+      "payment_detail": null,
+      "_meta_debug": {
+        "cust_ledger_entry_no": 1065
+      }
+    }
+  ]
+}
+```
+
+---
+
+## 3. Business Logic Definitions
+
+### 3.1 Effective Payment Date Rule
+The "Effective Payment Date" is determined based on the payment method:
+
+1.  **Cash / Transfer:**
+    *   `Effective Date` = `Posting Date` (from Detailed Cust. Ledg. Entry).
+2.  **Cheque:**
+    *   **Scenario A (Normal):** If `Cleared Date` (Check Ledger) is within **5 days** of `Check Date`, use `Check Date` as the `Effective Date`.
+    *   **Scenario B (Delayed Processing):** If `Cleared Date` is **more than 5 days** after `Check Date`, use `Cleared Date` as the `Effective Date`.
+    *   *Logic:* `IF DATEDIFF(day, CheckDate, ClearedDate) <= 5 THEN CheckDate ELSE ClearedDate`
+
+### 3.2 Late Payment Definition
+A payment is considered **Late** if:
+`Effective Payment Date` > `Due Date` (from Cust. Ledger Entry)
+
+---
+
+## 4. Backend Implementation Guide (Dynamics 365 / NAV)
+
+This section provides the SQL/Logic steps to retrieve the required data.
+
+### Step 1: Find Invoices (The Source)
+Query the **Cust. Ledger Entry (Table 21)** to find the invoices.
+
+*   **Filter:**
+    *   `Customer No.` = `{customer_no}`
+    *   `Document Type` = `Invoice` (Option: 1 or 2)
+    *   `Document No.` LIKE `AYVR%` (Specific business rule)
+    *   `Posting Date` BETWEEN `{start_date}` AND `{end_date}`
+
+*   **Select Columns:**
+    *   `Entry No.` (Primary Key - Crucial for joining)
+    *   `Document No.`
+    *   `Posting Date`
+    *   `Due Date`
+    *   `Remaining Amount`
+    *   `Original Amount` (Calculated from Detailed Entries if needed, or use `Sales (LCY)`)
+
+### Step 2: Find Payment Details (The Application)
+For each Invoice found in Step 1, query the **Detailed Cust. Ledg. Entry (Table 379)** to find how it was paid.
+
+*   **Join Condition:**
+    *   `Cust. Ledger Entry No.` = `Step1.Entry_No`
+*   **Filter (CRITICAL):**
+    *   **`Entry Type` = `Application` (Option: 2)**. This ensures we only get records representing the *application* of a payment to the invoice, not the initial creation or other adjustments.
+    *   `Document Type` = `Payment` (Option: 1)
+*   **Select Columns:**
+    *   `Entry No.` (For debug)
+    *   `Document No.` (The Payment Document No., e.g., RCPT-XXXX)
+    *   `Posting Date` (This is the potential payment date for Cash/Transfer)
+    *   `Amount` (Credit Amount)
+
+### Step 3: Check Details (If Paid by Cheque)
+For each Payment found in Step 2, check if it relates to a Cheque in **Check Ledger Entry (Table 272)**.
+
+*   **Join Condition:**
+    *   `Document No.` = `Step2.Document_No`
+*   **Select Columns:**
+    *   `Check Date`
+    *   `Cleared Date` (Or `Pass Date` depending on system config)
+    *   `Entry Status` (Ensure it is not 'Voided')
+
+### Step 4: Data Aggregation & Logic Application
+Combine the data from steps 1-3:
+
+1.  **Iterate** through each Invoice (from Step 1).
+2.  **Find** the corresponding Payment Application (from Step 2).
+    *   *Note:* There might be multiple payments (partial payments). In this V1, focus on the latest payment or the one that clears the balance.
+3.  **Determine** Payment Method:
+    *   If a record exists in `Check Ledger Entry` (Step 3), treat as **Cheque**.
+    *   Otherwise, treat as **Cash/Transfer**.
+4.  **Calculate** `Effective Payment Date` using the rules in Section 3.1.
+5.  **Compare** `Effective Payment Date` vs. `Due Date` to set `is_late`.
+6.  **Populate** the `_meta_debug` object with the `Entry No.` from all 3 tables to allow easy auditing.
+
+---
+
+## 5. Standard Mapping Reference
+
+| Spec Field | Dynamics Table | Dynamics Field ID | Field Name | Note |
+| :--- | :--- | :--- | :--- | :--- |
+| **Invoice Info** | | | | |
+| `document_no` | Cust. Ledger Entry (21) | 6 | `Document No.` | |
+| `posting_date` | Cust. Ledger Entry (21) | 20 | `Posting Date` | |
+| `due_date` | Cust. Ledger Entry (21) | 24 | `Due Date` | |
+| `amount` | Cust. Ledger Entry (21) | 13 | `Amount` | (Check flow field) |
+| **Payment Info** | | | | |
+| `payment_doc_no` | Detailed Cust. Ledg. Entry (379) | 6 | `Document No.` | Filter `Entry Type`=`Application` |
+| `payment_date` | Detailed Cust. Ledg. Entry (379) | 4 | `Posting Date` | Default date if no check |
+| **Check Info** | | | | |
+| `check_date` | Check Ledger Entry (272) | 9 | `Check Date` | |
+| `cleared_date` | Check Ledger Entry (272) | 50425 | `Cleared Date` | Custom ID? Check local implementation. |
+
+---
+
+**End of Specification**
