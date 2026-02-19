@@ -46,7 +46,7 @@ const tabs = computed(() => {
     'เครดิตเพิ่ม',
     'เปลี่ยนแปลงระยะเวลาเครดิต',
     'เปลี่ยนแปลงเงื่อนไขการชำระเงิน'
-  ].includes(requestType);
+  ].some(t => requestType && requestType.includes(t));
 
   const requestInfoLabel = isChangeRequest ? 'เปลี่ยนแปลงข้อมูลคำขอ' : 'ข้อมูลคำขอ';
 

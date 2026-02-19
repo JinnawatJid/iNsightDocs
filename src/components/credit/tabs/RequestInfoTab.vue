@@ -109,7 +109,7 @@
       <div class="form-grid-three-columns">
             <!-- Field 1: Current Limit (Read Only) - Only for Credit Increase -->
             <div class="form-group" v-if="isRequestIncrease && isDraftMode">
-              <label>วงเงินปัจจุบัน (Current Limit)</label>
+              <label>วงเงินปัจจุบัน</label>
               <input
                 type="text"
                 class="form-input disabled"
@@ -120,7 +120,7 @@
 
             <div class="form-group" v-if="isDraftMode">
               <label>
-                  {{ isRequestIncrease ? 'วงเงินใหม่ที่ต้องการ (New Total Limit)' : 'วงเงินเครดิตที่ต้องการ (บาท)' }}
+                  {{ isRequestIncrease ? 'วงเงินรวมใหม่ที่ต้องการ' : 'วงเงินเครดิตที่ต้องการ (บาท)' }}
                   <span v-if="isRequired('amount')" class="text-red-500">*</span>
               </label>
               <input
@@ -142,7 +142,7 @@
                     ระยะเวลาเครดิต (กระจก, กาว)
                     <!-- Show current if special mode -->
                     <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
-                        (Current: {{ store.originalCustomer.credit_term }})
+                        (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
                 </label>
                 <input
@@ -159,7 +159,7 @@
                 <label>
                     ระยะเวลาเครดิต (อลูมิเนียม, Acc)
                     <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
-                        (Current: {{ store.originalCustomer.credit_term }})
+                        (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
                 </label>
                 <input
@@ -176,7 +176,7 @@
                 <label>
                     ระยะเวลาเครดิต (ยิปซั่ม, ซีลาย)
                     <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
-                        (Current: {{ store.originalCustomer.credit_term }})
+                        (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
                 </label>
                 <input
@@ -499,10 +499,10 @@ const isDraftMode = computed(() => {
   return !store.requestStatus || store.requestStatus === 'Draft';
 });
 
-const isRequestIncrease = computed(() => store.transactionData.requestType === 'เครดิตเพิ่ม');
-const isChangePayment = computed(() => store.transactionData.requestType === 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน');
-const isChangeTerm = computed(() => store.transactionData.requestType === 'เปลี่ยนแปลงระยะเวลาเครดิต');
-const isNewRequest = computed(() => store.transactionData.requestType === 'เครดิตใหม่');
+const isRequestIncrease = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตเพิ่ม'));
+const isChangePayment = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เปลี่ยนแปลงเงื่อนไขการชำระเงิน'));
+const isChangeTerm = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เปลี่ยนแปลงระยะเวลาเครดิต'));
+const isNewRequest = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตใหม่'));
 
 const isQuotationRequired = computed(() => {
     return store.transactionData.reason === 'ขออนุมัติเครดิต (มีใบสั่งซื้อแนบมาพร้อม)';
@@ -532,8 +532,8 @@ const isBillingVisible = computed(() => {
 });
 
 // Field Visibility / Editability Logic
-const canEditAmount = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || store.transactionData.requestType === 'เครดิตใหม่'));
-const canEditTerms = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isChangeTerm.value || store.transactionData.requestType === 'เครดิตใหม่'));
+const canEditAmount = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isNewRequest.value));
+const canEditTerms = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isChangeTerm.value || isNewRequest.value));
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);

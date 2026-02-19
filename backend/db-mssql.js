@@ -218,7 +218,7 @@ const initDB = async () => {
             { name: 'term_gs', type: 'INT' },
             { name: 'term_ae', type: 'INT' },
             { name: 'term_yc', type: 'INT' },
-            { name: 'request_type', type: 'NVARCHAR(50)' }
+            { name: 'request_type', type: 'NVARCHAR(255)' }
         ];
 
         for (const col of creditRequestColumns) {
@@ -252,6 +252,25 @@ const initDB = async () => {
             console.log('Migrated legacy credit terms to new columns.');
         } catch (e) {
             console.error('Error migrating legacy credit terms:', e);
+        }
+
+        // Migration: Ensure request_type is large enough
+        try {
+             const alterSql = `
+                IF EXISTS (
+                    SELECT * FROM sys.columns
+                    WHERE Name = 'request_type' AND Object_ID = Object_ID('CreditRequests')
+                )
+                BEGIN
+                    ALTER TABLE CreditRequests ALTER COLUMN request_type NVARCHAR(255)
+                END
+            `;
+            // Note: We need a new request object for this query if reusing pool.request() could be problematic in loop, but here it is fine.
+            const req = new sql.Request(pool);
+            await req.query(alterSql);
+            console.log('Ensured request_type column size is NVARCHAR(255)');
+        } catch (err) {
+             console.error('Error altering request_type column:', err);
         }
 
          // Create CreditRequestAttachments table

@@ -4,7 +4,7 @@
     <div v-if="isReadOnly" class="readonly-banner">
       <div class="banner-content">
         <span class="warning-icon">⚠️</span>
-        <span>คำขอถูกส่งเรียบร้อยแล้ว (Read Only) หากต้องการแก้ไขข้อมูล กรุณายกเลิกคำขอก่อน</span>
+        <span>คำขอถูกส่งเรียบร้อยแล้ว หากต้องการแก้ไขข้อมูล กรุณายกเลิกคำขอก่อน</span>
       </div>
     </div>
 
@@ -17,7 +17,7 @@
             class="toggle-details-btn"
             @click="showAllDetails = !showAllDetails"
         >
-            {{ showAllDetails ? 'ซ่อนข้อมูลทั้งหมด (Hide All)' : 'แสดงข้อมูลทั้งหมด (Show All)' }}
+            {{ showAllDetails ? 'ซ่อนข้อมูลทั้งหมด' : 'แสดงข้อมูลทั้งหมด' }}
         </button>
       </div>
       <ApplicationTabs :readOnly="isReadOnly" :viewMode="viewMode" />
@@ -34,7 +34,7 @@
         />
 
         <div class="footer-info">
-            <span class="author">Current Role: {{ currentRoleLabel }}</span>
+            <span class="author">สถานะปัจจุบัน: {{ currentRoleLabel }}</span>
         </div>
 
         <div class="action-buttons">
@@ -107,7 +107,9 @@ const isHighValue = computed(() => {
 // Check if current request type is one of the special types
 const isSpecialRequestType = computed(() => {
     const type = store.transactionData.requestType;
-    return ['เครดิตเพิ่ม', 'เปลี่ยนแปลงระยะเวลาเครดิต', 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน'].includes(type);
+    if (!type) return false;
+    const specialTypes = ['เครดิตเพิ่ม', 'เปลี่ยนแปลงระยะเวลาเครดิต', 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน'];
+    return specialTypes.some(t => type.includes(t));
 });
 
 // View Mode Logic
@@ -228,7 +230,7 @@ const computeChanges = () => {
     const fmt = (val) => (val === null || val === undefined || val === '') ? '-' : val;
 
     // 1. Credit Increase
-    if (type === 'เครดิตเพิ่ม') {
+    if (type && type.includes('เครดิตเพิ่ม')) {
         // Try to find current credit limit proxy
         let currentLimit = 'N/A';
         // Check financial summary for 3-months purchase as a weak proxy? No, that's sales.
@@ -250,7 +252,7 @@ const computeChanges = () => {
     }
 
     // 2. Change Payment
-    if (type === 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน' || type === 'เครดิตเพิ่ม') {
+    if (type && (type.includes('เปลี่ยนแปลงเงื่อนไขการชำระเงิน') || type.includes('เครดิตเพิ่ม'))) {
         const fields = [
             { key: 'billing_requirement', label: 'การวางบิล' },
             { key: 'billing_method', label: 'วิธีการวางบิล' },
@@ -272,7 +274,7 @@ const computeChanges = () => {
     }
 
     // 3. Change Credit Term
-    if (type === 'เปลี่ยนแปลงระยะเวลาเครดิต' || type === 'เครดิตเพิ่ม') {
+    if (type && (type.includes('เปลี่ยนแปลงระยะเวลาเครดิต') || type.includes('เครดิตเพิ่ม'))) {
         if (txn.termGS) changes.push({ label: 'Term GS', oldVal: '-', newVal: txn.termGS });
         if (txn.termAE) changes.push({ label: 'Term AE', oldVal: '-', newVal: txn.termAE });
         if (txn.termYC) changes.push({ label: 'Term YC', oldVal: '-', newVal: txn.termYC });
