@@ -27,6 +27,7 @@ WHERE
     AND CLE.[Document No_] LIKE 'AYVR%'
     AND CLE.[Posting Date] >= '2023-01-01'
 ORDER BY CLE.[Posting Date] DESC;
+GO
 
 
 -- =====================================================================================
@@ -45,6 +46,7 @@ WHERE
     [Cust. Ledger Entry No_] = 12345 -- **เปลี่ยนเป็น Entry No_ จากผลลัพธ์ข้อ 1**
     AND [Entry Type] = 2             -- Application (การจับคู่ชำระ)
     AND [Document Type] = 1;         -- Payment (การจ่ายเงิน)
+GO
 
 
 -- =====================================================================================
@@ -66,6 +68,7 @@ JOIN [Check Ledger Entry Ext] Check_Ext
     ON Check_Main.[Entry No_] = Check_Ext.[Entry No_]
 WHERE
     Check_Main.[Document No_] = 'PAY-DOCUMENT-NO'; -- **เปลี่ยนเป็น Document No_ จากผลลัพธ์ข้อ 2**
+GO
 
 
 -- =====================================================================================
@@ -131,3 +134,4 @@ WHERE
     AND CLE.[Document No_] LIKE 'AYVR%'
     AND CLE.[Posting Date] >= '2023-01-01'
 ORDER BY CLE.[Posting Date] DESC;
+GO
