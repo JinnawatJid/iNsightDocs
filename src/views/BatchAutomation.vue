@@ -107,6 +107,7 @@
             <th>รหัสลูกค้า</th>
             <th>ชื่อลูกค้า</th>
             <th>ยอดซื้อรวม 3 เดือน</th>
+            <th>เฉลี่ยการจ่ายเงินล่าช้า</th>
             <th>ระยะเวลาเครดิต</th>
             <th>วงเงินปัจจุบัน</th>
             <th>วงเงินใหม่</th>
@@ -122,6 +123,7 @@
             <td>{{ item.customerId }}</td>
             <td>{{ item.name || '-' }}</td>
             <td>{{ formatNumber(item.totalPurchase3Months) }}</td>
+            <td>{{ item.latePaymentAverage !== null ? formatNumber(item.latePaymentAverage) + ' วัน' : '-' }}</td>
             <td>{{ item.paymentTerms || '-' }}</td>
             <td>{{ formatNumber(item.currentLimit) }}</td>
             <td class="text-bold">{{ formatNumber(item.newLimit) }}</td>
@@ -334,6 +336,7 @@ const processFile = (file) => {
         name: '',
         taxId: '',
         totalPurchase3Months: 0,
+        latePaymentAverage: null,
         currentLimit: 0,
         paymentTerms: '',
         newLimit: null,
@@ -759,6 +762,12 @@ const processNextItem = async () => {
             item.newLimit = analyzeRes.data.scoringResult?.recommendedLimit || 0;
             item.score = analyzeRes.data.scoringResult?.totalScore || 0;
             item.grade = analyzeRes.data.scoringResult?.grade || '-';
+
+            // Extract Late Payment Average
+            if (analyzeRes.data.financialSummary?.latePaymentData?.average_late_days !== undefined) {
+                 item.latePaymentAverage = analyzeRes.data.financialSummary.latePaymentData.average_late_days;
+            }
+
             item.status = skipDBD ? 'Done (Int)' : 'Done';
             item.log = 'เสร็จสิ้น';
         } else {
@@ -868,6 +877,7 @@ const exportSummarizedReport = () => {
       'ชื่อลูกค้า': item.name,
       'เลขผู้เสียภาษี': item.taxId,
       'ยอดซื้อ 3 เดือน': item.totalPurchase3Months,
+      'เฉลี่ยการจ่ายเงินล่าช้า (วัน)': item.latePaymentAverage !== null ? item.latePaymentAverage : '-',
       'เครดิตเทอม': item.paymentTerms || '-',
       'วงเงินปัจจุบัน': item.currentLimit,
       'วงเงินใหม่ (แนะนำ)': item.newLimit,
@@ -925,6 +935,9 @@ const exportFullDetailReport = () => {
           'ทุนจดทะเบียน': formatNumber(item.registeredCapital),
           'ระยะเวลาของธุรกิจ': item.yearsInBusiness || 0,
           'คะแนนระยะเวลาธุรกิจ': extractFinancialData(item, 'years', 'score'),
+
+          'เฉลี่ยการจ่ายเงินล่าช้า (วัน)': item.latePaymentAverage !== null ? item.latePaymentAverage : '-',
+
           'สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน': extractFinancialData(item, 'leverage'),
           'คะแนน สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน': extractFinancialData(item, 'leverage', 'score'),
           'กรรมสิทธิ์ทรัพย์สิน': extractFinancialData(item, 'asset'),

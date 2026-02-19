@@ -9,6 +9,8 @@ const { extractDBDData } = require('../utils/pdfExtractor');
 
 // Configuration
 const FINANCIAL_API_URL = "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
+const LATE_PAYMENT_API_URL = "http://192.192.0.37:8280/customer-late-payment/1.0.0";
+const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
 const MOCK_FINANCIAL_API = process.env.MOCK_FINANCIAL_API === 'true';
 
 // Mock Data (Matches customerController.js for consistency)
@@ -97,6 +99,48 @@ const fetchPurchasingBehavior = async (customerNo) => {
         console.error(`[Financial API] Error fetching purchasing behavior for ${customerNo}:`, error.message);
         // Return null to indicate failure/no data
         return null;
+    }
+};
+
+// Helper: Fetch Late Payment Data from External API
+const fetchLatePaymentData = async (customerNo) => {
+    try {
+        console.log(`[Late Payment API] Fetching data for ${customerNo} from ${LATE_PAYMENT_API_URL}`);
+        const response = await axios.get(`${LATE_PAYMENT_API_URL}/${customerNo}`, {
+            headers: {
+                "apikey": API_KEY
+            },
+            timeout: 5000
+        });
+
+        const data = response.data;
+        // Check if data is array (direct list) or object with data property
+        const invoices = Array.isArray(data) ? data : (data.data || []);
+
+        if (!invoices || invoices.length === 0) {
+             return { average_late_days: 0, total_invoices: 0, late_count: 0 };
+        }
+
+        let totalLateDays = 0;
+        let lateCount = 0;
+
+        invoices.forEach(inv => {
+            const lateDays = Number(inv.Late_Days) || 0;
+            totalLateDays += lateDays;
+            if (lateDays > 0) lateCount++;
+        });
+
+        const avg = totalLateDays / invoices.length;
+
+        return {
+            average_late_days: Number(avg.toFixed(2)),
+            total_invoices: invoices.length,
+            late_count: lateCount
+        };
+
+    } catch (error) {
+        console.error(`[Late Payment API] Error fetching data for ${customerNo}:`, error.message);
+        return null; // Return null to indicate error/no data available
     }
 };
 
@@ -422,6 +466,7 @@ exports.analyzeFinancials = async (req, res) => {
     let customerData = {};
     let accumData = null;
     let monthlyHistory = [];
+    let latePaymentData = null;
 
     if (customer_no) {
         // Fetch Customer Profile (Years in Business, etc.)
@@ -444,8 +489,13 @@ exports.analyzeFinancials = async (req, res) => {
         if (residence_ownership) customerData.residence_ownership = residence_ownership;
         if (residence_ownership_other) customerData.residence_ownership_other = residence_ownership_other;
 
-        // Fetch Financial Data (REPLACED SQL WITH API)
-        const apiData = await fetchPurchasingBehavior(customer_no);
+        // Parallel Fetch: Financial Data (API) & Late Payment Data (API)
+        const [apiData, lateDataResult] = await Promise.all([
+             fetchPurchasingBehavior(customer_no),
+             fetchLatePaymentData(customer_no)
+        ]);
+
+        latePaymentData = lateDataResult;
 
         if (apiData && apiData.monthly) {
             // New Logic: Use Continuous Timeline
@@ -527,6 +577,7 @@ exports.analyzeFinancials = async (req, res) => {
     // Additional Financial Summary for Frontend
     const financialSummary = {
         monthlyHistory,
+        latePaymentData: latePaymentData, // Include Late Payment Info
         stats: {
             sumLast3: accumData ? accumData.SecondAccum : 0,
             trendRatio: accumData ? accumData.AccumTrend : 1.0,
