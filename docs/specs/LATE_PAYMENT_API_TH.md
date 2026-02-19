@@ -1,0 +1,198 @@
+# ข้อกำหนด API การวิเคราะห์การจ่ายเงินล่าช้า (Late Payment Analysis)
+
+## 1. ภาพรวม (Overview)
+เอกสารนี้ระบุข้อกำหนดและรายละเอียดทางเทคนิคสำหรับ **Late Payment Analysis API** โดยมีจุดประสงค์เพื่อดึงข้อมูลพฤติกรรมการจ่ายเงินของลูกค้าจากระบบ Dynamics 365 ERP
+
+เป้าหมายหลักคือการตรวจสอบว่าลูกค้าจ่ายเงินตรงเวลาหรือไม่ โดยคำนึงถึงทั้งการจ่ายเงินสด/โอน (Cash/Transfer) และการจ่ายเช็ค (Cheque) ซึ่งมีเงื่อนไขการเคลียร์เงินที่ซับซ้อน
+
+### ฟีเจอร์หลัก
+- **Aggregated Data:** ส่งข้อมูลรายการหนี้ (Invoices) ทั้งหมดพร้อมสถานะการจ่ายเงินกลับมาในครั้งเดียว ลดการเรียก API หลายรอบ (Round-trip)
+- **Business Logic Encapsulation:** ซ่อนความซับซ้อนของการคำนวณ (เช่น วันที่เช็คผ่าน, การจ่ายเงินบางส่วน) ไว้ที่หลังบ้าน
+- **Auditability:** มีฟิลด์ `_meta_debug` เพื่อให้สามารถตรวจสอบย้อนกลับไปยังข้อมูลดิบใน ERP ได้
+
+---
+
+## 2. ข้อตกลงการใช้งาน API (API Contract)
+
+### Endpoint
+`GET /api/v1/customers/{customer_no}/payment-behavior`
+
+### พารามิเตอร์ (Request Parameters)
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `customer_no` | string | Yes | รหัสลูกค้า (เช่น `CUST-001`) |
+| `start_date` | date | No | กรองใบแจ้งหนี้ตั้งแต่วันที่ (YYYY-MM-DD) ค่าเริ่มต้น: 1 ปีย้อนหลัง |
+| `end_date` | date | No | กรองใบแจ้งหนี้ถึงวันที่ (YYYY-MM-DD) ค่าเริ่มต้น: วันนี้ |
+
+### โครงสร้างข้อมูลตอบกลับ (Response JSON Schema)
+
+```json
+{
+  "customer_no": "CUST-001",
+  "summary": {
+    "total_invoices": 12,        // จำนวนบิลทั้งหมด
+    "on_time_payments": 10,      // จ่ายตรงเวลา
+    "late_payments": 2,          // จ่ายล่าช้า
+    "average_late_days": 3.5     // จำนวนวันล่าช้าเฉลี่ย
+  },
+  "invoices": [
+    {
+      "document_no": "INV-2023-1001",
+      "posting_date": "2023-01-01",
+      "due_date": "2023-01-31",
+      "amount": 10000.00,
+      "remaining_amount": 0.00,
+      "status": "Paid",
+      "payment_detail": {
+        "payment_date": "2023-02-02",
+        "payment_method": "Cheque",
+        "is_late": false,
+        "late_days": 0,
+        "remark": "Paid within 5-day buffer period (จ่ายภายในระยะเวลาอนุโลม 5 วัน)"
+      },
+      "_meta_debug": {
+        "cust_ledger_entry_no": 1050,
+        "detailed_ledger_entry_no": 5021,
+        "check_ledger_entry_no": 8890,
+        "original_check_date": "2023-01-31",
+        "original_cleared_date": "2023-02-02"
+      }
+    },
+    {
+      "document_no": "INV-2023-1005",
+      "posting_date": "2023-02-01",
+      "due_date": "2023-02-28",
+      "amount": 5000.00,
+      "remaining_amount": 5000.00,
+      "status": "Outstanding",
+      "payment_detail": null,
+      "_meta_debug": {
+        "cust_ledger_entry_no": 1065
+      }
+    }
+  ]
+}
+```
+
+---
+
+## 3. นิยามตรรกะทางธุรกิจ (Business Logic Definitions)
+
+### 3.1 กฎวันที่มีผลชำระเงิน (Effective Payment Date Rule)
+"วันที่ถือว่าชำระเงินจริง" จะคำนวณตามประเภทการจ่ายเงิน ดังนี้:
+
+1.  **เงินสด / โอน (Cash / Transfer):**
+    *   `Effective Date` = `Posting Date` (จากตาราง Detailed Cust. Ledg. Entry).
+2.  **เช็ค (Cheque):**
+    *   **กรณี A (ปกติ):** ถ้า `Cleared Date` (วันที่เช็คผ่าน) ห่างจาก `Check Date` (วันที่หน้าเช็ค) **ไม่เกิน 5 วัน** ให้ใช้ `Check Date` เป็นวันที่มีผลชำระเงิน
+    *   **กรณี B (ดำเนินการล่าช้า):** ถ้า `Cleared Date` ห่างจาก `Check Date` **เกิน 5 วัน** ให้ใช้ `Cleared Date` เป็นวันที่มีผลชำระเงิน
+    *   *สูตร:* `IF DATEDIFF(day, CheckDate, ClearedDate) <= 5 THEN CheckDate ELSE ClearedDate`
+
+### 3.2 นิยามการจ่ายล่าช้า (Late Payment Definition)
+การชำระเงินจะถือว่า **ล่าช้า (Late)** เมื่อ:
+`Effective Payment Date` > `Due Date` (จากตาราง Cust. Ledger Entry)
+
+**การคำนวณจำนวนวันล่าช้า (Late Days):**
+*   ถ้า `is_late` เป็นจริง: `Late Days` = `Effective Payment Date` - `Due Date` (หน่วยเป็นวัน)
+*   ถ้า `is_late` เป็นเท็จ: `Late Days` = 0
+
+---
+
+## 4. แนวทางการดึงข้อมูล (Backend Implementation Guide)
+
+ส่วนนี้อธิบายขั้นตอนการ Query ข้อมูลจาก Dynamics 365 / NAV
+
+### Step 1: ค้นหาหนี้ (Find Invoices)
+Query ตาราง **Cust. Ledger Entry (Table 21)** เพื่อหาใบแจ้งหนี้
+
+*   **Filter:**
+    *   `Customer No.` = `{customer_no}`
+    *   `Document Type` = `Invoice` (Option: 1 หรือ 2)
+    *   `Document No.` LIKE `AYVR%` (ตามกฎบริษัท)
+    *   `Posting Date` BETWEEN `{start_date}` AND `{end_date}`
+
+*   **Select Columns:**
+    *   `Entry No.` (Primary Key - สำคัญมากสำหรับการ Join)
+    *   `Document No.`
+    *   `Posting Date`
+    *   `Due Date`
+    *   **การคำนวณ `Remaining Amount` (สำคัญ):**
+        *   ห้ามดึงจากตาราง Cust. Ledger Entry โดยตรงถ้าเป็น FlowField
+        *   ให้ **Join** กับ **Detailed Cust. Ledg. Entry (Table 379)** ด้วยเงื่อนไข `Cust. Ledger Entry No.` = `Entry No.`
+        *   **สูตรคำนวณ:** `SUM(Detailed Cust. Ledg. Entry.Debit Amount) - SUM(Detailed Cust. Ledg. Entry.Credit Amount)`
+        *   ต้อง Group ตาม `Entry No.` เพื่อให้ได้ยอดคงเหลือที่ถูกต้องต่อบิล
+    *   `Original Amount` (คำนวณจาก Detailed Entries หรือใช้ `Sales (LCY)`)
+
+### Step 2: ค้นหาการจ่ายเงิน (Find Payment Details)
+สำหรับ Invoice แต่ละใบที่พบใน Step 1 ให้ไปหาข้อมูลการจ่ายใน **Detailed Cust. Ledg. Entry (Table 379)**
+
+*   **Join Condition:**
+    *   `Cust. Ledger Entry No.` = `Step1.Entry_No`
+*   **Filter (สำคัญมาก):**
+    *   **`Entry Type` = `Application` (Option: 2)** เพื่อเอาเฉพาะรายการ "ตัดจ่ายหนี้" เท่านั้น (ไม่เอารายการตั้งหนี้หรือปรับปรุง)
+    *   `Document Type` = `Payment` (Option: 1)
+*   **Select Columns:**
+    *   `Entry No.` (สำหรับ Debug)
+    *   `Document No.` (เลขที่ใบเสร็จ/การจ่ายเงิน)
+    *   `Posting Date` (วันที่ทำรายการ - ใช้เป็นวันจ่ายกรณีเงินสด)
+    *   `Amount` (ยอดที่จ่าย)
+
+### Step 3: ตรวจสอบสถานะเช็ค (Check Details)
+สำหรับการจ่ายเงินแต่ละรายการใน Step 2 ให้ตรวจสอบว่าจ่ายด้วยเช็คหรือไม่ใน **Check Ledger Entry (Table 272)**
+
+*   **Primary Join Condition:**
+    *   `Detailed Cust. Ledg. Entry.Document No.` = `Check Ledger Entry.Document No.`
+*   **Extension Join Condition (สำคัญ):**
+    *   เพื่อดึงข้อมูลสถานะเช็คอย่างละเอียด ต้องทำการ **Join** กับตาราง **Check Ledger Entry Extension** (ลงท้ายด้วย `ext`)
+    *   **Join Condition:** `Check Ledger Entry.Entry No.` = `Check Ledger Entry Ext.Entry No.`
+*   **Select Columns:**
+    *   `Check Date` (Main Table)
+    *   `Check Status` (Ext Table - ID 50411)
+    *   `Check Status Date` (Ext Table - ID 50420)
+    *   `On Hand Date` (Ext Table - ID 50422)
+    *   `Deposit Date` (Ext Table - ID 50423)
+    *   `Pass Date` (Ext Table - ID 50424)
+    *   `Cleared Date` (Ext Table - ID 50425)
+
+### Step 4: การรวบรวมและคำนวณผล (Data Aggregation)
+รวมข้อมูลจาก Step 1-3:
+
+1.  **วนลูป** Invoice จาก Step 1
+2.  **ค้นหา** รายการจ่ายเงินที่ตรงกันจาก Step 2
+    *   *หมายเหตุ:* อาจมีการจ่ายหลายครั้ง (ผ่อนจ่าย) ในเวอร์ชันแรกนี้ให้ดูยอดล่าสุดหรือยอดที่ทำให้หนี้หมด
+3.  **ตรวจสอบ** วิธีการชำระเงิน:
+    *   ถ้าเจอข้อมูลใน `Check Ledger Entry` (Step 3) ถือเป็น **Cheque**
+    *   ถ้าไม่เจอ ถือเป็น **Cash/Transfer**
+4.  **คำนวณ** `Effective Payment Date` ตามกฎในข้อ 3.1
+5.  **เปรียบเทียบ** กับ `Due Date` เพื่อระบุสถานะ `is_late`
+6.  **คำนวณ** `late_days` (`Effective Payment Date` - `Due Date` ถ้าล่าช้า, ถ้าไม่ล่าช้าให้เป็น 0)
+7.  **ใส่ข้อมูล** `_meta_debug` (Entry No. จากทั้ง 3 ตาราง) เพื่อให้ตรวจสอบย้อนหลังได้
+
+---
+
+## 5. ตารางอ้างอิงฟิลด์ (Mapping Reference)
+
+**หมายเหตุ:** ฟิลด์ในตาราง Extension มักจะมีรหัส GUID ต่อท้าย (เช่น `Check Status$6ad9...`) โปรดตรวจสอบ Schema ในระบบของท่าน
+
+| Spec Field | Dynamics Table | Dynamics Field ID | Field Name Example | Note |
+| :--- | :--- | :--- | :--- | :--- |
+| **Invoice Info** | | | | |
+| `document_no` | Cust. Ledger Entry (21) | 6 | `Document No.` | |
+| `posting_date` | Cust. Ledger Entry (21) | 20 | `Posting Date` | |
+| `due_date` | Cust. Ledger Entry (21) | 24 | `Due Date` | |
+| `amount` | Detailed Cust. Ledg. Entry (379) | | `Debit - Credit` | **ต้อง Sum จาก Detailed Entries** |
+| **Payment Info** | | | | |
+| `payment_doc_no` | Detailed Cust. Ledg. Entry (379) | 6 | `Document No.` | Filter `Entry Type`=`Application` |
+| `payment_date` | Detailed Cust. Ledg. Entry (379) | 4 | `Posting Date` | ใช้วันนี้ถ้าไม่มีเช็ค |
+| **Check Info** | | | | |
+| `check_date` | Check Ledger Entry (272) | 9 | `Check Date` | |
+| `check_status` | Check Ledger Entry **Ext** | 50411 | `Check Status$6ad9...` | **ต้อง Join ด้วย Entry No.** |
+| `check_status_date` | Check Ledger Entry **Ext** | 50420 | `Check Status Date$6ad9...` | **ต้อง Join ด้วย Entry No.** |
+| `on_hand_date` | Check Ledger Entry **Ext** | 50422 | `On Hand Date$6ad9...` | **ต้อง Join ด้วย Entry No.** |
+| `deposit_date` | Check Ledger Entry **Ext** | 50423 | `Deposit Date$6ad9...` | **ต้อง Join ด้วย Entry No.** |
+| `pass_date` | Check Ledger Entry **Ext** | 50424 | `Pass Date$6ad9...` | **ต้อง Join ด้วย Entry No.** |
+| `cleared_date` | Check Ledger Entry **Ext** | 50425 | `Cleared Date$6ad9...` | **ต้อง Join ด้วย Entry No.** |
+
+---
+
+**จบเอกสารข้อกำหนด**
