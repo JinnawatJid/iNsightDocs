@@ -1,32 +1,21 @@
--- SQL สำหรับทดสอบการดึงข้อมูล Late Payment Analysis ใน DBeaver
--- หมายเหตุ: ชื่อตารางจริงใน DBeaver อาจมีชื่อบริษัทนำหน้า (เช่น [CRONUS Thailand Ltd_$Cust_ Ledger Entry])
--- กรุณาเปลี่ยนชื่อตารางให้ตรงกับใน Database ของคุณ
-
 ----------------------------------------------------------------------------------------
--- 1. ค้นหา Invoice (ใบแจ้งหนี้) และคำนวณยอดคงเหลือ (Remaining Amount)
+-- 1. ค้นหา Invoice (ใบแจ้งหนี้)
 ----------------------------------------------------------------------------------------
--- ใน Business Central ยอดคงเหลือ (Remaining Amount) เป็น FlowField
--- ต้องคำนวณจาก Detailed Cust. Ledg. Entry (Debit - Credit)
-
 SELECT
-    CLE.[Entry No_],       -- ใช้สำหรับ Join ในขั้นตอนต่อไป (สำคัญมาก)
-    CLE.[Document No_],    -- เลขที่เอกสาร (เช่น AYVR...)
-    CLE.[Posting Date],    -- วันที่ตั้งหนี้
-    CLE.[Due Date],        -- วันครบกำหนดชำระ
-
-    -- คำนวณยอดคงเหลือจริง (Remaining Amount)
+    CLE.[Entry No_],
+    CLE.[Document No_],
+    CLE.[Posting Date],
+    CLE.[Due Date],
     SUM(DCLE.[Debit Amount]) - SUM(DCLE.[Credit Amount]) AS [Remaining Amount],
-
-    -- ยอดหนี้เต็มจำนวน (Original Amount) ดึงจาก Sales (LCY) หรือคำนวณเอา
     CLE.[Sales (LCY)] AS [Original Amount]
 FROM [Cust_ Ledger Entry] CLE
 JOIN [Detailed Cust_ Ledg_ Entry] DCLE
     ON CLE.[Entry No_] = DCLE.[Cust_ Ledger Entry No_]
 WHERE
-    CLE.[Customer No_] = 'CUST-001'    -- **เปลี่ยนรหัสลูกค้าที่นี่**
-    AND CLE.[Document Type] = 2         -- 2 = Invoice (ใบแจ้งหนี้)
-    AND CLE.[Document No_] LIKE 'AYVR%' -- กรองเฉพาะบิลขายเชื่อ (ตามเงื่อนไขบริษัท)
-    AND CLE.[Posting Date] >= '2023-01-01' -- กรองวันที่เริ่มต้น
+    CLE.[Customer No_] = 'CUST-001'
+    AND CLE.[Document Type] = 2
+    AND CLE.[Document No_] LIKE 'AYVR%'
+    AND CLE.[Posting Date] >= '2023-01-01'
 GROUP BY
     CLE.[Entry No_],
     CLE.[Document No_],
@@ -37,66 +26,56 @@ ORDER BY CLE.[Posting Date] DESC;
 
 
 ----------------------------------------------------------------------------------------
--- 2. ค้นหารายการชำระเงิน (Payment) ของ Invoice นั้นๆ
+-- 2. ค้นหารายการชำระเงิน (Payment)
 ----------------------------------------------------------------------------------------
--- นำ [Entry No_] ที่ได้จากข้อ 1 มาใส่ใน WHERE clause ด้านล่าง
 SELECT
     [Entry No_],
-    [Document No_],    -- เลขที่ใบเสร็จ/การจ่ายเงิน
-    [Posting Date],    -- วันที่ชำระเงิน (กรณีเงินสด/โอนใช้วันนี้)
-    [Amount],          -- ยอดเงินที่ตัดจ่าย
-    [Entry Type],      -- ต้องเป็น 2 (Application)
-    [Document Type]    -- ต้องเป็น 1 (Payment)
+    [Document No_],
+    [Posting Date],
+    [Amount],
+    [Entry Type],
+    [Document Type]
 FROM [Detailed Cust_ Ledg_ Entry]
 WHERE
-    [Cust_ Ledger Entry No_] = 12345 -- **ใส่ Entry No_ จากข้อ 1 ที่นี่**
-    AND [Entry Type] = 2             -- กรองเอาเฉพาะการตัดจ่ายหนี้ (Application)
-    AND [Document Type] = 1;         -- กรองเอาเฉพาะการจ่ายเงิน (Payment)
+    [Cust_ Ledger Entry No_] = 12345 -- **เปลี่ยน Entry No_**
+    AND [Entry Type] = 2
+    AND [Document Type] = 1;
 
 
 ----------------------------------------------------------------------------------------
 -- 3. ตรวจสอบสถานะเช็ค (Cheque Status)
 ----------------------------------------------------------------------------------------
--- นำ [Document No_] จากข้อ 2 (เช่น RCPT-001) มาใส่ใน WHERE clause
 SELECT
-    [Check Date],       -- วันที่หน้าเช็ค
-    [Cleared Date],     -- วันที่เช็คผ่าน (Field นี้อาจเป็น Custom Field ID 50425 ตรวจสอบชื่อจริงอีกครั้ง)
-    [Entry Status]      -- สถานะเช็ค
+    [Check Date],
+    [Cleared Date],
+    [Entry Status]
 FROM [Check Ledger Entry]
 WHERE
-    [Document No_] = 'PAY-DOCUMENT-NO'; -- **ใส่ Document No_ จากข้อ 2 ที่นี่**
+    [Document No_] = 'PAY-DOCUMENT-NO'; -- **เปลี่ยน Document No_**
 
 
 ----------------------------------------------------------------------------------------
--- 4. (Advance) SQL แบบ JOIN ตารางเดียวจบ (ถ้าต้องการดูภาพรวม)
+-- 4. Advance (Overview)
 ----------------------------------------------------------------------------------------
--- หมายเหตุ: Logic การหา Remaining Amount ใน Query รวมนี้ จะซับซ้อนขึ้น
--- เพราะเรา Join Detailed Entry (Payment) ซ้ำซ้อน
--- แนะนำให้ใช้ Query แยกในข้อ 1-3 เพื่อความแม่นยำในการตรวจสอบเบื้องต้น
-
 SELECT
     CLE.[Document No_] AS Invoice_No,
     CLE.[Posting Date] AS Invoice_Date,
     CLE.[Due Date],
 
     DCLE_PAY.[Document No_] AS Payment_Doc_No,
-    DCLE_PAY.[Posting Date] AS Payment_Date, -- วันจ่าย (เบื้องต้น)
-    CHLE.[Check Date],                       -- วันหน้าเช็ค (ถ้ามี)
-    CHLE.[Cleared Date],                     -- วันเช็คผ่าน (ถ้ามี)
+    DCLE_PAY.[Posting Date] AS Payment_Date,
+    CHLE.[Check Date],
+    CHLE.[Cleared Date],
 
-    -- คำนวณวันจ่ายจริง (Effective Date) ตาม Logic 5 วัน
     CASE
-        WHEN CHLE.[Check Date] IS NOT NULL THEN -- ถ้าจ่ายด้วยเช็ค
+        WHEN CHLE.[Check Date] IS NOT NULL THEN
             CASE
-                -- ถ้า (วันเช็คผ่าน - วันหน้าเช็ค) <= 5 วัน ให้ใช้วันหน้าเช็ค
                 WHEN DATEDIFF(day, CHLE.[Check Date], CHLE.[Cleared Date]) <= 5 THEN CHLE.[Check Date]
-                -- ถ้าเกิน 5 วัน ให้ใช้วันเช็คผ่าน
                 ELSE CHLE.[Cleared Date]
             END
-        ELSE DCLE_PAY.[Posting Date] -- ถ้าไม่ใช่เช็ค ใช้วันที่จ่ายเลย
+        ELSE DCLE_PAY.[Posting Date]
     END AS Effective_Payment_Date,
 
-    -- ตรวจสอบว่า Late หรือไม่
     CASE
         WHEN (
             CASE
@@ -110,19 +89,17 @@ SELECT
 
 FROM [Cust_ Ledger Entry] CLE
 
--- Join หา Payment (เฉพาะรายการ Application ที่เป็น Payment)
 LEFT JOIN [Detailed Cust_ Ledg_ Entry] DCLE_PAY
     ON CLE.[Entry No_] = DCLE_PAY.[Cust_ Ledger Entry No_]
-    AND DCLE_PAY.[Entry Type] = 2      -- Application
-    AND DCLE_PAY.[Document Type] = 1   -- Payment
+    AND DCLE_PAY.[Entry Type] = 2
+    AND DCLE_PAY.[Document Type] = 1
 
--- Join หา Cheque (ถ้ามี)
 LEFT JOIN [Check Ledger Entry] CHLE
     ON DCLE_PAY.[Document No_] = CHLE.[Document No_]
 
 WHERE
-    CLE.[Customer No_] = 'CUST-001'    -- **เปลี่ยนรหัสลูกค้า**
-    AND CLE.[Document Type] = 2        -- Invoice
+    CLE.[Customer No_] = 'CUST-001'
+    AND CLE.[Document Type] = 2
     AND CLE.[Document No_] LIKE 'AYVR%'
     AND CLE.[Posting Date] >= '2023-01-01'
 ORDER BY CLE.[Posting Date] DESC;
