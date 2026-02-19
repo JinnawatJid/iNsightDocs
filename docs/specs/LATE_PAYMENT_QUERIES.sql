@@ -109,7 +109,35 @@ SELECT
             END
         ) > CLE.[Due Date] THEN 'LATE'
         ELSE 'ON-TIME'
-    END AS Status
+    END AS Status,
+
+    -- คำนวณจำนวนวันล่าช้า (Late Days)
+    -- ถ้าจ่ายตรงเวลาหรือจ่ายก่อนกำหนด (<= 0) ให้เป็น 0
+    CASE
+        WHEN (
+            CASE
+                WHEN Check_Main.[Check Date] IS NOT NULL THEN
+                    CASE
+                        WHEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] IS NOT NULL
+                        THEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]
+                        ELSE Check_Main.[Check Date]
+                    END
+                ELSE DCLE_PAY.[Posting Date]
+            END
+        ) > CLE.[Due Date] THEN
+            DATEDIFF(day, CLE.[Due Date], (
+                CASE
+                    WHEN Check_Main.[Check Date] IS NOT NULL THEN
+                        CASE
+                            WHEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] IS NOT NULL
+                            THEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]
+                            ELSE Check_Main.[Check Date]
+                        END
+                    ELSE DCLE_PAY.[Posting Date]
+                END
+            ))
+        ELSE 0
+    END AS Late_Days
 
 FROM [TNG LIV$Cust_ Ledger Entry$437dbf0e-84ff-417a-965d-ed2bb9650972] CLE
 

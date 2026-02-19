@@ -92,6 +92,10 @@ The "Effective Payment Date" is determined based on the payment method:
 A payment is considered **Late** if:
 `Effective Payment Date` > `Due Date` (from Cust. Ledger Entry)
 
+**Late Days Calculation:**
+*   If `is_late` is true: `Late Days` = `Effective Payment Date` - `Due Date` (in days).
+*   If `is_late` is false: `Late Days` = 0.
+
 ---
 
 ## 4. Backend Implementation Guide (Dynamics 365 / NAV)
@@ -161,7 +165,8 @@ Combine the data from steps 1-3:
     *   Otherwise, treat as **Cash/Transfer**.
 4.  **Calculate** `Effective Payment Date` using the rules in Section 3.1.
 5.  **Compare** `Effective Payment Date` vs. `Due Date` to set `is_late`.
-6.  **Populate** the `_meta_debug` object with the `Entry No.` from all 3 tables to allow easy auditing.
+6.  **Calculate** `late_days` (`Effective Payment Date` - `Due Date` if late, else 0).
+7.  **Populate** the `_meta_debug` object with the `Entry No.` from all 3 tables to allow easy auditing.
 
 ---
 

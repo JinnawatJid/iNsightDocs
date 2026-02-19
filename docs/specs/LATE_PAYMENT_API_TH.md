@@ -92,6 +92,10 @@
 การชำระเงินจะถือว่า **ล่าช้า (Late)** เมื่อ:
 `Effective Payment Date` > `Due Date` (จากตาราง Cust. Ledger Entry)
 
+**การคำนวณจำนวนวันล่าช้า (Late Days):**
+*   ถ้า `is_late` เป็นจริง: `Late Days` = `Effective Payment Date` - `Due Date` (หน่วยเป็นวัน)
+*   ถ้า `is_late` เป็นเท็จ: `Late Days` = 0
+
 ---
 
 ## 4. แนวทางการดึงข้อมูล (Backend Implementation Guide)
@@ -161,7 +165,8 @@ Query ตาราง **Cust. Ledger Entry (Table 21)** เพื่อหาใ
     *   ถ้าไม่เจอ ถือเป็น **Cash/Transfer**
 4.  **คำนวณ** `Effective Payment Date` ตามกฎในข้อ 3.1
 5.  **เปรียบเทียบ** กับ `Due Date` เพื่อระบุสถานะ `is_late`
-6.  **ใส่ข้อมูล** `_meta_debug` (Entry No. จากทั้ง 3 ตาราง) เพื่อให้ตรวจสอบย้อนหลังได้
+6.  **คำนวณ** `late_days` (`Effective Payment Date` - `Due Date` ถ้าล่าช้า, ถ้าไม่ล่าช้าให้เป็น 0)
+7.  **ใส่ข้อมูล** `_meta_debug` (Entry No. จากทั้ง 3 ตาราง) เพื่อให้ตรวจสอบย้อนหลังได้
 
 ---
 
