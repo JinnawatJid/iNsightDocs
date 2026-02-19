@@ -136,12 +136,19 @@ Query ตาราง **Cust. Ledger Entry (Table 21)** เพื่อหาใ
 ### Step 3: ตรวจสอบสถานะเช็ค (Check Details)
 สำหรับการจ่ายเงินแต่ละรายการใน Step 2 ให้ตรวจสอบว่าจ่ายด้วยเช็คหรือไม่ใน **Check Ledger Entry (Table 272)**
 
-*   **Join Condition:**
-    *   `Document No.` = `Step2.Document_No`
+*   **Primary Join Condition:**
+    *   `Detailed Cust. Ledg. Entry.Document No.` = `Check Ledger Entry.Document No.`
+*   **Extension Join Condition (สำคัญ):**
+    *   เพื่อดึงข้อมูลสถานะเช็คอย่างละเอียด ต้องทำการ **Join** กับตาราง **Check Ledger Entry Extension** (ลงท้ายด้วย `ext`)
+    *   **Join Condition:** `Check Ledger Entry.Entry No.` = `Check Ledger Entry Ext.Entry No.`
 *   **Select Columns:**
-    *   `Check Date` (วันที่หน้าเช็ค)
-    *   `Cleared Date` (วันที่เช็คผ่าน / เงินเข้าบัญชี)
-    *   `Entry Status` (ตรวจสอบว่าไม่เป็น 'Voided')
+    *   `Check Date` (Main Table)
+    *   `Check Status` (Ext Table - ID 50411)
+    *   `Check Status Date` (Ext Table - ID 50420)
+    *   `On Hand Date` (Ext Table - ID 50422)
+    *   `Deposit Date` (Ext Table - ID 50423)
+    *   `Pass Date` (Ext Table - ID 50424)
+    *   `Cleared Date` (Ext Table - ID 50425)
 
 ### Step 4: การรวบรวมและคำนวณผล (Data Aggregation)
 รวมข้อมูลจาก Step 1-3:
@@ -172,7 +179,12 @@ Query ตาราง **Cust. Ledger Entry (Table 21)** เพื่อหาใ
 | `payment_date` | Detailed Cust. Ledg. Entry (379) | 4 | `Posting Date` | ใช้วันนี้ถ้าไม่มีเช็ค |
 | **Check Info** | | | | |
 | `check_date` | Check Ledger Entry (272) | 9 | `Check Date` | |
-| `cleared_date` | Check Ledger Entry (272) | 50425 | `Cleared Date` | เช็ค Custom ID ของบริษัทอีกครั้ง |
+| `check_status` | Check Ledger Entry **Ext** | 50411 | `Check Status` | **ต้อง Join ด้วย Entry No.** |
+| `check_status_date` | Check Ledger Entry **Ext** | 50420 | `Check Status Date` | **ต้อง Join ด้วย Entry No.** |
+| `on_hand_date` | Check Ledger Entry **Ext** | 50422 | `On Hand Date` | **ต้อง Join ด้วย Entry No.** |
+| `deposit_date` | Check Ledger Entry **Ext** | 50423 | `Deposit Date` | **ต้อง Join ด้วย Entry No.** |
+| `pass_date` | Check Ledger Entry **Ext** | 50424 | `Pass Date` | **ต้อง Join ด้วย Entry No.** |
+| `cleared_date` | Check Ledger Entry **Ext** | 50425 | `Cleared Date` | **ต้อง Join ด้วย Entry No.** |
 
 ---
 

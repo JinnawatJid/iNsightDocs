@@ -136,12 +136,19 @@ For each Invoice found in Step 1, query the **Detailed Cust. Ledg. Entry (Table 
 ### Step 3: Check Details (If Paid by Cheque)
 For each Payment found in Step 2, check if it relates to a Cheque in **Check Ledger Entry (Table 272)**.
 
-*   **Join Condition:**
-    *   `Document No.` = `Step2.Document_No`
+*   **Primary Join Condition:**
+    *   `Detailed Cust. Ledg. Entry.Document No.` = `Check Ledger Entry.Document No.`
+*   **Extension Join Condition (CRITICAL):**
+    *   To get status details, you must **JOIN** the **Check Ledger Entry Extension Table** (suffix `ext`) with the main table.
+    *   **Join On:** `Check Ledger Entry.Entry No.` = `Check Ledger Entry Ext.Entry No.`
 *   **Select Columns:**
-    *   `Check Date`
-    *   `Cleared Date` (Or `Pass Date` depending on system config)
-    *   `Entry Status` (Ensure it is not 'Voided')
+    *   `Check Date` (Main Table)
+    *   `Check Status` (Ext Table - ID 50411)
+    *   `Check Status Date` (Ext Table - ID 50420)
+    *   `On Hand Date` (Ext Table - ID 50422)
+    *   `Deposit Date` (Ext Table - ID 50423)
+    *   `Pass Date` (Ext Table - ID 50424)
+    *   `Cleared Date` (Ext Table - ID 50425)
 
 ### Step 4: Data Aggregation & Logic Application
 Combine the data from steps 1-3:
@@ -172,7 +179,12 @@ Combine the data from steps 1-3:
 | `payment_date` | Detailed Cust. Ledg. Entry (379) | 4 | `Posting Date` | Default date if no check |
 | **Check Info** | | | | |
 | `check_date` | Check Ledger Entry (272) | 9 | `Check Date` | |
-| `cleared_date` | Check Ledger Entry (272) | 50425 | `Cleared Date` | Custom ID? Check local implementation. |
+| `check_status` | Check Ledger Entry **Ext** | 50411 | `Check Status` | **Requires Join on Entry No.** |
+| `check_status_date` | Check Ledger Entry **Ext** | 50420 | `Check Status Date` | **Requires Join on Entry No.** |
+| `on_hand_date` | Check Ledger Entry **Ext** | 50422 | `On Hand Date` | **Requires Join on Entry No.** |
+| `deposit_date` | Check Ledger Entry **Ext** | 50423 | `Deposit Date` | **Requires Join on Entry No.** |
+| `pass_date` | Check Ledger Entry **Ext** | 50424 | `Pass Date` | **Requires Join on Entry No.** |
+| `cleared_date` | Check Ledger Entry **Ext** | 50425 | `Cleared Date` | **Requires Join on Entry No.** |
 
 ---
 
