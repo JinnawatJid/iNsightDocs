@@ -62,7 +62,7 @@
               <div class="text-right">
                   <span class="calc-summary">
                       <strong>Average Late Days Calculation:</strong>
-                      {{ latePaymentStats.totalLateDays }} (Total Late Days) / {{ latePaymentStats.count }} (Invoices)
+                      {{ latePaymentStats.totalLateDays }} (Total Late Days) / {{ latePaymentStats.paidCount }} (Paid Invoices)
                       = <strong>{{ latePaymentStats.avg }}</strong> Days
                   </span>
               </div>
@@ -82,7 +82,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(inv, idx) in latePaymentInvoices" :key="idx" :class="{'row-late': inv.Late_Days > 0}">
+                    <tr v-for="(inv, idx) in latePaymentInvoices" :key="idx" :class="getRowClass(inv)">
                         <td>{{ inv.Invoice_No }}</td>
                         <td>{{ formatDate(inv.Invoice_Date) }}</td>
                         <td>{{ formatDate(inv['Due Date']) }}</td>
@@ -90,12 +90,12 @@
                             {{ formatDate(inv.Effective_Payment_Date) }}
                             <small v-if="inv.Payment_Doc_No" class="d-block text-muted">({{ inv.Payment_Doc_No }})</small>
                         </td>
-                        <td class="text-center font-bold" :class="inv.Late_Days > 0 ? 'text-danger' : 'text-success'">
-                            {{ inv.Late_Days }}
+                        <td class="text-center font-bold" :class="getLateDaysClass(inv)">
+                            {{ getLateDaysDisplay(inv) }}
                         </td>
                         <td class="text-center">
-                            <span class="badge" :class="inv.Late_Days > 0 ? 'badge-late' : 'badge-ontime'">
-                                {{ inv.Status }}
+                            <span class="badge" :class="getStatusClass(inv)">
+                                {{ getStatusLabel(inv) }}
                             </span>
                         </td>
                     </tr>
@@ -169,15 +169,66 @@ const latePaymentInvoices = computed(() => {
 });
 
 const latePaymentStats = computed(() => {
-    const invoices = latePaymentInvoices.value;
-    if (!invoices || invoices.length === 0) return { totalLateDays: 0, count: 0, avg: 0 };
+    const summary = latePaymentSummary.value;
+    const invoices = latePaymentInvoices.value || [];
 
-    const totalLateDays = invoices.reduce((sum, inv) => sum + (Number(inv.Late_Days) || 0), 0);
-    const count = invoices.length;
-    const avg = count > 0 ? (totalLateDays / count).toFixed(2) : 0;
+    // Identify Paid Invoices
+    const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '');
 
-    return { totalLateDays, count, avg };
+    // Check if backend provided pre-calculated stats (Preferred)
+    let avg = 0;
+    let paidCount = 0;
+
+    if (summary && summary.average_late_days !== undefined) {
+        avg = summary.average_late_days;
+        paidCount = summary.paid_invoices_count !== undefined ? summary.paid_invoices_count : paidInvoices.length;
+    } else {
+        // Fallback Calc
+        paidCount = paidInvoices.length;
+        const sum = paidInvoices.reduce((acc, inv) => acc + (Number(inv.Late_Days) || 0), 0);
+        avg = paidCount > 0 ? (sum / paidCount).toFixed(2) : 0;
+    }
+
+    // Total Late Days (Sum of paid invoices)
+    const totalLateDays = paidInvoices.reduce((sum, inv) => sum + (Number(inv.Late_Days) || 0), 0);
+
+    return {
+        totalLateDays,
+        count: invoices.length, // Total found (including outstanding)
+        paidCount: paidCount,   // Used for denominator
+        avg: avg
+    };
 });
+
+// Helper Methods for Table Display
+const isPaid = (inv) => {
+    return inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '';
+};
+
+const getRowClass = (inv) => {
+    if (!isPaid(inv)) return ''; // Default white for outstanding, or 'row-outstanding' if styled
+    return inv.Late_Days > 0 ? 'row-late' : '';
+};
+
+const getLateDaysDisplay = (inv) => {
+    if (!isPaid(inv)) return '-';
+    return inv.Late_Days;
+};
+
+const getLateDaysClass = (inv) => {
+    if (!isPaid(inv)) return 'text-muted';
+    return inv.Late_Days > 0 ? 'text-danger' : 'text-success';
+};
+
+const getStatusLabel = (inv) => {
+    if (!isPaid(inv)) return 'OUTSTANDING';
+    return inv.Late_Days > 0 ? 'LATE' : 'ON-TIME';
+};
+
+const getStatusClass = (inv) => {
+    if (!isPaid(inv)) return 'badge-outstanding';
+    return inv.Late_Days > 0 ? 'badge-late' : 'badge-ontime';
+};
 
 const formatDate = (dateStr) => {
     if (!dateStr) return '-';
@@ -381,6 +432,10 @@ h2 {
 .badge-ontime {
     background-color: #d4edda;
     color: #155724;
+}
+.badge-outstanding {
+    background-color: #e2e3e5;
+    color: #383d41;
 }
 
 .calc-summary {
