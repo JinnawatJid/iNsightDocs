@@ -25,7 +25,11 @@
                 📷 Smart Import (Thai ID)
              </button>
           </div>
-          <CreditRequestHeader @search="store.searchCustomer" />
+          <CreditRequestHeader
+            @search="handleSearch"
+            :isRequestStarted="isRequestStarted"
+            @start-request="handleStartRequest"
+          />
         </div>
         <div class="grid-col right">
           <DocumentChecklist v-if="store.hasSearched" />
@@ -96,9 +100,22 @@ import Swal from 'sweetalert2';
 const store = useCreditRequestStore();
 const { isOcrEnabled } = useFeatureFlag();
 const showSmartImport = ref(false);
+const isRequestStarted = ref(false);
+
+const handleSearch = (query) => {
+    isRequestStarted.value = false;
+    store.searchCustomer(query);
+};
+
+const handleStartRequest = (type) => {
+    isRequestStarted.value = true;
+    // Update store with selected type
+    store.updateTransactionData({ requestType: type });
+};
 
 const closePreview = () => {
     store.resetState();
+    isRequestStarted.value = false;
 };
 
 // Watch for Blacklist Alert
