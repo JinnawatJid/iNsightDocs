@@ -149,7 +149,8 @@ const fetchLatePaymentData = async (customerNo) => {
         return {
             average_late_days: Number(avg.toFixed(2)),
             total_invoices: invoices.length,
-            late_count: lateCount
+            late_count: lateCount,
+            invoices: invoices // Return raw invoices for report debugging
         };
 
     } catch (error) {
