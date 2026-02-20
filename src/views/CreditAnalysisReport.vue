@@ -26,8 +26,14 @@
 
       <!-- DETAILED BREAKDOWN (The "More Detail" part) -->
       <div class="section details-section">
-          <h2>Detailed Extraction & Scoring Logic</h2>
-          <table class="detail-table">
+          <div class="header-with-toggle" @click="toggleExtractionDetails">
+              <h2>Detailed Extraction & Scoring Logic</h2>
+              <button class="btn-toggle no-print">
+                  {{ showExtractionDetails ? 'Hide Details ▲' : 'Show Details ▼' }}
+              </button>
+          </div>
+
+          <table class="detail-table" v-if="showExtractionDetails">
             <thead>
                 <tr>
                     <th>Item / Criteria</th>
@@ -51,7 +57,16 @@
 
       <!-- PAYMENT HISTORY (DEBUG) -->
       <div class="section payment-history-section" v-if="latePaymentInvoices && latePaymentInvoices.length > 0">
-          <h2>Payment History (Debug Log)</h2>
+          <div class="header-with-toggle">
+              <h2>Payment History (Debug Log)</h2>
+              <div class="text-right">
+                  <span class="calc-summary">
+                      <strong>Average Late Days Calculation:</strong>
+                      {{ latePaymentStats.totalLateDays }} (Total Late Days) / {{ latePaymentStats.count }} (Invoices)
+                      = <strong>{{ latePaymentStats.avg }}</strong> Days
+                  </span>
+              </div>
+          </div>
           <p class="section-desc">รายการประวัติการชำระเงินจากระบบ Dynamics 365 (ใช้คำนวณคะแนน)</p>
 
           <div class="table-responsive">
@@ -111,6 +126,11 @@ import CreditScoreSheet from '@/components/credit/CreditScoreSheet.vue';
 
 const loading = ref(true);
 const data = ref(null);
+const showExtractionDetails = ref(false);
+
+const toggleExtractionDetails = () => {
+    showExtractionDetails.value = !showExtractionDetails.value;
+};
 
 onMounted(() => {
     try {
@@ -138,9 +158,25 @@ const latePaymentSummary = computed(() => {
 const latePaymentInvoices = computed(() => {
     const summary = latePaymentSummary.value;
     if (summary && summary.invoices && Array.isArray(summary.invoices)) {
-        return summary.invoices;
+        // Sort descending by Invoice Date (Newest first)
+        return [...summary.invoices].sort((a, b) => {
+            const dateA = new Date(a.Invoice_Date);
+            const dateB = new Date(b.Invoice_Date);
+            return dateB - dateA;
+        });
     }
     return [];
+});
+
+const latePaymentStats = computed(() => {
+    const invoices = latePaymentInvoices.value;
+    if (!invoices || invoices.length === 0) return { totalLateDays: 0, count: 0, avg: 0 };
+
+    const totalLateDays = invoices.reduce((sum, inv) => sum + (Number(inv.Late_Days) || 0), 0);
+    const count = invoices.length;
+    const avg = count > 0 ? (totalLateDays / count).toFixed(2) : 0;
+
+    return { totalLateDays, count, avg };
 });
 
 const formatDate = (dateStr) => {
@@ -241,10 +277,36 @@ const closeWindow = () => {
     margin-bottom: 40px;
 }
 
+.header-with-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+.header-with-toggle:hover h2 {
+    color: #0056FF;
+}
+
+.btn-toggle {
+    background: none;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+    border-radius: 4px;
+    color: #666;
+    font-size: 0.9em;
+    cursor: pointer;
+}
+.btn-toggle:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
 h2 {
     border-left: 5px solid #0056FF;
     padding-left: 10px;
-    margin-bottom: 20px;
+    margin: 0; /* Remove default margin as handled by flex container */
     color: #333;
 }
 
@@ -319,6 +381,15 @@ h2 {
 .badge-ontime {
     background-color: #d4edda;
     color: #155724;
+}
+
+.calc-summary {
+    font-size: 0.9em;
+    color: #555;
+    background: #f8f9fa;
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
 }
 
 @media print {
