@@ -49,6 +49,50 @@
           </table>
       </div>
 
+      <!-- PAYMENT HISTORY (DEBUG) -->
+      <div class="section payment-history-section" v-if="latePaymentInvoices && latePaymentInvoices.length > 0">
+          <h2>Payment History (Debug Log)</h2>
+          <p class="section-desc">รายการประวัติการชำระเงินจากระบบ Dynamics 365 (ใช้คำนวณคะแนน)</p>
+
+          <div class="table-responsive">
+            <table class="detail-table payment-table">
+                <thead>
+                    <tr>
+                        <th>Invoice No.</th>
+                        <th>Invoice Date</th>
+                        <th>Due Date</th>
+                        <th>Effective Payment</th>
+                        <th>Late Days</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(inv, idx) in latePaymentInvoices" :key="idx" :class="{'row-late': inv.Late_Days > 0}">
+                        <td>{{ inv.Invoice_No }}</td>
+                        <td>{{ formatDate(inv.Invoice_Date) }}</td>
+                        <td>{{ formatDate(inv['Due Date']) }}</td>
+                        <td>
+                            {{ formatDate(inv.Effective_Payment_Date) }}
+                            <small v-if="inv.Payment_Doc_No" class="d-block text-muted">({{ inv.Payment_Doc_No }})</small>
+                        </td>
+                        <td class="text-center font-bold" :class="inv.Late_Days > 0 ? 'text-danger' : 'text-success'">
+                            {{ inv.Late_Days }}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge" :class="inv.Late_Days > 0 ? 'badge-late' : 'badge-ontime'">
+                                {{ inv.Status }}
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+          </div>
+      </div>
+      <div class="section payment-history-section" v-else-if="latePaymentSummary">
+           <h2>Payment History (Debug Log)</h2>
+           <p class="text-muted">ไม่พบข้อมูลรายการ Invoice หรือไม่มีประวัติการชำระเงินล่าช้าในระบบ</p>
+      </div>
+
       <!-- RAW JSON (Optional, collapsed) -->
       <div class="section raw-section no-print">
           <details>
@@ -85,6 +129,30 @@ const debugData = computed(() => {
     if (!data.value || !data.value.analysisResults) return [];
     return data.value.analysisResults.debugData || [];
 });
+
+const latePaymentSummary = computed(() => {
+    if (!data.value || !data.value.analysisResults || !data.value.analysisResults.financialSummary) return null;
+    return data.value.analysisResults.financialSummary.latePaymentData;
+});
+
+const latePaymentInvoices = computed(() => {
+    const summary = latePaymentSummary.value;
+    if (summary && summary.invoices && Array.isArray(summary.invoices)) {
+        return summary.invoices;
+    }
+    return [];
+});
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    } catch (e) {
+        return dateStr;
+    }
+};
 
 const formatValue = (val) => {
     if (typeof val === 'number') {
@@ -214,6 +282,44 @@ h2 {
 }
 
 .error { color: red; }
+
+.section-desc {
+    color: #666;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.payment-table th {
+    background-color: #e9ecef;
+}
+
+.row-late {
+    background-color: #fff5f5;
+}
+
+.text-danger { color: #dc3545; }
+.text-success { color: #28a745; }
+.d-block { display: block; }
+.text-muted { color: #6c757d; }
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+.badge-late {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+.badge-ontime {
+    background-color: #d4edda;
+    color: #155724;
+}
 
 @media print {
     .no-print { display: none; }
