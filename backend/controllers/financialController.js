@@ -106,6 +106,15 @@ const fetchPurchasingBehavior = async (customerNo) => {
 const fetchLatePaymentData = async (customerNo) => {
     try {
         console.log(`[Late Payment API] Fetching data for ${customerNo} from ${LATE_PAYMENT_API_URL}`);
+
+        // Debug API Key (First 5 chars)
+        if (!API_KEY || API_KEY === 'YOUR_API_KEY') {
+            console.warn('[Late Payment API] WARNING: API Key is not set or is default placeholder.');
+        } else {
+            const maskedKey = API_KEY.substring(0, 5) + '...';
+            console.log(`[Late Payment API] Using API Key: ${maskedKey}`);
+        }
+
         const response = await axios.post(LATE_PAYMENT_API_URL, {
             "Customer No_": customerNo
         }, {
@@ -143,6 +152,11 @@ const fetchLatePaymentData = async (customerNo) => {
 
     } catch (error) {
         console.error(`[Late Payment API] Error fetching data for ${customerNo}:`, error.message);
+        if (error.response) {
+            console.error('[Late Payment API] Response Status:', error.response.status);
+            console.error('[Late Payment API] Response Headers:', JSON.stringify(error.response.headers));
+            console.error('[Late Payment API] Response Data:', JSON.stringify(error.response.data).substring(0, 500));
+        }
         return null; // Return null to indicate error/no data available
     }
 };
