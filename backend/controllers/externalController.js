@@ -739,10 +739,52 @@ exports.downloadDBDProfile = async (req, res) => {
  */
 exports.getCreditStatus = async (req, res) => {
     const { customerId } = req.params;
+    const isMock = req.query.mock === 'true' || req.headers['x-mock-mode'] === 'true';
 
     if (!customerId) {
         return res.status(400).json({ error: 'Customer ID is required' });
     }
+
+    // --- MOCK MODE LOGIC ---
+    if (isMock) {
+        console.log(`[Mock Mode] Serving credit status for ${customerId}`);
+
+        // Logic: Check the last digit of the numeric part of the ID
+        // Format example: 08015AY -> Numeric part 08015 -> Last digit 5
+        const numericPart = customerId.match(/\d+/);
+        let status = 'N'; // Default
+
+        if (numericPart) {
+            const lastDigit = parseInt(numericPart[0].slice(-1));
+
+            if (lastDigit >= 0 && lastDigit <= 4) {
+                status = 'N'; // Normal
+            } else if (lastDigit >= 5 && lastDigit <= 6) {
+                status = 'P'; // Problem
+            } else if (lastDigit >= 7 && lastDigit <= 8) {
+                status = 'NPL'; // Non-Performing Loan
+            } else if (lastDigit === 9) {
+                status = 'L'; // Legal/Loss
+            }
+        }
+
+        const mockData = {
+            customer_id: customerId,
+            customer_name: `Mock Customer (${status} Scenario)`,
+            status: status,
+            credit_limit: status === 'N' ? 500000.00 : (status === 'P' ? 250000.00 : 0.00),
+            credit_terms: {
+                gs: status === 'N' ? 30 : 0,
+                ae: status === 'N' ? 60 : 30,
+                yc: status === 'N' ? 45 : 0
+            },
+            updated_at: new Date().toISOString(),
+            _is_mock: true // Indicator for debugging
+        };
+
+        return res.status(200).json(mockData);
+    }
+    // --- END MOCK MODE ---
 
     try {
         // 1. Fetch Customer Status and Fallback Data

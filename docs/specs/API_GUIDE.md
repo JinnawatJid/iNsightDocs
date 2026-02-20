@@ -100,6 +100,37 @@ fetch(`http://api.company.local/api/external/credit-status/${customerId}`, {
 .catch(error => console.error('Error:', error));
 ```
 
+## Mock Mode (For Testing)
+
+To facilitate testing by external teams (e.g., Sales Dashboard Developers), this API supports a **Mock Mode**. This allows you to simulate various credit statuses without needing real data in the database.
+
+### How to Enable Mock Mode
+Append `?mock=true` to the URL or send the header `X-Mock-Mode: true`.
+
+### Simulating Scenarios (Digit-Based Logic)
+The mock response is determined by the **last digit of the numeric part** of the `customerId`. This allows you to use your existing customer ID format (e.g., `08015AY`) while testing different outcomes.
+
+| Last Numeric Digit | Scenario | Status Code | Description |
+| :--- | :--- | :--- | :--- |
+| **0, 1, 2, 3, 4** | Normal | `N` | Good standing, standard limits. |
+| **5, 6** | Problem | `P` | Potential issues, reduced limits. |
+| **7, 8** | NPL | `NPL` | Non-Performing Loan (Bad Debt). |
+| **9** | Legal | `L` | Legal action / Loss. |
+
+### Example Scenarios
+
+1.  **Normal Customer:** `08011AY` (Last digit 1) -> Returns Status `N`
+2.  **Problem Customer:** `08016AY` (Last digit 6) -> Returns Status `P`
+3.  **Bad Debt Customer:** `08018AY` (Last digit 8) -> Returns Status `NPL`
+
+### cURL Example (Mock Mode)
+
+```bash
+# Test "Problem" Scenario (Digit 6)
+curl -X GET "http://api.company.local/api/external/credit-status/08016AY?mock=true" \
+     -H "X-API-KEY: test_key"
+```
+
 ---
 
 # Part 2: Inbound API Requirements (From Dynamics 365)
