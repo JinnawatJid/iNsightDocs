@@ -106,9 +106,12 @@ const fetchPurchasingBehavior = async (customerNo) => {
 const fetchLatePaymentData = async (customerNo) => {
     try {
         console.log(`[Late Payment API] Fetching data for ${customerNo} from ${LATE_PAYMENT_API_URL}`);
-        const response = await axios.get(`${LATE_PAYMENT_API_URL}/${customerNo}`, {
+        const response = await axios.post(LATE_PAYMENT_API_URL, {
+            "Customer No_": customerNo
+        }, {
             headers: {
-                "apikey": API_KEY
+                "apikey": API_KEY,
+                "Content-Type": "application/json"
             },
             timeout: 5000
         });
