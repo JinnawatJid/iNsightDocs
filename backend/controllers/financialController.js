@@ -135,22 +135,28 @@ const fetchLatePaymentData = async (customerNo) => {
              return { average_late_days: 0, total_invoices: 0, late_count: 0 };
         }
 
+        // Filter invoices: Only consider those with a valid Effective Payment Date (Paid Invoices)
+        // Invoices with null/empty Effective Payment are Outstanding/Unpaid and should not skew the average (as 0 late days).
+        const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '');
+
         let totalLateDays = 0;
         let lateCount = 0;
 
-        invoices.forEach(inv => {
+        paidInvoices.forEach(inv => {
             const lateDays = Number(inv.Late_Days) || 0;
             totalLateDays += lateDays;
             if (lateDays > 0) lateCount++;
         });
 
-        const avg = totalLateDays / invoices.length;
+        // Calculate Average based on PAID invoices only
+        const avg = paidInvoices.length > 0 ? (totalLateDays / paidInvoices.length) : 0;
 
         return {
             average_late_days: Number(avg.toFixed(2)),
-            total_invoices: invoices.length,
-            late_count: lateCount,
-            invoices: invoices // Return raw invoices for report debugging
+            total_invoices: invoices.length,      // Total records (Paid + Outstanding)
+            paid_invoices_count: paidInvoices.length, // Denominator for average
+            late_count: lateCount,                // Count of late payments (among paid)
+            invoices: invoices                    // Return raw list for debugging (UI can color code Outstanding)
         };
 
     } catch (error) {
