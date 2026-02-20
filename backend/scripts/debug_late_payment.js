@@ -7,7 +7,8 @@ const path = require('path');
 // Configuration
 const API_URL = "http://192.192.0.37:8280/customer-late-payment/1.0.0";
 // Replace with your actual key or set CUSTOMER_API_KEY env var
-const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY_HERE";
+// Checks LATE_PAYMENT_API_KEY first, then falls back to CUSTOMER_API_KEY
+const API_KEY = process.env.LATE_PAYMENT_API_KEY || process.env.CUSTOMER_API_KEY || "YOUR_API_KEY_HERE";
 const CUSTOMER_NO = "08015AY"; // The customer ID mentioned in the error
 
 async function testLatePaymentAPI() {
@@ -15,7 +16,7 @@ async function testLatePaymentAPI() {
     console.log(`Using Customer No: ${CUSTOMER_NO}`);
 
     if (!API_KEY || API_KEY === "YOUR_API_KEY_HERE") {
-        console.error("❌ ERROR: CUSTOMER_API_KEY is not set. Please set it in .env or environment variables.");
+        console.error("❌ ERROR: LATE_PAYMENT_API_KEY (or CUSTOMER_API_KEY) is not set. Please set it in .env or environment variables.");
         process.exit(1);
     }
 

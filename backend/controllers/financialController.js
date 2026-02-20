@@ -11,6 +11,8 @@ const { extractDBDData } = require('../utils/pdfExtractor');
 const FINANCIAL_API_URL = "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
 const LATE_PAYMENT_API_URL = "http://192.192.0.37:8280/customer-late-payment/1.0.0";
 const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
+// Separate API Key for Late Payment Service (if different from Customer API)
+const LATE_PAYMENT_API_KEY = process.env.LATE_PAYMENT_API_KEY || API_KEY;
 const MOCK_FINANCIAL_API = process.env.MOCK_FINANCIAL_API === 'true';
 
 // Mock Data (Matches customerController.js for consistency)
@@ -108,10 +110,10 @@ const fetchLatePaymentData = async (customerNo) => {
         console.log(`[Late Payment API] Fetching data for ${customerNo} from ${LATE_PAYMENT_API_URL}`);
 
         // Debug API Key (First 5 chars)
-        if (!API_KEY || API_KEY === 'YOUR_API_KEY') {
-            console.warn('[Late Payment API] WARNING: API Key is not set or is default placeholder.');
+        if (!LATE_PAYMENT_API_KEY || LATE_PAYMENT_API_KEY === 'YOUR_API_KEY') {
+            console.warn('[Late Payment API] WARNING: LATE_PAYMENT_API_KEY is not set or is default placeholder.');
         } else {
-            const maskedKey = API_KEY.substring(0, 5) + '...';
+            const maskedKey = LATE_PAYMENT_API_KEY.substring(0, 5) + '...';
             console.log(`[Late Payment API] Using API Key: ${maskedKey}`);
         }
 
@@ -119,7 +121,7 @@ const fetchLatePaymentData = async (customerNo) => {
             "Customer No_": customerNo
         }, {
             headers: {
-                "apikey": API_KEY,
+                "apikey": LATE_PAYMENT_API_KEY,
                 "Content-Type": "application/json"
             },
             timeout: 5000
