@@ -15,27 +15,29 @@
 ## 2. ข้อตกลงการใช้งาน API (API Contract)
 
 ### Endpoint
-`GET /api/v1/customers/{customer_no}/payment-behavior`
+**URL:** `http://192.192.0.37:8280/customer-late-payment/1.0.0`
+**Method:** `POST`
 
-### พารามิเตอร์ (Request Parameters)
-| Parameter | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `customer_no` | string | Yes | รหัสลูกค้า (เช่น `CUST-001`) |
-| `start_date` | date | No | กรองใบแจ้งหนี้ตั้งแต่วันที่ (YYYY-MM-DD) ค่าเริ่มต้น: 1 ปีย้อนหลัง |
-| `end_date` | date | No | กรองใบแจ้งหนี้ถึงวันที่ (YYYY-MM-DD) ค่าเริ่มต้น: วันนี้ |
+### Headers (ส่วนหัว)
+| Header | Required | Description |
+| :--- | :--- | :--- |
+| `Content-Type` | Yes | `application/json` |
+| `apikey` | Yes | API Key (กำหนดในตัวแปร `LATE_PAYMENT_API_KEY` ใน backend) |
+
+### Request Body (JSON)
+```json
+{
+  "Customer No_": "08015AY"
+}
+```
 
 ### โครงสร้างข้อมูลตอบกลับ (Response JSON Schema)
+API จะส่งกลับ Array ของใบแจ้งหนี้ (หรือ Object ที่มี property `data` ซึ่งเป็น Array)
 
 ```json
 {
-  "customer_no": "CUST-001",
-  "summary": {
-    "total_invoices": 12,        // จำนวนบิลทั้งหมด
-    "on_time_payments": 10,      // จ่ายตรงเวลา
-    "late_payments": 2,          // จ่ายล่าช้า
-    "average_late_days": 3.5     // จำนวนวันล่าช้าเฉลี่ย
-  },
-  "invoices": [
+  "success": true,
+  "data": [
     {
       "document_no": "INV-2023-1001",
       "posting_date": "2023-01-01",
@@ -50,25 +52,13 @@
         "late_days": 0,
         "remark": "Paid within 5-day buffer period (จ่ายภายในระยะเวลาอนุโลม 5 วัน)"
       },
-      "_meta_debug": {
-        "cust_ledger_entry_no": 1050,
-        "detailed_ledger_entry_no": 5021,
-        "check_ledger_entry_no": 8890,
-        "original_check_date": "2023-01-31",
-        "original_cleared_date": "2023-02-02"
-      }
+      "Effective_Payment_Date": "2025-09-17T00:00:00.000Z",
+      "Status": "ON-TIME",
+      "Late_Days": 0
     },
     {
-      "document_no": "INV-2023-1005",
-      "posting_date": "2023-02-01",
-      "due_date": "2023-02-28",
-      "amount": 5000.00,
-      "remaining_amount": 5000.00,
-      "status": "Outstanding",
-      "payment_detail": null,
-      "_meta_debug": {
-        "cust_ledger_entry_no": 1065
-      }
+      "Invoice_No": "AYVR-6809/0126"
+      // ...
     }
   ]
 }
@@ -76,7 +66,26 @@
 
 ---
 
-## 3. นิยามตรรกะทางธุรกิจ (Business Logic Definitions)
+## 3. การตั้งค่าและการแก้ไขปัญหา (Configuration & Troubleshooting)
+
+### ตัวแปรสภาพแวดล้อม (Environment Variables)
+Backend ใช้ API Key แยกต่างหากสำหรับบริการนี้ โดยไม่ใช้ Key ของ Customer API หลัก
+
+- **`LATE_PAYMENT_API_KEY`**: API Key สำหรับบริการ Late Payment
+- **`CUSTOMER_API_KEY`**: Key สำรองหากไม่ได้ตั้งค่าตัวแปรข้างต้น
+
+### การ Debug
+หากพบปัญหาการเชื่อมต่อ (เช่น 403 Forbidden) ให้ใช้สคริปต์ตรวจสอบที่เตรียมไว้:
+
+```bash
+node backend/scripts/debug_late_payment.js
+```
+
+สคริปต์นี้จะทดสอบรูปแบบ Header ต่างๆ (`apikey`, `x-api-key` ฯลฯ) เพื่อให้มั่นใจว่าสามารถเชื่อมต่อกับ Gateway ได้ถูกต้อง
+
+---
+
+## 4. นิยามตรรกะทางธุรกิจ (Business Logic Definitions)
 
 ### 3.1 กฎวันที่มีผลชำระเงิน (Effective Payment Date Rule)
 "วันที่ถือว่าชำระเงินจริง" จะคำนวณตามประเภทการจ่ายเงิน ดังนี้:
@@ -98,7 +107,7 @@
 
 ---
 
-## 4. แนวทางการดึงข้อมูล (Backend Implementation Guide)
+## 5. แนวทางการดึงข้อมูล (Backend Implementation Guide)
 
 ส่วนนี้อธิบายขั้นตอนการ Query ข้อมูลจาก Dynamics 365 / NAV
 
@@ -170,7 +179,7 @@ Query ตาราง **Cust. Ledger Entry (Table 21)** เพื่อหาใ
 
 ---
 
-## 5. ตารางอ้างอิงฟิลด์ (Mapping Reference)
+## 6. ตารางอ้างอิงฟิลด์ (Mapping Reference)
 
 **หมายเหตุ:** ฟิลด์ในตาราง Extension มักจะมีรหัส GUID ต่อท้าย (เช่น `Check Status$6ad9...`) โปรดตรวจสอบ Schema ในระบบของท่าน
 

@@ -15,27 +15,29 @@ The primary goal is to determine if a customer pays their invoices on time, cons
 ## 2. API Contract
 
 ### Endpoint
-`GET /api/v1/customers/{customer_no}/payment-behavior`
+**URL:** `http://192.192.0.37:8280/customer-late-payment/1.0.0`
+**Method:** `POST`
 
-### Request Parameters
-| Parameter | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `customer_no` | string | Yes | The Customer No. (e.g., `CUST-001`) |
-| `start_date` | date | No | Filter invoices posted on or after this date (YYYY-MM-DD). Default: 1 year ago. |
-| `end_date` | date | No | Filter invoices posted on or before this date (YYYY-MM-DD). Default: Today. |
+### Headers
+| Header | Required | Description |
+| :--- | :--- | :--- |
+| `Content-Type` | Yes | `application/json` |
+| `apikey` | Yes | API Key (configured as `LATE_PAYMENT_API_KEY` in backend) |
+
+### Request Body (JSON)
+```json
+{
+  "Customer No_": "08015AY"
+}
+```
 
 ### Response Schema (JSON)
+The API returns an array of invoice objects (or an object with a `data` property containing the array).
 
 ```json
 {
-  "customer_no": "CUST-001",
-  "summary": {
-    "total_invoices": 12,
-    "on_time_payments": 10,
-    "late_payments": 2,
-    "average_late_days": 3.5
-  },
-  "invoices": [
+  "success": true,
+  "data": [
     {
       "document_no": "INV-2023-1001",
       "posting_date": "2023-01-01",
@@ -50,25 +52,13 @@ The primary goal is to determine if a customer pays their invoices on time, cons
         "late_days": 0,
         "remark": "Paid within 5-day buffer period"
       },
-      "_meta_debug": {
-        "cust_ledger_entry_no": 1050,
-        "detailed_ledger_entry_no": 5021,
-        "check_ledger_entry_no": 8890,
-        "original_check_date": "2023-01-31",
-        "original_cleared_date": "2023-02-02"
-      }
+      "Effective_Payment_Date": "2025-09-17T00:00:00.000Z",
+      "Status": "ON-TIME",
+      "Late_Days": 0
     },
     {
-      "document_no": "INV-2023-1005",
-      "posting_date": "2023-02-01",
-      "due_date": "2023-02-28",
-      "amount": 5000.00,
-      "remaining_amount": 5000.00,
-      "status": "Outstanding",
-      "payment_detail": null,
-      "_meta_debug": {
-        "cust_ledger_entry_no": 1065
-      }
+      "Invoice_No": "AYVR-6809/0126"
+      // ...
     }
   ]
 }
@@ -76,7 +66,26 @@ The primary goal is to determine if a customer pays their invoices on time, cons
 
 ---
 
-## 3. Business Logic Definitions
+## 3. Configuration & Troubleshooting
+
+### Environment Variables
+The backend uses a specific API key for this service, separate from the main Customer API key.
+
+- **`LATE_PAYMENT_API_KEY`**: The API Key for the Late Payment service.
+- **`CUSTOMER_API_KEY`**: Fallback key if the above is not set.
+
+### Debugging
+If you encounter connection issues (e.g., 403 Forbidden), use the provided debug script to test connectivity directly from the server:
+
+```bash
+node backend/scripts/debug_late_payment.js
+```
+
+This script tests various header formats (`apikey`, `x-api-key`, etc.) to ensure compatibility with the gateway.
+
+---
+
+## 4. Business Logic Definitions
 
 ### 3.1 Effective Payment Date Rule
 The "Effective Payment Date" is determined based on the payment method:
@@ -98,7 +107,7 @@ A payment is considered **Late** if:
 
 ---
 
-## 4. Backend Implementation Guide (Dynamics 365 / NAV)
+## 5. Backend Implementation Guide (Dynamics 365 / NAV)
 
 This section provides the SQL/Logic steps to retrieve the required data.
 
@@ -170,7 +179,7 @@ Combine the data from steps 1-3:
 
 ---
 
-## 5. Standard Mapping Reference
+## 6. Standard Mapping Reference
 
 **Note:** Extension fields (Check Status, Dates) often have GUID suffixes (e.g., `Check Status$6ad9...`). Please check your specific environment schema.
 
