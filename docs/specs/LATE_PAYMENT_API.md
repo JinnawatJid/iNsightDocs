@@ -107,7 +107,41 @@ A payment is considered **Late** if:
 
 ---
 
-## 5. Backend Implementation Guide (Dynamics 365 / NAV)
+## 5. Consumption Logic (Client-Side / Reporting)
+
+The API returns raw invoice data. The consuming client (e.g., Batch Automation Report) applies the following logic to calculate the **Average Late Days Score**:
+
+### 5.1 Handling Outstanding Invoices
+Invoices that do not have an `Effective Payment Date` (or where the date is `null`/empty) are considered **Outstanding**.
+
+*   **Rule:** Outstanding invoices are **EXCLUDED** from the Average Late Days calculation.
+*   **Reasoning:** An outstanding invoice has not been paid yet, so its "lateness" is indeterminate (or would be a different metric like "Days Sales Outstanding"). Treating it as "0 late days" would artificially lower the average late score, masking poor payment behavior on completed transactions.
+
+### 5.2 Average Calculation Formula
+The "Average Late Days" displayed in reports is calculated as:
+
+> **Average Late Days** = `SUM(Late Days of Paid Invoices)` / `COUNT(Paid Invoices)`
+
+*   **Paid Invoice:** An invoice with a valid `Effective Payment Date`.
+*   **Late Days:** The value returned by the API (0 if on-time, >0 if late).
+
+### 5.3 UI/UX Presentation Requirements
+The Financial Analysis Report (`/report/financial-analysis`) must implement the following presentation logic for the Payment History section:
+
+1.  **Sorting:**
+    *   Invoices must be sorted by **Invoice Date Descending** (Newest first).
+2.  **Visual Indicators (Badges):**
+    *   **LATE:** Red Badge (Late Days > 0).
+    *   **ON-TIME:** Green Badge (Late Days = 0 AND Paid).
+    *   **OUTSTANDING:** Grey Badge (No `Effective Payment Date`).
+3.  **Late Days Display:**
+    *   For Outstanding invoices, the "Late Days" column must display `-` (dash) to indicate n/a.
+4.  **Section Toggle:**
+    *   The "Detailed Extraction" section (scoring debug) should be **hidden/collapsed by default** to reduce visual clutter, while the "Payment History" section remains visible.
+
+---
+
+## 6. Backend Implementation Guide (Dynamics 365 / NAV)
 
 This section provides the SQL/Logic steps to retrieve the required data.
 
