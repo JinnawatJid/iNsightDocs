@@ -59,12 +59,17 @@
       <div class="section payment-history-section" v-if="latePaymentInvoices && latePaymentInvoices.length > 0">
           <div class="header-with-toggle">
               <h2>Payment History (Debug Log)</h2>
-              <div class="text-right">
-                  <span class="calc-summary">
-                      <strong>Average Late Days Calculation:</strong>
-                      {{ latePaymentStats.totalLateDays }} (Total Late Days) / {{ latePaymentStats.paidCount }} (Paid Invoices)
+              <div class="text-right stats-wrapper">
+                  <div class="calc-summary">
+                      <strong>Simple Average (Count-Based):</strong>
+                      {{ latePaymentStats.totalLateDays }} (Total Late Days) / {{ latePaymentStats.paidCount }} (Paid)
                       = <strong>{{ latePaymentStats.avg }}</strong> Days
-                  </span>
+                  </div>
+                  <div class="calc-summary wadl-summary" v-if="wadlStats">
+                      <strong>Weighted Average (Value-Based):</strong>
+                      <span class="wadl-score">{{ wadlStats.score }}</span> Days
+                      <span class="wadl-grade">(Grade: {{ wadlStats.grade }})</span>
+                  </div>
               </div>
           </div>
           <p class="section-desc">รายการประวัติการชำระเงินจากระบบ Dynamics 365 (ใช้คำนวณคะแนน)</p>
@@ -153,6 +158,11 @@ const debugData = computed(() => {
 const latePaymentSummary = computed(() => {
     if (!data.value || !data.value.analysisResults || !data.value.analysisResults.financialSummary) return null;
     return data.value.analysisResults.financialSummary.latePaymentData;
+});
+
+const wadlStats = computed(() => {
+    if (!data.value || !data.value.analysisResults || !data.value.analysisResults.financialSummary) return null;
+    return data.value.analysisResults.financialSummary.wadlData;
 });
 
 const latePaymentInvoices = computed(() => {
@@ -438,6 +448,13 @@ h2 {
     color: #383d41;
 }
 
+.stats-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+
 .calc-summary {
     font-size: 0.9em;
     color: #555;
@@ -445,6 +462,23 @@ h2 {
     padding: 5px 10px;
     border-radius: 4px;
     border: 1px solid #e9ecef;
+}
+
+.wadl-summary {
+    background: #e3f2fd;
+    border-color: #bbdefb;
+    color: #0d47a1;
+}
+
+.wadl-score {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.wadl-grade {
+    margin-left: 5px;
+    font-size: 0.85em;
+    opacity: 0.8;
 }
 
 @media print {
