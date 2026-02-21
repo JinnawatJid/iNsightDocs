@@ -170,6 +170,58 @@ const fetchLatePaymentData = async (customerNo) => {
     }
 };
 
+/**
+ * EXPERIMENTAL: Calculate Weighted Average Days Late (WADL)
+ * Formula: SUM(Amount * LateDays) / SUM(Amount)
+ * Filter: Paid Invoices Only, Last 6 Months
+ */
+const calculateWADL = (invoices) => {
+    if (!invoices || invoices.length === 0) return { score: 0, grade: 'N/A' };
+
+    // 1. Filter Timeframe (Last 6 Months) & Paid Status
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const paidInvoices = invoices.filter(inv => {
+        // Must be paid
+        if (!inv.Effective_Payment_Date) return false;
+
+        // Must be within timeframe (Use Posting Date as anchor)
+        const postingDate = new Date(inv.Posting_Date || inv.Invoice_Date); // Handle varied field names
+        return postingDate >= sixMonthsAgo;
+    });
+
+    if (paidInvoices.length === 0) return { score: 0, grade: 'No Data' };
+
+    let totalWeightedDelay = 0;
+    let totalAmount = 0;
+
+    paidInvoices.forEach(inv => {
+        const amount = Number(inv.Amount || inv.amount || 0); // Need Amount field!
+        const lateDays = Number(inv.Late_Days || inv.late_days || 0);
+
+        if (amount > 0) {
+            totalWeightedDelay += (amount * lateDays);
+            totalAmount += amount;
+        }
+    });
+
+    const wadl = totalAmount > 0 ? (totalWeightedDelay / totalAmount) : 0;
+
+    // Grading Scale (Experimental)
+    let grade = 'A';
+    if (wadl > 30) grade = 'D';
+    else if (wadl > 15) grade = 'C';
+    else if (wadl > 7) grade = 'B';
+
+    return {
+        score: Number(wadl.toFixed(2)),
+        grade: grade,
+        invoice_count: paidInvoices.length,
+        total_value: totalAmount
+    };
+};
+
 // Helper to find value in a sheet based on row label (or keywords) and strategy
 const findValue = (sheet, searchTerms, strategy = 'AMOUNT') => {
   const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
@@ -770,6 +822,90 @@ exports.downloadLocalFile = async (req, res) => {
         console.error('Download Local File Error:', error);
         res.status(500).send('Internal Server Error');
     }
+};
+
+/**
+ * New Endpoint: Get Late Payment Benchmark Comparison
+ * Compares Traditional (Count-based) vs WADL (Amount-based)
+ * Uses MOCK data until API v2 is ready.
+ */
+exports.getLatePaymentBenchmark = async (req, res) => {
+    const { customer_no } = req.params;
+
+    // 1. Fetch Real Data (Traditional) - to get base metrics
+    // We can't use this for WADL because it lacks Amount.
+    // So for now, we will generate Mock Data that *looks* like the real API but adds Amounts.
+
+    // MOCK DATA GENERATOR
+    const generateMockInvoices = () => {
+        const today = new Date();
+        const invoices = [];
+
+        // Scenario:
+        // 5 small invoices paid LATE (15 days) -> High Count Impact
+        // 1 large invoice paid ON TIME (0 days) -> High Value Impact (Should lower WADL)
+
+        // Small Late Invoices
+        for(let i=0; i<5; i++) {
+             const postDate = new Date(today);
+             postDate.setMonth(postDate.getMonth() - (i+1));
+
+             invoices.push({
+                 Invoice_No: `INV-SMALL-${i}`,
+                 Posting_Date: postDate.toISOString(),
+                 Due_Date: postDate.toISOString(), // Simplified
+                 Effective_Payment_Date: new Date(postDate.getTime() + (15 * 86400000)).toISOString(), // 15 days late
+                 Late_Days: 15,
+                 Status: 'LATE',
+                 Amount: 2000 // Small Amount
+             });
+        }
+
+        // Large On-Time Invoice
+        const largeDate = new Date(today);
+        largeDate.setMonth(largeDate.getMonth() - 2);
+        invoices.push({
+             Invoice_No: `INV-LARGE-1`,
+             Posting_Date: largeDate.toISOString(),
+             Due_Date: largeDate.toISOString(),
+             Effective_Payment_Date: largeDate.toISOString(), // On Time
+             Late_Days: 0,
+             Status: 'ON-TIME',
+             Amount: 100000 // Large Amount (10x small)
+        });
+
+        return invoices;
+    };
+
+    const mockInvoices = generateMockInvoices();
+
+    // 2. Calculate Traditional (Simple Average)
+    // Formula: Sum(LateDays) / Count
+    const totalLateDays = mockInvoices.reduce((sum, inv) => sum + inv.Late_Days, 0);
+    const traditionalScore = totalLateDays / mockInvoices.length;
+
+    // 3. Calculate WADL (Weighted Average)
+    const wadlResult = calculateWADL(mockInvoices);
+
+    res.json({
+        customer_no,
+        comparison: {
+            traditional: {
+                method: "Simple Average (Count-based)",
+                score: Number(traditionalScore.toFixed(2)),
+                formula: "SUM(LateDays) / Count",
+                interpretation: "Heavily influenced by frequency of small late bills."
+            },
+            wadl: {
+                method: "Weighted Average (Value-based)",
+                score: wadlResult.score,
+                grade: wadlResult.grade,
+                formula: "SUM(Amount * LateDays) / SUM(Amount)",
+                interpretation: "Reflects financial impact; lower score if large bills are paid on time."
+            }
+        },
+        mock_data_used: mockInvoices // For debug visibility
+    });
 };
 
 // Export helper for testing
