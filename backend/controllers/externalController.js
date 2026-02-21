@@ -739,7 +739,9 @@ exports.downloadDBDProfile = async (req, res) => {
  */
 exports.getCreditStatus = async (req, res) => {
     const { customerId } = req.params;
-    const isMock = req.query.mock === 'true' || req.headers['x-mock-mode'] === 'true';
+    const isMock = String(req.query.mock).trim().toLowerCase() === 'true' || String(req.headers['x-mock-mode']).trim().toLowerCase() === 'true';
+
+    console.log(`[External API] Request for ${customerId}. Mock Mode: ${isMock} (Query: ${req.query.mock}, Header: ${req.headers['x-mock-mode']})`);
 
     if (!customerId) {
         return res.status(400).json({ error: 'Customer ID is required' });
@@ -789,14 +791,15 @@ exports.getCreditStatus = async (req, res) => {
     try {
         // 1. Fetch Customer Status and Fallback Data
         let customerSql;
+        // Removed "credit_status" as it does not exist in the schema
         if (db.dbType === 'mssql') {
              customerSql = `
-                SELECT TOP 1 "No_", "credit_status", "Credit Limit (LCY)", "Payment Terms Code", "Name"
+                SELECT TOP 1 "No_", "Credit Limit (LCY)", "Payment Terms Code", "Name"
                 FROM Customers WHERE "No_" = ?
             `;
         } else {
              customerSql = `
-                SELECT "No_", "credit_status", "Credit Limit (LCY)", "Payment Terms Code", "Name"
+                SELECT "No_", "Credit Limit (LCY)", "Payment Terms Code", "Name"
                 FROM Customers WHERE "No_" = ? LIMIT 1
             `;
         }
@@ -808,7 +811,7 @@ exports.getCreditStatus = async (req, res) => {
         }
 
         const customer = customerRows[0];
-        const status = customer.credit_status || 'N'; // Default to Normal
+        const status = 'N'; // Default to Normal (since DB has no status column yet)
 
         // 2. Fetch Latest Active Credit Request (Approved/Submitted)
         // We prioritize the request data as it reflects the latest approved terms
