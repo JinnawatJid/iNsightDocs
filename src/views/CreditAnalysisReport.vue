@@ -67,7 +67,11 @@
                   </div>
                   <div class="calc-summary wadl-summary clickable" v-if="wadlStats" @click="toggleWadlBreakdown">
                       <strong>Weighted Average (Value-Based):</strong>
-                      <span class="wadl-score">{{ wadlStats.score }}</span> Days
+                      <span>
+                          {{ formatValue(wadlBreakdown.totalWeightedDelay) }} (Total Weighted Delay) /
+                          {{ formatValue(wadlBreakdown.totalAmount) }} (Total Paid)
+                          = <strong class="wadl-score">{{ wadlStats.score }}</strong> Days
+                      </span>
                       <span class="toggle-icon">{{ showWadlBreakdown ? '▼' : '▶' }} (Show Calculation)</span>
                   </div>
               </div>
@@ -104,39 +108,30 @@
             </div>
 
             <div class="breakdown-table-wrapper">
-                <h4>Contributing Invoices (Last 6 Months)</h4>
-                <table class="detail-table breakdown-table">
-                    <thead>
-                        <tr>
-                            <th>Invoice No.</th>
-                            <th>Date</th>
-                            <th class="text-right">Amount (Weight)</th>
-                            <th class="text-center">Late Days</th>
-                            <th class="text-right">Weighted Score</th>
-                            <th class="text-right">% Contribution</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="(item, idx) in wadlBreakdown.invoices" :key="idx">
-                            <td>{{ item.inv.Invoice_No }}</td>
-                            <td>{{ formatDate(item.inv.Invoice_Date) }}</td>
-                            <td class="text-right">{{ formatValue(item.amount) }}</td>
-                            <td class="text-center" :class="item.lateDays > 0 ? 'text-danger' : 'text-success'">
-                                {{ item.lateDays }}
-                            </td>
-                            <td class="text-right">{{ formatValue(item.weightedScore) }}</td>
-                            <td class="text-right font-bold">{{ item.contribution.toFixed(2) }}%</td>
-                        </tr>
-                        <tr class="total-row">
-                            <td colspan="2" class="text-right font-bold">Total</td>
-                            <td class="text-right font-bold">{{ formatValue(wadlBreakdown.totalAmount) }}</td>
-                            <td></td>
-                            <td class="text-right font-bold">{{ formatValue(wadlBreakdown.totalWeightedDelay) }}</td>
-                            <td class="text-right font-bold">100.00%</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <p class="exclusion-note" v-if="wadlBreakdown.excludedCount > 0">
+                <h4>Top 5 Contributors (Highest Impact)</h4>
+
+                <div class="top-contributors-chart">
+                    <div v-for="(item, idx) in top5Contributors" :key="idx" class="contributor-row">
+                        <div class="row-header">
+                            <span class="inv-no">{{ item.inv.Invoice_No }}</span>
+                            <span class="inv-date">{{ formatDate(item.inv.Invoice_Date) }}</span>
+                            <span class="inv-late" :class="item.lateDays > 0 ? 'text-danger' : 'text-success'">
+                                {{ item.lateDays }} Days Late
+                            </span>
+                        </div>
+                        <div class="bar-container">
+                            <div class="bar-fill" :style="{ width: item.contribution + '%' }"></div>
+                            <span class="bar-label">{{ item.contribution.toFixed(2) }}%</span>
+                        </div>
+                        <div class="row-details">
+                            Amount: <strong>{{ formatValue(item.amount) }}</strong> |
+                            Weighted Score: {{ formatValue(item.weightedScore) }}
+                        </div>
+                    </div>
+                </div>
+
+                <p class="exclusion-note">
+                    * Showing top 5 of {{ wadlBreakdown.invoices.length }} contributing invoices. <br>
                     * Excluded {{ wadlBreakdown.excludedCount }} invoices:
                     {{ wadlBreakdown.excludedOutstanding }} Outstanding,
                     {{ wadlBreakdown.excludedOld }} Older than 6 Months.
@@ -362,6 +357,11 @@ const wadlBreakdown = computed(() => {
         excludedOutstanding,
         excludedOld
     };
+});
+
+const top5Contributors = computed(() => {
+    if (!wadlBreakdown.value || !wadlBreakdown.value.invoices) return [];
+    return wadlBreakdown.value.invoices.slice(0, 5);
 });
 
 // Helper Methods for Table Display
@@ -756,6 +756,67 @@ h2 {
     color: #888;
     margin-top: 10px;
     font-style: italic;
+    text-align: right;
+}
+
+/* TOP 5 CONTRIBUTORS CHART */
+.top-contributors-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.contributor-row {
+    background: white;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+.row-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+.bar-container {
+    height: 18px;
+    background-color: #f1f3f5;
+    border-radius: 9px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.bar-fill {
+    height: 100%;
+    background-color: #0056FF;
+    border-radius: 9px;
+    min-width: 5px; /* Ensure visibility for small % */
+}
+
+.bar-label {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75em;
+    color: #666; /* Contrast against light bg */
+    font-weight: bold;
+}
+
+.bar-fill + .bar-label {
+    /* If bar is long, label might need white color, but simple approach is usually fine */
+    mix-blend-mode: multiply;
+}
+
+.row-details {
+    font-size: 0.85em;
+    color: #666;
     text-align: right;
 }
 
