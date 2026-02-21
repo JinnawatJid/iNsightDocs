@@ -108,6 +108,7 @@
             <th>ชื่อลูกค้า</th>
             <th>ยอดซื้อรวม 3 เดือน</th>
             <th>เฉลี่ยการจ่ายเงินล่าช้า</th>
+            <th>เฉลี่ยถ่วงน้ำหนัก (WADL)</th>
             <th>ระยะเวลาเครดิต</th>
             <th>วงเงินปัจจุบัน</th>
             <th>วงเงินใหม่</th>
@@ -124,6 +125,7 @@
             <td>{{ item.name || '-' }}</td>
             <td>{{ formatNumber(item.totalPurchase3Months) }}</td>
             <td>{{ item.latePaymentAverage !== null ? formatNumber(item.latePaymentAverage) + ' วัน' : '-' }}</td>
+            <td>{{ item.wadlScore !== null ? formatNumber(item.wadlScore) + ' วัน' : '-' }}</td>
             <td>{{ item.paymentTerms || '-' }}</td>
             <td>{{ formatNumber(item.currentLimit) }}</td>
             <td class="text-bold">{{ formatNumber(item.newLimit) }}</td>
@@ -337,6 +339,7 @@ const processFile = (file) => {
         taxId: '',
         totalPurchase3Months: 0,
         latePaymentAverage: null,
+        wadlScore: null,
         currentLimit: 0,
         paymentTerms: '',
         newLimit: null,
@@ -768,6 +771,11 @@ const processNextItem = async () => {
                  item.latePaymentAverage = analyzeRes.data.financialSummary.latePaymentData.average_late_days;
             }
 
+            // Extract WADL Score
+            if (analyzeRes.data.financialSummary?.wadlData?.score !== undefined) {
+                 item.wadlScore = analyzeRes.data.financialSummary.wadlData.score;
+            }
+
             item.status = skipDBD ? 'Done (Int)' : 'Done';
             item.log = 'เสร็จสิ้น';
         } else {
@@ -878,6 +886,7 @@ const exportSummarizedReport = () => {
       'เลขผู้เสียภาษี': item.taxId,
       'ยอดซื้อ 3 เดือน': item.totalPurchase3Months,
       'เฉลี่ยการจ่ายเงินล่าช้า (วัน)': item.latePaymentAverage !== null ? item.latePaymentAverage : '-',
+      'เฉลี่ยถ่วงน้ำหนัก (WADL)': item.wadlScore !== null ? item.wadlScore : '-',
       'เครดิตเทอม': item.paymentTerms || '-',
       'วงเงินปัจจุบัน': item.currentLimit,
       'วงเงินใหม่ (แนะนำ)': item.newLimit,
@@ -937,6 +946,7 @@ const exportFullDetailReport = () => {
           'คะแนนระยะเวลาธุรกิจ': extractFinancialData(item, 'years', 'score'),
 
           'เฉลี่ยการจ่ายเงินล่าช้า (วัน)': item.latePaymentAverage !== null ? item.latePaymentAverage : '-',
+          'เฉลี่ยถ่วงน้ำหนัก (WADL)': item.wadlScore !== null ? item.wadlScore : '-',
 
           'สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน': extractFinancialData(item, 'leverage'),
           'คะแนน สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน': extractFinancialData(item, 'leverage', 'score'),

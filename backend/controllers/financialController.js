@@ -577,10 +577,11 @@ exports.analyzeFinancials = async (req, res) => {
         if (residence_ownership) customerData.residence_ownership = residence_ownership;
         if (residence_ownership_other) customerData.residence_ownership_other = residence_ownership_other;
 
-        // Parallel Fetch: Financial Data (API) & Late Payment Data (API)
-        const [apiData, lateDataResult] = await Promise.all([
+        // Parallel Fetch: Financial Data (API) & Late Payment Data (API) & WADL Data
+        const [apiData, lateDataResult, wadlDataResult] = await Promise.all([
              fetchPurchasingBehavior(customer_no),
-             fetchLatePaymentData(customer_no)
+             fetchLatePaymentData(customer_no),
+             fetchWADLData(customer_no)
         ]);
 
         latePaymentData = lateDataResult;
@@ -666,6 +667,7 @@ exports.analyzeFinancials = async (req, res) => {
     const financialSummary = {
         monthlyHistory,
         latePaymentData: latePaymentData, // Include Late Payment Info
+        wadlData: wadlDataResult,         // Include WADL Info
         stats: {
             sumLast3: accumData ? accumData.SecondAccum : 0,
             trendRatio: accumData ? accumData.AccumTrend : 1.0,
