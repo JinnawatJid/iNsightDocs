@@ -68,7 +68,6 @@
                   <div class="calc-summary wadl-summary" v-if="wadlStats">
                       <strong>Weighted Average (Value-Based):</strong>
                       <span class="wadl-score">{{ wadlStats.score }}</span> Days
-                      <span class="wadl-grade">(Grade: {{ wadlStats.grade }})</span>
                   </div>
               </div>
           </div>
@@ -81,6 +80,7 @@
                         <th>Invoice No.</th>
                         <th>Invoice Date</th>
                         <th>Due Date</th>
+                        <th>Amount</th>
                         <th>Effective Payment</th>
                         <th>Late Days</th>
                         <th>Status</th>
@@ -91,6 +91,7 @@
                         <td>{{ inv.Invoice_No }}</td>
                         <td>{{ formatDate(inv.Invoice_Date) }}</td>
                         <td>{{ formatDate(inv['Due Date']) }}</td>
+                        <td class="text-right">{{ inv.Amount ? formatValue(inv.Amount) : '-' }}</td>
                         <td>
                             {{ formatDate(inv.Effective_Payment_Date) }}
                             <small v-if="inv.Payment_Doc_No" class="d-block text-muted">({{ inv.Payment_Doc_No }})</small>
@@ -166,10 +167,15 @@ const wadlStats = computed(() => {
 });
 
 const latePaymentInvoices = computed(() => {
-    const summary = latePaymentSummary.value;
-    if (summary && summary.invoices && Array.isArray(summary.invoices)) {
+    // Prefer WADL invoices if available (contains Amount)
+    const wadlInvoices = wadlStats.value?.invoices;
+    const standardInvoices = latePaymentSummary.value?.invoices;
+
+    const source = wadlInvoices || standardInvoices;
+
+    if (source && Array.isArray(source)) {
         // Sort descending by Invoice Date (Newest first)
-        return [...summary.invoices].sort((a, b) => {
+        return [...source].sort((a, b) => {
             const dateA = new Date(a.Invoice_Date);
             const dateB = new Date(b.Invoice_Date);
             return dateB - dateA;

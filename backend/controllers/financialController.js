@@ -228,7 +228,8 @@ const calculateWADL = (invoices) => {
         score: Number(wadl.toFixed(2)),
         grade: grade,
         invoice_count: paidInvoices.length,
-        total_value: totalAmount
+        total_value: totalAmount,
+        invoices: invoices // Return original invoices (with Amount) for frontend display
     };
 };
 
