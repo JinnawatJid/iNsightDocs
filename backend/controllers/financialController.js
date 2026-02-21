@@ -592,6 +592,7 @@ exports.analyzeFinancials = async (req, res) => {
     let accumData = null;
     let monthlyHistory = [];
     let latePaymentData = null;
+    let wadlDataResult = null;
 
     if (customer_no) {
         // Fetch Customer Profile (Years in Business, etc.)
@@ -615,13 +616,14 @@ exports.analyzeFinancials = async (req, res) => {
         if (residence_ownership_other) customerData.residence_ownership_other = residence_ownership_other;
 
         // Parallel Fetch: Financial Data (API) & Late Payment Data (API) & WADL Data
-        const [apiData, lateDataResult, wadlDataResult] = await Promise.all([
+        const [apiData, lateData, wadlData] = await Promise.all([
              fetchPurchasingBehavior(customer_no),
              fetchLatePaymentData(customer_no),
              fetchWADLData(customer_no)
         ]);
 
-        latePaymentData = lateDataResult;
+        latePaymentData = lateData;
+        wadlDataResult = wadlData;
 
         if (apiData && apiData.monthly) {
             // New Logic: Use Continuous Timeline
