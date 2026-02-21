@@ -1,89 +1,80 @@
-# Late Payment Analysis (WADL) API Specification
+# Late Payment (WADL) API Specification
 
-## 1. Overview
-This document specifies the interface for the **Weighted Average Days Late (WADL)** calculation service. This API extends the capabilities of the original Late Payment API by including invoice amounts, enabling value-weighted analysis of payment behavior.
+## Overview
+This API provides the necessary data to calculate the **Weighted Average Days Late (WADL)**. Unlike the standard Late Payment API, this endpoint includes the **Amount** field for each invoice, which is critical for weighting the late days by financial value.
 
-## 2. API Contract
+## Endpoint Details
 
-### Endpoint
-**URL:** `http://192.192.0.37:8280/customer-late-payment-wadl/1.0.0`
-**Method:** `POST`
+- **URL**: `http://192.192.0.37:8280/weight-baselatepayment/1.0.0`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
 
-### Headers
-| Header | Required | Description |
-| :--- | :--- | :--- |
-| `Content-Type` | Yes | `application/json` |
-| `apikey` | Yes | API Key (configured as `LATE_PAYMENT_API_KEY` in backend) |
+### Authentication
+- **Header**: `apikey`
+- **Value**: Must be provided via environment variable `LATE_PAYMENT_WADL_API_KEY`.
+- **Note**: This key is distinct from the standard `CUSTOMER_API_KEY`.
 
-### Request Body (JSON)
-```json
-{
-  "Customer No_": "08015AY"
-}
-```
-
-### Response Schema (JSON)
-The API returns an array of invoice objects.
-
-**Key Difference from V1:** Includes `Amount` field.
+## Request Format
 
 ```json
 {
-  "success": true,
-  "data": [
-    {
-      "document_no": "INV-2023-1001",
-      "posting_date": "2023-01-01",
-      "due_date": "2023-01-31",
-      "amount": 50000.00,             // <--- CRITICAL NEW FIELD
-      "effective_payment_date": "2023-02-05",
-      "status": "LATE",
-      "late_days": 5
-    },
-    {
-      "document_no": "INV-2023-1002",
-      "posting_date": "2023-01-05",
-      "due_date": "2023-02-05",
-      "amount": 2000.00,
-      "effective_payment_date": "2023-02-20",
-      "status": "LATE",
-      "late_days": 15
-    }
-  ]
+  "Customer No_": "01012PL"
 }
 ```
 
----
+## Response Format
 
-## 3. Business Logic: WADL Calculation
+The response returns a list of invoices with payment details, including the `Amount` field.
 
-The consuming client (Backend Service) must apply the following logic to the API response:
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "Invoice_No": "PLVR-6809/0023",
+            "Invoice_Date": "2025-09-03T00:00:00.000Z",
+            "Due Date": "2025-11-02T00:00:00.000Z",
+            "Customer No_": "01012PL",
+            "Amount": 33567.44,
+            "Payment_Doc_No": "PLPRV-6811/0007",
+            "Payment_Date": "2025-11-04T00:00:00.000Z",
+            "Check Date": null,
+            "Cleared Date": null,
+            "Effective_Payment_Date": "2025-11-04T00:00:00.000Z",
+            "Status": "LATE",
+            "Late_Days": 2
+        },
+        {
+            "Invoice_No": "PLVR-6809/0024",
+            "Invoice_Date": "2025-09-04T00:00:00.000Z",
+            "Due Date": "2025-11-03T00:00:00.000Z",
+            "Customer No_": "01012PL",
+            "Amount": 15000.00,
+            "Payment_Doc_No": "PLPRV-6811/0008",
+            "Payment_Date": "2025-11-03T00:00:00.000Z",
+            "Effective_Payment_Date": "2025-11-03T00:00:00.000Z",
+            "Status": "ON-TIME",
+            "Late_Days": 0
+        }
+    ]
+}
+```
 
-### 3.1 Filtering Rules
-1.  **Paid Invoices Only:** Include only records where `effective_payment_date` is present and valid. Exclude outstanding invoices.
-2.  **Timeframe:** Include only invoices where `posting_date` is within the last **6 months** from today.
+## Field Mapping for WADL
 
-### 3.2 Formula
-The **Weighted Average Days Late (WADL)** is calculated as:
+| JSON Field | Usage in Calculation |
+| :--- | :--- |
+| `Amount` | Weight factor (numerator and denominator) |
+| `Late_Days` | Delay factor (numerator) |
+| `Effective_Payment_Date` | Used to filter *paid* invoices only. If null/empty, invoice is outstanding and excluded. |
+| `Posting_Date` (or `Invoice_Date`) | Used to filter timeframe (e.g., Last 6 Months). |
 
-> **WADL** = `SUM(Invoice Amount * Late Days) / SUM(Invoice Amount)`
+## Calculation Logic
+1. **Filter**: Include only invoices where `Effective_Payment_Date` is not null (Paid).
+2. **Timeframe**: Include only invoices where `Invoice_Date` is within the last 6 months.
+3. **Formula**:
+   $$ WADL = \frac{\sum (Amount \times LateDays)}{\sum Amount} $$
 
-### 3.3 Example Calculation
-Given the response example above:
-
-| Invoice | Amount (Weight) | Late Days | Weighted Late Days |
-| :--- | :--- | :--- | :--- |
-| INV-1001 | 50,000 | 5 | 250,000 |
-| INV-1002 | 2,000 | 15 | 30,000 |
-| **Total** | **52,000** | | **280,000** |
-
-*   **Simple Average:** (5 + 15) / 2 = **10 Days**
-*   **Weighted Average (WADL):** 280,000 / 52,000 = **5.38 Days**
-
-*Interpretation:* The customer paid a large bill slightly late (5 days) and a small bill very late (15 days). The WADL (5.38) correctly reflects that the **majority of the value** was paid relatively on time, whereas the simple average (10) skews the perception negatively due to a small outlier.
-
----
-
-## 4. Backend Implementation (Mock Mode)
-
-Until the actual API is deployed, the backend will simulate this response structure in the `getLatePaymentBenchmark` controller.
+## Implementation Notes
+- The API key in the screenshots was truncated. A placeholder is used in the codebase until the full key is provided.
+- The endpoint supports `POST` method, which differs from some other `GET` based APIs in the system.
