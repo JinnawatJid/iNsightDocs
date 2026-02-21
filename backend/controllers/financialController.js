@@ -232,6 +232,43 @@ const calculateWADL = (invoices) => {
     };
 };
 
+// Helper: Fetch WADL Data from External API
+const fetchWADLData = async (customerNo) => {
+    try {
+        console.log(`[WADL API] Fetching data for ${customerNo} from ${LATE_PAYMENT_WADL_API_URL}`);
+
+        if (!LATE_PAYMENT_WADL_API_KEY || LATE_PAYMENT_WADL_API_KEY === 'YOUR_WADL_API_KEY') {
+            console.warn('[WADL API] WARNING: LATE_PAYMENT_WADL_API_KEY is not set or is default placeholder.');
+        } else {
+            const maskedKey = LATE_PAYMENT_WADL_API_KEY.substring(0, 5) + '...';
+            console.log(`[WADL API] Using API Key: ${maskedKey}`);
+        }
+
+        const response = await axios.post(LATE_PAYMENT_WADL_API_URL, {
+            "Customer No_": customerNo
+        }, {
+            headers: {
+                "apikey": LATE_PAYMENT_WADL_API_KEY,
+                "Content-Type": "application/json"
+            },
+            timeout: 5000
+        });
+
+        const data = response.data;
+        const invoices = Array.isArray(data) ? data : (data.data || []);
+
+        if (!invoices || invoices.length === 0) {
+             return { score: 0, grade: 'N/A' };
+        }
+
+        return calculateWADL(invoices);
+
+    } catch (error) {
+        console.error(`[WADL API] Error fetching data for ${customerNo}:`, error.message);
+        return { score: 0, grade: 'Error' }; // Return error state
+    }
+};
+
 // Helper to find value in a sheet based on row label (or keywords) and strategy
 const findValue = (sheet, searchTerms, strategy = 'AMOUNT') => {
   const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
