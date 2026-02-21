@@ -81,6 +81,7 @@
                         <th>Invoice Date</th>
                         <th>Due Date</th>
                         <th>Amount</th>
+                        <th>Payment Method</th>
                         <th>Effective Payment</th>
                         <th>Late Days</th>
                         <th>Status</th>
@@ -92,6 +93,12 @@
                         <td>{{ formatDate(inv.Invoice_Date) }}</td>
                         <td>{{ formatDate(inv['Due Date']) }}</td>
                         <td class="text-right">{{ inv.Amount ? formatValue(inv.Amount) : '-' }}</td>
+                        <td class="text-center">
+                            <span v-if="getPaymentMethod(inv)" class="badge" :class="getPaymentMethodClass(inv)">
+                                {{ getPaymentMethod(inv) }}
+                            </span>
+                            <span v-else>-</span>
+                        </td>
                         <td>
                             {{ formatDate(inv.Effective_Payment_Date) }}
                             <small v-if="inv.Payment_Doc_No" class="d-block text-muted">({{ inv.Payment_Doc_No }})</small>
@@ -219,6 +226,29 @@ const latePaymentStats = computed(() => {
 // Helper Methods for Table Display
 const isPaid = (inv) => {
     return inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '';
+};
+
+const getPaymentMethod = (inv) => {
+    if (!isPaid(inv)) return null;
+
+    // Check various possible locations for the field
+    let method = inv.payment_method || inv.Payment_Method;
+    if (inv.payment_detail && inv.payment_detail.payment_method) {
+        method = inv.payment_detail.payment_method;
+    }
+
+    // Spec Default: If paid but no explicit method, assume Cash/Transfer unless known otherwise
+    if (!method) return 'Cash/Transfer';
+
+    return method;
+};
+
+const getPaymentMethodClass = (inv) => {
+    const method = getPaymentMethod(inv);
+    if (!method) return '';
+    const m = method.toLowerCase();
+    if (m.includes('cheque') || m.includes('check')) return 'badge-cheque';
+    return 'badge-cash';
 };
 
 const getRowClass = (inv) => {
@@ -452,6 +482,16 @@ h2 {
 .badge-outstanding {
     background-color: #e2e3e5;
     color: #383d41;
+}
+
+.badge-cheque {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.badge-cash {
+    background-color: #d1ecf1;
+    color: #0c5460;
 }
 
 .stats-wrapper {
