@@ -79,62 +79,73 @@
 
           <!-- WADL BREAKDOWN SECTION -->
           <div class="wadl-breakdown-panel" v-if="showWadlBreakdown && wadlStats">
-            <div class="breakdown-header">
-                <h3>Weighted Average Days Late (WADL) Calculation</h3>
-                <p class="text-muted small">
-                    <strong>Formula:</strong> Σ (Invoice Amount × Late Days) ÷ Σ (Invoice Amount) <br>
-                    <strong>Data Scope:</strong> Paid invoices within the last 6 months (based on Invoice Date). Outstanding invoices are excluded.
-                </p>
+            <div class="breakdown-header-compact">
+                <h3>
+                    Weighted Average Days Late (WADL) Breakdown
+                    <span class="tooltip-container">
+                        ℹ️
+                        <span class="tooltip-text">
+                            <strong>Formula:</strong> Σ (Invoice Amount × Late Days) ÷ Σ (Invoice Amount)<br>
+                            <strong>Scope:</strong> Paid invoices in last 6 months. Outstanding excluded.
+                        </span>
+                    </span>
+                </h3>
             </div>
 
-            <div class="breakdown-stats">
-                <div class="stat-box">
-                    <span class="label">Total Weighted Delay</span>
-                    <span class="value">{{ formatValue(wadlBreakdown.totalWeightedDelay) }}</span>
-                    <span class="unit">(Amount × Days)</span>
-                </div>
-                <div class="operator">÷</div>
-                <div class="stat-box">
-                    <span class="label">Total Paid Amount</span>
-                    <span class="value">{{ formatValue(wadlBreakdown.totalAmount) }}</span>
-                    <span class="unit">(THB)</span>
-                </div>
-                <div class="operator">=</div>
-                <div class="stat-box result">
-                    <span class="label">WADL Score</span>
-                    <span class="value">{{ wadlStats.score }}</span>
-                    <span class="unit">Days</span>
-                </div>
-            </div>
+            <div class="breakdown-content-compact">
+                <!-- Stacked Bar Visualization -->
+                 <div class="stacked-bar-container">
+                    <div
+                        v-for="(seg, idx) in visualizationSegments"
+                        :key="idx"
+                        class="bar-segment"
+                        :style="{ width: seg.width + '%', backgroundColor: seg.color }"
+                        :title="seg.label + ': ' + seg.width.toFixed(2) + '%'"
+                    ></div>
+                 </div>
+                 <div class="stacked-legend">
+                    <span v-for="(seg, idx) in visualizationSegments" :key="idx" class="legend-item">
+                        <span class="color-dot" :style="{ backgroundColor: seg.color }"></span>
+                        {{ seg.label }}
+                    </span>
+                 </div>
 
-            <div class="breakdown-table-wrapper">
-                <h4>Top 5 Contributors (Highest Impact)</h4>
-
-                <div class="top-contributors-chart">
-                    <div v-for="(item, idx) in top5Contributors" :key="idx" class="contributor-row">
-                        <div class="row-header">
-                            <span class="inv-no">{{ item.inv.Invoice_No }}</span>
-                            <span class="inv-date">{{ formatDate(item.inv.Invoice_Date) }}</span>
-                            <span class="inv-late" :class="item.lateDays > 0 ? 'text-danger' : 'text-success'">
-                                {{ item.lateDays }} Days Late
-                            </span>
-                        </div>
-                        <div class="bar-container">
-                            <div class="bar-fill" :style="{ width: item.contribution + '%' }"></div>
-                            <span class="bar-label">{{ item.contribution.toFixed(2) }}%</span>
-                        </div>
-                        <div class="row-details">
-                            Amount: <strong>{{ formatValue(item.amount) }}</strong> |
-                            Weighted Score: {{ formatValue(item.weightedScore) }}
-                        </div>
-                    </div>
+                <!-- Compact Top 5 Table -->
+                <div class="compact-table-wrapper">
+                    <table class="compact-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%">Invoice No.</th>
+                                <th style="width: 15%">Date</th>
+                                <th style="width: 15%" class="text-center">Late Days</th>
+                                <th style="width: 25%" class="text-right">Amount</th>
+                                <th style="width: 25%" class="text-right">Contribution %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, idx) in top5Contributors" :key="idx">
+                                <td class="font-bold">{{ item.inv.Invoice_No }}</td>
+                                <td>{{ formatDate(item.inv.Invoice_Date) }}</td>
+                                <td class="text-center" :class="item.lateDays > 0 ? 'text-danger' : 'text-success'">
+                                    {{ item.lateDays }}
+                                </td>
+                                <td class="text-right">{{ formatValue(item.amount) }}</td>
+                                <td class="text-right">
+                                    <div class="percent-cell">
+                                        <div class="percent-bar-bg">
+                                            <div class="percent-bar-fill" :style="{ width: item.contribution + '%', backgroundColor: getSegmentColor(idx) }"></div>
+                                        </div>
+                                        <span>{{ item.contribution.toFixed(2) }}%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
-                <p class="exclusion-note">
-                    * Showing top 5 of {{ wadlBreakdown.invoices.length }} contributing invoices. <br>
-                    * Excluded {{ wadlBreakdown.excludedCount }} invoices:
-                    {{ wadlBreakdown.excludedOutstanding }} Outstanding,
-                    {{ wadlBreakdown.excludedOld }} Older than 6 Months.
+                <p class="exclusion-note-compact">
+                    * Showing top 5 of {{ wadlBreakdown.invoices.length }} contributing invoices.
+                    Excluded {{ wadlBreakdown.excludedCount }} invoices ({{ wadlBreakdown.excludedOutstanding }} Outstanding, {{ wadlBreakdown.excludedOld }} > 6 Months).
                 </p>
             </div>
           </div>
@@ -362,6 +373,36 @@ const wadlBreakdown = computed(() => {
 const top5Contributors = computed(() => {
     if (!wadlBreakdown.value || !wadlBreakdown.value.invoices) return [];
     return wadlBreakdown.value.invoices.slice(0, 5);
+});
+
+// Segment colors for Stacked Bar
+const segmentColors = ['#dc3545', '#fd7e14', '#ffc107', '#28a745', '#17a2b8'];
+
+const getSegmentColor = (idx) => {
+    return segmentColors[idx] || '#6c757d'; // Fallback gray
+};
+
+const visualizationSegments = computed(() => {
+    const top5 = top5Contributors.value;
+    if (top5.length === 0) return [];
+
+    const segments = top5.map((item, idx) => ({
+        label: item.inv.Invoice_No,
+        width: item.contribution,
+        color: getSegmentColor(idx)
+    }));
+
+    // Calculate 'Others'
+    const top5Total = segments.reduce((sum, s) => sum + s.width, 0);
+    if (top5Total < 100) {
+        segments.push({
+            label: 'Others',
+            width: 100 - top5Total,
+            color: '#e9ecef' // Light gray for others
+        });
+    }
+
+    return segments;
 });
 
 // Helper Methods for Table Display
@@ -682,143 +723,172 @@ h2 {
     animation: fadeIn 0.3s ease-in-out;
 }
 
-.breakdown-header h3 {
+.breakdown-header-compact h3 {
     margin-top: 0;
-    font-size: 1.1em;
-    color: #0d47a1;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 5px;
-}
-
-.breakdown-stats {
+    font-size: 1.0em;
+    color: #333;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 15px;
-    margin: 20px 0;
-    padding: 15px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    gap: 8px;
+    margin-bottom: 15px;
 }
 
-.stat-box {
-    text-align: center;
-}
-
-.stat-box .label {
-    display: block;
-    font-size: 0.85em;
-    color: #666;
-    margin-bottom: 5px;
-}
-
-.stat-box .value {
+/* Tooltip Styles */
+.tooltip-container {
+    cursor: help;
+    position: relative;
     font-size: 1.2em;
-    font-weight: bold;
-    color: #333;
+    line-height: 1;
 }
 
-.stat-box.result .value {
-    color: #0d47a1;
-    font-size: 1.5em;
-}
-
-.stat-box .unit {
-    display: block;
-    font-size: 0.8em;
-    color: #888;
-}
-
-.operator {
-    font-size: 1.5em;
-    color: #aaa;
-    font-weight: 300;
-}
-
-.breakdown-table {
-    margin-top: 10px;
-    font-size: 0.9em;
-}
-
-.breakdown-table th {
-    background-color: #e9ecef;
-    color: #495057;
-}
-
-.total-row {
-    background-color: #f1f3f5;
-    border-top: 2px solid #dee2e6;
-}
-
-.exclusion-note {
-    font-size: 0.85em;
-    color: #888;
-    margin-top: 10px;
-    font-style: italic;
-    text-align: right;
-}
-
-/* TOP 5 CONTRIBUTORS CHART */
-.top-contributors-chart {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.contributor-row {
-    background: white;
+.tooltip-text {
+    visibility: hidden;
+    width: 300px;
+    background-color: #333;
+    color: #fff;
+    text-align: left;
+    border-radius: 6px;
     padding: 10px;
+    position: absolute;
+    z-index: 10;
+    bottom: 125%; /* Position above */
+    left: 50%;
+    margin-left: -150px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.8rem;
+    font-weight: normal;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Stacked Bar */
+.stacked-bar-container {
+    display: flex;
+    height: 25px;
+    width: 100%;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.bar-segment {
+    height: 100%;
+    transition: width 0.5s ease-out;
+}
+
+.bar-segment:hover {
+    filter: brightness(0.9);
+}
+
+/* Legend */
+.stacked-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Compact Table */
+.compact-table-wrapper {
+    background: white;
     border: 1px solid #eee;
     border-radius: 4px;
-}
-
-.row-header {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9em;
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #333;
-}
-
-.bar-container {
-    height: 18px;
-    background-color: #f1f3f5;
-    border-radius: 9px;
-    position: relative;
     overflow: hidden;
-    margin-bottom: 5px;
 }
 
-.bar-fill {
+.compact-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.compact-table th {
+    background-color: #f8f9fa;
+    padding: 6px 10px;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+    color: #495057;
+    text-align: left;
+}
+
+.compact-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.compact-table tr:last-child td {
+    border-bottom: none;
+}
+
+.compact-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Percent Bar in Table */
+.percent-cell {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.percent-bar-bg {
+    width: 60px;
+    height: 6px;
+    background-color: #f1f3f5;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.percent-bar-fill {
     height: 100%;
-    background-color: #0056FF;
-    border-radius: 9px;
-    min-width: 5px; /* Ensure visibility for small % */
+    border-radius: 3px;
 }
 
-.bar-label {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.75em;
-    color: #666; /* Contrast against light bg */
-    font-weight: bold;
-}
-
-.bar-fill + .bar-label {
-    /* If bar is long, label might need white color, but simple approach is usually fine */
-    mix-blend-mode: multiply;
-}
-
-.row-details {
-    font-size: 0.85em;
-    color: #666;
+.exclusion-note-compact {
+    font-size: 0.8rem;
+    color: #999;
+    margin-top: 8px;
     text-align: right;
+    font-style: italic;
 }
+
+/* Utility Overrides for this section */
+.text-right { text-align: right; }
+.text-center { text-align: center; }
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-5px); }
@@ -828,12 +898,6 @@ h2 {
 .wadl-score {
     font-weight: bold;
     font-size: 1.1em;
-}
-
-.wadl-grade {
-    margin-left: 5px;
-    font-size: 0.85em;
-    opacity: 0.8;
 }
 
 @media print {
