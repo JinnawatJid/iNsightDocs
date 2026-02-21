@@ -59,13 +59,95 @@
       <div class="section payment-history-section" v-if="latePaymentInvoices && latePaymentInvoices.length > 0">
           <div class="header-with-toggle">
               <h2>Payment History (Debug Log)</h2>
-              <div class="text-right">
-                  <span class="calc-summary">
-                      <strong>Average Late Days Calculation:</strong>
-                      {{ latePaymentStats.totalLateDays }} (Total Late Days) / {{ latePaymentStats.paidCount }} (Paid Invoices)
+              <div class="text-right stats-wrapper">
+                  <div class="calc-summary">
+                      <strong>Simple Average (Count-Based):</strong>
+                      {{ latePaymentStats.totalLateDays }} (Total Late Days) / {{ latePaymentStats.paidCount }} (Paid)
                       = <strong>{{ latePaymentStats.avg }}</strong> Days
-                  </span>
+                  </div>
+                  <div class="calc-summary wadl-summary clickable" v-if="wadlStats" @click="toggleWadlBreakdown">
+                      <strong>Weighted Average (Value-Based):</strong>
+                      <span>
+                          {{ formatValue(wadlBreakdown.totalWeightedDelay) }} (Total Weighted Delay) /
+                          {{ formatValue(wadlBreakdown.totalAmount) }} (Total Paid)
+                          = <strong class="wadl-score">{{ wadlStats.score }}</strong> Days
+                      </span>
+                      <span class="toggle-icon">{{ showWadlBreakdown ? '▼' : '▶' }} (Show Calculation)</span>
+                  </div>
               </div>
+          </div>
+
+          <!-- WADL BREAKDOWN SECTION -->
+          <div class="wadl-breakdown-panel" v-if="showWadlBreakdown && wadlStats">
+            <div class="breakdown-header-compact">
+                <h3>
+                    Weighted Average Days Late (WADL) Breakdown
+                    <span class="tooltip-container">
+                        ℹ️
+                        <span class="tooltip-text">
+                            <strong>Formula:</strong> Σ (Invoice Amount × Late Days) ÷ Σ (Invoice Amount)<br>
+                            <strong>Scope:</strong> Paid invoices in last 6 months. Outstanding excluded.
+                        </span>
+                    </span>
+                </h3>
+            </div>
+
+            <div class="breakdown-content-compact">
+                <!-- Stacked Bar Visualization -->
+                 <div class="stacked-bar-container">
+                    <div
+                        v-for="(seg, idx) in visualizationSegments"
+                        :key="idx"
+                        class="bar-segment"
+                        :style="{ width: seg.width + '%', backgroundColor: seg.color }"
+                        :title="seg.label + ': ' + seg.width.toFixed(2) + '%'"
+                    ></div>
+                 </div>
+                 <div class="stacked-legend">
+                    <span v-for="(seg, idx) in visualizationSegments" :key="idx" class="legend-item">
+                        <span class="color-dot" :style="{ backgroundColor: seg.color }"></span>
+                        {{ seg.label }}
+                    </span>
+                 </div>
+
+                <!-- Compact Top 5 Table -->
+                <div class="compact-table-wrapper">
+                    <table class="compact-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%">Invoice No.</th>
+                                <th style="width: 15%">Date</th>
+                                <th style="width: 15%" class="text-center">Late Days</th>
+                                <th style="width: 25%" class="text-right">Amount</th>
+                                <th style="width: 25%" class="text-right">Contribution %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, idx) in top5Contributors" :key="idx">
+                                <td class="font-bold">{{ item.inv.Invoice_No }}</td>
+                                <td>{{ formatDate(item.inv.Invoice_Date) }}</td>
+                                <td class="text-center" :class="item.lateDays > 0 ? 'text-danger' : 'text-success'">
+                                    {{ item.lateDays }}
+                                </td>
+                                <td class="text-right">{{ formatValue(item.amount) }}</td>
+                                <td class="text-right">
+                                    <div class="percent-cell">
+                                        <div class="percent-bar-bg">
+                                            <div class="percent-bar-fill" :style="{ width: item.contribution + '%', backgroundColor: getSegmentColor(idx) }"></div>
+                                        </div>
+                                        <span>{{ item.contribution.toFixed(2) }}%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p class="exclusion-note-compact">
+                    * Showing top 5 of {{ wadlBreakdown.invoices.length }} contributing invoices.
+                    Excluded {{ wadlBreakdown.excludedCount }} invoices ({{ wadlBreakdown.excludedOutstanding }} Outstanding, {{ wadlBreakdown.excludedOld }} > 6 Months).
+                </p>
+            </div>
           </div>
           <p class="section-desc">รายการประวัติการชำระเงินจากระบบ Dynamics 365 (ใช้คำนวณคะแนน)</p>
 
@@ -76,6 +158,8 @@
                         <th>Invoice No.</th>
                         <th>Invoice Date</th>
                         <th>Due Date</th>
+                        <th>Amount</th>
+                        <th>Payment Method</th>
                         <th>Effective Payment</th>
                         <th>Late Days</th>
                         <th>Status</th>
@@ -86,6 +170,13 @@
                         <td>{{ inv.Invoice_No }}</td>
                         <td>{{ formatDate(inv.Invoice_Date) }}</td>
                         <td>{{ formatDate(inv['Due Date']) }}</td>
+                        <td class="text-right">{{ inv.Amount ? formatValue(inv.Amount) : '-' }}</td>
+                        <td class="text-center">
+                            <span v-if="getPaymentMethod(inv)" class="badge" :class="getPaymentMethodClass(inv)">
+                                {{ getPaymentMethod(inv) }}
+                            </span>
+                            <span v-else>-</span>
+                        </td>
                         <td>
                             {{ formatDate(inv.Effective_Payment_Date) }}
                             <small v-if="inv.Payment_Doc_No" class="d-block text-muted">({{ inv.Payment_Doc_No }})</small>
@@ -127,9 +218,14 @@ import CreditScoreSheet from '@/components/credit/CreditScoreSheet.vue';
 const loading = ref(true);
 const data = ref(null);
 const showExtractionDetails = ref(false);
+const showWadlBreakdown = ref(false);
 
 const toggleExtractionDetails = () => {
     showExtractionDetails.value = !showExtractionDetails.value;
+};
+
+const toggleWadlBreakdown = () => {
+    showWadlBreakdown.value = !showWadlBreakdown.value;
 };
 
 onMounted(() => {
@@ -155,11 +251,21 @@ const latePaymentSummary = computed(() => {
     return data.value.analysisResults.financialSummary.latePaymentData;
 });
 
+const wadlStats = computed(() => {
+    if (!data.value || !data.value.analysisResults || !data.value.analysisResults.financialSummary) return null;
+    return data.value.analysisResults.financialSummary.wadlData;
+});
+
 const latePaymentInvoices = computed(() => {
-    const summary = latePaymentSummary.value;
-    if (summary && summary.invoices && Array.isArray(summary.invoices)) {
+    // Prefer WADL invoices if available (contains Amount)
+    const wadlInvoices = wadlStats.value?.invoices;
+    const standardInvoices = latePaymentSummary.value?.invoices;
+
+    const source = wadlInvoices || standardInvoices;
+
+    if (source && Array.isArray(source)) {
         // Sort descending by Invoice Date (Newest first)
-        return [...summary.invoices].sort((a, b) => {
+        return [...source].sort((a, b) => {
             const dateA = new Date(a.Invoice_Date);
             const dateB = new Date(b.Invoice_Date);
             return dateB - dateA;
@@ -200,9 +306,131 @@ const latePaymentStats = computed(() => {
     };
 });
 
+const wadlBreakdown = computed(() => {
+    const invoices = latePaymentInvoices.value || [];
+    if (invoices.length === 0) return { totalAmount: 0, totalWeightedDelay: 0, invoices: [], excludedCount: 0 };
+
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    let totalAmount = 0;
+    let totalWeightedDelay = 0;
+    let excludedOutstanding = 0;
+    let excludedOld = 0;
+
+    const breakdownInvoices = [];
+
+    invoices.forEach(inv => {
+        // 1. Check if Paid
+        if (!inv.Effective_Payment_Date || inv.Effective_Payment_Date.trim() === '') {
+            excludedOutstanding++;
+            return;
+        }
+
+        // 2. Check Date (Last 6 Months)
+        const dateStr = inv.Invoice_Date || inv.Posting_Date;
+        const invDate = new Date(dateStr);
+        if (invDate < sixMonthsAgo) {
+            excludedOld++;
+            return;
+        }
+
+        // 3. Calculate
+        const amount = Number(inv.Amount || 0);
+        const lateDays = Number(inv.Late_Days || 0);
+        const weightedScore = amount * lateDays;
+
+        totalAmount += amount;
+        totalWeightedDelay += weightedScore;
+
+        breakdownInvoices.push({
+            inv,
+            amount,
+            lateDays,
+            weightedScore
+        });
+    });
+
+    // 4. Calculate Contribution %
+    const resultInvoices = breakdownInvoices.map(item => ({
+        ...item,
+        contribution: totalWeightedDelay > 0 ? (item.weightedScore / totalWeightedDelay) * 100 : 0
+    }));
+
+    // Sort by contribution desc
+    resultInvoices.sort((a, b) => b.weightedScore - a.weightedScore);
+
+    return {
+        totalAmount,
+        totalWeightedDelay,
+        invoices: resultInvoices,
+        excludedCount: excludedOutstanding + excludedOld,
+        excludedOutstanding,
+        excludedOld
+    };
+});
+
+const top5Contributors = computed(() => {
+    if (!wadlBreakdown.value || !wadlBreakdown.value.invoices) return [];
+    return wadlBreakdown.value.invoices.slice(0, 5);
+});
+
+// Segment colors for Stacked Bar
+const segmentColors = ['#dc3545', '#fd7e14', '#ffc107', '#28a745', '#17a2b8'];
+
+const getSegmentColor = (idx) => {
+    return segmentColors[idx] || '#6c757d'; // Fallback gray
+};
+
+const visualizationSegments = computed(() => {
+    const top5 = top5Contributors.value;
+    if (top5.length === 0) return [];
+
+    const segments = top5.map((item, idx) => ({
+        label: item.inv.Invoice_No,
+        width: item.contribution,
+        color: getSegmentColor(idx)
+    }));
+
+    // Calculate 'Others'
+    const top5Total = segments.reduce((sum, s) => sum + s.width, 0);
+    if (top5Total < 100) {
+        segments.push({
+            label: 'Others',
+            width: 100 - top5Total,
+            color: '#e9ecef' // Light gray for others
+        });
+    }
+
+    return segments;
+});
+
 // Helper Methods for Table Display
 const isPaid = (inv) => {
     return inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '';
+};
+
+const getPaymentMethod = (inv) => {
+    if (!isPaid(inv)) return null;
+
+    // Check various possible locations for the field
+    let method = inv.payment_method || inv.Payment_Method;
+    if (inv.payment_detail && inv.payment_detail.payment_method) {
+        method = inv.payment_detail.payment_method;
+    }
+
+    // Spec Default: If paid but no explicit method, assume Cash/Transfer unless known otherwise
+    if (!method) return 'Cash/Transfer';
+
+    return method;
+};
+
+const getPaymentMethodClass = (inv) => {
+    const method = getPaymentMethod(inv);
+    if (!method) return '';
+    const m = method.toLowerCase();
+    if (m.includes('cheque') || m.includes('check')) return 'badge-cheque';
+    return 'badge-cash';
 };
 
 const getRowClass = (inv) => {
@@ -438,6 +666,23 @@ h2 {
     color: #383d41;
 }
 
+.badge-cheque {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.badge-cash {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.stats-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+
 .calc-summary {
     font-size: 0.9em;
     color: #555;
@@ -445,6 +690,214 @@ h2 {
     padding: 5px 10px;
     border-radius: 4px;
     border: 1px solid #e9ecef;
+}
+
+.wadl-summary {
+    background: #e3f2fd;
+    border-color: #bbdefb;
+    color: #0d47a1;
+}
+
+.wadl-summary.clickable {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.wadl-summary.clickable:hover {
+    background-color: #bbdefb;
+}
+
+.toggle-icon {
+    font-size: 0.8em;
+    margin-left: 8px;
+    opacity: 0.7;
+}
+
+/* WADL Breakdown Panel */
+.wadl-breakdown-panel {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.breakdown-header-compact h3 {
+    margin-top: 0;
+    font-size: 1.0em;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+/* Tooltip Styles */
+.tooltip-container {
+    cursor: help;
+    position: relative;
+    font-size: 1.2em;
+    line-height: 1;
+}
+
+.tooltip-text {
+    visibility: hidden;
+    width: 300px;
+    background-color: #333;
+    color: #fff;
+    text-align: left;
+    border-radius: 6px;
+    padding: 10px;
+    position: absolute;
+    z-index: 10;
+    bottom: 125%; /* Position above */
+    left: 50%;
+    margin-left: -150px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.8rem;
+    font-weight: normal;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Stacked Bar */
+.stacked-bar-container {
+    display: flex;
+    height: 25px;
+    width: 100%;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.bar-segment {
+    height: 100%;
+    transition: width 0.5s ease-out;
+}
+
+.bar-segment:hover {
+    filter: brightness(0.9);
+}
+
+/* Legend */
+.stacked-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Compact Table */
+.compact-table-wrapper {
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.compact-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.compact-table th {
+    background-color: #f8f9fa;
+    padding: 6px 10px;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+    color: #495057;
+    text-align: left;
+}
+
+.compact-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.compact-table tr:last-child td {
+    border-bottom: none;
+}
+
+.compact-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Percent Bar in Table */
+.percent-cell {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.percent-bar-bg {
+    width: 60px;
+    height: 6px;
+    background-color: #f1f3f5;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.percent-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+}
+
+.exclusion-note-compact {
+    font-size: 0.8rem;
+    color: #999;
+    margin-top: 8px;
+    text-align: right;
+    font-style: italic;
+}
+
+/* Utility Overrides for this section */
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.wadl-score {
+    font-weight: bold;
+    font-size: 1.1em;
 }
 
 @media print {

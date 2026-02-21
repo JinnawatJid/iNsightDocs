@@ -10,9 +10,15 @@ const { extractDBDData } = require('../utils/pdfExtractor');
 // Configuration
 const FINANCIAL_API_URL = "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
 const LATE_PAYMENT_API_URL = "http://192.192.0.37:8280/customer-late-payment/1.0.0";
+// New WADL API Endpoint
+const LATE_PAYMENT_WADL_API_URL = "http://192.192.0.37:8280/weight-baselatepayment/1.0.0";
+
 const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
 // Separate API Key for Late Payment Service (if different from Customer API)
 const LATE_PAYMENT_API_KEY = process.env.LATE_PAYMENT_API_KEY || API_KEY;
+// Dedicated API Key for WADL Service
+const LATE_PAYMENT_WADL_API_KEY = process.env.LATE_PAYMENT_WADL_API_KEY || "YOUR_WADL_API_KEY";
+
 const MOCK_FINANCIAL_API = process.env.MOCK_FINANCIAL_API === 'true';
 
 // Mock Data (Matches customerController.js for consistency)
@@ -167,6 +173,100 @@ const fetchLatePaymentData = async (customerNo) => {
             console.error('[Late Payment API] Response Data:', JSON.stringify(error.response.data).substring(0, 500));
         }
         return null; // Return null to indicate error/no data available
+    }
+};
+
+/**
+ * EXPERIMENTAL: Calculate Weighted Average Days Late (WADL)
+ * Formula: SUM(Amount * LateDays) / SUM(Amount)
+ * Filter: Paid Invoices Only, Last 6 Months
+ */
+const calculateWADL = (invoices) => {
+    if (!invoices || invoices.length === 0) return { score: 0, grade: 'N/A' };
+
+    // 1. Filter Timeframe (Last 6 Months) & Paid Status
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const paidInvoices = invoices.filter(inv => {
+        // Must be paid
+        if (!inv.Effective_Payment_Date) return false;
+
+        // Must be within timeframe (Use Posting Date or Invoice Date as anchor)
+        // Some APIs return Posting_Date, others Invoice_Date. Check both.
+        const dateStr = inv.Posting_Date || inv.Invoice_Date;
+        if (!dateStr) return false;
+
+        const postingDate = new Date(dateStr);
+        return postingDate >= sixMonthsAgo;
+    });
+
+    if (paidInvoices.length === 0) return { score: 0, grade: 'No Data' };
+
+    let totalWeightedDelay = 0;
+    let totalAmount = 0;
+
+    paidInvoices.forEach(inv => {
+        const amount = Number(inv.Amount || inv.amount || 0); // Need Amount field!
+        const lateDays = Number(inv.Late_Days || inv.late_days || 0);
+
+        if (amount > 0) {
+            totalWeightedDelay += (amount * lateDays);
+            totalAmount += amount;
+        }
+    });
+
+    const wadl = totalAmount > 0 ? (totalWeightedDelay / totalAmount) : 0;
+
+    // Grading Scale (Experimental)
+    let grade = 'A';
+    if (wadl > 30) grade = 'D';
+    else if (wadl > 15) grade = 'C';
+    else if (wadl > 7) grade = 'B';
+
+    return {
+        score: Number(wadl.toFixed(2)),
+        grade: grade,
+        invoice_count: paidInvoices.length,
+        total_value: totalAmount,
+        invoices: invoices // Return original invoices (with Amount) for frontend display
+    };
+};
+
+// Helper: Fetch WADL Data from External API
+const fetchWADLData = async (customerNo) => {
+    try {
+        console.log(`[WADL API] Fetching data for ${customerNo} from ${LATE_PAYMENT_WADL_API_URL}`);
+
+        if (!LATE_PAYMENT_WADL_API_KEY || LATE_PAYMENT_WADL_API_KEY === 'YOUR_WADL_API_KEY') {
+            console.warn('[WADL API] WARNING: LATE_PAYMENT_WADL_API_KEY is not set or is default placeholder.');
+        } else {
+            const maskedKey = LATE_PAYMENT_WADL_API_KEY.substring(0, 5) + '...';
+            console.log(`[WADL API] Using API Key: ${maskedKey}`);
+        }
+
+        const response = await axios.post(LATE_PAYMENT_WADL_API_URL, {
+            "Customer No_": customerNo
+        }, {
+            headers: {
+                "apikey": LATE_PAYMENT_WADL_API_KEY,
+                "Content-Type": "application/json"
+            },
+            timeout: 5000
+        });
+
+        const data = response.data;
+        const invoices = Array.isArray(data) ? data : (data.data || []);
+
+        if (!invoices || invoices.length === 0) {
+             return { score: 0, grade: 'N/A' };
+        }
+
+        return calculateWADL(invoices);
+
+    } catch (error) {
+        console.error(`[WADL API] Error fetching data for ${customerNo}:`, error.message);
+        return { score: 0, grade: 'Error' }; // Return error state
     }
 };
 
@@ -493,6 +593,7 @@ exports.analyzeFinancials = async (req, res) => {
     let accumData = null;
     let monthlyHistory = [];
     let latePaymentData = null;
+    let wadlDataResult = null;
 
     if (customer_no) {
         // Fetch Customer Profile (Years in Business, etc.)
@@ -515,13 +616,15 @@ exports.analyzeFinancials = async (req, res) => {
         if (residence_ownership) customerData.residence_ownership = residence_ownership;
         if (residence_ownership_other) customerData.residence_ownership_other = residence_ownership_other;
 
-        // Parallel Fetch: Financial Data (API) & Late Payment Data (API)
-        const [apiData, lateDataResult] = await Promise.all([
+        // Parallel Fetch: Financial Data (API) & Late Payment Data (API) & WADL Data
+        const [apiData, lateData, wadlData] = await Promise.all([
              fetchPurchasingBehavior(customer_no),
-             fetchLatePaymentData(customer_no)
+             fetchLatePaymentData(customer_no),
+             fetchWADLData(customer_no)
         ]);
 
-        latePaymentData = lateDataResult;
+        latePaymentData = lateData;
+        wadlDataResult = wadlData;
 
         if (apiData && apiData.monthly) {
             // New Logic: Use Continuous Timeline
@@ -604,6 +707,7 @@ exports.analyzeFinancials = async (req, res) => {
     const financialSummary = {
         monthlyHistory,
         latePaymentData: latePaymentData, // Include Late Payment Info
+        wadlData: wadlDataResult,         // Include WADL Info
         stats: {
             sumLast3: accumData ? accumData.SecondAccum : 0,
             trendRatio: accumData ? accumData.AccumTrend : 1.0,
@@ -772,5 +876,91 @@ exports.downloadLocalFile = async (req, res) => {
     }
 };
 
+/**
+ * New Endpoint: Get Late Payment Benchmark Comparison
+ * Compares Traditional (Count-based) vs WADL (Amount-based)
+ */
+exports.getLatePaymentBenchmark = async (req, res) => {
+    const { customer_no } = req.params;
+
+    try {
+        console.log(`[WADL API] Fetching data for ${customer_no} from ${LATE_PAYMENT_WADL_API_URL}`);
+
+        // Debug API Key (First 5 chars)
+        if (!LATE_PAYMENT_WADL_API_KEY || LATE_PAYMENT_WADL_API_KEY === 'YOUR_WADL_API_KEY') {
+            console.warn('[WADL API] WARNING: LATE_PAYMENT_WADL_API_KEY is not set or is default placeholder.');
+        } else {
+            const maskedKey = LATE_PAYMENT_WADL_API_KEY.substring(0, 5) + '...';
+            console.log(`[WADL API] Using API Key: ${maskedKey}`);
+        }
+
+        const response = await axios.post(LATE_PAYMENT_WADL_API_URL, {
+            "Customer No_": customer_no
+        }, {
+            headers: {
+                "apikey": LATE_PAYMENT_WADL_API_KEY,
+                "Content-Type": "application/json"
+            },
+            timeout: 5000
+        });
+
+        const data = response.data;
+        const invoices = Array.isArray(data) ? data : (data.data || []);
+
+        if (!invoices || invoices.length === 0) {
+            return res.json({
+                customer_no,
+                comparison: null,
+                message: "No invoice data found for WADL calculation."
+            });
+        }
+
+        // 2. Calculate Traditional (Simple Average) based on this dataset
+        // Filter paid invoices first for fair comparison
+        const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '');
+
+        const totalLateDays = paidInvoices.reduce((sum, inv) => sum + (Number(inv.Late_Days) || 0), 0);
+        const traditionalScore = paidInvoices.length > 0 ? (totalLateDays / paidInvoices.length) : 0;
+
+        // 3. Calculate WADL (Weighted Average)
+        const wadlResult = calculateWADL(invoices);
+
+        res.json({
+            customer_no,
+            comparison: {
+                traditional: {
+                    method: "Simple Average (Count-based)",
+                    score: Number(traditionalScore.toFixed(2)),
+                    formula: "SUM(LateDays) / Count",
+                    interpretation: "Heavily influenced by frequency of small late bills."
+                },
+                wadl: {
+                    method: "Weighted Average (Value-based)",
+                    score: wadlResult.score,
+                    grade: wadlResult.grade,
+                    formula: "SUM(Amount * LateDays) / SUM(Amount)",
+                    interpretation: "Reflects financial impact; lower score if large bills are paid on time."
+                }
+            },
+            data_source: "Real API"
+        });
+
+    } catch (error) {
+        console.error(`[WADL API] Error fetching data for ${customer_no}:`, error.message);
+        if (error.response) {
+            console.error('[WADL API] Response Status:', error.response.status);
+            console.error('[WADL API] Response Headers:', JSON.stringify(error.response.headers));
+            console.error('[WADL API] Response Data:', JSON.stringify(error.response.data).substring(0, 500));
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch WADL benchmark data',
+            error: error.message
+        });
+    }
+};
+
 // Export helper for testing
 exports.findYearlySeries = findYearlySeries;
+exports.calculateWADL = calculateWADL;
