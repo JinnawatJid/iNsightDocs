@@ -281,22 +281,11 @@ const latePaymentStats = computed(() => {
     // Identify Paid Invoices
     const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '');
 
-    // Check if backend provided pre-calculated stats (Preferred)
-    let avg = 0;
-    let paidCount = 0;
-
-    if (summary && summary.average_late_days !== undefined) {
-        avg = summary.average_late_days;
-        paidCount = summary.paid_invoices_count !== undefined ? summary.paid_invoices_count : paidInvoices.length;
-    } else {
-        // Fallback Calc
-        paidCount = paidInvoices.length;
-        const sum = paidInvoices.reduce((acc, inv) => acc + (Number(inv.Late_Days) || 0), 0);
-        avg = paidCount > 0 ? (sum / paidCount).toFixed(2) : 0;
-    }
-
-    // Total Late Days (Sum of paid invoices)
+    // Calculate stats locally from the displayed invoices to ensure consistency with the table
+    // (Backend summary stats might be based on a different scope, e.g., all-time vs 6-months)
+    const paidCount = paidInvoices.length;
     const totalLateDays = paidInvoices.reduce((sum, inv) => sum + (Number(inv.Late_Days) || 0), 0);
+    const avg = paidCount > 0 ? (totalLateDays / paidCount).toFixed(2) : 0;
 
     return {
         totalLateDays,
