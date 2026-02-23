@@ -1337,6 +1337,7 @@ button:disabled {
     color: #333;
     margin-bottom: 0;
     text-align: left; /* Explicitly align text left */
+    white-space: nowrap; /* Prevent text wrapping */
 }
 
 .setting-label-block {
