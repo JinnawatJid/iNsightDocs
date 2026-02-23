@@ -8,7 +8,7 @@ const API_URL = process.env.CUSTOMER_API_URL || "http://192.192.0.37:8280/custom
 const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
 
 // Configuration
-const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
+const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://192.192.0.37:8280/sales-summary-6-months/1.0.0";
 const CATEGORY_API_URL = process.env.CATEGORY_API_URL || "http://192.192.0.37:8000/api/customer-analytics/category-summary";
 const ENABLE_LOCAL_FALLBACK = process.env.ENABLE_LOCAL_FALLBACK === 'true';
 
@@ -104,8 +104,14 @@ const fetchPurchasingBehavior = async (customerNo) => {
     }
 
     try {
-        const response = await axios.get(FINANCIAL_API_URL, {
-            params: { customer_code: customerNo },
+        // Updated to POST method with JSON body
+        const response = await axios.post(FINANCIAL_API_URL, {
+            customer_code: customerNo
+        }, {
+            headers: {
+                "apikey": API_KEY, // Reuse API_KEY from customer search if applicable, or check if distinct key needed
+                "Content-Type": "application/json"
+            },
             timeout: 5000
         });
         return response.data;
@@ -349,11 +355,14 @@ const enrichCustomerData = async (customerNo) => {
              categoryBreakdown.sort((a, b) => b.value - a.value);
         }
 
-        if (apiData && apiData.monthly) {
+        // Support both old 'monthly' and new 'data' formats
+        const monthlyData = apiData && (apiData.monthly || apiData.data);
+
+        if (monthlyData) {
             // New Logic: Use Continuous Timeline (Fixes gap issues)
             // This returns 7 months: [Month-6, Month-5, ..., Month-1, CurrentMonth]
             // Gaps are filled with 0.
-            const timeline = generateContinuousTimeline(apiData.monthly);
+            const timeline = generateContinuousTimeline(monthlyData);
 
             const now = new Date();
             const currentYear = now.getFullYear();
