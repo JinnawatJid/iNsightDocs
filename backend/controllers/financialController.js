@@ -8,7 +8,7 @@ const ScoringEngine = require('../services/scoring/ScoringEngine');
 const { extractDBDData } = require('../utils/pdfExtractor');
 
 // Configuration
-const FINANCIAL_API_URL = "http://192.192.0.37:8280/sales-summary-6-months/1.0.0";
+const FINANCIAL_API_URL = "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
 const LATE_PAYMENT_API_URL = "http://192.192.0.37:8280/customer-late-payment/1.0.0";
 // New WADL API Endpoint
 const LATE_PAYMENT_WADL_API_URL = "http://192.192.0.37:8280/weight-baselatepayment/1.0.0";
@@ -97,13 +97,8 @@ const fetchPurchasingBehavior = async (customerNo) => {
 
     try {
         console.log(`[Financial API] Fetching data for ${customerNo} from ${FINANCIAL_API_URL}`);
-        const response = await axios.post(FINANCIAL_API_URL, {
-            customer_code: customerNo
-        }, {
-            headers: {
-                "apikey": API_KEY, // Reuse existing API Key
-                "Content-Type": "application/json"
-            },
+        const response = await axios.get(FINANCIAL_API_URL, {
+            params: { customer_code: customerNo },
             timeout: 5000
         });
         console.log(`[Financial API] Success for ${customerNo}`);
@@ -631,12 +626,9 @@ exports.analyzeFinancials = async (req, res) => {
         latePaymentData = lateData;
         wadlDataResult = wadlData;
 
-        // Support both old 'monthly' and new 'data' formats
-        const monthlyData = apiData && (apiData.monthly || apiData.data);
-
-        if (monthlyData) {
+        if (apiData && apiData.monthly) {
             // New Logic: Use Continuous Timeline
-            const timeline = generateContinuousTimeline(monthlyData);
+            const timeline = generateContinuousTimeline(apiData.monthly);
 
             const now = new Date();
             const currentYear = now.getFullYear();

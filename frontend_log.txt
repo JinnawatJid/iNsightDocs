@@ -7,3 +7,4 @@
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
+5:50:38 PM [vite] (client) hmr update /src/views/CreditAnalysisReport.vue
