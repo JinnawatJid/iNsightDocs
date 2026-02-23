@@ -44,7 +44,7 @@
 
            <div v-if="showConcurrencySettings" class="clean-settings-card">
              <!-- Scoring Model Selection -->
-             <div class="setting-row" style="gap: 15px;">
+             <div class="setting-row">
                <label class="setting-label">โมเดลการให้คะแนน:</label>
                <select v-model="selectedModel" class="form-control" style="width: 200px;">
                  <option value="new">ลูกค้าใหม่</option>
@@ -1332,9 +1332,8 @@ button:disabled {
 }
 
 .setting-label {
-    width: auto; /* Let content define width */
-    min-width: 140px; /* Minimum width for alignment consistency */
-    padding-right: 10px;
+    width: auto;
+    margin-right: 15px; /* Fixed spacing between label and input */
     font-weight: 500;
     color: #333;
     margin-bottom: 0;
