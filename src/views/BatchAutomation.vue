@@ -43,28 +43,26 @@
 
            <div v-if="showConcurrencySettings" class="settings-panel mt-2">
              <!-- Scoring Model Selection -->
-             <div class="mb-2">
-               <label class="d-block mb-1">โมเดลการให้คะแนน (Scoring Model):</label>
-               <select v-model="selectedModel" class="form-control" style="width: 100%;">
-                 <option value="new">ลูกค้าใหม่ (New Customer)</option>
-                 <option value="existing">ลูกค้าปัจจุบัน (Existing Customer)</option>
+             <div class="mb-2 d-flex align-items-center" style="gap: 10px;">
+               <label class="mb-0">โมเดลการให้คะแนน:</label>
+               <select v-model="selectedModel" class="form-control" style="width: auto; flex: 1;">
+                 <option value="new">ลูกค้าใหม่</option>
+                 <option value="existing">ลูกค้าปัจจุบัน</option>
                </select>
              </div>
 
              <!-- Limit Exponent (Only for Existing) -->
-             <div v-if="selectedModel === 'existing'" class="mb-2">
-                <label class="d-block mb-1">ตัวคูณวงเงิน (Exponent):</label>
-                <div class="d-flex" style="gap: 5px;">
-                  <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="form-control" style="width: 80px;" />
-                  <small class="text-muted align-self-center">(ค่าปกติ: 2.0)</small>
-                </div>
+             <div v-if="selectedModel === 'existing'" class="mb-2 d-flex align-items-center" style="gap: 10px;">
+                <label class="mb-0">ตัวคูณวงเงิน:</label>
+                <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="form-control" style="width: 80px;" />
+                <small class="text-muted">(ค่าปกติ: 2.0)</small>
              </div>
 
              <hr style="border-top: 1px dashed #ccc; margin: 10px 0;">
 
              <!-- Concurrency -->
              <div class="d-flex align-items-center" style="gap: 10px;">
-               <label class="mb-0">จำนวนเธรดการทำงาน (Process Threads):</label>
+               <label class="mb-0">จำนวนเธรดการทำงาน:</label>
                <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 60px; display: inline-block;" />
                <small class="text-muted">แนะนำ 2-4</small>
              </div>
