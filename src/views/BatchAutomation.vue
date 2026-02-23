@@ -766,6 +766,16 @@ const processNextItem = async () => {
             item.score = analyzeRes.data.scoringResult?.totalScore || 0;
             item.grade = analyzeRes.data.scoringResult?.grade || '-';
 
+            // Override inputs with Final Inputs from Backend (e.g. from local PDF extraction)
+            if (analyzeRes.data.finalInputs) {
+                if (analyzeRes.data.finalInputs.registeredCapital > 0) {
+                    item.registeredCapital = analyzeRes.data.finalInputs.registeredCapital;
+                }
+                if (analyzeRes.data.finalInputs.yearsInBusiness > 0) {
+                    item.yearsInBusiness = analyzeRes.data.finalInputs.yearsInBusiness;
+                }
+            }
+
             // Extract Late Payment Average
             if (analyzeRes.data.financialSummary?.latePaymentData?.average_late_days !== undefined) {
                  item.latePaymentAverage = analyzeRes.data.financialSummary.latePaymentData.average_late_days;
