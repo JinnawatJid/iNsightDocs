@@ -1332,7 +1332,9 @@ button:disabled {
 }
 
 .setting-label {
-    width: 180px; /* Fixed width for labels */
+    width: auto; /* Let content define width */
+    min-width: 140px; /* Minimum width for alignment consistency */
+    padding-right: 10px;
     font-weight: 500;
     color: #333;
     margin-bottom: 0;
