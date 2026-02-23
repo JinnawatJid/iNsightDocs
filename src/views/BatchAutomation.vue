@@ -44,9 +44,9 @@
 
            <div v-if="showConcurrencySettings" class="clean-settings-card">
              <!-- Scoring Model Selection -->
-             <div class="setting-row">
-               <label class="setting-label">โมเดลการให้คะแนน:</label>
-               <select v-model="selectedModel" class="form-control setting-input">
+             <div class="mb-3">
+               <label class="setting-label-block">โมเดลการให้คะแนน:</label>
+               <select v-model="selectedModel" class="form-control w-100">
                  <option value="new">ลูกค้าใหม่</option>
                  <option value="existing">ลูกค้าปัจจุบัน</option>
                </select>
@@ -56,7 +56,7 @@
              <div v-if="selectedModel === 'existing'" class="setting-row">
                 <label class="setting-label">ตัวคูณวงเงิน:</label>
                 <div class="d-flex align-items-center" style="gap: 10px;">
-                    <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="form-control" style="width: 100px;" />
+                    <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="form-control" style="width: 80px;" />
                     <small class="text-muted">(ค่าปกติ: 2.0)</small>
                 </div>
              </div>
@@ -66,8 +66,8 @@
              <!-- Concurrency -->
              <div class="setting-row">
                <label class="setting-label">จำนวนเธรดการทำงาน:</label>
-               <div class="d-flex align-items-center" style="gap: 10px;">
-                   <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 60px;" />
+               <div class="d-flex align-items-center" style="gap: 10px; white-space: nowrap;">
+                   <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 50px; text-align: center;" />
                    <small class="text-muted">แนะนำ 2-4</small>
                </div>
              </div>
@@ -1337,6 +1337,15 @@ button:disabled {
     color: #333;
     margin-bottom: 0;
     text-align: left; /* Explicitly align text left */
+}
+
+.setting-label-block {
+    display: block;
+    width: 100%;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 5px;
+    text-align: left;
 }
 
 .setting-input {
