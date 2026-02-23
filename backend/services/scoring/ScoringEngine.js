@@ -1,4 +1,5 @@
 const NewCustomerScorecard = require('./strategies/NewCustomerScorecard');
+const ExistingCustomerScorecard = require('./strategies/ExistingCustomerScorecard');
 
 class ScoringEngine {
 
@@ -7,9 +8,13 @@ class ScoringEngine {
      * @param {Object} context - The scoring context
      */
     static getStrategy(context) {
-        // Standardize to use NewCustomerScorecard (which contains the robust logic)
-        // for all customers, as requested for the refactor.
-        console.log(`[ScoringEngine] Selected: Standard Scorecard`);
+        if (context.modelType === 'existing') {
+            console.log(`[ScoringEngine] Selected: Existing Customer Scorecard`);
+            return new ExistingCustomerScorecard();
+        }
+
+        // Default to New Customer Model
+        console.log(`[ScoringEngine] Selected: New Customer Scorecard (Standard)`);
         return new NewCustomerScorecard();
     }
 
