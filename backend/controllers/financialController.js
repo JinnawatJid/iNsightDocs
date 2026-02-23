@@ -399,7 +399,10 @@ exports.analyzeFinancials = async (req, res) => {
       years_in_business,
       request_credit_term,
       residence_ownership,
-      residence_ownership_other
+      residence_ownership_other,
+      model_type, // 'new' or 'existing'
+      limit_exponent, // Optional override
+      wadl // Manual override for WADL
     } = req.body;
 
     // --- LOCAL FILE HANDLING ---
@@ -719,7 +722,12 @@ exports.analyzeFinancials = async (req, res) => {
         requestTerm: request_credit_term || 30,
         customerDuration: customer_duration,
         isCompany: isCorp,
-        currentCreditLimit: customerData['Fixed Credit Limit'] || 0 // Pass Current Limit
+        currentCreditLimit: customerData['Fixed Credit Limit'] || 0, // Pass Current Limit
+        // New Parameters for Existing Customer Model
+        modelType: model_type || 'new',
+        limitExponent: limit_exponent ? parseFloat(limit_exponent) : undefined,
+        // Priority: Manual Input > API Result > 0
+        wadl: wadl ? parseFloat(wadl) : (wadlDataResult ? wadlDataResult.score : 0)
     };
 
     // Execute Scoring via Engine
