@@ -67,7 +67,7 @@
              <div class="setting-row">
                <label class="setting-label">จำนวนเธรดการทำงาน:</label>
                <div class="d-flex align-items-center" style="gap: 10px;">
-                   <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 80px;" />
+                   <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 60px;" />
                    <small class="text-muted">แนะนำ 2-4</small>
                </div>
              </div>
@@ -1323,6 +1323,7 @@ button:disabled {
 .setting-row {
     display: flex;
     align-items: center;
+    justify-content: flex-start; /* Ensure left alignment */
     margin-bottom: 15px;
 }
 
@@ -1335,10 +1336,12 @@ button:disabled {
     font-weight: 500;
     color: #333;
     margin-bottom: 0;
+    text-align: left; /* Explicitly align text left */
 }
 
 .setting-input {
-    flex: 1;
+    /* Removed flex: 1 to prevent stretching to the right */
+    width: 100%;
     max-width: 300px;
 }
 
