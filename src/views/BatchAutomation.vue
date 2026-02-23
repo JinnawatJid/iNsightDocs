@@ -44,9 +44,9 @@
 
            <div v-if="showConcurrencySettings" class="clean-settings-card">
              <!-- Scoring Model Selection -->
-             <div class="setting-row">
+             <div class="setting-row" style="gap: 15px;">
                <label class="setting-label">โมเดลการให้คะแนน:</label>
-               <select v-model="selectedModel" class="form-control setting-input">
+               <select v-model="selectedModel" class="form-control" style="width: 200px;">
                  <option value="new">ลูกค้าใหม่</option>
                  <option value="existing">ลูกค้าปัจจุบัน</option>
                </select>
