@@ -37,12 +37,36 @@
 
         <div class="mt-2">
            <small class="text-muted cursor-pointer" @click="showConcurrencySettings = !showConcurrencySettings">
-             ⚙️ ตั้งค่าความเร็ว (Advanced)
+             ⚙️ ตั้งค่าขั้นสูง (Advanced Settings)
            </small>
-           <div v-if="showConcurrencySettings" class="mt-2 d-flex align-items-center" style="gap: 10px;">
-             <label class="mb-0">จำนวน Process พร้อมกัน:</label>
-             <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 60px; display: inline-block;" />
-             <small class="text-muted">แนะนำ 2-4</small>
+
+           <div v-if="showConcurrencySettings" class="settings-panel mt-2">
+             <!-- Scoring Model Selection -->
+             <div class="mb-2">
+               <label class="d-block mb-1">Scoring Model:</label>
+               <select v-model="selectedModel" class="form-control" style="width: 100%;">
+                 <option value="new">New Customer (Standard)</option>
+                 <option value="existing">Existing Customer (WADL + Formula)</option>
+               </select>
+             </div>
+
+             <!-- Limit Exponent (Only for Existing) -->
+             <div v-if="selectedModel === 'existing'" class="mb-2">
+                <label class="d-block mb-1">Credit Limit Exponent:</label>
+                <div class="d-flex" style="gap: 5px;">
+                  <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="form-control" style="width: 80px;" />
+                  <small class="text-muted align-self-center">(Default: 2.0)</small>
+                </div>
+             </div>
+
+             <hr style="border-top: 1px dashed #ccc; margin: 10px 0;">
+
+             <!-- Concurrency -->
+             <div class="d-flex align-items-center" style="gap: 10px;">
+               <label class="mb-0">Process Threads:</label>
+               <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 60px; display: inline-block;" />
+               <small class="text-muted">แนะนำ 2-4</small>
+             </div>
            </div>
         </div>
       </div>
@@ -184,6 +208,8 @@ const isProcessing = ref(false);
 const shouldStop = ref(false);
 const concurrency = ref(1);
 const showConcurrencySettings = ref(false);
+const selectedModel = ref('new'); // 'new' or 'existing'
+const limitExponent = ref(2.0);
 const activeWorkers = ref(0);
 const bridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 const bridgeStatus = ref('ไม่ทราบสถานะ');
@@ -754,6 +780,12 @@ const processNextItem = async () => {
         formData.append('years_in_business', String(yearsInBusiness));
         formData.append('request_credit_term', item.paymentTerms || '30');
         formData.append('request_amount', String(item.currentLimit || 0)); // Fallback to current limit
+
+        // Append Model Parameters
+        formData.append('model_type', selectedModel.value);
+        if (selectedModel.value === 'existing') {
+            formData.append('limit_exponent', String(limitExponent.value));
+        }
 
         // 4. Call Analysis API
         const analyzeRes = await axios.post('/api/financials/analyze', formData, {
