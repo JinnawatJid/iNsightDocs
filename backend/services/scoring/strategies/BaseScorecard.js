@@ -1,9 +1,11 @@
 const { calculateSlope, calculateTrendRatio, generateContinuousTimeline } = require('../../financialCalculator');
+const evaluator = require('../ScorecardEvaluator');
 
 /**
  * BaseScorecard
  *
  * Provides shared scoring components (C1, C2) and helper methods used by all scoring strategies.
+ * Refactored to use ScorecardEvaluator (JSON Configuration).
  */
 class BaseScorecard {
     constructor() {
@@ -39,7 +41,7 @@ class BaseScorecard {
         const items = [];
         const debug = [];
 
-        // 1. Years in Business (Max 14.42)
+        // 1. Years in Business
         const yearsInput = parseFloat(customer.years_in_business || 0);
         let years = yearsInput;
 
@@ -54,74 +56,75 @@ class BaseScorecard {
             if (years < 0) years = 0;
         }
 
-        let rawYears = 0;
-        if (years >= 10) rawYears = 2.0;
-        else if (years >= 5) rawYears = 1.5;
-        else if (years >= 3) rawYears = 1.0;
-        else if (years >= 1) rawYears = 0.5;
-        else rawYears = 0.25;
+        const yearsResult = evaluator.evaluate('C1', 'yearsInBusiness', years);
+        score += yearsResult.score;
 
-        const scoreYears = rawYears * 7.21;
-        score += scoreYears;
         items.push({
             key: 'years',
-            label: 'ระยะเวลาธุรกิจ',
+            label: yearsResult.label,
             value: years,
             displayValue: years.toString(),
-            weight: 14.42,
-            score: scoreYears
+            weight: yearsResult.weight,
+            score: yearsResult.score,
+            matchedRule: yearsResult.matchedRule
         });
-        debug.push({ label: 'ระยะเวลาดำเนินธุรกิจ', value: years, weight: 14.42, score: scoreYears, column: '-' });
+        debug.push({
+            label: 'ระยะเวลาดำเนินธุรกิจ',
+            value: years,
+            weight: yearsResult.weight,
+            score: yearsResult.score,
+            column: '-',
+            matchedRule: yearsResult.matchedRule
+        });
 
-        // 2. Request / Capital (Max 8.64)
+        // 2. Request / Capital
         const regCap = parseFloat(registeredCapital || 1);
         const reqAmt = parseFloat(requestAmount || 0);
         const leverage = reqAmt / regCap;
-        let rawLev = 0;
-        if (leverage <= 0.5) rawLev = 2.0;
-        else if (leverage <= 0.9) rawLev = 1.5;
-        else if (leverage <= 1.5) rawLev = 1.0;
-        else if (leverage <= 1.99) rawLev = 0.5;
-        else rawLev = 0.25;
 
-        const scoreLev = rawLev * 4.32;
-        score += scoreLev;
+        const levResult = evaluator.evaluate('C1', 'leverage', leverage);
+        score += levResult.score;
+
         items.push({
             key: 'leverage',
-            label: 'สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน',
+            label: levResult.label,
             value: leverage,
             displayValue: leverage.toFixed(2),
-            weight: 8.64,
-            score: scoreLev
+            weight: levResult.weight,
+            score: levResult.score,
+            matchedRule: levResult.matchedRule
         });
-        debug.push({ label: 'สัดส่วนเครดิตต่อทุน', value: leverage.toFixed(2), weight: 8.64, score: scoreLev, column: '-' });
+        debug.push({
+            label: 'สัดส่วนเครดิตต่อทุน',
+            value: leverage.toFixed(2),
+            weight: levResult.weight,
+            score: levResult.score,
+            column: '-',
+            matchedRule: levResult.matchedRule
+        });
 
-        // 3. Asset Ownership (Max 25.94)
+        // 3. Asset Ownership
         const ownership = customer.residence_ownership || '';
-        let rawAsset = 1.0;
-        let displayVal = ownership;
+        const assetResult = evaluator.evaluate('C1', 'assetOwnership', ownership);
+        score += assetResult.score;
 
-        if (ownership.includes('ตนเอง') || ownership.includes('Own')) {
-            rawAsset = 2.0;
-        } else if (ownership.includes('ญาติ') || ownership.includes('บิดามารดา') || ownership.includes('Relative') || ownership.includes('Parents')) {
-            rawAsset = 1.5;
-        } else if (ownership.includes('เช่า') || ownership.includes('Rent')) {
-            rawAsset = 1.0;
-        } else {
-            rawAsset = 1.0;
-        }
-
-        const scoreAsset = rawAsset * 12.97;
-        score += scoreAsset;
         items.push({
             key: 'asset',
-            label: 'กรรมสิทธิ์ทรัพย์สิน',
-            value: rawAsset,
-            displayValue: displayVal,
-            weight: 25.94,
-            score: scoreAsset
+            label: assetResult.label,
+            value: 2, // Legacy: Frontend expects a raw value here sometimes? No, keeping it simple.
+            displayValue: ownership,
+            weight: assetResult.weight,
+            score: assetResult.score,
+            matchedRule: assetResult.matchedRule
         });
-        debug.push({ label: 'กรรมสิทธิ์ทรัพย์สิน', value: ownership, weight: 25.94, score: scoreAsset, column: '-' });
+        debug.push({
+            label: 'กรรมสิทธิ์ทรัพย์สิน',
+            value: ownership,
+            weight: assetResult.weight,
+            score: assetResult.score,
+            column: '-',
+            matchedRule: assetResult.matchedRule
+        });
 
         return { total: score, items, debug };
     }
@@ -135,74 +138,89 @@ class BaseScorecard {
         const items = [];
         const debug = [];
 
-        // 1. D/E Ratio (Max 24.76)
+        // 1. D/E Ratio
         const de = financials.deRatio.value || 0;
-        let rawDE = 0;
-        if (de <= 1) rawDE = 2.0;
-        else if (de <= 1.5) rawDE = 1.6;
-        else if (de <= 2) rawDE = 1.2;
-        else if (de <= 3) rawDE = 1.0;
-        else rawDE = 0;
+        let deResult = evaluator.evaluate('C2', 'deRatio', de);
 
-        let scoreDE = rawDE * 12.38;
-        if (!isCompany) scoreDE = 0; // Force 0 for Individual
+        if (!isCompany) {
+             deResult.score = 0;
+             deResult.matchedRule = "N/A (Individual)";
+        }
 
-        score += scoreDE;
+        score += deResult.score;
         items.push({
             key: 'deRatio',
-            label: 'อัตราการส่วนหนี้สินรวม ต่อส่วนของผู้ถือหุ้น',
+            label: deResult.label,
             value: de,
             displayValue: de.toFixed(4),
-            weight: 24.76,
-            score: scoreDE
+            weight: deResult.weight,
+            score: deResult.score,
+            matchedRule: deResult.matchedRule
         });
-        debug.push({ label: 'อัตราส่วนหนี้สินต่อทุน (D/E)', value: de, weight: 24.76, score: scoreDE, column: financials.deRatio.column });
+        debug.push({
+            label: 'อัตราส่วนหนี้สินต่อทุน (D/E)',
+            value: de,
+            weight: deResult.weight,
+            score: deResult.score,
+            column: financials.deRatio.column,
+            matchedRule: deResult.matchedRule
+        });
 
-        // 2. Inventory Turnover (Max 13.76)
+        // 2. Inventory Turnover
         const inv = financials.inventoryTurnover.value || 0;
-        let rawInv = 0;
-        if (inv >= 12) rawInv = 2.0;
-        else if (inv >= 8) rawInv = 1.5;
-        else if (inv >= 6) rawInv = 1.0;
-        else if (inv >= 4) rawInv = 0.5;
-        else rawInv = 0;
+        let invResult = evaluator.evaluate('C2', 'inventoryTurnover', inv);
 
-        let scoreInv = rawInv * 6.88;
-        if (!isCompany) scoreInv = 0; // Force 0 for Individual
+        if (!isCompany) {
+            invResult.score = 0;
+            invResult.matchedRule = "N/A (Individual)";
+        }
 
-        score += scoreInv;
+        score += invResult.score;
         items.push({
             key: 'inventory',
-            label: 'อัตราการหมุนเวียนของสินค้าคงเหลือ',
+            label: invResult.label,
             value: inv,
             displayValue: inv.toFixed(2),
-            weight: 13.76,
-            score: scoreInv
+            weight: invResult.weight,
+            score: invResult.score,
+            matchedRule: invResult.matchedRule
         });
-        debug.push({ label: 'อัตราหมุนเวียนสินค้าคงเหลือ', value: inv, weight: 13.76, score: scoreInv, column: financials.inventoryTurnover.column });
+        debug.push({
+            label: 'อัตราหมุนเวียนสินค้าคงเหลือ',
+            value: inv,
+            weight: invResult.weight,
+            score: invResult.score,
+            column: financials.inventoryTurnover.column,
+            matchedRule: invResult.matchedRule
+        });
 
-        // 3. DSCR (Max 16.50)
+        // 3. DSCR
         const dscr = financials.dscr || 0;
-        let rawDSCR = 0;
-        if (dscr >= 0.5) rawDSCR = 2.0;
-        else if (dscr >= 0.4) rawDSCR = 1.5;
-        else if (dscr >= 0.33) rawDSCR = 1.0;
-        else if (dscr >= 0.25) rawDSCR = 0.5;
-        else rawDSCR = 0;
+        let dscrResult = evaluator.evaluate('C2', 'dscr', dscr);
 
-        let scoreDSCR = rawDSCR * 8.25;
-        if (!isCompany) scoreDSCR = 0; // Force 0 for Individual
+        if (!isCompany) {
+            dscrResult.score = 0;
+            dscrResult.matchedRule = "N/A (Individual)";
+        }
 
-        score += scoreDSCR;
+        score += dscrResult.score;
         items.push({
             key: 'dscr',
-            label: 'ความสามารถในการชำระหนี้ (DSCR)',
+            label: dscrResult.label,
             value: dscr,
             displayValue: dscr.toFixed(4),
-            weight: 16.50,
-            score: scoreDSCR
+            weight: dscrResult.weight,
+            score: dscrResult.score,
+            matchedRule: dscrResult.matchedRule
         });
-        debug.push({ label: 'ความสามารถชำระหนี้ (DSCR)', value: dscr.toFixed(4), weight: 16.50, score: scoreDSCR, column: '-' });
+        debug.push({
+            label: 'ความสามารถชำระหนี้ (DSCR)',
+            value: dscr.toFixed(4),
+            weight: dscrResult.weight,
+            score: dscrResult.score,
+            column: '-',
+            matchedRule: dscrResult.matchedRule
+        });
 
         return { total: score, items, debug };
     }

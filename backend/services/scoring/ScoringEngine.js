@@ -1,5 +1,4 @@
 const NewCustomerScorecard = require('./strategies/NewCustomerScorecard');
-const ExistingCustomerScorecard = require('./strategies/ExistingCustomerScorecard');
 
 class ScoringEngine {
 
@@ -8,16 +7,11 @@ class ScoringEngine {
      * @param {Object} context - The scoring context
      */
     static getStrategy(context) {
-        // Trigger: Check if customer has an existing Credit Limit > 0
-        const currentLimit = parseFloat(context.currentCreditLimit || 0);
-
-        if (currentLimit > 0) {
-            console.log(`[ScoringEngine] Selected: ExistingCustomerScorecard (Limit: ${currentLimit})`);
-            return new ExistingCustomerScorecard();
-        } else {
-            console.log(`[ScoringEngine] Selected: NewCustomerScorecard`);
-            return new NewCustomerScorecard();
-        }
+        // Refactored to always use NewCustomerScorecard which is now configuration-driven.
+        // We no longer switch strategies based on current limit for now,
+        // as the goal is to standardize on the V1 JSON Scorecard.
+        console.log(`[ScoringEngine] Selected: NewCustomerScorecard (Configuration Driven)`);
+        return new NewCustomerScorecard();
     }
 
     /**
