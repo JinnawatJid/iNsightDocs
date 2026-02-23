@@ -44,9 +44,9 @@
 
            <div v-if="showConcurrencySettings" class="clean-settings-card">
              <!-- Scoring Model Selection -->
-             <div class="mb-3">
-               <label class="setting-label-block">โมเดลการให้คะแนน:</label>
-               <select v-model="selectedModel" class="form-control w-100">
+             <div class="setting-row">
+               <label class="setting-label">โมเดลการให้คะแนน:</label>
+               <select v-model="selectedModel" class="form-control setting-input">
                  <option value="new">ลูกค้าใหม่</option>
                  <option value="existing">ลูกค้าปัจจุบัน</option>
                </select>

@@ -726,8 +726,8 @@ exports.analyzeFinancials = async (req, res) => {
         // New Parameters for Existing Customer Model
         modelType: model_type || 'new',
         limitExponent: limit_exponent ? parseFloat(limit_exponent) : undefined,
-        // Priority: Manual Input > API Result > 0
-        wadl: wadl ? parseFloat(wadl) : (wadlDataResult ? wadlDataResult.score : 0)
+        // Priority: Manual Input > API Result > 0 (Safe check)
+        wadl: wadl ? parseFloat(wadl) : (typeof wadlDataResult !== 'undefined' && wadlDataResult ? wadlDataResult.score : 0)
     };
 
     // Execute Scoring via Engine
