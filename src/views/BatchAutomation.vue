@@ -36,35 +36,40 @@
         </div>
         <small class="text-muted" style="display: block; margin-top: 5px;">สถานะ: {{ bridgeStatus }}</small>
 
-        <div class="mt-2">
-           <small class="text-muted cursor-pointer" @click="showConcurrencySettings = !showConcurrencySettings">
-             ⚙️ ตั้งค่าขั้นสูง
-           </small>
+        <div class="mt-4">
+           <div class="section-header cursor-pointer" @click="showConcurrencySettings = !showConcurrencySettings">
+             <span>⚙️ ตั้งค่าขั้นสูง</span>
+             <span class="toggle-icon">{{ showConcurrencySettings ? '▼' : '▶' }}</span>
+           </div>
 
-           <div v-if="showConcurrencySettings" class="settings-panel mt-2">
+           <div v-if="showConcurrencySettings" class="clean-settings-card">
              <!-- Scoring Model Selection -->
-             <div class="mb-2 d-flex align-items-center" style="gap: 10px;">
-               <label class="mb-0">โมเดลการให้คะแนน:</label>
-               <select v-model="selectedModel" class="form-control" style="width: auto; flex: 1;">
+             <div class="setting-row">
+               <label class="setting-label">โมเดลการให้คะแนน:</label>
+               <select v-model="selectedModel" class="form-control setting-input">
                  <option value="new">ลูกค้าใหม่</option>
                  <option value="existing">ลูกค้าปัจจุบัน</option>
                </select>
              </div>
 
              <!-- Limit Exponent (Only for Existing) -->
-             <div v-if="selectedModel === 'existing'" class="mb-2 d-flex align-items-center" style="gap: 10px;">
-                <label class="mb-0">ตัวคูณวงเงิน:</label>
-                <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="form-control" style="width: 80px;" />
-                <small class="text-muted">(ค่าปกติ: 2.0)</small>
+             <div v-if="selectedModel === 'existing'" class="setting-row">
+                <label class="setting-label">ตัวคูณวงเงิน:</label>
+                <div class="d-flex align-items-center" style="gap: 10px;">
+                    <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="form-control" style="width: 100px;" />
+                    <small class="text-muted">(ค่าปกติ: 2.0)</small>
+                </div>
              </div>
 
-             <hr style="border-top: 1px dashed #ccc; margin: 10px 0;">
+             <div class="divider"></div>
 
              <!-- Concurrency -->
-             <div class="d-flex align-items-center" style="gap: 10px;">
-               <label class="mb-0">จำนวนเธรดการทำงาน:</label>
-               <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 60px; display: inline-block;" />
-               <small class="text-muted">แนะนำ 2-4</small>
+             <div class="setting-row">
+               <label class="setting-label">จำนวนเธรดการทำงาน:</label>
+               <div class="d-flex align-items-center" style="gap: 10px;">
+                   <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 80px;" />
+                   <small class="text-muted">แนะนำ 2-4</small>
+               </div>
              </div>
            </div>
         </div>
@@ -1286,8 +1291,62 @@ button:disabled {
 .status-badge.processing { background: #cce5ff; color: #004085; }
 .processing-badge { font-weight: bold; margin-left: 10px; font-size: 0.9em; display: flex; align-items: center; gap: 5px; }
 .mt-2 { margin-top: 10px; }
+.mt-4 { margin-top: 20px; }
 .d-flex { display: flex; align-items: center; }
 .justify-content-between { justify-content: space-between; }
+
+/* Clean Settings Card Style (Inspired by StoreStatementTab) */
+.section-header {
+    font-size: 1em;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+}
+
+.toggle-icon {
+    font-size: 0.8em;
+    color: #888;
+}
+
+.clean-settings-card {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.setting-row:last-child {
+    margin-bottom: 0;
+}
+
+.setting-label {
+    width: 180px; /* Fixed width for labels */
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 0;
+}
+
+.setting-input {
+    flex: 1;
+    max-width: 300px;
+}
+
+.divider {
+    height: 1px;
+    background-color: #f0f0f0;
+    margin: 15px 0;
+}
 .status-badge.done { background: #d4edda; color: #155724; }
 .status-badge.error { background: #f8d7da; color: #721c24; }
 .status-badge.skipped { background: #e2e3e5; color: #383d41; }
