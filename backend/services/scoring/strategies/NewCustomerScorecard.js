@@ -1,6 +1,12 @@
 const BaseScorecard = require('./BaseScorecard');
+const ScorecardEvaluator = require('../ScorecardEvaluator');
 
 class NewCustomerScorecard extends BaseScorecard {
+
+    constructor() {
+        super();
+        this.evaluator = new ScorecardEvaluator();
+    }
 
     calculateScore(context) {
         const {
@@ -60,8 +66,148 @@ class NewCustomerScorecard extends BaseScorecard {
     }
 
     /**
-     * C3: Purchase Behavior (Standard Logic for New Customers)
-     * Factors: Revenue/Capital, Capacity Check, Turnover Speed, Slope Trend, Customer Duration
+     * Override BaseScorecard.calculateC1 to use Evaluator
+     */
+    calculateC1(customer, registeredCapital, requestAmount) {
+        let score = 0;
+        const items = [];
+        const debug = [];
+
+        // 1. Years in Business
+        const yearsInput = parseFloat(customer.years_in_business || 0);
+        let years = yearsInput;
+        // Flexible Rule: If input > 1000, treat as establishment year
+        if (yearsInput > 1000) {
+            const currentYear = new Date().getFullYear();
+            let establishYear = yearsInput;
+            if (establishYear > 2300) {
+                establishYear = establishYear - 543;
+            }
+            years = currentYear - establishYear;
+            if (years < 0) years = 0;
+        }
+
+        const yearsRes = this.evaluator.evaluate('c1', 'years_in_business', years);
+        score += yearsRes.score;
+        items.push(yearsRes);
+        debug.push({
+            label: 'ระยะเวลาดำเนินธุรกิจ',
+            value: years,
+            weight: yearsRes.weight,
+            score: yearsRes.score,
+            column: '-',
+            matchedRule: yearsRes.matchedRule // NEW
+        });
+
+        // 2. Request / Capital
+        const regCap = parseFloat(registeredCapital || 1);
+        const reqAmt = parseFloat(requestAmount || 0);
+        const leverage = reqAmt / regCap;
+
+        const levRes = this.evaluator.evaluate('c1', 'leverage', leverage);
+        score += levRes.score;
+        items.push(levRes);
+        debug.push({
+            label: 'สัดส่วนเครดิตต่อทุน',
+            value: leverage.toFixed(2),
+            weight: levRes.weight,
+            score: levRes.score,
+            column: '-',
+            matchedRule: levRes.matchedRule // NEW
+        });
+
+        // 3. Asset Ownership
+        const ownership = customer.residence_ownership || '';
+        const assetRes = this.evaluator.evaluate('c1', 'asset_ownership', ownership);
+        score += assetRes.score;
+        items.push(assetRes);
+        debug.push({
+            label: 'กรรมสิทธิ์ทรัพย์สิน',
+            value: ownership,
+            weight: assetRes.weight,
+            score: assetRes.score,
+            column: '-',
+            matchedRule: assetRes.matchedRule // NEW
+        });
+
+        return { total: score, items, debug };
+    }
+
+    /**
+     * Override BaseScorecard.calculateC2 to use Evaluator
+     */
+    calculateC2(financials, isCompany = true) {
+        let score = 0;
+        const items = [];
+        const debug = [];
+
+        // Helper to force 0 score if not company
+        const handleScore = (res, isComp) => {
+            if (!isComp) {
+                return { ...res, score: 0, finalScore: 0, matchedRule: "N/A (Individual)" };
+            }
+            return res;
+        };
+
+        // 1. D/E Ratio
+        const de = financials.deRatio.value || 0;
+        let deRes = this.evaluator.evaluate('c2', 'de_ratio', de);
+        if (!isCompany) deRes.score = 0; // Manual Override for logic that isn't purely weight-based?
+        // Actually, the Evaluator calculates score based on rules.
+        // If !isCompany, the score should be 0.
+        // Let's stick to the old logic pattern: Calculate raw, then zero out if individual.
+        if (!isCompany) {
+             deRes.score = 0;
+        }
+
+        score += deRes.score;
+        items.push(deRes);
+        debug.push({
+            label: 'อัตราส่วนหนี้สินต่อทุน (D/E)',
+            value: de,
+            weight: deRes.weight,
+            score: deRes.score,
+            column: financials.deRatio.column,
+            matchedRule: deRes.matchedRule // NEW
+        });
+
+        // 2. Inventory Turnover
+        const inv = financials.inventoryTurnover.value || 0;
+        let invRes = this.evaluator.evaluate('c2', 'inventory_turnover', inv);
+        if (!isCompany) invRes.score = 0;
+
+        score += invRes.score;
+        items.push(invRes);
+        debug.push({
+            label: 'อัตราหมุนเวียนสินค้าคงเหลือ',
+            value: inv,
+            weight: invRes.weight,
+            score: invRes.score,
+            column: financials.inventoryTurnover.column,
+            matchedRule: invRes.matchedRule // NEW
+        });
+
+        // 3. DSCR
+        const dscr = financials.dscr || 0;
+        let dscrRes = this.evaluator.evaluate('c2', 'dscr', dscr);
+        if (!isCompany) dscrRes.score = 0;
+
+        score += dscrRes.score;
+        items.push(dscrRes);
+        debug.push({
+            label: 'ความสามารถชำระหนี้ (DSCR)',
+            value: dscr.toFixed(4),
+            weight: dscrRes.weight,
+            score: dscrRes.score,
+            column: '-',
+            matchedRule: dscrRes.matchedRule // NEW
+        });
+
+        return { total: score, items, debug };
+    }
+
+    /**
+     * Override C3 to use Evaluator
      */
     calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration) {
         let score = 0;
@@ -78,53 +224,38 @@ class NewCustomerScorecard extends BaseScorecard {
         const reqAmt = parseFloat(requestAmount || 1);
         const reqDays = parseFloat(requestTerm || 30);
 
-        // 1. Revenue / Registered Capital (Max 3.04)
+        // 1. Revenue / Registered Capital
         const revCapRatio = revenueForRatio / regCap;
-        let rawRevCap = 0;
-        if (revCapRatio >= 1.5) rawRevCap = 2.0;
-        else if (revCapRatio >= 1.0) rawRevCap = 1.5;
-        else if (revCapRatio >= 0.6) rawRevCap = 1.0;
-        else if (revCapRatio >= 0.26) rawRevCap = 0.5;
-        else rawRevCap = 0.25;
+        const revRes = this.evaluator.evaluate('c3', 'revenue_capital_ratio', revCapRatio);
 
-        const scoreRevCap = rawRevCap * 1.52;
-        score += scoreRevCap;
-        items.push({
-          key: 'revenueCapital',
-          label: 'สัดส่วนรายได้ต่อทุนจดทะเบียน',
-          value: revCapRatio,
-          displayValue: revCapRatio.toFixed(4),
-          weight: 3.04,
-          score: scoreRevCap
+        score += revRes.score;
+        items.push(revRes);
+        debug.push({
+            label: 'รายได้ต่อทุน',
+            value: revCapRatio.toFixed(2),
+            weight: revRes.weight,
+            score: revRes.score,
+            column: '-',
+            matchedRule: revRes.matchedRule
         });
-        debug.push({ label: 'รายได้ต่อทุน', value: revCapRatio.toFixed(2), weight: 3.04, score: scoreRevCap, column: '-' });
 
-        // 2. Avg Purchase (3mo) / Requested Credit (Max 35.04)
-        // Avg 1.5 Months = Sum Last 3 Months / 2
+        // 2. Capacity Check (Avg Purchase / Requested Credit)
         const avg1_5Months = secondAccum / 2;
         const capCheckRatio = Number((avg1_5Months / reqAmt).toFixed(2));
 
-        let rawCapCheck = 0.25;
-        if (capCheckRatio <= 0.25) rawCapCheck = 0.25;
-        else if (capCheckRatio <= 0.59) rawCapCheck = 0.5;
-        else if (capCheckRatio <= 0.99) rawCapCheck = 1.0;
-        else if (capCheckRatio <= 1.49) rawCapCheck = 1.5;
-        else if (capCheckRatio >= 1.5) rawCapCheck = 2.0;
-        else rawCapCheck = 0.25;
-
-        const scoreCapCheck = rawCapCheck * 17.52;
-        score += scoreCapCheck;
-        items.push({
-          key: 'capacityCheck',
-          label: 'สัดส่วนยอดซื้อเฉลี่ย ย้อนหลัง 3 เดือนต่อเครดิตที่ขอ',
-          value: capCheckRatio,
-          displayValue: capCheckRatio.toFixed(2),
-          weight: 35.04,
-          score: scoreCapCheck
+        const capRes = this.evaluator.evaluate('c3', 'capacity_check', capCheckRatio);
+        score += capRes.score;
+        items.push(capRes);
+        debug.push({
+            label: 'ตรวจสอบความสามารถ (Capacity)',
+            value: capCheckRatio.toFixed(2),
+            weight: capRes.weight,
+            score: capRes.score,
+            column: '-',
+            matchedRule: capRes.matchedRule
         });
-        debug.push({ label: 'ตรวจสอบความสามารถ (Capacity)', value: capCheckRatio.toFixed(2), weight: 35.04, score: scoreCapCheck, column: '-' });
 
-        // 3. Purchase / Credit Term (Max 18.28)
+        // 3. Turnover Speed (Purchase / Credit Term)
         let numerator = 0;
         let isTermValid = true;
         const term = parseInt(reqDays);
@@ -150,75 +281,60 @@ class NewCustomerScorecard extends BaseScorecard {
         }
 
         const turnoverSpeed = numerator / reqAmt;
+        let turnoverRes = this.evaluator.evaluate('c3', 'turnover_speed', turnoverSpeed);
 
-        let rawTurnover = 0;
-        if (turnoverSpeed <= 0.5) rawTurnover = 0.5;
-        else if (turnoverSpeed <= 0.9) rawTurnover = 1.0;
-        else if (turnoverSpeed <= 1.5) rawTurnover = 1.5;
-        else rawTurnover = 2.0;
-
-        if (!isTermValid) rawTurnover = 0;
-
-        const scoreTurnover = rawTurnover * 9.14;
-        score += scoreTurnover;
-        items.push({
-          key: 'turnover',
-          label: 'สัดส่วนยอดซื้อต่อระยะเวลาเครดิตที่ขอ',
-          value: turnoverSpeed,
-          displayValue: turnoverSpeed.toFixed(4),
-          weight: 18.28,
-          score: scoreTurnover,
-          error: !isTermValid ? "Invalid Term" : null
-        });
-        debug.push({ label: 'ความเร็วในการหมุนเวียน', value: turnoverSpeed.toFixed(2), weight: 18.28, score: scoreTurnover, column: '-' });
-
-        // 4. Purchase Trend (Max 28.96)
-        const slope = accumData.Slope || 0;
-        const totalPurchase3Months = accumData.SecondAccum || 0;
-        let rawTrend = 0;
-
-        if (totalPurchase3Months === 0) {
-            rawTrend = 0;
-        } else {
-            if (slope > 16008.34) rawTrend = 2.0;
-            else if (slope >= 205.52) rawTrend = 1.5;
-            else if (slope >= -0.01) rawTrend = 1.0;
-            else if (slope >= -4654.54) rawTrend = 0.5;
-            else rawTrend = 0.25;
+        if (!isTermValid) {
+            turnoverRes.score = 0;
+            turnoverRes.matchedRule = "Invalid Term";
         }
 
-        const scoreTrend = rawTrend * 14.48;
-        score += scoreTrend;
-
-        items.push({
-          key: 'trend',
-          label: 'แนวโน้มการซื้อ (Slope)',
-          value: slope,
-          displayValue: slope.toFixed(2),
-          weight: 28.96,
-          score: scoreTrend
+        score += turnoverRes.score;
+        items.push(turnoverRes);
+        debug.push({
+            label: 'ความเร็วในการหมุนเวียน',
+            value: turnoverSpeed.toFixed(2),
+            weight: turnoverRes.weight,
+            score: turnoverRes.score,
+            column: '-',
+            matchedRule: turnoverRes.matchedRule
         });
-        debug.push({ label: 'แนวโน้มการซื้อ (Slope)', value: slope.toFixed(2), weight: 28.96, score: scoreTrend, column: '-' });
+
+        // 4. Purchase Trend (Slope)
+        const slope = accumData.Slope || 0;
+        const trendRes = this.evaluator.evaluate('c3', 'purchase_trend', slope);
+
+        // Handle explicit 0 purchases
+        const totalPurchase3Months = accumData.SecondAccum || 0;
+        if (totalPurchase3Months === 0) {
+            trendRes.score = 0;
+            trendRes.matchedRule = "No Purchases";
+        }
+
+        score += trendRes.score;
+        items.push(trendRes);
+        debug.push({
+            label: 'แนวโน้มการซื้อ (Slope)',
+            value: slope.toFixed(2),
+            weight: trendRes.weight,
+            score: trendRes.score,
+            column: '-',
+            matchedRule: trendRes.matchedRule
+        });
 
         // 5. Customer Duration
         const duration = parseInt(customerDuration || 0);
-        let rawDuration = 0.25;
-        if (duration >= 7) rawDuration = 2.0;
-        else if (duration >= 4) rawDuration = 1.5;
-        else if (duration >= 2) rawDuration = 1.0;
-        else if (duration >= 1) rawDuration = 0.5;
+        const durRes = this.evaluator.evaluate('c3', 'customer_duration', duration);
 
-        const scoreDuration = rawDuration * 5.33;
-        score += scoreDuration;
-        items.push({
-          key: 'duration',
-          label: 'ระยะเวลาเป็นลูกค้า',
-          value: duration,
-          displayValue: duration.toFixed(2),
-          weight: 10.66,
-          score: scoreDuration
+        score += durRes.score;
+        items.push(durRes);
+        debug.push({
+            label: 'ระยะเวลาเป็นลูกค้า',
+            value: duration,
+            weight: durRes.weight,
+            score: durRes.score,
+            column: '-',
+            matchedRule: durRes.matchedRule
         });
-        debug.push({ label: 'ระยะเวลาเป็นลูกค้า', value: duration, weight: 10.66, score: scoreDuration, column: '-' });
 
         return { total: score, items, debug };
     }
