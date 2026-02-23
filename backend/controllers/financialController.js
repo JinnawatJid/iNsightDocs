@@ -586,8 +586,15 @@ exports.analyzeFinancials = async (req, res) => {
         calculations.dscr = 0;
       }
     }
-    // Use Local Extraction Fallback if request body is empty
-    const regCap = parseFloat(registered_capital || localRegisteredCapital || 0);
+    // Use Local Extraction Fallback if request body is empty OR to override with better data (PDF)
+    // Priority: Local PDF Extraction > Frontend Input > Default/DB
+    let regCap = 0;
+    if (localRegisteredCapital && localRegisteredCapital > 0) {
+        regCap = parseFloat(localRegisteredCapital);
+    } else {
+        regCap = parseFloat(registered_capital || 0);
+    }
+
     const reqAmt = parseFloat(request_amount || 0);
     if (regCap !== 0) {
       calculations.creditCapitalRatio = reqAmt / regCap;
@@ -599,6 +606,7 @@ exports.analyzeFinancials = async (req, res) => {
     let monthlyHistory = [];
     let latePaymentData = null;
     let wadlDataResult = null;
+    let finalYears = 0;
 
     if (customer_no) {
         // Fetch Customer Profile (Years in Business, etc.)
@@ -613,9 +621,15 @@ exports.analyzeFinancials = async (req, res) => {
         }
         if (rowsC.length > 0) customerData = rowsC[0];
 
-        // Merge Manual Overrides (Frontend Inputs take precedence)
-        // Also apply Local Extraction fallback for Years in Business
-        const finalYears = years_in_business || localYearsInBusiness || customerData.years_in_business;
+        // Merge Manual Overrides
+        // Priority: Local PDF Extraction > Frontend Input > Database
+        if (localYearsInBusiness && localYearsInBusiness > 0) {
+            finalYears = localYearsInBusiness;
+        } else {
+            finalYears = years_in_business || customerData.years_in_business || 0;
+        }
+
+        // Update customerData for context
         if (finalYears) customerData.years_in_business = finalYears;
 
         if (residence_ownership) customerData.residence_ownership = residence_ownership;
@@ -743,7 +757,11 @@ exports.analyzeFinancials = async (req, res) => {
       calculations: calculations,
       scoringResult: scoringResult,
       financialSummary: financialSummary,
-      debugData: debugData
+      debugData: debugData,
+      finalInputs: {
+          registeredCapital: regCap,
+          yearsInBusiness: finalYears
+      }
     });
 
   } catch (error) {
