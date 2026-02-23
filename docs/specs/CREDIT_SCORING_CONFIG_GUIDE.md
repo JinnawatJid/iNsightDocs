@@ -2,25 +2,39 @@
 
 ## Overview
 
-The Credit Scoring Model (Standard Scorecard) is now fully configurable via a JSON file. This allows business analysts and developers to adjust weights, thresholds, and scoring rules without modifying the core application code.
+The Credit Scoring Model is configuration-driven, allowing business logic (weights, rules, formulas) to be adjusted without code changes. The system supports two distinct models:
 
-**Configuration File Location:**
-`backend/config/credit_scorecard_v1.json`
+1.  **New Customer Model** (Standard)
+2.  **Existing Customer Model** (Advanced)
+
+## Supported Models
+
+### 1. New Customer Model
+*   **Target:** New customers with no prior transaction history.
+*   **Config File:** `backend/config/credit_scorecard_v1.json`
+*   **Key Logic:** Heavy emphasis on external financial data (D/E Ratio, DSCR) and Company Strength.
+*   **Credit Limit Formula:**
+    $$ Limit = 50,000 + (450,000 \times (\frac{TotalScore}{200})^{1.2}) $$
+
+### 2. Existing Customer Model
+*   **Target:** Current customers requesting a credit increase.
+*   **Config File:** `backend/config/credit_scorecard_existing_v1.json`
+*   **Key Logic:** Prioritizes behavioral data (Payment History, Purchase Volume).
+*   **New Factor:** **WADL (Weighted Average Days Late)** is a critical component in the C3 category.
+*   **Credit Limit Formula:**
+    $$ Limit = \frac{\text{Avg 1.5 Month Sales}}{2} \times (\frac{TotalScore}{200})^{\text{Exponent}} $$
+    *   **Exponent:** Configurable. Defaults to `2.0` but can be overridden via API request.
 
 ---
 
 ## JSON Structure
 
-The configuration file is structured hierarchically:
-1.  **Components** (e.g., `c1` - Company Strength, `c2` - Financial Status)
-2.  **Factors** (e.g., `years_in_business`, `de_ratio`)
-3.  **Rules** (Specific criteria that map values to scores)
-
-### Example Structure
+The configuration files follow this hierarchical structure:
 
 ```json
 {
   "version": "1.0",
+  "limitExponent": 2.0,  // Default exponent for Existing Model
   "components": {
     "c1": {
       "name": "Company Strength",
@@ -28,13 +42,24 @@ The configuration file is structured hierarchically:
         {
           "key": "years_in_business",
           "label": "Years in Business",
-          "weight": 14.42,
+          "weight": 3.056,
           "rules": [
-            { "min": 10, "score": 2.0, "label": "Established (> 10 Years)" },
-            { "max": 10, "score": 1.0, "label": "New (< 10 Years)" }
+             { "min": 10, "score": 2.0, "label": "Established (> 10 Years)" }
           ]
         }
       ]
+    },
+    "c3": {
+       "factors": [
+          {
+             "key": "wadl",
+             "label": "WADL (Weighted Average Days Late)",
+             "weight": 18.6,
+             "rules": [
+                { "max": 5.01, "score": 2.0, "label": "Excellent (<= 5 Days)" }
+             ]
+          }
+       ]
     }
   }
 }
@@ -45,81 +70,44 @@ The configuration file is structured hierarchically:
 ## How to Modify
 
 ### 1. Changing Weights
-To change the importance of a factor, locate the `weight` property under the factor and update it.
+Locate the `weight` property under any factor and update it.
+*Ensure total weights sum to 200 (or 100%).*
 
-**Example:** Increase importance of "Years in Business"
-```json
-// Old
-"weight": 14.42
+### 2. Updating Rules
+*   `min`: Inclusive lower bound.
+*   `max`: Exclusive upper bound.
+*   `score`: The multiplier (0.25 - 2.0).
 
-// New
-"weight": 20.00
-```
-*Note: Ensure the total weights across all factors sum up to your desired total (usually 100 or 200 depending on the model scale).*
+### 3. Configuring the Limit Curve (Existing Model)
+To change the sensitivity of the credit limit calculation, adjust the `limitExponent` in `credit_scorecard_existing_v1.json`.
+*   **Higher Exponent (e.g., 2.5):** Steeper curve. Low scores get very low limits; high scores get much higher limits.
+*   **Lower Exponent (e.g., 1.0):** Linear relationship.
 
-### 2. Updating Thresholds (Rules)
-Rules are evaluated in order. The first rule that matches the input value is selected.
+---
 
-**Rule Properties:**
-*   `min`: The value must be greater than or equal to this (`>=`).
-*   `max`: The value must be strictly less than this (`<`).
-*   `match`: (Array) Exact string match (case-insensitive).
-*   `score`: The raw score multiplier (typically 0.25 to 2.0).
-*   `label`: The description shown in the frontend report.
+## API Usage
 
-**Example:** Change the definition of a "Start-up" from < 1 Year to < 2 Years.
-
-*Find the rule for `years_in_business` where label is "Startup":*
+To trigger the **Existing Customer Model**, include the following parameters in the API request:
 
 ```json
-// Old
-{ "max": 1, "score": 0.25, "label": "Startup (< 1 Year)" }
-
-// New
-{ "max": 2, "score": 0.25, "label": "Startup (< 2 Years)" }
+{
+  "modelType": "existing",
+  "limitExponent": 2.0,  // Optional: Override default curve
+  "wadl": 4.5,           // Required: Weighted Average Days Late
+  ... other standard fields ...
+}
 ```
 
-### 3. Adding New Rules
-You can insert new ranges to create more granular scoring tiers.
-
-**Example:** Add a "Very Established" tier for > 20 Years.
-
-```json
-// Insert at the TOP of the rules array (since evaluation stops at first match)
-{ "min": 20, "score": 2.5, "label": "Very Established (> 20 Years)" },
-{ "min": 10, "max": 20, "score": 2.0, "label": "Established (10-20 Years)" },
-...
-```
+If `modelType` is omitted or set to `"new"`, the system defaults to the Standard New Customer model.
 
 ---
 
 ## Verification
 
-After modifying the configuration, you **must** verify that the changes work as expected and do not introduce errors.
+After modifying any configuration:
+1.  Run the verification script (if available).
+2.  Test with a known customer profile.
+3.  Verify that the **"Matched Rule"** in the report output aligns with your changes.
 
-### Running the Verification Script
-(Ideally, a dedicated script would exist here. For now, use the application in a test environment).
-
-1.  Start the backend server.
-2.  Generate a credit report for a test customer that falls into the modified range.
-3.  Check the **Detailed Extraction & Scoring Logic** table in the report.
-4.  Confirm that the **Matched Rule / Criteria** column shows your new label and the **Score** reflects the new calculation.
-
----
-
-## Calculation Formula
-
-The final score for a factor is calculated as:
-
-$$
-\text{Final Score} = \text{Rule Score} \times \left( \frac{\text{Weight}}{2.0} \right)
-$$
-
-*   **Rule Score:** The value from the JSON rule (e.g., 0.25, 1.0, 2.0).
-*   **Weight:** The max weight defined for that factor.
-*   **2.0:** The standard max multiplier in this model.
-
-*Example:*
-*   Weight: 14.42
-*   Rule Score: 1.5
-*   Result: $1.5 \times (14.42 / 2.0) = 10.815$
+### Calculation Formula (Factor Level)
+$$ \text{Final Score} = \text{Rule Score} \times \left( \frac{\text{Weight}}{2.0} \right) $$

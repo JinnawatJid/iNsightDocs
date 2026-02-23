@@ -2,13 +2,13 @@ const fs = require('fs');
 const path = require('path');
 
 class ScorecardEvaluator {
-    constructor() {
-        const configPath = path.resolve(__dirname, '../../config/credit_scorecard_v1.json');
+    constructor(configFileName = 'credit_scorecard_v1.json') {
+        const configPath = path.resolve(__dirname, `../../config/${configFileName}`);
         try {
             const raw = fs.readFileSync(configPath, 'utf8');
             this.config = JSON.parse(raw);
         } catch (error) {
-            console.error(`[ScorecardEvaluator] Error loading config: ${error.message}`);
+            console.error(`[ScorecardEvaluator] Error loading config (${configFileName}): ${error.message}`);
             this.config = null;
         }
     }
