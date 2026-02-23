@@ -1,7 +1,7 @@
 <template>
   <div class="batch-automation-container">
     <div class="header-section">
-      <h2>ระบบคำนวณวงเงินสินเชื่ออัตโนมัติ (Batch)</h2>
+      <h2>ระบบคำนวณวงเงินสินเชื่ออัตโนมัติ</h2>
       <p class="subtitle">อัปโหลดรายชื่อลูกค้าเพื่อคำนวณคะแนนและวงเงินสินเชื่ออัตโนมัติ</p>
     </div>
 
@@ -22,40 +22,41 @@
         </div>
       </div>
 
-      <div class="settings-area">
-        <label>การเชื่อมต่อ Bridge:</label>
-        <div class="input-group">
+      <div class="settings-area" style="text-align: left;">
+        <label style="display: block; margin-bottom: 5px;">การเชื่อมต่อ Bridge:</label>
+        <div class="input-group" style="display: flex; gap: 10px;">
           <input
             type="text"
             v-model="bridgeHost"
             placeholder="Localhost หรือ Bridge IP"
             class="form-control"
+            style="flex: 1; min-width: 150px;"
           />
-          <button class="btn-check" @click="checkBridgeConnection">ตรวจสอบ</button>
+          <button class="btn-check" @click="checkBridgeConnection" style="min-width: 120px;">ตรวจสอบ</button>
         </div>
-        <small class="text-muted">สถานะ: {{ bridgeStatus }}</small>
+        <small class="text-muted" style="display: block; margin-top: 5px;">สถานะ: {{ bridgeStatus }}</small>
 
         <div class="mt-2">
            <small class="text-muted cursor-pointer" @click="showConcurrencySettings = !showConcurrencySettings">
-             ⚙️ ตั้งค่าขั้นสูง (Advanced Settings)
+             ⚙️ ตั้งค่าขั้นสูง
            </small>
 
            <div v-if="showConcurrencySettings" class="settings-panel mt-2">
              <!-- Scoring Model Selection -->
              <div class="mb-2">
-               <label class="d-block mb-1">Scoring Model:</label>
+               <label class="d-block mb-1">โมเดลการให้คะแนน (Scoring Model):</label>
                <select v-model="selectedModel" class="form-control" style="width: 100%;">
-                 <option value="new">New Customer (Standard)</option>
-                 <option value="existing">Existing Customer (WADL + Formula)</option>
+                 <option value="new">ลูกค้าใหม่ (New Customer)</option>
+                 <option value="existing">ลูกค้าปัจจุบัน (Existing Customer)</option>
                </select>
              </div>
 
              <!-- Limit Exponent (Only for Existing) -->
              <div v-if="selectedModel === 'existing'" class="mb-2">
-                <label class="d-block mb-1">Credit Limit Exponent:</label>
+                <label class="d-block mb-1">ตัวคูณวงเงิน (Exponent):</label>
                 <div class="d-flex" style="gap: 5px;">
                   <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="form-control" style="width: 80px;" />
-                  <small class="text-muted align-self-center">(Default: 2.0)</small>
+                  <small class="text-muted align-self-center">(ค่าปกติ: 2.0)</small>
                 </div>
              </div>
 
@@ -63,7 +64,7 @@
 
              <!-- Concurrency -->
              <div class="d-flex align-items-center" style="gap: 10px;">
-               <label class="mb-0">Process Threads:</label>
+               <label class="mb-0">จำนวนเธรดการทำงาน (Process Threads):</label>
                <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 60px; display: inline-block;" />
                <small class="text-muted">แนะนำ 2-4</small>
              </div>
