@@ -38,7 +38,7 @@
                 <tr>
                     <th>Item / Criteria</th>
                     <th>Extracted / Calculated Value</th>
-                    <th>Source Column</th>
+                    <th>Matched Rule / Criteria</th>
                     <th>Weight</th>
                     <th>Score</th>
                 </tr>
@@ -47,7 +47,7 @@
                 <tr v-for="(item, index) in debugData" :key="index">
                     <td class="col-label">{{ item.label }}</td>
                     <td class="text-right">{{ formatValue(item.value) }}</td>
-                    <td class="text-center">{{ item.column || '-' }}</td>
+                    <td class="text-center font-italic">{{ item.matchedRule || '-' }}</td>
                     <td class="text-right">{{ item.weight || '-' }}</td>
                     <td class="text-right font-bold">{{ item.score ? formatDecimal(item.score) : '-' }}</td>
                 </tr>
@@ -610,6 +610,7 @@ h2 {
 .text-right { text-align: right; }
 .text-center { text-align: center; }
 .font-bold { font-weight: bold; }
+.font-italic { font-style: italic; color: #555; }
 
 .col-label {
     font-weight: 500;
