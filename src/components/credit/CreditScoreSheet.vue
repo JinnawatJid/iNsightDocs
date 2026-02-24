@@ -161,6 +161,14 @@
                          <div class="stat-label">SLOPE</div>
                          <div class="stat-val">{{ formatSlope(stats.slope) }}</div>
                      </div>
+                     <!-- WADL (Existing Customer Only) -->
+                     <div class="stat-box" :class="getWadlClass(wadlData.score)" v-if="isExistingModel">
+                         <div class="stat-label">WADL (จ่ายเลทเฉลี่ย)</div>
+                         <div class="stat-val">
+                            {{ formatScore(wadlData.score) }} วัน
+                            <span style="font-size:0.8em">({{ wadlData.grade || '-' }})</span>
+                         </div>
+                     </div>
                  </div>
              </div>
 
@@ -210,6 +218,9 @@ const last3Months = computed(() => {
     }
     return history.slice(0, 3);
 });
+
+const isExistingModel = computed(() => props.analysisResults.modelType === 'existing');
+const wadlData = computed(() => props.analysisResults.financialSummary?.wadlData || { score: 0, grade: 'N/A' });
 
 const stats = computed(() => financialSummary.value.stats || { sumLast3: 0, trendRatio: 1 });
 
@@ -264,6 +275,13 @@ const formatEstablishmentYear = (duration) => {
     const currentYear = new Date().getFullYear() + 543;
     const estYear = currentYear - parseInt(duration);
     return estYear;
+};
+
+const getWadlClass = (score) => {
+    if (!score && score !== 0) return '';
+    if (score <= 5) return 'wadl-green';
+    if (score <= 15) return 'wadl-yellow';
+    return 'wadl-red';
 };
 
 </script>
@@ -441,6 +459,10 @@ const formatEstablishmentYear = (duration) => {
 }
 .stat-label { font-size: 0.8em; }
 .stat-val { font-weight: bold; }
+
+.wadl-green { background-color: #d9ead3 !important; color: #274e13; border-color: #274e13 !important; }
+.wadl-yellow { background-color: #fff2cc !important; color: #bf9000; border-color: #bf9000 !important; }
+.wadl-red { background-color: #fce5cd !important; color: #b45f06; border-color: #b45f06 !important; }
 
 
 /* RESULT COLUMN */

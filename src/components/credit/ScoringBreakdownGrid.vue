@@ -58,12 +58,12 @@
     </div>
 
     <!-- SECTION 2: GRADE (C3) -->
-    <div class="grid-section section-2-grid">
+    <div class="grid-section section-2-grid" :style="section2GridStyle">
       <!-- HEADER -->
-      <!-- C3 Header: Spans 5 columns (1-5) -->
-      <div class="header-cell blue-bg header-c3">เกณฑ์การคิด Grade ของบริษัท (การซื้อขายในปัจจุบัน)</div>
+      <!-- C3 Header: Spans dynamic columns -->
+      <div class="header-cell blue-bg header-c3" :style="headerC3Style">เกณฑ์การคิด Grade ของบริษัท (การซื้อขายในปัจจุบัน)</div>
 
-      <!-- C3 DATA COLS (Cols 1-5) -->
+      <!-- C3 DATA COLS (Dynamic) -->
       <template v-for="(item, index) in c3Items" :key="'c3-'+index">
           <div class="cell weight yellow-bg" :style="{ gridColumn: index + 1, gridRow: 2 }">
              {{ formatNum(item.weight) }}
@@ -79,20 +79,20 @@
           </div>
       </template>
 
-      <!-- ARROW (Col 6, Rows 2-5) -->
-       <div class="arrow-container" style="grid-column: 6; grid-row: 2 / span 4">
+      <!-- ARROW -->
+       <div class="arrow-container" :style="arrowStyle">
          <div class="arrow-box">➜</div>
       </div>
 
-      <!-- RESULT: GRADE (Col 7, Rows 2-5) -->
-      <div class="result-box green-bg" style="grid-column: 7; grid-row: 2 / span 4">
+      <!-- RESULT: GRADE -->
+      <div class="result-box green-bg" :style="resultGradeStyle">
           <div class="res-title">เกรดของลูกค้า</div>
           <div class="res-grade">{{ gradeResult.label }}</div>
           <div class="res-score">{{ formatNum(gradeResult.score) }}</div>
       </div>
 
-       <!-- RESULT: LIMIT (Col 8, Rows 2-5) -->
-       <div class="result-box green-bg" style="grid-column: 8; grid-row: 2 / span 4">
+       <!-- RESULT: LIMIT -->
+       <div class="result-box green-bg" :style="resultLimitStyle">
              <div class="res-title">วงเงินเครดิตใหม่</div>
              <div class="res-grade limit-val">{{ formatMoney(recommendedLimit) }}</div>
              <div class="res-score">{{ formatNum(totalScore) }}</div>
@@ -120,6 +120,34 @@ const sizeResult = computed(() => props.scoringResult.sizeResult || { label: '-'
 const gradeResult = computed(() => props.scoringResult.gradeResult || { label: '-', score: 0 });
 const recommendedLimit = computed(() => props.scoringResult.recommendedLimit || 0);
 const totalScore = computed(() => props.scoringResult.totalScore || 0);
+
+// --- Dynamic Grid Logic for Section 2 (C3) ---
+const c3Count = computed(() => c3Items.value.length || 5);
+
+const section2GridStyle = computed(() => ({
+    gridTemplateColumns: `repeat(${c3Count.value}, 1fr) auto 150px 150px`
+}));
+
+const headerC3Style = computed(() => ({
+    gridColumn: `1 / span ${c3Count.value}`,
+    gridRow: 1
+}));
+
+const arrowStyle = computed(() => ({
+    gridColumn: c3Count.value + 1,
+    gridRow: '2 / span 4'
+}));
+
+const resultGradeStyle = computed(() => ({
+    gridColumn: c3Count.value + 2,
+    gridRow: '2 / span 4'
+}));
+
+const resultLimitStyle = computed(() => ({
+    gridColumn: c3Count.value + 3,
+    gridRow: '2 / span 4'
+}));
+// ---------------------------------------------
 
 const formatNum = (val) => {
     if (val === undefined || val === null) return '-';
@@ -180,13 +208,7 @@ const formatMoney = (val) => {
 
 /* SECTION 2 GRID DEFINITION */
 .section-2-grid {
-    /*
-       Cols:
-       1-5: C3 Items (1fr each)
-       6: Arrow (auto)
-       7: Result Grade (150px)
-       8: Result Limit (150px)
-    */
+    /* Default - Overridden by inline style */
     grid-template-columns: repeat(5, 1fr) auto 150px 150px;
     grid-template-rows: auto auto minmax(50px, auto) auto auto;
 }
@@ -203,6 +225,7 @@ const formatMoney = (val) => {
 
 .header-c1 { grid-column: 1 / span 3; grid-row: 1; }
 .header-c2 { grid-column: 5 / span 3; grid-row: 1; }
+/* header-c3 grid-column overridden by inline style */
 .header-c3 { grid-column: 1 / span 5; grid-row: 1; }
 
 /* CELLS */

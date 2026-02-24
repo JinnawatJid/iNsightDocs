@@ -100,6 +100,41 @@ To trigger the **Existing Customer Model**, include the following parameters in 
 
 If `modelType` is omitted or set to `"new"`, the system defaults to the Standard New Customer model.
 
+### API Response Structure
+The response includes the `modelType` used for calculation, which drives the frontend logic.
+
+```json
+{
+  "success": true,
+  "modelType": "existing",  // Indicates which model logic was applied
+  "scoringResult": { ... },
+  "financialSummary": {
+      "wadlData": { "score": 4.5, "grade": "A" }
+  }
+}
+```
+
+---
+
+## Visual Reporting & Debugging
+
+The Credit Analysis Report UI (`CreditAnalysisReport.vue`) dynamically adapts based on the `modelType` returned by the backend.
+
+### 1. Model Detection
+The frontend inspects the API response for `modelType: 'existing'` or defaults to `'new'`.
+
+### 2. Purchase Behavior Section (C3)
+*   **New Customer:** Shows standard metrics (Avg Sales, Trend, Slope).
+*   **Existing Customer:** Adds a **WADL Indicator** with traffic light color coding:
+    *   **Green:** <= 5 Days (Excellent)
+    *   **Yellow:** <= 15 Days (Warning)
+    *   **Red:** > 15 Days (Critical)
+
+### 3. Scoring Breakdown Grid
+*   **Dynamic Columns:** The breakdown grid (`ScoringBreakdownGrid.vue`) automatically adjusts the number of columns in the C3 section based on the number of factors returned.
+    *   **New Customer:** 5 Columns (Rev/Cap, Capacity, Turnover, Trend, Duration)
+    *   **Existing Customer:** 6 Columns (+ WADL)
+
 ---
 
 ## Verification

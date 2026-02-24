@@ -766,6 +766,7 @@ exports.analyzeFinancials = async (req, res) => {
       scoringResult: scoringResult,
       financialSummary: financialSummary,
       debugData: debugData,
+      modelType: scoringContext.modelType,
       finalInputs: {
           registeredCapital: regCap,
           yearsInBusiness: finalYears
