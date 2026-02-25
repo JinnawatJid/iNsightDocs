@@ -119,6 +119,9 @@ class NewCustomerScorecard extends BaseScorecard {
         // 3. Asset Ownership
         const ownership = customer.residence_ownership || '';
         const assetRes = this.evaluator.evaluate('c1', 'asset_ownership', ownership);
+        if (!assetRes.displayValue) {
+            assetRes.displayValue = 'ไม่ระบุ';
+        }
         score += assetRes.score;
         items.push(assetRes);
         debug.push({

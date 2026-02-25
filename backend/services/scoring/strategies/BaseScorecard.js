@@ -99,7 +99,7 @@ class BaseScorecard {
         // 3. Asset Ownership (Max 25.94)
         const ownership = customer.residence_ownership || '';
         let rawAsset = 1.0;
-        let displayVal = ownership;
+        let displayVal = ownership || 'ไม่ระบุ';
 
         if (ownership.includes('ตนเอง') || ownership.includes('Own')) {
             rawAsset = 2.0;
