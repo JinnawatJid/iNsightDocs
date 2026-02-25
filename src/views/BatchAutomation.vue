@@ -101,7 +101,7 @@
                 <label class="setting-label">ตัวคูณวงเงิน:</label>
                 <div class="d-flex align-items-center" style="gap: 10px;">
                     <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="form-control" style="width: 80px;" />
-                    <small class="text-muted">(ค่าปกติ: 2.0)</small>
+                    <small class="text-muted">(ค่าปกติ: 0.5)</small>
                 </div>
              </div>
 
@@ -258,8 +258,8 @@ const isProcessing = ref(false);
 const shouldStop = ref(false);
 const concurrency = ref(1);
 const showConcurrencySettings = ref(false);
-const selectedModel = ref('new'); // 'new' or 'existing'
-const limitExponent = ref(2.0);
+const selectedModel = ref('existing'); // 'new' or 'existing'
+const limitExponent = ref(0.5);
 const activeWorkers = ref(0);
 const bridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 const bridgeStatus = ref('ไม่ทราบสถานะ');
@@ -1062,13 +1062,6 @@ const processNextItem = async () => {
 const startBatch = async () => {
   if (isProcessing.value) return;
 
-  // Check Bridge first
-  const isBridgeReady = await checkBridgeConnection();
-  if (!isBridgeReady) {
-    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับ Local Bridge กรุณาตรวจสอบการตั้งค่า', 'error');
-    return;
-  }
-
   // RETRY LOGIC: If starting again, reset errors to pending
   const errorItems = queue.value.filter(i => i.status === 'Error');
   if (errorItems.length > 0) {
@@ -1083,6 +1076,38 @@ const startBatch = async () => {
   if (pendingCount === 0) {
       Swal.fire('เสร็จสมบูรณ์', 'ไม่มีรายการที่ต้องประมวลผล', 'info');
       return;
+  }
+
+  // Confirm Action
+  const sourceText = inputType.value === 'branch' ? `สาขา ${selectedBranch.value}` : 'ไฟล์ Excel';
+  const modelText = selectedModel.value === 'new' ? 'ลูกค้าใหม่' : 'ลูกค้าปัจจุบัน';
+
+  const confirmResult = await Swal.fire({
+      title: 'ยืนยันการประมวลผล',
+      html: `
+          <div style="font-size: 1.1em; margin-bottom: 15px;">
+              ยืนยันการประมวลผล <b>${pendingCount}</b> รายการ จาก <b>${sourceText}</b> หรือไม่?
+          </div>
+          <div style="text-align: left; margin-top: 10px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+              <p style="margin-bottom: 5px;"><strong>โมเดล:</strong> ${modelText}</p>
+              <p style="margin-bottom: 0;"><strong>ตัวคูณวงเงิน:</strong> ${limitExponent.value}</p>
+          </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'ยืนยัน',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#0056FF',
+      cancelButtonColor: '#d33'
+  });
+
+  if (!confirmResult.isConfirmed) return;
+
+  // Check Bridge first
+  const isBridgeReady = await checkBridgeConnection();
+  if (!isBridgeReady) {
+    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับ Local Bridge กรุณาตรวจสอบการตั้งค่า', 'error');
+    return;
   }
 
   isProcessing.value = true;
