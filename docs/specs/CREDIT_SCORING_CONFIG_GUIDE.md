@@ -21,6 +21,7 @@ The Credit Scoring Model is configuration-driven, allowing business logic (weigh
 *   **Config File:** `backend/config/credit_scorecard_existing_v1.json`
 *   **Key Logic:** Prioritizes behavioral data (Payment History, Purchase Volume).
 *   **New Factor:** **WADL (Weighted Average Days Late)** is a critical component in the C3 category.
+*   **Gatekeeper:** If **Avg 1.5 Month Purchases (K10)** is `0`, the WADL score is automatically set to `0`.
 *   **Credit Limit Formula:**
     $$ Limit = \frac{\text{Avg 1.5 Month Sales}}{2} \times (\frac{TotalScore}{200})^{\text{Exponent}} $$
     *   **Exponent:** Configurable. Defaults to `2.0` but can be overridden via API request.
@@ -56,7 +57,11 @@ The configuration files follow this hierarchical structure:
              "label": "WADL (Weighted Average Days Late)",
              "weight": 18.6,
              "rules": [
-                { "max": 5.01, "score": 2.0, "label": "Excellent (<= 5 Days)" }
+                { "max": 0.000001, "score": 2.0, "label": "Perfect (0 Days)" },
+                { "min": 0.000001, "max": 5.000001, "score": 1.5, "label": "Excellent (<= 5 Days)" },
+                { "min": 5.000001, "max": 10.000001, "score": 1.0, "label": "Good (5-10 Days)" },
+                { "min": 10.000001, "max": 15.000001, "score": 0.5, "label": "Fair (10-15 Days)" },
+                { "min": 15.000001, "score": 0.0, "label": "Poor (> 15 Days)" }
              ]
           }
        ]

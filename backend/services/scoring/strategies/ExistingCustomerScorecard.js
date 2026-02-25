@@ -343,6 +343,12 @@ class ExistingCustomerScorecard extends BaseScorecard {
         const wadlValue = parseFloat(wadl || 0);
         const wadlRes = this.evaluator.evaluate('c3', 'wadl', wadlValue);
 
+        // Gatekeeper: If Avg 1.5 Month Purchases (K10) is 0, WADL score is 0
+        if (avg1_5Months === 0) {
+            wadlRes.score = 0;
+            wadlRes.matchedRule = "No Purchase History (Score 0)";
+        }
+
         score += wadlRes.score;
         items.push(wadlRes);
         debug.push({
