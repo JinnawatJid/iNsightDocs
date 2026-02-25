@@ -207,6 +207,26 @@ const fetchLatePaymentData = async (customerNo) => {
 const calculateWADL = (invoices) => {
     if (!invoices || invoices.length === 0) return { score: 0, grade: 'N/A' };
 
+    // Enrich Payment Method (Cheque vs Cash) if missing
+    // This mirrors the logic in fetchLatePaymentData to ensure consistency across reports
+    invoices.forEach(inv => {
+        if (!inv.Payment_Method && !inv.payment_method) {
+            const checkDate = inv['Check Date'] || inv.check_date || inv.Check_Date;
+            const clearedDate = inv['Cleared Date'] || inv.cleared_date || inv.Cleared_Date;
+
+            const hasCheckDate = checkDate && String(checkDate).trim() !== '';
+            const hasClearedDate = clearedDate && String(clearedDate).trim() !== '';
+
+            if (hasCheckDate || hasClearedDate) {
+                inv.Payment_Method = 'เช็ค';
+                inv.payment_method = 'เช็ค';
+            } else {
+                inv.Payment_Method = 'เงินสด/โอน';
+                inv.payment_method = 'เงินสด/โอน';
+            }
+        }
+    });
+
     // 1. Filter Timeframe (Last 6 Months) & Paid Status
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);

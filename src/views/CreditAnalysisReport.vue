@@ -421,6 +421,16 @@ const getPaymentMethod = (inv) => {
         method = inv.payment_detail.payment_method;
     }
 
+    // Fallback Inference: Check dates if method is missing
+    if (!method) {
+        const checkDate = inv['Check Date'] || inv.check_date || inv.Check_Date;
+        const clearedDate = inv['Cleared Date'] || inv.cleared_date || inv.Cleared_Date;
+
+        if ((checkDate && String(checkDate).trim() !== '') || (clearedDate && String(clearedDate).trim() !== '')) {
+             return 'เช็ค';
+        }
+    }
+
     // Spec Default: If paid but no explicit method, assume Cash/Transfer unless known otherwise
     if (!method) return 'เงินสด/โอน';
 
