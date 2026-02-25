@@ -124,7 +124,7 @@
 
         <!-- SECTION 3: PURCHASE HISTORY (C3) - TABLE VIEW -->
         <div class="score-section">
-             <div class="section-title header-red">4: ยอดซื้อย้อนหลัง 3 เดือน (Purchase Behavior)</div>
+             <div class="section-title header-red">4: ยอดซื้อย้อนหลัง {{ purchaseMonthCount }} เดือน (Purchase Behavior)</div>
 
              <!-- MONTHLY TABLE -->
              <div class="monthly-table-container">
@@ -136,12 +136,12 @@
                          </tr>
                      </thead>
                      <tbody>
-                         <tr v-for="(m, i) in last3Months" :key="i">
+                         <tr v-for="(m, i) in purchaseHistory" :key="i">
                              <td>{{ m.label }}</td>
                              <td class="text-right">{{ formatMoney(m.amount) }}</td>
                          </tr>
                          <!-- Fallback if empty -->
-                         <tr v-if="last3Months.length === 0">
+                         <tr v-if="purchaseHistory.length === 0">
                              <td colspan="2" class="text-center">- ไม่มีข้อมูล -</td>
                          </tr>
                      </tbody>
@@ -151,7 +151,8 @@
                  <div class="monthly-stats">
                      <div class="stat-box">
                          <div class="stat-label">เฉลี่ย 1.5 เดือน</div>
-                         <div class="stat-val">{{ formatMoney(stats.sumLast3 / 2) }}</div>
+                         <!-- Dynamic Display based on stats.avg1_5m if available, else fallback -->
+                         <div class="stat-val">{{ formatMoney(stats.avg1_5m !== undefined ? stats.avg1_5m : (stats.sumLast3 / 2)) }}</div>
                      </div>
                      <div class="stat-box">
                          <div class="stat-label">แนวโน้ม</div>
@@ -201,14 +202,18 @@ const totalScore = computed(() => scoring.value.totalScore || 0);
 const grade = computed(() => scoring.value.grade || '-');
 const recommendedLimit = computed(() => scoring.value.recommendedLimit || 0);
 
-const last3Months = computed(() => {
+const isExistingModel = computed(() => props.inputs.model_type === 'existing');
+const purchaseMonthCount = computed(() => isExistingModel.value ? 6 : 3);
+
+const purchaseHistory = computed(() => {
     let history = financialSummary.value.monthlyHistory || [];
     // Backend scoring excludes the current (incomplete) month.
     // Ensure table displays the same 3 months used for calculation.
     if (history.length > 0 && String(history[0].label).includes('เดือนปัจจุบัน')) {
         history = history.slice(1);
     }
-    return history.slice(0, 3);
+    // Return 6 months for existing, 3 for new
+    return history.slice(0, purchaseMonthCount.value);
 });
 
 const stats = computed(() => financialSummary.value.stats || { sumLast3: 0, trendRatio: 1 });
