@@ -431,7 +431,7 @@ const getPaymentMethodClass = (inv) => {
     const method = getPaymentMethod(inv);
     if (!method) return '';
     const m = method.toLowerCase();
-    if (m.includes('cheque') || m.includes('check')) return 'badge-cheque';
+    if (m.includes('cheque') || m.includes('check') || m.includes('เช็ค')) return 'badge-cheque';
     return 'badge-cash';
 };
 
