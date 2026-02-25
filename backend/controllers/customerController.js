@@ -940,6 +940,44 @@ exports.getSuggestions = async (req, res) => {
   }
 };
 
+/**
+ * Fetch Customers by Branch (Batch Automation)
+ */
+exports.fetchCustomersByBranch = async (req, res) => {
+    const { branchCode } = req.body;
+
+    if (!branchCode) {
+        return res.status(400).json({ error: "Branch Code is required" });
+    }
+
+    try {
+        console.log(`[Batch] Fetching customers for branch: ${branchCode}`);
+
+        // Construct the filter payload as requested
+        const filterPayload = {
+            "Branch Code": { "$eq": branchCode },
+            "Billing Terms Code": { "$ne": " " }
+        };
+
+        const response = await axios.post(API_URL, filterPayload, {
+            headers: {
+                "apikey": API_KEY,
+                "Content-Type": "application/json"
+            },
+            timeout: 10000 // Extended timeout for large lists
+        });
+
+        const customers = response.data.data || [];
+        console.log(`[Batch] Found ${customers.length} customers for branch ${branchCode}`);
+
+        return res.json({ success: true, data: customers });
+
+    } catch (error) {
+        console.error(`[Batch] Error fetching customers by branch:`, error.message);
+        return res.status(500).json({ error: "Failed to fetch customers from API", details: error.message });
+    }
+};
+
 exports.updateCustomer = async (req, res) => {
   const customerId = req.params.id;
   const updates = req.body;

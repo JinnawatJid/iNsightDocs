@@ -7,19 +7,67 @@
 
     <!-- Configuration & Upload -->
     <div class="control-panel">
-      <div class="upload-area" @dragover.prevent @drop.prevent="handleDrop">
-        <input
-          type="file"
-          ref="fileInput"
-          class="hidden-input"
-          accept=".xlsx, .xls"
-          @change="handleFileSelect"
-        />
-        <div class="upload-content" @click="$refs.fileInput.click()">
-          <span class="upload-icon">📂</span>
-          <span v-if="!queue.length">คลิกหรือลากไฟล์ Excel มาวางที่นี่</span>
-          <span v-else>โหลดข้อมูลแล้ว {{ queue.length }} รายการ</span>
-        </div>
+        <div class="input-source-panel">
+             <!-- Toggle Switch -->
+            <div class="source-toggle">
+                <button
+                    class="toggle-btn"
+                    :class="{ active: inputMode === 'file' }"
+                    @click="inputMode = 'file'"
+                >
+                    📂 อัปโหลดไฟล์ (Excel)
+                </button>
+                <button
+                    class="toggle-btn"
+                    :class="{ active: inputMode === 'api' }"
+                    @click="inputMode = 'api'"
+                >
+                    🌐 ดึงจากระบบ (API)
+                </button>
+            </div>
+
+            <!-- File Upload Mode -->
+            <div v-if="inputMode === 'file'" class="upload-area" @dragover.prevent @drop.prevent="handleDrop">
+                <input
+                type="file"
+                ref="fileInput"
+                class="hidden-input"
+                accept=".xlsx, .xls"
+                @change="handleFileSelect"
+                />
+                <div class="upload-content" @click="$refs.fileInput.click()">
+                <span class="upload-icon">📂</span>
+                <span v-if="!queue.length">คลิกหรือลากไฟล์ Excel มาวางที่นี่</span>
+                <span v-else>โหลดข้อมูลแล้ว {{ queue.length }} รายการ (จากไฟล์)</span>
+                </div>
+            </div>
+
+            <!-- API Mode -->
+            <div v-if="inputMode === 'api'" class="api-fetch-area">
+                <div class="api-form">
+                    <label class="setting-label">ระบุรหัสสาขา (Branch Code):</label>
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            v-model="branchCode"
+                            placeholder="เช่น AY, CN"
+                            class="form-control"
+                            @keyup.enter="fetchFromApi"
+                        />
+                        <button
+                            class="btn-primary"
+                            @click="fetchFromApi"
+                            :disabled="isFetchingApi || !branchCode"
+                        >
+                            {{ isFetchingApi ? 'กำลังดึง...' : 'ดึงข้อมูล' }}
+                        </button>
+                    </div>
+                    <small class="text-muted">ระบบจะดึงเฉพาะลูกค้า Active ที่มีเงื่อนไข Billing Terms ถูกต้อง</small>
+                </div>
+                 <div v-if="queue.length > 0 && inputMode === 'api'" class="api-result-info">
+                    <span class="text-success">✅ ดึงข้อมูลสำเร็จ {{ queue.length }} รายการ</span>
+                </div>
+            </div>
       </div>
 
       <div class="settings-area" style="text-align: left;">
@@ -219,6 +267,11 @@ const bridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 const bridgeStatus = ref('ไม่ทราบสถานะ');
 const isExportDropdownOpen = ref(false); // State for dropdown
 
+// New State for API Source
+const inputMode = ref('file'); // 'file' or 'api'
+const branchCode = ref('');
+const isFetchingApi = ref(false);
+
 // Click Outside Directive (Simple Implementation)
 const vClickOutside = {
   mounted(el, binding) {
@@ -271,6 +324,58 @@ const translateStatus = (status) => {
     'Skipped': 'ข้าม'
   };
   return map[status] || status;
+};
+
+// --- API Fetch Logic ---
+
+const fetchFromApi = async () => {
+    if (!branchCode.value) return;
+
+    isFetchingApi.value = true;
+    queue.value = []; // Clear previous data
+
+    try {
+        const result = await CustomerService.fetchCustomersByBranch(branchCode.value.trim());
+        const data = result.data || [];
+
+        if (data.length === 0) {
+            Swal.fire('ไม่พบข้อมูล', `ไม่พบลูกค้าสำหรับสาขา ${branchCode.value}`, 'warning');
+            return;
+        }
+
+        // Map API response to Queue Format
+        queue.value = data.map(item => ({
+            customerId: String(item.No_ || '').trim(),
+            name: item.Name || '',
+            taxId: item['VAT Registration No_'] || '',
+            // Pre-fill known data to save API calls later if possible
+            currentLimit: item['Fixed Credit Limit'] || 0,
+            paymentTerms: item['Payment Terms Code'] || '',
+
+            // Standard fields
+            totalPurchase3Months: 0,
+            latePaymentAverage: null,
+            wadlScore: null,
+            newLimit: null,
+            score: null,
+            grade: '',
+            status: 'Pending',
+            log: '',
+            files: {},
+            debugFiles: null,
+            analysisResult: null,
+            modelType: null,
+            limitExponent: null
+        }));
+
+        Swal.fire('ดึงข้อมูลสำเร็จ', `พบรายชื่อลูกค้า ${data.length} รายการ`, 'success');
+
+    } catch (err) {
+        console.error(err);
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลจากระบบได้', 'error');
+    } finally {
+        isFetchingApi.value = false;
+    }
 };
 
 // --- File Handling ---
@@ -1115,8 +1220,51 @@ const exportReport = () => {
   align-items: flex-start;
 }
 
+.input-source-panel {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.source-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.toggle-btn {
+    padding: 10px 20px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    flex: 1;
+    text-align: center;
+}
+
+.toggle-btn.active {
+    background: #e3f2fd;
+    border-color: #0056FF;
+    color: #0056FF;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,86,255,0.1);
+}
+
+.api-fetch-area {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    background: #fcfcfc;
+}
+
+.api-form {
+    max-width: 400px;
+}
+
 .upload-area {
-  flex: 2;
   border: 2px dashed #0056FF;
   border-radius: 8px;
   padding: 20px;

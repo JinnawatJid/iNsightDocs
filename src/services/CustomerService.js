@@ -29,6 +29,16 @@ export default {
     }
   },
 
+  async fetchCustomersByBranch(branchCode) {
+    try {
+      const response = await axios.post(`${API_URL}/by-branch`, { branchCode });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching customers by branch:', error);
+      throw error;
+    }
+  },
+
   async updateCustomer(id, data) {
     try {
       const response = await axios.patch(`${API_URL}/${id}`, data);
