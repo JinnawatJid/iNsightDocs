@@ -1,23 +1,23 @@
 <template>
   <div class="credit-analysis-report">
-    <div v-if="loading" class="loading">Loading Report...</div>
-    <div v-else-if="!data" class="error">No report data found. Please regenerate the analysis.</div>
+    <div v-if="loading" class="loading">กำลังโหลดรายงาน...</div>
+    <div v-else-if="!data" class="error">ไม่พบข้อมูลรายงาน กรุณาประมวลผลใหม่</div>
 
     <div v-else class="report-container">
       <div class="report-header">
          <div class="header-left">
-             <h1>Credit Scoring & Financial Analysis Report</h1>
-             <p class="date">Generated on: {{ new Date().toLocaleString('th-TH') }}</p>
+             <h1>รายงานการวิเคราะห์สินเชื่อและการเงิน</h1>
+             <p class="date">วันที่สร้าง: {{ new Date().toLocaleString('th-TH') }}</p>
          </div>
          <div class="header-right no-print">
-             <button class="btn-print" @click="printReport">🖨️ Print Report</button>
-             <button class="btn-close" @click="closeWindow">Close</button>
+             <button class="btn-print" @click="printReport">🖨️ พิมพ์รายงาน</button>
+             <button class="btn-close" @click="closeWindow">ปิดหน้าต่าง</button>
          </div>
       </div>
 
       <!-- VISUAL SHEET -->
       <div class="section visual-section">
-          <h2>Summary Sheet</h2>
+          <h2>สรุปผลการวิเคราะห์</h2>
           <CreditScoreSheet
             :analysisResults="data.analysisResults"
             :inputs="data.inputs"
@@ -27,21 +27,21 @@
       <!-- DETAILED BREAKDOWN (The "More Detail" part) -->
       <div class="section details-section">
           <div class="header-with-toggle" @click="toggleExtractionDetails">
-              <h2>Detailed Extraction & Scoring Logic</h2>
+              <h2>รายละเอียดการคำนวณคะแนน</h2>
               <button class="btn-toggle no-print">
-                  {{ showExtractionDetails ? 'Hide Details ▲' : 'Show Details ▼' }}
+                  {{ showExtractionDetails ? 'ซ่อนรายละเอียด ▲' : 'แสดงรายละเอียด ▼' }}
               </button>
           </div>
 
           <table class="detail-table" v-if="showExtractionDetails">
             <thead>
                 <tr>
-                    <th>Item / Criteria</th>
-                    <th>Extracted / Calculated Value</th>
-                    <th>Source Column</th>
-                    <th>Matched Rule / Criteria</th>
-                    <th>Weight</th>
-                    <th>Score</th>
+                    <th>รายการ / เกณฑ์ (Item / Criteria)</th>
+                    <th>ค่าที่ได้ / คำนวณ (Value)</th>
+                    <th>คอลัมน์ต้นทาง (Source)</th>
+                    <th>เกณฑ์ที่ตรงกัน (Rule)</th>
+                    <th>น้ำหนัก (Weight)</th>
+                    <th>คะแนน (Score)</th>
                 </tr>
             </thead>
             <tbody>
@@ -60,21 +60,21 @@
       <!-- PAYMENT HISTORY (DEBUG) -->
       <div class="section payment-history-section" v-if="latePaymentInvoices && latePaymentInvoices.length > 0">
           <div class="header-with-toggle">
-              <h2>Payment History (Debug Log)</h2>
+              <h2>ประวัติการชำระเงิน (Debug Log)</h2>
               <div class="text-right stats-wrapper">
                   <div class="calc-summary">
-                      <strong>Simple Average (Count-Based):</strong>
-                      {{ latePaymentStats.totalLateDays }} (Total Late Days) / {{ latePaymentStats.paidCount }} (Paid)
-                      = <strong>{{ latePaymentStats.avg }}</strong> Days
+                      <strong>ค่าเฉลี่ยแบบนับจำนวน (Simple Average):</strong>
+                      {{ latePaymentStats.totalLateDays }} (รวมวันล่าช้า) / {{ latePaymentStats.paidCount }} (รายการจ่ายแล้ว)
+                      = <strong>{{ latePaymentStats.avg }}</strong> วัน
                   </div>
                   <div class="calc-summary wadl-summary clickable" v-if="wadlStats" @click="toggleWadlBreakdown">
-                      <strong>Weighted Average (Value-Based):</strong>
+                      <strong>ค่าเฉลี่ยแบบถ่วงน้ำหนัก (Weighted Average):</strong>
                       <span>
-                          {{ formatValue(wadlBreakdown.totalWeightedDelay) }} (Total Weighted Delay) /
-                          {{ formatValue(wadlBreakdown.totalAmount) }} (Total Paid)
-                          = <strong class="wadl-score">{{ wadlStats.score }}</strong> Days
+                          {{ formatValue(wadlBreakdown.totalWeightedDelay) }} (ผลรวมถ่วงน้ำหนัก) /
+                          {{ formatValue(wadlBreakdown.totalAmount) }} (ยอดจ่ายรวม)
+                          = <strong class="wadl-score">{{ wadlStats.score }}</strong> วัน
                       </span>
-                      <span class="toggle-icon">{{ showWadlBreakdown ? '▼' : '▶' }} (Show Calculation)</span>
+                      <span class="toggle-icon">{{ showWadlBreakdown ? '▼' : '▶' }} (แสดงการคำนวณ)</span>
                   </div>
               </div>
           </div>
@@ -83,12 +83,12 @@
           <div class="wadl-breakdown-panel" v-if="showWadlBreakdown && wadlStats">
             <div class="breakdown-header-compact">
                 <h3>
-                    Weighted Average Days Late (WADL) Breakdown
+                    รายละเอียดการคำนวณ WADL
                     <span class="tooltip-container">
                         ℹ️
                         <span class="tooltip-text">
-                            <strong>Formula:</strong> Σ (Invoice Amount × Late Days) ÷ Σ (Invoice Amount)<br>
-                            <strong>Scope:</strong> Paid invoices in last 6 months. Outstanding excluded.
+                            <strong>สูตร:</strong> Σ (ยอดบิล × วันล่าช้า) ÷ Σ (ยอดบิลทั้งหมด)<br>
+                            <strong>ขอบเขต:</strong> บิลที่จ่ายแล้วใน 6 เดือนล่าสุด ไม่รวมบิลค้างจ่าย
                         </span>
                     </span>
                 </h3>
@@ -118,10 +118,10 @@
                         <thead>
                             <tr>
                                 <th style="width: 20%">Invoice No.</th>
-                                <th style="width: 15%">Date</th>
-                                <th style="width: 15%" class="text-center">Late Days</th>
-                                <th style="width: 25%" class="text-right">Amount</th>
-                                <th style="width: 25%" class="text-right">Contribution %</th>
+                                <th style="width: 15%">วันที่</th>
+                                <th style="width: 15%" class="text-center">ล่าช้า (วัน)</th>
+                                <th style="width: 25%" class="text-right">ยอดเงิน</th>
+                                <th style="width: 25%" class="text-right">สัดส่วน %</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -146,8 +146,8 @@
                 </div>
 
                 <p class="exclusion-note-compact">
-                    * Showing top 5 of {{ wadlBreakdown.invoices.length }} contributing invoices.
-                    Excluded {{ wadlBreakdown.excludedCount }} invoices ({{ wadlBreakdown.excludedOutstanding }} Outstanding, {{ wadlBreakdown.excludedOld }} > 6 Months).
+                    * แสดง 5 อันดับแรกจาก {{ wadlBreakdown.invoices.length }} รายการ
+                    (ไม่รวม: {{ wadlBreakdown.excludedOutstanding }} รายการค้างจ่าย, {{ wadlBreakdown.excludedOld }} รายการเกิน 6 เดือน)
                 </p>
             </div>
           </div>
@@ -157,14 +157,14 @@
             <table class="detail-table payment-table">
                 <thead>
                     <tr>
-                        <th>Invoice No.</th>
-                        <th>Invoice Date</th>
-                        <th>Due Date</th>
-                        <th>Amount</th>
-                        <th>Payment Method</th>
-                        <th>Effective Payment</th>
-                        <th>Late Days</th>
-                        <th>Status</th>
+                        <th>เลขที่ใบแจ้งหนี้</th>
+                        <th>วันที่เอกสาร</th>
+                        <th>วันครบกำหนด</th>
+                        <th>ยอดเงิน</th>
+                        <th>วิธีการชำระ</th>
+                        <th>วันที่ชำระจริง</th>
+                        <th>วันล่าช้า</th>
+                        <th>สถานะ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -197,14 +197,14 @@
           </div>
       </div>
       <div class="section payment-history-section" v-else-if="latePaymentSummary">
-           <h2>Payment History (Debug Log)</h2>
+           <h2>ประวัติการชำระเงิน (Debug Log)</h2>
            <p class="text-muted">ไม่พบข้อมูลรายการ Invoice หรือไม่มีประวัติการชำระเงินล่าช้าในระบบ</p>
       </div>
 
       <!-- RAW JSON (Optional, collapsed) -->
       <div class="section raw-section no-print">
           <details>
-              <summary>Raw Data (JSON)</summary>
+              <summary>ข้อมูลดิบ (JSON)</summary>
               <pre>{{ JSON.stringify(data, null, 2) }}</pre>
           </details>
       </div>
@@ -398,7 +398,7 @@ const visualizationSegments = computed(() => {
     const top5Total = segments.reduce((sum, s) => sum + s.width, 0);
     if (top5Total < 100) {
         segments.push({
-            label: 'Others',
+            label: 'อื่นๆ',
             width: 100 - top5Total,
             color: '#e9ecef' // Light gray for others
         });
@@ -422,7 +422,7 @@ const getPaymentMethod = (inv) => {
     }
 
     // Spec Default: If paid but no explicit method, assume Cash/Transfer unless known otherwise
-    if (!method) return 'Cash/Transfer';
+    if (!method) return 'เงินสด/โอน';
 
     return method;
 };
@@ -451,8 +451,8 @@ const getLateDaysClass = (inv) => {
 };
 
 const getStatusLabel = (inv) => {
-    if (!isPaid(inv)) return 'OUTSTANDING';
-    return inv.Late_Days > 0 ? 'LATE' : 'ON-TIME';
+    if (!isPaid(inv)) return 'ค้างจ่าย';
+    return inv.Late_Days > 0 ? 'ล่าช้า' : 'ตรงเวลา';
 };
 
 const getStatusClass = (inv) => {
