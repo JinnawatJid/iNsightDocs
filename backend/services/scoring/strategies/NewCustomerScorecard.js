@@ -39,19 +39,15 @@ class NewCustomerScorecard extends BaseScorecard {
         // 4. Calculate Size & Grade
         // Size = C1 + C2
         const sizeScore = c1.total + c2.total;
-        let sizeLabel = "L";
-        if (sizeScore <= 37) sizeLabel = "S";
-        else if (sizeScore <= 68) sizeLabel = "M";
-        else sizeLabel = "L";
+
+        const sizeDefs = this.evaluator.config.size_definitions || [];
+        const sizeLabel = this.evaluateDefinition(sizeScore, sizeDefs, "S");
 
         // Grade = C3
         const gradeScore = c3.total;
-        let gradeLabel = "D";
-        if (gradeScore >= 81) gradeLabel = "A+";
-        else if (gradeScore >= 66) gradeLabel = "A";
-        else if (gradeScore >= 50) gradeLabel = "B+";
-        else if (gradeScore >= 35) gradeLabel = "B";
-        else if (gradeScore >= 20) gradeLabel = "C";
+
+        const gradeDefs = this.evaluator.config.grade_definitions || [];
+        const gradeLabel = this.evaluateDefinition(gradeScore, gradeDefs, "D");
 
         // 5. Structure Output
         return {

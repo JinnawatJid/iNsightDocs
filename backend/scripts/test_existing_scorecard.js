@@ -46,15 +46,15 @@ const mockCustomer = {
 //   - Speed: 0.3 (Very Slow) -> Score 0.5 * 23.0 = 11.5
 //   - Trend: 38.0
 //   - Duration: 11.2
-//   - WADL: 18.6
-//   - Total C3: 1.0 + 10.7 + 11.5 + 38.0 + 11.2 + 18.6 = 91.0
-// Total Score: 23.6 + 18.8 + 91.0 = 133.4
+//   - WADL: 4.5 Days (Excellent, Score 1.5/2.0) -> Score 1.5 * (18.6/2) = 13.95 (Previous expectation of 18.6 was incorrect)
+//   - Total C3: 1.0 + 10.7 + 11.5 + 38.0 + 11.2 + 13.95 = 86.35
+// Total Score: 23.6 + 18.8 + 86.35 = 128.75 (~129)
 
 // Expected Limit:
 // Avg 1.5 Month = 300,000
-// Ratio = (133.4 / 200) ^ 2.0 = (0.667)^2 = 0.444889
-// Limit = 300,000 * 0.444889 = 133,466
-// Rounded: 133,000
+// Ratio = (128.75 / 200) ^ 2.0 = (0.64375)^2 = 0.4144
+// Limit = 300,000 * 0.4144 = 124,320
+// Rounded: 124,000
 
 function runTest() {
     console.log("=== Testing Existing Customer Scorecard ===");
@@ -62,21 +62,21 @@ function runTest() {
     try {
         const result = ScoringEngine.score(mockCustomer);
 
-        console.log(`Total Score: ${result.totalScore} (Expected ~133)`);
-        console.log(`Recommended Limit: ${result.recommendedLimit.toLocaleString()} (Expected ~133,000)`);
+        console.log(`Total Score: ${result.totalScore} (Expected ~129)`);
+        console.log(`Recommended Limit: ${result.recommendedLimit.toLocaleString()} (Expected ~124,000)`);
         console.log(`Grade: ${result.grade}`);
 
         // Validation
-        if (result.totalScore >= 130 && result.totalScore <= 137) {
+        if (result.totalScore >= 127 && result.totalScore <= 131) {
             console.log("✅ Score Calculation: PASS");
         } else {
-            console.error("❌ Score Calculation: FAIL");
+            console.error(`❌ Score Calculation: FAIL (Got ${result.totalScore})`);
         }
 
-        if (result.recommendedLimit >= 130000 && result.recommendedLimit <= 136000) {
+        if (result.recommendedLimit >= 122000 && result.recommendedLimit <= 126000) {
             console.log("✅ Limit Calculation: PASS");
         } else {
-            console.error("❌ Limit Calculation: FAIL");
+            console.error(`❌ Limit Calculation: FAIL (Got ${result.recommendedLimit})`);
         }
 
         // Test WADL Sensitivity
