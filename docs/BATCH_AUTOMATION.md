@@ -6,6 +6,23 @@ The Batch Automation system (`/batch-automation`) allows users to upload a list 
 2.  Download DBD documents (Financial Statements, Company Profile) via the **Bridge Server**.
 3.  Analyze the financial data to generate credit scores and recommended limits.
 
+## Input Methods
+The system supports two methods for providing customer data:
+
+### 1. Fetch by Branch (Default)
+This is the primary method for batch processing. Users select a specific branch (Region/Zone) from a compact dropdown menu.
+*   **Source**: Fetches directly from the Customer API (`/customer-sp682/1.0.0`).
+*   **Filtering Logic**: To ensure only relevant, active customers are processed, the backend applies the following filters:
+    *   `Branch Code`: Matches the selected branch.
+    *   `Billing Terms Code`: Must not be empty (`$ne: " "`).
+    *   `Fixed Credit Limit`: Must be greater than 1 (`$gt: 1`). This filters out inactive or placeholder accounts with nominal limits (e.g., 0.01).
+*   **Capacity**: The system fetches up to 2,000 records per request to cover large branches.
+
+### 2. Excel Upload
+Users can upload an `.xlsx` file containing a list of Customer IDs.
+*   **Format**: The system automatically detects the Customer ID column based on header heuristics (e.g., "Code", "Customer ID", "No.").
+*   **Use Case**: Ideal for custom lists or cross-branch processing.
+
 ## Folder Structure
 The system stores downloaded DBD documents for future use to avoid redundant downloads. The structure is as follows:
 
