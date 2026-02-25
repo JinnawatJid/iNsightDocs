@@ -668,20 +668,29 @@ exports.analyzeFinancials = async (req, res) => {
             // Last 3 Months (for SecondAccum)
             const last3 = calcData.slice(-3);
             const sumLast3 = last3.reduce((acc, cur) => acc + cur.amount, 0);
+            const slope3 = calculateSlope(last3);
+            const avg3 = sumLast3 / 3;
+            const trendRatio3 = calculateTrendRatio(slope3, avg3);
 
-            // Calculate SLOPE for the last 3 months
-            const slope = calculateSlope(last3);
-
-            // NEW FORMULA FOR TREND (AccumTrend)
-            // User Formula: 1 + (Slope / AveragePerMonth)
-            const averagePerMonth = sumLast3 / 3;
-            const trendRatio = calculateTrendRatio(slope, averagePerMonth);
+            // Last 6 Months (for Existing Customer)
+            const last6 = calcData.slice(-6);
+            const sumLast6 = last6.reduce((acc, cur) => acc + cur.amount, 0);
+            const slope6 = calculateSlope(last6);
+            const avg6 = sumLast6 / 6;
+            const trendRatio6 = calculateTrendRatio(slope6, avg6);
 
             accumData = {
+                // New Customer / Legacy (3 Months)
                 SecondAccum: sumLast3,
-                AccumTrend: trendRatio,
-                Slope: slope,
-                last3Months: last3 // Store raw data for C3 specific calculations (e.g. 60-day term)
+                AccumTrend: trendRatio3,
+                Slope: slope3,
+                last3Months: last3,
+
+                // Existing Customer (6 Months)
+                SumLast6: sumLast6,
+                Trend6: trendRatio6,
+                Slope6: slope6,
+                last6Months: last6
             };
 
             // Prepare Monthly History for Frontend (Reverse order: Newest First)
@@ -740,8 +749,23 @@ exports.analyzeFinancials = async (req, res) => {
         wadlData: wadlDataResult,         // Include WADL Info
         stats: {
             sumLast3: accumData ? accumData.SecondAccum : 0,
-            trendRatio: accumData ? accumData.AccumTrend : 1.0,
-            slope: accumData ? accumData.Slope : 0
+            sumLast6: accumData ? accumData.SumLast6 : 0,
+            // Dynamic Stats based on Model Type
+            avg1_5m: accumData ? (
+                model_type === 'existing'
+                    ? (accumData.SumLast6 / 4)
+                    : (accumData.SecondAccum / 2)
+            ) : 0,
+            trendRatio: accumData ? (
+                model_type === 'existing'
+                    ? accumData.Trend6
+                    : accumData.AccumTrend
+            ) : 1.0,
+            slope: accumData ? (
+                model_type === 'existing'
+                    ? accumData.Slope6
+                    : accumData.Slope
+            ) : 0
         }
     };
 

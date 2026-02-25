@@ -212,7 +212,10 @@ class ExistingCustomerScorecard extends BaseScorecard {
             return { total: 0, items: [], debug: [] };
         }
 
-        const secondAccum = this.parseAmount(accumData.SecondAccum);
+        // Determine Basis: 6 Months (Existing) or 3 Months (Fallback)
+        const use6Months = accumData.SumLast6 !== undefined;
+        const totalPurchase = use6Months ? this.parseAmount(accumData.SumLast6) : this.parseAmount(accumData.SecondAccum);
+
         const revenueForRatio = financials.averageRevenue || 0;
         const regCap = parseFloat(registeredCapital || 1);
         const reqAmt = parseFloat(requestAmount || 1);
@@ -234,7 +237,9 @@ class ExistingCustomerScorecard extends BaseScorecard {
         });
 
         // 2. Capacity Check (Avg Purchase / Requested Credit)
-        const avg1_5Months = secondAccum / 2;
+        // Existing (6m): Avg 1.5m = Total6 / 4
+        // New (3m): Avg 1.5m = Total3 / 2
+        const avg1_5Months = use6Months ? (totalPurchase / 4) : (totalPurchase / 2);
         const capCheckRatio = Number((avg1_5Months / reqAmt).toFixed(2));
 
         const capRes = this.evaluator.evaluate('c3', 'capacity_check', capCheckRatio);
@@ -249,7 +254,7 @@ class ExistingCustomerScorecard extends BaseScorecard {
             matchedRule: capRes.matchedRule
         });
 
-        // 3. Turnover Speed (Purchase / Credit Term)
+        // 3. Turnover Speed (Purchase / Credit Term) -> Renamed: สัดส่วนยอดซื้อต่อระยะเวลาเครดิตที่ขอ
         let numerator = 0;
         let isTermValid = true;
         const term = parseInt(reqDays);
@@ -261,10 +266,16 @@ class ExistingCustomerScorecard extends BaseScorecard {
           case 30: numerator = avg1_5Months; break;
           case 45: numerator = avg1_5Months / 0.75; break;
           case 60:
-              if (accumData && accumData.last3Months && accumData.last3Months.length >= 2) {
-                  numerator = accumData.last3Months[0].amount + accumData.last3Months[1].amount;
+              if (use6Months) {
+                  // Existing Customer: (Sum6 / 6) * 2 = Sum6 / 3
+                  numerator = totalPurchase / 3;
               } else {
-                  numerator = (accumData.SecondAccum / 3) * 2;
+                  // New Customer Fallback: Sum3 / 3 * 2 (or Sum First 2)
+                  if (accumData && accumData.last3Months && accumData.last3Months.length >= 2) {
+                      numerator = accumData.last3Months[0].amount + accumData.last3Months[1].amount;
+                  } else {
+                      numerator = (totalPurchase / 3) * 2;
+                  }
               }
               break;
           default:
@@ -284,7 +295,7 @@ class ExistingCustomerScorecard extends BaseScorecard {
         score += turnoverRes.score;
         items.push(turnoverRes);
         debug.push({
-            label: 'ความเร็วในการหมุนเวียน',
+            label: 'สัดส่วนยอดซื้อต่อระยะเวลาเครดิตที่ขอ',
             value: turnoverSpeed.toFixed(2),
             weight: turnoverRes.weight,
             score: turnoverRes.score,
@@ -293,11 +304,11 @@ class ExistingCustomerScorecard extends BaseScorecard {
         });
 
         // 4. Purchase Trend (Slope)
-        const slope = accumData.Slope || 0;
+        // Use Slope6 if available, else Slope (3m)
+        const slope = use6Months ? (accumData.Slope6 || 0) : (accumData.Slope || 0);
         const trendRes = this.evaluator.evaluate('c3', 'purchase_trend', slope);
 
-        const totalPurchase3Months = accumData.SecondAccum || 0;
-        if (totalPurchase3Months === 0) {
+        if (totalPurchase === 0) {
             trendRes.score = 0;
             trendRes.matchedRule = "No Purchases";
         }
