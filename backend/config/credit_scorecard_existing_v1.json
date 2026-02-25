@@ -64,14 +64,14 @@
           "key": "inventory_turnover",
           "label": "อัตราการหมุนเวียนของสินค้าคงเหลือ",
           "weight": 5.35,
-          "condition": "isCompany",
           "rules": [
             { "min": 12, "score": 2.0, "label": "High (> 12)" },
             { "min": 8, "max": 12, "score": 1.5, "label": "Good (8-12)" },
             { "min": 6, "max": 8, "score": 1.0, "label": "Average (6-8)" },
             { "min": 4, "max": 6, "score": 0.5, "label": "Low (4-6)" },
             { "max": 4, "score": 0.0, "label": "Very Low (< 4)" }
-          ]
+          ],
+          "condition": "isCompany"
         },
         {
           "key": "dscr",
@@ -155,10 +155,11 @@
           "label": "ระยะเวลาการจ่ายเลท (WADL)",
           "weight": 18.6,
           "rules": [
-            { "max": 5.01, "score": 2.0, "label": "Excellent (<= 5 Days)" },
-            { "min": 5.01, "max": 10.01, "score": 1.5, "label": "Good (5-10 Days)" },
-            { "min": 10.01, "max": 15.01, "score": 1.0, "label": "Fair (10-15 Days)" },
-            { "min": 15.01, "score": 0.5, "label": "Poor (> 15 Days)" }
+            { "max": 0.000001, "score": 2.0, "label": "Perfect (0 Days)" },
+            { "min": 0.000001, "max": 5.000001, "score": 1.5, "label": "Excellent (<= 5 Days)" },
+            { "min": 5.000001, "max": 10.000001, "score": 1.0, "label": "Good (5-10 Days)" },
+            { "min": 10.000001, "max": 15.000001, "score": 0.5, "label": "Fair (10-15 Days)" },
+            { "min": 15.000001, "score": 0.0, "label": "Poor (> 15 Days)" }
           ]
         }
       ]
