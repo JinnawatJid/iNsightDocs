@@ -1074,4 +1074,57 @@ exports.updateCustomer = async (req, res) => {
   }
 };
 
+exports.searchCustomersByBranch = async (req, res) => {
+    const { branchCode } = req.query;
+
+    if (!branchCode) {
+        return res.status(400).json({ error: "Branch Code is required" });
+    }
+
+    try {
+        console.log(`[CustomerAPI] Fetching customers for branch: ${branchCode}`);
+
+        // Construct Payload
+        const payload = {
+            "Branch Code": { "$eq": branchCode },
+            "Billing Terms Code": { "$ne": " " },
+            "Fixed Credit Limit": { "$gt": 1 }
+        };
+
+        // Call API
+        // Using a large size to fetch all records (as per requirement "fetch all active customer on one go")
+        const response = await axios.post(API_URL, {
+            page: 1,
+            size: 2000, // Large enough to cover most branches
+            ...payload
+        }, {
+            headers: {
+                "apikey": API_KEY,
+                "Content-Type": "application/json"
+            },
+            timeout: 10000 // Increased timeout for large data
+        });
+
+        const data = response.data.data || [];
+
+        // Filter and Map necessary fields
+        // We only need basic info for the queue: No_, Name, Tax ID, Limit, Terms
+        const result = data.map(item => ({
+            No_: item["No_"],
+            Name: item["Name"],
+            VAT_Registration_No_: item["VAT Registration No_"],
+            Fixed_Credit_Limit: item["Fixed Credit Limit"],
+            Payment_Terms_Code: item["Payment Terms Code"],
+            Customer_Date: item["Customer Date"]
+        }));
+
+        console.log(`[CustomerAPI] Found ${result.length} customers for branch ${branchCode}`);
+        return res.json(result);
+
+    } catch (error) {
+        console.error(`[CustomerAPI] Error fetching by branch ${branchCode}:`, error.message);
+        return res.status(502).json({ error: "Failed to fetch customers from API", details: error.message });
+    }
+};
+
 exports.checkBlacklist = checkBlacklist;
