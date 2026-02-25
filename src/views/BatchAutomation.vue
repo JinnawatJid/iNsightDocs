@@ -7,19 +7,62 @@
 
     <!-- Configuration & Upload -->
     <div class="control-panel">
-      <div class="upload-area" @dragover.prevent @drop.prevent="handleDrop">
-        <input
-          type="file"
-          ref="fileInput"
-          class="hidden-input"
-          accept=".xlsx, .xls"
-          @change="handleFileSelect"
-        />
-        <div class="upload-content" @click="$refs.fileInput.click()">
-          <span class="upload-icon">📂</span>
-          <span v-if="!queue.length">คลิกหรือลากไฟล์ Excel มาวางที่นี่</span>
-          <span v-else>โหลดข้อมูลแล้ว {{ queue.length }} รายการ</span>
-        </div>
+      <div class="input-section">
+          <!-- Input Type Toggle -->
+          <div class="input-type-toggle">
+              <button
+                class="toggle-btn"
+                :class="{ active: inputType === 'file' }"
+                @click="inputType = 'file'"
+              >
+                📂 อัปโหลด Excel
+              </button>
+              <button
+                class="toggle-btn"
+                :class="{ active: inputType === 'branch' }"
+                @click="inputType = 'branch'"
+              >
+                🏢 ดึงข้อมูลตามสาขา
+              </button>
+          </div>
+
+          <!-- File Upload -->
+          <div v-if="inputType === 'file'" class="upload-area" @dragover.prevent @drop.prevent="handleDrop">
+            <input
+              type="file"
+              ref="fileInput"
+              class="hidden-input"
+              accept=".xlsx, .xls"
+              @change="handleFileSelect"
+            />
+            <div class="upload-content" @click="$refs.fileInput.click()">
+              <span class="upload-icon">📂</span>
+              <span v-if="!queue.length">คลิกหรือลากไฟล์ Excel มาวางที่นี่</span>
+              <span v-else>โหลดข้อมูลแล้ว {{ queue.length }} รายการ</span>
+            </div>
+          </div>
+
+          <!-- Branch Selection -->
+          <div v-else class="branch-area">
+             <div class="form-group">
+                <label>เลือกสาขา (Branch):</label>
+                <select v-model="selectedBranch" class="form-control branch-select">
+                    <option value="" disabled>-- กรุณาเลือกสาขา --</option>
+                    <optgroup v-for="region in branchData" :key="region.region" :label="region.region">
+                        <option v-for="zone in region.zones" :key="zone.code" :value="zone.code">
+                            {{ zone.code }} - {{ zone.name }}
+                        </option>
+                    </optgroup>
+                </select>
+             </div>
+             <button
+                class="btn-primary btn-fetch"
+                @click="fetchByBranch"
+                :disabled="!selectedBranch || isFetchingBranch"
+             >
+                {{ isFetchingBranch ? 'กำลังดึงข้อมูล...' : '⬇️ ดึงรายชื่อลูกค้า' }}
+             </button>
+          </div>
       </div>
 
       <div class="settings-area" style="text-align: left;">
@@ -219,6 +262,68 @@ const bridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 const bridgeStatus = ref('ไม่ทราบสถานะ');
 const isExportDropdownOpen = ref(false); // State for dropdown
 
+// Input Method State
+const inputType = ref('file'); // 'file' or 'branch'
+const selectedBranch = ref('');
+const isFetchingBranch = ref(false);
+
+const branchData = [
+  {
+    region: 'กทม (Metro)',
+    zones: [
+      { code: 'TJ', name: 'ตรอกจันทน์' },
+      { code: 'TR', name: 'พระราม 2' },
+      { code: 'TS', name: 'สุขาภิบาล 3' },
+      { code: 'TP', name: 'บางขุนเทียน' },
+      { code: 'TL', name: 'ลำลูกกา' }
+    ]
+  },
+  {
+    region: 'กลาง (Central)',
+    zones: [
+      { code: 'BS', name: 'บางไทร' },
+      { code: 'RB', name: 'ราชบุรี' },
+      { code: 'AY', name: 'อยุธยา' },
+      { code: 'PC', name: 'ประจวบ' },
+      { code: 'SB', name: 'สระบุรี' }
+    ]
+  },
+  {
+    region: 'เหนือ (North)',
+    zones: [
+      { code: 'CM', name: 'เชียงใหม่' },
+      { code: 'CR', name: 'เชียงราย' },
+      { code: 'NS', name: 'นครสวรรค์' },
+      { code: 'PL', name: 'พิษณุโลก' }
+    ]
+  },
+  {
+    region: 'ตะวันออก (East)',
+    zones: [
+      { code: 'RY', name: 'ระยอง' },
+      { code: 'CB', name: 'ชลบุรี' }
+    ]
+  },
+  {
+    region: 'อีสาน (Northeast)',
+    zones: [
+      { code: 'KK', name: 'ขอนแก่น' },
+      { code: 'SK', name: 'สกลนคร' },
+      { code: 'UB', name: 'อุบลราชธานี' },
+      { code: 'UD', name: 'อุดรธานี' },
+      { code: 'NR', name: 'นครราชสีมา' }
+    ]
+  },
+  {
+    region: 'ใต้ (South)',
+    zones: [
+      { code: 'SR', name: 'สุราษฎร์ธานี' },
+      { code: 'HY', name: 'หาดใหญ่' },
+      { code: 'PK', name: 'ภูเก็ต' }
+    ]
+  }
+];
+
 // Click Outside Directive (Simple Implementation)
 const vClickOutside = {
   mounted(el, binding) {
@@ -277,6 +382,54 @@ const translateStatus = (status) => {
 
 const handleFileSelect = (e) => processFile(e.target.files[0]);
 const handleDrop = (e) => processFile(e.dataTransfer.files[0]);
+
+const fetchByBranch = async () => {
+    if (!selectedBranch.value) return;
+
+    isFetchingBranch.value = true;
+    try {
+        const response = await axios.get(`/api/customers/by-branch`, {
+            params: { branchCode: selectedBranch.value }
+        });
+
+        const data = response.data;
+        if (!data || data.length === 0) {
+            Swal.fire('ไม่พบข้อมูล', `ไม่พบลูกค้าที่มีวงเงินในสาขา ${selectedBranch.value}`, 'warning');
+            queue.value = [];
+        } else {
+             // Map to Queue Format
+            queue.value = data.map(item => {
+                return {
+                    customerId: item.No_,
+                    name: item.Name,
+                    taxId: item.VAT_Registration_No_ || '',
+                    totalPurchase3Months: 0, // Will be fetched during process
+                    latePaymentAverage: null,
+                    wadlScore: null,
+                    currentLimit: item.Fixed_Credit_Limit || 0,
+                    paymentTerms: item.Payment_Terms_Code || '',
+                    customerDate: item.Customer_Date || null,
+                    newLimit: null,
+                    score: null,
+                    grade: '',
+                    status: 'Pending',
+                    log: '',
+                    files: {},
+                    debugFiles: null,
+                    analysisResult: null,
+                    modelType: null,
+                    limitExponent: null
+                };
+            });
+            Swal.fire('สำเร็จ', `ดึงข้อมูลลูกค้า ${queue.value.length} รายการ จากสาขา ${selectedBranch.value}`, 'success');
+        }
+    } catch (error) {
+        console.error('Fetch by branch error:', error);
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลจากสาขาได้: ' + (error.response?.data?.error || error.message), 'error');
+    } finally {
+        isFetchingBranch.value = false;
+    }
+};
 
 const findBestIdColumn = (data) => {
     if (!data || data.length === 0) return null;
@@ -1115,8 +1268,58 @@ const exportReport = () => {
   align-items: flex-start;
 }
 
+.input-section {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.input-type-toggle {
+    display: flex;
+    gap: 10px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
+
+.toggle-btn {
+    padding: 8px 15px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.toggle-btn.active {
+    background: #0056FF;
+    color: #fff;
+    border-color: #0056FF;
+}
+
+.branch-area {
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.branch-select {
+    width: 100%;
+    padding: 10px;
+    font-size: 1em;
+}
+
+.btn-fetch {
+    align-self: flex-start;
+}
+
 .upload-area {
-  flex: 2;
   border: 2px dashed #0056FF;
   border-radius: 8px;
   padding: 20px;
