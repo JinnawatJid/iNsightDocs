@@ -25,6 +25,7 @@ The Credit Scoring Model is configuration-driven, allowing business logic (weigh
 *   **Credit Limit Formula:**
     $$ Limit = \frac{\text{Avg 1.5 Month Sales}}{2} \times (\frac{TotalScore}{200})^{\text{Exponent}} $$
     *   **Exponent:** Configurable. Defaults to `2.0` but can be overridden via API request.
+    *   **Note:** The **Batch Automation** tool defaults this value to **0.5** for safer initial limits.
 
 ---
 

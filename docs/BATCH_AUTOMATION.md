@@ -23,6 +23,24 @@ Users can upload an `.xlsx` file containing a list of Customer IDs.
 *   **Format**: The system automatically detects the Customer ID column based on header heuristics (e.g., "Code", "Customer ID", "No.").
 *   **Use Case**: Ideal for custom lists or cross-branch processing.
 
+## Processing Workflow
+The system includes a confirmation step to prevent accidental processing and ensure the correct configuration is applied.
+
+1.  **Configuration**:
+    *   **Default Model**: Existing Customer (ลูกค้าปัจจุบัน)
+    *   **Default Limit Exponent**: 0.5 (Controls credit limit sensitivity)
+    *   **Concurrency**: User can adjust the number of worker threads (Recommended: 2-4).
+
+2.  **Confirmation**:
+    Upon clicking **Start Processing**, a confirmation modal appears displaying:
+    *   **Total Items**: The number of customers to be processed.
+    *   **Source**: The selected branch or uploaded file name.
+    *   **Model**: The selected scoring model.
+    *   **Limit Exponent**: The active multiplier.
+
+3.  **Execution**:
+    Once confirmed, the system begins processing items in parallel based on the concurrency setting.
+
 ## Folder Structure
 The system stores downloaded DBD documents for future use to avoid redundant downloads. The structure is as follows:
 
