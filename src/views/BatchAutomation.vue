@@ -101,7 +101,7 @@
                 <label class="setting-label">ตัวคูณวงเงิน:</label>
                 <div class="d-flex align-items-center" style="gap: 10px;">
                     <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="form-control" style="width: 80px;" />
-                    <small class="text-muted">(ค่าปกติ: 2.0)</small>
+                    <small class="text-muted">(ค่าปกติ: 0.5)</small>
                 </div>
              </div>
 
@@ -1084,9 +1084,11 @@ const startBatch = async () => {
 
   const confirmResult = await Swal.fire({
       title: 'ยืนยันการประมวลผล',
-      text: `ยืนยันการประมวลผล ${pendingCount} รายการ จาก${sourceText} หรือไม่?`,
       html: `
-          <div style="text-align: left; margin-top: 10px; padding-left: 20px;">
+          <div style="font-size: 1.1em; margin-bottom: 15px;">
+              ยืนยันการประมวลผล <b>${pendingCount}</b> รายการ จาก <b>${sourceText}</b> หรือไม่?
+          </div>
+          <div style="text-align: left; margin-top: 10px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
               <p style="margin-bottom: 5px;"><strong>โมเดล:</strong> ${modelText}</p>
               <p style="margin-bottom: 0;"><strong>ตัวคูณวงเงิน:</strong> ${limitExponent.value}</p>
           </div>
