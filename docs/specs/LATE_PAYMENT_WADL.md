@@ -24,6 +24,13 @@ While the Simple Average treats every invoice equally (regardless of value), WAD
     *   *Simple Average:* Low (Good)
     *   *WADL:* High (Bad) -> **Captures the liquidity risk.**
 
+### 2.4 Data Enrichment for UI
+While the WADL score itself relies only on `Amount` and `Late Days`, the dataset returned by the WADL API is also used to power the "Payment History" table in the Financial Analysis Report.
+*   **Payment Method Inference:** To ensure consistent reporting, the system infers the payment method even if not explicitly returned by the database.
+    *   If `Check Date` or `Cleared Date` is present -> **Cheque**.
+    *   Otherwise -> **Cash/Transfer**.
+    *   *Note:* This logic is applied both in the backend (`financialController.js`) and as a fallback in the frontend (`CreditAnalysisReport.vue`).
+
 ## 3. Technical Implementation
 
 ### 3.1 Backend Service
