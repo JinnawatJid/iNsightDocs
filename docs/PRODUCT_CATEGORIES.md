@@ -17,6 +17,9 @@ The following codes are used to categorize sales data:
 
 ## Implementation Details
 
--   **API Endpoint:** `/api/customer-analytics/category-summary`
--   **Field:** `by_category` (JSON object where keys are category codes and values are sales amounts).
+-   **API Endpoint:** `http://192.192.0.37:8280/sales-by-category-6-months/1.0.0` (POST)
+-   **Headers:** `apikey`, `Content-Type: application/json`
+-   **Body:** `{"customer_code": "..."}`
+-   **Internal Processing:** The backend aggregates the raw `data` array (summing `total_amount` by `category`) into a `by_category` object (keys = category codes, values = total sales amounts).
+-   **Field:** `by_category` (JSON object used internally after transformation).
 -   **Display:** In the Credit Score Summary, these categories are shown in the "สัดส่วนสินค้าที่ซื้อ" section, sorted by sales volume (descending).

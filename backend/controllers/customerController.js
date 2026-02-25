@@ -9,7 +9,7 @@ const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
 
 // Configuration
 const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://192.192.0.37:8280/sales-summary-6-months/1.0.0";
-const CATEGORY_API_URL = process.env.CATEGORY_API_URL || "http://192.192.0.37:8000/api/customer-analytics/category-summary";
+const CATEGORY_API_URL = process.env.CATEGORY_API_URL || "http://192.192.0.37:8280/sales-by-category-6-months/1.0.0";
 const ENABLE_LOCAL_FALLBACK = process.env.ENABLE_LOCAL_FALLBACK === 'true';
 
 // MOCK FLAG for Financial API (Sandbox Environment)
@@ -123,11 +123,27 @@ const fetchPurchasingBehavior = async (customerNo) => {
 
 const fetchCategorySummary = async (customerNo) => {
     try {
-        const response = await axios.get(CATEGORY_API_URL, {
-            params: { customer_code: customerNo },
+        // Updated to POST method with JSON body
+        const response = await axios.post(CATEGORY_API_URL, {
+            customer_code: customerNo
+        }, {
+            headers: {
+                "apikey": API_KEY,
+                "Content-Type": "application/json"
+            },
             timeout: 5000
         });
-        return response.data;
+
+        // Transform response: Aggregate amounts by category
+        const rawData = response.data.data || [];
+        const by_category = rawData.reduce((acc, item) => {
+            const cat = item.category;
+            const amount = item.total_amount || 0;
+            acc[cat] = (acc[cat] || 0) + amount;
+            return acc;
+        }, {});
+
+        return { by_category };
     } catch (error) {
         console.error(`Error fetching category summary for ${customerNo}:`, error.message);
         throw error;
@@ -332,28 +348,45 @@ const enrichCustomerData = async (customerNo) => {
 
     // 2. Fetch Financial Data (New API)
     try {
-        const [apiData, categoryData] = await Promise.all([
+        const results = await Promise.allSettled([
             fetchPurchasingBehavior(customerNo),
             fetchCategorySummary(customerNo)
         ]);
 
-        // Process Category Breakdown
+        const apiDataResult = results[0];
+        const categoryDataResult = results[1];
+
+        // Process Category Data (Graceful Failure)
         let categoryBreakdown = [];
-        if (categoryData && categoryData.by_category) {
-             const entries = Object.entries(categoryData.by_category);
-             // Calculate Total for Percentage
-             const totalSales = entries.reduce((sum, [_, val]) => sum + val, 0);
+        if (categoryDataResult.status === 'fulfilled') {
+            const categoryData = categoryDataResult.value;
+            if (categoryData && categoryData.by_category) {
+                 const entries = Object.entries(categoryData.by_category);
+                 // Calculate Total for Percentage
+                 const totalSales = entries.reduce((sum, [_, val]) => sum + val, 0);
 
-             categoryBreakdown = entries.map(([key, value]) => ({
-                 label: getCategoryLabel(key),
-                 value: value,
-                 formattedValue: formatCurrency(value),
-                 percentage: totalSales > 0 ? (value / totalSales) * 100 : 0
-             }));
+                 categoryBreakdown = entries.map(([key, value]) => ({
+                     label: getCategoryLabel(key),
+                     value: value,
+                     formattedValue: formatCurrency(value),
+                     percentage: totalSales > 0 ? (value / totalSales) * 100 : 0
+                 }));
 
-             // Sort Descending
-             categoryBreakdown.sort((a, b) => b.value - a.value);
+                 // Sort Descending
+                 categoryBreakdown.sort((a, b) => b.value - a.value);
+            }
+        } else {
+            console.warn(`[Warning] Failed to fetch category summary for ${customerNo}:`, categoryDataResult.reason.message);
+            // Append warning to suggestions/status later if needed
+            suggestions.push("ไม่สามารถดึงข้อมูลสัดส่วนสินค้า (Category Summary) ได้");
         }
+
+        // Process Financial Data (Critical)
+        if (apiDataResult.status === 'rejected') {
+            throw new Error(`Financial API Failed: ${apiDataResult.reason.message}`);
+        }
+
+        const apiData = apiDataResult.value;
 
         // Support both old 'monthly' and new 'data' formats
         const monthlyData = apiData && (apiData.monthly || apiData.data);
