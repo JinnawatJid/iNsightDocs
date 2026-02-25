@@ -1030,8 +1030,8 @@ const exportFullDetailReport = () => {
 
           'สัดส่วนรายได้ต่อทุนจดทะเบียน': extractFinancialData(item, 'revenue_capital_ratio'),
           'คะแนนสัดส่วนรายได้ ต่อทุนจดทะเบียน': extractFinancialData(item, 'revenue_capital_ratio', 'score'),
-          'สัดส่วนยอดซื้อเฉลี่ย ย้อนหลัง 3 เดือนต่อเครดิตที่ขอ': extractFinancialData(item, 'capacity_check'),
-          'คะแนน สัดส่วนยอดซื้อเฉลี่ยย้อนหลัง 3 เดือนต่อเครดิตที่ขอ': extractFinancialData(item, 'capacity_check', 'score'),
+          'สัดส่วนยอดซื้อเฉลี่ย (3-6 เดือน) ต่อเครดิตที่ขอ': extractFinancialData(item, 'capacity_check'),
+          'คะแนน สัดส่วนยอดซื้อเฉลี่ย (3-6 เดือน) ต่อเครดิตที่ขอ': extractFinancialData(item, 'capacity_check', 'score'),
           'สัดส่วนยอดซื้อต่อระยะเวลาเครดิตที่ขอ': extractFinancialData(item, 'turnover_speed'),
           'คะแนน ยอดซื้อต่อระยะเวลาเครดิตที่ขอ': extractFinancialData(item, 'turnover_speed', 'score'),
           'แนวโน้มการซื้อ': extractFinancialData(item, 'purchase_trend'),

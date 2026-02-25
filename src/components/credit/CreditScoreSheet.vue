@@ -2,13 +2,13 @@
   <div class="credit-score-sheet">
     <!-- Header -->
     <div class="sheet-header">
-      <h3>Credit Scoring Model & Financial Analysis</h3>
+      <h3>แบบจำลองการให้คะแนนเครดิตและการวิเคราะห์ทางการเงิน</h3>
     </div>
 
     <div class="sheet-grid">
       <!-- COLUMN 1: INPUTS (CASE) -->
       <div class="sheet-column input-column">
-        <div class="column-header header-orange">Case: {{ inputs.customerName }}</div>
+        <div class="column-header header-orange">ลูกค้า: {{ inputs.customerName }}</div>
 
         <div class="input-row">
             <div class="label">ทุนจดทะเบียน</div>
@@ -99,7 +99,7 @@
 
         <!-- SECTION 3: CASH FLOW (Renamed/Refactored) -->
         <div class="score-section">
-             <div class="section-title header-pink">3: CashFlow ของบริษัท</div>
+             <div class="section-title header-pink">3: กระแสเงินสดของบริษัท (CashFlow)</div>
 
              <div class="score-grid-3" style="margin-top: 10px;">
                  <!-- D/E Ratio -->
@@ -124,7 +124,7 @@
 
         <!-- SECTION 3: PURCHASE HISTORY (C3) - TABLE VIEW -->
         <div class="score-section">
-             <div class="section-title header-red">4: ยอดซื้อย้อนหลัง {{ purchaseMonthCount }} เดือน (Purchase Behavior)</div>
+             <div class="section-title header-red">4: ยอดซื้อย้อนหลัง {{ purchaseMonthCount }} เดือน</div>
 
              <!-- MONTHLY TABLE -->
              <div class="monthly-table-container">
