@@ -42,7 +42,7 @@
         </div>
         <div class="input-row highlight-green">
             <div class="label">กรรมสิทธิ์ทรัพย์สิน</div>
-            <div class="value-text">{{ inputs.ownership || '-' }}</div>
+            <div class="value-text">{{ inputs.ownership || 'ไม่ระบุ' }}</div>
         </div>
         <div class="input-row">
             <div class="label">ระยะเวลาการเป็นลูกค้า</div>
