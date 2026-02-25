@@ -2,6 +2,19 @@
   "version": "1.0",
   "name": "Standard Credit Scorecard",
   "description": "Standard scorecard logic extracted from NewCustomerScorecard",
+  "size_definitions": [
+    { "min": 69, "label": "L" },
+    { "min": 38, "max": 69, "label": "M" },
+    { "max": 38, "label": "S" }
+  ],
+  "grade_definitions": [
+    { "min": 81, "label": "A+" },
+    { "min": 66, "max": 81, "label": "A" },
+    { "min": 50, "max": 66, "label": "B+" },
+    { "min": 35, "max": 50, "label": "B" },
+    { "min": 20, "max": 35, "label": "C" },
+    { "max": 20, "label": "D" }
+  ],
   "components": {
     "c1": {
       "name": "Company Strength",
