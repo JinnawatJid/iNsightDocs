@@ -5,53 +5,54 @@
       <p class="subtitle">อัปโหลดรายชื่อลูกค้าเพื่อคำนวณคะแนนและวงเงินสินเชื่ออัตโนมัติ</p>
     </div>
 
-    <!-- Main Content Grid -->
-    <div class="main-grid">
+    <!-- Control Panel (Flex Container) -->
+    <div class="control-panel">
 
-      <!-- Left Column: Input Source -->
-      <div class="card input-card">
-        <div class="card-header">
-           <h3>📂 แหล่งข้อมูล (Data Source)</h3>
+      <!-- Left: Input Source (Flex Grow) -->
+      <div class="input-section">
+
+        <!-- Toggle Switch -->
+        <div class="input-toggle-container">
+            <label class="toggle-label">เลือกแหล่งข้อมูล:</label>
+            <div class="toggle-group">
+                <button
+                    class="toggle-btn"
+                    :class="{ active: inputMode === 'file' }"
+                    @click="inputMode = 'file'"
+                >
+                    📁 อัปโหลดไฟล์ (Excel)
+                </button>
+                <button
+                    class="toggle-btn"
+                    :class="{ active: inputMode === 'api' }"
+                    @click="inputMode = 'api'"
+                >
+                    🌐 ดึงจากระบบ (API)
+                </button>
+            </div>
         </div>
 
-        <div class="tabs">
-            <button
-                class="tab-btn"
-                :class="{ active: inputMode === 'file' }"
-                @click="inputMode = 'file'"
-            >
-                อัปโหลดไฟล์ (Excel)
-            </button>
-            <button
-                class="tab-btn"
-                :class="{ active: inputMode === 'api' }"
-                @click="inputMode = 'api'"
-            >
-                ดึงจากระบบ (API)
-            </button>
-        </div>
-
-        <div class="card-body">
-            <!-- File Upload Mode -->
-            <div v-if="inputMode === 'file'" class="upload-container">
-                <div class="upload-area" @dragover.prevent @drop.prevent="handleDrop" @click="$refs.fileInput.click()">
-                    <input
-                        type="file"
-                        ref="fileInput"
-                        class="hidden-input"
-                        accept=".xlsx, .xls"
-                        @change="handleFileSelect"
-                    />
-                    <div class="upload-content">
-                        <span class="upload-icon">📂</span>
-                        <p class="upload-text" v-if="!queue.length">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์ Excel มาวางที่นี่</p>
-                        <p class="upload-text success" v-else>✅ โหลดข้อมูลแล้ว {{ queue.length }} รายการ</p>
-                    </div>
+        <!-- File Upload Mode -->
+        <div v-if="inputMode === 'file'" class="upload-container">
+            <div class="upload-area" @dragover.prevent @drop.prevent="handleDrop" @click="$refs.fileInput.click()">
+                <input
+                    type="file"
+                    ref="fileInput"
+                    class="hidden-input"
+                    accept=".xlsx, .xls"
+                    @change="handleFileSelect"
+                />
+                <div class="upload-content">
+                    <span class="upload-icon">📂</span>
+                    <p class="upload-text" v-if="!queue.length">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์ Excel มาวางที่นี่</p>
+                    <p class="upload-text success" v-else>✅ โหลดข้อมูลแล้ว {{ queue.length }} รายการ</p>
                 </div>
             </div>
+        </div>
 
-            <!-- API Mode -->
-            <div v-if="inputMode === 'api'" class="api-fetch-container">
+        <!-- API Mode -->
+        <div v-if="inputMode === 'api'" class="api-fetch-container">
+            <div class="api-card">
                 <div class="form-group">
                     <label class="form-label">รหัสสาขา (Branch Code)</label>
                     <div class="input-with-button">
@@ -78,37 +79,35 @@
                 </div>
             </div>
         </div>
+
       </div>
 
-      <!-- Right Column: Settings & Status -->
-      <div class="card settings-card">
-        <div class="card-header">
-           <h3>⚙️ การตั้งค่าระบบ (System Settings)</h3>
-        </div>
-        <div class="card-body">
+      <!-- Right: Settings (Fixed Width) -->
+      <div class="settings-section">
+        <div class="clean-settings-card">
+            <div class="section-header">
+                ⚙️ การตั้งค่าระบบ
+            </div>
+
             <!-- Bridge Status -->
-            <div class="status-box">
-                <div class="status-header">
-                    <span>สถานะ Bridge Connection</span>
-                    <span class="status-indicator" :class="{ 'online': bridgeStatus.includes('สำเร็จ'), 'offline': !bridgeStatus.includes('สำเร็จ') }"></span>
-                </div>
-                <div class="bridge-input-group">
-                    <input
+            <div class="setting-row">
+                <div class="status-indicator-dot" :class="{ 'online': bridgeStatus.includes('สำเร็จ'), 'offline': !bridgeStatus.includes('สำเร็จ') }"></div>
+                <span class="status-text-label">Bridge Connection: </span>
+                 <input
                         type="text"
                         v-model="bridgeHost"
-                        placeholder="IP Address (e.g., localhost)"
-                        class="modern-input small"
+                        placeholder="IP Address"
+                        class="modern-input-small"
                     />
-                    <button class="modern-btn-secondary small" @click="checkBridgeConnection">ตรวจสอบ</button>
-                </div>
-                <small class="status-text">{{ bridgeStatus }}</small>
+                <button class="btn-check-status" @click="checkBridgeConnection">ตรวจสอบ</button>
             </div>
+            <div class="status-message">{{ bridgeStatus }}</div>
 
             <div class="divider"></div>
 
-            <!-- Advanced Settings (Always visible now for better UX) -->
+            <!-- Model Selection -->
              <div class="setting-group">
-               <label class="form-label">โมเดลการให้คะแนน</label>
+               <label class="setting-label-block">โมเดลการให้คะแนน</label>
                <select v-model="selectedModel" class="modern-select">
                  <option value="new">ลูกค้าใหม่ (New Customer)</option>
                  <option value="existing">ลูกค้าปัจจุบัน (Existing Customer)</option>
@@ -117,17 +116,18 @@
 
              <!-- Limit Exponent -->
              <div v-if="selectedModel === 'existing'" class="setting-group">
-                <label class="form-label">ตัวคูณวงเงิน (Limit Exponent)</label>
+                <label class="setting-label-block">ตัวคูณวงเงิน (Limit Exponent)</label>
                 <div class="range-input-wrapper">
-                    <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="modern-input small" />
+                    <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="modern-input" />
                     <span class="range-hint">(ปกติ: 2.0)</span>
                 </div>
              </div>
 
+             <!-- Concurrency -->
              <div class="setting-group">
-               <label class="form-label">จำนวนเธรดการทำงาน (Concurrency)</label>
+               <label class="setting-label-block">จำนวนเธรดการทำงาน</label>
                <div class="range-input-wrapper">
-                   <input type="number" min="1" max="8" v-model="concurrency" class="modern-input small" />
+                   <input type="number" min="1" max="8" v-model="concurrency" class="modern-input" />
                    <span class="range-hint">แนะนำ 2-4 Threads</span>
                </div>
              </div>
@@ -251,7 +251,7 @@
             </td>
           </tr>
           <tr v-if="queue.length === 0">
-            <td colspan="11" class="text-center">ไม่มีข้อมูล กรุณาอัปโหลดไฟล์ Excel</td>
+            <td colspan="11" class="text-center">ไม่มีข้อมูล กรุณาอัปโหลดไฟล์ Excel หรือดึงจาก API</td>
           </tr>
         </tbody>
       </table>
@@ -655,7 +655,7 @@ const showDebugFiles = async (item) => {
                          btn.onclick = () => {
                              // Case A: Local File (Server Download)
                              if (fileData.type === 'local') {
-                                 // Construct URL: /api/financials/download-local/:customerId/:fileKey
+                                 // Construct URL: /api/financials/download-local/${item.customerId}/${f.key}`;
                                  const url = `/api/financials/download-local/${item.customerId}/${f.key}`;
                                  window.open(url, '_blank');
                              }
@@ -1225,133 +1225,106 @@ const exportReport = () => {
     color: #666;
 }
 
+/* Restored Control Panel Structure */
 .control-panel {
   display: flex;
-  gap: 30px;
+  gap: 20px;
   margin-bottom: 30px;
   align-items: flex-start;
 }
 
-/* --- New Layout Styles --- */
-
-.main-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-@media (max-width: 768px) {
-    .main-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.card {
+/* Left Section: Input */
+.input-section {
+    flex: 2;
     background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    border: 1px solid #f0f0f0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-.card-header {
-    background: #f8f9fa;
-    padding: 15px 20px;
-    border-bottom: 1px solid #eee;
-}
-
-.card-header h3 {
-    margin: 0;
-    font-size: 1.1em;
-    color: #444;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.card-body {
     padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+/* Right Section: Settings (Clean & Simple) */
+.settings-section {
     flex: 1;
+    min-width: 300px;
 }
 
-/* Tabs */
-.tabs {
-    display: flex;
-    border-bottom: 1px solid #eee;
-    background: #fdfdfd;
-}
-
-.tab-btn {
-    flex: 1;
-    padding: 15px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    font-size: 0.95em;
-    color: #666;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-    font-weight: 500;
-}
-
-.tab-btn:hover {
-    background: #f4f4f4;
-    color: #0056FF;
-}
-
-.tab-btn.active {
-    color: #0056FF;
-    border-bottom: 2px solid #0056FF;
-    background: #fff;
-    font-weight: 600;
-}
-
-/* Upload Area */
-.upload-container {
-    height: 100%;
+/* Toggle Styles */
+.input-toggle-container {
     display: flex;
     align-items: center;
-    justify-content: center;
-    min-height: 200px;
+    gap: 15px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 15px;
+}
+
+.toggle-label {
+    font-weight: 600;
+    color: #444;
+}
+
+.toggle-group {
+    display: flex;
+    background: #f1f3f5;
+    padding: 3px;
+    border-radius: 6px;
+    gap: 3px;
+}
+
+.toggle-btn {
+    padding: 6px 15px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9em;
+    cursor: pointer;
+    background: transparent;
+    color: #555;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.toggle-btn:hover {
+    color: #333;
+    background: rgba(0,0,0,0.05);
+}
+
+.toggle-btn.active {
+    background: #0056FF;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0,86,255,0.3);
+}
+
+/* Upload Area (Simplified) */
+.upload-container {
+    padding: 10px 0;
 }
 
 .upload-area {
-    width: 100%;
-    height: 100%;
     border: 2px dashed #0056FF;
-    border-radius: 12px;
+    border-radius: 8px;
     background: #f9faff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    padding: 30px;
+    text-align: center;
     cursor: pointer;
     transition: background 0.2s;
-    padding: 40px;
 }
 
 .upload-area:hover {
     background: #eef4ff;
 }
 
-.upload-content {
-    text-align: center;
-}
-
 .upload-icon {
-    font-size: 3em;
-    margin-bottom: 15px;
+    font-size: 2.5em;
     display: block;
+    margin-bottom: 10px;
 }
 
 .upload-text {
-    color: #555;
-    font-size: 1.1em;
     margin: 0;
+    color: #555;
 }
 
 .upload-text.success {
@@ -1361,11 +1334,11 @@ const exportReport = () => {
 
 /* API Form */
 .api-fetch-container {
-    padding: 20px 0;
+    padding: 10px 0;
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 .form-label {
@@ -1375,13 +1348,6 @@ const exportReport = () => {
     color: #333;
 }
 
-.form-text {
-    display: block;
-    margin-top: 5px;
-    color: #888;
-    font-size: 0.85em;
-}
-
 .input-with-button {
     display: flex;
     gap: 10px;
@@ -1389,120 +1355,119 @@ const exportReport = () => {
 
 .modern-input {
     flex: 1;
-    padding: 10px 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 1em;
-    transition: border-color 0.2s;
-}
-
-.modern-input:focus {
-    outline: none;
-    border-color: #0056FF;
-    box-shadow: 0 0 0 3px rgba(0,86,255,0.1);
-}
-
-.modern-input.small {
     padding: 8px 12px;
-    font-size: 0.9em;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95em;
 }
 
 .modern-btn-primary {
     background: #0056FF;
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    transition: background 0.2s;
-}
-
-.modern-btn-primary:hover {
-    background: #0046d1;
-}
-
-.modern-btn-primary:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-}
-
-.modern-btn-secondary {
-    background: #6c757d;
-    color: white;
-    border: none;
     padding: 8px 15px;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 0.9em;
-}
-
-.modern-btn-secondary:hover {
-    background: #5a6268;
 }
 
 .api-success-message {
-    background: #d4edda;
+    margin-top: 10px;
     color: #155724;
-    padding: 10px 15px;
+    background: #d4edda;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Settings Styles */
+.clean-settings-card {
+    background: #fff;
+    padding: 20px;
     border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.section-header {
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.setting-row {
     display: flex;
     align-items: center;
     gap: 10px;
+    margin-bottom: 5px;
 }
 
-/* Settings Card */
-.status-box {
-    background: #fcfcfc;
-    border: 1px solid #f0f0f0;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 15px;
+.status-indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ccc;
 }
+.status-indicator-dot.online { background: #28a745; box-shadow: 0 0 4px #28a745; }
+.status-indicator-dot.offline { background: #dc3545; }
 
-.status-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    font-weight: 500;
+.status-text-label {
     font-size: 0.9em;
     color: #555;
 }
 
-.status-indicator {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #ccc;
-}
-.status-indicator.online { background: #28a745; box-shadow: 0 0 5px #28a745; }
-.status-indicator.offline { background: #dc3545; }
-
-.bridge-input-group {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 5px;
+.modern-input-small {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.85em;
+    width: 100px;
 }
 
-.status-text {
+.btn-check-status {
+    padding: 4px 10px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
     font-size: 0.8em;
-    color: #666;
+    cursor: pointer;
+}
+
+.status-message {
+    font-size: 0.8em;
+    color: #777;
+    margin-left: 20px;
+    margin-bottom: 10px;
+}
+
+.divider {
+    height: 1px;
+    background: #eee;
+    margin: 10px 0;
 }
 
 .setting-group {
-    margin-bottom: 15px;
+    margin-bottom: 12px;
+}
+
+.setting-label-block {
+    display: block;
+    font-size: 0.9em;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 5px;
 }
 
 .modern-select {
     width: 100%;
-    padding: 10px;
+    padding: 8px;
     border: 1px solid #ddd;
-    border-radius: 8px;
-    background: #fff;
-    cursor: pointer;
+    border-radius: 6px;
+    font-size: 0.9em;
 }
 
 .range-input-wrapper {
@@ -1512,15 +1477,11 @@ const exportReport = () => {
 }
 
 .range-hint {
+    font-size: 0.8em;
     color: #888;
-    font-size: 0.85em;
 }
 
-/* Legacy cleanup override */
-.control-panel, .settings-area, .api-fetch-area, .upload-area {
-    /* These classes are removed from template but kept in style for safety or removed if safe */
-}
-
+/* Action Bar & Table (Unchanged) */
 .action-bar {
   display: flex;
   gap: 15px;
@@ -1662,72 +1623,6 @@ button:disabled {
 .d-flex { display: flex; align-items: center; }
 .justify-content-between { justify-content: space-between; }
 
-/* Clean Settings Card Style (Inspired by StoreStatementTab) */
-.section-header {
-    font-size: 1em;
-    font-weight: 600;
-    color: #555;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    user-select: none;
-}
-
-.toggle-icon {
-    font-size: 0.8em;
-    color: #888;
-}
-
-.clean-settings-card {
-    background-color: #ffffff;
-    padding: 20px;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-}
-
-.setting-row {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start; /* Ensure left alignment */
-    margin-bottom: 15px;
-}
-
-.setting-row:last-child {
-    margin-bottom: 0;
-}
-
-.setting-label {
-    width: auto;
-    margin-right: 15px; /* Fixed spacing between label and input */
-    font-weight: 500;
-    color: #333;
-    margin-bottom: 0;
-    text-align: left; /* Explicitly align text left */
-    white-space: nowrap; /* Prevent text wrapping */
-}
-
-.setting-label-block {
-    display: block;
-    width: 100%;
-    font-weight: 500;
-    color: #333;
-    margin-bottom: 5px;
-    text-align: left;
-}
-
-.setting-input {
-    /* Removed flex: 1 to prevent stretching to the right */
-    width: 100%;
-    max-width: 300px;
-}
-
-.divider {
-    height: 1px;
-    background-color: #f0f0f0;
-    margin: 15px 0;
-}
 .status-badge.done { background: #d4edda; color: #155724; }
 .status-badge.error { background: #f8d7da; color: #721c24; }
 .status-badge.skipped { background: #e2e3e5; color: #383d41; }
