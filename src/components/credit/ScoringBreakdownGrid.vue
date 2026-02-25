@@ -58,12 +58,12 @@
     </div>
 
     <!-- SECTION 2: GRADE (C3) -->
-    <div class="grid-section section-2-grid">
+    <div class="grid-section section-2-grid" :style="section2GridStyle">
       <!-- HEADER -->
-      <!-- C3 Header: Spans 5 columns (1-5) -->
-      <div class="header-cell blue-bg header-c3">เกณฑ์การคิด Grade ของบริษัท (การซื้อขายในปัจจุบัน)</div>
+      <!-- C3 Header: Spans c3Count columns -->
+      <div class="header-cell blue-bg header-c3" :style="{ gridColumn: `1 / span ${c3Count}`, gridRow: 1 }">เกณฑ์การคิด Grade ของบริษัท (การซื้อขายในปัจจุบัน)</div>
 
-      <!-- C3 DATA COLS (Cols 1-5) -->
+      <!-- C3 DATA COLS (Cols 1-N) -->
       <template v-for="(item, index) in c3Items" :key="'c3-'+index">
           <div class="cell weight yellow-bg" :style="{ gridColumn: index + 1, gridRow: 2 }">
              {{ formatNum(item.weight) }}
@@ -79,20 +79,20 @@
           </div>
       </template>
 
-      <!-- ARROW (Col 6, Rows 2-5) -->
-       <div class="arrow-container" style="grid-column: 6; grid-row: 2 / span 4">
+      <!-- ARROW -->
+       <div class="arrow-container" :style="{ gridColumn: c3Count + 1, gridRow: '2 / span 4' }">
          <div class="arrow-box">➜</div>
       </div>
 
-      <!-- RESULT: GRADE (Col 7, Rows 2-5) -->
-      <div class="result-box green-bg" style="grid-column: 7; grid-row: 2 / span 4">
+      <!-- RESULT: GRADE -->
+      <div class="result-box green-bg" :style="{ gridColumn: c3Count + 2, gridRow: '2 / span 4' }">
           <div class="res-title">เกรดของลูกค้า</div>
           <div class="res-grade">{{ gradeResult.label }}</div>
           <div class="res-score">{{ formatNum(gradeResult.score) }}</div>
       </div>
 
-       <!-- RESULT: LIMIT (Col 8, Rows 2-5) -->
-       <div class="result-box green-bg" style="grid-column: 8; grid-row: 2 / span 4">
+       <!-- RESULT: LIMIT -->
+       <div class="result-box green-bg" :style="{ gridColumn: c3Count + 3, gridRow: '2 / span 4' }">
              <div class="res-title">วงเงินเครดิตใหม่</div>
              <div class="res-grade limit-val">{{ formatMoney(recommendedLimit) }}</div>
              <div class="res-score">{{ formatNum(totalScore) }}</div>
@@ -120,6 +120,19 @@ const sizeResult = computed(() => props.scoringResult.sizeResult || { label: '-'
 const gradeResult = computed(() => props.scoringResult.gradeResult || { label: '-', score: 0 });
 const recommendedLimit = computed(() => props.scoringResult.recommendedLimit || 0);
 const totalScore = computed(() => props.scoringResult.totalScore || 0);
+
+const c3Count = computed(() => {
+    const len = c3Items.value.length;
+    // Default to 5 if empty or weird
+    return len > 0 ? len : 5;
+});
+
+const section2GridStyle = computed(() => {
+    // Cols: repeat(c3Count, 1fr) auto 150px 150px
+    return {
+        gridTemplateColumns: `repeat(${c3Count.value}, 1fr) auto 150px 150px`
+    };
+});
 
 const formatNum = (val) => {
     if (val === undefined || val === null) return '-';
@@ -181,13 +194,13 @@ const formatMoney = (val) => {
 /* SECTION 2 GRID DEFINITION */
 .section-2-grid {
     /*
-       Cols:
-       1-5: C3 Items (1fr each)
-       6: Arrow (auto)
-       7: Result Grade (150px)
-       8: Result Limit (150px)
+       Cols: Dynamic via style binding
+       1-N: C3 Items
+       N+1: Arrow
+       N+2: Grade
+       N+3: Limit
     */
-    grid-template-columns: repeat(5, 1fr) auto 150px 150px;
+    /* grid-template-columns set via inline style now */
     grid-template-rows: auto auto minmax(50px, auto) auto auto;
 }
 
@@ -203,7 +216,7 @@ const formatMoney = (val) => {
 
 .header-c1 { grid-column: 1 / span 3; grid-row: 1; }
 .header-c2 { grid-column: 5 / span 3; grid-row: 1; }
-.header-c3 { grid-column: 1 / span 5; grid-row: 1; }
+/* header-c3 grid-column set via inline style now */
 
 /* CELLS */
 .cell {

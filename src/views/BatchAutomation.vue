@@ -379,7 +379,9 @@ const processFile = (file) => {
         log: '',
         files: {}, // to store downloaded blobs
         debugFiles: null, // to store file metadata for debug
-        analysisResult: null
+        analysisResult: null,
+        modelType: null, // Store model type for report
+        limitExponent: null // Store limit exponent for report
       };
     }).filter(i => i.customerId && i.customerId !== 'undefined'); // Filter empty rows
 
@@ -584,6 +586,10 @@ const processNextItem = async () => {
       const item = queue.value[index];
       item.status = 'Processing';
       item.log = 'กำลังเริ่มต้น...';
+
+      // Store current settings into the item for consistency in report
+      item.modelType = selectedModel.value;
+      item.limitExponent = limitExponent.value;
 
       activeWorkers.value++;
 
@@ -915,7 +921,9 @@ const openReport = (item) => {
             customerDuration: item.customerDuration || 0,
             requestAmount: item.currentLimit || 0,
             creditTerm: item.paymentTerms || 30,
-            billingCondition: '-'
+            billingCondition: '-',
+            model_type: item.modelType || selectedModel.value,
+            limit_exponent: item.limitExponent || limitExponent.value
         }
     };
 
