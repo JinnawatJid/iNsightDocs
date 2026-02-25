@@ -348,28 +348,45 @@ const enrichCustomerData = async (customerNo) => {
 
     // 2. Fetch Financial Data (New API)
     try {
-        const [apiData, categoryData] = await Promise.all([
+        const results = await Promise.allSettled([
             fetchPurchasingBehavior(customerNo),
             fetchCategorySummary(customerNo)
         ]);
 
-        // Process Category Breakdown
+        const apiDataResult = results[0];
+        const categoryDataResult = results[1];
+
+        // Process Category Data (Graceful Failure)
         let categoryBreakdown = [];
-        if (categoryData && categoryData.by_category) {
-             const entries = Object.entries(categoryData.by_category);
-             // Calculate Total for Percentage
-             const totalSales = entries.reduce((sum, [_, val]) => sum + val, 0);
+        if (categoryDataResult.status === 'fulfilled') {
+            const categoryData = categoryDataResult.value;
+            if (categoryData && categoryData.by_category) {
+                 const entries = Object.entries(categoryData.by_category);
+                 // Calculate Total for Percentage
+                 const totalSales = entries.reduce((sum, [_, val]) => sum + val, 0);
 
-             categoryBreakdown = entries.map(([key, value]) => ({
-                 label: getCategoryLabel(key),
-                 value: value,
-                 formattedValue: formatCurrency(value),
-                 percentage: totalSales > 0 ? (value / totalSales) * 100 : 0
-             }));
+                 categoryBreakdown = entries.map(([key, value]) => ({
+                     label: getCategoryLabel(key),
+                     value: value,
+                     formattedValue: formatCurrency(value),
+                     percentage: totalSales > 0 ? (value / totalSales) * 100 : 0
+                 }));
 
-             // Sort Descending
-             categoryBreakdown.sort((a, b) => b.value - a.value);
+                 // Sort Descending
+                 categoryBreakdown.sort((a, b) => b.value - a.value);
+            }
+        } else {
+            console.warn(`[Warning] Failed to fetch category summary for ${customerNo}:`, categoryDataResult.reason.message);
+            // Append warning to suggestions/status later if needed
+            suggestions.push("ไม่สามารถดึงข้อมูลสัดส่วนสินค้า (Category Summary) ได้");
         }
+
+        // Process Financial Data (Critical)
+        if (apiDataResult.status === 'rejected') {
+            throw new Error(`Financial API Failed: ${apiDataResult.reason.message}`);
+        }
+
+        const apiData = apiDataResult.value;
 
         // Support both old 'monthly' and new 'data' formats
         const monthlyData = apiData && (apiData.monthly || apiData.data);

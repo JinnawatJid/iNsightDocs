@@ -823,7 +823,17 @@ const processNextItem = async () => {
             }
 
             item.status = skipDBD ? 'Done (Int)' : 'Done';
-            item.log = 'เสร็จสิ้น';
+
+            // Check for warnings in suggestions
+            const suggestions = item.analysisResult.creditScore?.suggestions || [];
+            const warnings = suggestions.filter(s => s.includes('ไม่สามารถ') || s.includes('Error'));
+            if (warnings.length > 0) {
+                item.log = `เสร็จสิ้น (แจ้งเตือน: ${warnings[0]})`;
+                item.warning = warnings[0]; // Store for export
+            } else {
+                item.log = 'เสร็จสิ้น';
+            }
+
         } else {
             throw new Error('การวิเคราะห์ล้มเหลว');
         }
@@ -939,7 +949,7 @@ const exportSummarizedReport = () => {
       'คะแนน': item.score,
       'เกรด': item.grade,
       'สถานะ': translateStatus(item.status),
-      'บันทึกข้อความ': item.log
+      'บันทึกข้อความ': item.warning ? `${item.log} [${item.warning}]` : item.log
    }));
 
    const ws = XLSX.utils.json_to_sheet(data);
