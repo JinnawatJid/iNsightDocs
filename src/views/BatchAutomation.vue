@@ -12,17 +12,17 @@
           <div class="input-type-toggle">
               <button
                 class="toggle-btn"
-                :class="{ active: inputType === 'file' }"
-                @click="inputType = 'file'"
-              >
-                📂 อัปโหลด Excel
-              </button>
-              <button
-                class="toggle-btn"
                 :class="{ active: inputType === 'branch' }"
                 @click="inputType = 'branch'"
               >
                 🏢 ดึงข้อมูลตามสาขา
+              </button>
+              <button
+                class="toggle-btn"
+                :class="{ active: inputType === 'file' }"
+                @click="inputType = 'file'"
+              >
+                📂 อัปโหลด Excel
               </button>
           </div>
 
@@ -44,9 +44,9 @@
 
           <!-- Branch Selection -->
           <div v-else class="branch-area">
-             <div class="form-group">
-                <label>เลือกสาขา (Branch):</label>
-                <select v-model="selectedBranch" class="form-control branch-select">
+             <div class="d-flex align-items-center" style="gap: 15px;">
+                <label style="white-space: nowrap; margin-bottom: 0;">เลือกสาขา (Branch):</label>
+                <select v-model="selectedBranch" class="form-control branch-select" style="max-width: 300px;">
                     <option value="" disabled>-- กรุณาเลือกสาขา --</option>
                     <optgroup v-for="region in branchData" :key="region.region" :label="region.region">
                         <option v-for="zone in region.zones" :key="zone.code" :value="zone.code">
@@ -54,14 +54,15 @@
                         </option>
                     </optgroup>
                 </select>
+                <button
+                    class="btn-primary btn-fetch"
+                    @click="fetchByBranch"
+                    :disabled="!selectedBranch || isFetchingBranch"
+                    style="white-space: nowrap;"
+                >
+                    {{ isFetchingBranch ? 'กำลังดึงข้อมูล...' : '⬇️ ดึงรายชื่อลูกค้า' }}
+                </button>
              </div>
-             <button
-                class="btn-primary btn-fetch"
-                @click="fetchByBranch"
-                :disabled="!selectedBranch || isFetchingBranch"
-             >
-                {{ isFetchingBranch ? 'กำลังดึงข้อมูล...' : '⬇️ ดึงรายชื่อลูกค้า' }}
-             </button>
           </div>
       </div>
 
@@ -263,7 +264,7 @@ const bridgeStatus = ref('ไม่ทราบสถานะ');
 const isExportDropdownOpen = ref(false); // State for dropdown
 
 // Input Method State
-const inputType = ref('file'); // 'file' or 'branch'
+const inputType = ref('branch'); // Default to 'branch'
 const selectedBranch = ref('');
 const isFetchingBranch = ref(false);
 

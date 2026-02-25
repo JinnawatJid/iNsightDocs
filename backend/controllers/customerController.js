@@ -1087,7 +1087,8 @@ exports.searchCustomersByBranch = async (req, res) => {
         // Construct Payload
         const payload = {
             "Branch Code": { "$eq": branchCode },
-            "Billing Terms Code": { "$ne": " " }
+            "Billing Terms Code": { "$ne": " " },
+            "Fixed Credit Limit": { "$gt": 1 }
         };
 
         // Call API
