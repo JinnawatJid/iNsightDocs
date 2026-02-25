@@ -135,58 +135,6 @@
       </div>
 
     </div>
-        <label style="display: block; margin-bottom: 5px;">การเชื่อมต่อ Bridge:</label>
-        <div class="input-group" style="display: flex; gap: 10px;">
-          <input
-            type="text"
-            v-model="bridgeHost"
-            placeholder="Localhost หรือ Bridge IP"
-            class="form-control"
-            style="flex: 1; min-width: 150px;"
-          />
-          <button class="btn-check" @click="checkBridgeConnection" style="min-width: 120px;">ตรวจสอบ</button>
-        </div>
-        <small class="text-muted" style="display: block; margin-top: 5px;">สถานะ: {{ bridgeStatus }}</small>
-
-        <div class="mt-4">
-           <div class="section-header cursor-pointer" @click="showConcurrencySettings = !showConcurrencySettings">
-             <span>⚙️ ตั้งค่าขั้นสูง</span>
-             <span class="toggle-icon">{{ showConcurrencySettings ? '▼' : '▶' }}</span>
-           </div>
-
-           <div v-if="showConcurrencySettings" class="clean-settings-card">
-             <!-- Scoring Model Selection -->
-             <div class="setting-row">
-               <label class="setting-label">โมเดลการให้คะแนน:</label>
-               <select v-model="selectedModel" class="form-control" style="width: 200px;">
-                 <option value="new">ลูกค้าใหม่</option>
-                 <option value="existing">ลูกค้าปัจจุบัน</option>
-               </select>
-             </div>
-
-             <!-- Limit Exponent (Only for Existing) -->
-             <div v-if="selectedModel === 'existing'" class="setting-row">
-                <label class="setting-label">ตัวคูณวงเงิน:</label>
-                <div class="d-flex align-items-center" style="gap: 10px;">
-                    <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="form-control" style="width: 80px;" />
-                    <small class="text-muted">(ค่าปกติ: 2.0)</small>
-                </div>
-             </div>
-
-             <div class="divider"></div>
-
-             <!-- Concurrency -->
-             <div class="setting-row">
-               <label class="setting-label">จำนวนเธรดการทำงาน:</label>
-               <div class="d-flex align-items-center" style="gap: 10px; white-space: nowrap;">
-                   <input type="number" min="1" max="8" v-model="concurrency" class="form-control" style="width: 50px; text-align: center;" />
-                   <small class="text-muted">แนะนำ 2-4</small>
-               </div>
-             </div>
-           </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Actions -->
     <div class="action-bar">
