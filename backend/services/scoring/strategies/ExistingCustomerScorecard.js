@@ -31,12 +31,19 @@ class ExistingCustomerScorecard extends BaseScorecard {
         const totalScore = c1.total + c2.total + c3.total;
 
         // 3. Determine Recommended Limit
-        // Formula: Limit = (SecondAccum / 2) * (TotalScore / 200) ^ limitExponent
+        // Formula: Limit = (Average 1.5 Months) * (TotalScore / 200) ^ limitExponent
         // limitExponent defaults to 2.0 if not provided
         const exponent = typeof limitExponent === 'number' ? limitExponent : (this.evaluator.config.limitExponent || 2.0);
 
-        const secondAccum = accumData ? this.parseAmount(accumData.SecondAccum) : 0;
-        const avg1_5Months = secondAccum / 2;
+        let avg1_5Months = 0;
+        if (accumData && accumData.SumLast6 !== undefined) {
+            // Existing Customer: Use Sum Last 6 Months / 4 (Average 1.5 Months)
+            avg1_5Months = this.parseAmount(accumData.SumLast6) / 4;
+        } else {
+            // Fallback: Use Second Accum (Last 3 Months) / 2
+            const secondAccum = accumData ? this.parseAmount(accumData.SecondAccum) : 0;
+            avg1_5Months = secondAccum / 2;
+        }
 
         const ratio = Math.pow((totalScore / 200), exponent);
         const recommendedLimit = avg1_5Months * ratio;
