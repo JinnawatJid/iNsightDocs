@@ -180,10 +180,11 @@
             <th>ชื่อลูกค้า</th>
             <th>ยอดซื้อรวม 3 เดือน</th>
             <th>เฉลี่ยการจ่ายเงินล่าช้า</th>
-            <th>เฉลี่ยถ่วงน้ำหนัก (WADL)</th>
             <th>ระยะเวลาเครดิต</th>
+            <th>ระยะเวลาการวางบิล</th>
             <th>วงเงินปัจจุบัน</th>
-            <th>วงเงินใหม่</th>
+            <th>วงเงินแนะนำ ต่อเดือน</th>
+            <th>วงเงินแนะนำ ต่อรอบบิล</th>
             <th>คะแนน</th>
             <th>สถานะ</th>
             <th>ไฟล์</th>
@@ -195,12 +196,13 @@
             <td>{{ index + 1 }}</td>
             <td>{{ item.customerId }}</td>
             <td>{{ item.name || '-' }}</td>
-            <td>{{ formatNumber(item.totalPurchase3Months) }}</td>
-            <td>{{ item.latePaymentAverage !== null ? formatNumber(item.latePaymentAverage) + ' วัน' : '-' }}</td>
-            <td>{{ item.wadlScore !== null ? formatNumber(item.wadlScore) + ' วัน' : '-' }}</td>
-            <td>{{ item.paymentTerms || '-' }}</td>
-            <td>{{ formatNumber(item.currentLimit) }}</td>
-            <td class="text-bold">{{ formatNumber(item.newLimit) }}</td>
+            <td>{{ formatCurrency(item.totalPurchase3Months) }}</td>
+            <td>{{ item.wadlScore !== null ? formatDays(item.wadlScore) : '-' }}</td>
+            <td>{{ formatDays(item.paymentTerms) }}</td>
+            <td>{{ getBillingDuration(item.billingTerms) }}</td>
+            <td>{{ formatCurrency(item.currentLimit) }}</td>
+            <td class="text-bold">{{ formatCurrency(item.newLimit) }}</td>
+            <td class="text-bold">{{ formatCurrency(calculateCycleLimit(item.newLimit, item.paymentTerms, item.billingTerms)) }}</td>
             <td>
               <span v-if="item.score" :class="getGradeClass(item.grade)">
                 {{ item.score }} ({{ item.grade }})
@@ -350,10 +352,56 @@ const processedCount = computed(() => {
   return queue.value.filter(i => ['Done', 'Done (Int)', 'Error', 'Skipped'].includes(i.status)).length;
 });
 
-// Helper: Format Number
+// Helper: Get Billing Duration Value (Number)
+const getBillingDurationValue = (code) => {
+    if (!code) return 0;
+    const match = String(code).match(/^B(\d+)/);
+    return (match && match[1]) ? parseInt(match[1]) : 0;
+};
+
+// Helper: Get Billing Duration (Display)
+const getBillingDuration = (code) => {
+    if (!code) return '-';
+    // Match B + digits
+    const match = String(code).match(/^B(\d+)/);
+    if (match && match[1]) {
+        const val = parseInt(match[1]);
+        if (val === 0) return 'ไม่มีวางบิล';
+        return val + ' วัน';
+    }
+    return code; // Return raw text if not matching format
+};
+
+// Helper: Calculate Cycle Limit (Returns Number)
+const calculateCycleLimit = (monthlyLimit, creditTerm, billingTerms) => {
+    if (!monthlyLimit && monthlyLimit !== 0) return null;
+    const limit = Number(monthlyLimit);
+    if (isNaN(limit)) return null;
+
+    let term = parseInt(creditTerm);
+    if (isNaN(term)) term = 0;
+
+    const billing = getBillingDurationValue(billingTerms);
+
+    return limit * (term + billing) / 30;
+};
+
+// Helper: Format Number (No Unit)
 const formatNumber = (num) => {
   if (num === null || num === undefined || num === '') return '-';
   return Number(num).toLocaleString('en-US');
+};
+
+// Helper: Format Currency with Unit (For UI)
+const formatCurrency = (num) => {
+    if (num === null || num === undefined || num === '') return '-';
+    return Number(num).toLocaleString('en-US') + ' บาท';
+};
+
+// Helper: Format Days (For UI)
+const formatDays = (val) => {
+    if (!val) return '-';
+    return val + ' วัน';
 };
 
 const getGradeClass = (grade) => {
@@ -409,6 +457,7 @@ const fetchByBranch = async () => {
                     wadlScore: null,
                     currentLimit: item.Fixed_Credit_Limit || 0,
                     paymentTerms: item.Payment_Terms_Code || '',
+                    billingTerms: item.Billing_Terms_Code || '',
                     customerDate: item.Customer_Date || null,
                     newLimit: null,
                     score: null,
@@ -526,6 +575,7 @@ const processFile = (file) => {
         wadlScore: null,
         currentLimit: 0,
         paymentTerms: '',
+        billingTerms: '',
         newLimit: null,
         score: null,
         grade: '',
@@ -762,6 +812,7 @@ const processNextItem = async () => {
         item.taxId = customer.customer.tax_id;
         item.currentLimit = customer.customer.current_credit_limit;
         item.paymentTerms = customer.customer.payment_terms_code;
+        item.billingTerms = customer.customer.billing_terms_code;
 
         // Fix: Safely Extract Total Purchase (Handle NaN and Commas)
         item.totalPurchase3Months = 0;
@@ -1103,11 +1154,12 @@ const exportSummarizedReport = () => {
       'ชื่อลูกค้า': item.name,
       'เลขผู้เสียภาษี': item.taxId,
       'ยอดซื้อ 3 เดือน': item.totalPurchase3Months,
-      'เฉลี่ยการจ่ายเงินล่าช้า (วัน)': item.latePaymentAverage !== null ? item.latePaymentAverage : '-',
-      'เฉลี่ยถ่วงน้ำหนัก (WADL)': item.wadlScore !== null ? item.wadlScore : '-',
-      'เครดิตเทอม': item.paymentTerms || '-',
+      'เฉลี่ยการจ่ายเงินล่าช้า': item.wadlScore !== null ? item.wadlScore : 0,
+      'เครดิตเทอม': item.paymentTerms || 0,
+      'ระยะเวลาการวางบิล': getBillingDurationValue(item.billingTerms),
       'วงเงินปัจจุบัน': item.currentLimit,
-      'วงเงินใหม่ (แนะนำ)': item.newLimit,
+      'วงเงินแนะนำ ต่อเดือน': item.newLimit,
+      'วงเงินแนะนำ ต่อรอบบิล': calculateCycleLimit(item.newLimit, item.paymentTerms, item.billingTerms) || 0,
       'คะแนน': item.score,
       'เกรด': item.grade,
       'สถานะ': translateStatus(item.status),
@@ -1159,12 +1211,11 @@ const exportFullDetailReport = () => {
           'สาขา': branchCode,
           'ชื่อบริษัท/ร้านค้า': item.name || '-',
           'หมายเลขนิติบุคคล/หมายเลขประจำตัวผู้เสียภาษีมูลค่าเพิ่ม': item.taxId || '-',
-          'ทุนจดทะเบียน': formatNumber(item.registeredCapital),
+          'ทุนจดทะเบียน': item.registeredCapital,
           'ระยะเวลาของธุรกิจ': item.yearsInBusiness || 0,
           'คะแนนระยะเวลาธุรกิจ': extractFinancialData(item, 'years_in_business', 'score'),
 
-          'เฉลี่ยการจ่ายเงินล่าช้า (วัน)': item.latePaymentAverage !== null ? item.latePaymentAverage : '-',
-          'เฉลี่ยถ่วงน้ำหนัก (WADL)': item.wadlScore !== null ? item.wadlScore : '-',
+          'เฉลี่ยการจ่ายเงินล่าช้า': item.wadlScore !== null ? item.wadlScore : 0,
 
           'สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน': extractFinancialData(item, 'leverage'),
           'คะแนน สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน': extractFinancialData(item, 'leverage', 'score'),
@@ -1195,9 +1246,11 @@ const exportFullDetailReport = () => {
           'รวมหมวด C3 พฤติกรรมการซื้อ': c3Total,
 
           'คะแนนรวม': item.score || 0,
-          'เครดิตที่ขอ': formatNumber(item.currentLimit),
-          'ระยะเวลาเครดิต': item.paymentTerms || '-',
-          'เครดิตของระบบ': formatNumber(item.newLimit),
+          'เครดิตที่ขอ': item.currentLimit,
+          'ระยะเวลาเครดิต': item.paymentTerms || 0,
+          'ระยะเวลาการวางบิล': getBillingDurationValue(item.billingTerms),
+          'เครดิตของระบบ (ต่อเดือน)': item.newLimit,
+          'เครดิตของระบบ (ต่อรอบบิล)': calculateCycleLimit(item.newLimit, item.paymentTerms, item.billingTerms) || 0,
 
           // Spacer
           '_spacer': ''

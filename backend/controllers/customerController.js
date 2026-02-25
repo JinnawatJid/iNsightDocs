@@ -809,6 +809,7 @@ exports.searchCustomers = async (req, res) => {
                   zipcode: row["Post Code"],
                   customer_since: customerSince,
                   payment_terms_code: row["Payment Terms Code"],
+                  billing_terms_code: row["Billing Terms Code"],
                   current_credit_limit: row["Fixed Credit Limit"]
               },
               history: enriched.history,
@@ -1115,6 +1116,7 @@ exports.searchCustomersByBranch = async (req, res) => {
             VAT_Registration_No_: item["VAT Registration No_"],
             Fixed_Credit_Limit: item["Fixed Credit Limit"],
             Payment_Terms_Code: item["Payment Terms Code"],
+            Billing_Terms_Code: item["Billing Terms Code"],
             Customer_Date: item["Customer Date"]
         }));
 
