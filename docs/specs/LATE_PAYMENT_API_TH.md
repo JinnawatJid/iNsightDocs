@@ -97,6 +97,15 @@ node backend/scripts/debug_late_payment.js
     *   **กรณี B (ดำเนินการล่าช้า):** ถ้า `Cleared Date` ห่างจาก `Check Date` **เกิน 5 วัน** ให้ใช้ `Cleared Date` เป็นวันที่มีผลชำระเงิน
     *   *สูตร:* `IF DATEDIFF(day, CheckDate, ClearedDate) <= 5 THEN CheckDate ELSE ClearedDate`
 
+### 3.1.1 กฎการตรวจสอบข้อมูล (Sanitization Rules)
+เพื่อความถูกต้องของคะแนนเครดิต ระบบจะตรวจสอบความสมบูรณ์ของวันที่ก่อนกำหนดวันที่มีผลชำระเงิน หากรายการใดเข้าข่าย **"ยังไม่เกิดการจ่ายจริง" (Not Yet Realized)** จะถูกกำหนดให้ `Effective Payment Date` เป็น `null` (สถานะ Outstanding)
+
+1.  **วันที่เช็คผ่านไม่ถูกต้อง (Invalid Cleared Date):**
+    *   หาก `Cleared Date` เป็นค่าเริ่มต้นของ SQL คือ `1753-01-01` (แสดงว่ายังไม่มีการระบุวันที่จริงในบางเวอร์ชันของ ERP) ให้ถือว่าเป็น **หนี้คงค้าง (Outstanding)**
+2.  **เช็คลงวันที่ล่วงหน้า (Future Post-Dated Cheques):**
+    *   หาก `Check Date` เป็นวันที่ในอนาคต (เมื่อเทียบกับวันที่ปัจจุบันของ Server) ให้ถือว่าเป็น **หนี้คงค้าง (Outstanding)**
+    *   *เหตุผล:* เช็คล่วงหน้ายังไม่สามารถนำไปขึ้นเงินได้ จึงไม่ควรนับเป็น "บิลที่จ่ายแล้ว" ในการคำนวณเครดิต
+
 ### 3.2 นิยามการจ่ายล่าช้า (Late Payment Definition)
 การชำระเงินจะถือว่า **ล่าช้า (Late)** เมื่อ:
 `Effective Payment Date` > `Due Date` (จากตาราง Cust. Ledger Entry)
