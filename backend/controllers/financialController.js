@@ -88,6 +88,45 @@ const formatThaiMonth = (yyyy_mm, isCurrent = false) => {
     return label;
 };
 
+// Helper: Sanitize Invoices (Handle 1753 Cleared Date & Future Check Dates)
+const sanitizeInvoices = (invoices) => {
+    if (!invoices || !Array.isArray(invoices)) return invoices;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return invoices.map(inv => {
+        // 1. Check for Invalid Cleared Date (1753-01-01 from SQL)
+        const clearedDateStr = inv['Cleared Date'] || inv.cleared_date || inv.Cleared_Date;
+        const checkDateStr = inv['Check Date'] || inv.check_date || inv.Check_Date;
+
+        let isInvalidCleared = false;
+        if (clearedDateStr && String(clearedDateStr).startsWith('1753-01-01')) {
+            isInvalidCleared = true;
+        }
+
+        // 2. Check for Future Check Date
+        let isFutureCheck = false;
+        if (checkDateStr) {
+            const checkDate = new Date(checkDateStr);
+            if (!isNaN(checkDate.getTime())) {
+                checkDate.setHours(0, 0, 0, 0);
+                if (checkDate > today) {
+                    isFutureCheck = true;
+                }
+            }
+        }
+
+        // If either condition is met, mark as NOT PAID (Effective Payment Date = null)
+        if (isInvalidCleared || isFutureCheck) {
+            inv.Effective_Payment_Date = null;
+            // Ensure consistency: if not paid, it shouldn't have late days (or be counted as on time)
+            // But main logic filters by Effective_Payment_Date, so nulling it is key.
+        }
+        return inv;
+    });
+};
+
 // Helper: Fetch Purchasing Behavior from External API
 const fetchPurchasingBehavior = async (customerNo) => {
     if (MOCK_FINANCIAL_API) {
@@ -140,11 +179,14 @@ const fetchLatePaymentData = async (customerNo) => {
 
         const data = response.data;
         // Check if data is array (direct list) or object with data property
-        const invoices = Array.isArray(data) ? data : (data.data || []);
+        let invoices = Array.isArray(data) ? data : (data.data || []);
 
         if (!invoices || invoices.length === 0) {
              return { average_late_days: 0, total_invoices: 0, late_count: 0 };
         }
+
+        // Sanitize Data (Handle 1753 / Future Checks)
+        invoices = sanitizeInvoices(invoices);
 
         // Filter invoices: Only consider those with a valid Effective Payment Date (Paid Invoices)
         // Invoices with null/empty Effective Payment are Outstanding/Unpaid and should not skew the average (as 0 late days).
@@ -299,11 +341,14 @@ const fetchWADLData = async (customerNo) => {
         });
 
         const data = response.data;
-        const invoices = Array.isArray(data) ? data : (data.data || []);
+        let invoices = Array.isArray(data) ? data : (data.data || []);
 
         if (!invoices || invoices.length === 0) {
              return { score: 0, grade: 'N/A' };
         }
+
+        // Sanitize Data (Handle 1753 / Future Checks)
+        invoices = sanitizeInvoices(invoices);
 
         return calculateWADL(invoices);
 
@@ -1001,7 +1046,7 @@ exports.getLatePaymentBenchmark = async (req, res) => {
         });
 
         const data = response.data;
-        const invoices = Array.isArray(data) ? data : (data.data || []);
+        let invoices = Array.isArray(data) ? data : (data.data || []);
 
         if (!invoices || invoices.length === 0) {
             return res.json({
@@ -1010,6 +1055,9 @@ exports.getLatePaymentBenchmark = async (req, res) => {
                 message: "No invoice data found for WADL calculation."
             });
         }
+
+        // Sanitize Data (Handle 1753 / Future Checks)
+        invoices = sanitizeInvoices(invoices);
 
         // 2. Calculate Traditional (Simple Average) based on this dataset
         // Filter paid invoices first for fair comparison
