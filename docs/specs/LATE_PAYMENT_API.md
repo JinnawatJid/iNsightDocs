@@ -97,6 +97,15 @@ The "Effective Payment Date" is determined based on the payment method:
     *   **Scenario B (Delayed Processing):** If `Cleared Date` is **more than 5 days** after `Check Date`, use `Cleared Date` as the `Effective Date`.
     *   *Logic:* `IF DATEDIFF(day, CheckDate, ClearedDate) <= 5 THEN CheckDate ELSE ClearedDate`
 
+### 3.1.1 Sanitization Rules (Effective Payment Validity)
+To ensure accurate scoring, the system validates the dates before determining the Effective Payment Date. If a payment is deemed **"Not Yet Realized"**, the `Effective Payment Date` is set to `null` (Outstanding).
+
+1.  **Invalid Cleared Date:**
+    *   If `Cleared Date` matches the SQL default `1753-01-01` (indicating a null/uncleared state in some ERP versions), the payment is treated as **Outstanding**.
+2.  **Future Post-Dated Cheques:**
+    *   If `Check Date` is strictly in the future (relative to the server's current date), the payment is treated as **Outstanding**.
+    *   *Reasoning:* A future check has not yet been cashed, so it cannot be counted as a "Paid" invoice for credit scoring purposes.
+
 ### 3.2 Late Payment Definition
 A payment is considered **Late** if:
 `Effective Payment Date` > `Due Date` (from Cust. Ledger Entry)
