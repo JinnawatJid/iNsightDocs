@@ -138,6 +138,14 @@
         ⏹ หยุด
       </button>
 
+      <button
+        class="btn-info"
+        @click="checkReadiness"
+        :disabled="isProcessing || queue.length === 0"
+      >
+        🔍 ตรวจสอบความพร้อม (DBD)
+      </button>
+
       <!-- DROPDOWN FOR EXPORT -->
       <div class="dropdown" v-click-outside="closeExportDropdown">
         <button
@@ -767,6 +775,88 @@ const showDebugFiles = async (item) => {
 };
 
 // --- Batch Logic ---
+
+const checkReadiness = async () => {
+    if (queue.value.length === 0) return;
+
+    Swal.fire({
+        title: 'กำลังตรวจสอบ...',
+        text: 'ระบบกำลังตรวจสอบไฟล์ DBD ในเซิร์ฟเวอร์',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const customerIds = queue.value.map(item => item.customerId);
+
+        // Split into chunks if needed (let's say 100 per request, but for branches it's usually < 200, so one request is fine)
+        const res = await axios.post('/api/financials/check-local-batch', { customer_ids: customerIds });
+
+        if (res.data.success) {
+            const results = res.data.results;
+            const readyItems = results.filter(r => r.isReady);
+            const notReadyItems = results.filter(r => !r.isReady);
+
+            // Update queue logs/status to reflect readiness
+            queue.value.forEach(item => {
+                const checkRes = results.find(r => r.customerId === item.customerId);
+                if (checkRes) {
+                    item.isReady = checkRes.isReady; // Store for styling if needed
+                    if (!checkRes.isReady && item.status === 'Pending') {
+                        // Just an informative log, we don't change status to Error yet
+                        item.log = `⚠️ รอโหลด DBD (${checkRes.reason})`;
+                    } else if (checkRes.isReady && item.status === 'Pending') {
+                        item.log = `✅ มีไฟล์พร้อม`;
+                    }
+                }
+            });
+
+            // Show Summary
+            const htmlContent = `
+                <div style="text-align: left; padding: 10px;">
+                    <p><strong>ทั้งหมด:</strong> ${results.length} รายการ</p>
+                    <p style="color: #28a745;"><strong>พร้อมดำเนินการ (มีไฟล์ครบ):</strong> ${readyItems.length} รายการ</p>
+                    <p style="color: #dc3545;"><strong>ต้องโหลดไฟล์ใหม่ (Bridge):</strong> ${notReadyItems.length} รายการ</p>
+                    ${notReadyItems.length > 0 ? `<p style="font-size: 0.9em; margin-top: 10px; color: #666;">รายการที่ไม่พร้อม จะถูกดาวน์โหลดจาก DBD อัตโนมัติเมื่อกดเริ่มประมวลผล</p>` : ''}
+                </div>
+            `;
+
+            Swal.fire({
+                title: 'ผลการตรวจสอบไฟล์',
+                html: htmlContent,
+                icon: notReadyItems.length === 0 ? 'success' : 'info',
+                showCancelButton: notReadyItems.length > 0,
+                confirmButtonText: 'ตกลง',
+                cancelButtonText: '📥 ส่งออกรายชื่อที่ไม่พร้อม (Excel)',
+                cancelButtonColor: '#28a745'
+            }).then((result) => {
+                if (result.dismiss === Swal.DismissReason.cancel && notReadyItems.length > 0) {
+                    // Export logic
+                    const exportData = notReadyItems.map(nr => {
+                        const originalItem = queue.value.find(q => q.customerId === nr.customerId);
+                        return {
+                            'รหัสลูกค้า': nr.customerId,
+                            'ชื่อลูกค้า': originalItem ? originalItem.name : '-',
+                            'สาเหตุ': nr.reason
+                        };
+                    });
+
+                    const ws = XLSX.utils.json_to_sheet(exportData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "รายชื่อที่ต้องโหลดไฟล์ใหม่");
+                    XLSX.writeFile(wb, "Not_Ready_DBD_List.xlsx");
+                }
+            });
+
+        } else {
+            throw new Error(res.data.message || 'Unknown API Error');
+        }
+
+    } catch (error) {
+        console.error('Check Readiness Error:', error);
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถตรวจสอบไฟล์ได้: ' + error.message, 'error');
+    }
+};
 
 const stopBatch = () => {
   shouldStop.value = true;
@@ -1530,6 +1620,7 @@ button:disabled {
 .btn-primary { background: #0056FF; color: white; }
 .btn-danger { background: #dc3545; color: white; }
 .btn-success { background: #28a745; color: white; }
+.btn-info { background: #17a2b8; color: white; }
 
 .btn-view-report {
   background: #17a2b8;

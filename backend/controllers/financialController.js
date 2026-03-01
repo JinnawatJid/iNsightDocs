@@ -885,86 +885,122 @@ exports.analyzeFinancials = async (req, res) => {
   }
 };
 
+const checkSingleCustomerFiles = async (customer_no) => {
+    try {
+        if (!customer_no) return { exists: false, reason: 'Customer No required' };
+
+        // Use same path resolution as persist logic
+        let projectRoot = path.resolve(__dirname, '../../../../');
+        // Fallback for dev/sandbox environment (2 levels up)
+        if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
+            projectRoot = path.resolve(__dirname, '../../');
+        }
+
+        const customerRoot = path.join(projectRoot, 'customers', customer_no);
+
+        if (!await fs.pathExists(customerRoot)) {
+            return { exists: false, reason: 'No customer directory' };
+        }
+
+        const subdirs = await fs.readdir(customerRoot);
+        // Filter for 8-digit folders (YYYYMMDD) and sort descending (latest first)
+        const dateFolders = subdirs.filter(d => /^\d{8}$/.test(d)).sort().reverse();
+
+        if (dateFolders.length === 0) {
+            return { exists: false, reason: 'No date folders' };
+        }
+
+        const latestFolder = dateFolders[0];
+
+        // Check Freshness (180 days)
+        const folderDate = new Date(
+            parseInt(latestFolder.substring(0, 4)),
+            parseInt(latestFolder.substring(4, 6)) - 1,
+            parseInt(latestFolder.substring(6, 8))
+        );
+        const now = new Date();
+        const diffTime = Math.abs(now - folderDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 180) {
+            return { exists: false, reason: 'Files too old', days: diffDays, limit: 180 };
+        }
+
+        const latestPath = path.join(customerRoot, latestFolder);
+
+        // Check required files
+        const requiredFiles = [
+            { key: 'profile', name: 'DBD_Profile.pdf' },
+            { key: 'balanceSheet', name: 'DBD_BalanceSheet.xlsx' },
+            { key: 'incomeStatement', name: 'DBD_IncomeStatement.xlsx' },
+            { key: 'financialRatios', name: 'DBD_FinancialRatios.xlsx' }
+        ];
+
+        const fileDetails = {};
+
+        for (const file of requiredFiles) {
+            const filePath = path.join(latestPath, file.name);
+            if (!await fs.pathExists(filePath)) {
+                return { exists: false, reason: `Missing file: ${file.name}` };
+            }
+
+            // Get File Stats
+            const stats = await fs.stat(filePath);
+            fileDetails[file.key] = {
+                filename: file.name,
+                size: stats.size,
+                date: stats.mtime, // Modification time
+                path: filePath
+            };
+        }
+
+        return {
+            exists: true,
+            date: latestFolder,
+            daysOld: diffDays,
+            path: latestPath,
+            files: fileDetails
+        };
+    } catch (error) {
+        console.error(`Check Local Files Error for ${customer_no}:`, error);
+        return { exists: false, reason: error.message };
+    }
+};
+
 exports.checkLocalFiles = async (req, res) => {
   try {
     const { customer_no } = req.params;
     if (!customer_no) return res.status(400).json({ success: false, message: 'Customer No required' });
 
-    // Use same path resolution as persist logic
-    let projectRoot = path.resolve(__dirname, '../../../../');
-    // Fallback for dev/sandbox environment (2 levels up)
-    if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
-        projectRoot = path.resolve(__dirname, '../../');
-    }
-
-    const customerRoot = path.join(projectRoot, 'customers', customer_no);
-
-    if (!await fs.pathExists(customerRoot)) {
-        return res.json({ exists: false, reason: 'No customer directory' });
-    }
-
-    const subdirs = await fs.readdir(customerRoot);
-    // Filter for 8-digit folders (YYYYMMDD) and sort descending (latest first)
-    const dateFolders = subdirs.filter(d => /^\d{8}$/.test(d)).sort().reverse();
-
-    if (dateFolders.length === 0) {
-        return res.json({ exists: false, reason: 'No date folders' });
-    }
-
-    const latestFolder = dateFolders[0];
-
-    // Check Freshness (180 days)
-    const folderDate = new Date(
-        parseInt(latestFolder.substring(0, 4)),
-        parseInt(latestFolder.substring(4, 6)) - 1,
-        parseInt(latestFolder.substring(6, 8))
-    );
-    const now = new Date();
-    const diffTime = Math.abs(now - folderDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays > 180) {
-        return res.json({ exists: false, reason: 'Files too old', days: diffDays, limit: 180 });
-    }
-
-    const latestPath = path.join(customerRoot, latestFolder);
-
-    // Check required files
-    const requiredFiles = [
-        { key: 'profile', name: 'DBD_Profile.pdf' },
-        { key: 'balanceSheet', name: 'DBD_BalanceSheet.xlsx' },
-        { key: 'incomeStatement', name: 'DBD_IncomeStatement.xlsx' },
-        { key: 'financialRatios', name: 'DBD_FinancialRatios.xlsx' }
-    ];
-
-    const fileDetails = {};
-
-    for (const file of requiredFiles) {
-        const filePath = path.join(latestPath, file.name);
-        if (!await fs.pathExists(filePath)) {
-            return res.json({ exists: false, reason: `Missing file: ${file.name}` });
-        }
-
-        // Get File Stats
-        const stats = await fs.stat(filePath);
-        fileDetails[file.key] = {
-            filename: file.name,
-            size: stats.size,
-            date: stats.mtime, // Modification time
-            path: filePath
-        };
-    }
-
-    return res.json({
-        exists: true,
-        date: latestFolder,
-        daysOld: diffDays,
-        path: latestPath,
-        files: fileDetails
-    });
-
+    const result = await checkSingleCustomerFiles(customer_no);
+    return res.json(result);
   } catch (error) {
     console.error('Check Local Files Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.checkLocalFilesBatch = async (req, res) => {
+  try {
+    const { customer_ids } = req.body;
+    if (!customer_ids || !Array.isArray(customer_ids)) {
+        return res.status(400).json({ success: false, message: 'customer_ids array required' });
+    }
+
+    const results = [];
+    for (const customer_no of customer_ids) {
+        const result = await checkSingleCustomerFiles(customer_no);
+        results.push({
+            customerId: customer_no,
+            isReady: result.exists,
+            reason: result.reason || 'Ready',
+            date: result.date || null
+        });
+    }
+
+    return res.json({ success: true, results });
+  } catch (error) {
+    console.error('Check Local Files Batch Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
