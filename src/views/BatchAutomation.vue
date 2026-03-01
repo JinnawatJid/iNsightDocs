@@ -47,8 +47,11 @@
              <div class="d-flex align-items-center" style="gap: 15px;">
                 <label style="white-space: nowrap; margin-bottom: 0;">เลือกสาขา (Branch):</label>
                 <select v-model="selectedBranch" class="form-control branch-select" style="max-width: 300px;">
-                    <option value="" disabled>-- กรุณาเลือกสาขา --</option>
+                    <option value="" disabled>-- กรุณาเลือกสาขา / ภูมิภาค --</option>
                     <optgroup v-for="region in branchData" :key="region.region" :label="region.region">
+                        <option :value="`REGION:${region.region}`" style="font-weight: bold; color: #0056FF;">
+                            🌟 รวมทั้งหมดใน {{ region.region }}
+                        </option>
                         <option v-for="zone in region.zones" :key="zone.code" :value="zone.code">
                             {{ zone.code }} - {{ zone.name }}
                         </option>
@@ -444,18 +447,52 @@ const fetchByBranch = async () => {
     if (!selectedBranch.value) return;
 
     isFetchingBranch.value = true;
-    try {
-        const response = await axios.get(`/api/customers/by-branch`, {
-            params: { branchCode: selectedBranch.value }
-        });
 
-        const data = response.data;
-        if (!data || data.length === 0) {
-            Swal.fire('ไม่พบข้อมูล', `ไม่พบลูกค้าที่มีวงเงินในสาขา ${selectedBranch.value}`, 'warning');
+    try {
+        let branchCodesToFetch = [];
+        let locationName = '';
+
+        if (selectedBranch.value.startsWith('REGION:')) {
+            const regionName = selectedBranch.value.replace('REGION:', '');
+            const regionObj = branchData.find(r => r.region === regionName);
+            if (regionObj) {
+                branchCodesToFetch = regionObj.zones.map(z => z.code);
+                locationName = `ภูมิภาค ${regionName}`;
+            }
+        } else {
+            branchCodesToFetch = [selectedBranch.value];
+            locationName = `สาขา ${selectedBranch.value}`;
+        }
+
+        if (branchCodesToFetch.length === 0) return;
+
+        let allData = [];
+        let errorMessages = [];
+
+        // Fetch data for all required branches
+        for (const code of branchCodesToFetch) {
+            try {
+                const response = await axios.get(`/api/customers/by-branch`, {
+                    params: { branchCode: code }
+                });
+                if (response.data && response.data.length > 0) {
+                    allData = allData.concat(response.data);
+                }
+            } catch (err) {
+                console.error(`Failed to fetch branch ${code}:`, err);
+                errorMessages.push(`สาขา ${code}: ${err.response?.data?.error || err.message}`);
+            }
+        }
+
+        if (allData.length === 0) {
+            const msg = errorMessages.length > 0
+                ? `ไม่พบข้อมูล และพบข้อผิดพลาด:\n${errorMessages.join('\n')}`
+                : `ไม่พบลูกค้าที่มีวงเงินใน ${locationName}`;
+            Swal.fire('ไม่พบข้อมูล', msg, 'warning');
             queue.value = [];
         } else {
              // Map to Queue Format
-            queue.value = data.map(item => {
+            queue.value = allData.map(item => {
                 return {
                     customerId: item.No_,
                     name: item.Name,
@@ -479,11 +516,17 @@ const fetchByBranch = async () => {
                     limitExponent: null
                 };
             });
-            Swal.fire('สำเร็จ', `ดึงข้อมูลลูกค้า ${queue.value.length} รายการ จากสาขา ${selectedBranch.value}`, 'success');
+
+            let successMsg = `ดึงข้อมูลลูกค้า ${queue.value.length} รายการ จาก ${locationName}`;
+            if (errorMessages.length > 0) {
+                successMsg += `\n(พบข้อผิดพลาดบางสาขา: ${errorMessages.length} สาขา)`;
+            }
+
+            Swal.fire('สำเร็จ', successMsg, errorMessages.length > 0 ? 'warning' : 'success');
         }
     } catch (error) {
         console.error('Fetch by branch error:', error);
-        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลจากสาขาได้: ' + (error.response?.data?.error || error.message), 'error');
+        Swal.fire('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' + (error.response?.data?.error || error.message), 'error');
     } finally {
         isFetchingBranch.value = false;
     }
