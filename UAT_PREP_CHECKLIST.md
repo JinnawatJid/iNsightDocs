@@ -3,7 +3,7 @@
 
 ## 🚨 Critical Fixes (Must Complete Before UAT)
 
-- [ ] **Restore Form Validation in Pinia Store**
+- [x] **Restore Form Validation in Pinia Store**
     - **File:** `src/stores/creditRequest.js`
     - **Action:** Remove or comment out the temporary bypass `return { valid: true };` inside the `validateRequest` function (around line 40).
     - **Verification:** Attempt to submit a credit request with empty mandatory fields (like "Amount" or missing ID Card document). Ensure the system blocks the submission and displays the appropriate "ข้อมูลไม่ครบถ้วน" (Incomplete Data) warning.
@@ -27,3 +27,8 @@
 
 - [ ] **Explain Document Validation Logistics**
     - **Message:** Inform testers that for "Special Request Types" (like Credit Increases), the system assumes general documents (like store photos) overlap from the previous request and only strictly mandates the *new* Credit Application Document.
+
+- [ ] **Verify Relevant Documents**
+    - **Context:** Determine if the restored form validation logic requires updates to existing UAT documents or the creation of new ones.
+    - **Action:** Review the current suite of documentation against the enforced mandatory fields and file requirements.
+    - **Verification:** Confirm whether the documentation accurately reflects the application's required document uploads and input fields, updating them or creating new ones as necessary.
