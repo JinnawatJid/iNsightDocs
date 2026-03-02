@@ -134,7 +134,7 @@
       </button>
 
       <button
-        class="btn-danger"
+        class="btn-outline-danger"
         @click="stopBatch"
         :disabled="!isProcessing"
       >
@@ -142,7 +142,7 @@
       </button>
 
       <button
-        class="btn-info"
+        class="btn-secondary"
         @click="checkReadiness"
         :disabled="isProcessing || queue.length === 0"
       >
@@ -152,7 +152,7 @@
       <!-- DROPDOWN FOR EXPORT -->
       <div class="dropdown" v-click-outside="closeExportDropdown">
         <button
-          class="btn-success dropdown-toggle"
+          class="btn-secondary dropdown-toggle"
           @click="toggleExportDropdown"
           :disabled="queue.length === 0"
         >
@@ -238,7 +238,7 @@
             <td>
               <button
                 v-if="['Done', 'Done (Int)'].includes(item.status)"
-                class="btn-view-report"
+                class="btn-outline-primary"
                 @click="openReport(item)"
                 title="ดูรายงาน"
               >
@@ -1660,15 +1660,42 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.btn-primary { background: #0056FF; color: white; }
-.btn-danger { background: #dc3545; color: white; }
-.btn-success { background: #28a745; color: white; }
-.btn-info { background: #17a2b8; color: white; }
-
-.btn-view-report {
-  background: #17a2b8;
+.btn-primary {
+  background: #0056FF;
   color: white;
-  border: none;
+  border: 1px solid #0056FF;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #0044cc;
+}
+
+.btn-secondary {
+  background: white;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #bbb;
+}
+
+.btn-outline-danger {
+  background: white;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+
+.btn-outline-danger:hover:not(:disabled) {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-outline-primary {
+  background: white;
+  color: #0056FF;
+  border: 1px solid #0056FF;
   padding: 5px 10px;
   border-radius: 4px;
   cursor: pointer;
@@ -1677,8 +1704,9 @@ button:disabled {
   align-items: center;
   gap: 5px;
 }
-.btn-view-report:hover {
-  background: #138496;
+
+.btn-outline-primary:hover:not(:disabled) {
+  background: #eef4ff;
 }
 
 .btn-debug-files {
