@@ -52,21 +52,22 @@ class ExistingCustomerScorecard extends BaseScorecard {
         const roundedLimit = Math.round(recommendedLimit / 1000) * 1000;
 
         // 4. Calculate Size & Grade
+        // Dynamically calculate boundaries based on max possible scores
+        const config = this.evaluator.config;
+
         // Size = C1 + C2
         const sizeScore = c1.total + c2.total;
-        let sizeLabel = "L";
-        if (sizeScore <= 37) sizeLabel = "S";
-        else if (sizeScore <= 68) sizeLabel = "M";
-        else sizeLabel = "L";
+        const maxSizeScore = this.getMaxScore(config.components, ['c1', 'c2']);
+        const sizeLabels = config.size_definitions || ["S", "M", "L"];
+        const sizeDefs = this.generateDefinitions(maxSizeScore, sizeLabels);
+        const sizeLabel = this.evaluateDefinition(sizeScore, sizeDefs, sizeLabels[0] || "S");
 
         // Grade = C3
         const gradeScore = c3.total;
-        let gradeLabel = "D";
-        if (gradeScore >= 120) gradeLabel = "A+"; // Adjusted thresholds roughly for higher weight of C3 (157 pts)
-        else if (gradeScore >= 100) gradeLabel = "A";
-        else if (gradeScore >= 80) gradeLabel = "B+";
-        else if (gradeScore >= 60) gradeLabel = "B";
-        else if (gradeScore >= 40) gradeLabel = "C";
+        const maxGradeScore = this.getMaxScore(config.components, ['c3']);
+        const gradeLabels = config.grade_definitions || ["D", "C", "B", "B+", "A", "A+"];
+        const gradeDefs = this.generateDefinitions(maxGradeScore, gradeLabels);
+        const gradeLabel = this.evaluateDefinition(gradeScore, gradeDefs, gradeLabels[0] || "D");
 
         // 5. Structure Output
         return {

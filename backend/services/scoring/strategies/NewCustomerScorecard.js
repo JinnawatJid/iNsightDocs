@@ -37,17 +37,22 @@ class NewCustomerScorecard extends BaseScorecard {
         const roundedLimit = Math.round(recommendedLimit / 1000) * 1000;
 
         // 4. Calculate Size & Grade
+        // Dynamically calculate boundaries based on max possible scores
+        const config = this.evaluator.config;
+
         // Size = C1 + C2
         const sizeScore = c1.total + c2.total;
-
-        const sizeDefs = this.evaluator.config.size_definitions || [];
-        const sizeLabel = this.evaluateDefinition(sizeScore, sizeDefs, "S");
+        const maxSizeScore = this.getMaxScore(config.components, ['c1', 'c2']);
+        const sizeLabels = config.size_definitions || ["S", "M", "L"];
+        const sizeDefs = this.generateDefinitions(maxSizeScore, sizeLabels);
+        const sizeLabel = this.evaluateDefinition(sizeScore, sizeDefs, sizeLabels[0] || "S");
 
         // Grade = C3
         const gradeScore = c3.total;
-
-        const gradeDefs = this.evaluator.config.grade_definitions || [];
-        const gradeLabel = this.evaluateDefinition(gradeScore, gradeDefs, "D");
+        const maxGradeScore = this.getMaxScore(config.components, ['c3']);
+        const gradeLabels = config.grade_definitions || ["D", "C", "B", "B+", "A", "A+"];
+        const gradeDefs = this.generateDefinitions(maxGradeScore, gradeLabels);
+        const gradeLabel = this.evaluateDefinition(gradeScore, gradeDefs, gradeLabels[0] || "D");
 
         // 5. Structure Output
         return {
