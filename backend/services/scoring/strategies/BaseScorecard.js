@@ -54,6 +54,73 @@ class BaseScorecard {
     }
 
     /**
+     * Generates a list of definition objects (min, max, label) by dividing
+     * the maxScore evenly among the provided labels. Labels must be ordered
+     * from lowest score to highest score.
+     * @param {number} maxScore - The maximum possible score.
+     * @param {Array<string>} labels - List of category labels (e.g. ["S", "M", "L"]).
+     * @returns {Array<Object>} Generated definitions suitable for evaluateDefinition.
+     */
+    generateDefinitions(maxScore, labels) {
+        if (!labels || !Array.isArray(labels) || labels.length === 0) {
+            return [];
+        }
+
+        const interval = maxScore / labels.length;
+        const definitions = [];
+
+        // Note: Definitions must be ordered correctly for evaluateDefinition to work.
+        // evaluateDefinition evaluates from first to last in the array.
+        // Since labels are lowest-to-highest, and evaluateDefinition checks
+        // bounds sequentially, we'll build from highest to lowest so that
+        // the top tier is evaluated first (like the hardcoded logic).
+        for (let i = labels.length - 1; i >= 0; i--) {
+            const label = labels[i];
+            const lowerBound = Math.round(i * interval);
+            const upperBound = Math.round((i + 1) * interval);
+
+            const def = { label };
+
+            if (i === labels.length - 1) {
+                // Highest category (e.g., L, A+)
+                def.min = lowerBound;
+            } else if (i === 0) {
+                // Lowest category (e.g., S, D)
+                def.max = upperBound;
+            } else {
+                // Middle categories (e.g., M, C, B)
+                def.min = lowerBound;
+                def.max = upperBound;
+            }
+
+            definitions.push(def);
+        }
+
+        return definitions;
+    }
+
+    /**
+     * Calculates the maximum possible score by summing up the weights of all
+     * factors within the specified component keys.
+     * @param {Object} components - The 'components' object from the config.
+     * @param {Array<string>} componentKeys - Keys to include (e.g. ['c1', 'c2']).
+     * @returns {number} The maximum possible score.
+     */
+    getMaxScore(components, componentKeys) {
+        if (!components) return 0;
+        let maxScore = 0;
+        for (const key of componentKeys) {
+            if (components[key] && Array.isArray(components[key].factors)) {
+                for (const factor of components[key].factors) {
+                    // Maximum possible points for a factor equals its weight
+                    maxScore += factor.weight || 0;
+                }
+            }
+        }
+        return maxScore;
+    }
+
+    /**
      * Interface Method - Must be implemented by subclasses
      */
     calculateScore(context) {

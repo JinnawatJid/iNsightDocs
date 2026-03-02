@@ -84,7 +84,21 @@ Locate the `weight` property under any factor and update it.
 *   `max`: Exclusive upper bound.
 *   `score`: The multiplier (0.25 - 2.0).
 
-### 3. Configuring the Limit Curve (Existing Model)
+### 3. Size and Grade Definitions (Dynamic Calculation)
+The system calculates Size (`S`, `M`, `L`) and Grade (`D` through `A+`) boundaries dynamically based on the total max possible score in their respective categories.
+
+*   **Size**: Total max score of factors in components `C1` + `C2`.
+*   **Grade**: Total max score of factors in component `C3`.
+
+In the configuration file, you define these categories as an array of labels, **ordered from lowest to highest score**.
+
+```json
+  "size_definitions": ["S", "M", "L"],
+  "grade_definitions": ["D", "C", "B", "B+", "A", "A+"]
+```
+The model automatically divides the maximum possible score evenly into sections to determine the thresholds. If factor weights change, the Size and Grade thresholds scale automatically.
+
+### 4. Configuring the Limit Curve (Existing Model)
 To change the sensitivity of the credit limit calculation, adjust the `limitExponent` in `credit_scorecard_existing_v1.json`.
 *   **Higher Exponent (e.g., 2.5):** Steeper curve. Low scores get very low limits; high scores get much higher limits.
 *   **Lower Exponent (e.g., 1.0):** Linear relationship.
