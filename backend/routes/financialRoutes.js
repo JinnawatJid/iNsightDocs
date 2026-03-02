@@ -16,6 +16,7 @@ const cpUpload = upload.fields([
 
 router.post('/analyze', cpUpload, financialController.analyzeFinancials);
 router.get('/check-local/:customer_no', financialController.checkLocalFiles);
+router.post('/check-local-batch', financialController.checkLocalFilesBatch);
 router.get('/download-local/:customer_no/:file_key', financialController.downloadLocalFile);
 router.get('/late-payment-benchmark/:customer_no', financialController.getLatePaymentBenchmark);
 
