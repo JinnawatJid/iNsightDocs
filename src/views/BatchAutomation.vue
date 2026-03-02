@@ -101,7 +101,7 @@
 
              <!-- Limit Exponent (Only for Existing) -->
              <div v-if="selectedModel === 'existing'" class="setting-row">
-                <label class="setting-label">ตัวคูณวงเงิน:</label>
+                <label class="setting-label">เลขยกกำลัง:</label>
                 <div class="d-flex align-items-center" style="gap: 10px;">
                     <input type="number" step="0.1" min="1.0" max="5.0" v-model="limitExponent" class="form-control" style="width: 80px;" />
                     <small class="text-muted">(ค่าปกติ: 0.5)</small>
@@ -1223,7 +1223,7 @@ const startBatch = async () => {
           </div>
           <div style="text-align: left; margin-top: 10px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
               <p style="margin-bottom: 5px;"><strong>โมเดล:</strong> ${modelText}</p>
-              <p style="margin-bottom: 0;"><strong>ตัวคูณวงเงิน:</strong> ${limitExponent.value}</p>
+              <p style="margin-bottom: 0;"><strong>เลขยกกำลัง:</strong> ${limitExponent.value}</p>
           </div>
       `,
       icon: 'question',
