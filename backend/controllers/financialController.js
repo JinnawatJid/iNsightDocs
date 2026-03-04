@@ -885,6 +885,39 @@ exports.analyzeFinancials = async (req, res) => {
   }
 };
 
+// Configuration for Customer API
+const CUSTOMER_INFO_API_URL = process.env.CUSTOMER_API_URL || "http://192.192.0.37:8280/customer-sp682/1.0.0";
+const CUSTOMER_INFO_API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
+
+const fetchMultipleCustomersInfo = async (customerIds) => {
+    try {
+        // Send a single batch request using $in operator
+        const response = await axios.post(CUSTOMER_INFO_API_URL, {
+            page: 1,
+            size: customerIds.length,
+            "No_": { "$in": customerIds }
+        }, {
+            headers: {
+                "apikey": CUSTOMER_INFO_API_KEY,
+                "Content-Type": "application/json"
+            },
+            timeout: 10000
+        });
+
+        if (response.data && response.data.data) {
+            // Create a lookup map for faster access
+            const customerMap = {};
+            response.data.data.forEach(cust => {
+                customerMap[cust["No_"]] = cust;
+            });
+            return customerMap;
+        }
+    } catch (error) {
+        console.warn(`[Batch Check] Failed to fetch multiple customers info:`, error.message);
+    }
+    return {};
+};
+
 const checkSingleCustomerFiles = async (customer_no) => {
     try {
         if (!customer_no) return { exists: false, reason: 'Customer No required' };
@@ -987,12 +1020,49 @@ exports.checkLocalFilesBatch = async (req, res) => {
         return res.status(400).json({ success: false, message: 'customer_ids array required' });
     }
 
+    const corporateKeywords = ['บริษัท', 'ห้างหุ้นส่วน', 'บ.', 'หจก.', 'ltd', 'limited', 'co.', 'plc', 'corp', 'inc', 'company'];
     const results = [];
+
+    // Fetch all customer infos in a single API call to avoid N+1 query problem
+    const customersInfoMap = await fetchMultipleCustomersInfo(customer_ids);
+
     for (const customer_no of customer_ids) {
+        // Check if it's a company
+        const customerInfo = customersInfoMap[customer_no];
+
+        let skipDBD = false;
+        if (customerInfo) {
+            const nameLower = (customerInfo["Name"] || '').toLowerCase();
+            const taxId = customerInfo["VAT Registration No_"] || '';
+            const isCorporate = corporateKeywords.some(k => nameLower.includes(k));
+
+            if (!taxId || taxId.length < 5) {
+                skipDBD = true;
+            } else if (!isCorporate) {
+                skipDBD = true;
+            }
+        } else {
+            // If API couldn't find them, we can't reliably say they are a company, but typically
+            // if we don't have tax ID, we skip DBD.
+            skipDBD = true;
+        }
+
+        if (skipDBD) {
+            results.push({
+                customerId: customer_no,
+                isReady: true,
+                isSkipped: true,
+                reason: 'ข้าม (ไม่ใช่บริษัท)',
+                date: null
+            });
+            continue;
+        }
+
         const result = await checkSingleCustomerFiles(customer_no);
         results.push({
             customerId: customer_no,
             isReady: result.exists,
+            isSkipped: false,
             reason: result.reason || 'Ready',
             date: result.date || null
         });
