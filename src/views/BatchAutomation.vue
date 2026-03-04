@@ -947,6 +947,19 @@ const uploadLocalFiles = async (item, data) => {
             item.isNoFinancialData = data.isNoFinancialData;
             item.log = data.isNoFinancialData ? 'พร้อมดำเนินการ (ไม่ส่งงบฯ)' : 'อัปโหลดไฟล์สำเร็จ พร้อมดำเนินการ';
 
+            if (!data.isNoFinancialData) {
+                item.debugFiles = {
+                    profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' },
+                    balanceSheet: { type: 'local', filename: 'DBD_BalanceSheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                    incomeStatement: { type: 'local', filename: 'DBD_IncomeStatement.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                    financialRatios: { type: 'local', filename: 'DBD_FinancialRatios.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+                };
+            } else {
+                item.debugFiles = {
+                    profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' }
+                };
+            }
+
             Swal.fire('สำเร็จ', 'อัปโหลดไฟล์เรียบร้อยแล้ว', 'success');
         } else {
             throw new Error(res.data.message || 'Unknown API Error');
@@ -988,6 +1001,7 @@ const checkReadiness = async () => {
                 const checkRes = results.find(r => r.customerId === item.customerId);
                 if (checkRes) {
                     item.isReady = checkRes.isReady; // Store for styling if needed
+                    item.isNoFinancialData = checkRes.isNoFinancialData || false;
 
                     if (checkRes.isSkipped && item.status === 'Pending') {
                         item.log = `ข้าม (ไม่ใช่บริษัท)`;
@@ -995,7 +1009,19 @@ const checkReadiness = async () => {
                         // Just an informative log, we don't change status to Error yet
                         item.log = `รอโหลดไฟล์ DBD (${checkRes.reason})`;
                     } else if (checkRes.isReady && item.status === 'Pending') {
-                        item.log = `มีไฟล์พร้อมดำเนินการ`;
+                        item.log = item.isNoFinancialData ? `พร้อมดำเนินการ (ไม่ส่งงบฯ)` : `มีไฟล์พร้อมดำเนินการ`;
+                        if (!item.isNoFinancialData) {
+                            item.debugFiles = {
+                                profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' },
+                                balanceSheet: { type: 'local', filename: 'DBD_BalanceSheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                                incomeStatement: { type: 'local', filename: 'DBD_IncomeStatement.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                                financialRatios: { type: 'local', filename: 'DBD_FinancialRatios.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+                            };
+                        } else {
+                            item.debugFiles = {
+                                profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' }
+                            };
+                        }
                     }
                 }
             });
