@@ -179,8 +179,10 @@ app.get('/stream', async (req, res) => {
 
         if (!profilePdf) throw new Error('PDF Download timed out');
 
-        // 5. Navigate to Financials
-        sendSSE(res, { status: 'progress', message: 'Switching to Financial Tab...' });
+        // --- NEW: Check for "No Financial Data" (ไม่พบข้อมูล) before continuing ---
+        sendSSE(res, { status: 'progress', message: 'Checking Financial Data Status...' });
+
+        let hasFinancialData = true;
 
         // Click Tab
         await page.evaluate(() => {
@@ -188,53 +190,67 @@ app.get('/stream', async (req, res) => {
             const tab = items.find(el => el.innerText && el.innerText.trim() === 'ข้อมูลงบการเงิน');
             if (tab) tab.click();
         });
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1500));
 
-        // Click Sub-item
-        await page.evaluate(() => {
-            const items = Array.from(document.querySelectorAll('a, li'));
-            const tab = items.find(el => el.innerText && el.innerText.includes('งบการเงิน'));
-            if (tab) tab.click();
+        // Check if "ไม่พบข้อมูล" (No Data Found) is displayed
+        const noDataFound = await page.evaluate(() => {
+            return document.body.innerText.includes('ไม่พบข้อมูล');
         });
 
-        // Wait for table
-        try {
-            await page.waitForFunction(
-                () => document.body.innerText.includes('งบแสดงฐานะการเงิน'),
-                { timeout: 30000 }
-            );
-        } catch(e) {}
+        if (noDataFound) {
+            console.log(`[Bridge] "ไม่พบข้อมูล" detected. Skipping financial documents for ${query}.`);
+            hasFinancialData = false;
+            sendSSE(res, { status: 'progress', message: 'No financial data submitted to DBD (Skipping Excel)' });
+        }
 
-        // Download Excel
-        sendSSE(res, { status: 'progress', message: 'Downloading Balance Sheet (Excel)...' });
-
-        // Open Print Menu
-        await page.evaluate(() => {
-             const buttons = Array.from(document.querySelectorAll('button, a'));
-             const printBtns = buttons.filter(b => b.innerText && b.innerText.includes('พิมพ์ข้อมูล'));
-             if (printBtns.length > 0) printBtns[printBtns.length - 1].click();
-        });
-
-        await new Promise(r => setTimeout(r, 1000));
-
-        // Click Excel
-        await page.evaluate(() => {
-            const links = Array.from(document.querySelectorAll('a, li, span'));
-            const excelBtn = links.find(l => l.innerText && l.innerText.includes('พิมพ์ Excel'));
-            if (excelBtn) excelBtn.click();
-        });
-
-        // Wait for Excel
         let balanceSheetExcel = null;
-        startTime = Date.now();
-        while (Date.now() - startTime < 30000) {
-            const files = await fs.readdir(tmpDir);
-            const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
-            if (xlsxFile) {
-                balanceSheetExcel = path.join(tmpDir, xlsxFile);
-                break;
+
+        if (hasFinancialData) {
+            // Click Sub-item
+            await page.evaluate(() => {
+                const items = Array.from(document.querySelectorAll('a, li'));
+                const tab = items.find(el => el.innerText && el.innerText.includes('งบการเงิน'));
+                if (tab) tab.click();
+            });
+
+            // Wait for table
+            try {
+                await page.waitForFunction(
+                    () => document.body.innerText.includes('งบแสดงฐานะการเงิน'),
+                    { timeout: 30000 }
+                );
+            } catch(e) {}
+
+            // Download Excel
+            sendSSE(res, { status: 'progress', message: 'Downloading Balance Sheet (Excel)...' });
+
+            // Open Print Menu
+            await page.evaluate(() => {
+                 const buttons = Array.from(document.querySelectorAll('button, a'));
+                 const printBtns = buttons.filter(b => b.innerText && b.innerText.includes('พิมพ์ข้อมูล'));
+                 if (printBtns.length > 0) printBtns[printBtns.length - 1].click();
+            });
+
+            await new Promise(r => setTimeout(r, 1000));
+
+            // Click Excel
+            await page.evaluate(() => {
+                const links = Array.from(document.querySelectorAll('a, li, span'));
+                const excelBtn = links.find(l => l.innerText && l.innerText.includes('พิมพ์ Excel'));
+                if (excelBtn) excelBtn.click();
+            });
+
+            // Wait for Excel
+            startTime = Date.now();
+            while (Date.now() - startTime < 30000) {
+                const files = await fs.readdir(tmpDir);
+                const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
+                if (xlsxFile) {
+                    balanceSheetExcel = path.join(tmpDir, xlsxFile);
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 500));
             }
-            await new Promise(r => setTimeout(r, 500));
         }
 
         // 6. Process Files
@@ -247,6 +263,7 @@ app.get('/stream', async (req, res) => {
 
         sendSSE(res, {
             status: 'complete',
+            noFinancialData: !hasFinancialData,
             data: {
                 profile: {
                     filename: `DBD_Profile_${query}.pdf`,

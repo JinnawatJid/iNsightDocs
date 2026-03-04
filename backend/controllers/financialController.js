@@ -961,13 +961,21 @@ const checkSingleCustomerFiles = async (customer_no) => {
 
         const latestPath = path.join(customerRoot, latestFolder);
 
+        // --- NEW: Check for No Financial Data Marker ---
+        const noDataMarkerPath = path.join(latestPath, 'DBD_NoFinancialData.txt');
+        const hasNoDataMarker = await fs.pathExists(noDataMarkerPath);
+
         // Check required files
-        const requiredFiles = [
-            { key: 'profile', name: 'DBD_Profile.pdf' },
-            { key: 'balanceSheet', name: 'DBD_BalanceSheet.xlsx' },
-            { key: 'incomeStatement', name: 'DBD_IncomeStatement.xlsx' },
-            { key: 'financialRatios', name: 'DBD_FinancialRatios.xlsx' }
-        ];
+        // If hasNoDataMarker is true, only the PDF profile is strictly required.
+        // We skip checking for Excel files because the customer didn't submit them to DBD.
+        const requiredFiles = hasNoDataMarker
+            ? [{ key: 'profile', name: 'DBD_Profile.pdf' }]
+            : [
+                { key: 'profile', name: 'DBD_Profile.pdf' },
+                { key: 'balanceSheet', name: 'DBD_BalanceSheet.xlsx' },
+                { key: 'incomeStatement', name: 'DBD_IncomeStatement.xlsx' },
+                { key: 'financialRatios', name: 'DBD_FinancialRatios.xlsx' }
+              ];
 
         const fileDetails = {};
 
@@ -989,6 +997,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
 
         return {
             exists: true,
+            noFinancialData: hasNoDataMarker, // Flag returned to frontend
             date: latestFolder,
             daysOld: diffDays,
             path: latestPath,
@@ -1053,7 +1062,8 @@ exports.checkLocalFilesBatch = async (req, res) => {
                 isReady: true,
                 isSkipped: true,
                 reason: 'ข้าม (ไม่ใช่บริษัท)',
-                date: null
+                date: null,
+                noFinancialData: false
             });
             continue;
         }
@@ -1064,7 +1074,8 @@ exports.checkLocalFilesBatch = async (req, res) => {
             isReady: result.exists,
             isSkipped: false,
             reason: result.reason || 'Ready',
-            date: result.date || null
+            date: result.date || null,
+            noFinancialData: result.noFinancialData || false
         });
     }
 

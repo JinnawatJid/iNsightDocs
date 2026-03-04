@@ -402,14 +402,122 @@ exports.streamDBDProfile = async (req, res) => {
 
         if (!profilePdf) throw new Error('หมดเวลาในการดาวน์โหลด PDF');
 
-        // --- NEW: Download Balance Sheet (Excel) ---
-        sendSSE(res, { status: 'progress', message: 'กำลังเปลี่ยนแท็บไปยังข้อมูลงบการเงิน...' });
+        // --- NEW: Check for "No Financial Data" (ไม่พบข้อมูล) before continuing ---
+        sendSSE(res, { status: 'progress', message: 'กำลังตรวจสอบสถานะงบการเงิน...' });
 
-        // 4.1 Hover over "Financial Data" Tab to reveal Dropdown
+        let hasFinancialData = true;
+
+        // 4.1 Click "Financial Data" Tab (ข้อมูลงบการเงิน) to check if data exists
         const financialTabHandle = await getElementByXPath(page, "//a[contains(., 'ข้อมูลงบการเงิน')]");
-        const financialTab = financialTabHandle.asElement();
+        const financialTab = financialTabHandle ? financialTabHandle.asElement() : null;
 
         if (financialTab) {
+            await financialTab.click();
+            await new Promise(r => setTimeout(r, 1500)); // wait for tab to render
+
+            // Check if "ไม่พบข้อมูล" (No Data Found) is displayed
+            const noDataFound = await page.evaluate(() => {
+                return document.body.innerText.includes('ไม่พบข้อมูล');
+            });
+
+            if (noDataFound) {
+                console.log(`[DBD Stream] "ไม่พบข้อมูล" detected. Skipping financial documents for ${fileIdentifier}.`);
+                hasFinancialData = false;
+                sendSSE(res, { status: 'progress', message: 'ไม่พบงบการเงินในระบบ DBD (ข้ามการดาวน์โหลดงบ)' });
+
+                // Save a marker file for the persistent batch to know
+                if (customerCode) {
+                    try {
+                        const now = new Date();
+                        const yyyy = now.getFullYear();
+                        const mm = String(now.getMonth() + 1).padStart(2, '0');
+                        const dd = String(now.getDate()).padStart(2, '0');
+                        const dateFolder = `${yyyy}${mm}${dd}`;
+
+                        const projectRoot = path.resolve(__dirname, '../../../../');
+                        const customerDir = path.join(projectRoot, 'customers', customerCode, dateFolder);
+
+                        await fs.ensureDir(customerDir);
+                        await fs.writeFile(path.join(customerDir, 'DBD_NoFinancialData.txt'), 'No financial data submitted to DBD.');
+                        console.log(`[DBD Persistent] Created DBD_NoFinancialData.txt marker for ${customerCode}`);
+                    } catch (e) {
+                        console.error('[DBD Persistent] Error saving marker file:', e.message);
+                    }
+                }
+            }
+        }
+
+        let balanceSheetExcel = null;
+        let incomeStatementExcel = null;
+        let ratioExcel = null;
+        let excelFilename = null;
+        let incomeFilename = null;
+        let ratioFilename = null;
+
+        if (hasFinancialData) {
+            // --- NEW: Download Balance Sheet (Excel) ---
+            sendSSE(res, { status: 'progress', message: 'กำลังเปิดเมนูย่อยงบการเงิน...' });
+
+            if (financialTab) {
+                console.log('[DBD Stream] Hovering over Financial Data tab...');
+                await financialTab.hover();
+
+                // Wait for the dropdown menu to appear (looking for "งบการเงิน")
+                await new Promise(r => setTimeout(r, 1000)); // Animation wait
+
+                // 4.2 Click "Financial Statement" (งบการเงิน)
+                console.log('[DBD Stream] Clicking Financial Statement submenu...');
+                // FIXED: Use strict text matching to avoid matching the main menu "ข้อมูลนิติบุคคลและงบการเงิน" which links to /juristic
+                const statementLinkHandle = await getElementByXPath(page, "//a[normalize-space(.)='งบการเงิน']");
+                const statementLink = statementLinkHandle ? statementLinkHandle.asElement() : null;
+
+                if (statementLink) {
+                     // Ensure it's visible before clicking
+                     await statementLink.click();
+                } else {
+                     throw new Error('ไม่พบเมนูย่อย "งบการเงิน"');
+                }
+            } else {
+                console.warn('[DBD Stream] Financial Data tab not found via XPath, trying legacy generic search...');
+                 // Fallback to legacy evaluator if XPath fails
+                await page.evaluate(() => {
+                    const items = Array.from(document.querySelectorAll('a, li, div, span'));
+                    const tab = items.find(el => el.innerText && el.innerText.trim() === 'ข้อมูลงบการเงิน');
+                    if (tab) tab.click(); // Try clicking if hover logic failed/not found
+                });
+            }
+
+            // 4.3 Wait for Table (Look for "งบแสดงฐานะการเงิน" text)
+            sendSSE(res, { status: 'progress', message: 'กำลังรอโหลดตารางงบการเงิน...' });
+            try {
+                await page.waitForFunction(
+                    () => document.body.innerText.includes('งบแสดงฐานะการเงิน'),
+                    { timeout: 60000 }
+                );
+            } catch (e) {
+                console.warn('Timeout waiting for balance sheet text, but continuing...');
+            }
+
+            // 4.3 Download Excel (Balance Sheet)
+            sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบการเงิน (Excel)...' });
+            await downloadExcel('BalanceSheet');
+
+            // 4.5 Wait for Excel File
+            startTime = Date.now();
+            while (Date.now() - startTime < maxWait) {
+                const files = await fs.readdir(tmpDir);
+                const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
+                if (xlsxFile) {
+                    balanceSheetExcel = path.join(tmpDir, xlsxFile);
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            if (!balanceSheetExcel) {
+                 console.warn('Balance Sheet Excel download timed out');
+            }
+        }
             console.log('[DBD Stream] Hovering over Financial Data tab...');
             await financialTab.hover();
 
@@ -484,141 +592,138 @@ exports.streamDBDProfile = async (req, res) => {
         }
 
         // Process Balance Sheet Excel (if found)
-        let excelFilename = null;
         if (balanceSheetExcel) {
             excelFilename = `DBD_BalanceSheet_${fileIdentifier}_${Date.now()}.xlsx`;
             const excelPath = path.join(downloadsDir, excelFilename);
             await fs.move(balanceSheetExcel, excelPath);
         }
 
-        // --- NEW: Download Income Statement (งบกำไรขาดทุน) ---
-        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบกำไรขาดทุน...' });
+        if (hasFinancialData) {
+            // --- NEW: Download Income Statement (งบกำไรขาดทุน) ---
+            sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบกำไรขาดทุน...' });
 
-        // 4.6 Click "Income Statement" (งบกำไรขาดทุน)
-        // Try precise XPath first using normalize-space to handle whitespace
-        let incomeTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='งบกำไรขาดทุน'] | //a[normalize-space(.)='งบกำไรขาดทุน']");
+            // 4.6 Click "Income Statement" (งบกำไรขาดทุน)
+            // Try precise XPath first using normalize-space to handle whitespace
+            let incomeTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='งบกำไรขาดทุน'] | //a[normalize-space(.)='งบกำไรขาดทุน']");
 
-        // If not found, try contains but be careful
-        if (!incomeTabHandle) {
-             incomeTabHandle = await getElementByXPath(page, "//button[contains(., 'งบกำไรขาดทุน')] | //a[contains(., 'งบกำไรขาดทุน')]");
-        }
-
-        const incomeTab = incomeTabHandle ? incomeTabHandle.asElement() : null;
-
-        if (incomeTab) {
-            console.log('[DBD Stream] Clicking Income Statement tab...');
-            await incomeTab.click();
-        } else {
-            console.warn('[DBD Stream] Income Statement tab not found via XPath, trying JS fallback...');
-             // Fallback JS with strict matching
-            await page.evaluate(() => {
-                const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
-                const tab = items.find(el => el.innerText && el.innerText.trim() === 'งบกำไรขาดทุน');
-                if (tab) tab.click();
-            });
-        }
-
-        // Wait for Table (Look for specific table header "รายได้หลัก" which appears in Income Statement)
-        sendSSE(res, { status: 'progress', message: 'กำลังรอโหลดตารางงบกำไรขาดทุน...' });
-        try {
-            await page.waitForFunction(
-                () => document.body.innerText.includes('รายได้หลัก') || document.body.innerText.includes('ต้นทุนขาย'),
-                { timeout: 60000 }
-            );
-        } catch (e) {
-            console.warn('Timeout waiting for Income Statement specific text, but continuing...');
-        }
-
-        // Small buffer for animations
-        await new Promise(r => setTimeout(r, 1000));
-
-        // Click Print Info and Download (Income Statement)
-        console.log('[DBD Stream] Clicking Print Info for Income Statement...');
-        await downloadExcel('IncomeStatement');
-
-        // Wait for Income Statement Excel
-        let incomeStatementExcel = null;
-        startTime = Date.now();
-        while (Date.now() - startTime < maxWait) {
-            const files = await fs.readdir(tmpDir);
-            // Since we moved the previous xlsx, the only xlsx should be the new one
-            const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
-            if (xlsxFile) {
-                incomeStatementExcel = path.join(tmpDir, xlsxFile);
-                break;
+            // If not found, try contains but be careful
+            if (!incomeTabHandle) {
+                 incomeTabHandle = await getElementByXPath(page, "//button[contains(., 'งบกำไรขาดทุน')] | //a[contains(., 'งบกำไรขาดทุน')]");
             }
-            await new Promise(r => setTimeout(r, 500));
-        }
 
-        // Move Income Statement
-        let incomeFilename = null;
-        if (incomeStatementExcel) {
-            incomeFilename = `DBD_IncomeStatement_${fileIdentifier}_${Date.now()}.xlsx`;
-            const incomePath = path.join(downloadsDir, incomeFilename);
-            await fs.move(incomeStatementExcel, incomePath);
-        }
+            const incomeTab = incomeTabHandle ? incomeTabHandle.asElement() : null;
 
-        // --- NEW: Download Financial Ratios (อัตราส่วนทางการเงิน) ---
-        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดอัตราส่วนทางการเงิน...' });
-
-        // Click "Financial Ratios" Tab
-        let ratioTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='อัตราส่วนทางการเงิน'] | //a[normalize-space(.)='อัตราส่วนทางการเงิน']");
-
-        if (!ratioTabHandle) {
-             ratioTabHandle = await getElementByXPath(page, "//button[contains(., 'อัตราส่วนทางการเงิน')] | //a[contains(., 'อัตราส่วนทางการเงิน')]");
-        }
-
-        const ratioTab = ratioTabHandle ? ratioTabHandle.asElement() : null;
-
-        if (ratioTab) {
-            console.log('[DBD Stream] Clicking Financial Ratios tab...');
-            await ratioTab.click();
-        } else {
-             console.warn('[DBD Stream] Financial Ratios tab not found via XPath, trying JS fallback...');
-             await page.evaluate(() => {
-                const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
-                const tab = items.find(el => el.innerText && el.innerText.trim() === 'อัตราส่วนทางการเงิน');
-                if (tab) tab.click();
-            });
-        }
-
-        // Wait for Ratios Table (Look for text like "อัตราส่วนสภาพคล่อง" - Liquidity Ratio)
-        sendSSE(res, { status: 'progress', message: 'กำลังรอโหลดตารางอัตราส่วนทางการเงิน...' });
-        try {
-            await page.waitForFunction(
-                () => document.body.innerText.includes('อัตราส่วนสภาพคล่อง') || document.body.innerText.includes('อัตราส่วนหนี้สินต่อส่วนของผู้ถือหุ้น'),
-                { timeout: 60000 }
-            );
-        } catch (e) {
-            console.warn('Timeout waiting for Financial Ratios text, but continuing...');
-        }
-
-        // Small buffer
-        await new Promise(r => setTimeout(r, 1000));
-
-        // Click Print Info and Download (Ratios)
-        console.log('[DBD Stream] Clicking Print Info for Financial Ratios...');
-        await downloadExcel('FinancialRatios');
-
-        // Wait for Ratios Excel
-        let ratioExcel = null;
-        startTime = Date.now();
-        while (Date.now() - startTime < maxWait) {
-            const files = await fs.readdir(tmpDir);
-            const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
-            if (xlsxFile) {
-                ratioExcel = path.join(tmpDir, xlsxFile);
-                break;
+            if (incomeTab) {
+                console.log('[DBD Stream] Clicking Income Statement tab...');
+                await incomeTab.click();
+            } else {
+                console.warn('[DBD Stream] Income Statement tab not found via XPath, trying JS fallback...');
+                 // Fallback JS with strict matching
+                await page.evaluate(() => {
+                    const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
+                    const tab = items.find(el => el.innerText && el.innerText.trim() === 'งบกำไรขาดทุน');
+                    if (tab) tab.click();
+                });
             }
-            await new Promise(r => setTimeout(r, 500));
-        }
 
-        // Move Financial Ratios
-        let ratioFilename = null;
-        if (ratioExcel) {
-            ratioFilename = `DBD_FinancialRatios_${fileIdentifier}_${Date.now()}.xlsx`;
-            const ratioPath = path.join(downloadsDir, ratioFilename);
-            await fs.move(ratioExcel, ratioPath);
+            // Wait for Table (Look for specific table header "รายได้หลัก" which appears in Income Statement)
+            sendSSE(res, { status: 'progress', message: 'กำลังรอโหลดตารางงบกำไรขาดทุน...' });
+            try {
+                await page.waitForFunction(
+                    () => document.body.innerText.includes('รายได้หลัก') || document.body.innerText.includes('ต้นทุนขาย'),
+                    { timeout: 60000 }
+                );
+            } catch (e) {
+                console.warn('Timeout waiting for Income Statement specific text, but continuing...');
+            }
+
+            // Small buffer for animations
+            await new Promise(r => setTimeout(r, 1000));
+
+            // Click Print Info and Download (Income Statement)
+            console.log('[DBD Stream] Clicking Print Info for Income Statement...');
+            await downloadExcel('IncomeStatement');
+
+            // Wait for Income Statement Excel
+            startTime = Date.now();
+            while (Date.now() - startTime < maxWait) {
+                const files = await fs.readdir(tmpDir);
+                // Since we moved the previous xlsx, the only xlsx should be the new one
+                const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
+                if (xlsxFile) {
+                    incomeStatementExcel = path.join(tmpDir, xlsxFile);
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            // Move Income Statement
+            if (incomeStatementExcel) {
+                incomeFilename = `DBD_IncomeStatement_${fileIdentifier}_${Date.now()}.xlsx`;
+                const incomePath = path.join(downloadsDir, incomeFilename);
+                await fs.move(incomeStatementExcel, incomePath);
+            }
+
+            // --- NEW: Download Financial Ratios (อัตราส่วนทางการเงิน) ---
+            sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดอัตราส่วนทางการเงิน...' });
+
+            // Click "Financial Ratios" Tab
+            let ratioTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='อัตราส่วนทางการเงิน'] | //a[normalize-space(.)='อัตราส่วนทางการเงิน']");
+
+            if (!ratioTabHandle) {
+                 ratioTabHandle = await getElementByXPath(page, "//button[contains(., 'อัตราส่วนทางการเงิน')] | //a[contains(., 'อัตราส่วนทางการเงิน')]");
+            }
+
+            const ratioTab = ratioTabHandle ? ratioTabHandle.asElement() : null;
+
+            if (ratioTab) {
+                console.log('[DBD Stream] Clicking Financial Ratios tab...');
+                await ratioTab.click();
+            } else {
+                 console.warn('[DBD Stream] Financial Ratios tab not found via XPath, trying JS fallback...');
+                 await page.evaluate(() => {
+                    const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
+                    const tab = items.find(el => el.innerText && el.innerText.trim() === 'อัตราส่วนทางการเงิน');
+                    if (tab) tab.click();
+                });
+            }
+
+            // Wait for Ratios Table (Look for text like "อัตราส่วนสภาพคล่อง" - Liquidity Ratio)
+            sendSSE(res, { status: 'progress', message: 'กำลังรอโหลดตารางอัตราส่วนทางการเงิน...' });
+            try {
+                await page.waitForFunction(
+                    () => document.body.innerText.includes('อัตราส่วนสภาพคล่อง') || document.body.innerText.includes('อัตราส่วนหนี้สินต่อส่วนของผู้ถือหุ้น'),
+                    { timeout: 60000 }
+                );
+            } catch (e) {
+                console.warn('Timeout waiting for Financial Ratios text, but continuing...');
+            }
+
+            // Small buffer
+            await new Promise(r => setTimeout(r, 1000));
+
+            // Click Print Info and Download (Ratios)
+            console.log('[DBD Stream] Clicking Print Info for Financial Ratios...');
+            await downloadExcel('FinancialRatios');
+
+            // Wait for Ratios Excel
+            startTime = Date.now();
+            while (Date.now() - startTime < maxWait) {
+                const files = await fs.readdir(tmpDir);
+                const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
+                if (xlsxFile) {
+                    ratioExcel = path.join(tmpDir, xlsxFile);
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            // Move Financial Ratios
+            if (ratioExcel) {
+                ratioFilename = `DBD_FinancialRatios_${fileIdentifier}_${Date.now()}.xlsx`;
+                const ratioPath = path.join(downloadsDir, ratioFilename);
+                await fs.move(ratioExcel, ratioPath);
+            }
         }
 
 
@@ -688,6 +793,7 @@ exports.streamDBDProfile = async (req, res) => {
         // 7. Complete
         sendSSE(res, {
             status: 'complete',
+            noFinancialData: !hasFinancialData,
             files: {
                 profile: {
                     url: `/api/downloads/${pdfFilename}`,
