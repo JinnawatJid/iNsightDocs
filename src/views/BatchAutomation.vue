@@ -231,7 +231,7 @@
                     class="btn-debug-files"
                     @click="showDebugFiles(item)"
                 >
-                    Files
+                    📁 ไฟล์
                 </button>
                 <span v-else class="text-muted small">-</span>
             </td>
@@ -428,12 +428,12 @@ const getRowClass = (item) => {
 
 const translateStatus = (status) => {
   const map = {
-    'Pending': 'รอคิว',
-    'Processing': 'กำลังทำ',
-    'Done': 'เสร็จสิ้น',
-    'Done (Int)': 'เสร็จสิ้น (ภายใน)',
-    'Error': 'ผิดพลาด',
-    'Skipped': 'ข้าม'
+    'Pending': '⏳ รอคิว',
+    'Processing': '⏳ กำลังทำ',
+    'Done': '✅ เสร็จสิ้น',
+    'Done (Int)': '✅ เสร็จสิ้น (ภายใน)',
+    'Error': '❌ ผิดพลาด',
+    'Skipped': '⚠️ ข้าม'
   };
   return map[status] || status;
 };
@@ -648,14 +648,14 @@ const processFile = (file) => {
 // --- Bridge Logic ---
 
 const checkBridgeConnection = async () => {
-  bridgeStatus.value = 'กำลังตรวจสอบ...';
+  bridgeStatus.value = '⏳ กำลังตรวจสอบ...';
   try {
     const url = `http://${bridgeHost.value}:4343/health`;
     await axios.get(url, { timeout: 2000 });
-    bridgeStatus.value = 'เชื่อมต่อสำเร็จ';
+    bridgeStatus.value = '✅ เชื่อมต่อสำเร็จ';
     return true;
   } catch (e) {
-    bridgeStatus.value = 'ไม่สามารถเชื่อมต่อได้';
+    bridgeStatus.value = '❌ ไม่สามารถเชื่อมต่อได้';
     return false;
   }
 };
@@ -740,10 +740,10 @@ const showDebugFiles = async (item) => {
     if (!item.debugFiles) return;
 
     const files = [
-        { key: 'profile', label: 'Company Profile (PDF)', icon: '' },
-        { key: 'balanceSheet', label: 'งบดุล (XLSX)', icon: '' },
-        { key: 'incomeStatement', label: 'งบกำไรขาดทุน (XLSX)', icon: '' },
-        { key: 'financialRatios', label: 'อัตราส่วนการเงิน (XLSX)', icon: '' }
+        { key: 'profile', label: 'ข้อมูลบริษัท (PDF)', icon: '📄' },
+        { key: 'balanceSheet', label: 'งบดุล (XLSX)', icon: '📄' },
+        { key: 'incomeStatement', label: 'งบกำไรขาดทุน (XLSX)', icon: '📄' },
+        { key: 'financialRatios', label: 'อัตราส่วนการเงิน (XLSX)', icon: '📄' }
     ];
 
     let htmlContent = '<div style="text-align: left; padding: 10px;">';
@@ -752,7 +752,7 @@ const showDebugFiles = async (item) => {
     files.forEach(f => {
         const fileData = item.debugFiles[f.key];
         if (fileData) {
-            const size = fileData.size || 'Unknown';
+            const size = fileData.size || 'ไม่ระบุ';
             const style = 'color: #333;';
             const icon = f.icon;
 
@@ -763,9 +763,9 @@ const showDebugFiles = async (item) => {
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 8px; border: 1px solid #eee; border-radius: 4px; background: #fff;">
                     <span style="${style}">
                         ${icon} ${f.label} <br>
-                        <small style="color: #666;">Size: ${size}</small>
+                        <small style="color: #666;">ขนาด: ${size}</small>
                     </span>
-                    <button id="${btnId}" class="swal2-confirm swal2-styled" style="padding: 5px 10px; font-size: 0.8em; margin: 0;">Download</button>
+                    <button id="${btnId}" class="swal2-confirm swal2-styled" style="padding: 5px 10px; font-size: 0.8em; margin: 0;">ดาวน์โหลด</button>
                 </div>
             `;
         } else {
@@ -779,7 +779,7 @@ const showDebugFiles = async (item) => {
     htmlContent += '</div>';
 
     const result = await Swal.fire({
-        title: 'Debug Files',
+        title: 'ไฟล์ตรวจสอบ',
         html: htmlContent,
         showCloseButton: true,
         showConfirmButton: false,
