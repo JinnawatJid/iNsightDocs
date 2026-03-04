@@ -15,14 +15,14 @@
                 :class="{ active: inputType === 'branch' }"
                 @click="inputType = 'branch'"
               >
-                🏢 ดึงข้อมูลตามสาขา
+                ดึงข้อมูลตามสาขา
               </button>
               <button
                 class="toggle-btn"
                 :class="{ active: inputType === 'file' }"
                 @click="inputType = 'file'"
               >
-                📂 อัปโหลด Excel
+                อัปโหลด Excel
               </button>
           </div>
 
@@ -36,7 +36,7 @@
               @change="handleFileSelect"
             />
             <div class="upload-content" @click="$refs.fileInput.click()">
-              <span class="upload-icon">📂</span>
+              <!-- <span class="upload-icon">📂</span> -->
               <span v-if="!queue.length">คลิกหรือลากไฟล์ Excel มาวางที่นี่</span>
               <span v-else>โหลดข้อมูลแล้ว {{ queue.length }} รายการ</span>
             </div>
@@ -50,7 +50,7 @@
                     <option value="" disabled>-- กรุณาเลือกสาขา / ภูมิภาค --</option>
                     <optgroup v-for="region in branchData" :key="region.region" :label="region.region">
                         <option :value="`REGION:${region.region}`" style="font-weight: bold; color: #0056FF;">
-                            🌟 รวมทั้งหมดใน {{ region.region }}
+                            รวมทั้งหมดใน {{ region.region }}
                         </option>
                         <option v-for="zone in region.zones" :key="zone.code" :value="zone.code">
                             {{ zone.code }} - {{ zone.name }}
@@ -63,7 +63,7 @@
                     :disabled="!selectedBranch || isFetchingBranch"
                     style="white-space: nowrap;"
                 >
-                    {{ isFetchingBranch ? 'กำลังดึงข้อมูล...' : '⬇️ ดึงรายชื่อลูกค้า' }}
+                    {{ isFetchingBranch ? 'กำลังดึงข้อมูล...' : 'ดึงรายชื่อลูกค้า' }}
                 </button>
              </div>
           </div>
@@ -85,7 +85,7 @@
 
         <div class="mt-4">
            <div class="section-header cursor-pointer" @click="showConcurrencySettings = !showConcurrencySettings">
-             <span>⚙️ ตั้งค่าขั้นสูง</span>
+             <span>ตั้งค่าขั้นสูง</span>
              <span class="toggle-icon">{{ showConcurrencySettings ? '▼' : '▶' }}</span>
            </div>
 
@@ -130,7 +130,7 @@
         @click="startBatch"
         :disabled="isProcessing || queue.length === 0"
       >
-        {{ isProcessing ? 'กำลังประมวลผล...' : '▶ เริ่มประมวลผล' }}
+        {{ isProcessing ? 'กำลังประมวลผล...' : 'เริ่มประมวลผล' }}
       </button>
 
       <button
@@ -138,7 +138,7 @@
         @click="stopBatch"
         :disabled="!isProcessing"
       >
-        ⏹ หยุด
+        หยุด
       </button>
 
       <button
@@ -146,7 +146,7 @@
         @click="checkReadiness"
         :disabled="isProcessing || queue.length === 0"
       >
-        🔍 ตรวจสอบความพร้อม (DBD)
+        ตรวจสอบความพร้อม (DBD)
       </button>
 
       <!-- DROPDOWN FOR EXPORT -->
@@ -156,11 +156,11 @@
           @click="toggleExportDropdown"
           :disabled="queue.length === 0"
         >
-          📊 ส่งออกรายงาน
+          ส่งออกรายงาน
         </button>
         <div class="dropdown-menu" v-if="isExportDropdownOpen">
           <a class="dropdown-item" @click="exportSummarizedReport">📄 แบบย่อ (Summary)</a>
-          <a class="dropdown-item" @click="exportFullDetailReport">📊 แบบละเอียด (Full Detail)</a>
+          <a class="dropdown-item" @click="exportFullDetailReport">📄 แบบละเอียด (Full Detail)</a>
         </div>
       </div>
 
@@ -741,9 +741,9 @@ const showDebugFiles = async (item) => {
 
     const files = [
         { key: 'profile', label: 'Company Profile (PDF)', icon: '📄' },
-        { key: 'balanceSheet', label: 'งบดุล (XLSX)', icon: '📊' },
-        { key: 'incomeStatement', label: 'งบกำไรขาดทุน (XLSX)', icon: '📈' },
-        { key: 'financialRatios', label: 'อัตราส่วนการเงิน (XLSX)', icon: '📉' }
+        { key: 'balanceSheet', label: 'งบดุล (XLSX)', icon: '📄' },
+        { key: 'incomeStatement', label: 'งบกำไรขาดทุน (XLSX)', icon: '📄' },
+        { key: 'financialRatios', label: 'อัตราส่วนการเงิน (XLSX)', icon: '📄' }
     ];
 
     let htmlContent = '<div style="text-align: left; padding: 10px;">';
@@ -870,7 +870,7 @@ const checkReadiness = async () => {
                 icon: notReadyItems.length === 0 ? 'success' : 'info',
                 showCancelButton: notReadyItems.length > 0,
                 confirmButtonText: 'ตกลง',
-                cancelButtonText: '📥 ส่งออกรายชื่อที่ไม่พร้อม (Excel)',
+                cancelButtonText: '📄 ส่งออกรายชื่อที่ไม่พร้อม (Excel)',
                 cancelButtonColor: '#28a745'
             }).then((result) => {
                 if (result.dismiss === Swal.DismissReason.cancel && notReadyItems.length > 0) {
