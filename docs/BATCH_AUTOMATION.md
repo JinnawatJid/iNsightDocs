@@ -83,10 +83,18 @@ To optimize performance and reduce costs, the system checks for existing local f
     *   **If Valid**: The system skips the Bridge download and uses the local files for analysis (`use_local=true`). The status will reflect "Done (Local)".
     *   **If Invalid/Missing**: The system proceeds to download fresh files from the Bridge.
 
-## File Access
-Users can download the files used for analysis via the **Files** column in the Batch Automation table.
-*   **Bridge Files**: Downloaded directly from memory (Base64).
+## File Access & Manual Upload
+Users can download the files used for analysis or upload missing ones via the **📁 ไฟล์** button in the Batch Automation table. The button is available for all corporate customers after clicking `ตรวจเอกสารการเงิน` (Check Financial Documents).
+*   **Bridge Files**: Downloaded directly from memory (Base64) if just fetched.
 *   **Local Files**: Downloaded from the server via `/api/financials/download-local/{Customer_ID}/{FileKey}`.
+
+### Manual Upload (Fallback)
+If the batch process encounters an error fetching DBD documents, or documents are missing, users can manually upload them:
+1.  Click the **📁 ไฟล์** button for the highlighted (missing files) customer.
+2.  A SweetAlert2 modal will prompt for the upload of the Profile PDF and the 3 Financial Excel files.
+3.  **ลูกค้าไม่ส่งงบการเงิน (No Financial Data):** Users can optionally check this box if the customer did not submit financial statements. This disables the Excel requirements (only Profile PDF is expected, but optional).
+4.  The uploaded files are sent to `POST /api/financials/upload-local/{Customer_ID}` and saved to the backend's `customers/{Customer_ID}/{YYYYMMDD}/` directory.
+5.  If "No Financial Data" is checked, a marker file `DBD_NoFinancialData.txt` is created in that directory. The batch processor will see this marker on the next run, skip the DBD download, and perform a fallback calculation based on purchase history alone.
 
 ## File Metadata & Extraction
 The system enhances the "Local Files" check to provide more context:

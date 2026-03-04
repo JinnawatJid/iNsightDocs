@@ -227,7 +227,7 @@
             </td>
             <td>
                 <button
-                    v-if="item.debugFiles"
+                    v-if="item.isCompany || item.debugFiles"
                     class="btn-debug-files"
                     @click="showDebugFiles(item)"
                 >
@@ -493,9 +493,12 @@ const fetchByBranch = async () => {
         } else {
              // Map to Queue Format
             queue.value = allData.map(item => {
+                const name = item.Name || '';
+                const corporateKeywords = ['บริษัท', 'ห้างหุ้นส่วน', 'บ.', 'หจก.', 'ltd', 'limited', 'co.', 'plc', 'corp', 'inc', 'company'];
+                const isCompany = corporateKeywords.some(k => name.toLowerCase().includes(k));
                 return {
                     customerId: item.No_,
-                    name: item.Name,
+                    name: name,
                     taxId: item.VAT_Registration_No_ || '',
                     totalPurchase3Months: 0, // Will be fetched during process
                     latePaymentAverage: null,
@@ -511,6 +514,9 @@ const fetchByBranch = async () => {
                     log: '',
                     files: {},
                     debugFiles: null,
+                    isCompany: isCompany,
+                    isReady: false,
+                    isNoFinancialData: false,
                     analysisResult: null,
                     modelType: null,
                     limitExponent: null
@@ -617,9 +623,12 @@ const processFile = (file) => {
     // Map to Queue Format
     queue.value = jsonData.map(row => {
       const id = row[idKey];
+      const name = String(row['ชื่อลูกค้า'] || row['Name'] || '').trim();
+      const corporateKeywords = ['บริษัท', 'ห้างหุ้นส่วน', 'บ.', 'หจก.', 'ltd', 'limited', 'co.', 'plc', 'corp', 'inc', 'company'];
+      const isCompany = corporateKeywords.some(k => name.toLowerCase().includes(k));
       return {
         customerId: String(id || '').trim(),
-        name: '',
+        name: name,
         taxId: '',
         totalPurchase3Months: 0,
         latePaymentAverage: null,
@@ -634,6 +643,9 @@ const processFile = (file) => {
         log: '',
         files: {}, // to store downloaded blobs
         debugFiles: null, // to store file metadata for debug
+        isCompany: isCompany,
+        isReady: false,
+        isNoFinancialData: false,
         analysisResult: null,
         modelType: null, // Store model type for report
         limitExponent: null // Store limit exponent for report
@@ -737,7 +749,17 @@ const base64ToBlob = (base64, mimeType) => {
 // --- Debug Logic ---
 
 const showDebugFiles = async (item) => {
-    if (!item.debugFiles) return;
+    // Also check if they only have a profile file uploaded manually previously,
+    // which indicates we should still show the manual upload modal if they want to update it.
+    // Or if isNoFinancialData is true, we might want to let them change it.
+    if ((!item.isReady || item.isNoFinancialData) && item.isCompany) {
+        return handleManualUpload(item);
+    }
+
+    if (!item.debugFiles) {
+        Swal.fire('ไม่มีข้อมูลไฟล์', 'ไม่พบไฟล์เอกสารสำหรับลูกค้ารายนี้', 'info');
+        return;
+    }
 
     const files = [
         { key: 'profile', label: 'ข้อมูลบริษัท (PDF)', icon: '📄' },
@@ -815,6 +837,124 @@ const showDebugFiles = async (item) => {
              });
         }
     });
+};
+
+const handleManualUpload = async (item) => {
+    const htmlContent = `
+        <div style="text-align: left; padding: 10px;">
+            <p style="margin-bottom: 15px; color: #666;">อัปโหลดไฟล์เอกสารการเงินสำหรับ <b>${item.customerId}</b></p>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-weight: bold; color: #dc3545;">
+                    <input type="checkbox" id="no-financial-data-checkbox" style="width: 18px; height: 18px;" ${item.isNoFinancialData ? 'checked' : ''}>
+                    ลูกค้าไม่ส่งงบการเงิน
+                </label>
+                <small style="color: #666; margin-left: 26px; display: block;">(ระบบจะข้ามการดึงข้อมูลจาก DBD และประเมินวงเงินใหม่โดยอ้างอิงจากยอดซื้อเท่านั้น)</small>
+            </div>
+
+            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+
+            <div id="upload-fields" style="display: flex; flex-direction: column; gap: 12px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">ข้อมูลบริษัท (Profile PDF)</label>
+                    <input type="file" id="file-profile" accept="application/pdf" class="form-control" style="font-size: 0.9em; padding: 5px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">งบดุล (Balance Sheet Excel)</label>
+                    <input type="file" id="file-balance-sheet" accept=".xlsx" class="form-control" style="font-size: 0.9em; padding: 5px;" ${item.isNoFinancialData ? 'disabled style="opacity: 0.5"' : ''}>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">งบกำไรขาดทุน (Income Statement Excel)</label>
+                    <input type="file" id="file-income-statement" accept=".xlsx" class="form-control" style="font-size: 0.9em; padding: 5px;" ${item.isNoFinancialData ? 'disabled style="opacity: 0.5"' : ''}>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">อัตราส่วนทางการเงิน (Financial Ratios Excel)</label>
+                    <input type="file" id="file-financial-ratios" accept=".xlsx" class="form-control" style="font-size: 0.9em; padding: 5px;" ${item.isNoFinancialData ? 'disabled style="opacity: 0.5"' : ''}>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const { value: result } = await Swal.fire({
+        title: 'อัปโหลดเอกสารการเงิน',
+        html: htmlContent,
+        showCancelButton: true,
+        confirmButtonText: 'อัปโหลดไฟล์',
+        cancelButtonText: 'ยกเลิก',
+        didOpen: () => {
+            const checkbox = document.getElementById('no-financial-data-checkbox');
+            const uploadFields = document.getElementById('upload-fields');
+
+            checkbox.addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                // If checked, disable Excel files but keep Profile PDF enabled
+                const inputs = uploadFields.querySelectorAll('input[type="file"]');
+                inputs.forEach(input => {
+                    if (input.id !== 'file-profile') {
+                        input.disabled = isChecked;
+                        input.style.opacity = isChecked ? '0.5' : '1';
+                    }
+                });
+            });
+        },
+        preConfirm: () => {
+            const isNoFinancialData = document.getElementById('no-financial-data-checkbox').checked;
+            const profile = document.getElementById('file-profile').files[0];
+            const balanceSheet = document.getElementById('file-balance-sheet').files[0];
+            const incomeStatement = document.getElementById('file-income-statement').files[0];
+            const financialRatios = document.getElementById('file-financial-ratios').files[0];
+
+            if (isNoFinancialData) {
+                return { isNoFinancialData, profile }; // Profile optional/expected but not strictly failing here if UI permits
+            } else {
+                if (!profile || !balanceSheet || !incomeStatement || !financialRatios) {
+                    Swal.showValidationMessage('กรุณาอัปโหลดไฟล์ให้ครบ 4 ไฟล์ หรือ เลือก "ลูกค้าไม่ส่งงบการเงิน"');
+                    return false;
+                }
+                return { isNoFinancialData, profile, balanceSheet, incomeStatement, financialRatios };
+            }
+        }
+    });
+
+    if (result) {
+        uploadLocalFiles(item, result);
+    }
+};
+
+const uploadLocalFiles = async (item, data) => {
+    Swal.fire({
+        title: 'กำลังอัปโหลด...',
+        text: 'ระบบกำลังบันทึกไฟล์ไปที่เซิร์ฟเวอร์',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const formData = new FormData();
+        formData.append('no_financial_data', data.isNoFinancialData ? 'true' : 'false');
+
+        if (data.profile) formData.append('company_profile', data.profile);
+        if (data.balanceSheet) formData.append('balance_sheet', data.balanceSheet);
+        if (data.incomeStatement) formData.append('profit_loss', data.incomeStatement);
+        if (data.financialRatios) formData.append('financial_ratios', data.financialRatios);
+
+        const res = await axios.post(`/api/financials/upload-local/${item.customerId}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        if (res.data.success) {
+            item.isReady = true;
+            item.isNoFinancialData = data.isNoFinancialData;
+            item.log = data.isNoFinancialData ? 'พร้อมดำเนินการ (ไม่ส่งงบฯ)' : 'อัปโหลดไฟล์สำเร็จ พร้อมดำเนินการ';
+
+            Swal.fire('สำเร็จ', 'อัปโหลดไฟล์เรียบร้อยแล้ว', 'success');
+        } else {
+            throw new Error(res.data.message || 'Unknown API Error');
+        }
+    } catch (error) {
+        console.error('Upload Error:', error);
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถอัปโหลดไฟล์ได้: ' + (error.response?.data?.message || error.message), 'error');
+    }
 };
 
 // --- Batch Logic ---
