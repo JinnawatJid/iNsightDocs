@@ -261,6 +261,53 @@
       </table>
     </div>
   </div>
+
+
+    <!-- Custom Upload Modal (Teleported to body to avoid z-index issues) -->
+    <Teleport to="body">
+      <div v-if="isUploadModalOpen" class="modal-overlay" @click.self="closeUploadModal">
+        <div class="modal-content">
+          <h3 class="modal-title">อัปโหลดเอกสารการเงิน</h3>
+          <p class="modal-subtitle">อัปโหลดไฟล์เอกสารการเงินสำหรับ <b>{{ uploadTargetItem?.customerId }}</b></p>
+
+          <div class="modal-body">
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="uploadForm.isNoFinancialData" @change="handleCheckboxChange">
+                ลูกค้าไม่ส่งงบการเงิน
+              </label>
+              <small class="helper-text">(ระบบจะข้ามการดึงข้อมูลจาก DBD และประเมินวงเงินใหม่โดยอ้างอิงจากยอดซื้อเท่านั้น)</small>
+            </div>
+
+            <hr class="divider">
+
+            <div class="upload-fields" :class="{ 'fields-disabled': uploadForm.isNoFinancialData }">
+              <div class="form-group">
+                <label>ข้อมูลบริษัท (Profile PDF)</label>
+                <input type="file" ref="fileProfile" accept="application/pdf" class="form-control" @change="(e) => handleFileChange('profile', e)">
+              </div>
+              <div class="form-group">
+                <label>งบดุล (Balance Sheet Excel)</label>
+                <input type="file" ref="fileBalance" accept=".xlsx" class="form-control" :disabled="uploadForm.isNoFinancialData" @change="(e) => handleFileChange('balanceSheet', e)">
+              </div>
+              <div class="form-group">
+                <label>งบกำไรขาดทุน (Income Statement Excel)</label>
+                <input type="file" ref="fileIncome" accept=".xlsx" class="form-control" :disabled="uploadForm.isNoFinancialData" @change="(e) => handleFileChange('incomeStatement', e)">
+              </div>
+              <div class="form-group">
+                <label>อัตราส่วนทางการเงิน (Financial Ratios Excel)</label>
+                <input type="file" ref="fileRatio" accept=".xlsx" class="form-control" :disabled="uploadForm.isNoFinancialData" @change="(e) => handleFileChange('financialRatios', e)">
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn-cancel" @click="closeUploadModal">ยกเลิก</button>
+            <button class="btn-submit" @click="submitUpload">อัปโหลดไฟล์</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 </template>
 
 <script setup>
@@ -278,10 +325,23 @@ const concurrency = ref(1);
 const showConcurrencySettings = ref(false);
 const selectedModel = ref('existing'); // 'new' or 'existing'
 const limitExponent = ref(0.5);
+
 const activeWorkers = ref(0);
 const bridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 const bridgeStatus = ref('ไม่ทราบสถานะ');
 const isExportDropdownOpen = ref(false); // State for dropdown
+
+// Modal State
+const isUploadModalOpen = ref(false);
+const uploadTargetItem = ref(null);
+const uploadForm = ref({
+  isNoFinancialData: false,
+  profile: null,
+  balanceSheet: null,
+  incomeStatement: null,
+  financialRatios: null
+});
+
 
 // Input Method State
 const inputType = ref('branch'); // Default to 'branch'
@@ -760,7 +820,7 @@ const showDebugFiles = async (item) => {
     // Also check if they only have a profile file uploaded manually previously,
     // which indicates we should still show the manual upload modal if they want to update it.
     // Or if isNoFinancialData is true, we might want to let them change it.
-    if ((!item.isReady || item.isNoFinancialData) && item.isCompany) {
+    if ((!item.isReady) && item.isCompany) {
         return handleManualUpload(item);
     }
 
@@ -847,86 +907,55 @@ const showDebugFiles = async (item) => {
     });
 };
 
-const handleManualUpload = async (item) => {
-    const htmlContent = `
-        <div style="text-align: left; padding: 10px;">
-            <p style="margin-bottom: 15px; color: #666;">อัปโหลดไฟล์เอกสารการเงินสำหรับ <b>${item.customerId}</b></p>
 
-            <div style="margin-bottom: 15px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-weight: bold; color: #dc3545;">
-                    <input type="checkbox" id="no-financial-data-checkbox" style="width: 18px; height: 18px;" ${item.isNoFinancialData ? 'checked' : ''}>
-                    ลูกค้าไม่ส่งงบการเงิน
-                </label>
-                <small style="color: #666; margin-left: 26px; display: block;">(ระบบจะข้ามการดึงข้อมูลจาก DBD และประเมินวงเงินใหม่โดยอ้างอิงจากยอดซื้อเท่านั้น)</small>
-            </div>
+const openUploadModal = (item) => {
+    uploadTargetItem.value = item;
+    uploadForm.value = {
+        isNoFinancialData: item.isNoFinancialData || false,
+        profile: null,
+        balanceSheet: null,
+        incomeStatement: null,
+        financialRatios: null
+    };
+    isUploadModalOpen.value = true;
+};
 
-            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+const closeUploadModal = () => {
+    isUploadModalOpen.value = false;
+    uploadTargetItem.value = null;
+    // Reset file inputs visually (Vue refs might be needed, or just let v-if destroy them)
+};
 
-            <div id="upload-fields" style="display: flex; flex-direction: column; gap: 12px;">
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">ข้อมูลบริษัท (Profile PDF)</label>
-                    <input type="file" id="file-profile" accept="application/pdf" class="form-control" style="font-size: 0.9em; padding: 5px;">
-                </div>
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">งบดุล (Balance Sheet Excel)</label>
-                    <input type="file" id="file-balance-sheet" accept=".xlsx" class="form-control" style="font-size: 0.9em; padding: 5px;" ${item.isNoFinancialData ? 'disabled style="opacity: 0.5"' : ''}>
-                </div>
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">งบกำไรขาดทุน (Income Statement Excel)</label>
-                    <input type="file" id="file-income-statement" accept=".xlsx" class="form-control" style="font-size: 0.9em; padding: 5px;" ${item.isNoFinancialData ? 'disabled style="opacity: 0.5"' : ''}>
-                </div>
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">อัตราส่วนทางการเงิน (Financial Ratios Excel)</label>
-                    <input type="file" id="file-financial-ratios" accept=".xlsx" class="form-control" style="font-size: 0.9em; padding: 5px;" ${item.isNoFinancialData ? 'disabled style="opacity: 0.5"' : ''}>
-                </div>
-            </div>
-        </div>
-    `;
-
-    const { value: result } = await Swal.fire({
-        title: 'อัปโหลดเอกสารการเงิน',
-        html: htmlContent,
-        showCancelButton: true,
-        confirmButtonText: 'อัปโหลดไฟล์',
-        cancelButtonText: 'ยกเลิก',
-        didOpen: () => {
-            const checkbox = document.getElementById('no-financial-data-checkbox');
-            const uploadFields = document.getElementById('upload-fields');
-
-            checkbox.addEventListener('change', (e) => {
-                const isChecked = e.target.checked;
-                // If checked, disable Excel files but keep Profile PDF enabled
-                const inputs = uploadFields.querySelectorAll('input[type="file"]');
-                inputs.forEach(input => {
-                    if (input.id !== 'file-profile') {
-                        input.disabled = isChecked;
-                        input.style.opacity = isChecked ? '0.5' : '1';
-                    }
-                });
-            });
-        },
-        preConfirm: () => {
-            const isNoFinancialData = document.getElementById('no-financial-data-checkbox').checked;
-            const profile = document.getElementById('file-profile').files[0];
-            const balanceSheet = document.getElementById('file-balance-sheet').files[0];
-            const incomeStatement = document.getElementById('file-income-statement').files[0];
-            const financialRatios = document.getElementById('file-financial-ratios').files[0];
-
-            if (isNoFinancialData) {
-                return { isNoFinancialData, profile }; // Profile optional/expected but not strictly failing here if UI permits
-            } else {
-                if (!profile || !balanceSheet || !incomeStatement || !financialRatios) {
-                    Swal.showValidationMessage('กรุณาอัปโหลดไฟล์ให้ครบ 4 ไฟล์ หรือ เลือก "ลูกค้าไม่ส่งงบการเงิน"');
-                    return false;
-                }
-                return { isNoFinancialData, profile, balanceSheet, incomeStatement, financialRatios };
-            }
-        }
-    });
-
-    if (result) {
-        uploadLocalFiles(item, result);
+const handleCheckboxChange = () => {
+    if (uploadForm.value.isNoFinancialData) {
+        uploadForm.value.balanceSheet = null;
+        uploadForm.value.incomeStatement = null;
+        uploadForm.value.financialRatios = null;
+        // The disabled binding handles the UI
     }
+};
+
+const handleFileChange = (field, event) => {
+    const file = event.target.files[0];
+    uploadForm.value[field] = file || null;
+};
+
+const submitUpload = () => {
+    const data = uploadForm.value;
+
+    if (!data.isNoFinancialData) {
+        if (!data.profile || !data.balanceSheet || !data.incomeStatement || !data.financialRatios) {
+            Swal.fire('ข้อมูลไม่ครบ', 'กรุณาอัปโหลดไฟล์ให้ครบ 4 ไฟล์ หรือ เลือก "ลูกค้าไม่ส่งงบการเงิน"', 'warning');
+            return;
+        }
+    }
+
+    uploadLocalFiles(uploadTargetItem.value, data);
+    closeUploadModal();
+};
+
+const handleManualUpload = async (item) => {
+    openUploadModal(item);
 };
 
 const uploadLocalFiles = async (item, data) => {
@@ -1919,9 +1948,136 @@ button:disabled {
     gap: 5px;
     font-weight: bold;
 }
+
 .btn-warning-upload:hover {
     background: #e0a800;
 }
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 550px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.modal-title {
+  margin-top: 0;
+  margin-bottom: 5px;
+  color: #333;
+  font-size: 1.25rem;
+}
+
+.modal-subtitle {
+  margin-bottom: 20px;
+  color: #666;
+}
+
+.checkbox-group {
+  margin-bottom: 15px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+  color: #dc3545;
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  width: 18px;
+  height: 18px;
+}
+
+.helper-text {
+  color: #666;
+  margin-left: 26px;
+  display: block;
+}
+
+.divider {
+  margin: 15px 0;
+  border: 0;
+  border-top: 1px solid #eee;
+}
+
+.upload-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.fields-disabled input[type="file"]:not([ref="fileProfile"]) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 8px;
+  font-size: 0.9em;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.modal-footer {
+  margin-top: 25px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-cancel {
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #333;
+}
+
+.btn-cancel:hover {
+  background: #e2e6ea;
+}
+
+.btn-submit {
+  background: #0056FF;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: white;
+  font-weight: bold;
+}
+
+.btn-submit:hover {
+  background: #0046d1;
+}
+
 
 .progress-info {
   flex: 1;
