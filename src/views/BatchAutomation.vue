@@ -227,7 +227,14 @@
             </td>
             <td>
                 <button
-                    v-if="item.isCompany || item.debugFiles"
+                    v-if="item.status === 'Pending' && !item.isReady && item.isCompany && item.log.includes('รอโหลดไฟล์ DBD')"
+                    class="btn-warning-upload"
+                    @click="showDebugFiles(item)"
+                >
+                    ⚠️ อัปโหลด DBD
+                </button>
+                <button
+                    v-else-if="item.isCompany || item.debugFiles"
                     class="btn-debug-files"
                     @click="showDebugFiles(item)"
                 >
@@ -423,6 +430,7 @@ const getGradeClass = (grade) => {
 
 const getRowClass = (item) => {
   if (item.status === 'Processing') return 'row-active';
+  if (item.status === 'Pending' && !item.isReady && item.isCompany && item.log.includes('รอโหลดไฟล์ DBD')) return 'row-warning';
   return '';
 };
 
@@ -1898,6 +1906,23 @@ button:disabled {
     background: #5a6268;
 }
 
+.btn-warning-upload {
+    background: #ffc107;
+    color: #212529;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: bold;
+}
+.btn-warning-upload:hover {
+    background: #e0a800;
+}
+
 .progress-info {
   flex: 1;
   margin-left: 20px;
@@ -1958,6 +1983,10 @@ button:disabled {
 
 .row-active {
   background: #e3f2fd;
+}
+
+.row-warning {
+  background: #fff3cd;
 }
 
 .status-badge {
