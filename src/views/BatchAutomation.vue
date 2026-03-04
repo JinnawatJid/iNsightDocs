@@ -146,7 +146,7 @@
         @click="checkReadiness"
         :disabled="isProcessing || queue.length === 0"
       >
-        ตรวจสอบความพร้อม (DBD)
+        ตรวจเอกสารการเงิน
       </button>
 
       <!-- DROPDOWN FOR EXPORT -->
@@ -837,15 +837,21 @@ const checkReadiness = async () => {
 
         if (res.data.success) {
             const results = res.data.results;
-            const readyItems = results.filter(r => r.isReady);
+
+            // Separate into 3 categories: Ready, Not Ready, and Skipped (Not Company)
+            const readyItems = results.filter(r => r.isReady && !r.isSkipped);
             const notReadyItems = results.filter(r => !r.isReady);
+            const skippedItems = results.filter(r => r.isSkipped);
 
             // Update queue logs/status to reflect readiness
             queue.value.forEach(item => {
                 const checkRes = results.find(r => r.customerId === item.customerId);
                 if (checkRes) {
                     item.isReady = checkRes.isReady; // Store for styling if needed
-                    if (!checkRes.isReady && item.status === 'Pending') {
+
+                    if (checkRes.isSkipped && item.status === 'Pending') {
+                        item.log = `ข้าม (ไม่ใช่บริษัท)`;
+                    } else if (!checkRes.isReady && item.status === 'Pending') {
                         // Just an informative log, we don't change status to Error yet
                         item.log = `รอโหลดไฟล์ DBD (${checkRes.reason})`;
                     } else if (checkRes.isReady && item.status === 'Pending') {
@@ -859,6 +865,7 @@ const checkReadiness = async () => {
                 <div style="text-align: left; padding: 10px;">
                     <p><strong>ทั้งหมด:</strong> ${results.length} รายการ</p>
                     <p style="color: #28a745;"><strong>พร้อมดำเนินการ (มีไฟล์ครบ):</strong> ${readyItems.length} รายการ</p>
+                    ${skippedItems.length > 0 ? `<p style="color: #6c757d;"><strong>ข้าม (ไม่ใช่บริษัท/บุคคลธรรมดา):</strong> ${skippedItems.length} รายการ</p>` : ''}
                     <p style="color: #dc3545;"><strong>ต้องโหลดไฟล์ใหม่ (Bridge):</strong> ${notReadyItems.length} รายการ</p>
                     ${notReadyItems.length > 0 ? `<p style="font-size: 0.9em; margin-top: 10px; color: #666;">รายการที่ไม่พร้อม จะถูกดาวน์โหลดจาก DBD อัตโนมัติเมื่อกดเริ่มประมวลผล</p>` : ''}
                 </div>

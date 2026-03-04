@@ -23,6 +23,19 @@ Users can upload an `.xlsx` file containing a list of Customer IDs.
 *   **Format**: The system automatically detects the Customer ID column based on header heuristics (e.g., "Code", "Customer ID", "No.").
 *   **Use Case**: Ideal for custom lists or cross-branch processing.
 
+## Readiness Check (ตรวจเอกสารการเงิน)
+Before starting the batch process, users can verify if the required financial documents (DBD files) are already available on the server.
+
+*   **Button:** `ตรวจเอกสารการเงิน` (Check Financial Documents)
+*   **API:** `POST /api/financials/check-local-batch`
+*   **Logic:**
+    1.  The backend iterates through the provided Customer IDs.
+    2.  For each ID, it fetches the customer's basic information (Name and Tax ID) from the Customer API.
+    3.  **Company Validation:** It checks if the customer is a corporate entity by looking for keywords in the name (e.g., "บริษัท", "หจก.", "co.", "ltd.") and ensuring a valid Tax ID exists.
+    4.  **Skipping Individuals:** If the customer is an individual (not a company), they are automatically marked as `isSkipped: true` with the reason "ข้าม (ไม่ใช่บริษัท)". They do not need DBD files and are excluded from the "Needs Download" count.
+    5.  **File Check:** For valid companies, it checks the local file system for fresh DBD files (within 180 days).
+*   **Result Display:** The frontend presents a SweetAlert2 summary showing the count of Ready items, Skipped items (Individuals), and items that need to be downloaded from the Bridge.
+
 ## Processing Workflow
 The system includes a confirmation step to prevent accidental processing and ensure the correct configuration is applied.
 
