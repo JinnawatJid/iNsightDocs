@@ -779,7 +779,7 @@ const showDebugFiles = async (item) => {
     htmlContent += '</div>';
 
     const result = await Swal.fire({
-        title: 'ไฟล์ตรวจสอบ',
+        title: 'ข้อมูลการเงิน',
         html: htmlContent,
         showCloseButton: true,
         showConfirmButton: false,
