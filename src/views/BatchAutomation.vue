@@ -1139,6 +1139,16 @@ const processNextItem = async () => {
 
         if (useLocalFiles) {
             // Logic for Local Files
+
+            // NAME MATCHING VALIDATION FOR LOCAL FILES
+            if (item.dbdCompanyName) {
+                const normDbd = normalizeCompanyName(item.dbdCompanyName);
+                const normDyn = normalizeCompanyName(item.name);
+                if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
+                    throw new Error('ชื่อบริษัทไม่ตรงกับ DBD (Local)');
+                }
+            }
+
             formData.append('use_local', 'true');
             // We still need to pass yearsInBusiness if possible, or let backend fetch it?
             // Current backend logic for 'use_local' fetches files but relies on passed params for some data.
@@ -1161,15 +1171,7 @@ const processNextItem = async () => {
                     throw new Error('ดาวน์โหลด DBD ไม่สำเร็จ (กรุณาลองใหม่)');
                 }
 
-                // NAME MATCHING VALIDATION
-                if (downloadResult.dbdCompanyName) {
-                    const normDbd = normalizeCompanyName(downloadResult.dbdCompanyName);
-                    const normDyn = normalizeCompanyName(item.name);
-                    // allow if one is substring of other (e.g. D365 name might be cut off)
-                    if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
-                        throw new Error('ชื่อบริษัทไม่ตรงกับ DBD');
-                    }
-                }
+                // NOTE: Name mismatch validation is moved below to ensure debugFiles are populated
                 const required = ['profile', 'balanceSheet', 'incomeStatement', 'financialRatios'];
                 const missing = required.filter(k => !downloadResult.files[k]);
                 if (missing.length > 0) {
@@ -1186,10 +1188,20 @@ const processNextItem = async () => {
             }
 
             if (downloadResult) {
-                // Save debug info
+                // Save debug info BEFORE potential mismatch throw so users can inspect the mismatched names
                 item.debugFiles = downloadResult.files;
                 if (downloadResult.dbdCompanyName) {
                     item.dbdCompanyName = downloadResult.dbdCompanyName;
+                }
+
+                // NAME MATCHING VALIDATION FOR BRIDGE FILES
+                if (!skipDBD && downloadResult.dbdCompanyName) {
+                    const normDbd = normalizeCompanyName(downloadResult.dbdCompanyName);
+                    const normDyn = normalizeCompanyName(item.name);
+                    // allow if one is substring of other (e.g. D365 name might be cut off)
+                    if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
+                        throw new Error('ชื่อบริษัทไม่ตรงกับ DBD');
+                    }
                 }
 
                 // Append Files
