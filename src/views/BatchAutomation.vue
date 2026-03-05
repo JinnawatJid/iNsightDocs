@@ -766,6 +766,25 @@ const showDebugFiles = async (item) => {
     ];
 
     let htmlContent = '<div style="text-align: left; padding: 10px;">';
+
+    // Display extracted Tax ID and Name if available
+    if (item.taxId || item.dbdCompanyName) {
+         htmlContent += '<div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 10px; margin-bottom: 15px;">';
+         htmlContent += `<p style="margin: 0 0 5px 0;"><strong>ชื่อนิติบุคคล (DBD):</strong> ${item.dbdCompanyName || 'ไม่พบข้อมูล'}</p>`;
+         htmlContent += `<p style="margin: 0;"><strong>เลขประจำตัวผู้เสียภาษี:</strong> ${item.taxId || '-'}</p>`;
+
+         if (item.name && item.dbdCompanyName) {
+             const normDbd = normalizeCompanyName(item.dbdCompanyName);
+             const normDyn = normalizeCompanyName(item.name);
+             if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
+                  htmlContent += `<p style="margin: 5px 0 0 0; color: #dc3545; font-size: 0.9em; font-weight: bold;">⚠️ ข้อมูลใน D365 (${item.name}) ไม่ตรงกับ DBD</p>`;
+             } else {
+                  htmlContent += `<p style="margin: 5px 0 0 0; color: #28a745; font-size: 0.9em; font-weight: bold;">✅ ข้อมูลตรงกัน</p>`;
+             }
+         }
+         htmlContent += '</div>';
+    }
+
     htmlContent += '<p style="margin-bottom: 15px;">คลิกที่ปุ่มเพื่อดาวน์โหลดไฟล์ต้นฉบับ:</p>';
 
     files.forEach(f => {
@@ -1066,6 +1085,10 @@ const processNextItem = async () => {
                     useLocalFiles = true;
                     item.log = 'ใช้ข้อมูลที่มีอยู่ (Local)';
 
+                    if (localCheck.dbdCompanyName) {
+                        item.dbdCompanyName = localCheck.dbdCompanyName;
+                    }
+
                     // Create metadata for debugFiles (No Base64 content)
                     // We map the same keys as Bridge: profile, balanceSheet, incomeStatement, financialRatios
                     item.debugFiles = {
@@ -1164,6 +1187,9 @@ const processNextItem = async () => {
             if (downloadResult) {
                 // Save debug info
                 item.debugFiles = downloadResult.files;
+                if (downloadResult.dbdCompanyName) {
+                    item.dbdCompanyName = downloadResult.dbdCompanyName;
+                }
 
                 // Append Files
                 if (downloadResult.files.balanceSheet) {
