@@ -426,6 +426,23 @@ const getRowClass = (item) => {
   return '';
 };
 
+const normalizeCompanyName = (name) => {
+    if (!name) return '';
+    const prefixes = ['บริษัท', 'จำกัด', 'บจก.', 'หจก.', 'ห้างหุ้นส่วนจำกัด', '\\(มหาชน\\)', 'มหาชน', 'ltd.', 'ltd', 'co.', 'co', 'company', 'limited', 'public', 'plc.', 'plc', 'corp.', 'corp', 'inc.', 'inc'];
+    let normalized = String(name).toLowerCase();
+
+    // Remove all types of spaces and punctuation
+    normalized = normalized.replace(/[\\s\\.,\\-\\(\)]/g, '');
+
+    // Remove prefixes/suffixes
+    for (const prefix of prefixes) {
+        const regex = new RegExp(prefix, 'gi');
+        normalized = normalized.replace(regex, '');
+    }
+
+    return normalized.trim();
+};
+
 const translateStatus = (status) => {
   const map = {
     'Pending': '⏳ รอคิว',
@@ -685,6 +702,7 @@ const connectToBridge = (taxId, customerCode) => {
            // Process Data
            let registeredCapital = 0;
            let registrationDate = null;
+           let dbdCompanyName = null;
 
            if (data.data) {
              if (data.data.debug) {
@@ -700,8 +718,9 @@ const connectToBridge = (taxId, customerCode) => {
              yearsInBusiness = data.data.yearsInBusiness || 0;
              registeredCapital = data.data.registeredCapital || 0;
              registrationDate = data.data.registrationDate || null;
+             dbdCompanyName = data.data.dbdCompanyName || null;
            }
-           resolve({ files: resultFiles, yearsInBusiness, registeredCapital, registrationDate });
+           resolve({ files: resultFiles, yearsInBusiness, registeredCapital, registrationDate, dbdCompanyName });
         } else if (data.status === 'error') {
            evtSource.close();
            reject(new Error(data.message || 'Bridge Error'));
@@ -980,12 +999,11 @@ const processNextItem = async () => {
         const nameLower = (item.name || '').toLowerCase();
         const isCorporate = corporateKeywords.some(k => nameLower.includes(k));
 
-        if (!item.taxId || item.taxId.length < 5) {
-            item.log = 'ข้าม DBD (ไม่มี Tax ID)';
-            skipDBD = true;
-        } else if (!isCorporate) {
+        if (!isCorporate) {
             item.log = 'ข้าม DBD (ไม่ใช่บริษัท)';
             skipDBD = true;
+        } else if (!item.taxId || String(item.taxId).trim().length !== 13) {
+            throw new Error('เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง/ไม่พบ');
         }
 
         // 2. Check for Local Files First
@@ -1072,6 +1090,16 @@ const processNextItem = async () => {
             if (!skipDBD) {
                 if (!downloadResult) {
                     throw new Error('ดาวน์โหลด DBD ไม่สำเร็จ (กรุณาลองใหม่)');
+                }
+
+                // NAME MATCHING VALIDATION
+                if (downloadResult.dbdCompanyName) {
+                    const normDbd = normalizeCompanyName(downloadResult.dbdCompanyName);
+                    const normDyn = normalizeCompanyName(item.name);
+                    // allow if one is substring of other (e.g. D365 name might be cut off)
+                    if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
+                        throw new Error('ชื่อบริษัทไม่ตรงกับ DBD');
+                    }
                 }
                 const required = ['profile', 'balanceSheet', 'incomeStatement', 'financialRatios'];
                 const missing = required.filter(k => !downloadResult.files[k]);
