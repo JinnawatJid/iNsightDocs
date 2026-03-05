@@ -857,9 +857,32 @@ const checkReadiness = async () => {
         if (res.data.success) {
             const results = res.data.results;
 
-            // Separate into 3 categories: Ready, Not Ready, and Skipped (Not Company)
+            // Name Mismatch Validation for local files
+            const mismatchItems = [];
+            results.forEach(r => {
+                if (r.isReady && !r.isSkipped && r.dbdCompanyName) {
+                    const queueItem = queue.value.find(q => q.customerId === r.customerId);
+                    if (queueItem && queueItem.name) {
+                        const normDbd = normalizeCompanyName(r.dbdCompanyName);
+                        const normDyn = normalizeCompanyName(queueItem.name);
+
+                        if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
+                            mismatchItems.push({
+                                customerId: r.customerId,
+                                dynName: queueItem.name,
+                                dbdName: r.dbdCompanyName
+                            });
+                            // Mark as not ready so it gets caught or flagged
+                            r.isReady = false;
+                            r.reason = 'ชื่อบริษัทไม่ตรงกับ DBD';
+                        }
+                    }
+                }
+            });
+
+            // Separate into categories
             const readyItems = results.filter(r => r.isReady && !r.isSkipped);
-            const notReadyItems = results.filter(r => !r.isReady);
+            const notReadyItems = results.filter(r => !r.isReady && r.reason !== 'ชื่อบริษัทไม่ตรงกับ DBD');
             const skippedItems = results.filter(r => r.isSkipped);
 
             // Update queue logs/status to reflect readiness
@@ -868,10 +891,13 @@ const checkReadiness = async () => {
                 if (checkRes) {
                     item.isReady = checkRes.isReady; // Store for styling if needed
 
-                    if (checkRes.isSkipped && item.status === 'Pending') {
+                    if (checkRes.reason === 'ชื่อบริษัทไม่ตรงกับ DBD') {
+                         item.status = 'Error';
+                         item.log = 'ชื่อบริษัทไม่ตรงกับ DBD';
+                    } else if (checkRes.isSkipped && item.status === 'Pending') {
                         item.log = `ข้าม (ไม่ใช่บริษัท)`;
                     } else if (!checkRes.isReady && item.status === 'Pending') {
-                        // Just an informative log, we don't change status to Error yet
+                        // Just an informative log
                         item.log = `รอโหลดไฟล์ DBD (${checkRes.reason})`;
                     } else if (checkRes.isReady && item.status === 'Pending') {
                         item.log = `มีไฟล์พร้อมดำเนินการ`;
@@ -880,6 +906,24 @@ const checkReadiness = async () => {
             });
 
             // Show Summary
+            let mismatchHtml = '';
+            if (mismatchItems.length > 0) {
+                mismatchHtml = `
+                    <div style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 10px;">
+                        <p style="color: #dc3545; font-weight: bold; margin-bottom: 5px;">⚠️ ตรวจพบชื่อไม่ตรงกัน (${mismatchItems.length} รายการ)</p>
+                        <div style="max-height: 150px; overflow-y: auto; font-size: 0.85em; border: 1px solid #eee; padding: 5px; background: #fff;">
+                            ${mismatchItems.map(m => `
+                                <div style="margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
+                                    <strong>รหัส:</strong> ${m.customerId}<br>
+                                    <span style="color: #666;">D365:</span> ${m.dynName}<br>
+                                    <span style="color: #d9534f;">DBD:</span> ${m.dbdName}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
             const htmlContent = `
                 <div style="text-align: left; padding: 10px;">
                     <p><strong>ทั้งหมด:</strong> ${results.length} รายการ</p>
@@ -887,6 +931,7 @@ const checkReadiness = async () => {
                     ${skippedItems.length > 0 ? `<p style="color: #6c757d;"><strong>ข้าม (ไม่ใช่บริษัท/บุคคลธรรมดา):</strong> ${skippedItems.length} รายการ</p>` : ''}
                     <p style="color: #dc3545;"><strong>ต้องโหลดไฟล์ใหม่ (Bridge):</strong> ${notReadyItems.length} รายการ</p>
                     ${notReadyItems.length > 0 ? `<p style="font-size: 0.9em; margin-top: 10px; color: #666;">รายการที่ไม่พร้อม จะถูกดาวน์โหลดจาก DBD อัตโนมัติเมื่อกดเริ่มประมวลผล</p>` : ''}
+                    ${mismatchHtml}
                 </div>
             `;
 

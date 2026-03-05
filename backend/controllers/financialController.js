@@ -971,6 +971,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
 
         const fileDetails = {};
 
+        let dbdCompanyName = null;
         for (const file of requiredFiles) {
             const filePath = path.join(latestPath, file.name);
             if (!await fs.pathExists(filePath)) {
@@ -985,6 +986,20 @@ const checkSingleCustomerFiles = async (customer_no) => {
                 date: stats.mtime, // Modification time
                 path: filePath
             };
+
+            if (file.key === 'profile') {
+                try {
+                    const dataBuffer = await fs.readFile(filePath);
+                    const data = await pdf(dataBuffer);
+                    const nameRegex = /ชื่อนิติบุคคล\s*[:]\s*([^\n]+)/;
+                    const nameMatch = data.text.match(nameRegex);
+                    if (nameMatch) {
+                        dbdCompanyName = nameMatch[1].trim();
+                    }
+                } catch (pdfErr) {
+                    console.warn('Failed to parse profile for name:', pdfErr.message);
+                }
+            }
         }
 
         return {
@@ -992,7 +1007,8 @@ const checkSingleCustomerFiles = async (customer_no) => {
             date: latestFolder,
             daysOld: diffDays,
             path: latestPath,
-            files: fileDetails
+            files: fileDetails,
+            dbdCompanyName: dbdCompanyName
         };
     } catch (error) {
         console.error(`Check Local Files Error for ${customer_no}:`, error);
@@ -1064,7 +1080,8 @@ exports.checkLocalFilesBatch = async (req, res) => {
             isReady: result.exists,
             isSkipped: false,
             reason: result.reason || 'Ready',
-            date: result.date || null
+            date: result.date || null,
+            dbdCompanyName: result.dbdCompanyName || null
         });
     }
 
