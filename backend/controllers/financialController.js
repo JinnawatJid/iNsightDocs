@@ -6,6 +6,7 @@ const path = require('path');
 const { calculateSlope, calculateTrendRatio, generateContinuousTimeline, findYearlySeries } = require('../services/financialCalculator');
 const ScoringEngine = require('../services/scoring/ScoringEngine');
 const { extractDBDData } = require('../utils/pdfExtractor');
+const pdf = require('pdf-parse');
 
 // Configuration
 const FINANCIAL_API_URL = "http://192.192.0.37:8280/sales-summary-6-months/1.0.0";

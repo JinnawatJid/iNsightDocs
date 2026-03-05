@@ -875,6 +875,7 @@ const checkReadiness = async () => {
 
         if (res.data.success) {
             const results = res.data.results;
+            console.log('Batch check results:', results);
 
             // Name Mismatch Validation for local files
             const mismatchItems = [];
