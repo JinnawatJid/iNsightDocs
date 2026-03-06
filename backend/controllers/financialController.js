@@ -6,6 +6,7 @@ const path = require('path');
 const { calculateSlope, calculateTrendRatio, generateContinuousTimeline, findYearlySeries } = require('../services/financialCalculator');
 const ScoringEngine = require('../services/scoring/ScoringEngine');
 const { extractDBDData } = require('../utils/pdfExtractor');
+const pdf = require('pdf-parse');
 
 // Configuration
 const FINANCIAL_API_URL = "http://192.192.0.37:8280/sales-summary-6-months/1.0.0";
@@ -971,6 +972,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
 
         const fileDetails = {};
 
+        let dbdCompanyName = null;
         for (const file of requiredFiles) {
             const filePath = path.join(latestPath, file.name);
             if (!await fs.pathExists(filePath)) {
@@ -985,6 +987,18 @@ const checkSingleCustomerFiles = async (customer_no) => {
                 date: stats.mtime, // Modification time
                 path: filePath
             };
+
+            if (file.key === 'profile') {
+                try {
+                    const dataBuffer = await fs.readFile(filePath);
+                    const extracted = await extractDBDData(dataBuffer);
+                    if (extracted.success && extracted.companyName) {
+                        dbdCompanyName = extracted.companyName;
+                    }
+                } catch (pdfErr) {
+                    console.warn('Failed to parse profile for name:', pdfErr.message);
+                }
+            }
         }
 
         return {
@@ -992,7 +1006,8 @@ const checkSingleCustomerFiles = async (customer_no) => {
             date: latestFolder,
             daysOld: diffDays,
             path: latestPath,
-            files: fileDetails
+            files: fileDetails,
+            dbdCompanyName: dbdCompanyName
         };
     } catch (error) {
         console.error(`Check Local Files Error for ${customer_no}:`, error);
@@ -1064,7 +1079,8 @@ exports.checkLocalFilesBatch = async (req, res) => {
             isReady: result.exists,
             isSkipped: false,
             reason: result.reason || 'Ready',
-            date: result.date || null
+            date: result.date || null,
+            dbdCompanyName: result.dbdCompanyName || null
         });
     }
 

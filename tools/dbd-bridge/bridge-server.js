@@ -31,6 +31,9 @@ const extractDBDData = async (pdfPath) => {
         const data = await pdf(dataBuffer);
         const text = data.text;
 
+        let yearsInBusiness = null;
+        let dbdCompanyName = null;
+
         const dateRegex = /วันที่จดทะเบียนจัดตั้ง\s*[:]\s*(\d{2}\/\d{2}\/\d{4})/;
         const match = text.match(dateRegex);
 
@@ -39,13 +42,37 @@ const extractDBDData = async (pdfPath) => {
             const parts = dateStr.split('/');
             const yearBE = parseInt(parts[2]);
             const currentYearBE = new Date().getFullYear() + 543;
-            const yearsInBusiness = currentYearBE - yearBE;
-            return yearsInBusiness;
+            yearsInBusiness = currentYearBE - yearBE;
         }
+
+        const nameRegex = /ชื่อนิติบุคคล\s*[:]\s*([^\n]+)/;
+        const nameMatch = text.match(nameRegex);
+        if (nameMatch) {
+            dbdCompanyName = nameMatch[1].trim();
+        } else {
+            // Heuristic prefix match
+            const prefixRegex = /(?:ห้างหุ้นส่วนจำกัด|บริษัท|บ\.|หจก\.)\s+[^\n]+/;
+            const prefixMatch = text.match(prefixRegex);
+            if (prefixMatch) {
+                let extractedName = prefixMatch[0].trim();
+                const endLabels = ["ข้อมูล", "เลขทะเบียน", "วันที่", "เอกสาร"];
+                for (const label of endLabels) {
+                    const idx = extractedName.indexOf(label);
+                    if (idx > 0) {
+                        extractedName = extractedName.substring(0, idx).trim();
+                    }
+                }
+                if (extractedName.length > 5) {
+                    dbdCompanyName = extractedName;
+                }
+            }
+        }
+
+        return { yearsInBusiness, dbdCompanyName };
     } catch (error) {
         console.error('[DBD Extract] Error:', error.message);
     }
-    return null;
+    return { yearsInBusiness: null, dbdCompanyName: null };
 };
 
 app.get('/stream', async (req, res) => {
@@ -240,7 +267,7 @@ app.get('/stream', async (req, res) => {
         // 6. Process Files
         sendSSE(res, { status: 'progress', message: 'Processing files...' });
 
-        const yearsInBusiness = await extractDBDData(profilePdf);
+        const { yearsInBusiness, dbdCompanyName } = await extractDBDData(profilePdf);
 
         const pdfBase64 = await fs.readFile(profilePdf, 'base64');
         const excelBase64 = balanceSheetExcel ? await fs.readFile(balanceSheetExcel, 'base64') : null;
@@ -258,7 +285,8 @@ app.get('/stream', async (req, res) => {
                     content: excelBase64,
                     mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 } : null,
-                yearsInBusiness
+                yearsInBusiness,
+                dbdCompanyName
             }
         });
 

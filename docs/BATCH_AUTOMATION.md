@@ -93,3 +93,12 @@ The system enhances the "Local Files" check to provide more context:
 *   **Metadata**: The `check-local` endpoint now returns file size (bytes) and modification date (`mtime`) for each file. This is displayed in the "Debug Files" popup.
 *   **Extraction Fallback**: If a request uses local files but lacks "Registered Capital" or "Years in Business" data (e.g., from an incomplete Excel upload), the backend (`financialController.js`) automatically extracts this data from the stored `DBD_Profile.pdf` using a dedicated utility (`backend/utils/pdfExtractor.js`).
 *   **Download Links**: The `/download-local` endpoint supports both snake_case (`balance_sheet`) and camelCase (`balanceSheet`) keys to ensure compatibility with the frontend.
+
+## Validation and Error Handling
+To ensure data accuracy during automated downloads, the system implements several validation steps:
+1.  **Tax ID Validation:** Before initiating any scrape, the system verifies that corporate customers have a valid, 13-digit Tax ID. If missing or invalid, the download is skipped, and the UI flags an error ("เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง/ไม่พบ").
+2.  **Name Matching (Non-Blocking Warning):**
+    * After downloading the DBD Profile PDF, the system extracts the official company name.
+    * It normalizes this name (removing common prefixes/suffixes like "บริษัท", "จำกัด") and compares it against the customer name stored in Dynamics 365.
+    * **If a mismatch occurs**, the system does *not* halt the process. Instead, it flags the row with a yellow warning highlight (`hasNameMismatch = true`) and displays a ⚠️ icon.
+    * The user can immediately click the **"📁 ไฟล์" (Files)** button to manually inspect the downloaded Profile PDF and verify the entity before proceeding with the credit evaluation.

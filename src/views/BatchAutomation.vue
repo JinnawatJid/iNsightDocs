@@ -423,7 +423,32 @@ const getGradeClass = (grade) => {
 
 const getRowClass = (item) => {
   if (item.status === 'Processing') return 'row-active';
+  if (item.hasNameMismatch) return 'row-warning';
   return '';
+};
+
+const normalizeCompanyName = (name) => {
+    if (!name) return '';
+    let normalized = String(name).toLowerCase();
+
+    // Escape special characters in prefix/suffix strings for RegExp
+    const escapeRegExp = (string) => {
+        return string.replace(/[.*+?^\$\{}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+    };
+
+    // Ordered to remove larger phrases first
+    const prefixes = ['บริษัท', 'จำกัด', 'บจก.', 'หจก.', 'ห้างหุ้นส่วนจำกัด', '(มหาชน)', 'มหาชน', 'ltd.', 'ltd', 'co.', 'co', 'company', 'limited', 'public', 'plc.', 'plc', 'corp.', 'corp', 'inc.', 'inc'];
+
+    // Remove prefixes/suffixes FIRST (before stripping punctuation)
+    for (const prefix of prefixes) {
+        const regex = new RegExp(escapeRegExp(prefix), 'gi');
+        normalized = normalized.replace(regex, '');
+    }
+
+    // Finally, remove all types of spaces and punctuation
+    normalized = normalized.replace(/[\\s.,()\\-]/g, '');
+
+    return normalized.trim();
 };
 
 const translateStatus = (status) => {
@@ -509,6 +534,7 @@ const fetchByBranch = async () => {
                     grade: '',
                     status: 'Pending',
                     log: '',
+                    hasNameMismatch: false,
                     files: {},
                     debugFiles: null,
                     analysisResult: null,
@@ -685,6 +711,7 @@ const connectToBridge = (taxId, customerCode) => {
            // Process Data
            let registeredCapital = 0;
            let registrationDate = null;
+           let dbdCompanyName = null;
 
            if (data.data) {
              if (data.data.debug) {
@@ -700,8 +727,9 @@ const connectToBridge = (taxId, customerCode) => {
              yearsInBusiness = data.data.yearsInBusiness || 0;
              registeredCapital = data.data.registeredCapital || 0;
              registrationDate = data.data.registrationDate || null;
+             dbdCompanyName = data.data.dbdCompanyName || null;
            }
-           resolve({ files: resultFiles, yearsInBusiness, registeredCapital, registrationDate });
+           resolve({ files: resultFiles, yearsInBusiness, registeredCapital, registrationDate, dbdCompanyName });
         } else if (data.status === 'error') {
            evtSource.close();
            reject(new Error(data.message || 'Bridge Error'));
@@ -747,6 +775,25 @@ const showDebugFiles = async (item) => {
     ];
 
     let htmlContent = '<div style="text-align: left; padding: 10px;">';
+
+    // Display extracted Tax ID and Name if available
+    if (item.taxId || item.dbdCompanyName) {
+         htmlContent += '<div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 10px; margin-bottom: 15px;">';
+         htmlContent += `<p style="margin: 0 0 5px 0;"><strong>ชื่อนิติบุคคล (DBD):</strong> ${item.dbdCompanyName || 'ไม่พบข้อมูล'}</p>`;
+         htmlContent += `<p style="margin: 0;"><strong>เลขประจำตัวผู้เสียภาษี:</strong> ${item.taxId || '-'}</p>`;
+
+         if (item.name && item.dbdCompanyName) {
+             const normDbd = normalizeCompanyName(item.dbdCompanyName);
+             const normDyn = normalizeCompanyName(item.name);
+             if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
+                  htmlContent += `<p style="margin: 5px 0 0 0; color: #dc3545; font-size: 0.9em; font-weight: bold;">⚠️ ข้อมูลใน D365 (${item.name}) ไม่ตรงกับ DBD</p>`;
+             } else {
+                  htmlContent += `<p style="margin: 5px 0 0 0; color: #28a745; font-size: 0.9em; font-weight: bold;">✅ ข้อมูลตรงกัน</p>`;
+             }
+         }
+         htmlContent += '</div>';
+    }
+
     htmlContent += '<p style="margin-bottom: 15px;">คลิกที่ปุ่มเพื่อดาวน์โหลดไฟล์ต้นฉบับ:</p>';
 
     files.forEach(f => {
@@ -837,8 +884,32 @@ const checkReadiness = async () => {
 
         if (res.data.success) {
             const results = res.data.results;
+            console.log('Batch check results:', results);
 
-            // Separate into 3 categories: Ready, Not Ready, and Skipped (Not Company)
+            // Name Mismatch Validation for local files
+            const mismatchItems = [];
+            results.forEach(r => {
+                if (r.isReady && !r.isSkipped && r.dbdCompanyName) {
+                    const queueItem = queue.value.find(q => q.customerId === r.customerId);
+                    if (queueItem && queueItem.name) {
+                        const normDbd = normalizeCompanyName(r.dbdCompanyName);
+                        const normDyn = normalizeCompanyName(queueItem.name);
+
+                        if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
+                            mismatchItems.push({
+                                customerId: r.customerId,
+                                dynName: queueItem.name,
+                                dbdName: r.dbdCompanyName
+                            });
+                            // We do not mark as not ready, just log the mismatch warning
+                            queueItem.hasNameMismatch = true;
+                            r.hasNameMismatch = true;
+                        }
+                    }
+                }
+            });
+
+            // Separate into categories
             const readyItems = results.filter(r => r.isReady && !r.isSkipped);
             const notReadyItems = results.filter(r => !r.isReady);
             const skippedItems = results.filter(r => r.isSkipped);
@@ -852,15 +923,43 @@ const checkReadiness = async () => {
                     if (checkRes.isSkipped && item.status === 'Pending') {
                         item.log = `ข้าม (ไม่ใช่บริษัท)`;
                     } else if (!checkRes.isReady && item.status === 'Pending') {
-                        // Just an informative log, we don't change status to Error yet
+                        // Just an informative log
                         item.log = `รอโหลดไฟล์ DBD (${checkRes.reason})`;
                     } else if (checkRes.isReady && item.status === 'Pending') {
                         item.log = `มีไฟล์พร้อมดำเนินการ`;
+                        // Populate debugFiles metadata so the "📁 ไฟล์" button appears and functions
+                        item.debugFiles = {
+                            profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' },
+                            balanceSheet: { type: 'local', filename: 'DBD_BalanceSheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                            incomeStatement: { type: 'local', filename: 'DBD_IncomeStatement.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                            financialRatios: { type: 'local', filename: 'DBD_FinancialRatios.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+                        };
+                        if (checkRes.dbdCompanyName) {
+                            item.dbdCompanyName = checkRes.dbdCompanyName;
+                        }
                     }
                 }
             });
 
             // Show Summary
+            let mismatchHtml = '';
+            if (mismatchItems.length > 0) {
+                mismatchHtml = `
+                    <div style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 10px;">
+                        <p style="color: #dc3545; font-weight: bold; margin-bottom: 5px;">⚠️ ตรวจพบชื่อไม่ตรงกัน (${mismatchItems.length} รายการ)</p>
+                        <div style="max-height: 150px; overflow-y: auto; font-size: 0.85em; border: 1px solid #eee; padding: 5px; background: #fff;">
+                            ${mismatchItems.map(m => `
+                                <div style="margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 5px;">
+                                    <strong>รหัส:</strong> ${m.customerId}<br>
+                                    <span style="color: #666;">D365:</span> ${m.dynName}<br>
+                                    <span style="color: #d9534f;">DBD:</span> ${m.dbdName}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
             const htmlContent = `
                 <div style="text-align: left; padding: 10px;">
                     <p><strong>ทั้งหมด:</strong> ${results.length} รายการ</p>
@@ -868,6 +967,7 @@ const checkReadiness = async () => {
                     ${skippedItems.length > 0 ? `<p style="color: #6c757d;"><strong>ข้าม (ไม่ใช่บริษัท/บุคคลธรรมดา):</strong> ${skippedItems.length} รายการ</p>` : ''}
                     <p style="color: #dc3545;"><strong>ต้องโหลดไฟล์ใหม่ (Bridge):</strong> ${notReadyItems.length} รายการ</p>
                     ${notReadyItems.length > 0 ? `<p style="font-size: 0.9em; margin-top: 10px; color: #666;">รายการที่ไม่พร้อม จะถูกดาวน์โหลดจาก DBD อัตโนมัติเมื่อกดเริ่มประมวลผล</p>` : ''}
+                    ${mismatchHtml}
                 </div>
             `;
 
@@ -980,12 +1080,11 @@ const processNextItem = async () => {
         const nameLower = (item.name || '').toLowerCase();
         const isCorporate = corporateKeywords.some(k => nameLower.includes(k));
 
-        if (!item.taxId || item.taxId.length < 5) {
-            item.log = 'ข้าม DBD (ไม่มี Tax ID)';
-            skipDBD = true;
-        } else if (!isCorporate) {
+        if (!isCorporate) {
             item.log = 'ข้าม DBD (ไม่ใช่บริษัท)';
             skipDBD = true;
+        } else if (!item.taxId || String(item.taxId).trim().length !== 13) {
+            throw new Error('เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง/ไม่พบ');
         }
 
         // 2. Check for Local Files First
@@ -1002,6 +1101,10 @@ const processNextItem = async () => {
                 if (localCheck && localCheck.exists) {
                     useLocalFiles = true;
                     item.log = 'ใช้ข้อมูลที่มีอยู่ (Local)';
+
+                    if (localCheck.dbdCompanyName) {
+                        item.dbdCompanyName = localCheck.dbdCompanyName;
+                    }
 
                     // Create metadata for debugFiles (No Base64 content)
                     // We map the same keys as Bridge: profile, balanceSheet, incomeStatement, financialRatios
@@ -1052,6 +1155,17 @@ const processNextItem = async () => {
 
         if (useLocalFiles) {
             // Logic for Local Files
+
+            // NAME MATCHING VALIDATION FOR LOCAL FILES
+            if (item.dbdCompanyName) {
+                const normDbd = normalizeCompanyName(item.dbdCompanyName);
+                const normDyn = normalizeCompanyName(item.name);
+                if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
+                    item.hasNameMismatch = true;
+                    item.log = '⚠️ ชื่อบริษัทไม่ตรงกับ DBD (Local)';
+                }
+            }
+
             formData.append('use_local', 'true');
             // We still need to pass yearsInBusiness if possible, or let backend fetch it?
             // Current backend logic for 'use_local' fetches files but relies on passed params for some data.
@@ -1073,6 +1187,8 @@ const processNextItem = async () => {
                 if (!downloadResult) {
                     throw new Error('ดาวน์โหลด DBD ไม่สำเร็จ (กรุณาลองใหม่)');
                 }
+
+                // NOTE: Name mismatch validation is moved below to ensure debugFiles are populated
                 const required = ['profile', 'balanceSheet', 'incomeStatement', 'financialRatios'];
                 const missing = required.filter(k => !downloadResult.files[k]);
                 if (missing.length > 0) {
@@ -1089,8 +1205,22 @@ const processNextItem = async () => {
             }
 
             if (downloadResult) {
-                // Save debug info
+                // Save debug info BEFORE potential mismatch throw so users can inspect the mismatched names
                 item.debugFiles = downloadResult.files;
+                if (downloadResult.dbdCompanyName) {
+                    item.dbdCompanyName = downloadResult.dbdCompanyName;
+                }
+
+                // NAME MATCHING VALIDATION FOR BRIDGE FILES
+                if (!skipDBD && downloadResult.dbdCompanyName) {
+                    const normDbd = normalizeCompanyName(downloadResult.dbdCompanyName);
+                    const normDyn = normalizeCompanyName(item.name);
+                    // allow if one is substring of other (e.g. D365 name might be cut off)
+                    if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
+                        item.hasNameMismatch = true;
+                        item.log = '⚠️ ชื่อบริษัทไม่ตรงกับ DBD';
+                    }
+                }
 
                 // Append Files
                 if (downloadResult.files.balanceSheet) {
@@ -1792,6 +1922,10 @@ button:disabled {
 
 .row-active {
   background: #e3f2fd;
+}
+
+.row-warning {
+  background: #fff3cd !important;
 }
 
 .status-badge {
