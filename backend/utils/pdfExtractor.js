@@ -14,8 +14,45 @@ const extractDBDData = async (buffer) => {
             yearsInBusiness: 0,
             registeredCapital: 0,
             registrationDate: null,
+            companyName: null,
             debug: {}
         };
+
+        // --- 0. Company Name Extraction ---
+        // Look for common corporate entity prefixes as the name often appears as a title at the top
+        // or just sequentially before the first "ข้อมูล" or "เลขทะเบียนนิติบุคคล" label.
+        // It's usually the very first prominent string.
+        try {
+            // First, try matching the exact label if it exists
+            const nameRegexExact = /ชื่อนิติบุคคล\s*[:]\s*([^\n]+)/;
+            const nameMatchExact = text.match(nameRegexExact);
+            if (nameMatchExact) {
+                result.companyName = nameMatchExact[1].trim();
+                result.debug.nameStrategy = 'Exact Label';
+            } else {
+                // Heuristic: The company name is often near the top, typically containing keywords
+                // like ห้างหุ้นส่วนจำกัด (Limited Partnership) or บริษัท (Company)
+                const prefixRegex = /(?:ห้างหุ้นส่วนจำกัด|บริษัท|บ\.|หจก\.)\s+[^\n]+/;
+                const prefixMatch = text.match(prefixRegex);
+                if (prefixMatch) {
+                    // Clean up trailing labels if they accidentally matched
+                    let extractedName = prefixMatch[0].trim();
+                    const endLabels = ["ข้อมูล", "เลขทะเบียน", "วันที่", "เอกสาร"];
+                    for (const label of endLabels) {
+                        const idx = extractedName.indexOf(label);
+                        if (idx > 0) {
+                            extractedName = extractedName.substring(0, idx).trim();
+                        }
+                    }
+                    if (extractedName.length > 5) {
+                        result.companyName = extractedName;
+                        result.debug.nameStrategy = 'Prefix Scan';
+                    }
+                }
+            }
+        } catch (nameErr) {
+            console.warn("Failed to extract name via pdfExtractor:", nameErr.message);
+        }
 
         const currentYearBE = new Date().getFullYear() + 543;
 

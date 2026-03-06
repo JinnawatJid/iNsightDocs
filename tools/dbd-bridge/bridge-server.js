@@ -49,6 +49,23 @@ const extractDBDData = async (pdfPath) => {
         const nameMatch = text.match(nameRegex);
         if (nameMatch) {
             dbdCompanyName = nameMatch[1].trim();
+        } else {
+            // Heuristic prefix match
+            const prefixRegex = /(?:ห้างหุ้นส่วนจำกัด|บริษัท|บ\.|หจก\.)\s+[^\n]+/;
+            const prefixMatch = text.match(prefixRegex);
+            if (prefixMatch) {
+                let extractedName = prefixMatch[0].trim();
+                const endLabels = ["ข้อมูล", "เลขทะเบียน", "วันที่", "เอกสาร"];
+                for (const label of endLabels) {
+                    const idx = extractedName.indexOf(label);
+                    if (idx > 0) {
+                        extractedName = extractedName.substring(0, idx).trim();
+                    }
+                }
+                if (extractedName.length > 5) {
+                    dbdCompanyName = extractedName;
+                }
+            }
         }
 
         return { yearsInBusiness, dbdCompanyName };

@@ -428,17 +428,24 @@ const getRowClass = (item) => {
 
 const normalizeCompanyName = (name) => {
     if (!name) return '';
-    const prefixes = ['บริษัท', 'จำกัด', 'บจก.', 'หจก.', 'ห้างหุ้นส่วนจำกัด', '\\(มหาชน\\)', 'มหาชน', 'ltd.', 'ltd', 'co.', 'co', 'company', 'limited', 'public', 'plc.', 'plc', 'corp.', 'corp', 'inc.', 'inc'];
     let normalized = String(name).toLowerCase();
 
-    // Remove all types of spaces and punctuation
-    normalized = normalized.replace(/[\\s\\.,\\-\\(\)]/g, '');
+    // Escape special characters in prefix/suffix strings for RegExp
+    const escapeRegExp = (string) => {
+        return string.replace(/[.*+?^\$\{}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+    };
 
-    // Remove prefixes/suffixes
+    // Ordered to remove larger phrases first
+    const prefixes = ['บริษัท', 'จำกัด', 'บจก.', 'หจก.', 'ห้างหุ้นส่วนจำกัด', '(มหาชน)', 'มหาชน', 'ltd.', 'ltd', 'co.', 'co', 'company', 'limited', 'public', 'plc.', 'plc', 'corp.', 'corp', 'inc.', 'inc'];
+
+    // Remove prefixes/suffixes FIRST (before stripping punctuation)
     for (const prefix of prefixes) {
-        const regex = new RegExp(prefix, 'gi');
+        const regex = new RegExp(escapeRegExp(prefix), 'gi');
         normalized = normalized.replace(regex, '');
     }
+
+    // Finally, remove all types of spaces and punctuation
+    normalized = normalized.replace(/[\\s.,()\\-]/g, '');
 
     return normalized.trim();
 };

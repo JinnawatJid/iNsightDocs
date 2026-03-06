@@ -991,23 +991,9 @@ const checkSingleCustomerFiles = async (customer_no) => {
             if (file.key === 'profile') {
                 try {
                     const dataBuffer = await fs.readFile(filePath);
-                    const data = await pdf(dataBuffer);
-                    const nameRegex = /ชื่อนิติบุคคล\s*[:]\s*([^\n]+)/;
-                    const nameMatch = data.text.match(nameRegex);
-                    if (nameMatch) {
-                        dbdCompanyName = nameMatch[1].trim();
-                    } else {
-                        // Debugging: Find where "นิติบุคคล" is and print the surrounding text
-                        const idx = data.text.indexOf('นิติบุคคล');
-                        if (idx !== -1) {
-                            console.log('--- DEBUG DBD NAME FORMAT ---');
-                            // Replace newlines with \n literal for visibility
-                            const snippet = data.text.substring(Math.max(0, idx - 50), idx + 150).replace(/\n/g, '\\n');
-                            console.log(snippet);
-                            console.log('-----------------------------');
-                        } else {
-                            console.log('--- DEBUG DBD NAME FORMAT: "นิติบุคคล" not found in text ---');
-                        }
+                    const extracted = await extractDBDData(dataBuffer);
+                    if (extracted.success && extracted.companyName) {
+                        dbdCompanyName = extracted.companyName;
                     }
                 } catch (pdfErr) {
                     console.warn('Failed to parse profile for name:', pdfErr.message);
