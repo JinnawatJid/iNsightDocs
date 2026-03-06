@@ -423,6 +423,7 @@ const getGradeClass = (grade) => {
 
 const getRowClass = (item) => {
   if (item.status === 'Processing') return 'row-active';
+  if (item.hasNameMismatch) return 'row-warning';
   return '';
 };
 
@@ -533,6 +534,7 @@ const fetchByBranch = async () => {
                     grade: '',
                     status: 'Pending',
                     log: '',
+                    hasNameMismatch: false,
                     files: {},
                     debugFiles: null,
                     analysisResult: null,
@@ -899,9 +901,9 @@ const checkReadiness = async () => {
                                 dynName: queueItem.name,
                                 dbdName: r.dbdCompanyName
                             });
-                            // Mark as not ready so it gets caught or flagged
-                            r.isReady = false;
-                            r.reason = 'ชื่อบริษัทไม่ตรงกับ DBD';
+                            // We do not mark as not ready, just log the mismatch warning
+                            queueItem.hasNameMismatch = true;
+                            r.hasNameMismatch = true;
                         }
                     }
                 }
@@ -909,7 +911,7 @@ const checkReadiness = async () => {
 
             // Separate into categories
             const readyItems = results.filter(r => r.isReady && !r.isSkipped);
-            const notReadyItems = results.filter(r => !r.isReady && r.reason !== 'ชื่อบริษัทไม่ตรงกับ DBD');
+            const notReadyItems = results.filter(r => !r.isReady);
             const skippedItems = results.filter(r => r.isSkipped);
 
             // Update queue logs/status to reflect readiness
@@ -918,10 +920,7 @@ const checkReadiness = async () => {
                 if (checkRes) {
                     item.isReady = checkRes.isReady; // Store for styling if needed
 
-                    if (checkRes.reason === 'ชื่อบริษัทไม่ตรงกับ DBD') {
-                         item.status = 'Error';
-                         item.log = 'ชื่อบริษัทไม่ตรงกับ DBD';
-                    } else if (checkRes.isSkipped && item.status === 'Pending') {
+                    if (checkRes.isSkipped && item.status === 'Pending') {
                         item.log = `ข้าม (ไม่ใช่บริษัท)`;
                     } else if (!checkRes.isReady && item.status === 'Pending') {
                         // Just an informative log
@@ -1152,7 +1151,8 @@ const processNextItem = async () => {
                 const normDbd = normalizeCompanyName(item.dbdCompanyName);
                 const normDyn = normalizeCompanyName(item.name);
                 if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
-                    throw new Error('ชื่อบริษัทไม่ตรงกับ DBD (Local)');
+                    item.hasNameMismatch = true;
+                    item.log = '⚠️ ชื่อบริษัทไม่ตรงกับ DBD (Local)';
                 }
             }
 
@@ -1207,7 +1207,8 @@ const processNextItem = async () => {
                     const normDyn = normalizeCompanyName(item.name);
                     // allow if one is substring of other (e.g. D365 name might be cut off)
                     if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
-                        throw new Error('ชื่อบริษัทไม่ตรงกับ DBD');
+                        item.hasNameMismatch = true;
+                        item.log = '⚠️ ชื่อบริษัทไม่ตรงกับ DBD';
                     }
                 }
 
@@ -1911,6 +1912,10 @@ button:disabled {
 
 .row-active {
   background: #e3f2fd;
+}
+
+.row-warning {
+  background: #fff3cd !important;
 }
 
 .status-badge {
