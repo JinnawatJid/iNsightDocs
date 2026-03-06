@@ -531,6 +531,14 @@ exports.analyzeFinancials = async (req, res) => {
                      const fr = await loadFile('DBD_FinancialRatios.xlsx');
                      if (fr) files['financial_ratios'] = [{ buffer: fr }];
 
+                     // Check for No Financial Data Marker
+                     const hasNoFinancialMarker = await fs.pathExists(path.join(latestPath, 'DBD_NoFinancialData.txt'));
+                     if (hasNoFinancialMarker) {
+                         console.log(`[Financial Analysis] Customer ${customer_no} has No Financial Data marker.`);
+                         // This will ensure Excel extraction yields zero but PDF extraction still works
+                         req.body.is_no_financial_data = 'true';
+                     }
+
                      // Profile is not used for analysis yet, but good to have if needed
                      const cp = await loadFile('DBD_Profile.pdf');
                      if (cp) {
@@ -611,7 +619,7 @@ exports.analyzeFinancials = async (req, res) => {
       averageRevenue: 0
     };
 
-    if (files['balance_sheet'] && files['balance_sheet'][0]) {
+    if (files['balance_sheet'] && files['balance_sheet'][0] && req.body.is_no_financial_data !== 'true') {
       try {
           const workbook = xlsx.read(files['balance_sheet'][0].buffer, { type: 'buffer' });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -630,7 +638,7 @@ exports.analyzeFinancials = async (req, res) => {
       }
     }
 
-    if (files['profit_loss'] && files['profit_loss'][0]) {
+    if (files['profit_loss'] && files['profit_loss'][0] && req.body.is_no_financial_data !== 'true') {
       try {
           const workbook = xlsx.read(files['profit_loss'][0].buffer, { type: 'buffer' });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -648,7 +656,7 @@ exports.analyzeFinancials = async (req, res) => {
       }
     }
 
-    if (files['financial_ratios'] && files['financial_ratios'][0]) {
+    if (files['financial_ratios'] && files['financial_ratios'][0] && req.body.is_no_financial_data !== 'true') {
       try {
           const workbook = xlsx.read(files['financial_ratios'][0].buffer, { type: 'buffer' });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
