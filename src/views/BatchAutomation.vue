@@ -227,14 +227,7 @@
             </td>
             <td>
                 <button
-                    v-if="item.status === 'Pending' && !item.isReady && item.isCompany && item.log.includes('รอโหลดไฟล์ DBD')"
-                    class="btn-warning-upload"
-                    @click="showDebugFiles(item)"
-                >
-                    ⚠️ อัปโหลด DBD
-                </button>
-                <button
-                    v-else-if="item.isCompany || item.debugFiles"
+                    v-if="item.isCompany || item.debugFiles"
                     class="btn-debug-files"
                     @click="showDebugFiles(item)"
                 >
@@ -845,16 +838,32 @@ const base64ToBlob = (base64, mimeType) => {
 // --- Debug Logic ---
 
 const showDebugFiles = async (item) => {
-    // Also check if they only have a profile file uploaded manually previously,
-    // which indicates we should still show the manual upload modal if they want to update it.
-    // Or if isNoFinancialData is true, we might want to let them change it.
-    if ((!item.isReady) && item.isCompany) {
-        return handleManualUpload(item);
-    }
+    // Fetch latest file status from server if not already in state
+    if (!item.debugFiles && item.isCompany) {
+        try {
+            const checkRes = await axios.get(`/api/financials/check-local/${item.customerId}`);
+            const localCheck = checkRes.data;
+            if (localCheck && localCheck.exists) {
+                item.isReady = true;
+                item.isNoFinancialData = localCheck.isNoFinancialData || false;
+                item.dbdCompanyName = localCheck.dbdCompanyName || item.dbdCompanyName;
 
-    if (!item.debugFiles) {
-        Swal.fire('ไม่มีข้อมูลไฟล์', 'ไม่พบไฟล์เอกสารสำหรับลูกค้ารายนี้', 'info');
-        return;
+                if (!item.isNoFinancialData) {
+                    item.debugFiles = {
+                        profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' },
+                        balanceSheet: { type: 'local', filename: 'DBD_BalanceSheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                        incomeStatement: { type: 'local', filename: 'DBD_IncomeStatement.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                        financialRatios: { type: 'local', filename: 'DBD_FinancialRatios.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+                    };
+                } else {
+                    item.debugFiles = {
+                        profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' }
+                    };
+                }
+            }
+        } catch (err) {
+            console.warn('Failed to fetch local file status:', err);
+        }
     }
 
     const files = [
@@ -885,6 +894,10 @@ const showDebugFiles = async (item) => {
     }
 
     htmlContent += '<p style="margin-bottom: 15px;">คลิกที่ปุ่มเพื่อดาวน์โหลดไฟล์ต้นฉบับ:</p>';
+
+    if (item.isNoFinancialData) {
+        htmlContent += '<p style="color: #dc3545; font-weight: bold; margin-bottom: 15px;">⚠️ สถานะ: ลูกค้าไม่ส่งงบการเงิน</p>';
+    }
 
     files.forEach(f => {
         const fileData = item.debugFiles[f.key];
@@ -919,7 +932,9 @@ const showDebugFiles = async (item) => {
         title: 'เอกสารการเงิน',
         html: htmlContent,
         showCloseButton: true,
-        showConfirmButton: false,
+        showConfirmButton: true,
+        confirmButtonText: '⚙️ แก้ไข / อัปโหลดใหม่',
+        confirmButtonColor: '#6c757d',
         didOpen: () => {
              // Attach event listeners to buttons
              files.forEach(f => {
@@ -952,6 +967,10 @@ const showDebugFiles = async (item) => {
              });
         }
     });
+
+    if (result.isConfirmed) {
+        openUploadModal(item);
+    }
 };
 
 
