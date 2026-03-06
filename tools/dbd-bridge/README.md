@@ -28,6 +28,7 @@ This tool allows you to perform DBD Auto Import even if your main server is offl
 3.  Go to the Credit Request Application in your web browser.
 4.  Use the **DBD Auto Import** feature as normal. The application will automatically detect this local bridge and use it to download the files.
 
+
 ## Troubleshooting
 
 *   **Port Conflict**: If you see an error about port 4343 being in use, check if another instance of this script is running.

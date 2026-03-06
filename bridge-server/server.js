@@ -568,6 +568,7 @@ app.get('/stream', async (req, res) => {
 
         sendSSE(res, {
             status: 'complete',
+            noFinancialData: !hasFinancialData,
             data: {
                 profile: profileB64 ? {
                     content: profileB64,

@@ -802,7 +802,8 @@ const connectToBridge = (taxId, customerCode) => {
              registrationDate = data.data.registrationDate || null;
              dbdCompanyName = data.data.dbdCompanyName || null;
            }
-           resolve({ files: resultFiles, yearsInBusiness, registeredCapital, registrationDate, dbdCompanyName });
+           const noFinancialData = data.noFinancialData || false;
+           resolve({ files: resultFiles, yearsInBusiness, registeredCapital, registrationDate, dbdCompanyName, noFinancialData });
         } else if (data.status === 'error') {
            evtSource.close();
            reject(new Error(data.message || 'Bridge Error'));
@@ -1115,19 +1116,22 @@ const checkReadiness = async () => {
             });
 
             // Separate into categories
-            const readyItems = results.filter(r => r.isReady && !r.isSkipped);
+            const readyItems = results.filter(r => r.isReady && !r.isSkipped && !r.noFinancialData);
             const notReadyItems = results.filter(r => !r.isReady);
             const skippedItems = results.filter(r => r.isSkipped);
+            const noFinancialDataItems = results.filter(r => r.noFinancialData);
 
             // Update queue logs/status to reflect readiness
             queue.value.forEach(item => {
                 const checkRes = results.find(r => r.customerId === item.customerId);
                 if (checkRes) {
-                    item.isReady = checkRes.isReady;
-                    item.isNoFinancialData = checkRes.isNoFinancialData || false;
+                    item.isReady = checkRes.isReady && !checkRes.noFinancialData;
+                    item.isNoFinancialData = checkRes.noFinancialData || checkRes.isNoFinancialData || false;
 
                     if (checkRes.isSkipped && item.status === 'Pending') {
                         item.log = `ข้าม (ไม่ใช่บริษัท)`;
+                    } else if (checkRes.noFinancialData && item.status === 'Pending') {
+                        item.log = `ไม่มีข้อมูลงบการเงิน (DBD)`;
                     } else if (!checkRes.isReady && item.status === 'Pending') {
                         item.log = `รอโหลดไฟล์ DBD (${checkRes.reason})`;
                     } else if (checkRes.isReady && item.status === 'Pending') {
@@ -1175,6 +1179,7 @@ const checkReadiness = async () => {
                     <p><strong>ทั้งหมด:</strong> ${results.length} รายการ</p>
                     <p style="color: #28a745;"><strong>พร้อมดำเนินการ (มีไฟล์ครบ):</strong> ${readyItems.length} รายการ</p>
                     ${skippedItems.length > 0 ? `<p style="color: #6c757d;"><strong>ข้าม (ไม่ใช่บริษัท/บุคคลธรรมดา):</strong> ${skippedItems.length} รายการ</p>` : ''}
+                    ${noFinancialDataItems.length > 0 ? `<p style="color: #dc3545;"><strong>ไม่มีงบการเงินในระบบ DBD:</strong> ${noFinancialDataItems.length} รายการ</p>` : ''}
                     <p style="color: #dc3545;"><strong>ต้องโหลดไฟล์ใหม่ (Bridge):</strong> ${notReadyItems.length} รายการ</p>
                     ${notReadyItems.length > 0 ? `<p style="font-size: 0.9em; margin-top: 10px; color: #666;">รายการที่ไม่พร้อม จะถูกดาวน์โหลดจาก DBD อัตโนมัติเมื่อกดเริ่มประมวลผล</p>` : ''}
                     ${mismatchHtml}
