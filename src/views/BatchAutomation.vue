@@ -927,6 +927,16 @@ const checkReadiness = async () => {
                         item.log = `รอโหลดไฟล์ DBD (${checkRes.reason})`;
                     } else if (checkRes.isReady && item.status === 'Pending') {
                         item.log = `มีไฟล์พร้อมดำเนินการ`;
+                        // Populate debugFiles metadata so the "📁 ไฟล์" button appears and functions
+                        item.debugFiles = {
+                            profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' },
+                            balanceSheet: { type: 'local', filename: 'DBD_BalanceSheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                            incomeStatement: { type: 'local', filename: 'DBD_IncomeStatement.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                            financialRatios: { type: 'local', filename: 'DBD_FinancialRatios.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+                        };
+                        if (checkRes.dbdCompanyName) {
+                            item.dbdCompanyName = checkRes.dbdCompanyName;
+                        }
                     }
                 }
             });
