@@ -227,7 +227,14 @@
             </td>
             <td>
                 <button
-                    v-if="item.debugFiles"
+                    v-if="item.status === 'Pending' && !item.isReady && item.isCompany && item.log.includes('รอโหลดไฟล์ DBD')"
+                    class="btn-warning-upload"
+                    @click="showDebugFiles(item)"
+                >
+                    ⚠️ อัปโหลด DBD
+                </button>
+                <button
+                    v-else-if="item.isCompany || item.debugFiles"
                     class="btn-debug-files"
                     @click="showDebugFiles(item)"
                 >
@@ -254,6 +261,53 @@
       </table>
     </div>
   </div>
+
+
+    <!-- Custom Upload Modal (Teleported to body to avoid z-index issues) -->
+    <Teleport to="body">
+      <div v-if="isUploadModalOpen" class="modal-overlay" @click.self="closeUploadModal">
+        <div class="modal-content">
+          <h3 class="modal-title">อัปโหลดเอกสารการเงิน</h3>
+          <p class="modal-subtitle">อัปโหลดไฟล์เอกสารการเงินสำหรับ <b>{{ uploadTargetItem?.customerId }}</b></p>
+
+          <div class="modal-body">
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="uploadForm.isNoFinancialData" @change="handleCheckboxChange">
+                ลูกค้าไม่ส่งงบการเงิน
+              </label>
+              <small class="helper-text">(ระบบจะข้ามการดึงข้อมูลจาก DBD และประเมินวงเงินใหม่โดยอ้างอิงจากยอดซื้อเท่านั้น)</small>
+            </div>
+
+            <hr class="divider">
+
+            <div class="upload-fields" :class="{ 'fields-disabled': uploadForm.isNoFinancialData }">
+              <div class="form-group">
+                <label>ข้อมูลบริษัท (Profile PDF)</label>
+                <input type="file" ref="fileProfile" accept="application/pdf" class="form-control" @change="(e) => handleFileChange('profile', e)">
+              </div>
+              <div class="form-group">
+                <label>งบดุล (Balance Sheet Excel)</label>
+                <input type="file" ref="fileBalance" accept=".xlsx" class="form-control" :disabled="uploadForm.isNoFinancialData" @change="(e) => handleFileChange('balanceSheet', e)">
+              </div>
+              <div class="form-group">
+                <label>งบกำไรขาดทุน (Income Statement Excel)</label>
+                <input type="file" ref="fileIncome" accept=".xlsx" class="form-control" :disabled="uploadForm.isNoFinancialData" @change="(e) => handleFileChange('incomeStatement', e)">
+              </div>
+              <div class="form-group">
+                <label>อัตราส่วนทางการเงิน (Financial Ratios Excel)</label>
+                <input type="file" ref="fileRatio" accept=".xlsx" class="form-control" :disabled="uploadForm.isNoFinancialData" @change="(e) => handleFileChange('financialRatios', e)">
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn-cancel" @click="closeUploadModal">ยกเลิก</button>
+            <button class="btn-submit" @click="submitUpload">อัปโหลดไฟล์</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 </template>
 
 <script setup>
@@ -271,10 +325,23 @@ const concurrency = ref(1);
 const showConcurrencySettings = ref(false);
 const selectedModel = ref('existing'); // 'new' or 'existing'
 const limitExponent = ref(0.5);
+
 const activeWorkers = ref(0);
 const bridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 const bridgeStatus = ref('ไม่ทราบสถานะ');
 const isExportDropdownOpen = ref(false); // State for dropdown
+
+// Modal State
+const isUploadModalOpen = ref(false);
+const uploadTargetItem = ref(null);
+const uploadForm = ref({
+  isNoFinancialData: false,
+  profile: null,
+  balanceSheet: null,
+  incomeStatement: null,
+  financialRatios: null
+});
+
 
 // Input Method State
 const inputType = ref('branch'); // Default to 'branch'
@@ -423,6 +490,7 @@ const getGradeClass = (grade) => {
 
 const getRowClass = (item) => {
   if (item.status === 'Processing') return 'row-active';
+  if (item.status === 'Pending' && !item.isReady && item.isCompany && item.log.includes('รอโหลดไฟล์ DBD')) return 'row-warning';
   if (item.hasNameMismatch) return 'row-warning';
   return '';
 };
@@ -446,7 +514,7 @@ const normalizeCompanyName = (name) => {
     }
 
     // Finally, remove all types of spaces and punctuation
-    normalized = normalized.replace(/[\\s.,()\\-]/g, '');
+    normalized = normalized.replace(/[\s.,()\-]/g, '');
 
     return normalized.trim();
 };
@@ -518,9 +586,12 @@ const fetchByBranch = async () => {
         } else {
              // Map to Queue Format
             queue.value = allData.map(item => {
+                const name = item.Name || '';
+                const corporateKeywords = ['บริษัท', 'ห้างหุ้นส่วน', 'บ.', 'หจก.', 'ltd', 'limited', 'co.', 'plc', 'corp', 'inc', 'company'];
+                const isCompany = corporateKeywords.some(k => name.toLowerCase().includes(k));
                 return {
                     customerId: item.No_,
-                    name: item.Name,
+                    name: name,
                     taxId: item.VAT_Registration_No_ || '',
                     totalPurchase3Months: 0, // Will be fetched during process
                     latePaymentAverage: null,
@@ -537,6 +608,9 @@ const fetchByBranch = async () => {
                     hasNameMismatch: false,
                     files: {},
                     debugFiles: null,
+                    isCompany: isCompany,
+                    isReady: false,
+                    isNoFinancialData: false,
                     analysisResult: null,
                     modelType: null,
                     limitExponent: null
@@ -643,9 +717,12 @@ const processFile = (file) => {
     // Map to Queue Format
     queue.value = jsonData.map(row => {
       const id = row[idKey];
+      const name = String(row['ชื่อลูกค้า'] || row['Name'] || '').trim();
+      const corporateKeywords = ['บริษัท', 'ห้างหุ้นส่วน', 'บ.', 'หจก.', 'ltd', 'limited', 'co.', 'plc', 'corp', 'inc', 'company'];
+      const isCompany = corporateKeywords.some(k => name.toLowerCase().includes(k));
       return {
         customerId: String(id || '').trim(),
-        name: '',
+        name: name,
         taxId: '',
         totalPurchase3Months: 0,
         latePaymentAverage: null,
@@ -660,6 +737,9 @@ const processFile = (file) => {
         log: '',
         files: {}, // to store downloaded blobs
         debugFiles: null, // to store file metadata for debug
+        isCompany: isCompany,
+        isReady: false,
+        isNoFinancialData: false,
         analysisResult: null,
         modelType: null, // Store model type for report
         limitExponent: null // Store limit exponent for report
@@ -765,7 +845,17 @@ const base64ToBlob = (base64, mimeType) => {
 // --- Debug Logic ---
 
 const showDebugFiles = async (item) => {
-    if (!item.debugFiles) return;
+    // Also check if they only have a profile file uploaded manually previously,
+    // which indicates we should still show the manual upload modal if they want to update it.
+    // Or if isNoFinancialData is true, we might want to let them change it.
+    if ((!item.isReady) && item.isCompany) {
+        return handleManualUpload(item);
+    }
+
+    if (!item.debugFiles) {
+        Swal.fire('ไม่มีข้อมูลไฟล์', 'ไม่พบไฟล์เอกสารสำหรับลูกค้ารายนี้', 'info');
+        return;
+    }
 
     const files = [
         { key: 'profile', label: 'ข้อมูลบริษัท (PDF)', icon: '📄' },
@@ -864,6 +954,104 @@ const showDebugFiles = async (item) => {
     });
 };
 
+
+const openUploadModal = (item) => {
+    uploadTargetItem.value = item;
+    uploadForm.value = {
+        isNoFinancialData: item.isNoFinancialData || false,
+        profile: null,
+        balanceSheet: null,
+        incomeStatement: null,
+        financialRatios: null
+    };
+    isUploadModalOpen.value = true;
+};
+
+const closeUploadModal = () => {
+    isUploadModalOpen.value = false;
+    uploadTargetItem.value = null;
+};
+
+const handleCheckboxChange = () => {
+    if (uploadForm.value.isNoFinancialData) {
+        uploadForm.value.balanceSheet = null;
+        uploadForm.value.incomeStatement = null;
+        uploadForm.value.financialRatios = null;
+    }
+};
+
+const handleFileChange = (field, event) => {
+    const file = event.target.files[0];
+    uploadForm.value[field] = file || null;
+};
+
+const submitUpload = () => {
+    const data = uploadForm.value;
+
+    if (!data.isNoFinancialData) {
+        if (!data.profile || !data.balanceSheet || !data.incomeStatement || !data.financialRatios) {
+            Swal.fire('ข้อมูลไม่ครบ', 'กรุณาอัปโหลดไฟล์ให้ครบ 4 ไฟล์ หรือ เลือก "ลูกค้าไม่ส่งงบการเงิน"', 'warning');
+            return;
+        }
+    }
+
+    uploadLocalFiles(uploadTargetItem.value, data);
+    closeUploadModal();
+};
+
+const handleManualUpload = async (item) => {
+    openUploadModal(item);
+};
+
+const uploadLocalFiles = async (item, data) => {
+    Swal.fire({
+        title: 'กำลังอัปโหลด...',
+        text: 'ระบบกำลังบันทึกไฟล์ไปที่เซิร์ฟเวอร์',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const formData = new FormData();
+        formData.append('no_financial_data', data.isNoFinancialData ? 'true' : 'false');
+
+        if (data.profile) formData.append('company_profile', data.profile);
+        if (data.balanceSheet) formData.append('balance_sheet', data.balanceSheet);
+        if (data.incomeStatement) formData.append('profit_loss', data.incomeStatement);
+        if (data.financialRatios) formData.append('financial_ratios', data.financialRatios);
+
+        const res = await axios.post(`/api/financials/upload-local/${item.customerId}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        if (res.data.success) {
+            item.isReady = true;
+            item.isNoFinancialData = data.isNoFinancialData;
+            item.log = data.isNoFinancialData ? 'พร้อมดำเนินการ (ไม่ส่งงบฯ)' : 'อัปโหลดไฟล์สำเร็จ พร้อมดำเนินการ';
+
+            if (!data.isNoFinancialData) {
+                item.debugFiles = {
+                    profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' },
+                    balanceSheet: { type: 'local', filename: 'DBD_BalanceSheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                    incomeStatement: { type: 'local', filename: 'DBD_IncomeStatement.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                    financialRatios: { type: 'local', filename: 'DBD_FinancialRatios.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+                };
+            } else {
+                item.debugFiles = {
+                    profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' }
+                };
+            }
+
+            Swal.fire('สำเร็จ', 'อัปโหลดไฟล์เรียบร้อยแล้ว', 'success');
+        } else {
+            throw new Error(res.data.message || 'Unknown API Error');
+        }
+    } catch (error) {
+        console.error('Upload Error:', error);
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถอัปโหลดไฟล์ได้: ' + (error.response?.data?.message || error.message), 'error');
+    }
+};
+
 // --- Batch Logic ---
 
 const checkReadiness = async () => {
@@ -879,7 +1067,6 @@ const checkReadiness = async () => {
     try {
         const customerIds = queue.value.map(item => item.customerId);
 
-        // Split into chunks if needed (let's say 100 per request, but for branches it's usually < 200, so one request is fine)
         const res = await axios.post('/api/financials/check-local-batch', { customer_ids: customerIds });
 
         if (res.data.success) {
@@ -901,7 +1088,6 @@ const checkReadiness = async () => {
                                 dynName: queueItem.name,
                                 dbdName: r.dbdCompanyName
                             });
-                            // We do not mark as not ready, just log the mismatch warning
                             queueItem.hasNameMismatch = true;
                             r.hasNameMismatch = true;
                         }
@@ -918,22 +1104,27 @@ const checkReadiness = async () => {
             queue.value.forEach(item => {
                 const checkRes = results.find(r => r.customerId === item.customerId);
                 if (checkRes) {
-                    item.isReady = checkRes.isReady; // Store for styling if needed
+                    item.isReady = checkRes.isReady;
+                    item.isNoFinancialData = checkRes.isNoFinancialData || false;
 
                     if (checkRes.isSkipped && item.status === 'Pending') {
                         item.log = `ข้าม (ไม่ใช่บริษัท)`;
                     } else if (!checkRes.isReady && item.status === 'Pending') {
-                        // Just an informative log
                         item.log = `รอโหลดไฟล์ DBD (${checkRes.reason})`;
                     } else if (checkRes.isReady && item.status === 'Pending') {
-                        item.log = `มีไฟล์พร้อมดำเนินการ`;
-                        // Populate debugFiles metadata so the "📁 ไฟล์" button appears and functions
-                        item.debugFiles = {
-                            profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' },
-                            balanceSheet: { type: 'local', filename: 'DBD_BalanceSheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-                            incomeStatement: { type: 'local', filename: 'DBD_IncomeStatement.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-                            financialRatios: { type: 'local', filename: 'DBD_FinancialRatios.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
-                        };
+                        item.log = item.isNoFinancialData ? `พร้อมดำเนินการ (ไม่ส่งงบฯ)` : `มีไฟล์พร้อมดำเนินการ`;
+                        if (!item.isNoFinancialData) {
+                            item.debugFiles = {
+                                profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' },
+                                balanceSheet: { type: 'local', filename: 'DBD_BalanceSheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                                incomeStatement: { type: 'local', filename: 'DBD_IncomeStatement.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                                financialRatios: { type: 'local', filename: 'DBD_FinancialRatios.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+                            };
+                        } else {
+                            item.debugFiles = {
+                                profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' }
+                            };
+                        }
                         if (checkRes.dbdCompanyName) {
                             item.dbdCompanyName = checkRes.dbdCompanyName;
                         }
@@ -981,7 +1172,6 @@ const checkReadiness = async () => {
                 cancelButtonColor: '#28a745'
             }).then((result) => {
                 if (result.dismiss === Swal.DismissReason.cancel && notReadyItems.length > 0) {
-                    // Export logic
                     const exportData = notReadyItems.map(nr => {
                         const originalItem = queue.value.find(q => q.customerId === nr.customerId);
                         return {
@@ -1016,14 +1206,8 @@ const stopBatch = () => {
 // Worker function to process items one by one from the shared queue
 const processNextItem = async () => {
   while (!shouldStop.value) {
-      // Find next pending item
-      // We must be careful about race conditions if multiple workers pick the same item.
-      // JS is single-threaded, so array access is safe, but async gaps are not.
-      // We will search for the first 'Pending' item and mark it immediately.
-
       const index = queue.value.findIndex(i => i.status === 'Pending');
       if (index === -1) {
-          // No more items
           return;
       }
 
@@ -1031,7 +1215,6 @@ const processNextItem = async () => {
       item.status = 'Processing';
       item.log = 'กำลังเริ่มต้น...';
 
-      // Store current settings into the item for consistency in report
       item.modelType = selectedModel.value;
       item.limitExponent = limitExponent.value;
 
@@ -1041,7 +1224,6 @@ const processNextItem = async () => {
         // 1. Fetch Customer Data
         item.log = 'กำลังดึงข้อมูลลูกค้า...';
         const searchRes = await CustomerService.searchCustomers(item.customerId);
-        // Find exact match or first close match
         const customer = searchRes.find(c => c.customer.id === item.customerId) || searchRes[0];
 
         if (!customer) {
@@ -1054,16 +1236,13 @@ const processNextItem = async () => {
         item.paymentTerms = customer.customer.payment_terms_code;
         item.billingTerms = customer.customer.billing_terms_code;
 
-        // Fix: Safely Extract Total Purchase (Handle NaN and Commas)
         item.totalPurchase3Months = 0;
         if (customer.financial_summary?.total_purchase_3_months) {
-            // Remove commas before parsing
             const rawVal = String(customer.financial_summary.total_purchase_3_months).replace(/,/g, '');
             const val = Number(rawVal);
             item.totalPurchase3Months = isNaN(val) ? 0 : val;
         }
 
-        // Calculate Customer Duration (Years)
         let customerDuration = 0;
         if (customer.customer.customer_since) {
             const start = new Date(customer.customer.customer_since);
@@ -1073,9 +1252,7 @@ const processNextItem = async () => {
         }
         item.customerDuration = customerDuration;
 
-        // RULE: Skip DBD if no Tax ID (Individual) OR Name doesn't look like a company
         let skipDBD = false;
-        // Expanded keyword list for better detection
         const corporateKeywords = ['บริษัท', 'ห้างหุ้นส่วน', 'บ.', 'หจก.', 'ltd', 'limited', 'co.', 'plc', 'corp', 'inc', 'company'];
         const nameLower = (item.name || '').toLowerCase();
         const isCorporate = corporateKeywords.some(k => nameLower.includes(k));
@@ -1100,24 +1277,28 @@ const processNextItem = async () => {
 
                 if (localCheck && localCheck.exists) {
                     useLocalFiles = true;
-                    item.log = 'ใช้ข้อมูลที่มีอยู่ (Local)';
+                    item.isNoFinancialData = localCheck.isNoFinancialData || false;
+                    item.log = item.isNoFinancialData ? 'ใช้ข้อมูลที่มีอยู่ (ไม่ส่งงบฯ)' : 'ใช้ข้อมูลที่มีอยู่ (Local)';
 
                     if (localCheck.dbdCompanyName) {
                         item.dbdCompanyName = localCheck.dbdCompanyName;
                     }
 
-                    // Create metadata for debugFiles (No Base64 content)
-                    // We map the same keys as Bridge: profile, balanceSheet, incomeStatement, financialRatios
-                    item.debugFiles = {
-                        profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' },
-                        balanceSheet: { type: 'local', filename: 'DBD_BalanceSheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-                        incomeStatement: { type: 'local', filename: 'DBD_IncomeStatement.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-                        financialRatios: { type: 'local', filename: 'DBD_FinancialRatios.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
-                    };
+                    if (!item.isNoFinancialData) {
+                        item.debugFiles = {
+                            profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' },
+                            balanceSheet: { type: 'local', filename: 'DBD_BalanceSheet.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                            incomeStatement: { type: 'local', filename: 'DBD_IncomeStatement.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                            financialRatios: { type: 'local', filename: 'DBD_FinancialRatios.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+                        };
+                    } else {
+                         item.debugFiles = {
+                            profile: { type: 'local', filename: 'DBD_Profile.pdf', mime: 'application/pdf' }
+                        };
+                    }
                 }
             } catch (err) {
                 console.warn('Local check failed:', err);
-                // Proceed to Bridge on error
             }
         }
 
@@ -1136,7 +1317,6 @@ const processNextItem = async () => {
                         console.warn('Bridge failed, proceeding with fallback');
                     } else {
                         item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
-                        // Wait 2 seconds before retry
                         await new Promise(r => setTimeout(r, 2000));
                     }
                 }
@@ -1154,9 +1334,6 @@ const processNextItem = async () => {
         let registeredCapital = 0;
 
         if (useLocalFiles) {
-            // Logic for Local Files
-
-            // NAME MATCHING VALIDATION FOR LOCAL FILES
             if (item.dbdCompanyName) {
                 const normDbd = normalizeCompanyName(item.dbdCompanyName);
                 const normDyn = normalizeCompanyName(item.name);
@@ -1167,32 +1344,21 @@ const processNextItem = async () => {
             }
 
             formData.append('use_local', 'true');
-            // We still need to pass yearsInBusiness if possible, or let backend fetch it?
-            // Current backend logic for 'use_local' fetches files but relies on passed params for some data.
-            // If local files are used, we might miss 'yearsInBusiness' from the Bridge metadata.
-            // However, customer data from DB has 'customer_since'.
              if (customer.customer.customer_since) {
                 const start = new Date(customer.customer.customer_since);
                 const now = new Date();
                 const diff = now.getFullYear() - start.getFullYear();
                 yearsInBusiness = diff > 0 ? diff : 0;
             }
-            // Registered Capital might be missing without Bridge metadata.
-            // Ideally backend could parse it from Profile, but for now we might default to 0 or DB value.
-
         } else {
-            // Logic for Bridge Download or Skip
-            // STRICT VALIDATION: Ensure Companies have all 4 DBD files
             if (!skipDBD) {
                 if (!downloadResult) {
                     throw new Error('ดาวน์โหลด DBD ไม่สำเร็จ (กรุณาลองใหม่)');
                 }
 
-                // NOTE: Name mismatch validation is moved below to ensure debugFiles are populated
                 const required = ['profile', 'balanceSheet', 'incomeStatement', 'financialRatios'];
                 const missing = required.filter(k => !downloadResult.files[k]);
                 if (missing.length > 0) {
-                    // Translate keys to readable names
                     const names = {
                         profile: 'Company Profile',
                         balanceSheet: 'งบดุล',
@@ -1205,24 +1371,20 @@ const processNextItem = async () => {
             }
 
             if (downloadResult) {
-                // Save debug info BEFORE potential mismatch throw so users can inspect the mismatched names
                 item.debugFiles = downloadResult.files;
                 if (downloadResult.dbdCompanyName) {
                     item.dbdCompanyName = downloadResult.dbdCompanyName;
                 }
 
-                // NAME MATCHING VALIDATION FOR BRIDGE FILES
                 if (!skipDBD && downloadResult.dbdCompanyName) {
                     const normDbd = normalizeCompanyName(downloadResult.dbdCompanyName);
                     const normDyn = normalizeCompanyName(item.name);
-                    // allow if one is substring of other (e.g. D365 name might be cut off)
                     if (normDbd && normDyn && !normDbd.includes(normDyn) && !normDyn.includes(normDbd)) {
                         item.hasNameMismatch = true;
                         item.log = '⚠️ ชื่อบริษัทไม่ตรงกับ DBD';
                     }
                 }
 
-                // Append Files
                 if (downloadResult.files.balanceSheet) {
                     const f = downloadResult.files.balanceSheet;
                     formData.append('balance_sheet', base64ToBlob(f.content, f.mime), f.filename);
@@ -1242,7 +1404,6 @@ const processNextItem = async () => {
                 yearsInBusiness = downloadResult.yearsInBusiness || 0;
                 registeredCapital = downloadResult.registeredCapital || 0;
             } else {
-                // Fallback: Use Customer Date (Only for skipped items)
                 item.log = 'ใช้ข้อมูลภายใน (ข้าม DBD)...';
                 if (customer.customer.customer_since) {
                     const start = new Date(customer.customer.customer_since);
@@ -1253,26 +1414,22 @@ const processNextItem = async () => {
             }
         }
 
-        // Store yearsInBusiness for report
         item.yearsInBusiness = yearsInBusiness;
         item.registeredCapital = registeredCapital;
 
-        // Append Meta Data
         formData.append('customer_no', item.customerId);
         formData.append('customer_name', item.name);
         formData.append('registered_capital', String(registeredCapital));
-        formData.append('customer_duration', String(customerDuration)); // Use calculated duration
+        formData.append('customer_duration', String(customerDuration));
         formData.append('years_in_business', String(yearsInBusiness));
         formData.append('request_credit_term', item.paymentTerms || '30');
-        formData.append('request_amount', String(item.currentLimit || 0)); // Fallback to current limit
+        formData.append('request_amount', String(item.currentLimit || 0));
 
-        // Append Model Parameters
         formData.append('model_type', selectedModel.value);
         if (selectedModel.value === 'existing') {
             formData.append('limit_exponent', String(limitExponent.value));
         }
 
-        // 4. Call Analysis API
         const analyzeRes = await axios.post('/api/financials/analyze', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
@@ -1283,7 +1440,6 @@ const processNextItem = async () => {
             item.score = analyzeRes.data.scoringResult?.totalScore || 0;
             item.grade = analyzeRes.data.scoringResult?.grade || '-';
 
-            // Override inputs with Final Inputs from Backend (e.g. from local PDF extraction)
             if (analyzeRes.data.finalInputs) {
                 if (analyzeRes.data.finalInputs.registeredCapital > 0) {
                     item.registeredCapital = analyzeRes.data.finalInputs.registeredCapital;
@@ -1293,24 +1449,21 @@ const processNextItem = async () => {
                 }
             }
 
-            // Extract Late Payment Average
             if (analyzeRes.data.financialSummary?.latePaymentData?.average_late_days !== undefined) {
                  item.latePaymentAverage = analyzeRes.data.financialSummary.latePaymentData.average_late_days;
             }
 
-            // Extract WADL Score
             if (analyzeRes.data.financialSummary?.wadlData?.score !== undefined) {
                  item.wadlScore = analyzeRes.data.financialSummary.wadlData.score;
             }
 
             item.status = skipDBD ? 'Done (Int)' : 'Done';
 
-            // Check for warnings in suggestions
             const suggestions = item.analysisResult.creditScore?.suggestions || [];
             const warnings = suggestions.filter(s => s.includes('ไม่สามารถ') || s.includes('Error'));
             if (warnings.length > 0) {
                 item.log = `เสร็จสิ้น (แจ้งเตือน: ${warnings[0]})`;
-                item.warning = warnings[0]; // Store for export
+                item.warning = warnings[0];
             } else {
                 item.log = 'เสร็จสิ้น';
             }
@@ -1332,7 +1485,6 @@ const processNextItem = async () => {
 const startBatch = async () => {
   if (isProcessing.value) return;
 
-  // RETRY LOGIC: If starting again, reset errors to pending
   const errorItems = queue.value.filter(i => i.status === 'Error');
   if (errorItems.length > 0) {
       errorItems.forEach(i => {
@@ -1341,14 +1493,12 @@ const startBatch = async () => {
       });
   }
 
-  // Double check if there is anything to process
   const pendingCount = queue.value.filter(i => i.status === 'Pending').length;
   if (pendingCount === 0) {
       Swal.fire('เสร็จสมบูรณ์', 'ไม่มีรายการที่ต้องประมวลผล', 'info');
       return;
   }
 
-  // Confirm Action
   const sourceText = inputType.value === 'branch' ? `สาขา ${selectedBranch.value}` : 'ไฟล์ Excel';
   const modelText = selectedModel.value === 'new' ? 'ลูกค้าใหม่' : 'ลูกค้าปัจจุบัน';
 
@@ -1373,7 +1523,6 @@ const startBatch = async () => {
 
   if (!confirmResult.isConfirmed) return;
 
-  // Check Bridge first
   const isBridgeReady = await checkBridgeConnection();
   if (!isBridgeReady) {
     Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับ Local Bridge กรุณาตรวจสอบการตั้งค่า', 'error');
@@ -1384,13 +1533,11 @@ const startBatch = async () => {
   shouldStop.value = false;
   activeWorkers.value = 0;
 
-  // Validate concurrency
   let maxWorkers = parseInt(concurrency.value);
   if (isNaN(maxWorkers) || maxWorkers < 1) maxWorkers = 1;
   if (maxWorkers > 8) maxWorkers = 8;
-  concurrency.value = maxWorkers; // Update UI to reflect limit
+  concurrency.value = maxWorkers;
 
-  // Start Worker Pool
   const workers = [];
   for (let i = 0; i < maxWorkers; i++) {
       workers.push(processNextItem());
@@ -1409,7 +1556,6 @@ const startBatch = async () => {
 const openReport = (item) => {
     if (!item.analysisResult) return;
 
-    // Construct report data format
     const reportData = {
         analysisResults: item.analysisResult,
         inputs: {
@@ -1427,11 +1573,8 @@ const openReport = (item) => {
         }
     };
 
-    // Save to localStorage for the report page to consume
     localStorage.setItem('credit_report_data', JSON.stringify(reportData));
-
-    // Open in new tab
-    const routeData = window.open('/report/financial-analysis', '_blank');
+    window.open('/report/financial-analysis', '_blank');
 };
 
 const toggleExportDropdown = () => {
@@ -1467,12 +1610,10 @@ const exportSummarizedReport = () => {
    XLSX.writeFile(wb, "Batch_Credit_Automation_Report.xlsx");
 };
 
-// Helper to safely extract analysis items (value or score)
 const extractFinancialData = (item, key, prop = 'displayValue') => {
     if (!item.analysisResult || !item.analysisResult.scoringResult || !item.analysisResult.scoringResult.breakdown) {
         return prop === 'score' ? 0 : '-';
     }
-    // Search in C1, C2, C3 breakdown items
     const groups = ['c1', 'c2', 'c3'];
     for (const g of groups) {
         const breakdown = item.analysisResult.scoringResult.breakdown[g];
@@ -1492,7 +1633,6 @@ const exportFullDetailReport = () => {
    closeExportDropdown();
 
    const data = queue.value.map(item => {
-      // 1. Branch Extraction (Last 2 chars)
       const branchCode = item.customerId && item.customerId.length > 2
           ? item.customerId.slice(-2)
           : '-';
@@ -1502,40 +1642,19 @@ const exportFullDetailReport = () => {
       const c2Total = breakdown.c2?.total || 0;
       const c3Total = breakdown.c3?.total || 0;
 
-      // Extract Financial History (Last 6 Months)
       let history = [];
       if (item.analysisResult && item.analysisResult.financialSummary && item.analysisResult.financialSummary.monthlyHistory) {
-           // History is [Current, M-1, M-2, M-3...] (Newest First)
-           // We exclude Current (Index 0) and take next 6 (Indices 1-6)
            history = item.analysisResult.financialSummary.monthlyHistory.slice(1, 7);
       }
 
-      // Calculate Totals based on user formula
-      // "Sum 6 month total"
       const total6 = history.reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
-
-      // "use 6 month/2 to find the 3 month" -> CORRECTED: Use actual 3-month sum if available for distinct values
-      // Only resort to division if history is insufficient, but slicing handles it safely (empty array = 0)
-      // We take the first 3 items of our 6-item history (which are M-1, M-2, M-3)
       const history3 = history.slice(0, 3);
       const total3Actual = history3.reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
-
-      // Use the actual sum for the column display, but keep the user requested "formula logic" for other derivations if needed?
-      // User said: "display both columns for every customer, calculate both values if the raw sales data is available"
-      // User also said: "use 6 month/2 to find the 3 month" as a calculation definition.
-      // However, the flaw complaint is "display same value".
-      // So I will use actual data for 3-month column to fix the "same value" issue.
       const total3 = total3Actual;
-
-      // "use 3 month/2 to find the 1.5 months" -> This implies using the *result* of 3-month calc
       const avg1_5 = total3 / 2;
-
-      // "use 3 month / 3 to find the 1 months"
       const avg1 = total3 / 3;
-
       const currentLimit = Number(item.currentLimit) || 0;
 
-      // 2. Base Data
       const row = {
           'สาขา': branchCode,
           'ชื่อบริษัท/ร้านค้า': item.name || '-',
@@ -1567,14 +1686,6 @@ const exportFullDetailReport = () => {
           'คะแนน สัดส่วนยอดซื้อเฉลี่ย ย้อนหลัง 6 เดือน ต่อเครดิตที่ขอ': extractFinancialData(item, 'capacity_check', 'score'),
 
           'สัดส่วนยอดซื้อต่อระยะเวลาเครดิตที่ขอ': extractFinancialData(item, 'turnover_speed', 'value'),
-          // Manually calculate 6-month Turnover Speed if currentLimit > 0, otherwise use Model Value
-          // Formula: (Avg 6M / Limit) * (Term / 30)? No, simply standardized to monthly capacity?
-          // Since Turnover Speed in backend = (Avg1.5 / Limit) for Term 30, let's approximate with Capacity Ratio.
-          // Or just output the model value if available.
-          // User complaint is "same value".
-          // If model is New (3m), then 'turnover_speed' is based on 3m. We want 6m here.
-          // If model is Existing (6m), then 'turnover_speed' is based on 6m.
-          // We will fallback to the Capacity Ratio (6m) which is a proxy for Turnover Speed at standard terms.
           'สัดส่วนยอดซื้อต่อระยะเวลาเครดิตที่ขอ (เฉลี่ย 6 เดือน)': (currentLimit > 0) ? ((total6 / 6) / currentLimit) : extractFinancialData(item, 'turnover_speed', 'value'),
           'คะแนน ยอดซื้อต่อระยะเวลาเครดิตที่ขอ': extractFinancialData(item, 'turnover_speed', 'score'),
 
@@ -1596,10 +1707,8 @@ const exportFullDetailReport = () => {
           'ระยะเวลาเครดิตรวมวางบิล': (Number(item.paymentTerms) || 0) + getBillingDurationValue(item.billingTerms),
       };
 
-      // Add Dynamic Months (Reverse Order: Oldest -> Newest)
       const exportMonths = [...history].reverse();
 
-      // Ensure 6 columns are added (pad if necessary, though logic suggests 6 should exist if data is fine)
       for (let i = 0; i < 6; i++) {
           const m = exportMonths[i];
           const label = m ? m.label : `Month ${i+1}`;
@@ -1607,7 +1716,6 @@ const exportFullDetailReport = () => {
           row[label] = val;
       }
 
-      // Add Calculated Totals
       row['ยอดซื้อรวม 6 เดือน'] = total6;
       row['ยอดซื้อรวม 3 เดือน'] = total3;
       row['ยอดซื้อเฉลี่ย 1.5 เดือน'] = avg1_5;
@@ -1620,12 +1728,6 @@ const exportFullDetailReport = () => {
    const wb = XLSX.utils.book_new();
    XLSX.utils.book_append_sheet(wb, ws, "รายงาน Full Detail");
    XLSX.writeFile(wb, "Batch_Credit_Automation_Full_Report.xlsx");
-};
-
-// Deprecated: old export button called this, now handled by dropdown
-const exportReport = () => {
-    // Left for safety if button reused, defaults to Summary
-    exportSummarizedReport();
 };
 
 </script>
@@ -1862,6 +1964,149 @@ button:disabled {
     background: #5a6268;
 }
 
+.btn-warning-upload {
+    background: #ffc107;
+    color: #212529;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: bold;
+}
+
+.btn-warning-upload:hover {
+    background: #e0a800;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 550px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.modal-title {
+  margin-top: 0;
+  margin-bottom: 5px;
+  color: #333;
+  font-size: 1.25rem;
+}
+
+.modal-subtitle {
+  margin-bottom: 20px;
+  color: #666;
+}
+
+.checkbox-group {
+  margin-bottom: 15px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+  color: #dc3545;
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  width: 18px;
+  height: 18px;
+}
+
+.helper-text {
+  color: #666;
+  margin-left: 26px;
+  display: block;
+}
+
+.divider {
+  margin: 15px 0;
+  border: 0;
+  border-top: 1px solid #eee;
+}
+
+.upload-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.fields-disabled input[type="file"]:not([ref="fileProfile"]) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 8px;
+  font-size: 0.9em;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.modal-footer {
+  margin-top: 25px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-cancel {
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #333;
+}
+
+.btn-cancel:hover {
+  background: #e2e6ea;
+}
+
+.btn-submit {
+  background: #0056FF;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: white;
+  font-weight: bold;
+}
+
+.btn-submit:hover {
+  background: #0046d1;
+}
+
 .progress-info {
   flex: 1;
   margin-left: 20px;
@@ -1885,7 +2130,7 @@ button:disabled {
   border: 1px solid #ddd;
   border-radius: 8px;
   overflow: hidden;
-  overflow-x: auto; /* Enable horizontal scrolling */
+  overflow-x: auto;
 }
 
 .data-table {
@@ -1903,10 +2148,9 @@ button:disabled {
   background: #f8f9fa;
   font-weight: 600;
   color: #333;
-  white-space: nowrap; /* Prevent header wrapping */
+  white-space: nowrap;
 }
 
-/* Fix # Column Width */
 .data-table th:first-child,
 .data-table td:first-child {
   width: 50px;
@@ -1914,7 +2158,6 @@ button:disabled {
   text-align: center;
 }
 
-/* Default min-width for other columns */
 .data-table th:not(:first-child),
 .data-table td:not(:first-child) {
   min-width: 100px;
@@ -1943,7 +2186,6 @@ button:disabled {
 .d-flex { display: flex; align-items: center; }
 .justify-content-between { justify-content: space-between; }
 
-/* Clean Settings Card Style (Inspired by StoreStatementTab) */
 .section-header {
     font-size: 1em;
     font-weight: 600;
@@ -1971,7 +2213,7 @@ button:disabled {
 .setting-row {
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* Ensure left alignment */
+    justify-content: flex-start;
     margin-bottom: 15px;
 }
 
@@ -1981,12 +2223,12 @@ button:disabled {
 
 .setting-label {
     width: auto;
-    margin-right: 15px; /* Fixed spacing between label and input */
+    margin-right: 15px;
     font-weight: 500;
     color: #333;
     margin-bottom: 0;
-    text-align: left; /* Explicitly align text left */
-    white-space: nowrap; /* Prevent text wrapping */
+    text-align: left;
+    white-space: nowrap;
 }
 
 .setting-label-block {
@@ -1999,7 +2241,6 @@ button:disabled {
 }
 
 .setting-input {
-    /* Removed flex: 1 to prevent stretching to the right */
     width: 100%;
     max-width: 300px;
 }
@@ -2028,7 +2269,6 @@ button:disabled {
   text-overflow: ellipsis;
 }
 
-/* Dropdown Styles */
 .dropdown {
   position: relative;
   display: inline-block;

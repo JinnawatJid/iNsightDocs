@@ -962,6 +962,40 @@ const checkSingleCustomerFiles = async (customer_no) => {
 
         const latestPath = path.join(customerRoot, latestFolder);
 
+        // Check for No Financial Data Marker FIRST
+        const markerPath = path.join(latestPath, 'DBD_NoFinancialData.txt');
+        if (await fs.pathExists(markerPath)) {
+            // Include profile if it exists, but don't strictly require it here
+            const profilePath = path.join(latestPath, 'DBD_Profile.pdf');
+            let profileDetail = null;
+            let dbdCompanyName = null;
+            if (await fs.pathExists(profilePath)) {
+                const stats = await fs.stat(profilePath);
+                profileDetail = { filename: 'DBD_Profile.pdf', size: stats.size, date: stats.mtime, path: profilePath };
+
+                try {
+                    const dataBuffer = await fs.readFile(profilePath);
+                    const extracted = await extractDBDData(dataBuffer);
+                    if (extracted.success && extracted.companyName) {
+                        dbdCompanyName = extracted.companyName;
+                    }
+                } catch (pdfErr) {
+                    console.warn('Failed to parse profile for name:', pdfErr.message);
+                }
+            }
+
+            return {
+                exists: true,
+                isNoFinancialData: true,
+                date: latestFolder,
+                daysOld: diffDays,
+                path: latestPath,
+                reason: 'ลูกค้าไม่ส่งงบการเงิน',
+                dbdCompanyName: dbdCompanyName,
+                files: profileDetail ? { profile: profileDetail } : {}
+            };
+        }
+
         // Check required files
         const requiredFiles = [
             { key: 'profile', name: 'DBD_Profile.pdf' },
@@ -1003,6 +1037,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
 
         return {
             exists: true,
+            isNoFinancialData: false,
             date: latestFolder,
             daysOld: diffDays,
             path: latestPath,
@@ -1078,6 +1113,7 @@ exports.checkLocalFilesBatch = async (req, res) => {
             customerId: customer_no,
             isReady: result.exists,
             isSkipped: false,
+            isNoFinancialData: result.isNoFinancialData || false,
             reason: result.reason || 'Ready',
             date: result.date || null,
             dbdCompanyName: result.dbdCompanyName || null
@@ -1230,3 +1266,67 @@ exports.getLatePaymentBenchmark = async (req, res) => {
 // Export helper for testing
 exports.findYearlySeries = findYearlySeries;
 exports.calculateWADL = calculateWADL;
+
+exports.uploadLocalFiles = async (req, res) => {
+    try {
+        const { customer_no } = req.params;
+        const { no_financial_data } = req.body;
+        const files = req.files || {};
+
+        if (!customer_no) {
+            return res.status(400).json({ success: false, message: 'Customer No is required' });
+        }
+
+        // Determine Date Folder (YYYYMMDD)
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const dateFolder = `${yyyy}${mm}${dd}`;
+
+        let projectRoot = path.resolve(__dirname, '../../../../');
+        if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
+            projectRoot = path.resolve(__dirname, '../../');
+        }
+
+        const customerDir = path.join(projectRoot, 'customers', customer_no, dateFolder);
+        await fs.ensureDir(customerDir);
+        console.log(`[Financial Upload] Saving files to: ${customerDir}`);
+
+        // Helper to save buffer
+        const saveFile = async (field, filename) => {
+            if (files[field] && files[field][0]) {
+                const dest = path.join(customerDir, filename);
+                await fs.outputFile(dest, files[field][0].buffer);
+            }
+        };
+
+        // If no_financial_data is true, we still expect at least a profile
+        if (no_financial_data === 'true') {
+            await saveFile('company_profile', 'DBD_Profile.pdf');
+            // Create Marker file
+            await fs.outputFile(path.join(customerDir, 'DBD_NoFinancialData.txt'), 'No financial statements submitted by customer.');
+        } else {
+            // Require all files for normal processing
+            if (!files['company_profile'] || !files['balance_sheet'] || !files['profit_loss'] || !files['financial_ratios']) {
+                 return res.status(400).json({ success: false, message: 'Missing required financial files.' });
+            }
+            await saveFile('company_profile', 'DBD_Profile.pdf');
+            await saveFile('balance_sheet', 'DBD_BalanceSheet.xlsx');
+            await saveFile('profit_loss', 'DBD_IncomeStatement.xlsx');
+            await saveFile('financial_ratios', 'DBD_FinancialRatios.xlsx');
+
+            // Remove marker file if it exists from previous attempts
+            const markerPath = path.join(customerDir, 'DBD_NoFinancialData.txt');
+            if (await fs.pathExists(markerPath)) {
+                await fs.remove(markerPath);
+            }
+        }
+
+        return res.json({ success: true, message: 'Files uploaded successfully.' });
+
+    } catch (error) {
+        console.error('Upload Local Files Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
