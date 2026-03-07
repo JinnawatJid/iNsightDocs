@@ -194,8 +194,7 @@
             <th>ระยะเวลาเครดิต</th>
             <th>ระยะเวลาการวางบิล</th>
             <th>วงเงินปัจจุบัน</th>
-            <th>วงเงินแนะนำ ต่อเดือน</th>
-            <th>วงเงินแนะนำ ต่อรอบบิล</th>
+            <th>วงเงินแนะนำ</th>
             <th>คะแนน</th>
             <th>สถานะ</th>
             <th>ไฟล์</th>
@@ -212,7 +211,6 @@
             <td>{{ formatDays(item.paymentTerms) }}</td>
             <td>{{ getBillingDuration(item.billingTerms) }}</td>
             <td>{{ formatCurrency(item.currentLimit) }}</td>
-            <td class="text-bold">{{ formatCurrency(item.newLimit) }}</td>
             <td class="text-bold">{{ formatCurrency(calculateCycleLimit(item.newLimit, item.paymentTerms, item.billingTerms)) }}</td>
             <td>
               <span v-if="item.score" :class="getGradeClass(item.grade)">
@@ -1620,8 +1618,7 @@ const exportSummarizedReport = () => {
       'เครดิตเทอม': item.paymentTerms || 0,
       'ระยะเวลาการวางบิล': getBillingDurationValue(item.billingTerms),
       'วงเงินปัจจุบัน': item.currentLimit,
-      'วงเงินแนะนำ ต่อเดือน': item.newLimit,
-      'วงเงินแนะนำ ต่อรอบบิล': calculateCycleLimit(item.newLimit, item.paymentTerms, item.billingTerms) || 0,
+      'วงเงินแนะนำ': calculateCycleLimit(item.newLimit, item.paymentTerms, item.billingTerms) || 0,
       'คะแนน': item.score,
       'เกรด': item.grade,
       'สถานะ': translateStatus(item.status),
@@ -1724,8 +1721,7 @@ const exportFullDetailReport = () => {
           'รวมหมวด C3 พฤติกรรมการซื้อ': c3Total,
 
           'คะแนนรวม': item.score || 0,
-          'วงเงินแนะนำ ต่อเดือน': item.newLimit,
-          'วงเงินแนะนำ ต่อรอบบิล': calculateCycleLimit(item.newLimit, item.paymentTerms, item.billingTerms) || 0,
+          'วงเงินแนะนำ': calculateCycleLimit(item.newLimit, item.paymentTerms, item.billingTerms) || 0,
           'เครดิตปัจจุบัน': item.currentLimit,
           'ระยะเวลาเครดิต': item.paymentTerms || 0,
           'ระยะเวลาเครดิตรวมวางบิล': (Number(item.paymentTerms) || 0) + getBillingDurationValue(item.billingTerms),
