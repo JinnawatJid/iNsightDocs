@@ -616,9 +616,6 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     // Validation Action
     validateRequest(isSubmit = false, isFinancialMandatory = false) {
-        // TEMPORARY: Bypass all validation for testing
-        return { valid: true };
-
         const reqType = this.transactionData.requestType;
         const isSpecial = ['เครดิตเพิ่ม', 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน', 'เปลี่ยนแปลงระยะเวลาเครดิต'].includes(reqType);
 
