@@ -121,11 +121,12 @@ const fetchPurchasingBehavior = async (customerNo) => {
     }
 };
 
-const fetchCategorySummary = async (customerNo) => {
+const fetchCategorySummary = async (customerNo, months = 6) => {
     try {
         // Updated to POST method with JSON body
         const response = await axios.post(CATEGORY_API_URL, {
-            customer_code: customerNo
+            customer_code: customerNo,
+            months: months
         }, {
             headers: {
                 "apikey": API_KEY,
@@ -322,12 +323,17 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
 /**
  * Enriches a customer object with local database data (History, Financials).
  * @param {string} customerNo - The customer ID (No_).
+ * @param {number} currentCreditLimit - The customer's current credit limit.
  * @returns {Promise<Object>} - Object containing { history, financial_summary, suggestions }
  */
-const enrichCustomerData = async (customerNo) => {
+const enrichCustomerData = async (customerNo, currentCreditLimit = 0) => {
     let financialSummary = {};
     let suggestions = [];
     let history = [];
+
+    // Determine the number of months to fetch for the category summary
+    // Existing customers (Credit > 10) use 6 months, new customers use 3 months
+    const categoryMonths = currentCreditLimit > 10 ? 6 : 3;
 
     // 1. Fetch Credit History (Requests)
     try {
@@ -350,7 +356,7 @@ const enrichCustomerData = async (customerNo) => {
     try {
         const results = await Promise.allSettled([
             fetchPurchasingBehavior(customerNo),
-            fetchCategorySummary(customerNo)
+            fetchCategorySummary(customerNo, categoryMonths)
         ]);
 
         const apiDataResult = results[0];
@@ -446,7 +452,8 @@ const enrichCustomerData = async (customerNo) => {
                 avg_monthly: formatCurrency(sumLast3 / 3),
                 avg_monthly_trend: avgMonthlyTrend, // Use distinct Slope-based string
                 monthly_history: monthlyHistory,
-                category_breakdown: categoryBreakdown
+                category_breakdown: categoryBreakdown,
+                category_months_used: categoryMonths
             };
 
             // Generate Suggestions Logic (Adapted for Dynamic Data - Based on Calc Set)
@@ -495,7 +502,8 @@ const enrichCustomerData = async (customerNo) => {
                 avg_monthly: "0",
                 avg_monthly_trend: null,
                 monthly_history: [],
-                category_breakdown: categoryBreakdown
+                category_breakdown: categoryBreakdown,
+                category_months_used: categoryMonths
             };
             suggestions.push("ไม่พบข้อมูลประวัติการซื้อ");
         }
@@ -509,6 +517,7 @@ const enrichCustomerData = async (customerNo) => {
             avg_monthly_trend: null,
             monthly_history: [],
             category_breakdown: [],
+            category_months_used: categoryMonths,
             error: "ไม่สามารถเรียกข้อมูลพฤติกรรมการซื้อได้"
         };
     }
@@ -604,7 +613,8 @@ const searchCustomersFallback = async (req, res, query) => {
         }
 
         // Enrich with History & Financials
-        const enriched = await enrichCustomerData(row["No_"]);
+        const currentCreditLimit = parseFloat(row["Fixed Credit Limit"]) || 0;
+        const enriched = await enrichCustomerData(row["No_"], currentCreditLimit);
 
         // Blacklist Check (Advanced)
         const isCompanyRec = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
@@ -750,7 +760,8 @@ exports.searchCustomers = async (req, res) => {
           const customerSince = row["Customer Date"] || null;
 
           // Side-load History & Financials from Local DB
-          const enriched = await enrichCustomerData(row["No_"]);
+          const currentCreditLimit = parseFloat(row["Fixed Credit Limit"]) || 0;
+          const enriched = await enrichCustomerData(row["No_"], currentCreditLimit);
 
           // Improved Blacklist Logic: Gather Tax ID and Names (from API + Local Fallback)
           let taxId = row["VAT Registration No_"];
