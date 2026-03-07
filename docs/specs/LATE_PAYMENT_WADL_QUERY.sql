@@ -8,6 +8,7 @@ SELECT
     CLE.[Document No_] AS Invoice_No,
     CLE.[Posting Date] AS Invoice_Date,
     CLE.[Due Date],
+    CLE.[Customer No_],
 
     -- **CRITICAL FOR WADL**: ยอดเงินเพื่อใช้เป็นน้ำหนัก (Weight)
     CLE.[Sales (LCY)] AS [Amount],
