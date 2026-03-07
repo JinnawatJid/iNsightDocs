@@ -899,7 +899,7 @@ const showDebugFiles = async (item) => {
     }
 
     files.forEach(f => {
-        const fileData = item.debugFiles[f.key];
+        const fileData = item.debugFiles ? item.debugFiles[f.key] : null;
         if (fileData) {
             const size = fileData.size || 'ไม่ระบุ';
             const style = 'color: #333;';
@@ -937,7 +937,7 @@ const showDebugFiles = async (item) => {
         didOpen: () => {
              // Attach event listeners to buttons
              files.forEach(f => {
-                 const fileData = item.debugFiles[f.key];
+                 const fileData = item.debugFiles ? item.debugFiles[f.key] : null;
                  if (fileData) {
                      const btn = document.getElementById(`btn-dl-${f.key}`);
                      if (btn) {
