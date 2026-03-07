@@ -20,24 +20,13 @@ const LATE_PAYMENT_API_KEY = process.env.LATE_PAYMENT_API_KEY || API_KEY;
 // Dedicated API Key for WADL Service
 const LATE_PAYMENT_WADL_API_KEY = process.env.LATE_PAYMENT_WADL_API_KEY || "YOUR_WADL_API_KEY";
 
+// Global mock flag for external APIs
+const MOCK_EXTERNAL_APIS = process.env.MOCK_EXTERNAL_APIS === 'true';
+
+// MOCK FLAG for Financial API (Sandbox Environment) - Legacy
 const MOCK_FINANCIAL_API = process.env.MOCK_FINANCIAL_API === 'true';
 
-// Mock Data (Matches customerController.js for consistency)
-const MOCK_FINANCIAL_DATA = {
-  "customer": "01013AY",
-  "anchor_date": "2026-01-15",
-  "months": 6,
-  "monthly": [
-    { "month": "2025-07", "amount": 172935.25 },
-    { "month": "2025-08", "amount": 567041.5 },
-    { "month": "2025-09", "amount": 440718.5 },
-    { "month": "2025-10", "amount": 590844.75 },
-    { "month": "2025-11", "amount": 929268.5 },
-    { "month": "2025-12", "amount": 715785.5 },
-    { "month": "2026-01", "amount": 426226.75 }
-  ],
-  "total": 3842820.75
-};
+const { getMockFinancialData, getMockLatePaymentData } = require('../utils/mockData');
 
 // --- HELPER FUNCTIONS ---
 
@@ -130,9 +119,9 @@ const sanitizeInvoices = (invoices) => {
 
 // Helper: Fetch Purchasing Behavior from External API
 const fetchPurchasingBehavior = async (customerNo) => {
-    if (MOCK_FINANCIAL_API) {
+    if (MOCK_EXTERNAL_APIS || MOCK_FINANCIAL_API) {
         console.log(`[Financial API] Using Mock Data for ${customerNo}`);
-        return MOCK_FINANCIAL_DATA;
+        return getMockFinancialData(customerNo);
     }
 
     try {
@@ -158,27 +147,32 @@ const fetchPurchasingBehavior = async (customerNo) => {
 // Helper: Fetch Late Payment Data from External API
 const fetchLatePaymentData = async (customerNo) => {
     try {
-        console.log(`[Late Payment API] Fetching data for ${customerNo} from ${LATE_PAYMENT_API_URL}`);
-
-        // Debug API Key (First 5 chars)
-        if (!LATE_PAYMENT_API_KEY || LATE_PAYMENT_API_KEY === 'YOUR_API_KEY') {
-            console.warn('[Late Payment API] WARNING: LATE_PAYMENT_API_KEY is not set or is default placeholder.');
+        let data;
+        if (MOCK_EXTERNAL_APIS) {
+            console.log(`[Late Payment API] Using Mock Data for ${customerNo}`);
+            data = getMockLatePaymentData(customerNo);
         } else {
-            const maskedKey = LATE_PAYMENT_API_KEY.substring(0, 5) + '...';
-            console.log(`[Late Payment API] Using API Key: ${maskedKey}`);
+            console.log(`[Late Payment API] Fetching data for ${customerNo} from ${LATE_PAYMENT_API_URL}`);
+
+            // Debug API Key (First 5 chars)
+            if (!LATE_PAYMENT_API_KEY || LATE_PAYMENT_API_KEY === 'YOUR_API_KEY') {
+                console.warn('[Late Payment API] WARNING: LATE_PAYMENT_API_KEY is not set or is default placeholder.');
+            } else {
+                const maskedKey = LATE_PAYMENT_API_KEY.substring(0, 5) + '...';
+                console.log(`[Late Payment API] Using API Key: ${maskedKey}`);
+            }
+
+            const response = await axios.post(LATE_PAYMENT_API_URL, {
+                "Customer No_": customerNo
+            }, {
+                headers: {
+                    "apikey": LATE_PAYMENT_API_KEY,
+                    "Content-Type": "application/json"
+                },
+                timeout: 5000
+            });
+            data = response.data;
         }
-
-        const response = await axios.post(LATE_PAYMENT_API_URL, {
-            "Customer No_": customerNo
-        }, {
-            headers: {
-                "apikey": LATE_PAYMENT_API_KEY,
-                "Content-Type": "application/json"
-            },
-            timeout: 5000
-        });
-
-        const data = response.data;
         // Check if data is array (direct list) or object with data property
         let invoices = Array.isArray(data) ? data : (data.data || []);
 
@@ -322,26 +316,31 @@ const calculateWADL = (invoices) => {
 // Helper: Fetch WADL Data from External API
 const fetchWADLData = async (customerNo) => {
     try {
-        console.log(`[WADL API] Fetching data for ${customerNo} from ${LATE_PAYMENT_WADL_API_URL}`);
-
-        if (!LATE_PAYMENT_WADL_API_KEY || LATE_PAYMENT_WADL_API_KEY === 'YOUR_WADL_API_KEY') {
-            console.warn('[WADL API] WARNING: LATE_PAYMENT_WADL_API_KEY is not set or is default placeholder.');
+        let data;
+        if (MOCK_EXTERNAL_APIS) {
+            console.log(`[WADL API] Using Mock Data for ${customerNo}`);
+            data = getMockLatePaymentData(customerNo);
         } else {
-            const maskedKey = LATE_PAYMENT_WADL_API_KEY.substring(0, 5) + '...';
-            console.log(`[WADL API] Using API Key: ${maskedKey}`);
+            console.log(`[WADL API] Fetching data for ${customerNo} from ${LATE_PAYMENT_WADL_API_URL}`);
+
+            if (!LATE_PAYMENT_WADL_API_KEY || LATE_PAYMENT_WADL_API_KEY === 'YOUR_WADL_API_KEY') {
+                console.warn('[WADL API] WARNING: LATE_PAYMENT_WADL_API_KEY is not set or is default placeholder.');
+            } else {
+                const maskedKey = LATE_PAYMENT_WADL_API_KEY.substring(0, 5) + '...';
+                console.log(`[WADL API] Using API Key: ${maskedKey}`);
+            }
+
+            const response = await axios.post(LATE_PAYMENT_WADL_API_URL, {
+                "Customer No_": customerNo
+            }, {
+                headers: {
+                    "apikey": LATE_PAYMENT_WADL_API_KEY,
+                    "Content-Type": "application/json"
+                },
+                timeout: 5000
+            });
+            data = response.data;
         }
-
-        const response = await axios.post(LATE_PAYMENT_WADL_API_URL, {
-            "Customer No_": customerNo
-        }, {
-            headers: {
-                "apikey": LATE_PAYMENT_WADL_API_KEY,
-                "Content-Type": "application/json"
-            },
-            timeout: 5000
-        });
-
-        const data = response.data;
         let invoices = Array.isArray(data) ? data : (data.data || []);
 
         if (!invoices || invoices.length === 0) {
