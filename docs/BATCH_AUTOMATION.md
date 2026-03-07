@@ -36,6 +36,14 @@ Before starting the batch process, users can verify if the required financial do
     5.  **File Check:** For valid companies, it checks the local file system for fresh DBD files (within 180 days).
 *   **Result Display:** The frontend presents a SweetAlert2 summary showing the count of Ready items, Skipped items (Individuals), and items that need to be downloaded from the Bridge.
 
+
+## Handling Missing Financial Data (No Financial Data)
+If a company has registered but has not yet submitted financial statements to the DBD, the bridge automatically detects the message "ไม่พบข้อมูล" on the DBD site.
+*   **Behavior:** Instead of timing out waiting for Excel tables that don't exist, the system immediately cancels the Excel downloads to save time (approximately 1-2 minutes per customer).
+*   **Markers:** It flags the customer with `noFinancialData: true` and creates a persistent marker file named `DBD_NoFinancialData.txt` in the customer's folder alongside their Profile PDF.
+*   **Readiness Check:** The Readiness check endpoint recognizes this marker and considers the customer "Ready" to proceed without the 3 missing Excel files, displaying a specific status indicating no financials were submitted.
+*   **Analysis:** During scoring, missing financial data defaults to 0 to prevent the engine from crashing, but heavily impacts their C2 score.
+
 ## Processing Workflow
 The system includes a confirmation step to prevent accidental processing and ensure the correct configuration is applied.
 
