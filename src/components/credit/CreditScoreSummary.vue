@@ -114,7 +114,7 @@
         <div class="stat-item" v-if="financial.category_breakdown && financial.category_breakdown.length > 0">
            <div class="stat-icon">
               <span class="currency-symbol">📊</span> <!-- You can replace with an SVG icon if preferred -->
-              <span>สัดส่วนสินค้าที่ซื้อ (ย้อนหลัง {{ financial.category_months_used || 6 }} เดือน)</span>
+              <span>สัดส่วนสินค้าที่ซื้อ {{ financial.category_months_used || 6 }} เดือน</span>
            </div>
 
            <div class="category-list">
