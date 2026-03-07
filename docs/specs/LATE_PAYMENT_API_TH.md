@@ -50,7 +50,7 @@ API จะส่งกลับ Array ของใบแจ้งหนี้ (�
         "payment_method": "Cheque",
         "is_late": false,
         "late_days": 0,
-        "remark": "Paid within 5-day buffer period (จ่ายภายในระยะเวลาอนุโลม 5 วัน)"
+        "remark": "Paid by Cheque"
       },
       "Effective_Payment_Date": "2025-09-17T00:00:00.000Z",
       "Status": "ON-TIME",
@@ -93,9 +93,9 @@ node backend/scripts/debug_late_payment.js
 1.  **เงินสด / โอน (Cash / Transfer):**
     *   `Effective Date` = `Posting Date` (จากตาราง Detailed Cust. Ledg. Entry).
 2.  **เช็ค (Cheque):**
-    *   **กรณี A (ปกติ):** ถ้า `Cleared Date` (วันที่เช็คผ่าน) ห่างจาก `Check Date` (วันที่หน้าเช็ค) **ไม่เกิน 5 วัน** ให้ใช้ `Check Date` เป็นวันที่มีผลชำระเงิน
-    *   **กรณี B (ดำเนินการล่าช้า):** ถ้า `Cleared Date` ห่างจาก `Check Date` **เกิน 5 วัน** ให้ใช้ `Cleared Date` เป็นวันที่มีผลชำระเงิน
-    *   *สูตร:* `IF DATEDIFF(day, CheckDate, ClearedDate) <= 5 THEN CheckDate ELSE ClearedDate`
+    *   ถ้ามี `Cleared Date` (วันที่เช็คผ่าน) ให้ใช้ `Cleared Date` เป็นวันที่มีผลชำระเงิน
+    *   ถ้าไม่มี `Cleared Date` ให้ใช้ `Check Date` เป็นวันที่มีผลชำระเงิน
+
 
 ### 3.1.1 กฎการตรวจสอบข้อมูล (Sanitization Rules)
 เพื่อความถูกต้องของคะแนนเครดิต ระบบจะตรวจสอบความสมบูรณ์ของวันที่ก่อนกำหนดวันที่มีผลชำระเงิน หากรายการใดเข้าข่าย **"ยังไม่เกิดการจ่ายจริง" (Not Yet Realized)** จะถูกกำหนดให้ `Effective Payment Date` เป็น `null` (สถานะ Outstanding)

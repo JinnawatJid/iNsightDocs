@@ -50,7 +50,7 @@ The API returns an array of invoice objects (or an object with a `data` property
         "payment_method": "Cheque",
         "is_late": false,
         "late_days": 0,
-        "remark": "Paid within 5-day buffer period"
+        "remark": "Paid by Cheque"
       },
       "Effective_Payment_Date": "2025-09-17T00:00:00.000Z",
       "Status": "ON-TIME",
@@ -93,9 +93,9 @@ The "Effective Payment Date" is determined based on the payment method:
 1.  **Cash / Transfer:**
     *   `Effective Date` = `Posting Date` (from Detailed Cust. Ledg. Entry).
 2.  **Cheque:**
-    *   **Scenario A (Normal):** If `Cleared Date` (Check Ledger) is within **5 days** of `Check Date`, use `Check Date` as the `Effective Date`.
-    *   **Scenario B (Delayed Processing):** If `Cleared Date` is **more than 5 days** after `Check Date`, use `Cleared Date` as the `Effective Date`.
-    *   *Logic:* `IF DATEDIFF(day, CheckDate, ClearedDate) <= 5 THEN CheckDate ELSE ClearedDate`
+    *   If `Cleared Date` (Check Ledger) is available, use `Cleared Date` as the `Effective Date`.
+    *   If `Cleared Date` is NOT available, use `Check Date` as the `Effective Date`.
+
 
 ### 3.1.1 Sanitization Rules (Effective Payment Validity)
 To ensure accurate scoring, the system validates the dates before determining the Effective Payment Date. If a payment is deemed **"Not Yet Realized"**, the `Effective Payment Date` is set to `null` (Outstanding).

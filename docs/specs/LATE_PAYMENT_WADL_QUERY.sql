@@ -20,12 +20,11 @@ SELECT
     Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] AS [Cleared Date],
 
     -- คำนวณวันจ่ายจริง (Effective Payment Date)
-    -- Logic: ถ้าจ่ายเช็ค และ Clear ภายใน 5 วัน ให้ใช้วันที่เช็ค, ถ้าเกินให้ใช้วันที่ Clear
+    -- Logic: ถ้ามี Cleared Date ให้ใช้วันที่ Clear, ถ้าไม่มีให้ใช้วันที่เช็ค (ถ้าจ่ายเช็ค) หรือวันที่จ่ายเงิน (ถ้าโอน/เงินสด)
     CASE
         WHEN Check_Main.[Check Date] IS NOT NULL THEN
             CASE
                 WHEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] IS NOT NULL
-                     AND DATEDIFF(day, Check_Main.[Check Date], Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]) > 5
                 THEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]
                 ELSE Check_Main.[Check Date]
             END
@@ -39,7 +38,6 @@ SELECT
                 WHEN Check_Main.[Check Date] IS NOT NULL THEN
                     CASE
                         WHEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] IS NOT NULL
-                             AND DATEDIFF(day, Check_Main.[Check Date], Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]) > 5
                         THEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]
                         ELSE Check_Main.[Check Date]
                     END
@@ -57,7 +55,6 @@ SELECT
                 WHEN Check_Main.[Check Date] IS NOT NULL THEN
                     CASE
                         WHEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] IS NOT NULL
-                             AND DATEDIFF(day, Check_Main.[Check Date], Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]) > 5
                         THEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]
                         ELSE Check_Main.[Check Date]
                     END
@@ -69,7 +66,6 @@ SELECT
                     WHEN Check_Main.[Check Date] IS NOT NULL THEN
                         CASE
                             WHEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad] IS NOT NULL
-                                 AND DATEDIFF(day, Check_Main.[Check Date], Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]) > 5
                             THEN Check_Ext.[Cleared Date$6ad92336-3ccf-49e0-a46a-31561b26a7ad]
                             ELSE Check_Main.[Check Date]
                         END
