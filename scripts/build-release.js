@@ -298,20 +298,61 @@ pause
   });
 
   // 9. Zip Release
-  await logger.step('Zipping Release Folder', async () => {
+  await logger.step('Zipping Release Folder', async (spinner) => {
+    spinner.stop(); // Stop spinner to show progress bar
+    console.log(''); // New line for bar
+
+    // Count total files recursively for progress tracking
+    const getTotalFiles = async (dir) => {
+      let count = 0;
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          count += await getTotalFiles(fullPath);
+        } else {
+          count++;
+        }
+      }
+      return count;
+    };
+
+    const totalFiles = await getTotalFiles(RELEASE_DIR);
+
     return new Promise((resolve, reject) => {
       const outputZip = path.join(ROOT_DIR, 'release.zip');
       const output = fs.createWriteStream(outputZip);
       const archive = archiver('zip', {
-        zlib: { level: 1 } // Setting level: 1 for maximum speed since the user requested to improve zip speed
+        zlib: { level: 5 } // Changed from 1 to 5 to offer a good trade-off between speed and final bundle size for air-gapped environments.
+      });
+
+      const progressBar = new cliProgress.SingleBar({
+        format: `${chalk.cyan('{bar}')} {percentage}% | {value}/{total} Files | {filename}`,
+        barCompleteChar: '\u2588',
+        barIncompleteChar: '\u2591',
+        hideCursor: true
+      }, cliProgress.Presets.shades_classic);
+
+      progressBar.start(totalFiles, 0, {
+        filename: 'Starting...'
       });
 
       output.on('close', () => {
+        progressBar.stop();
         resolve();
       });
 
       archive.on('error', (err) => {
+        progressBar.stop();
         reject(err);
+      });
+
+      let filesProcessed = 0;
+      archive.on('entry', (entry) => {
+        filesProcessed++;
+        progressBar.update(filesProcessed, {
+          filename: entry.name.length > 30 ? '...' + entry.name.slice(-27) : entry.name
+        });
       });
 
       archive.pipe(output);
