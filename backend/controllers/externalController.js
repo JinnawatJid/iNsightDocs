@@ -402,12 +402,14 @@ exports.streamDBDProfile = async (req, res) => {
 
         if (!profilePdf) throw new Error('หมดเวลาในการดาวน์โหลด PDF');
 
-        // --- NEW: Download Balance Sheet (Excel) ---
-        sendSSE(res, { status: 'progress', message: 'กำลังเปลี่ยนแท็บไปยังข้อมูลงบการเงิน...' });
+        // --- NEW: Check for "No Financial Data" (ไม่พบข้อมูล) before continuing ---
+        sendSSE(res, { status: 'progress', message: 'กำลังตรวจสอบสถานะงบการเงิน...' });
+
+        let hasFinancialData = true;
 
         // 4.1 Hover over "Financial Data" Tab to reveal Dropdown
         const financialTabHandle = await getElementByXPath(page, "//a[contains(., 'ข้อมูลงบการเงิน')]");
-        const financialTab = financialTabHandle.asElement();
+        const financialTab = financialTabHandle ? financialTabHandle.asElement() : null;
 
         if (financialTab) {
             console.log('[DBD Stream] Hovering over Financial Data tab...');
@@ -420,7 +422,7 @@ exports.streamDBDProfile = async (req, res) => {
             console.log('[DBD Stream] Clicking Financial Statement submenu...');
             // FIXED: Use strict text matching to avoid matching the main menu "ข้อมูลนิติบุคคลและงบการเงิน" which links to /juristic
             const statementLinkHandle = await getElementByXPath(page, "//a[normalize-space(.)='งบการเงิน']");
-            const statementLink = statementLinkHandle.asElement();
+            const statementLink = statementLinkHandle ? statementLinkHandle.asElement() : null;
 
             if (statementLink) {
                  // Ensure it's visible before clicking
@@ -438,36 +440,53 @@ exports.streamDBDProfile = async (req, res) => {
             });
         }
 
-        // 4.3 Wait for Table (Look for "งบแสดงฐานะการเงิน" text)
-        sendSSE(res, { status: 'progress', message: 'กำลังรอโหลดตารางงบการเงิน...' });
-        try {
-            await page.waitForFunction(
-                () => document.body.innerText.includes('งบแสดงฐานะการเงิน'),
-                { timeout: 60000 }
-            );
-        } catch (e) {
-            console.warn('Timeout waiting for balance sheet text, but continuing...');
+        // Wait a bit to see if "ไม่พบข้อมูล" appears
+        await new Promise(r => setTimeout(r, 1500));
+
+        // Check if "ไม่พบข้อมูล" (No Data Found) is displayed
+        const noDataFound = await page.evaluate(() => {
+            return document.body.innerText.includes('ไม่พบข้อมูล');
+        });
+
+        if (noDataFound) {
+            console.log(`[Bridge] "ไม่พบข้อมูล" detected. Skipping financial documents for ${query}.`);
+            hasFinancialData = false;
+            sendSSE(res, { status: 'progress', message: 'ไม่มีงบการเงินในระบบ DBD (ข้ามการโหลด Excel)' });
         }
 
-        // 4.3 Download Excel (Balance Sheet)
-        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบการเงิน (Excel)...' });
-        await downloadExcel('BalanceSheet');
-
-        // 4.5 Wait for Excel File
         let balanceSheetExcel = null;
-        startTime = Date.now();
-        while (Date.now() - startTime < maxWait) {
-            const files = await fs.readdir(tmpDir);
-            const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
-            if (xlsxFile) {
-                balanceSheetExcel = path.join(tmpDir, xlsxFile);
-                break;
-            }
-            await new Promise(r => setTimeout(r, 500));
-        }
 
-        if (!balanceSheetExcel) {
-             console.warn('Balance Sheet Excel download timed out');
+        if (hasFinancialData) {
+            // 4.3 Wait for Table (Look for "งบแสดงฐานะการเงิน" text)
+            sendSSE(res, { status: 'progress', message: 'กำลังรอโหลดตารางงบการเงิน...' });
+            try {
+                await page.waitForFunction(
+                    () => document.body.innerText.includes('งบแสดงฐานะการเงิน'),
+                    { timeout: 60000 }
+                );
+            } catch (e) {
+                console.warn('Timeout waiting for balance sheet text, but continuing...');
+            }
+
+            // 4.3 Download Excel (Balance Sheet)
+            sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบการเงิน (Excel)...' });
+            await downloadExcel('BalanceSheet');
+
+            // 4.5 Wait for Excel File
+            startTime = Date.now();
+            while (Date.now() - startTime < maxWait) {
+                const files = await fs.readdir(tmpDir);
+                const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
+                if (xlsxFile) {
+                    balanceSheetExcel = path.join(tmpDir, xlsxFile);
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            if (!balanceSheetExcel) {
+                 console.warn('Balance Sheet Excel download timed out');
+            }
         }
 
         // 6. Move Files (Balance Sheet and Profile)
@@ -483,15 +502,19 @@ exports.streamDBDProfile = async (req, res) => {
              await fs.move(profilePdf, pdfPath);
         }
 
-        // Process Balance Sheet Excel (if found)
         let excelFilename = null;
-        if (balanceSheetExcel) {
-            excelFilename = `DBD_BalanceSheet_${fileIdentifier}_${Date.now()}.xlsx`;
-            const excelPath = path.join(downloadsDir, excelFilename);
-            await fs.move(balanceSheetExcel, excelPath);
-        }
+        let incomeFilename = null;
+        let ratioFilename = null;
 
-        // --- NEW: Download Income Statement (งบกำไรขาดทุน) ---
+        if (hasFinancialData) {
+            // Process Balance Sheet Excel (if found)
+            if (balanceSheetExcel) {
+                excelFilename = `DBD_BalanceSheet_${fileIdentifier}_${Date.now()}.xlsx`;
+                const excelPath = path.join(downloadsDir, excelFilename);
+                await fs.move(balanceSheetExcel, excelPath);
+            }
+
+            // --- NEW: Download Income Statement (งบกำไรขาดทุน) ---
         sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบกำไรขาดทุน...' });
 
         // 4.6 Click "Income Statement" (งบกำไรขาดทุน)
@@ -620,6 +643,7 @@ exports.streamDBDProfile = async (req, res) => {
             const ratioPath = path.join(downloadsDir, ratioFilename);
             await fs.move(ratioExcel, ratioPath);
         }
+        }
 
 
         // --- NEW: Extract Data from PDF and Update DB ---
@@ -677,6 +701,11 @@ exports.streamDBDProfile = async (req, res) => {
                      }
                 }
 
+                // 5. Marker for No Financial Data
+                if (!hasFinancialData) {
+                     await fs.outputFile(path.join(customerDir, 'DBD_NoFinancialData.txt'), 'No financial statements submitted by customer.');
+                }
+
             } catch (persistErr) {
                 console.error('[DBD Persistent] Error saving files:', persistErr.message);
                 // We do NOT stop the process, just log the error
@@ -688,6 +717,7 @@ exports.streamDBDProfile = async (req, res) => {
         // 7. Complete
         sendSSE(res, {
             status: 'complete',
+            noFinancialData: !hasFinancialData,
             files: {
                 profile: {
                     url: `/api/downloads/${pdfFilename}`,

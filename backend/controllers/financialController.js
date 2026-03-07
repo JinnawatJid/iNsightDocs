@@ -972,7 +972,9 @@ const checkSingleCustomerFiles = async (customer_no) => {
 
         // Check for No Financial Data Marker FIRST
         const markerPath = path.join(latestPath, 'DBD_NoFinancialData.txt');
-        if (await fs.pathExists(markerPath)) {
+        const hasNoDataMarker = await fs.pathExists(markerPath);
+
+        if (hasNoDataMarker) {
             // Include profile if it exists, but don't strictly require it here
             const profilePath = path.join(latestPath, 'DBD_Profile.pdf');
             let profileDetail = null;
@@ -995,6 +997,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
             return {
                 exists: true,
                 isNoFinancialData: true,
+                noFinancialData: true,
                 date: latestFolder,
                 daysOld: diffDays,
                 path: latestPath,
@@ -1046,6 +1049,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
         return {
             exists: true,
             isNoFinancialData: false,
+            noFinancialData: false,
             date: latestFolder,
             daysOld: diffDays,
             path: latestPath,
@@ -1111,7 +1115,8 @@ exports.checkLocalFilesBatch = async (req, res) => {
                 isReady: true,
                 isSkipped: true,
                 reason: 'ข้าม (ไม่ใช่บริษัท)',
-                date: null
+                date: null,
+                noFinancialData: false
             });
             continue;
         }
@@ -1122,6 +1127,7 @@ exports.checkLocalFilesBatch = async (req, res) => {
             isReady: result.exists,
             isSkipped: false,
             isNoFinancialData: result.isNoFinancialData || false,
+            noFinancialData: result.noFinancialData || result.isNoFinancialData || false,
             reason: result.reason || 'Ready',
             date: result.date || null,
             dbdCompanyName: result.dbdCompanyName || null
