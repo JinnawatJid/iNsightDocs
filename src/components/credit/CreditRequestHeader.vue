@@ -1,14 +1,5 @@
 <template>
   <div class="credit-header">
-    <div class="header-section">
-      <label>ประเภทคำขอเครดิต</label>
-      <MultiSelectDropdown
-        :options="requestTypeOptions"
-        :modelValue="selectedTypes"
-        :optionDisabledFn="isOptionDisabled"
-        @update:modelValue="handleSelectionChange"
-      />
-    </div>
     <div class="header-section flex-grow">
       <div class="label-row">
         <label>ค้นหาข้อมูลลูกค้า</label>
@@ -54,6 +45,20 @@
              {{ getDisplayText(item) }}
            </div>
         </div>
+      </div>
+    </div>
+    <div class="header-section action-section">
+      <label>การดำเนินการ</label>
+      <div v-if="!creditStore.hasSearched" class="disabled-action-box">
+        กรุณาค้นหาลูกค้าก่อน...
+      </div>
+      <div v-else class="action-dropdown-wrapper">
+        <MultiSelectDropdown
+          :options="requestTypeOptions"
+          :modelValue="selectedTypes"
+          :optionDisabledFn="isOptionDisabled"
+          @update:modelValue="handleSelectionChange"
+        />
       </div>
     </div>
   </div>
@@ -453,5 +458,26 @@ label {
     background-color: #fff3cd;
     color: #856404;
     border: 1px solid #ffeeba;
+}
+
+.disabled-action-box {
+  background-color: #f5f5f5;
+  color: #a0a0a0;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 14px;
+  width: 200px; /* Adjust based on MultiSelectDropdown width */
+  text-align: center;
+  cursor: not-allowed;
+}
+</style>
+
+<style scoped>
+.action-section {
+  min-width: 200px; /* Ensure enough width for dropdown */
+}
+.action-dropdown-wrapper {
+  width: 100%; /* Take full width of parent section */
 }
 </style>
