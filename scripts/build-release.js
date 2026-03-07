@@ -6,6 +6,7 @@ import chalk from 'chalk';
 import cliProgress from 'cli-progress';
 import ora from 'ora';
 import AdmZip from 'adm-zip';
+import archiver from 'archiver';
 import { fileURLToPath } from 'url';
 
 // --- Constants ---
@@ -137,7 +138,7 @@ const downloadFile = async (url, destPath) => {
 
 // --- Main Script ---
 (async () => {
-  const logger = new Logger(8);
+  const logger = new Logger(9);
   logger.header();
 
   // 1. Clean
@@ -296,11 +297,38 @@ pause
     await fs.writeFile(path.join(RELEASE_DIR, 'start_server.bat'), batContent);
   });
 
+  // 9. Zip Release
+  await logger.step('Zipping Release Folder', async () => {
+    return new Promise((resolve, reject) => {
+      const outputZip = path.join(ROOT_DIR, 'release.zip');
+      const output = fs.createWriteStream(outputZip);
+      const archive = archiver('zip', {
+        zlib: { level: 1 } // Setting level: 1 for maximum speed since the user requested to improve zip speed
+      });
+
+      output.on('close', () => {
+        resolve();
+      });
+
+      archive.on('error', (err) => {
+        reject(err);
+      });
+
+      archive.pipe(output);
+
+      // Append files from a sub-directory, putting its contents at the root of archive
+      archive.directory(RELEASE_DIR, 'release');
+
+      archive.finalize();
+    });
+  });
+
   // Success Summary
   console.log('');
   console.log(chalk.cyan('==================================================='));
   console.log(`✨  ${chalk.green.bold('Release created successfully!')}`);
   console.log(`   Location: ${chalk.underline(RELEASE_DIR)}`);
+  console.log(`   Zip File: ${chalk.underline(path.join(ROOT_DIR, 'release.zip'))}`);
   console.log(chalk.cyan('==================================================='));
 
 })();
