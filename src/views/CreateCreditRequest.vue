@@ -27,6 +27,8 @@
           </div>
           <CreditRequestHeader
              @search="handleSearch"
+             @start-request="handleStartRequest"
+             :isRequestStarted="isRequestStarted"
           />
         </div>
         <div class="grid-col right">
@@ -56,7 +58,10 @@
              </div>
            </div>
 
-           <!-- State 2: Form (Action) -->
+           <!-- State 2: Dashboard (Context) -->
+           <CustomerProfileDashboard v-else-if="!isRequestStarted" />
+
+           <!-- State 3: Form (Action) -->
            <CreditRequestForm v-else />
         </div>
 
@@ -88,6 +93,7 @@ import CreditRequestHeader from '@/components/credit/CreditRequestHeader.vue';
 import CreditHistorySidebar from '@/components/credit/CreditHistorySidebar.vue';
 import RequestStatus from '@/components/credit/RequestStatus.vue';
 import CreditRequestForm from '@/components/credit/CreditRequestForm.vue';
+import CustomerProfileDashboard from '@/components/credit/CustomerProfileDashboard.vue';
 import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
 import DocumentChecklist from '@/components/credit/DocumentChecklist.vue';
 import SmartImportModal from '@/components/credit/SmartImportModal.vue';
@@ -100,13 +106,23 @@ import Swal from 'sweetalert2';
 const store = useCreditRequestStore();
 const { isOcrEnabled } = useFeatureFlag();
 const showSmartImport = ref(false);
+const isRequestStarted = ref(false);
 
 const closePreview = () => {
     store.resetState();
+    isRequestStarted.value = false;
 };
 
 const handleSearch = async (query) => {
+    // Reset local state before search
+    isRequestStarted.value = false;
     await store.searchCustomer(query);
+};
+
+const handleStartRequest = (type) => {
+    console.log('Starting Request Type:', type);
+    store.updateTransactionData({ requestType: type });
+    isRequestStarted.value = true;
 };
 
 // Watch for Blacklist Alert
@@ -183,6 +199,11 @@ const handleOcrData = (data) => {
   store.displayCustomer = { ...store.customer };
   store.hasSearched = true; // Unlock the form
 
+  // Note: OCR Flow mimics a "Search" result but for a NEW customer.
+  // We should decide if we auto-start request for OCR or show dashboard.
+  // Given OCR is for "New Credit", maybe we should let them confirm on Dashboard?
+  // Let's stick to Dashboard pattern for consistency.
+  isRequestStarted.value = false;
 };
 </script>
 
