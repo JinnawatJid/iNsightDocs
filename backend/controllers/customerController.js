@@ -12,23 +12,13 @@ const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://192.192.0.37:
 const CATEGORY_API_URL = process.env.CATEGORY_API_URL || "http://192.192.0.37:8280/sales-by-category-6-months/1.0.0";
 const ENABLE_LOCAL_FALLBACK = process.env.ENABLE_LOCAL_FALLBACK === 'true';
 
-// MOCK FLAG for Financial API (Sandbox Environment)
+// Global mock flag for external APIs
+const MOCK_EXTERNAL_APIS = process.env.MOCK_EXTERNAL_APIS === 'true';
+
+// MOCK FLAG for Financial API (Sandbox Environment) - Legacy
 const MOCK_FINANCIAL_API = process.env.MOCK_FINANCIAL_API === 'true';
-const MOCK_FINANCIAL_DATA = {
-  "customer": "01013AY",
-  "anchor_date": "2026-01-15",
-  "months": 6,
-  "monthly": [
-    { "month": "2025-07", "amount": 172935.25 },
-    { "month": "2025-08", "amount": 567041.5 },
-    { "month": "2025-09", "amount": 440718.5 },
-    { "month": "2025-10", "amount": 590844.75 },
-    { "month": "2025-11", "amount": 929268.5 },
-    { "month": "2025-12", "amount": 715785.5 },
-    { "month": "2026-01", "amount": 426226.75 }
-  ],
-  "total": 3842820.75
-};
+
+const { getMockFinancialData, getMockCategoryData } = require('../utils/mockData');
 
 // Helper to format currency
 const formatCurrency = (val) => {
@@ -98,9 +88,9 @@ const getCategoryLabel = (code) => {
 };
 
 const fetchPurchasingBehavior = async (customerNo) => {
-    if (MOCK_FINANCIAL_API) {
+    if (MOCK_EXTERNAL_APIS || MOCK_FINANCIAL_API) {
         console.log(`[Financial API] Using Mock Data for ${customerNo}`);
-        return MOCK_FINANCIAL_DATA;
+        return getMockFinancialData(customerNo);
     }
 
     try {
@@ -122,6 +112,18 @@ const fetchPurchasingBehavior = async (customerNo) => {
 };
 
 const fetchCategorySummary = async (customerNo, months = 6) => {
+    if (MOCK_EXTERNAL_APIS) {
+        console.log(`[Category API] Using Mock Data for ${customerNo}`);
+        const mockData = getMockCategoryData(customerNo);
+        const by_category = mockData.data.reduce((acc, item) => {
+            const cat = item.category;
+            const amount = item.total_amount || 0;
+            acc[cat] = (acc[cat] || 0) + amount;
+            return acc;
+        }, {});
+        return { by_category };
+    }
+
     try {
         // Updated to POST method with JSON body
         const response = await axios.post(CATEGORY_API_URL, {
@@ -728,128 +730,313 @@ exports.searchCustomers = async (req, res) => {
     return res.status(400).json({ error: "Query parameter 'q' is required" });
   }
 
-  // 1. Try API Search
-  try {
-      const uniqueCustomers = await searchApiCustomers(query);
+  if (MOCK_EXTERNAL_APIS) {
+      console.log(`[Search] MOCK_EXTERNAL_APIS is true. Skipping API and using local DB...`);
+      // Use fallback logic by skipping try block
+  } else {
+      // 1. Try API Search
+      try {
+          const uniqueCustomers = await searchApiCustomers(query);
 
-      if (uniqueCustomers.length === 0) {
-          // API returned no results.
-          // Unless the user wants fallback on "empty result", we return empty list.
-          // Current policy: API is master.
-          return res.json([]);
+          if (uniqueCustomers.length === 0) {
+              // API returned no results.
+              // Unless the user wants fallback on "empty result", we return empty list.
+              // Current policy: API is master.
+              return res.json([]);
+          }
+
+          // Map & Enrich
+          const mappedResults = await Promise.all(uniqueCustomers.map(async (row) => {
+              // DEBUG: Log the raw row to inspect Tax ID field
+              console.log(`[Search] Processing customer: ${row["No_"]}. Tax ID (VAT Registration No_): '${row["VAT Registration No_"]}'`);
+
+              // Address Concatenation
+              const addressParts = [
+                  row["Address"],
+                  row["City"],
+                  row["County"],
+                  row["Post Code"]
+              ].filter(part => part && part.trim() !== "");
+              const fullAddress = addressParts.join(' ');
+
+              const isCompany = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
+              const customerType = isCompany ? 'Company' : 'Individual';
+
+              // Extract Customer Date (New Field)
+              const customerSince = row["Customer Date"] || null;
+
+              // Side-load History & Financials from Local DB
+              const currentCreditLimit = parseFloat(row["Fixed Credit Limit"]) || 0;
+              const enriched = await enrichCustomerData(row["No_"], currentCreditLimit);
+
+              // Improved Blacklist Logic: Gather Tax ID and Names (from API + Local Fallback)
+              let taxId = row["VAT Registration No_"];
+              const personNames = [row["Contact"]]; // API Contact
+              const companyNames = [];
+
+              // API Name Field classification
+              const isCompanyCheck = taxId && taxId.trim().length > 0;
+              if (isCompanyCheck) {
+                   companyNames.push(row["Name"]);
+              } else {
+                   personNames.push(row["Name"]);
+              }
+
+              // Fetch additional local data for comprehensive check (Authorized Persons, Local Tax ID)
+              try {
+                  const localRes = await db.query(`SELECT "VAT Registration No_", "authorized_person", "authorized_person_2", "Contact", "Name" FROM Customers WHERE "No_" = ? LIMIT 1`, [row["No_"]]);
+                  if (localRes && localRes.rows && localRes.rows.length > 0) {
+                      const localData = localRes.rows[0];
+
+                      // Fallback Tax ID
+                      if (!taxId || taxId.trim() === '') {
+                          taxId = localData['VAT Registration No_'];
+                          console.log(`[Blacklist] Using Local DB Tax ID for ${row["No_"]}: ${taxId}`);
+                      }
+
+                      // Add Local Names
+                      if (localData['authorized_person']) personNames.push(localData['authorized_person']);
+                      if (localData['authorized_person_2']) personNames.push(localData['authorized_person_2']);
+                  }
+              } catch (e) {
+                  console.error(`[Blacklist] Failed to lookup local data for ${row["No_"]}`, e);
+              }
+
+              const blacklistInfo = await checkBlacklist({
+                  taxId,
+                  personNames,
+                  companyNames
+              });
+
+              return {
+                  customer: {
+                      id: row["No_"],
+                      name: row["Name"],
+                      contact_person: row["Contact"],
+                      phone: row["Mobile Phone No_"] || row["Phone No_"],
+                      email: row["E-Mail"],
+                      tax_id: row["VAT Registration No_"],
+                      type: customerType,
+                      address_residential: fullAddress,
+                      address_company: fullAddress,
+                      company_name: row["Name"],
+                      address: row["Address"],
+                      district: row["City"],
+                      province: row["County"],
+                      zipcode: row["Post Code"],
+                      customer_since: customerSince,
+                      payment_terms_code: row["Payment Terms Code"],
+                      billing_terms_code: row["Billing Terms Code"],
+                      current_credit_limit: row["Fixed Credit Limit"]
+                  },
+                  history: enriched.history,
+                  financial_summary: {
+                      ...enriched.financial_summary,
+                      is_blacklisted: blacklistInfo.is_blacklisted,
+                      blacklist_data: blacklistInfo.blacklist_data
+                  },
+                  credit_score: {
+                       can_request_credit: true,
+                       badges: [],
+                       suggestions: enriched.suggestions
+                  },
+                  _source: 'api'
+              };
+          }));
+
+          return res.json(mappedResults);
+
+      } catch (err) {
+          // Fallback on any API error (Timeout, Network, 500)
+          console.warn("API Search failed:", err.message);
+
+          if (!ENABLE_LOCAL_FALLBACK) {
+             return res.status(503).json({ error: "External API Unavailable", details: err.message });
+          }
+      }
+  }
+
+  // --- LOCAL DB FALLBACK FOR SEARCH ---
+  console.log(`[Search] Switching to fallback for query: "${query}"`);
+  let sql;
+  if (db.dbType === 'mssql') {
+    sql = `
+      SELECT TOP 20
+        "No_", "Name", "Contact", "Phone No_", "Fax No_", "E-Mail",
+        "Telex No_", "Mobile Phone No_", "VAT Registration No_",
+        "Address", "City", "County", "Post Code",
+        "residence_latitude", "residence_longitude", "store_latitude", "store_longitude",
+        "residence_landmark", "residence_note", "store_landmark", "store_note",
+        "residence_map_code", "store_map_code",
+        "authorized_person", "authorized_position", "contact_position", "contact_phone_number",
+        "authorized_person_2", "authorized_position_2",
+        "business_type", "main_products", "years_in_business",
+        "contact_department", "contact_division",
+        "billing_requirement", "billing_requirement_note",
+        "billing_method", "billing_method_note",
+        "billing_schedule", "billing_contact", "billing_department",
+        "billing_phone", "billing_mobile", "billing_email",
+        "existing_credits",
+        "residence_location_type", "residence_location_type_other",
+        "residence_ownership", "residence_ownership_other",
+        "residence_value",
+        "store_location_type", "store_location_type_other",
+        "store_ownership", "store_ownership_other",
+        "store_value"
+      FROM "Customers"
+      WHERE
+        "Name" LIKE ? OR
+        "No_" LIKE ? OR
+        "Phone No_" LIKE ? OR
+        "Mobile Phone No_" LIKE ? OR
+        "Contact" LIKE ?
+    `;
+  } else {
+    sql = `
+      SELECT *
+      FROM "Customers"
+      WHERE
+        "Name" LIKE ? OR
+        "No_" LIKE ? OR
+        "Phone No_" LIKE ? OR
+        "Mobile Phone No_" LIKE ? OR
+        "Contact" LIKE ?
+      LIMIT 20
+    `;
+  }
+
+  const searchPattern = `%${query}%`;
+  const params = [searchPattern, searchPattern, searchPattern, searchPattern, searchPattern];
+
+  try {
+    const { rows } = await db.query(sql, params);
+
+    const results = await Promise.all(rows.map(async (row) => {
+      // Address Concatenation
+      const addressParts = [
+        row["Address"],
+        row["City"],
+        row["County"],
+        row["Post Code"]
+      ].filter(part => part && part.trim() !== "");
+
+      const fullAddress = addressParts.join(' ');
+
+      // Company vs Individual
+      const isCompany = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
+      const customerType = isCompany ? 'Company' : 'Individual';
+
+      // Phone Number Fallback
+      let finalPhone = row["Phone No_"];
+      if (!finalPhone || finalPhone.trim() === '') {
+        finalPhone = row["Telex No_"];
+      }
+      if (!finalPhone || finalPhone.trim() === '') {
+        finalPhone = row["Mobile Phone No_"];
       }
 
-      // Map & Enrich
-      const mappedResults = await Promise.all(uniqueCustomers.map(async (row) => {
-          // DEBUG: Log the raw row to inspect Tax ID field
-          console.log(`[Search] Processing customer: ${row["No_"]}. Tax ID (VAT Registration No_): '${row["VAT Registration No_"]}'`);
+      // Enrich with History & Financials
+      const currentCreditLimit = parseFloat(row["Fixed Credit Limit"]) || 0;
+      const enriched = await enrichCustomerData(row["No_"], currentCreditLimit);
 
-          // Address Concatenation
-          const addressParts = [
-              row["Address"],
-              row["City"],
-              row["County"],
-              row["Post Code"]
-          ].filter(part => part && part.trim() !== "");
-          const fullAddress = addressParts.join(' ');
+      // Blacklist Check (Advanced)
+      const isCompanyRec = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
+      const personNamesRec = [row["Contact"], row["authorized_person"], row["authorized_person_2"]];
+      const companyNamesRec = [];
 
-          const isCompany = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
-          const customerType = isCompany ? 'Company' : 'Individual';
+      if (isCompanyRec) {
+          companyNamesRec.push(row["Name"]);
+      } else {
+          personNamesRec.push(row["Name"]);
+      }
 
-          // Extract Customer Date (New Field)
-          const customerSince = row["Customer Date"] || null;
+      const blacklistInfo = await checkBlacklist({
+          taxId: row["VAT Registration No_"],
+          personNames: personNamesRec,
+          companyNames: companyNamesRec
+      });
 
-          // Side-load History & Financials from Local DB
-          const currentCreditLimit = parseFloat(row["Fixed Credit Limit"]) || 0;
-          const enriched = await enrichCustomerData(row["No_"], currentCreditLimit);
+      return {
+        customer: {
+          id: row["No_"],
+          name: row["Name"],
+          contact_person: row["Contact"],
+          phone: finalPhone,
+          fax: row["Fax No_"],
+          email: row["E-Mail"],
+          tax_id: row["VAT Registration No_"],
+          type: customerType,
+          address_residential: fullAddress,
+          address_company: fullAddress,
+          company_name: row["Name"],
+          address: row["Address"],
+          district: row["City"],
+          province: row["County"],
+          zipcode: row["Post Code"],
+          // Coordinates & Extra Fields
+          residence_latitude: row["residence_latitude"] || "",
+          residence_longitude: row["residence_longitude"] || "",
+          store_latitude: row["store_latitude"] || "",
+          store_longitude: row["store_longitude"] || "",
+          residence_landmark: row["residence_landmark"] || "",
+          residence_note: row["residence_note"] || "",
+          store_landmark: row["store_landmark"] || "",
+          store_note: row["store_note"] || "",
+          residence_map_code: row["residence_map_code"] || "",
+          store_map_code: row["store_map_code"] || "",
+          authorized_person: row["authorized_person"] || "",
+          authorized_position: row["authorized_position"] || "",
+          contact_position: row["contact_position"] || "",
+          contact_phone_number: row["contact_phone_number"] || "",
+          residence_location_type: row["residence_location_type"] || "",
+          residence_location_type_other: row["residence_location_type_other"] || "",
+          residence_ownership: row["residence_ownership"] || "",
+          residence_ownership_other: row["residence_ownership_other"] || "",
+          residence_value: row["residence_value"] || "",
+          store_location_type: row["store_location_type"] || "",
+          store_location_type_other: row["store_location_type_other"] || "",
+          store_ownership: row["store_ownership"] || "",
+          store_ownership_other: row["store_ownership_other"] || "",
+          store_value: row["store_value"] || "",
+          authorized_person_2: row["authorized_person_2"] || "",
+          authorized_position_2: row["authorized_position_2"] || "",
+          business_type: row["business_type"] || "",
+          main_products: row["main_products"] || "",
+          years_in_business: row["years_in_business"] || "",
+          contact_department: row["contact_department"] || "",
+          contact_division: row["contact_division"] || "",
+          // Billing Information
+          billing_requirement: row["billing_requirement"] || "",
+          billing_requirement_note: row["billing_requirement_note"] || "",
+          billing_method: row["billing_method"] || "",
+          billing_method_note: row["billing_method_note"] || "",
+          billing_schedule: row["billing_schedule"] || "",
+          billing_contact: row["billing_contact"] || "",
+          billing_department: row["billing_department"] || "",
+          billing_phone: row["billing_phone"] || "",
+          billing_mobile: row["billing_mobile"] || "",
+          billing_email: row["billing_email"] || ""
+        },
+        history: enriched.history,
+        financial_summary: {
+            ...enriched.financial_summary,
+            is_blacklisted: blacklistInfo.is_blacklisted,
+            blacklist_data: blacklistInfo.blacklist_data
+        },
+        credit_score: {
+             can_request_credit: true,
+             badges: [],
+             suggestions: enriched.suggestions
+        },
+        _source: 'database'
+      };
+    }));
 
-          // Improved Blacklist Logic: Gather Tax ID and Names (from API + Local Fallback)
-          let taxId = row["VAT Registration No_"];
-          const personNames = [row["Contact"]]; // API Contact
-          const companyNames = [];
-
-          // API Name Field classification
-          const isCompanyCheck = taxId && taxId.trim().length > 0;
-          if (isCompanyCheck) {
-               companyNames.push(row["Name"]);
-          } else {
-               personNames.push(row["Name"]);
-          }
-
-          // Fetch additional local data for comprehensive check (Authorized Persons, Local Tax ID)
-          try {
-              const localRes = await db.query(`SELECT "VAT Registration No_", "authorized_person", "authorized_person_2", "Contact", "Name" FROM Customers WHERE "No_" = ? LIMIT 1`, [row["No_"]]);
-              if (localRes && localRes.rows && localRes.rows.length > 0) {
-                  const localData = localRes.rows[0];
-
-                  // Fallback Tax ID
-                  if (!taxId || taxId.trim() === '') {
-                      taxId = localData['VAT Registration No_'];
-                      console.log(`[Blacklist] Using Local DB Tax ID for ${row["No_"]}: ${taxId}`);
-                  }
-
-                  // Add Local Names
-                  if (localData['authorized_person']) personNames.push(localData['authorized_person']);
-                  if (localData['authorized_person_2']) personNames.push(localData['authorized_person_2']);
-              }
-          } catch (e) {
-              console.error(`[Blacklist] Failed to lookup local data for ${row["No_"]}`, e);
-          }
-
-          const blacklistInfo = await checkBlacklist({
-              taxId,
-              personNames,
-              companyNames
-          });
-
-          return {
-              customer: {
-                  id: row["No_"],
-                  name: row["Name"],
-                  contact_person: row["Contact"],
-                  phone: row["Mobile Phone No_"] || row["Phone No_"],
-                  email: row["E-Mail"],
-                  tax_id: row["VAT Registration No_"],
-                  type: customerType,
-                  address_residential: fullAddress,
-                  address_company: fullAddress,
-                  company_name: row["Name"],
-                  address: row["Address"],
-                  district: row["City"],
-                  province: row["County"],
-                  zipcode: row["Post Code"],
-                  customer_since: customerSince,
-                  payment_terms_code: row["Payment Terms Code"],
-                  billing_terms_code: row["Billing Terms Code"],
-                  current_credit_limit: row["Fixed Credit Limit"]
-              },
-              history: enriched.history,
-              financial_summary: {
-                  ...enriched.financial_summary,
-                  is_blacklisted: blacklistInfo.is_blacklisted,
-                  blacklist_data: blacklistInfo.blacklist_data
-              },
-              credit_score: {
-                   can_request_credit: true,
-                   badges: [],
-                   suggestions: enriched.suggestions
-              },
-              _source: 'api'
-          };
-      }));
-
-      return res.json(mappedResults);
+    return res.json(results);
 
   } catch (err) {
-      // Fallback on any API error (Timeout, Network, 500)
-      console.warn("API Search failed:", err.message);
-
-      if (ENABLE_LOCAL_FALLBACK) {
-         console.log(`[Search] Switching to fallback for query: "${query}"`);
-         return searchCustomersFallback(req, res, query);
-      } else {
-         return res.status(503).json({ error: "External API Unavailable", details: err.message });
-      }
+    console.error("Database fallback error:", err);
+    return res.status(500).json({ error: "Internal Server Error (Fallback)", details: err.message });
   }
 };
 
@@ -860,7 +1047,11 @@ exports.getSuggestions = async (req, res) => {
     return res.json([]);
   }
 
-  try {
+  if (MOCK_EXTERNAL_APIS) {
+      console.log(`[Suggestion] MOCK_EXTERNAL_APIS is true. Skipping API and using local DB...`);
+      // Use fallback logic by skipping try block
+  } else {
+      try {
       // 1. Try API Search for suggestions
       const apiResults = await searchApiCustomers(query);
 
@@ -882,16 +1073,17 @@ exports.getSuggestions = async (req, res) => {
           return res.json([]);
       }
 
-      // If Fallback IS enabled, proceed to DB code below...
-      // (Falling through to existing DB code)
+          // If Fallback IS enabled, proceed to DB code below...
+          // (Falling through to existing DB code)
 
-  } catch (err) {
-      console.warn("API Suggestion failed:", err.message);
-      if (!ENABLE_LOCAL_FALLBACK) {
-          // If fallback disabled, return empty
-          return res.json([]);
+      } catch (err) {
+          console.warn("API Suggestion failed:", err.message);
+          if (!ENABLE_LOCAL_FALLBACK) {
+              // If fallback disabled, return empty
+              return res.json([]);
+          }
+          // If fallback enabled, catch block continues to DB code...
       }
-      // If fallback enabled, catch block continues to DB code...
   }
 
   // --- LOCAL DB FALLBACK FOR SUGGESTIONS ---
