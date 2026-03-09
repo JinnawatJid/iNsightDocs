@@ -478,7 +478,7 @@ const generateCreditRequestPDF = async (req, res) => {
                  // Col 3: Summary Stats
                  {
                      width: '*',
-                     margin: [15, 0, 0, 0],
+                     margin: [15, 22, 0, 0],
                      table: {
                          widths: ['auto', '*'],
                          body: [
