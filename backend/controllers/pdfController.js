@@ -494,7 +494,7 @@ const generateCreditRequestPDF = async (req, res) => {
         },
 
         // --- SECTION 3: TRANSACTION & BILLING (Grouped) ---
-        { text: 'รายละเอียดคำขอและเงื่อนไขการชำระเงิน', style: 'subheader' },
+        { text: 'วงเงินและเงื่อนไขการชำระเงิน', style: 'subheader' },
         {
             table: {
                 widths: ['15%', '35%', '20%', '30%'],
