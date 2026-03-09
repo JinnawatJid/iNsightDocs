@@ -13,9 +13,9 @@
               <img :src="statusIcon" alt="" width="16" height="16" class="icon" />
               <span>{{ statusLabel }}</span>
             </div>
-            <button v-if="showExportButton" class="btn-icon-export" @click="exportPDF" title="ดาวน์โหลด PDF">
-              <img src="@/assets/icons/download.svg" alt="ดาวน์โหลด PDF" width="16" height="16" />
-              <span>ดาวน์โหลด PDF</span>
+            <button  class="btn-icon-export" @click="exportPDF" title="PDF">
+              <img src="@/assets/icons/download.svg" alt="PDF" width="16" height="16" />
+              <span>PDF</span>
             </button>
           </div>
         </div>
