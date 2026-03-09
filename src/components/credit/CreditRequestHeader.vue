@@ -23,14 +23,6 @@
         />
         <button class="btn-search" @click="performSearch">ค้นหา</button>
 
-        <button
-          v-if="showExportButton"
-          class="btn-export"
-          @click="exportPDF"
-        >
-          ดาวน์โหลด PDF
-        </button>
-
         <!-- Dropdown Suggestions -->
         <div v-if="showDropdown" class="suggestions-dropdown">
            <div v-if="suggestions.length === 0" class="no-results">
@@ -236,22 +228,6 @@ export default {
     }
   },
   computed: {
-    showExportButton() {
-      // Show button if status is Opened (Branch Manager) or later
-      const status = this.creditStore.requestStatus;
-      const validStatuses = [
-        'Opened',
-        'Submitted',
-        'PendingSales (ชั่วคราว)',
-        'Reviewed',
-        'PendingFinance (ชั่วคราว)',
-        'Approved',
-        'Rejected',
-        'Closed',
-        'Canceled'
-      ];
-      return validStatuses.includes(status);
-    },
     dataSource() {
       return this.creditStore.dataSource;
     },
@@ -373,18 +349,6 @@ export default {
       this.showDropdown = false;
       this.$emit('search', this.searchQuery);
     },
-    exportPDF() {
-      const txId = this.creditStore.requestId;
-
-      if (!txId) {
-        console.warn('Cannot export PDF: Missing Transaction ID (requestId is null)');
-        return;
-      }
-
-      const encodedId = encodeURIComponent(txId);
-      const url = `/api/credit-requests/${encodedId}/pdf`;
-      window.open(url, '_blank');
-    },
     handleClickOutsideSearch(event) {
         const container = this.$refs.searchContainer;
         if (container && !container.contains(event.target)) {
@@ -487,23 +451,6 @@ label {
 
 .btn-search:hover {
   background-color: #0046cc;
-}
-
-.btn-export {
-  padding: 10px 0;
-  width: 120px;
-  background-color: white;
-  color: #0056FF;
-  border: 1px solid #0056FF;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-  text-align: center;
-  margin-left: 10px;
-}
-
-.btn-export:hover {
-  background-color: #f0f5ff;
 }
 
 /* Dropdown Styles */

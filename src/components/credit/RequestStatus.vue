@@ -1,14 +1,24 @@
 <template>
   <div v-if="store.requestId" class="request-status-component">
-    <div class="header">
-      <span class="label">เลขที่คำขอ:</span>
-      <span class="value">{{ store.requestId }}</span>
-    </div>
-    <div class="status-row">
-      <span class="label">สถานะ:</span>
-      <div :class="['status-badge', statusClass]">
-        <img :src="statusIcon" alt="" width="16" height="16" class="icon" />
-        <span>{{ statusLabel }}</span>
+    <div class="content-wrapper">
+      <div class="info-section">
+        <div class="header">
+          <span class="label">เลขที่คำขอ:</span>
+          <span class="value">{{ store.requestId }}</span>
+        </div>
+        <div class="status-row">
+          <span class="label">สถานะ:</span>
+          <div class="status-badge-container">
+            <div :class="['status-badge', statusClass]">
+              <img :src="statusIcon" alt="" width="16" height="16" class="icon" />
+              <span>{{ statusLabel }}</span>
+            </div>
+            <button  class="btn-icon-export" @click="exportPDF" title="PDF">
+              <img src="@/assets/icons/download.svg" alt="PDF" width="16" height="16" />
+              <span>PDF</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -49,6 +59,33 @@ const statusClass = computed(() => {
 const statusIcon = computed(() => {
   return statusConfig[currentStatus.value]?.icon || iconFile;
 });
+
+const showExportButton = computed(() => {
+  const status = store.requestStatus;
+  const validStatuses = [
+    'Opened',
+    'Submitted',
+    'PendingSales (ชั่วคราว)',
+    'Reviewed',
+    'PendingFinance (ชั่วคราว)',
+    'Approved',
+    'Rejected',
+    'Closed',
+    'Canceled'
+  ];
+  return validStatuses.includes(status);
+});
+
+const exportPDF = () => {
+  const txId = store.requestId;
+  if (!txId) {
+    console.warn('Cannot export PDF: Missing Transaction ID (requestId is null)');
+    return;
+  }
+  const encodedId = encodeURIComponent(txId);
+  const url = `/api/credit-requests/${encodedId}/pdf`;
+  window.open(url, '_blank');
+};
 </script>
 
 <style scoped>
@@ -61,8 +98,20 @@ const statusIcon = computed(() => {
   text-align: left;
   height: 100%;
   display: flex;
+  align-items: center;
+}
+
+.content-wrapper {
+  display: flex;
+  flex-direction: row; /* Horizontal layout */
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.info-section {
+  display: flex;
   flex-direction: column;
-  justify-content: center;
 }
 
 .header {
@@ -84,6 +133,12 @@ const statusIcon = computed(() => {
 .status-row {
   display: flex;
   align-items: center;
+}
+
+.status-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .status-badge {
@@ -133,5 +188,26 @@ const statusIcon = computed(() => {
 
 .status-badge.default {
   color: #333;
+}
+
+.btn-icon-export {
+  background-color: white;
+  border: 1px solid #0056FF;
+  color: #0056FF;
+  padding: 4px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+.btn-icon-export:hover {
+  background-color: #f0f5ff;
 }
 </style>
