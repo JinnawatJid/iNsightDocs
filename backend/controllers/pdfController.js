@@ -453,7 +453,7 @@ const generateCreditRequestPDF = async (req, res) => {
                      table: {
                          widths: ['*', '*'],
                          body: [
-                             [{ text: 'เดือน', bold: true, fillColor: '#f9f9f9' }, { text: 'ยอดขาย', bold: true, alignment: 'right', fillColor: '#f9f9f9' }],
+                             [{ text: 'เดือน', bold: true, fillColor: '#f9f9f9' }, { text: 'ยอดซื้อ', bold: true, alignment: 'right', fillColor: '#f9f9f9' }],
                              ...monthlySalesRows
                          ]
                      },
