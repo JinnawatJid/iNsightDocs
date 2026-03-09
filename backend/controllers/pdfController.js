@@ -471,6 +471,20 @@ const generateCreditRequestPDF = async (req, res) => {
                          ]
                      },
                      layout: 'lightHorizontalLines'
+                 },
+                 // Col 3: Summary Stats
+                 {
+                     width: '*',
+                     margin: [40, 0, 0, 0],
+                     table: {
+                         widths: ['auto', '*'],
+                         body: [
+                             [{ text: 'ยอดซื้อสะสม:', bold: true }, { text: (financial.total_purchase_3_months || formatCurrency(financial.stats?.total_accum) || '0.00') + ' บาท', alignment: 'right' }],
+                             [{ text: 'เฉลี่ยต่อเดือน:', bold: true }, { text: (financial.avg_monthly || formatCurrency(financial.stats?.avg_3_months) || '0.00') + ' บาท', alignment: 'right' }],
+                             [{ text: 'แนวโน้ม:', bold: true }, { text: financial.avg_monthly_trend || financial.trend_status || '-', alignment: 'right' }]
+                         ]
+                     },
+                     layout: 'noBorders'
                  }
              ],
              margin: [0, 0, 0, 15]
