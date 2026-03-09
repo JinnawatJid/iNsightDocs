@@ -255,7 +255,15 @@ const generateCreditRequestPDF = async (req, res) => {
     }
 
     // Prepare Financial Rows
-    const monthlyHistory = financial.monthly_history || [];
+    let monthlyHistory = financial.monthly_history || [];
+
+    // Filter history based on request type
+    if (requestType === 'เครดิตใหม่') {
+        monthlyHistory = monthlyHistory.slice(0, 3);
+    } else if (requestType === 'ขอเครดิตเพิ่ม') {
+        monthlyHistory = monthlyHistory.slice(0, 6);
+    }
+
     let monthlySalesRows = monthlyHistory.map(m => [
       { text: m.label, bold: true },
       { text: m.value, alignment: 'right' }
