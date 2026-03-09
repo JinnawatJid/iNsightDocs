@@ -261,6 +261,9 @@ app.get('/stream', async (req, res) => {
         resolveDownload = resolve;
         rejectDownload = reject;
     });
+    // Add a no-op catch handler to prevent UnhandledPromiseRejection
+    // crashing the Node.js server if this promise rejects and no other requests are awaiting it.
+    downloadPromise.catch(() => {});
     activeDownloads.set(query, downloadPromise);
 
     try {
@@ -657,3 +660,12 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // Disable timeouts to prevent connection drops during long downloads
 server.setTimeout(0);
 server.keepAliveTimeout = 0;
+
+// Prevent the entire server from crashing due to unexpected unhandled rejections
+// (e.g., when Puppeteer throws TargetCloseError if the browser is closed manually)
+process.on('unhandledRejection', (reason, promise) => {
+    console.warn('[DBD Bridge] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('[DBD Bridge] Uncaught Exception thrown:', err);
+});
