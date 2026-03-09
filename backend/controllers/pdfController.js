@@ -444,7 +444,7 @@ const generateCreditRequestPDF = async (req, res) => {
 
         // --- SECTION 2: FINANCIAL SUMMARY ---
         // 3-month sales history & summary stats
-        { text: 'สรุปข้อมูลทางการเงิน', style: 'subheader' },
+        { text: 'ประวัติการซื้อ', style: 'subheader' },
         {
              columns: [
                  // Col 1: Monthly History
