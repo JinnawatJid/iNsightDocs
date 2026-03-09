@@ -14,7 +14,8 @@
               <span>{{ statusLabel }}</span>
             </div>
             <button v-if="showExportButton" class="btn-icon-export" @click="exportPDF" title="ดาวน์โหลด PDF">
-              <img src="@/assets/icons/download.svg" alt="ดาวน์โหลด PDF" width="18" height="18" />
+              <img src="@/assets/icons/download.svg" alt="ดาวน์โหลด PDF" width="16" height="16" />
+              <span>ดาวน์โหลด PDF</span>
             </button>
           </div>
         </div>
@@ -190,15 +191,20 @@ const exportPDF = () => {
 }
 
 .btn-icon-export {
-  background: none;
-  border: none;
-  padding: 4px;
+  background-color: white;
+  border: 1px solid #0056FF;
+  color: #0056FF;
+  padding: 4px 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, color 0.2s;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 .btn-icon-export:hover {
