@@ -242,7 +242,7 @@ app.get('/stream', async (req, res) => {
             // Send the completed data
             sendSSE(res, {
                 status: 'complete',
-                noFinancialData: false,
+                noFinancialData: !!resultData.noFinancialData,
                 data: resultData
             });
         } catch (error) {
@@ -446,6 +446,11 @@ app.get('/stream', async (req, res) => {
         }
 
         let profilePdf = null;
+        let balanceSheetExcel = null;
+        let incomeStatementExcel = null;
+        let ratioExcel = null;
+        let hasFinancialData = true;
+
         let startTime = Date.now();
         while (Date.now() - startTime < 60000) {
             const files = await fs.readdir(tmpDir);
@@ -454,134 +459,155 @@ app.get('/stream', async (req, res) => {
             await new Promise(r => setTimeout(r, 500));
         }
 
-        // 2. Download Balance Sheet
-        sendSSE(res, { status: 'progress', message: 'กำลังไปที่หน้างบแสดงฐานะการเงิน...' });
-        const financialTabHandle = await getElementByXPath(page, "//a[contains(., 'ข้อมูลงบการเงิน')]");
-        const financialTab = financialTabHandle.asElement();
+        // Check for "No Financial Data" (ไม่พบข้อมูล) before continuing
+        sendSSE(res, { status: 'progress', message: 'ตรวจสอบสถานะข้อมูลงบการเงิน...' });
 
-        if (financialTab) {
-            await financialTab.hover();
+        // Click the main financial tab directly first to check if there is data
+        await page.evaluate(() => {
+            const items = Array.from(document.querySelectorAll('a, li, div, span'));
+            const tab = items.find(el => el.innerText && el.innerText.trim() === 'ข้อมูลงบการเงิน');
+            if (tab) tab.click();
+        });
+        await new Promise(r => setTimeout(r, 2000));
+
+        // Check if "ไม่พบข้อมูล" is displayed anywhere on the body
+        const noDataFound = await page.evaluate(() => {
+            return document.body.innerText.includes('ไม่พบข้อมูล');
+        });
+
+        if (noDataFound) {
+            console.log(`[DBD Bridge] "ไม่พบข้อมูล" detected. Skipping financial documents for ${query}.`);
+            hasFinancialData = false;
+            sendSSE(res, { status: 'progress', message: 'ไม่พบข้อมูลงบการเงินที่ส่งให้ DBD (ข้ามการโหลด Excel)' });
+        }
+
+        if (hasFinancialData) {
+            // 2. Download Balance Sheet
+            sendSSE(res, { status: 'progress', message: 'กำลังไปที่หน้างบแสดงฐานะการเงิน...' });
+            const financialTabHandle = await getElementByXPath(page, "//a[contains(., 'ข้อมูลงบการเงิน')]");
+            const financialTab = financialTabHandle.asElement();
+
+            if (financialTab) {
+                await financialTab.hover();
+                await new Promise(r => setTimeout(r, 1000));
+                const statementLinkHandle = await getElementByXPath(page, "//a[normalize-space(.)='งบการเงิน']");
+                const statementLink = statementLinkHandle.asElement();
+                if (statementLink) await statementLink.click();
+            } else {
+                await page.evaluate(() => {
+                    const items = Array.from(document.querySelectorAll('a, li, div, span'));
+                    const tab = items.find(el => el.innerText && el.innerText.trim() === 'ข้อมูลงบการเงิน');
+                    if (tab) tab.click();
+                });
+            }
+
+            try {
+                await page.waitForFunction(
+                    () => document.body.innerText.includes('งบแสดงฐานะการเงิน'),
+                    { timeout: 60000 }
+                );
+            } catch (e) {}
+
+            sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบแสดงฐานะการเงิน...' });
+            await downloadExcel('BalanceSheet');
+
+            startTime = Date.now();
+            while (Date.now() - startTime < 60000) {
+                const files = await fs.readdir(tmpDir);
+                const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
+                if (xlsxFile) {
+                    // Rename to avoid overwrite by next download
+                    const newPath = path.join(tmpDir, 'BalanceSheet.xlsx');
+                    await fs.move(path.join(tmpDir, xlsxFile), newPath);
+                    balanceSheetExcel = newPath;
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            // 3. Download Income Statement
+            sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบกำไรขาดทุน...' });
+            let incomeTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='งบกำไรขาดทุน'] | //a[normalize-space(.)='งบกำไรขาดทุน']");
+
+            if (!incomeTabHandle.asElement()) {
+                 incomeTabHandle = await getElementByXPath(page, "//button[contains(., 'งบกำไรขาดทุน')] | //a[contains(., 'งบกำไรขาดทุน')]");
+            }
+
+            const incomeTab = incomeTabHandle.asElement();
+            if (incomeTab) await incomeTab.click();
+            else {
+                 await page.evaluate(() => {
+                    const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
+                    const tab = items.find(el => el.innerText && el.innerText.trim() === 'งบกำไรขาดทุน');
+                    if (tab) tab.click();
+                });
+            }
+
+            try {
+                await page.waitForFunction(
+                    () => document.body.innerText.includes('รายได้หลัก') || document.body.innerText.includes('ต้นทุนขาย'),
+                    { timeout: 60000 }
+                );
+            } catch (e) {}
+
             await new Promise(r => setTimeout(r, 1000));
-            const statementLinkHandle = await getElementByXPath(page, "//a[normalize-space(.)='งบการเงิน']");
-            const statementLink = statementLinkHandle.asElement();
-            if (statementLink) await statementLink.click();
-        } else {
-            await page.evaluate(() => {
-                const items = Array.from(document.querySelectorAll('a, li, div, span'));
-                const tab = items.find(el => el.innerText && el.innerText.trim() === 'ข้อมูลงบการเงิน');
-                if (tab) tab.click();
-            });
-        }
+            await downloadExcel('IncomeStatement');
 
-        try {
-            await page.waitForFunction(
-                () => document.body.innerText.includes('งบแสดงฐานะการเงิน'),
-                { timeout: 60000 }
-            );
-        } catch (e) {}
-
-        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบแสดงฐานะการเงิน...' });
-        await downloadExcel('BalanceSheet');
-
-        let balanceSheetExcel = null;
-        startTime = Date.now();
-        while (Date.now() - startTime < 60000) {
-            const files = await fs.readdir(tmpDir);
-            const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx'));
-            if (xlsxFile) {
-                // Rename to avoid overwrite by next download
-                const newPath = path.join(tmpDir, 'BalanceSheet.xlsx');
-                await fs.move(path.join(tmpDir, xlsxFile), newPath);
-                balanceSheetExcel = newPath;
-                break;
+            startTime = Date.now();
+            while (Date.now() - startTime < 60000) {
+                const files = await fs.readdir(tmpDir);
+                // Look for new xlsx (not BalanceSheet.xlsx)
+                const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx') && !f.includes('BalanceSheet'));
+                if (xlsxFile) {
+                    const newPath = path.join(tmpDir, 'IncomeStatement.xlsx');
+                    await fs.move(path.join(tmpDir, xlsxFile), newPath);
+                    incomeStatementExcel = newPath;
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 500));
             }
-            await new Promise(r => setTimeout(r, 500));
-        }
 
-        // 3. Download Income Statement
-        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดงบกำไรขาดทุน...' });
-        let incomeTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='งบกำไรขาดทุน'] | //a[normalize-space(.)='งบกำไรขาดทุน']");
+            // 4. Download Financial Ratios
+            sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดอัตราส่วนทางการเงิน...' });
+            let ratioTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='อัตราส่วนทางการเงิน'] | //a[normalize-space(.)='อัตราส่วนทางการเงิน']");
 
-        if (!incomeTabHandle.asElement()) {
-             incomeTabHandle = await getElementByXPath(page, "//button[contains(., 'งบกำไรขาดทุน')] | //a[contains(., 'งบกำไรขาดทุน')]");
-        }
-
-        const incomeTab = incomeTabHandle.asElement();
-        if (incomeTab) await incomeTab.click();
-        else {
-             await page.evaluate(() => {
-                const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
-                const tab = items.find(el => el.innerText && el.innerText.trim() === 'งบกำไรขาดทุน');
-                if (tab) tab.click();
-            });
-        }
-
-        try {
-            await page.waitForFunction(
-                () => document.body.innerText.includes('รายได้หลัก') || document.body.innerText.includes('ต้นทุนขาย'),
-                { timeout: 60000 }
-            );
-        } catch (e) {}
-
-        await new Promise(r => setTimeout(r, 1000));
-        await downloadExcel('IncomeStatement');
-
-        let incomeStatementExcel = null;
-        startTime = Date.now();
-        while (Date.now() - startTime < 60000) {
-            const files = await fs.readdir(tmpDir);
-            // Look for new xlsx (not BalanceSheet.xlsx)
-            const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx') && !f.includes('BalanceSheet'));
-            if (xlsxFile) {
-                const newPath = path.join(tmpDir, 'IncomeStatement.xlsx');
-                await fs.move(path.join(tmpDir, xlsxFile), newPath);
-                incomeStatementExcel = newPath;
-                break;
+            if (!ratioTabHandle.asElement()) {
+                 ratioTabHandle = await getElementByXPath(page, "//button[contains(., 'อัตราส่วนทางการเงิน')] | //a[contains(., 'อัตราส่วนทางการเงิน')]");
             }
-            await new Promise(r => setTimeout(r, 500));
-        }
 
-        // 4. Download Financial Ratios
-        sendSSE(res, { status: 'progress', message: 'กำลังดาวน์โหลดอัตราส่วนทางการเงิน...' });
-        let ratioTabHandle = await getElementByXPath(page, "//button[normalize-space(.)='อัตราส่วนทางการเงิน'] | //a[normalize-space(.)='อัตราส่วนทางการเงิน']");
-
-        if (!ratioTabHandle.asElement()) {
-             ratioTabHandle = await getElementByXPath(page, "//button[contains(., 'อัตราส่วนทางการเงิน')] | //a[contains(., 'อัตราส่วนทางการเงิน')]");
-        }
-
-        const ratioTab = ratioTabHandle.asElement();
-        if (ratioTab) await ratioTab.click();
-        else {
-             await page.evaluate(() => {
-                const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
-                const tab = items.find(el => el.innerText && el.innerText.trim() === 'อัตราส่วนทางการเงิน');
-                if (tab) tab.click();
-            });
-        }
-
-        try {
-            await page.waitForFunction(
-                () => document.body.innerText.includes('อัตราส่วนสภาพคล่อง') || document.body.innerText.includes('อัตราส่วนหนี้สินต่อส่วนของผู้ถือหุ้น'),
-                { timeout: 60000 }
-            );
-        } catch (e) {}
-
-        await new Promise(r => setTimeout(r, 1000));
-        await downloadExcel('FinancialRatios');
-
-        let ratioExcel = null;
-        startTime = Date.now();
-        while (Date.now() - startTime < 60000) {
-            const files = await fs.readdir(tmpDir);
-            const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx') && !f.includes('BalanceSheet') && !f.includes('IncomeStatement'));
-            if (xlsxFile) {
-                 const newPath = path.join(tmpDir, 'FinancialRatios.xlsx');
-                await fs.move(path.join(tmpDir, xlsxFile), newPath);
-                ratioExcel = newPath;
-                break;
+            const ratioTab = ratioTabHandle.asElement();
+            if (ratioTab) await ratioTab.click();
+            else {
+                 await page.evaluate(() => {
+                    const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
+                    const tab = items.find(el => el.innerText && el.innerText.trim() === 'อัตราส่วนทางการเงิน');
+                    if (tab) tab.click();
+                });
             }
-            await new Promise(r => setTimeout(r, 500));
-        }
+
+            try {
+                await page.waitForFunction(
+                    () => document.body.innerText.includes('อัตราส่วนสภาพคล่อง') || document.body.innerText.includes('อัตราส่วนหนี้สินต่อส่วนของผู้ถือหุ้น'),
+                    { timeout: 60000 }
+                );
+            } catch (e) {}
+
+            await new Promise(r => setTimeout(r, 1000));
+            await downloadExcel('FinancialRatios');
+
+            startTime = Date.now();
+            while (Date.now() - startTime < 60000) {
+                const files = await fs.readdir(tmpDir);
+                const xlsxFile = files.find(f => f.toLowerCase().endsWith('.xlsx') && !f.includes('BalanceSheet') && !f.includes('IncomeStatement'));
+                if (xlsxFile) {
+                     const newPath = path.join(tmpDir, 'FinancialRatios.xlsx');
+                    await fs.move(path.join(tmpDir, xlsxFile), newPath);
+                    ratioExcel = newPath;
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 500));
+            }
+        } // End of if (hasFinancialData)
 
         // Extract Data
         let extractionResult = {};
@@ -627,12 +653,13 @@ app.get('/stream', async (req, res) => {
             yearsInBusiness: extractionResult.yearsInBusiness,
             registeredCapital: extractionResult.registeredCapital,
             registrationDate: extractionResult.registrationDate,
-            debug: extractionResult.debug
+            debug: extractionResult.debug,
+            noFinancialData: !hasFinancialData
         };
 
         sendSSE(res, {
             status: 'complete',
-            noFinancialData: false, // Default to false if not dynamically detected
+            noFinancialData: !hasFinancialData,
             data: resultData
         });
 
