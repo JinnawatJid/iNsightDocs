@@ -97,8 +97,8 @@ const generateCreditRequestPDF = async (req, res) => {
 
     // Helper to format currency
     const formatCurrency = (val) => {
-      if (!val) return '0.00';
-      return Number(val).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (!val) return '0';
+      return Number(val).toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     };
 
     // --- IDENTIFY CUSTOMER TYPE ---
@@ -264,10 +264,13 @@ const generateCreditRequestPDF = async (req, res) => {
         monthlyHistory = monthlyHistory.slice(0, 6);
     }
 
-    let monthlySalesRows = monthlyHistory.map(m => [
-      { text: m.label, bold: true, noWrap: true },
-      { text: m.value, alignment: 'right', margin: [10, 0, 0, 0], noWrap: true }
-    ]);
+    let monthlySalesRows = monthlyHistory.map(m => {
+      const formattedValue = m.value ? m.value.replace(/\.\d+/g, '') : '-';
+      return [
+        { text: m.label, bold: true, noWrap: true },
+        { text: formattedValue, alignment: 'right', margin: [10, 0, 0, 0], noWrap: true }
+      ];
+    });
 
     if (monthlySalesRows.length === 0 && financial.stats && financial.stats.avg_3_months) {
         monthlySalesRows.push([{text: 'เฉลี่ย 3 เดือน', bold: true, noWrap: true}, {text: formatCurrency(financial.stats.avg_3_months), alignment: 'right', margin: [10, 0, 0, 0], noWrap: true}]);
@@ -284,8 +287,8 @@ const generateCreditRequestPDF = async (req, res) => {
     if (categoryBreakdown.length > 0) {
         const top3Categories = categoryBreakdown.slice(0, 3);
         categoryRows = top3Categories.map(cat => {
-            const displayValue = cat.formattedValue || '-';
-            const displayPercentage = (cat.percentage !== undefined && cat.percentage !== null) ? cat.percentage.toFixed(2) + '%' : '-';
+            const displayValue = cat.formattedValue ? cat.formattedValue.replace(/\.\d+/g, '') : '-';
+            const displayPercentage = (cat.percentage !== undefined && cat.percentage !== null) ? cat.percentage.toFixed(0) + '%' : '-';
             return [
                 { text: cat.label, bold: true, noWrap: true },
                 { text: displayValue, alignment: 'right', margin: [10, 0, 0, 0], noWrap: true },
@@ -475,13 +478,13 @@ const generateCreditRequestPDF = async (req, res) => {
                  // Col 3: Summary Stats
                  {
                      width: '*',
-                     margin: [15, 0, 0, 0],
+                     margin: [15, 22, 0, 0],
                      table: {
                          widths: ['auto', '*'],
                          body: [
-                             [{ text: 'ยอดซื้อสะสม:', bold: true }, { text: (financial.total_purchase_3_months || formatCurrency(financial.stats?.total_accum) || '0.00') + ' บาท', alignment: 'right' }],
-                             [{ text: 'เฉลี่ยต่อเดือน:', bold: true }, { text: (financial.avg_monthly || formatCurrency(financial.stats?.avg_3_months) || '0.00') + ' บาท', alignment: 'right' }],
-                             [{ text: 'แนวโน้ม:', bold: true }, { text: (financial.avg_monthly_trend || financial.trend_status || '-').replace('เฉลี่ยซื้อ', ''), alignment: 'right' }]
+                             [{ text: 'ยอดซื้อสะสม:', bold: true }, { text: ((financial.total_purchase_3_months || '').replace(/\.\d+/g, '') || formatCurrency(financial.stats?.total_accum) || '0') + ' บาท', alignment: 'right' }],
+                             [{ text: 'เฉลี่ยต่อเดือน:', bold: true }, { text: ((financial.avg_monthly || '').replace(/\.\d+/g, '') || formatCurrency(financial.stats?.avg_3_months) || '0') + ' บาท', alignment: 'right' }],
+                             [{ text: 'แนวโน้ม:', bold: true }, { text: (financial.avg_monthly_trend || financial.trend_status || '-').replace('เฉลี่ยซื้อ', '').replace(/\.\d+/g, ''), alignment: 'right' }]
                          ]
                      },
                      layout: 'noBorders'
