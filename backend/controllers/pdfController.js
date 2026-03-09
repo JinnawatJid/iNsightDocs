@@ -97,8 +97,8 @@ const generateCreditRequestPDF = async (req, res) => {
 
     // Helper to format currency
     const formatCurrency = (val) => {
-      if (!val) return '0.00';
-      return Number(val).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (!val) return '0';
+      return Number(val).toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     };
 
     // --- IDENTIFY CUSTOMER TYPE ---
@@ -285,7 +285,7 @@ const generateCreditRequestPDF = async (req, res) => {
         const top3Categories = categoryBreakdown.slice(0, 3);
         categoryRows = top3Categories.map(cat => {
             const displayValue = cat.formattedValue || '-';
-            const displayPercentage = (cat.percentage !== undefined && cat.percentage !== null) ? cat.percentage.toFixed(2) + '%' : '-';
+            const displayPercentage = (cat.percentage !== undefined && cat.percentage !== null) ? cat.percentage.toFixed(0) + '%' : '-';
             return [
                 { text: cat.label, bold: true, noWrap: true },
                 { text: displayValue, alignment: 'right', margin: [10, 0, 0, 0], noWrap: true },
@@ -479,8 +479,8 @@ const generateCreditRequestPDF = async (req, res) => {
                      table: {
                          widths: ['auto', '*'],
                          body: [
-                             [{ text: 'ยอดซื้อสะสม:', bold: true }, { text: (financial.total_purchase_3_months || formatCurrency(financial.stats?.total_accum) || '0.00') + ' บาท', alignment: 'right' }],
-                             [{ text: 'เฉลี่ยต่อเดือน:', bold: true }, { text: (financial.avg_monthly || formatCurrency(financial.stats?.avg_3_months) || '0.00') + ' บาท', alignment: 'right' }],
+                             [{ text: 'ยอดซื้อสะสม:', bold: true }, { text: (financial.total_purchase_3_months || formatCurrency(financial.stats?.total_accum) || '0') + ' บาท', alignment: 'right' }],
+                             [{ text: 'เฉลี่ยต่อเดือน:', bold: true }, { text: (financial.avg_monthly || formatCurrency(financial.stats?.avg_3_months) || '0') + ' บาท', alignment: 'right' }],
                              [{ text: 'แนวโน้ม:', bold: true }, { text: (financial.avg_monthly_trend || financial.trend_status || '-').replace('เฉลี่ยซื้อ', ''), alignment: 'right' }]
                          ]
                      },
