@@ -449,25 +449,30 @@ const generateCreditRequestPDF = async (req, res) => {
              columns: [
                  // Col 1: Monthly History
                  {
-                     width: '50%',
+                     width: 'auto',
                      table: {
-                         widths: ['*', '*'],
+                         widths: ['auto', 'auto'],
                          body: [
-                             [{ text: 'เดือน', bold: true, fillColor: '#f9f9f9' }, { text: 'ยอดซื้อ', bold: true, alignment: 'right', fillColor: '#f9f9f9' }],
-                             ...monthlySalesRows
+                             [{ text: 'เดือน', bold: true, fillColor: '#f9f9f9' }, { text: 'ยอดซื้อ', bold: true, alignment: 'right', fillColor: '#f9f9f9', margin: [20, 0, 0, 0] }],
+                             ...monthlySalesRows.map(row => [row[0], { ...row[1], margin: [20, 0, 0, 0] }])
                          ]
                      },
                      layout: 'lightHorizontalLines'
                  },
                  // Col 2: Category Breakdown
                  {
-                     width: '50%',
-                     margin: [20, 0, 0, 0],
+                     width: '*',
+                     margin: [40, 0, 0, 0],
                      table: {
                          widths: ['*', 'auto', 'auto'],
                          body: [
-                             [{ text: 'สินค้า', bold: true, fillColor: '#f9f9f9' }, { text: 'มูลค่า', bold: true, alignment: 'right', fillColor: '#f9f9f9' }, { text: '%', bold: true, alignment: 'right', fillColor: '#f9f9f9' }],
-                             ...categoryRows
+                             [{ text: 'สินค้า', bold: true, fillColor: '#f9f9f9' }, { text: 'มูลค่า', bold: true, alignment: 'right', fillColor: '#f9f9f9', margin: [20, 0, 0, 0] }, { text: '%', bold: true, alignment: 'right', fillColor: '#f9f9f9', margin: [10, 0, 0, 0] }],
+                             ...categoryRows.map(row => {
+                                 if (row.length === 3) {
+                                     return [row[0], { ...row[1], margin: [20, 0, 0, 0] }, { ...row[2], margin: [10, 0, 0, 0] }];
+                                 }
+                                 return row;
+                             })
                          ]
                      },
                      layout: 'lightHorizontalLines'
