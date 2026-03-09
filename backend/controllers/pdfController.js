@@ -266,11 +266,11 @@ const generateCreditRequestPDF = async (req, res) => {
 
     let monthlySalesRows = monthlyHistory.map(m => [
       { text: m.label, bold: true, noWrap: true },
-      { text: m.value, alignment: 'right', margin: [20, 0, 0, 0], noWrap: true }
+      { text: m.value, alignment: 'right', margin: [10, 0, 0, 0], noWrap: true }
     ]);
 
     if (monthlySalesRows.length === 0 && financial.stats && financial.stats.avg_3_months) {
-        monthlySalesRows.push([{text: 'เฉลี่ย 3 เดือน', bold: true, noWrap: true}, {text: formatCurrency(financial.stats.avg_3_months), alignment: 'right', margin: [20, 0, 0, 0], noWrap: true}]);
+        monthlySalesRows.push([{text: 'เฉลี่ย 3 เดือน', bold: true, noWrap: true}, {text: formatCurrency(financial.stats.avg_3_months), alignment: 'right', margin: [10, 0, 0, 0], noWrap: true}]);
     }
 
     // Fallback if truly no data
@@ -288,8 +288,8 @@ const generateCreditRequestPDF = async (req, res) => {
             const displayPercentage = (cat.percentage !== undefined && cat.percentage !== null) ? cat.percentage.toFixed(2) + '%' : '-';
             return [
                 { text: cat.label, bold: true, noWrap: true },
-                { text: displayValue, alignment: 'right', margin: [20, 0, 0, 0], noWrap: true },
-                { text: displayPercentage, alignment: 'right', margin: [10, 0, 0, 0], noWrap: true }
+                { text: displayValue, alignment: 'right', margin: [10, 0, 0, 0], noWrap: true },
+                { text: displayPercentage, alignment: 'right', margin: [5, 0, 0, 0], noWrap: true }
             ];
         });
     } else {
@@ -453,7 +453,7 @@ const generateCreditRequestPDF = async (req, res) => {
                      table: {
                          widths: ['auto', 'auto'],
                          body: [
-                             [{ text: 'เดือน', bold: true, fillColor: '#f9f9f9' }, { text: 'ยอดซื้อ', bold: true, alignment: 'right', fillColor: '#f9f9f9', margin: [20, 0, 0, 0] }],
+                             [{ text: 'เดือน', bold: true, fillColor: '#f9f9f9' }, { text: 'ยอดซื้อ', bold: true, alignment: 'right', fillColor: '#f9f9f9', margin: [10, 0, 0, 0] }],
                              ...monthlySalesRows
                          ]
                      },
@@ -462,11 +462,11 @@ const generateCreditRequestPDF = async (req, res) => {
                  // Col 2: Category Breakdown
                  {
                      width: 'auto',
-                     margin: [40, 0, 0, 0],
+                     margin: [15, 0, 0, 0],
                      table: {
                          widths: ['auto', 'auto', 'auto'],
                          body: [
-                             [{ text: 'สินค้า', bold: true, fillColor: '#f9f9f9' }, { text: 'มูลค่า', bold: true, alignment: 'right', fillColor: '#f9f9f9', margin: [20, 0, 0, 0] }, { text: '%', bold: true, alignment: 'right', fillColor: '#f9f9f9', margin: [10, 0, 0, 0] }],
+                             [{ text: 'สินค้า', bold: true, fillColor: '#f9f9f9' }, { text: 'มูลค่า', bold: true, alignment: 'right', fillColor: '#f9f9f9', margin: [10, 0, 0, 0] }, { text: '%', bold: true, alignment: 'right', fillColor: '#f9f9f9', margin: [5, 0, 0, 0] }],
                              ...categoryRows
                          ]
                      },
@@ -475,7 +475,7 @@ const generateCreditRequestPDF = async (req, res) => {
                  // Col 3: Summary Stats
                  {
                      width: '*',
-                     margin: [40, 0, 0, 0],
+                     margin: [15, 0, 0, 0],
                      table: {
                          widths: ['auto', '*'],
                          body: [
