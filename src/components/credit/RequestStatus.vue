@@ -97,24 +97,28 @@ const exportPDF = () => {
   text-align: left;
   height: 100%;
   display: flex;
-  align-items: center; /* Center content vertically */
+  align-items: flex-start; /* Align content to start since it will flow vertically */
 }
 
 .content-wrapper {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column; /* Stack vertically */
+  justify-content: center;
+  align-items: flex-start;
   width: 100%;
+  gap: 16px; /* Spacing between info and button */
 }
 
 .info-section {
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 .action-section {
   display: flex;
   align-items: center;
+  width: 100%; /* Make action section full width */
 }
 
 .header {
@@ -188,7 +192,7 @@ const exportPDF = () => {
 }
 
 .btn-export {
-  padding: 8px 12px;
+  padding: 10px 12px;
   background-color: white;
   color: #0056FF;
   border: 1px solid #0056FF;
@@ -198,6 +202,11 @@ const exportPDF = () => {
   text-align: center;
   transition: background-color 0.2s;
   font-size: 14px;
+  width: 100%; /* Full width button */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px; /* For potential icon spacing */
 }
 
 .btn-export:hover {
