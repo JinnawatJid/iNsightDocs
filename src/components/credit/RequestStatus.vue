@@ -8,16 +8,16 @@
         </div>
         <div class="status-row">
           <span class="label">สถานะ:</span>
-          <div :class="['status-badge', statusClass]">
-            <img :src="statusIcon" alt="" width="16" height="16" class="icon" />
-            <span>{{ statusLabel }}</span>
+          <div class="status-badge-container">
+            <div :class="['status-badge', statusClass]">
+              <img :src="statusIcon" alt="" width="16" height="16" class="icon" />
+              <span>{{ statusLabel }}</span>
+            </div>
+            <button v-if="showExportButton" class="btn-icon-export" @click="exportPDF" title="ดาวน์โหลด PDF">
+              <img src="@/assets/icons/download.svg" alt="ดาวน์โหลด PDF" width="18" height="18" />
+            </button>
           </div>
         </div>
-      </div>
-      <div class="action-section" v-if="showExportButton">
-        <button class="btn-export" @click="exportPDF">
-          ดาวน์โหลด PDF
-        </button>
       </div>
     </div>
   </div>
@@ -97,28 +97,20 @@ const exportPDF = () => {
   text-align: left;
   height: 100%;
   display: flex;
-  align-items: flex-start; /* Align content to start since it will flow vertically */
+  align-items: center;
 }
 
 .content-wrapper {
   display: flex;
-  flex-direction: column; /* Stack vertically */
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: row; /* Horizontal layout */
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
-  gap: 16px; /* Spacing between info and button */
 }
 
 .info-section {
   display: flex;
   flex-direction: column;
-  width: 100%;
-}
-
-.action-section {
-  display: flex;
-  align-items: center;
-  width: 100%; /* Make action section full width */
 }
 
 .header {
@@ -140,6 +132,12 @@ const exportPDF = () => {
 .status-row {
   display: flex;
   align-items: center;
+}
+
+.status-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .status-badge {
@@ -191,25 +189,19 @@ const exportPDF = () => {
   color: #333;
 }
 
-.btn-export {
-  padding: 10px 12px;
-  background-color: white;
-  color: #0056FF;
-  border: 1px solid #0056FF;
-  border-radius: 8px;
+.btn-icon-export {
+  background: none;
+  border: none;
+  padding: 4px;
   cursor: pointer;
-  font-weight: bold;
-  text-align: center;
-  transition: background-color 0.2s;
-  font-size: 14px;
-  width: 100%; /* Full width button */
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 8px; /* For potential icon spacing */
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
 }
 
-.btn-export:hover {
+.btn-icon-export:hover {
   background-color: #f0f5ff;
 }
 </style>
