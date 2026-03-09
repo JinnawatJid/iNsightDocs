@@ -278,6 +278,24 @@ const generateCreditRequestPDF = async (req, res) => {
         monthlySalesRows.push([{text: 'ไม่มีข้อมูล', colSpan: 2, alignment: 'center'}]);
     }
 
+    // Prepare Category Breakdown Rows
+    const categoryBreakdown = financial.category_breakdown || [];
+    let categoryRows = [];
+    if (categoryBreakdown.length > 0) {
+        const top3Categories = categoryBreakdown.slice(0, 3);
+        categoryRows = top3Categories.map(cat => {
+            const displayValue = cat.formattedValue || '-';
+            const displayPercentage = (cat.percentage !== undefined && cat.percentage !== null) ? cat.percentage.toFixed(2) + '%' : '-';
+            return [
+                { text: cat.label, bold: true },
+                { text: displayValue, alignment: 'right' },
+                { text: displayPercentage, alignment: 'right' }
+            ];
+        });
+    } else {
+        categoryRows.push([{text: 'ไม่มีข้อมูล', colSpan: 3, alignment: 'center'}, {}, {}]);
+    }
+
     // Prepare Score Data
     let score = scoreData.total_score ? Math.round(scoreData.total_score) : 'รอการประเมิน';
     let grade = scoreData.grade || '-';
@@ -441,19 +459,18 @@ const generateCreditRequestPDF = async (req, res) => {
                      },
                      layout: 'lightHorizontalLines'
                  },
-                 // Col 2: Summary Stats
+                 // Col 2: Category Breakdown
                  {
                      width: '50%',
                      margin: [20, 0, 0, 0],
                      table: {
-                         widths: ['auto', '*'],
+                         widths: ['*', 'auto', 'auto'],
                          body: [
-                             [{ text: 'ยอดขายสะสม:', bold: true }, { text: formatCurrency(financial.stats?.total_accum) + ' บาท', alignment: 'right' }],
-                             [{ text: 'เฉลี่ยต่อเดือน:', bold: true }, { text: formatCurrency(financial.stats?.avg_3_months) + ' บาท', alignment: 'right' }],
-                             [{ text: 'แนวโน้ม:', bold: true }, { text: financial.trend_status || '-', alignment: 'right' }]
+                             [{ text: 'สินค้า', bold: true, fillColor: '#f9f9f9' }, { text: 'มูลค่า', bold: true, alignment: 'right', fillColor: '#f9f9f9' }, { text: '%', bold: true, alignment: 'right', fillColor: '#f9f9f9' }],
+                             ...categoryRows
                          ]
                      },
-                     layout: 'noBorders'
+                     layout: 'lightHorizontalLines'
                  }
              ],
              margin: [0, 0, 0, 15]
