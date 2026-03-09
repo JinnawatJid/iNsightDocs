@@ -282,21 +282,18 @@ const generateCreditRequestPDF = async (req, res) => {
     const categoryBreakdown = financial.category_breakdown || [];
     let categoryRows = [];
     if (categoryBreakdown.length > 0) {
-        const top5Categories = categoryBreakdown.slice(0, 5);
-        categoryRows = top5Categories.map(cat => {
-            let displayValue = '-';
-            if (cat.percentage !== undefined && cat.percentage !== null) {
-                displayValue = cat.percentage.toFixed(2) + '%';
-            } else if (cat.formattedValue) {
-                displayValue = cat.formattedValue;
-            }
+        const top3Categories = categoryBreakdown.slice(0, 3);
+        categoryRows = top3Categories.map(cat => {
+            const displayValue = cat.formattedValue || '-';
+            const displayPercentage = (cat.percentage !== undefined && cat.percentage !== null) ? cat.percentage.toFixed(2) + '%' : '-';
             return [
                 { text: cat.label, bold: true },
-                { text: displayValue, alignment: 'right' }
+                { text: displayValue, alignment: 'right' },
+                { text: displayPercentage, alignment: 'right' }
             ];
         });
     } else {
-        categoryRows.push([{text: 'ไม่มีข้อมูล', colSpan: 2, alignment: 'center'}, {}]);
+        categoryRows.push([{text: 'ไม่มีข้อมูล', colSpan: 3, alignment: 'center'}, {}, {}]);
     }
 
     // Prepare Score Data
@@ -467,9 +464,10 @@ const generateCreditRequestPDF = async (req, res) => {
                      width: '50%',
                      margin: [20, 0, 0, 0],
                      table: {
-                         widths: ['*', 'auto'],
+                         widths: ['*', 'auto', 'auto'],
                          body: [
-                             [{ text: 'สัดส่วนสินค้าที่ซื้อ (Top 5)', bold: true, fillColor: '#f9f9f9', colSpan: 2, alignment: 'center' }, {}],
+                             [{ text: 'สัดส่วนสินค้าที่ซื้อ (Top 3)', bold: true, fillColor: '#f9f9f9', colSpan: 3, alignment: 'center' }, {}, {}],
+                             [{ text: 'สินค้า', bold: true, fillColor: '#f9f9f9' }, { text: 'มูลค่า', bold: true, alignment: 'right', fillColor: '#f9f9f9' }, { text: '%', bold: true, alignment: 'right', fillColor: '#f9f9f9' }],
                              ...categoryRows
                          ]
                      },
