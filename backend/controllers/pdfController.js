@@ -466,7 +466,6 @@ const generateCreditRequestPDF = async (req, res) => {
                      table: {
                          widths: ['*', 'auto', 'auto'],
                          body: [
-                             [{ text: 'สัดส่วนสินค้าที่ซื้อ (Top 3)', bold: true, fillColor: '#f9f9f9', colSpan: 3, alignment: 'center' }, {}, {}],
                              [{ text: 'สินค้า', bold: true, fillColor: '#f9f9f9' }, { text: 'มูลค่า', bold: true, alignment: 'right', fillColor: '#f9f9f9' }, { text: '%', bold: true, alignment: 'right', fillColor: '#f9f9f9' }],
                              ...categoryRows
                          ]
