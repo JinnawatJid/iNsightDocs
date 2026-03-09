@@ -1,14 +1,23 @@
 <template>
   <div v-if="store.requestId" class="request-status-component">
-    <div class="header">
-      <span class="label">เลขที่คำขอ:</span>
-      <span class="value">{{ store.requestId }}</span>
-    </div>
-    <div class="status-row">
-      <span class="label">สถานะ:</span>
-      <div :class="['status-badge', statusClass]">
-        <img :src="statusIcon" alt="" width="16" height="16" class="icon" />
-        <span>{{ statusLabel }}</span>
+    <div class="content-wrapper">
+      <div class="info-section">
+        <div class="header">
+          <span class="label">เลขที่คำขอ:</span>
+          <span class="value">{{ store.requestId }}</span>
+        </div>
+        <div class="status-row">
+          <span class="label">สถานะ:</span>
+          <div :class="['status-badge', statusClass]">
+            <img :src="statusIcon" alt="" width="16" height="16" class="icon" />
+            <span>{{ statusLabel }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="action-section" v-if="showExportButton">
+        <button class="btn-export" @click="exportPDF">
+          ดาวน์โหลด PDF
+        </button>
       </div>
     </div>
   </div>
@@ -49,6 +58,33 @@ const statusClass = computed(() => {
 const statusIcon = computed(() => {
   return statusConfig[currentStatus.value]?.icon || iconFile;
 });
+
+const showExportButton = computed(() => {
+  const status = store.requestStatus;
+  const validStatuses = [
+    'Opened',
+    'Submitted',
+    'PendingSales (ชั่วคราว)',
+    'Reviewed',
+    'PendingFinance (ชั่วคราว)',
+    'Approved',
+    'Rejected',
+    'Closed',
+    'Canceled'
+  ];
+  return validStatuses.includes(status);
+});
+
+const exportPDF = () => {
+  const txId = store.requestId;
+  if (!txId) {
+    console.warn('Cannot export PDF: Missing Transaction ID (requestId is null)');
+    return;
+  }
+  const encodedId = encodeURIComponent(txId);
+  const url = `/api/credit-requests/${encodedId}/pdf`;
+  window.open(url, '_blank');
+};
 </script>
 
 <style scoped>
@@ -61,8 +97,24 @@ const statusIcon = computed(() => {
   text-align: left;
   height: 100%;
   display: flex;
+  align-items: center; /* Center content vertically */
+}
+
+.content-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.info-section {
+  display: flex;
   flex-direction: column;
-  justify-content: center;
+}
+
+.action-section {
+  display: flex;
+  align-items: center;
 }
 
 .header {
@@ -133,5 +185,22 @@ const statusIcon = computed(() => {
 
 .status-badge.default {
   color: #333;
+}
+
+.btn-export {
+  padding: 8px 12px;
+  background-color: white;
+  color: #0056FF;
+  border: 1px solid #0056FF;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  text-align: center;
+  transition: background-color 0.2s;
+  font-size: 14px;
+}
+
+.btn-export:hover {
+  background-color: #f0f5ff;
 }
 </style>
