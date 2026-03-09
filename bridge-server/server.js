@@ -9,6 +9,9 @@ const pdf = require('pdf-parse');
 const app = express();
 const PORT = 4343;
 
+// Active downloads lock to prevent multiple browsers for the same query
+const activeDownloads = new Map();
+
 // 1. GLOBAL HEADER MIDDLEWARE (Applies to everything)
 app.use((req, res, next) => {
     // Critical for PNA (Private Network Access)
@@ -224,10 +227,41 @@ app.get('/stream', async (req, res) => {
     let tmpDir = null;
 
     req.on('close', async () => {
-        console.log('[DBD Bridge] Client disconnected. Cleaning up...');
+        console.log(`[DBD Bridge] Client disconnected for ${query}.`);
         if (browser) await browser.close().catch(() => {});
         if (tmpDir) await fs.remove(tmpDir).catch(() => {});
     });
+
+    // Check if there's an active download for this query
+    if (activeDownloads.has(query)) {
+        console.log(`[DBD Bridge] Found active download for ${query}. Waiting for it to finish...`);
+        sendSSE(res, { status: 'progress', message: 'รอการดาวน์โหลดจากคิวอื่นที่กำลังทำงานอยู่...' });
+
+        try {
+            const resultData = await activeDownloads.get(query);
+            // Send the completed data
+            sendSSE(res, {
+                status: 'complete',
+                noFinancialData: false,
+                data: resultData
+            });
+        } catch (error) {
+            console.error(`[DBD Bridge] Active download failed for ${query}:`, error.message);
+            sendSSE(res, { status: 'error', message: error.message });
+        } finally {
+            res.end();
+        }
+        return;
+    }
+
+    // Create a new promise for this download and store it
+    let resolveDownload;
+    let rejectDownload;
+    const downloadPromise = new Promise((resolve, reject) => {
+        resolveDownload = resolve;
+        rejectDownload = reject;
+    });
+    activeDownloads.set(query, downloadPromise);
 
     try {
         sendSSE(res, { status: 'progress', message: 'กำลังเปิดเบราว์เซอร์...' });
@@ -566,47 +600,60 @@ app.get('/stream', async (req, res) => {
         await fs.remove(tmpDir).catch(() => {});
         tmpDir = null;
 
+        const resultData = {
+            profile: profileB64 ? {
+                content: profileB64,
+                mime: 'application/pdf',
+                filename: `DBD_Profile_${fileIdentifier}.pdf`
+            } : null,
+            balanceSheet: balanceB64 ? {
+                content: balanceB64,
+                mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                filename: `DBD_BalanceSheet_${fileIdentifier}.xlsx`
+            } : null,
+            incomeStatement: incomeB64 ? {
+                content: incomeB64,
+                mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                filename: `DBD_IncomeStatement_${fileIdentifier}.xlsx`
+            } : null,
+            financialRatios: ratioB64 ? {
+                content: ratioB64,
+                mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                filename: `DBD_FinancialRatios_${fileIdentifier}.xlsx`
+            } : null,
+            yearsInBusiness: extractionResult.yearsInBusiness,
+            registeredCapital: extractionResult.registeredCapital,
+            registrationDate: extractionResult.registrationDate,
+            debug: extractionResult.debug
+        };
+
         sendSSE(res, {
             status: 'complete',
-            noFinancialData: !hasFinancialData,
-            data: {
-                profile: profileB64 ? {
-                    content: profileB64,
-                    mime: 'application/pdf',
-                    filename: `DBD_Profile_${fileIdentifier}.pdf`
-                } : null,
-                balanceSheet: balanceB64 ? {
-                    content: balanceB64,
-                    mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    filename: `DBD_BalanceSheet_${fileIdentifier}.xlsx`
-                } : null,
-                incomeStatement: incomeB64 ? {
-                    content: incomeB64,
-                    mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    filename: `DBD_IncomeStatement_${fileIdentifier}.xlsx`
-                } : null,
-                financialRatios: ratioB64 ? {
-                    content: ratioB64,
-                    mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    filename: `DBD_FinancialRatios_${fileIdentifier}.xlsx`
-                } : null,
-                yearsInBusiness: extractionResult.yearsInBusiness,
-                registeredCapital: extractionResult.registeredCapital,
-                registrationDate: extractionResult.registrationDate,
-                debug: extractionResult.debug
-            }
+            noFinancialData: false, // Default to false if not dynamically detected
+            data: resultData
         });
+
+        // Resolve the promise so pending downloads get the data
+        resolveDownload(resultData);
 
     } catch (error) {
         console.error('[DBD Bridge] Error:', error);
         sendSSE(res, { status: 'error', message: error.message });
         if (browser) await browser.close().catch(() => {});
         if (tmpDir) await fs.remove(tmpDir).catch(() => {});
+
+        // Reject the promise so pending downloads get the error
+        rejectDownload(error);
     } finally {
+        // Clean up active downloads queue so next try will restart
+        activeDownloads.delete(query);
         res.end();
     }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`DBD Bridge Server running on http://0.0.0.0:${PORT} (Accessible via Local IP)`);
 });
+// Disable timeouts to prevent connection drops during long downloads
+server.setTimeout(0);
+server.keepAliveTimeout = 0;
