@@ -265,12 +265,12 @@ const generateCreditRequestPDF = async (req, res) => {
     }
 
     let monthlySalesRows = monthlyHistory.map(m => [
-      { text: m.label, bold: true },
+      { text: m.label, bold: true, noWrap: true },
       { text: m.value, alignment: 'right', margin: [20, 0, 0, 0], noWrap: true }
     ]);
 
     if (monthlySalesRows.length === 0 && financial.stats && financial.stats.avg_3_months) {
-        monthlySalesRows.push([{text: 'เฉลี่ย 3 เดือน', bold: true}, {text: formatCurrency(financial.stats.avg_3_months), alignment: 'right', margin: [20, 0, 0, 0], noWrap: true}]);
+        monthlySalesRows.push([{text: 'เฉลี่ย 3 เดือน', bold: true, noWrap: true}, {text: formatCurrency(financial.stats.avg_3_months), alignment: 'right', margin: [20, 0, 0, 0], noWrap: true}]);
     }
 
     // Fallback if truly no data
@@ -287,7 +287,7 @@ const generateCreditRequestPDF = async (req, res) => {
             const displayValue = cat.formattedValue || '-';
             const displayPercentage = (cat.percentage !== undefined && cat.percentage !== null) ? cat.percentage.toFixed(2) + '%' : '-';
             return [
-                { text: cat.label, bold: true },
+                { text: cat.label, bold: true, noWrap: true },
                 { text: displayValue, alignment: 'right', margin: [20, 0, 0, 0], noWrap: true },
                 { text: displayPercentage, alignment: 'right', margin: [10, 0, 0, 0], noWrap: true }
             ];
@@ -481,7 +481,7 @@ const generateCreditRequestPDF = async (req, res) => {
                          body: [
                              [{ text: 'ยอดซื้อสะสม:', bold: true }, { text: (financial.total_purchase_3_months || formatCurrency(financial.stats?.total_accum) || '0.00') + ' บาท', alignment: 'right' }],
                              [{ text: 'เฉลี่ยต่อเดือน:', bold: true }, { text: (financial.avg_monthly || formatCurrency(financial.stats?.avg_3_months) || '0.00') + ' บาท', alignment: 'right' }],
-                             [{ text: 'แนวโน้ม:', bold: true }, { text: financial.avg_monthly_trend || financial.trend_status || '-', alignment: 'right' }]
+                             [{ text: 'แนวโน้ม:', bold: true }, { text: (financial.avg_monthly_trend || financial.trend_status || '-').replace('เฉลี่ยซื้อ', ''), alignment: 'right' }]
                          ]
                      },
                      layout: 'noBorders'
