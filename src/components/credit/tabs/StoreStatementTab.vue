@@ -45,7 +45,8 @@
          <!-- Local DBD Status Banner (Moved to top when exists) -->
          <div class="dbd-status-banner mb-3" v-if="localDBDStatus.checked && localDBDStatus.exists && !localDBDStatus.isNoFinancialData">
             <div class="badge-success-data banner-style">
-                <span class="badge-icon">✅</span> พบข้อมูลทางการเงินในระบบแล้ว (ดึงข้อมูลล่าสุดเมื่อ {{ formatDBDDate(localDBDStatus.date) }})
+                <span class="badge-icon">✅</span>
+                <span>พบข้อมูลทางการเงินในระบบแล้ว (ดึงข้อมูลล่าสุดเมื่อ {{ formatDBDDate(localDBDStatus.date) }})</span>
                 <span v-if="loadingLocalFiles" class="loading-spinner ml-2">⏳ กำลังโหลดไฟล์...</span>
             </div>
          </div>
@@ -56,12 +57,14 @@
                   type="text"
                   v-model="dbdQuery"
                   class="form-control"
+                  :class="{'disabled-input': localDBDStatus.exists && !localDBDStatus.isNoFinancialData}"
                   placeholder="เลขทะเบียนนิติบุคคล หรือ ชื่อบริษัท"
                   :disabled="localDBDStatus.exists && !localDBDStatus.isNoFinancialData"
                 />
             </div>
             <button
                 class="btn-dbd"
+                :class="{'btn-dbd-disabled': localDBDStatus.exists && !localDBDStatus.isNoFinancialData}"
                 @click="autoDownloadDBD"
                 :disabled="downloadingDBD || !dbdQuery || (localDBDStatus.exists && !localDBDStatus.isNoFinancialData)"
             >
@@ -1070,16 +1073,30 @@ const shouldShowFinancialAnalysis = computed(() => {
 }
 
 .dbd-section-disabled {
-    background-color: #f5f5f5;
-    border-color: #e0e0e0;
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
 }
 
 .dbd-section-disabled .dbd-title {
-    color: #757575;
+    color: #6c757d;
 }
 
 .dbd-section-disabled .dbd-subtitle {
-    color: #9e9e9e;
+    color: #adb5bd;
+}
+
+.disabled-input {
+    background-color: #e9ecef !important;
+    border-color: #ced4da !important;
+    color: #6c757d !important;
+}
+
+.btn-dbd-disabled {
+    background-color: #e9ecef !important;
+    color: #adb5bd !important;
+    border: 1px solid #ced4da !important;
+    cursor: not-allowed !important;
 }
 
 .cursor-pointer {
@@ -1146,13 +1163,16 @@ const shouldShowFinancialAnalysis = computed(() => {
 }
 
 .banner-style {
-    display: inline-block;
-    padding: 10px 15px;
-    background-color: #e8f5e9;
-    border: 1px solid #c8e6c9;
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    background-color: #edf7ed;
+    border: 1px solid #cce8cd;
     border-radius: 6px;
-    font-size: 1.05em;
+    font-size: 0.95em;
+    color: #1e4620;
     width: 100%;
+    margin-bottom: 12px;
 }
 
 .badge-icon {
