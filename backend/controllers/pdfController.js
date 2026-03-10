@@ -560,7 +560,7 @@ const generateCreditRequestPDF = async (req, res) => {
         { text: 'ข้อมูลบริษัทที่ท่านมีเครดิตอยู่', style: 'subheader' },
         {
             table: {
-                widths: ['40%', '30%', '15%', '15%'],
+                widths: ['*', '*', '15%', '25%'],
                 body: [
                     [
                         { text: 'ชื่อบริษัท', style: 'tableHeader', fillColor: '#f0f0f0' },
