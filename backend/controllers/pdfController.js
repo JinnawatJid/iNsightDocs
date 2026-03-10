@@ -62,7 +62,8 @@ const generateCreditRequestPDF = async (req, res) => {
         c.payment_condition,
         c.payment_bank_name,
         c.payment_bank_branch,
-        c.payment_account_no
+        c.payment_account_no,
+        c.existing_credits
       FROM CreditRequests cr
       JOIN Customers c ON cr.customer_no = c."No_"
       WHERE cr.tx_id = ?
@@ -334,6 +335,39 @@ const generateCreditRequestPDF = async (req, res) => {
         }
     }
 
+    // Existing Credits
+    let existingCredits = [];
+    try {
+        if (snapCust.existing_credits) {
+            existingCredits = typeof snapCust.existing_credits === 'string' ? JSON.parse(snapCust.existing_credits) : snapCust.existing_credits;
+        } else if (data.existing_credits) {
+            existingCredits = typeof data.existing_credits === 'string' ? JSON.parse(data.existing_credits) : data.existing_credits;
+        }
+    } catch (e) {
+        console.error('Error parsing existing credits:', e);
+    }
+    if (!Array.isArray(existingCredits)) {
+        existingCredits = [];
+    }
+
+    // Process existing credits to PDF table rows
+    const existingCreditsRows = existingCredits.map((credit, index) => {
+        const cName = credit.companyName || '-';
+        const cGoods = credit.goods || '-';
+        const cTerm = credit.term || '-';
+        const cLimit = credit.limit ? formatCurrency(credit.limit) : '-';
+        return [
+            { text: `${index + 1}. ${cName}` },
+            { text: cGoods },
+            { text: cTerm, alignment: 'center' },
+            { text: cLimit, alignment: 'right' }
+        ];
+    });
+
+    if (existingCreditsRows.length === 0) {
+        existingCreditsRows.push([{ text: 'ไม่มีข้อมูล', colSpan: 4, alignment: 'center', color: 'gray' }, {}, {}, {}]);
+    }
+
     // Logo Path
     const logoPath = path.join(__dirname, '../assets/logoReport.png');
     let logoImage = null;
@@ -522,8 +556,27 @@ const generateCreditRequestPDF = async (req, res) => {
             margin: [0, 0, 0, 15]
         },
 
+        // --- SECTION 3.5: EXISTING CREDITS ---
+        { text: 'ข้อมูลบริษัทที่ท่านมีเครดิตอยู่', style: 'subheader' },
+        {
+            table: {
+                widths: ['*', '*', '15%', '25%'],
+                body: [
+                    [
+                        { text: 'ชื่อบริษัท', style: 'tableHeader', fillColor: '#f0f0f0' },
+                        { text: 'สินค้าที่ซื้อ', style: 'tableHeader', fillColor: '#f0f0f0' },
+                        { text: 'เครดิต (วัน)', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
+                        { text: 'วงเงิน (บาท)', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' }
+                    ],
+                    ...existingCreditsRows
+                ]
+            },
+            layout: 'lightHorizontalLines',
+            margin: [0, 0, 0, 15]
+        },
+
         // --- SECTION 4: RISK ANALYSIS (Moved UP, before Attachments) ---
-        { text: 'การวิเคราะห์ความเสี่ยง', style: 'subheader' },
+        { text: 'การวิเคราะห์ความเสี่ยง', style: 'subheader', pageBreak: 'before' },
         {
             table: {
                 widths: ['*', '*'], // Only Score and Grade
