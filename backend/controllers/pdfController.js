@@ -301,8 +301,93 @@ const generateCreditRequestPDF = async (req, res) => {
     }
 
     // Prepare Score Data
-    let score = scoreData.total_score ? Math.round(scoreData.total_score) : 'รอการประเมิน';
+    const isDefined = (val) => val !== undefined && val !== null && val !== '';
+    let score = isDefined(scoreData.total_score) ? Math.round(scoreData.total_score) : 'รอการประเมิน';
     let grade = scoreData.grade || '-';
+    let sizeLabel = scoreData.size_result?.label || '-';
+    let recommendedLimit = isDefined(scoreData.recommended_limit) ? formatCurrency(scoreData.recommended_limit) + ' บาท' : '-';
+
+    // Score Breakdown
+    let c1Score = isDefined(scoreData.breakdown?.c1?.total) ? scoreData.breakdown.c1.total.toFixed(2) : '-';
+    let c2Score = isDefined(scoreData.breakdown?.c2?.total) ? scoreData.breakdown.c2.total.toFixed(2) : '-';
+    let c3Score = isDefined(scoreData.breakdown?.c3?.total) ? scoreData.breakdown.c3.total.toFixed(2) : '-';
+
+    // Financial Data Overview
+    let extractedData = snapshot.financials?.extractedData || snapshot.extractedData || {};
+    let avgRevenue = isDefined(extractedData.averageRevenue) ? formatCurrency(extractedData.averageRevenue) : '-';
+    let grossProfit = isDefined(extractedData.grossProfit?.value) ? formatCurrency(extractedData.grossProfit.value) : '-';
+    let totalLiabilities = isDefined(extractedData.totalLiabilities?.value) ? formatCurrency(extractedData.totalLiabilities.value) : '-';
+    let shareholdersEquity = isDefined(extractedData.shareholdersEquity?.value) ? formatCurrency(extractedData.shareholdersEquity.value) : '-';
+
+    // Key Financial Ratios
+    let deRatio = isDefined(extractedData.deRatio?.value) ? extractedData.deRatio.value.toFixed(2) : '-';
+    let dscr = isDefined(snapshot.calculations?.dscr) ? snapshot.calculations.dscr.toFixed(2) : '-';
+    if(dscr === '-') {
+      // Fallback
+      dscr = isDefined(snapshot.financials?.calculations?.dscr) ? snapshot.financials.calculations.dscr.toFixed(2) : '-';
+    }
+    let inventoryTurnover = isDefined(extractedData.inventoryTurnover?.value) ? extractedData.inventoryTurnover.value.toFixed(2) : '-';
+
+    // Detailed Factors
+    let scoreFactorsRows = [];
+    if (scoreData.breakdown) {
+        // Iterate through C1, C2, C3
+        const components = ['c1', 'c2', 'c3'];
+        components.forEach(compKey => {
+            const comp = scoreData.breakdown[compKey];
+            if (comp && comp.factors) {
+                // Section Header for component
+                let compName = compKey === 'c1' ? 'C1: ความแข็งแกร่งของบริษัท' :
+                               compKey === 'c2' ? 'C2: กระแสเงินสด' :
+                               compKey === 'c3' ? 'C3: พฤติกรรมการซื้อและประวัติ' : compKey.toUpperCase();
+
+                scoreFactorsRows.push([
+                    { text: compName, bold: true, colSpan: 3, fillColor: '#f9f9f9', margin: [0, 5, 0, 5] },
+                    {}, {}
+                ]);
+
+                // Factors
+                comp.factors.forEach(factor => {
+                    let fVal = factor.displayValue !== undefined ? factor.displayValue : (factor.value !== undefined ? factor.value : '-');
+                    if(typeof factor.value === 'number') {
+                        if(factor.value % 1 !== 0) {
+                            fVal = factor.value.toFixed(2);
+                        } else {
+                            fVal = factor.value;
+                        }
+                    }
+                    scoreFactorsRows.push([
+                        { text: `  • ${factor.label || factor.key}` },
+                        { text: `${fVal}`, alignment: 'center' },
+                        { text: factor.score !== undefined ? factor.score.toFixed(2) : '0.00', alignment: 'right' }
+                    ]);
+                });
+            }
+        });
+    }
+
+    if (scoreFactorsRows.length === 0) {
+        scoreFactorsRows.push([{ text: 'ไม่มีข้อมูลรายละเอียด', colSpan: 3, alignment: 'center', color: 'gray' }, {}, {}]);
+    }
+
+    // Purchase History Rows
+    let purchaseHistoryRows = [];
+    if (monthlyHistory && monthlyHistory.length > 0) {
+        purchaseHistoryRows = monthlyHistory.map(m => {
+            let formattedValue = '-';
+            if (m.amount !== undefined && m.amount !== null) {
+                formattedValue = formatCurrency(m.amount);
+            } else if (m.value !== undefined && m.value !== null) {
+                formattedValue = String(m.value).replace(/\.\d+/g, '');
+            }
+            return [
+                { text: m.label, alignment: 'center' },
+                { text: formattedValue, alignment: 'right', margin: [10, 0, 0, 0] }
+            ];
+        });
+    } else {
+        purchaseHistoryRows.push([{ text: 'ไม่มีข้อมูล', colSpan: 2, alignment: 'center' }, {}]);
+    }
 
     // Billing Info (Fallback to DB if snapshot missing)
     let billingMethod = snapCust.billing_method || data.billing_method || '-';
@@ -575,24 +660,146 @@ const generateCreditRequestPDF = async (req, res) => {
             margin: [0, 0, 0, 15]
         },
 
-        // --- SECTION 4: RISK ANALYSIS (Moved UP, before Attachments) ---
-        { text: 'การวิเคราะห์ความเสี่ยง', style: 'subheader', pageBreak: 'before' },
+        // --- SECTION 4: FINANCIAL ANALYSIS & CREDIT SCORE (NEW SECOND PAGE) ---
+        { text: 'การวิเคราะห์ทางการเงินและคะแนนเครดิต', style: 'header', alignment: 'center', pageBreak: 'before', margin: [0, 0, 0, 20] },
+
+        // 4.1 Combined Overall Score & Score Breakdown
+        { text: 'ผลคะแนนเครดิต', style: 'subheader' },
+        {
+            columns: [
+                // Left Column: Overall Score
+                {
+                    width: '60%',
+                    table: {
+                        widths: ['25%', '20%', '20%', '35%'],
+                        body: [
+                            [
+                                { text: 'คะแนนเครดิต', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
+                                { text: 'เกรด', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
+                                { text: 'ขนาด', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
+                                { text: 'วงเงินแนะนำ', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' }
+                            ],
+                            [
+                                { text: score === 'รอการประเมิน' ? score : `${score} / 200`, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10], color: '#007bff' },
+                                { text: grade, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] },
+                                { text: sizeLabel, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] },
+                                { text: recommendedLimit, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10], color: '#28a745' }
+                            ]
+                        ]
+                    },
+                    layout: 'lightHorizontalLines'
+                },
+                // Right Column: Score Breakdown
+                {
+                    width: '40%',
+                    margin: [15, 0, 0, 0], // Margin left to separate from left column
+                    table: {
+                        widths: ['70%', '30%'],
+                        body: [
+                            [
+                                { text: 'หัวข้อการวิเคราะห์', style: 'tableHeader', fillColor: '#f0f0f0' },
+                                { text: 'คะแนนที่ได้', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' }
+                            ],
+                            [
+                                { text: 'C1: ความแข็งแกร่งของบริษัท' },
+                                { text: c1Score, alignment: 'right' }
+                            ],
+                            [
+                                { text: 'C2: กระแสเงินสด' },
+                                { text: c2Score, alignment: 'right' }
+                            ],
+                            [
+                                { text: 'C3: พฤติกรรมการซื้อและประวัติ' },
+                                { text: c3Score, alignment: 'right' }
+                            ]
+                        ]
+                    },
+                    layout: 'lightHorizontalLines'
+                }
+            ],
+            margin: [0, 0, 0, 20]
+        },
+
+        // 4.3 Key Financial Overview
+        { text: 'ข้อมูลทางการเงินที่สำคัญ', style: 'subheader' },
         {
             table: {
-                widths: ['*', '*'], // Only Score and Grade
+                widths: ['33%', '33%', '34%'],
                 body: [
                     [
-                        { text: 'Credit Score', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
-                        { text: 'Grade', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' }
+                        { text: 'รายการ', style: 'tableHeader', fillColor: '#f0f0f0' },
+                        { text: 'มูลค่า (บาท)', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' },
+                        { text: 'หมายเหตุ / อัตราส่วน', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' }
                     ],
                     [
-                        { text: score === 'รอการประเมิน' ? score : `${score} / 100`, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] },
-                        { text: grade, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] }
+                        { text: 'รายได้รวม (เฉลี่ย)' },
+                        { text: avgRevenue, alignment: 'right' },
+                        { text: '-' }
+                    ],
+                    [
+                        { text: 'กำไรขั้นต้น (ปีล่าสุด)' },
+                        { text: grossProfit, alignment: 'right' },
+                        { text: '-' }
+                    ],
+                    [
+                        { text: 'หนี้สินรวม' },
+                        { text: totalLiabilities, alignment: 'right' },
+                        { text: `D/E Ratio: ${deRatio}`, alignment: 'right' }
+                    ],
+                    [
+                        { text: 'ส่วนของผู้ถือหุ้น' },
+                        { text: shareholdersEquity, alignment: 'right' },
+                        { text: '-' }
+                    ],
+                    [
+                        { text: 'ความสามารถในการชำระหนี้ (DSCR)' },
+                        { text: '-' },
+                        { text: dscr, alignment: 'right' }
+                    ],
+                    [
+                        { text: 'อัตราการหมุนเวียนสินค้าคงเหลือ' },
+                        { text: '-' },
+                        { text: inventoryTurnover, alignment: 'right' }
                     ]
                 ]
             },
             layout: 'lightHorizontalLines',
-            margin: [0, 0, 0, 15]
+            margin: [0, 0, 0, 20]
+        },
+
+        // 4.4 Factors Breakdown
+        { text: 'องค์ประกอบในการวิเคราะห์ (Scorecard Factors)', style: 'subheader' },
+        {
+            table: {
+                widths: ['50%', '30%', '20%'],
+                body: [
+                    [
+                        { text: 'ปัจจัยที่นำมาพิจารณา', style: 'tableHeader', fillColor: '#f0f0f0' },
+                        { text: 'ข้อมูลที่พบ', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
+                        { text: 'คะแนน', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' }
+                    ],
+                    ...scoreFactorsRows
+                ]
+            },
+            layout: 'lightHorizontalLines',
+            margin: [0, 0, 0, 20]
+        },
+
+        // 4.5 Purchase History
+        { text: 'ประวัติการซื้อย้อนหลัง', style: 'subheader' },
+        {
+            table: {
+                widths: ['50%', '50%'],
+                body: [
+                    [
+                        { text: 'เดือน / ปี', style: 'tableHeader', fillColor: '#f0f0f0', alignment: 'center' },
+                        { text: 'ยอดซื้อ (บาท)', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' }
+                    ],
+                    ...purchaseHistoryRows
+                ]
+            },
+            layout: 'lightHorizontalLines',
+            margin: [0, 0, 0, 20]
         },
 
         // --- SECTION 5: ATTACHMENTS (Removed as requested) ---
