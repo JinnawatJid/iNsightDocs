@@ -290,6 +290,7 @@ const submitTransaction = async (btn) => {
         formData.append('customer_name', store.customer.name);
         formData.append('request_amount', store.transactionData.amount || '');
         formData.append('request_reason', store.transactionData.reason || '');
+        formData.append('request_type', store.transactionData.requestType || 'เครดิตใหม่');
 
         // Map split terms
         formData.append('term_gs', store.transactionData.termGS || '');
