@@ -1197,7 +1197,7 @@ const shouldShowFinancialAnalysis = computed(() => {
 
 .manual-input-row {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 20px;
   margin-bottom: 20px;
 }
@@ -1211,6 +1211,10 @@ const shouldShowFinancialAnalysis = computed(() => {
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
+}
+
+.action-button {
+  margin-top: 25px;
 }
 
 .btn-primary {
