@@ -35,6 +35,13 @@ This document outlines the improvements for the Credit Request PDF Summary to be
     *   Payment Method (e.g., Transfer, Cheque).
     *   Payment Terms (Credit Term).
 
+## 4.5 Existing Credits (ข้อมูลบริษัทที่ท่านมีเครดิตอยู่)
+*   **Goal:** Provide context on the customer's existing credit lines with other companies.
+*   **Content:**
+    *   Table listing: Company Name (ชื่อบริษัท), Goods Purchased (สินค้าที่ซื้อ), Credit Terms in days (เครดิต (วัน)), and Credit Limit in Baht (วงเงิน (บาท)).
+    *   This section is placed immediately before the Risk Analysis section.
+
 ## 5. Implementation Strategy
+*   **Pagination:** The Risk Analysis section is configured to always start on a new page (`pageBreak: 'before'`) to ensure a clean layout.
 *   **Data Source:** Ensure `request_type` is persisted in the DB.
 *   **Rendering:** Use `pdfmake` columns for the header and "lightHorizontalLines" tables for data sections.
