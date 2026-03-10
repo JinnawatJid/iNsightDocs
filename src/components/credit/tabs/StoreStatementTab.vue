@@ -1173,6 +1173,7 @@ const shouldShowFinancialAnalysis = computed(() => {
     color: #1e4620;
     width: 100%;
     box-sizing: border-box;
+    margin-bottom: 15px;
 }
 
 .badge-icon {
