@@ -276,10 +276,19 @@ exports.createCreditRequest = async (req, res) => {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
             const insertResult = await db.runAsync(insertSql, [
-                newRealTxId, existing.customer_no, existing.customer_name, existing.status,
-                existing.request_amount, existing.request_reason, existing.request_credit_term,
-                existing.term_gs, existing.term_ae, existing.term_yc, existing.request_type,
-                existing.snapshot_data, existing.created_at
+                newRealTxId,
+                existing.customer_no,
+                existing.customer_name,
+                existing.status,
+                request_amount !== undefined ? request_amount : existing.request_amount,
+                request_reason !== undefined ? request_reason : existing.request_reason,
+                request_credit_term !== undefined ? request_credit_term : existing.request_credit_term,
+                term_gs !== undefined ? term_gs : existing.term_gs,
+                term_ae !== undefined ? term_ae : existing.term_ae,
+                term_yc !== undefined ? term_yc : existing.term_yc,
+                request_type !== undefined ? request_type : existing.request_type,
+                snapshot_data !== undefined ? snapshot_data : existing.snapshot_data,
+                existing.created_at
             ]);
 
             const newRequestId = insertResult.id;
