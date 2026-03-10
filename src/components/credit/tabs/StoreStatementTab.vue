@@ -36,11 +36,20 @@
       <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต</div>
 
       <!-- DBD Auto Import Section -->
-      <div class="dbd-section" v-if="isEditing && store.isCompany">
+      <div class="dbd-section" :class="{'dbd-section-disabled': localDBDStatus.exists && !localDBDStatus.isNoFinancialData}" v-if="isEditing && store.isCompany">
          <div class="dbd-header">
             <span class="dbd-title">DBD Auto Import</span>
             <span class="dbd-subtitle">ดึงข้อมูลจาก DataWarehouse</span>
          </div>
+
+         <!-- Local DBD Status Banner (Moved to top when exists) -->
+         <div class="dbd-status-banner mb-3" v-if="localDBDStatus.checked && localDBDStatus.exists && !localDBDStatus.isNoFinancialData">
+            <div class="badge-success-data banner-style">
+                <span class="badge-icon">✅</span> พบข้อมูลทางการเงินในระบบแล้ว (ดึงข้อมูลล่าสุดเมื่อ {{ formatDBDDate(localDBDStatus.date) }})
+                <span v-if="loadingLocalFiles" class="loading-spinner ml-2">⏳ กำลังโหลดไฟล์...</span>
+            </div>
+         </div>
+
          <div class="dbd-controls">
             <div class="form-group dbd-input-group">
                 <input
@@ -48,31 +57,28 @@
                   v-model="dbdQuery"
                   class="form-control"
                   placeholder="เลขทะเบียนนิติบุคคล หรือ ชื่อบริษัท"
+                  :disabled="localDBDStatus.exists && !localDBDStatus.isNoFinancialData"
                 />
             </div>
             <button
                 class="btn-dbd"
                 @click="autoDownloadDBD"
-                :disabled="downloadingDBD || !dbdQuery"
+                :disabled="downloadingDBD || !dbdQuery || (localDBDStatus.exists && !localDBDStatus.isNoFinancialData)"
             >
                 <span v-if="downloadingDBD">กำลังดาวน์โหลด...</span>
                 <span v-else>Auto Download</span>
             </button>
          </div>
 
-         <!-- Local DBD Status Badge -->
-         <div class="dbd-local-status mt-2" v-if="localDBDStatus.checked">
-             <div v-if="localDBDStatus.isNoFinancialData" class="badge-no-data">
+         <!-- Local DBD No Data Status Badge (Kept under controls) -->
+         <div class="dbd-local-status mt-2" v-if="localDBDStatus.checked && localDBDStatus.isNoFinancialData">
+             <div class="badge-no-data">
                  <span class="badge-icon">⚠️</span> ลูกค้าไม่มีงบการเงิน
-             </div>
-             <div v-else-if="localDBDStatus.exists" class="badge-success-data">
-                 <span class="badge-icon">✅</span> พบข้อมูลทางการเงินในระบบแล้ว (ดึงข้อมูลล่าสุดเมื่อ {{ formatDBDDate(localDBDStatus.date) }})
-                 <span v-if="loadingLocalFiles" class="loading-spinner ml-2">⏳ กำลังโหลดไฟล์...</span>
              </div>
          </div>
 
          <!-- Manual Bridge Host Override -->
-         <div class="dbd-host-setting">
+         <div class="dbd-host-setting" v-if="!localDBDStatus.exists || localDBDStatus.isNoFinancialData">
             <small class="text-muted cursor-pointer" @click="showBridgeInput = !showBridgeInput">
                ⚙️ ตั้งค่า Bridge IP {{ showBridgeInput ? '(ซ่อน)' : '' }}
             </small>
@@ -1060,6 +1066,20 @@ const shouldShowFinancialAnalysis = computed(() => {
     border-radius: 8px;
     margin-bottom: 20px;
     border: 1px solid #90caf9;
+    transition: all 0.3s ease;
+}
+
+.dbd-section-disabled {
+    background-color: #f5f5f5;
+    border-color: #e0e0e0;
+}
+
+.dbd-section-disabled .dbd-title {
+    color: #757575;
+}
+
+.dbd-section-disabled .dbd-subtitle {
+    color: #9e9e9e;
 }
 
 .cursor-pointer {
@@ -1123,6 +1143,16 @@ const shouldShowFinancialAnalysis = computed(() => {
 .badge-success-data {
     color: #2e7d32;
     font-weight: 500;
+}
+
+.banner-style {
+    display: inline-block;
+    padding: 10px 15px;
+    background-color: #e8f5e9;
+    border: 1px solid #c8e6c9;
+    border-radius: 6px;
+    font-size: 1.05em;
+    width: 100%;
 }
 
 .badge-icon {
