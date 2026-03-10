@@ -35,20 +35,20 @@
     <div class="financial-analysis-section" v-if="shouldShowFinancialAnalysis" data-testid="financial-analysis-section">
       <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต</div>
 
+      <!-- Local DBD Status Banner (Moved Outside/Top of the Grey Box) -->
+      <div class="dbd-status-banner mb-3" v-if="isEditing && store.isCompany && localDBDStatus.checked && localDBDStatus.exists && !localDBDStatus.isNoFinancialData">
+         <div class="badge-success-data banner-style">
+             <span class="badge-icon">✅</span>
+             <span>พบข้อมูลทางการเงินในระบบแล้ว (ดึงข้อมูลล่าสุดเมื่อ {{ formatDBDDate(localDBDStatus.date) }})</span>
+             <span v-if="loadingLocalFiles" class="loading-spinner ml-2">⏳ กำลังโหลดไฟล์...</span>
+         </div>
+      </div>
+
       <!-- DBD Auto Import Section -->
       <div class="dbd-section" :class="{'dbd-section-disabled': localDBDStatus.exists && !localDBDStatus.isNoFinancialData}" v-if="isEditing && store.isCompany">
          <div class="dbd-header">
             <span class="dbd-title">DBD Auto Import</span>
             <span class="dbd-subtitle">ดึงข้อมูลจาก DataWarehouse</span>
-         </div>
-
-         <!-- Local DBD Status Banner (Moved to top when exists) -->
-         <div class="dbd-status-banner mb-3" v-if="localDBDStatus.checked && localDBDStatus.exists && !localDBDStatus.isNoFinancialData">
-            <div class="badge-success-data banner-style">
-                <span class="badge-icon">✅</span>
-                <span>พบข้อมูลทางการเงินในระบบแล้ว (ดึงข้อมูลล่าสุดเมื่อ {{ formatDBDDate(localDBDStatus.date) }})</span>
-                <span v-if="loadingLocalFiles" class="loading-spinner ml-2">⏳ กำลังโหลดไฟล์...</span>
-            </div>
          </div>
 
          <div class="dbd-controls">
@@ -1172,7 +1172,7 @@ const shouldShowFinancialAnalysis = computed(() => {
     font-size: 0.95em;
     color: #1e4620;
     width: 100%;
-    margin-bottom: 12px;
+    box-sizing: border-box;
 }
 
 .badge-icon {
