@@ -35,44 +35,53 @@
     <div class="financial-analysis-section" v-if="shouldShowFinancialAnalysis" data-testid="financial-analysis-section">
       <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต</div>
 
+      <!-- Local DBD Status Banner (Moved Outside/Top of the Grey Box) -->
+      <div class="dbd-status-banner mb-3" v-if="isEditing && store.isCompany && localDBDStatus.checked && localDBDStatus.exists && !localDBDStatus.isNoFinancialData">
+         <div class="badge-success-data banner-style">
+             <span class="badge-icon">✅</span>
+             <span>พบข้อมูลทางการเงินในระบบแล้ว (ดึงข้อมูลล่าสุดเมื่อ {{ formatDBDDate(localDBDStatus.date) }})</span>
+             <span v-if="loadingLocalFiles" class="loading-spinner ml-2">⏳ กำลังโหลดไฟล์...</span>
+         </div>
+      </div>
+
       <!-- DBD Auto Import Section -->
-      <div class="dbd-section" v-if="isEditing && store.isCompany">
+      <div class="dbd-section" :class="{'dbd-section-disabled': localDBDStatus.exists && !localDBDStatus.isNoFinancialData}" v-if="isEditing && store.isCompany">
          <div class="dbd-header">
             <span class="dbd-title">DBD Auto Import</span>
             <span class="dbd-subtitle">ดึงข้อมูลจาก DataWarehouse</span>
          </div>
+
          <div class="dbd-controls">
             <div class="form-group dbd-input-group">
                 <input
                   type="text"
                   v-model="dbdQuery"
                   class="form-control"
+                  :class="{'disabled-input': localDBDStatus.exists && !localDBDStatus.isNoFinancialData}"
                   placeholder="เลขทะเบียนนิติบุคคล หรือ ชื่อบริษัท"
+                  :disabled="localDBDStatus.exists && !localDBDStatus.isNoFinancialData"
                 />
             </div>
             <button
                 class="btn-dbd"
+                :class="{'btn-dbd-disabled': localDBDStatus.exists && !localDBDStatus.isNoFinancialData}"
                 @click="autoDownloadDBD"
-                :disabled="downloadingDBD || !dbdQuery"
+                :disabled="downloadingDBD || !dbdQuery || (localDBDStatus.exists && !localDBDStatus.isNoFinancialData)"
             >
                 <span v-if="downloadingDBD">กำลังดาวน์โหลด...</span>
                 <span v-else>Auto Download</span>
             </button>
          </div>
 
-         <!-- Local DBD Status Badge -->
-         <div class="dbd-local-status mt-2" v-if="localDBDStatus.checked">
-             <div v-if="localDBDStatus.isNoFinancialData" class="badge-no-data">
+         <!-- Local DBD No Data Status Badge (Kept under controls) -->
+         <div class="dbd-local-status mt-2" v-if="localDBDStatus.checked && localDBDStatus.isNoFinancialData">
+             <div class="badge-no-data">
                  <span class="badge-icon">⚠️</span> ลูกค้าไม่มีงบการเงิน
-             </div>
-             <div v-else-if="localDBDStatus.exists" class="badge-success-data">
-                 <span class="badge-icon">✅</span> พบข้อมูลทางการเงินในระบบแล้ว (ดึงข้อมูลล่าสุดเมื่อ {{ formatDBDDate(localDBDStatus.date) }})
-                 <span v-if="loadingLocalFiles" class="loading-spinner ml-2">⏳ กำลังโหลดไฟล์...</span>
              </div>
          </div>
 
          <!-- Manual Bridge Host Override -->
-         <div class="dbd-host-setting">
+         <div class="dbd-host-setting" v-if="!localDBDStatus.exists || localDBDStatus.isNoFinancialData">
             <small class="text-muted cursor-pointer" @click="showBridgeInput = !showBridgeInput">
                ⚙️ ตั้งค่า Bridge IP {{ showBridgeInput ? '(ซ่อน)' : '' }}
             </small>
@@ -1060,6 +1069,34 @@ const shouldShowFinancialAnalysis = computed(() => {
     border-radius: 8px;
     margin-bottom: 20px;
     border: 1px solid #90caf9;
+    transition: all 0.3s ease;
+}
+
+.dbd-section-disabled {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.dbd-section-disabled .dbd-title {
+    color: #6c757d;
+}
+
+.dbd-section-disabled .dbd-subtitle {
+    color: #adb5bd;
+}
+
+.disabled-input {
+    background-color: #e9ecef !important;
+    border-color: #ced4da !important;
+    color: #6c757d !important;
+}
+
+.btn-dbd-disabled {
+    background-color: #e9ecef !important;
+    color: #adb5bd !important;
+    border: 1px solid #ced4da !important;
+    cursor: not-allowed !important;
 }
 
 .cursor-pointer {
@@ -1123,6 +1160,20 @@ const shouldShowFinancialAnalysis = computed(() => {
 .badge-success-data {
     color: #2e7d32;
     font-weight: 500;
+}
+
+.banner-style {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    background-color: #edf7ed;
+    border: 1px solid #cce8cd;
+    border-radius: 6px;
+    font-size: 0.95em;
+    color: #1e4620;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 15px;
 }
 
 .badge-icon {
