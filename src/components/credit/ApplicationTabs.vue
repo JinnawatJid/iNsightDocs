@@ -48,7 +48,7 @@ const tabs = computed(() => {
     'เปลี่ยนแปลงเงื่อนไขการชำระเงิน'
   ].some(t => requestType && requestType.includes(t));
 
-  const requestInfoLabel = isChangeRequest ? 'เปลี่ยนแปลงข้อมูลคำขอ' : 'ข้อมูลคำขอ';
+  const requestInfoLabel = (isChangeRequest && props.viewMode === 'focus') ? 'เปลี่ยนแปลงข้อมูลคำขอ' : 'ข้อมูลคำขอ';
 
   const allTabs = [
     { id: 'requestInfo', label: requestInfoLabel },
