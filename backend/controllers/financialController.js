@@ -978,6 +978,8 @@ const checkSingleCustomerFiles = async (customer_no) => {
             const profilePath = path.join(latestPath, 'DBD_Profile.pdf');
             let profileDetail = null;
             let dbdCompanyName = null;
+            let dbdYearsInBusiness = null;
+            let dbdRegisteredCapital = null;
             if (await fs.pathExists(profilePath)) {
                 const stats = await fs.stat(profilePath);
                 profileDetail = { filename: 'DBD_Profile.pdf', size: stats.size, date: stats.mtime, path: profilePath };
@@ -985,8 +987,10 @@ const checkSingleCustomerFiles = async (customer_no) => {
                 try {
                     const dataBuffer = await fs.readFile(profilePath);
                     const extracted = await extractDBDData(dataBuffer);
-                    if (extracted.success && extracted.companyName) {
-                        dbdCompanyName = extracted.companyName;
+                    if (extracted.success) {
+                        if (extracted.companyName) dbdCompanyName = extracted.companyName;
+                        if (extracted.yearsInBusiness) dbdYearsInBusiness = extracted.yearsInBusiness;
+                        if (extracted.registeredCapital) dbdRegisteredCapital = extracted.registeredCapital;
                     }
                 } catch (pdfErr) {
                     console.warn('Failed to parse profile for name:', pdfErr.message);
@@ -1002,6 +1006,8 @@ const checkSingleCustomerFiles = async (customer_no) => {
                 path: latestPath,
                 reason: 'ลูกค้าไม่ส่งงบการเงิน',
                 dbdCompanyName: dbdCompanyName,
+                dbdYearsInBusiness: dbdYearsInBusiness,
+                dbdRegisteredCapital: dbdRegisteredCapital,
                 files: profileDetail ? { profile: profileDetail } : {}
             };
         }
@@ -1017,6 +1023,8 @@ const checkSingleCustomerFiles = async (customer_no) => {
         const fileDetails = {};
 
         let dbdCompanyName = null;
+        let dbdYearsInBusiness = null;
+        let dbdRegisteredCapital = null;
         for (const file of requiredFiles) {
             const filePath = path.join(latestPath, file.name);
             if (!await fs.pathExists(filePath)) {
@@ -1036,8 +1044,10 @@ const checkSingleCustomerFiles = async (customer_no) => {
                 try {
                     const dataBuffer = await fs.readFile(filePath);
                     const extracted = await extractDBDData(dataBuffer);
-                    if (extracted.success && extracted.companyName) {
-                        dbdCompanyName = extracted.companyName;
+                    if (extracted.success) {
+                        if (extracted.companyName) dbdCompanyName = extracted.companyName;
+                        if (extracted.yearsInBusiness) dbdYearsInBusiness = extracted.yearsInBusiness;
+                        if (extracted.registeredCapital) dbdRegisteredCapital = extracted.registeredCapital;
                     }
                 } catch (pdfErr) {
                     console.warn('Failed to parse profile for name:', pdfErr.message);
@@ -1053,7 +1063,9 @@ const checkSingleCustomerFiles = async (customer_no) => {
             daysOld: diffDays,
             path: latestPath,
             files: fileDetails,
-            dbdCompanyName: dbdCompanyName
+            dbdCompanyName: dbdCompanyName,
+            dbdYearsInBusiness: dbdYearsInBusiness,
+            dbdRegisteredCapital: dbdRegisteredCapital
         };
     } catch (error) {
         console.error(`Check Local Files Error for ${customer_no}:`, error);

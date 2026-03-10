@@ -560,6 +560,14 @@ const checkAndLoadLocalDBD = async () => {
         localDBDStatus.isNoFinancialData = data.isNoFinancialData || data.noFinancialData;
         localDBDStatus.date = data.date;
 
+        // Auto-fill Registered Capital and Years in Business if missing
+        if (data.dbdRegisteredCapital && !store.customer.registered_capital) {
+            store.updateCustomerData({ registered_capital: data.dbdRegisteredCapital });
+        }
+        if (data.dbdYearsInBusiness && !store.customer.years_in_business) {
+            store.updateCustomerData({ years_in_business: data.dbdYearsInBusiness });
+        }
+
         // If files exist and we don't have NoFinancialData flag, auto-load them
         if (data.exists && !localDBDStatus.isNoFinancialData) {
             // Only auto-load if files aren't already populated in the component/store
