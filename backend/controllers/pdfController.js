@@ -576,7 +576,7 @@ const generateCreditRequestPDF = async (req, res) => {
         },
 
         // --- SECTION 4: RISK ANALYSIS (Moved UP, before Attachments) ---
-        { text: 'การวิเคราะห์ความเสี่ยง', style: 'subheader' },
+        { text: 'การวิเคราะห์ความเสี่ยง', style: 'subheader', pageBreak: 'before' },
         {
             table: {
                 widths: ['*', '*'], // Only Score and Grade
