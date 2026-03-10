@@ -302,10 +302,11 @@ const generateCreditRequestPDF = async (req, res) => {
 
     // Prepare Score Data
     const isDefined = (val) => val !== undefined && val !== null && val !== '';
-    let score = isDefined(scoreData.total_score) ? Math.round(scoreData.total_score) : 'รอการประเมิน';
+    let score = isDefined(scoreData.totalScore) ? Math.round(scoreData.totalScore) : (isDefined(scoreData.total_score) ? Math.round(scoreData.total_score) : 'รอการประเมิน');
     let grade = scoreData.grade || '-';
-    let sizeLabel = scoreData.size_result?.label || '-';
-    let recommendedLimit = isDefined(scoreData.recommended_limit) ? formatCurrency(scoreData.recommended_limit) + ' บาท' : '-';
+    let sizeLabel = scoreData.sizeResult?.label || scoreData.size_result?.label || '-';
+    let limitVal = isDefined(scoreData.recommendedLimit) ? scoreData.recommendedLimit : scoreData.recommended_limit;
+    let recommendedLimit = isDefined(limitVal) ? formatCurrency(limitVal) + ' บาท' : '-';
 
     // Score Breakdown
     let c1Score = isDefined(scoreData.breakdown?.c1?.total) ? scoreData.breakdown.c1.total.toFixed(2) : '-';
