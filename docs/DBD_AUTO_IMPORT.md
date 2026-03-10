@@ -10,12 +10,20 @@ To solve this, we utilize a **Local Bridge (Sidecar) Approach**.
 
 ## Architecture
 
-### 1. Standard Mode (Server-Side)
+### 1. Local Cache Auto-Import (First Priority)
+*   **Environment:** Internal Application Server.
+*   **Flow:** Client Browser -> API (`/api/financials/check-local/:customer_no`) -> Server Storage (`customers/{customer_no}/`).
+*   **Mechanism:** Before attempting to scrape any data, the frontend component (`StoreStatementTab.vue`) automatically checks the backend server to see if DBD files already exist for the customer (e.g., previously downloaded via the Batch Automation process).
+    *   If files exist, the system automatically fetches them as Blobs via `/api/financials/download-local/...` and populates the UI inputs, bypassing the scraper entirely.
+    *   If a `DBD_NoFinancialData.txt` marker exists, it flags the customer appropriately.
+    *   The UI updates to show a green success banner and greys out the manual download controls to prevent redundant requests.
+
+### 2. Standard Mode (Server-Side Fallback)
 *   **Environment:** Server has internet access.
 *   **Flow:** Client Browser -> API (`/api/external/dbd-stream`) -> Server (Puppeteer) -> DBD Website.
 *   **Mechanism:** The server launches a headless browser, scrapes the files, saves them to a temporary folder, and streams the file URLs back to the client.
 
-### 2. Air-Gapped Mode (Local Bridge)
+### 3. Air-Gapped Mode (Local Bridge Fallback)
 *   **Environment:** Server has NO internet access. Client (User's PC) has internet access.
 *   **Flow:** Client Browser -> Local Bridge (`localhost:4343`) -> Local Machine (Puppeteer) -> DBD Website.
 *   **Mechanism:**
