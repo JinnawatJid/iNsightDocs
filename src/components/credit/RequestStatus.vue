@@ -13,7 +13,7 @@
               <img :src="statusIcon" alt="" width="16" height="16" class="icon" />
               <span>{{ statusLabel }}</span>
             </div>
-            <button  class="btn-icon-export" @click="exportPDF" title="PDF">
+            <button v-if="showExportButton" class="btn-icon-export" @click="exportPDF" title="PDF">
               <img src="@/assets/icons/download.svg" alt="PDF" width="16" height="16" />
               <span>PDF</span>
             </button>

@@ -482,7 +482,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           }
 
           // Update transaction data (amount/reason) if present
-          if (resData.request_amount || resData.request_reason || resData.request_credit_term || resData.term_gs) {
+          if (resData.request_amount || resData.request_reason || resData.request_credit_term || resData.term_gs || resData.request_type) {
             this.transactionData = {
               amount: resData.request_amount || '',
               creditTerm: resData.request_credit_term || '',
