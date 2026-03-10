@@ -59,6 +59,18 @@
                 <span v-else>Auto Download</span>
             </button>
          </div>
+
+         <!-- Local DBD Status Badge -->
+         <div class="dbd-local-status mt-2" v-if="localDBDStatus.checked">
+             <div v-if="localDBDStatus.isNoFinancialData" class="badge-no-data">
+                 <span class="badge-icon">⚠️</span> ลูกค้าไม่มีงบการเงิน
+             </div>
+             <div v-else-if="localDBDStatus.exists" class="badge-success-data">
+                 <span class="badge-icon">✅</span> พบข้อมูลทางการเงินในระบบแล้ว (ดึงข้อมูลล่าสุดเมื่อ {{ formatDBDDate(localDBDStatus.date) }})
+                 <span v-if="loadingLocalFiles" class="loading-spinner ml-2">⏳ กำลังโหลดไฟล์...</span>
+             </div>
+         </div>
+
          <!-- Manual Bridge Host Override -->
          <div class="dbd-host-setting">
             <small class="text-muted cursor-pointer" @click="showBridgeInput = !showBridgeInput">
@@ -341,6 +353,14 @@ const showDebug = ref(false);
 const showBridgeInput = ref(false);
 const customBridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 
+const localDBDStatus = reactive({
+    checked: false,
+    exists: false,
+    isNoFinancialData: false,
+    date: null
+});
+const loadingLocalFiles = ref(false);
+
 const showBridgeHelp = () => {
     Swal.fire({
         title: 'วิธีแก้ปัญหาการเชื่อมต่อ (Browser Block)',
@@ -505,6 +525,72 @@ const handleDurationInput = (event) => {
     customerDuration.value = val; // Triggers setter
 };
 
+// Format DBD date string (YYYYMMDD) to DD/MM/YYYY
+const formatDBDDate = (dateStr) => {
+    if (!dateStr || dateStr.length !== 8) return dateStr;
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    return `${day}/${month}/${year}`;
+};
+
+// Check for Local DBD files and auto-import
+const checkAndLoadLocalDBD = async () => {
+    const customerNo = store.customer?.id || store.customer?.No_;
+    if (!customerNo || !store.isCompany || !isEditing.value) return;
+
+    // Prevent checking multiple times unnecessarily
+    if (localDBDStatus.checked) return;
+
+    try {
+        const checkRes = await axios.get(`/api/financials/check-local/${customerNo}`);
+        const data = checkRes.data;
+
+        localDBDStatus.checked = true;
+        localDBDStatus.exists = data.exists;
+        localDBDStatus.isNoFinancialData = data.isNoFinancialData || data.noFinancialData;
+        localDBDStatus.date = data.date;
+
+        // If files exist and we don't have NoFinancialData flag, auto-load them
+        if (data.exists && !localDBDStatus.isNoFinancialData) {
+            // Only auto-load if files aren't already populated in the component/store
+            if (!files.balanceSheet && !files.profitLoss && !files.financialRatios) {
+                loadingLocalFiles.value = true;
+
+                // Helper to fetch file as Blob and convert to File
+                const loadFile = async (fileKey, fileName, mimeType) => {
+                    try {
+                        const res = await axios.get(`/api/financials/download-local/${customerNo}/${fileKey}`, { responseType: 'blob' });
+                        return new File([res.data], fileName, { type: mimeType });
+                    } catch (err) {
+                        console.error(`Failed to load ${fileKey}:`, err);
+                        return null;
+                    }
+                };
+
+                // Load required files
+                const [profileFile, balanceSheetFile, profitLossFile, financialRatiosFile] = await Promise.all([
+                    loadFile('profile', 'DBD_Profile.pdf', 'application/pdf'),
+                    loadFile('balance_sheet', 'DBD_BalanceSheet.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+                    loadFile('income_statement', 'DBD_IncomeStatement.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+                    loadFile('financial_ratios', 'DBD_FinancialRatios.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                ]);
+
+                if (profileFile) files.companyProfile = profileFile;
+                if (balanceSheetFile) files.balanceSheet = balanceSheetFile;
+                if (profitLossFile) files.profitLoss = profitLossFile;
+                if (financialRatiosFile) files.financialRatios = financialRatiosFile;
+
+                loadingLocalFiles.value = false;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to check local DBD files:', error);
+        localDBDStatus.checked = true; // Mark checked even on error to avoid infinite loops
+        loadingLocalFiles.value = false;
+    }
+};
+
 // Initialize DBD Query from Customer Data
 watch(() => store.customer, (val) => {
     if (val) {
@@ -516,6 +602,9 @@ watch(() => store.customer, (val) => {
                 dbdQuery.value = val.name;
             }
         }
+
+        // Auto-check for local files when customer data changes
+        checkAndLoadLocalDBD();
     }
 }, { immediate: true });
 
@@ -1015,6 +1104,36 @@ const shouldShowFinancialAnalysis = computed(() => {
 .btn-dbd:disabled {
     background-color: #90caf9;
     cursor: not-allowed;
+}
+
+.dbd-local-status {
+    font-size: 0.9em;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background-color: white;
+    display: inline-block;
+    border: 1px solid #e0e0e0;
+}
+
+.badge-no-data {
+    color: #e65100;
+    font-weight: 500;
+}
+
+.badge-success-data {
+    color: #2e7d32;
+    font-weight: 500;
+}
+
+.badge-icon {
+    margin-right: 4px;
+}
+
+.loading-spinner {
+    font-size: 0.85em;
+    color: #666;
+    margin-left: 10px;
+    font-weight: normal;
 }
 
 .manual-input-row {
