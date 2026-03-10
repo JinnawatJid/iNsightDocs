@@ -663,55 +663,60 @@ const generateCreditRequestPDF = async (req, res) => {
         // --- SECTION 4: FINANCIAL ANALYSIS & CREDIT SCORE (NEW SECOND PAGE) ---
         { text: 'การวิเคราะห์ทางการเงินและคะแนนเครดิต', style: 'header', alignment: 'center', pageBreak: 'before', margin: [0, 0, 0, 20] },
 
-        // 4.1 Overall Score & Recommendation
+        // 4.1 Combined Overall Score & Score Breakdown
         { text: 'ผลคะแนนเครดิต', style: 'subheader' },
         {
-            table: {
-                widths: ['25%', '25%', '25%', '25%'],
-                body: [
-                    [
-                        { text: 'คะแนนเครดิต', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
-                        { text: 'เกรด', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
-                        { text: 'ขนาด', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
-                        { text: 'วงเงินแนะนำ', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' }
-                    ],
-                    [
-                        { text: score === 'รอการประเมิน' ? score : `${score} / 200`, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10], color: '#007bff' },
-                        { text: grade, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] },
-                        { text: sizeLabel, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] },
-                        { text: recommendedLimit, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10], color: '#28a745' }
-                    ]
-                ]
-            },
-            layout: 'lightHorizontalLines',
-            margin: [0, 0, 0, 20]
-        },
-
-        // 4.2 Score Breakdown
-        { text: 'รายละเอียดคะแนน', style: 'subheader' },
-        {
-            table: {
-                widths: ['50%', '50%'],
-                body: [
-                    [
-                        { text: 'หัวข้อการวิเคราะห์', style: 'tableHeader', fillColor: '#f0f0f0' },
-                        { text: 'คะแนนที่ได้', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' }
-                    ],
-                    [
-                        { text: 'C1: ความแข็งแกร่งของบริษัท' },
-                        { text: c1Score, alignment: 'right' }
-                    ],
-                    [
-                        { text: 'C2: กระแสเงินสดและสภาพคล่อง' },
-                        { text: c2Score, alignment: 'right' }
-                    ],
-                    [
-                        { text: 'C3: พฤติกรรมการซื้อและประวัติ' },
-                        { text: c3Score, alignment: 'right' }
-                    ]
-                ]
-            },
-            layout: 'lightHorizontalLines',
+            columns: [
+                // Left Column: Overall Score
+                {
+                    width: '60%',
+                    table: {
+                        widths: ['25%', '20%', '20%', '35%'],
+                        body: [
+                            [
+                                { text: 'คะแนนเครดิต', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
+                                { text: 'เกรด', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
+                                { text: 'ขนาด', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
+                                { text: 'วงเงินแนะนำ', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' }
+                            ],
+                            [
+                                { text: score === 'รอการประเมิน' ? score : `${score} / 200`, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10], color: '#007bff' },
+                                { text: grade, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] },
+                                { text: sizeLabel, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10] },
+                                { text: recommendedLimit, alignment: 'center', fontSize: 14, bold: true, margin: [0, 10, 0, 10], color: '#28a745' }
+                            ]
+                        ]
+                    },
+                    layout: 'lightHorizontalLines'
+                },
+                // Right Column: Score Breakdown
+                {
+                    width: '40%',
+                    margin: [15, 0, 0, 0], // Margin left to separate from left column
+                    table: {
+                        widths: ['70%', '30%'],
+                        body: [
+                            [
+                                { text: 'หัวข้อการวิเคราะห์', style: 'tableHeader', fillColor: '#f0f0f0' },
+                                { text: 'คะแนนที่ได้', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' }
+                            ],
+                            [
+                                { text: 'C1: ความแข็งแกร่งของบริษัท' },
+                                { text: c1Score, alignment: 'right' }
+                            ],
+                            [
+                                { text: 'C2: กระแสเงินสดและสภาพคล่อง' },
+                                { text: c2Score, alignment: 'right' }
+                            ],
+                            [
+                                { text: 'C3: พฤติกรรมการซื้อและประวัติ' },
+                                { text: c3Score, alignment: 'right' }
+                            ]
+                        ]
+                    },
+                    layout: 'lightHorizontalLines'
+                }
+            ],
             margin: [0, 0, 0, 20]
         },
 
