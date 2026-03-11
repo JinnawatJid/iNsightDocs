@@ -1029,7 +1029,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
         for (const file of requiredFiles) {
             const filePath = path.join(latestPath, file.name);
             if (!await fs.pathExists(filePath)) {
-                return { exists: false, reason: `Missing file: ${file.name}` };
+                continue; // Skip instead of returning false immediately
             }
 
             // Get File Stats
@@ -1057,7 +1057,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
         }
 
         return {
-            exists: true,
+            exists: Object.keys(fileDetails).length > 0,
             isNoFinancialData: false,
             noFinancialData: false,
             date: latestFolder,
