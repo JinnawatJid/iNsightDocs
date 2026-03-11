@@ -1080,6 +1080,11 @@ const checkSingleCustomerFiles = async (customer_no) => {
 
 exports.checkLocalFiles = async (req, res) => {
   try {
+    // Prevent browser caching for this specific status endpoint
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const { customer_no } = req.params;
     if (!customer_no) return res.status(400).json({ success: false, message: 'Customer No required' });
 
@@ -1364,6 +1369,11 @@ exports.uploadLocalFiles = async (req, res) => {
 // New Endpoint for parsing and returning DBD document data
 exports.getDBDData = async (req, res) => {
     try {
+        // Prevent browser caching for financial data
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
         const { customer_no } = req.params;
         const parser = require('../utils/dbdExcelParser');
 
