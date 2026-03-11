@@ -212,7 +212,7 @@ const checkDbdStatus = async () => {
 
     isDbdLoading.value = true;
     try {
-        const response = await axios.get(`/api/financials/${store.customer.id}/check-local?t=${new Date().getTime()}`);
+        const response = await axios.get(`/api/financials/check-local/${store.customer.id}?t=${new Date().getTime()}`);
         console.log('[DEBUG UI] check-local response:', response.data);
         if (response.data && response.data.exists) {
             if (response.data.isNoFinancialData) {
