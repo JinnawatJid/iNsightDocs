@@ -15,6 +15,7 @@ To solve this, we utilize a **Local Bridge (Sidecar) Approach**.
 *   **Flow:** Client Browser -> API (`/api/financials/check-local/:customer_no`) -> Server Storage (`customers/{customer_no}/`).
 *   **Mechanism:** Before attempting to scrape any data, the frontend component (`StoreStatementTab.vue`) automatically checks the backend server to see if DBD files already exist for the customer (e.g., previously downloaded via the Batch Automation process).
     *   If files exist, the system automatically fetches them as Blobs via `/api/financials/download-local/...` and populates the UI inputs, bypassing the scraper entirely.
+    *   **New Feature:** The API now parses the `DBD_Profile.pdf` using `extractDBDData` to automatically fill the "Registered Capital" (ทุนจดทะเบียน) and "Years in Business" (ระยะเวลาธุรกิจ) fields in the frontend store if they are currently empty.
     *   If a `DBD_NoFinancialData.txt` marker exists, it flags the customer appropriately.
     *   The UI updates to show a green success banner and greys out the manual download controls to prevent redundant requests.
 
