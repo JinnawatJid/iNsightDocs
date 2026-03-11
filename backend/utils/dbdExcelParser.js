@@ -137,11 +137,25 @@ function parseExcelFile(filePath) {
 function getCustomerFinancialData(customerNo) {
     const sanitizedCustomerNo = require('path').basename(customerNo);
     const customerDir = path.join(__dirname, '../../customers', sanitizedCustomerNo);
+    console.log(`[DEBUG-PARSER] Reading customer directory for parsing: ${customerDir}`);
 
-    // Adjust paths if the naming convention is different
-    const positionFile = path.join(customerDir, 'DBD_FinancialPosition.xlsx');
-    const incomeFile = path.join(customerDir, 'DBD_IncomeStatement.xlsx');
-    const ratiosFile = path.join(customerDir, 'DBD_FinancialRatios.xlsx');
+    if (!fs.existsSync(customerDir)) {
+        return null;
+    }
+
+    const subdirs = fs.readdirSync(customerDir);
+    const dateFolders = subdirs.filter(d => /^\d{8}$/.test(d)).sort().reverse();
+
+    if (dateFolders.length === 0) {
+        return null;
+    }
+
+    const latestFolder = dateFolders[0];
+    const latestPath = path.join(customerDir, latestFolder);
+
+    const positionFile = path.join(latestPath, 'DBD_FinancialPosition.xlsx');
+    const incomeFile = path.join(latestPath, 'DBD_IncomeStatement.xlsx');
+    const ratiosFile = path.join(latestPath, 'DBD_FinancialRatios.xlsx');
 
     return {
         financialPosition: parseExcelFile(positionFile),

@@ -501,6 +501,7 @@ exports.analyzeFinancials = async (req, res) => {
              }
 
              const customerRoot = path.join(projectRoot, 'customers', customer_no);
+        console.log(`[DEBUG] Checking local files for ${customer_no} at path: ${customerRoot}`);
 
              // Find latest folder logic again (safety)
              if (await fs.pathExists(customerRoot)) {
