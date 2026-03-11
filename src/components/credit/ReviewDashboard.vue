@@ -67,8 +67,7 @@
         </div>
 
         <div class="dbd-grid">
-            <div class="doc-card" :class="{ 'uploaded': dbdStatus.profile, 'missing': !dbdStatus.profile }">
-
+                        <div class="doc-card" :class="{ 'uploaded': dbdStatus.profile, 'missing': !dbdStatus.profile }">
                 <div class="doc-icon">
                     <svg v-if="dbdStatus.profile" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
@@ -79,40 +78,36 @@
                 </div>
             </div>
             <div class="doc-card" :class="{ 'uploaded': dbdStatus.position, 'missing': !dbdStatus.position }">
-
                 <div class="doc-icon">
                     <svg v-if="dbdStatus.position" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <div class="doc-meta">
                     <span class="doc-name">งบแสดงฐานะการเงิน</span>
-                    <span class="doc-status">{{ dbdStatus.position ? 'มีข้อมูล' : 'ไม่มีข้อมูล' }}</span>
+                    <span class="doc-status">{{ dbdStatus.position ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
                 </div>
             </div>
             <div class="doc-card" :class="{ 'uploaded': dbdStatus.income, 'missing': !dbdStatus.income }">
-
                 <div class="doc-icon">
                     <svg v-if="dbdStatus.income" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <div class="doc-meta">
                     <span class="doc-name">งบกำไรขาดทุน</span>
-                    <span class="doc-status">{{ dbdStatus.income ? 'มีข้อมูล' : 'ไม่มีข้อมูล' }}</span>
+                    <span class="doc-status">{{ dbdStatus.income ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
                 </div>
             </div>
             <div class="doc-card" :class="{ 'uploaded': dbdStatus.ratios, 'missing': !dbdStatus.ratios }">
-
                 <div class="doc-icon">
                     <svg v-if="dbdStatus.ratios" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <div class="doc-meta">
                     <span class="doc-name">อัตราส่วนทางการเงิน</span>
-                    <span class="doc-status">{{ dbdStatus.ratios ? 'มีข้อมูล' : 'ไม่มีข้อมูล' }}</span>
+                    <span class="doc-status">{{ dbdStatus.ratios ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- Financial Statement Modal -->
     <Teleport to="body">
@@ -218,16 +213,28 @@ const checkDbdStatus = async () => {
     try {
         const response = await axios.get(`/api/financials/${store.customer.customer_no}/check-local`);
         if (response.data && response.data.exists) {
-            const files = response.data.files || {};
-            dbdStatus.value = {
-                profile: !!files.profile,
-                position: !!files.balanceSheet,
-                income: !!files.incomeStatement,
-                ratios: !!files.financialRatios
-            };
+            if (response.data.isNoFinancialData) {
+                // If the customer has been flagged as having no financial data explicitly
+                dbdStatus.value = {
+                    profile: !!(response.data.files && response.data.files.profile),
+                    position: false,
+                    income: false,
+                    ratios: false,
+                    isNoDataFlag: true
+                };
+            } else {
+                const files = response.data.files || {};
+                dbdStatus.value = {
+                    profile: !!files.profile,
+                    position: !!files.balanceSheet,
+                    income: !!files.incomeStatement,
+                    ratios: !!files.financialRatios,
+                    isNoDataFlag: false
+                };
+            }
         } else {
             // Reset to false if not found
-            dbdStatus.value = { profile: false, position: false, income: false, ratios: false };
+            dbdStatus.value = { profile: false, position: false, income: false, ratios: false, isNoDataFlag: false };
         }
     } catch (err) {
         console.error('Failed to fetch DBD status', err);
