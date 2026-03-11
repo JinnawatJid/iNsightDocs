@@ -17,7 +17,8 @@ function parseExcelFile(filePath) {
     }
 
     try {
-        const workbook = xlsx.readFile(filePath);
+        const fileBuffer = fs.readFileSync(filePath);
+        const workbook = xlsx.read(fileBuffer, { type: 'buffer', cellFormula: false, cellHTML: false });
         const sheetName = workbook.SheetNames[0]; // Usually the first sheet
         const worksheet = workbook.Sheets[sheetName];
 
