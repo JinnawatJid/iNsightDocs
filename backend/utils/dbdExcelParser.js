@@ -41,8 +41,9 @@ function parseExcelFile(filePath) {
             const rowYears = [];
             row.forEach((cell, idx) => {
                 const cellStr = String(cell).trim();
-                if (cellStr.match(/^25[6-9][0-9]$/)) { // Match Thai years like 2564
-                    rowYears.push({ year: cellStr, index: idx });
+                const match = cellStr.match(/(25\d{2}|20\d{2})/);
+                if (match && parseInt(match[0]) > 2550) { // Match Thai years like 2564
+                    rowYears.push({ year: match[0], index: idx });
                 }
             });
 
