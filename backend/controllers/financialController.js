@@ -931,24 +931,27 @@ const checkSingleCustomerFiles = async (customer_no) => {
     try {
         if (!customer_no) return { exists: false, reason: 'Customer No required' };
 
-        // Use same path resolution as persist logic
+        console.log(`[DEBUG-CHECK] Starting check for ${customer_no}`);
+
         let projectRoot = path.resolve(__dirname, '../../../../');
-        // Fallback for dev/sandbox environment (2 levels up)
         if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
             projectRoot = path.resolve(__dirname, '../../');
         }
 
         const customerRoot = path.join(projectRoot, 'customers', customer_no);
+        console.log(`[DEBUG-CHECK] Resolved customerRoot: ${customerRoot}`);
 
         if (!await fs.pathExists(customerRoot)) {
+            console.log(`[DEBUG-CHECK] FAIL: No customer directory at ${customerRoot}`);
             return { exists: false, reason: 'No customer directory' };
         }
 
         const subdirs = await fs.readdir(customerRoot);
-        // Filter for 8-digit folders (YYYYMMDD) and sort descending (latest first)
         const dateFolders = subdirs.filter(d => /^\d{8}$/.test(d)).sort().reverse();
+        console.log(`[DEBUG-CHECK] Found dateFolders: ${dateFolders}`);
 
         if (dateFolders.length === 0) {
+            console.log(`[DEBUG-CHECK] FAIL: No 8-digit date folders in ${customerRoot}`);
             return { exists: false, reason: 'No date folders' };
         }
 
@@ -1084,6 +1087,10 @@ exports.checkLocalFiles = async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
+
+    // Force Express to NOT return 304 by stripping the cache header from the request
+    delete req.headers['if-none-match'];
+    delete req.headers['if-modified-since'];
 
     const { customer_no } = req.params;
     if (!customer_no) return res.status(400).json({ success: false, message: 'Customer No required' });
@@ -1373,6 +1380,9 @@ exports.getDBDData = async (req, res) => {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
+
+        delete req.headers['if-none-match'];
+        delete req.headers['if-modified-since'];
 
         const { customer_no } = req.params;
         const parser = require('../utils/dbdExcelParser');
