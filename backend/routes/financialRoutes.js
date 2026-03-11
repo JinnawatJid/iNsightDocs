@@ -22,3 +22,6 @@ router.get('/download-local/:customer_no/:file_key', financialController.downloa
 router.get('/late-payment-benchmark/:customer_no', financialController.getLatePaymentBenchmark);
 
 module.exports = router;
+
+// New Route for DBD Data Table API
+router.get('/:customer_no/dbd-data', financialController.getDBDData);

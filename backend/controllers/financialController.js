@@ -501,6 +501,7 @@ exports.analyzeFinancials = async (req, res) => {
              }
 
              const customerRoot = path.join(projectRoot, 'customers', customer_no);
+        console.log(`[DEBUG] Checking local files for ${customer_no} at path: ${customerRoot}`);
 
              // Find latest folder logic again (safety)
              if (await fs.pathExists(customerRoot)) {
@@ -930,24 +931,27 @@ const checkSingleCustomerFiles = async (customer_no) => {
     try {
         if (!customer_no) return { exists: false, reason: 'Customer No required' };
 
-        // Use same path resolution as persist logic
+        console.log(`[DEBUG-CHECK] Starting check for ${customer_no}`);
+
         let projectRoot = path.resolve(__dirname, '../../../../');
-        // Fallback for dev/sandbox environment (2 levels up)
         if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
             projectRoot = path.resolve(__dirname, '../../');
         }
 
         const customerRoot = path.join(projectRoot, 'customers', customer_no);
+        console.log(`[DEBUG-CHECK] Resolved customerRoot: ${customerRoot}`);
 
         if (!await fs.pathExists(customerRoot)) {
+            console.log(`[DEBUG-CHECK] FAIL: No customer directory at ${customerRoot}`);
             return { exists: false, reason: 'No customer directory' };
         }
 
         const subdirs = await fs.readdir(customerRoot);
-        // Filter for 8-digit folders (YYYYMMDD) and sort descending (latest first)
         const dateFolders = subdirs.filter(d => /^\d{8}$/.test(d)).sort().reverse();
+        console.log(`[DEBUG-CHECK] Found dateFolders: ${dateFolders}`);
 
         if (dateFolders.length === 0) {
+            console.log(`[DEBUG-CHECK] FAIL: No 8-digit date folders in ${customerRoot}`);
             return { exists: false, reason: 'No date folders' };
         }
 
@@ -964,6 +968,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         if (diffDays > 180) {
+            console.log(`[DEBUG] Local files for ${customer_no} (${latestFolder}) rejected. diffDays=${diffDays} > 180`);
             return { exists: false, reason: 'Files too old', days: diffDays, limit: 180 };
         }
 
@@ -1027,9 +1032,12 @@ const checkSingleCustomerFiles = async (customer_no) => {
         let dbdRegisteredCapital = null;
         for (const file of requiredFiles) {
             const filePath = path.join(latestPath, file.name);
+            console.log(`[DEBUG] Checking for file: ${filePath}`);
             if (!await fs.pathExists(filePath)) {
-                return { exists: false, reason: `Missing file: ${file.name}` };
+                console.log(`[DEBUG] File NOT FOUND: ${filePath}`);
+                continue; // Skip instead of returning false immediately
             }
+            console.log(`[DEBUG] File FOUND: ${filePath}`);
 
             // Get File Stats
             const stats = await fs.stat(filePath);
@@ -1056,7 +1064,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
         }
 
         return {
-            exists: true,
+            exists: Object.keys(fileDetails).length > 0,
             isNoFinancialData: false,
             noFinancialData: false,
             date: latestFolder,
@@ -1075,6 +1083,15 @@ const checkSingleCustomerFiles = async (customer_no) => {
 
 exports.checkLocalFiles = async (req, res) => {
   try {
+    // Prevent browser caching for this specific status endpoint
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // Force Express to NOT return 304 by stripping the cache header from the request
+    delete req.headers['if-none-match'];
+    delete req.headers['if-modified-since'];
+
     const { customer_no } = req.params;
     if (!customer_no) return res.status(400).json({ success: false, message: 'Customer No required' });
 
@@ -1353,5 +1370,31 @@ exports.uploadLocalFiles = async (req, res) => {
     } catch (error) {
         console.error('Upload Local Files Error:', error);
         res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// New Endpoint for parsing and returning DBD document data
+exports.getDBDData = async (req, res) => {
+    try {
+        // Prevent browser caching for financial data
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
+        delete req.headers['if-none-match'];
+        delete req.headers['if-modified-since'];
+
+        const { customer_no } = req.params;
+        const parser = require('../utils/dbdExcelParser');
+
+        const data = parser.getCustomerFinancialData(customer_no);
+
+        res.status(200).json({
+            success: true,
+            data: data
+        });
+    } catch (error) {
+        console.error(`Error in getDBDData for ${req.params.customer_no}:`, error);
+        res.status(500).json({ success: false, message: 'Failed to parse financial data' });
     }
 };
