@@ -114,10 +114,15 @@ const handleSearch = async (query) => {
     await store.searchCustomer(query);
 };
 
-const handleStartRequest = (type) => {
+const handleStartRequest = async (type) => {
     console.log('Starting Request Type:', type);
     store.updateTransactionData({ requestType: type });
     isRequestStarted.value = true;
+
+    // Save to backend immediately so the Draft correctly reflects the chosen type
+    if (store.requestId) {
+        await store.saveTransactionData();
+    }
 };
 
 // Watch for Blacklist Alert
