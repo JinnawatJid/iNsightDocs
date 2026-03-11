@@ -135,7 +135,8 @@ function parseExcelFile(filePath) {
  * @param {string} customerNo
  */
 function getCustomerFinancialData(customerNo) {
-    const customerDir = path.join(__dirname, '../../customers', customerNo);
+    const sanitizedCustomerNo = require('path').basename(customerNo);
+    const customerDir = path.join(__dirname, '../../customers', sanitizedCustomerNo);
 
     // Adjust paths if the naming convention is different
     const positionFile = path.join(customerDir, 'DBD_FinancialPosition.xlsx');
