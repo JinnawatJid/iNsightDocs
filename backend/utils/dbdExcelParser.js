@@ -136,7 +136,14 @@ function parseExcelFile(filePath) {
  */
 function getCustomerFinancialData(customerNo) {
     const sanitizedCustomerNo = require('path').basename(customerNo);
-    const customerDir = path.join(__dirname, '../../customers', sanitizedCustomerNo);
+
+    // Replicate same path logic as financialController.js to support production structure
+    let projectRoot = path.resolve(__dirname, '../../../../');
+    if (!fs.existsSync(path.join(projectRoot, 'customers'))) {
+        projectRoot = path.resolve(__dirname, '../../');
+    }
+
+    const customerDir = path.join(projectRoot, 'customers', sanitizedCustomerNo);
     console.log(`[DEBUG-PARSER] Reading customer directory for parsing: ${customerDir}`);
 
     if (!fs.existsSync(customerDir)) {
