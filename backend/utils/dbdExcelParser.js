@@ -162,7 +162,7 @@ function getCustomerFinancialData(customerNo) {
     const latestFolder = dateFolders[0];
     const latestPath = path.join(customerDir, latestFolder);
 
-    const positionFile = path.join(latestPath, 'DBD_FinancialPosition.xlsx');
+    const positionFile = path.join(latestPath, 'DBD_BalanceSheet.xlsx');
     const incomeFile = path.join(latestPath, 'DBD_IncomeStatement.xlsx');
     const ratiosFile = path.join(latestPath, 'DBD_FinancialRatios.xlsx');
 

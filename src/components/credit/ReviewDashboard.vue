@@ -111,7 +111,7 @@
     </div>
 
     <!-- Financial Statement Modal -->
-    <Teleport to="body">
+
         <FinancialStatementModal
             :is-open="isFinancialModalOpen"
             :financial-data="financialData"
@@ -119,7 +119,7 @@
             :error="financialError"
             @close="isFinancialModalOpen = false"
         />
-    </Teleport>
+
 
     <!-- Section 3: Full Details Toggle -->
     <div class="details-toggle-section">
@@ -212,7 +212,7 @@ const checkDbdStatus = async () => {
 
     isDbdLoading.value = true;
     try {
-        const response = await axios.get(`/api/financials/${store.customer.id}/check-local`);
+        const response = await axios.get(`/api/financials/${store.customer.id}/check-local?t=${new Date().getTime()}`);
         console.log('[DEBUG UI] check-local response:', response.data);
         if (response.data && response.data.exists) {
             if (response.data.isNoFinancialData) {
@@ -267,7 +267,7 @@ const openFinancialModal = async () => {
     financialError.value = null;
 
     try {
-        const response = await axios.get(`/api/financials/${store.customer.id}/dbd-data`);
+        const response = await axios.get(`/api/financials/${store.customer.id}/dbd-data?t=${new Date().getTime()}`);
         console.log('[DEBUG UI] dbd-data response:', response.data);
         if (response.data && response.data.success) {
             financialData.value = response.data.data;
