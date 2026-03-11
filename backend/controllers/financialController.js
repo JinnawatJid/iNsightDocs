@@ -1355,3 +1355,21 @@ exports.uploadLocalFiles = async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
+
+// New Endpoint for parsing and returning DBD document data
+exports.getDBDData = async (req, res) => {
+    try {
+        const { customer_no } = req.params;
+        const parser = require('../utils/dbdExcelParser');
+
+        const data = parser.getCustomerFinancialData(customer_no);
+
+        res.status(200).json({
+            success: true,
+            data: data
+        });
+    } catch (error) {
+        console.error(`Error in getDBDData for ${req.params.customer_no}:`, error);
+        res.status(500).json({ success: false, message: 'Failed to parse financial data' });
+    }
+};

@@ -56,6 +56,59 @@
         </div>
     </div>
 
+
+    <!-- Section 2.5: Financial Statements (งบการเงิน) - Only for corporate -->
+    <div v-if="store.isCompany" class="dashboard-card dbd-snapshot">
+        <div class="card-header">
+            <h3>งบการเงิน (DBD)</h3>
+            <button class="btn-view-financials" @click="openFinancialModal">
+               ดูรายละเอียดงบการเงิน
+            </button>
+        </div>
+
+        <div class="dbd-grid">
+            <div class="doc-card" :class="{ 'uploaded': dbdStatus.profile, 'missing': !dbdStatus.profile }">
+                <div class="doc-icon">📄</div>
+                <div class="doc-meta">
+                    <span class="doc-name">ข้อมูลนิติบุคคล</span>
+                    <span class="doc-status">{{ dbdStatus.profile ? 'มีข้อมูล' : 'ไม่มีข้อมูล' }}</span>
+                </div>
+            </div>
+            <div class="doc-card" :class="{ 'uploaded': dbdStatus.position, 'missing': !dbdStatus.position }">
+                <div class="doc-icon">📊</div>
+                <div class="doc-meta">
+                    <span class="doc-name">งบแสดงฐานะการเงิน</span>
+                    <span class="doc-status">{{ dbdStatus.position ? 'มีข้อมูล' : 'ไม่มีข้อมูล' }}</span>
+                </div>
+            </div>
+            <div class="doc-card" :class="{ 'uploaded': dbdStatus.income, 'missing': !dbdStatus.income }">
+                <div class="doc-icon">📈</div>
+                <div class="doc-meta">
+                    <span class="doc-name">งบกำไรขาดทุน</span>
+                    <span class="doc-status">{{ dbdStatus.income ? 'มีข้อมูล' : 'ไม่มีข้อมูล' }}</span>
+                </div>
+            </div>
+            <div class="doc-card" :class="{ 'uploaded': dbdStatus.ratios, 'missing': !dbdStatus.ratios }">
+                <div class="doc-icon">📉</div>
+                <div class="doc-meta">
+                    <span class="doc-name">อัตราส่วนทางการเงิน</span>
+                    <span class="doc-status">{{ dbdStatus.ratios ? 'มีข้อมูล' : 'ไม่มีข้อมูล' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Statement Modal -->
+    <Teleport to="body">
+        <FinancialStatementModal
+            :is-open="isFinancialModalOpen"
+            :financial-data="financialData"
+            :loading="financialLoading"
+            :error="financialError"
+            @close="isFinancialModalOpen = false"
+        />
+    </Teleport>
+
     <!-- Section 3: Full Details Toggle -->
     <div class="details-toggle-section">
         <button class="btn-toggle-details" @click="showFullDetails = !showFullDetails">
@@ -77,6 +130,8 @@ import { ref, computed } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { getMandatoryKeys } from '@/config/mandatoryFields';
 import ApplicationTabs from './ApplicationTabs.vue';
+import FinancialStatementModal from './FinancialStatementModal.vue';
+import axios from 'axios';
 
 const store = useCreditRequestStore();
 const showFullDetails = ref(false);
@@ -124,6 +179,45 @@ const documents = computed(() => {
 });
 
 const uploadedCount = computed(() => documents.value.filter(d => d.isUploaded).length);
+
+const isFinancialModalOpen = ref(false);
+const financialData = ref(null);
+const financialLoading = ref(false);
+const financialError = ref(null);
+
+const dbdStatus = computed(() => {
+    // Check if store has local DBD files metadata
+    const files = store.customer?.localDbdFiles || {};
+    return {
+        profile: !!files.company_profile,
+        position: !!files.balance_sheet,
+        income: !!files.profit_loss,
+        ratios: !!files.financial_ratios
+    };
+});
+
+const openFinancialModal = async () => {
+    isFinancialModalOpen.value = true;
+    if (financialData.value) return; // already loaded
+
+    financialLoading.value = true;
+    financialError.value = null;
+
+    try {
+        const response = await axios.get(`/api/financials/${store.customer.customer_no}/dbd-data`);
+        if (response.data && response.data.success) {
+            financialData.value = response.data.data;
+        } else {
+            financialError.value = 'ไม่สามารถดึงข้อมูลได้';
+        }
+    } catch (err) {
+        console.error('Error fetching DBD data:', err);
+        financialError.value = 'เกิดข้อผิดพลาดในการโหลดข้อมูลงบการเงิน';
+    } finally {
+        financialLoading.value = false;
+    }
+};
+
 </script>
 
 <style scoped>
@@ -212,6 +306,31 @@ const uploadedCount = computed(() => documents.value.filter(d => d.isUploaded).l
 .reason-text {
     font-style: italic;
     line-height: 1.5;
+}
+
+
+/* DBD Section Styles */
+.dbd-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+.btn-view-financials {
+    background: #e3f2fd;
+    color: #0d47a1;
+    border: 1px solid #bbdefb;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-view-financials:hover {
+    background: #bbdefb;
+}
+.doc-icon {
+    font-size: 20px;
 }
 
 /* Documents Grid */
