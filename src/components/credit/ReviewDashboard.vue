@@ -108,6 +108,7 @@
                 </div>
             </div>
         </div>
+    </div>
 
     <!-- Financial Statement Modal -->
     <Teleport to="body">
