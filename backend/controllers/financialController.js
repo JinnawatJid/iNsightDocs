@@ -965,6 +965,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         if (diffDays > 180) {
+            console.log(`[DEBUG] Local files for ${customer_no} (${latestFolder}) rejected. diffDays=${diffDays} > 180`);
             return { exists: false, reason: 'Files too old', days: diffDays, limit: 180 };
         }
 
@@ -1028,9 +1029,12 @@ const checkSingleCustomerFiles = async (customer_no) => {
         let dbdRegisteredCapital = null;
         for (const file of requiredFiles) {
             const filePath = path.join(latestPath, file.name);
+            console.log(`[DEBUG] Checking for file: ${filePath}`);
             if (!await fs.pathExists(filePath)) {
+                console.log(`[DEBUG] File NOT FOUND: ${filePath}`);
                 continue; // Skip instead of returning false immediately
             }
+            console.log(`[DEBUG] File FOUND: ${filePath}`);
 
             // Get File Stats
             const stats = await fs.stat(filePath);

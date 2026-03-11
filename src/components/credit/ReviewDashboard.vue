@@ -213,6 +213,7 @@ const checkDbdStatus = async () => {
     isDbdLoading.value = true;
     try {
         const response = await axios.get(`/api/financials/${store.customer.id}/check-local`);
+        console.log('[DEBUG UI] check-local response:', response.data);
         if (response.data && response.data.exists) {
             if (response.data.isNoFinancialData) {
                 // If the customer has been flagged as having no financial data explicitly
@@ -267,6 +268,7 @@ const openFinancialModal = async () => {
 
     try {
         const response = await axios.get(`/api/financials/${store.customer.id}/dbd-data`);
+        console.log('[DEBUG UI] dbd-data response:', response.data);
         if (response.data && response.data.success) {
             financialData.value = response.data.data;
         } else {
