@@ -208,11 +208,11 @@ const dbdStatus = ref({
 const isDbdLoading = ref(false);
 
 const checkDbdStatus = async () => {
-    if (!store.customer?.customer_no) return;
+    if (!store.customer?.id) return;
 
     isDbdLoading.value = true;
     try {
-        const response = await axios.get(`/api/financials/${store.customer.customer_no}/check-local`);
+        const response = await axios.get(`/api/financials/${store.customer.id}/check-local`);
         if (response.data && response.data.exists) {
             if (response.data.isNoFinancialData) {
                 // If the customer has been flagged as having no financial data explicitly
@@ -244,7 +244,7 @@ const checkDbdStatus = async () => {
     }
 };
 
-watch(() => store.customer?.customer_no, (newVal) => {
+watch(() => store.customer?.id, (newVal) => {
     if (newVal && store.isCompany) {
         checkDbdStatus();
         financialData.value = null; // reset cache
@@ -252,7 +252,7 @@ watch(() => store.customer?.customer_no, (newVal) => {
 });
 
 onMounted(() => {
-    if (store.customer?.customer_no && store.isCompany) {
+    if (store.customer?.id && store.isCompany) {
         checkDbdStatus();
     }
 });
@@ -266,7 +266,7 @@ const openFinancialModal = async () => {
     financialError.value = null;
 
     try {
-        const response = await axios.get(`/api/financials/${store.customer.customer_no}/dbd-data`);
+        const response = await axios.get(`/api/financials/${store.customer.id}/dbd-data`);
         if (response.data && response.data.success) {
             financialData.value = response.data.data;
         } else {
