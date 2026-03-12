@@ -308,10 +308,38 @@ const generateCreditRequestPDF = async (req, res) => {
     let limitVal = isDefined(scoreData.recommendedLimit) ? scoreData.recommendedLimit : scoreData.recommended_limit;
     let recommendedLimit = isDefined(limitVal) ? formatCurrency(limitVal) + ' บาท' : '-';
 
+    // Calculate Max Scores based on request type
+    let configFileName = requestType === 'ขอเครดิตเพิ่ม' ? 'credit_scorecard_existing_v1.json' : 'credit_scorecard_v1.json';
+    let configPath = path.resolve(__dirname, `../config/${configFileName}`);
+    let maxC1 = 0, maxC2 = 0, maxC3 = 0;
+    try {
+        const rawConfig = fs.readFileSync(configPath, 'utf8');
+        const config = JSON.parse(rawConfig);
+        const components = config.components || {};
+
+        const sumWeights = (componentKey) => {
+            if (components[componentKey] && Array.isArray(components[componentKey].factors)) {
+                return components[componentKey].factors.reduce((sum, factor) => sum + (factor.weight || 0), 0);
+            }
+            return 0;
+        };
+
+        maxC1 = sumWeights('c1');
+        maxC2 = sumWeights('c2');
+        maxC3 = sumWeights('c3');
+    } catch (e) {
+        console.error('Error calculating max scores:', e);
+    }
+
     // Score Breakdown
     let c1Score = isDefined(scoreData.breakdown?.c1?.total) ? scoreData.breakdown.c1.total.toFixed(2) : '-';
+    if (c1Score !== '-' && maxC1 > 0) c1Score += ` / ${maxC1.toFixed(2)}`;
+
     let c2Score = isDefined(scoreData.breakdown?.c2?.total) ? scoreData.breakdown.c2.total.toFixed(2) : '-';
+    if (c2Score !== '-' && maxC2 > 0) c2Score += ` / ${maxC2.toFixed(2)}`;
+
     let c3Score = isDefined(scoreData.breakdown?.c3?.total) ? scoreData.breakdown.c3.total.toFixed(2) : '-';
+    if (c3Score !== '-' && maxC3 > 0) c3Score += ` / ${maxC3.toFixed(2)}`;
 
     // Financial Data Overview
     let extractedData = snapshot.financials?.extractedData || snapshot.extractedData || {};
@@ -762,41 +790,6 @@ const generateCreditRequestPDF = async (req, res) => {
                         { text: '-' },
                         { text: inventoryTurnover, alignment: 'right' }
                     ]
-                ]
-            },
-            layout: 'lightHorizontalLines',
-            margin: [0, 0, 0, 20]
-        },
-
-        // 4.4 Factors Breakdown
-        { text: 'องค์ประกอบในการวิเคราะห์ (Scorecard Factors)', style: 'subheader' },
-        {
-            table: {
-                widths: ['50%', '30%', '20%'],
-                body: [
-                    [
-                        { text: 'ปัจจัยที่นำมาพิจารณา', style: 'tableHeader', fillColor: '#f0f0f0' },
-                        { text: 'ข้อมูลที่พบ', style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' },
-                        { text: 'คะแนน', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' }
-                    ],
-                    ...scoreFactorsRows
-                ]
-            },
-            layout: 'lightHorizontalLines',
-            margin: [0, 0, 0, 20]
-        },
-
-        // 4.5 Purchase History
-        { text: 'ประวัติการซื้อย้อนหลัง', style: 'subheader' },
-        {
-            table: {
-                widths: ['50%', '50%'],
-                body: [
-                    [
-                        { text: 'เดือน / ปี', style: 'tableHeader', fillColor: '#f0f0f0', alignment: 'center' },
-                        { text: 'ยอดซื้อ (บาท)', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' }
-                    ],
-                    ...purchaseHistoryRows
                 ]
             },
             layout: 'lightHorizontalLines',
