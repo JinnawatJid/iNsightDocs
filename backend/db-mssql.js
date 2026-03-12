@@ -172,11 +172,22 @@ const initDB = async () => {
             'payment_condition',
             'payment_bank_name',
             'payment_bank_branch',
-            'payment_account_no'
+            'payment_account_no',
+            // Credit Status (N, P, NPL, L)
+            'credit_status',
+            // New columns for Property Value
+            'residence_value',
+            'store_value'
         ];
 
         for (const col of coordinateColumns) {
             try {
+                // Determine column type and default
+                let colDef = 'NVARCHAR(255)';
+                if (col === 'credit_status') {
+                    colDef = "NVARCHAR(255) DEFAULT 'N'";
+                }
+
                 // MSSQL check if column exists before adding
                 const checkSql = `
                     IF NOT EXISTS (
@@ -184,7 +195,7 @@ const initDB = async () => {
                         WHERE Name = '${col}' AND Object_ID = Object_ID('Customers')
                     )
                     BEGIN
-                        ALTER TABLE Customers ADD ${col} NVARCHAR(255)
+                        ALTER TABLE Customers ADD ${col} ${colDef}
                     END
                 `;
                 await pool.request().query(checkSql);
