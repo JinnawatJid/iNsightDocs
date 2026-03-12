@@ -89,10 +89,28 @@ function parseExcelFile(filePath) {
 
         for (let i = startRowIdx; i < rawData.length; i++) {
             const row = rawData[i];
-            if (!row || row.length === 0 || !row[0]) continue; // Skip empty rows
+            if (!row || row.length === 0) continue; // Skip empty rows
 
-            const metricName = String(row[0]).trim();
-            if (metricName === '' || metricName.includes('หมายเหตุ') || metricName.includes('งบแสดง')) continue;
+            let col0 = String(row[0] || '').trim();
+            let col1 = String(row[1] || '').trim();
+
+            let metricName = col0;
+
+            // If col0 is empty or is just a number (like "1", "2"), and col1 has text, use col1
+            if (!metricName || /^\d+$/.test(metricName)) {
+                 if (col1 !== '') {
+                     metricName = col1;
+                 }
+            }
+
+            if (!metricName ||
+                metricName === '' ||
+                metricName.includes('หมายเหตุ') ||
+                metricName.includes('งบแสดง') ||
+                metricName.includes('อัตราส่วนแสดง') ||
+                metricName.includes('ตัวชี้วัด')) {
+                continue;
+            }
 
             const rowData = {
                 metric: metricName,
