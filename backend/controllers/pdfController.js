@@ -358,15 +358,30 @@ const generateCreditRequestPDF = async (req, res) => {
     };
 
     try {
-        // Try to read local DBD_Profile.pdf
-        const profilePath = path.resolve(__dirname, `../../../../customers/${customerNoClean}/DBD_Profile.pdf`);
-        const fallbackProfilePath = path.resolve(__dirname, `../../customers/${customerNoClean}/DBD_Profile.pdf`);
+        // Find the correct base customer directory
+        const baseProfileDir = path.resolve(__dirname, `../../../../customers/${customerNoClean}`);
+        const fallbackBaseDir = path.resolve(__dirname, `../../customers/${customerNoClean}`);
+
+        let activeBaseDir = null;
+        if (fs.existsSync(baseProfileDir)) activeBaseDir = baseProfileDir;
+        else if (fs.existsSync(fallbackBaseDir)) activeBaseDir = fallbackBaseDir;
 
         let targetPath = null;
-        if (fs.existsSync(profilePath)) {
-            targetPath = profilePath;
-        } else if (fs.existsSync(fallbackProfilePath)) {
-            targetPath = fallbackProfilePath;
+        if (activeBaseDir) {
+            // Read date folders, e.g., 20260310
+            const items = fs.readdirSync(activeBaseDir);
+            const dateFolders = items.filter(i => fs.statSync(path.join(activeBaseDir, i)).isDirectory() && /^\d+$/.test(i));
+
+            if (dateFolders.length > 0) {
+                // Sort descending so the newest date folder is first
+                dateFolders.sort((a, b) => b.localeCompare(a));
+                const latestFolder = dateFolders[0];
+                const possiblePath = path.join(activeBaseDir, latestFolder, 'DBD_Profile.pdf');
+
+                if (fs.existsSync(possiblePath)) {
+                    targetPath = possiblePath;
+                }
+            }
         }
 
         if (targetPath) {
@@ -390,7 +405,7 @@ const generateCreditRequestPDF = async (req, res) => {
                 if (extracted.directors && extracted.directors.length > 0) dbdProfileData.directors = extracted.directors;
             }
         } else {
-             console.log(`[PDF] DBD_Profile.pdf not found for customer ${customerNoClean} at paths:`, profilePath, fallbackProfilePath);
+             console.log(`[PDF] DBD_Profile.pdf not found for customer ${customerNoClean} in latest date folder at base dir:`, activeBaseDir);
         }
     } catch (err) {
         console.warn(`[PDF] Failed to extract DBD Profile Data for ${customerNoClean}:`, err.message);
