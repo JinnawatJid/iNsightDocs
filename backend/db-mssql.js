@@ -218,7 +218,8 @@ const initDB = async () => {
             { name: 'term_gs', type: 'INT' },
             { name: 'term_ae', type: 'INT' },
             { name: 'term_yc', type: 'INT' },
-            { name: 'request_type', type: 'NVARCHAR(255)' }
+            { name: 'request_type', type: 'NVARCHAR(255)' },
+            { name: 'updated_at', type: 'DATETIME' }
         ];
 
         for (const col of creditRequestColumns) {
