@@ -453,7 +453,7 @@ const generateCreditRequestPDF = async (req, res) => {
                 // Section Header for component
                 let compName = compKey === 'c1' ? 'C1: ความแข็งแกร่งของบริษัท' :
                                compKey === 'c2' ? 'C2: กระแสเงินสด' :
-                               compKey === 'c3' ? 'C3: พฤติกรรมการซื้อและประวัติ' : compKey.toUpperCase();
+                               compKey === 'c3' ? 'C3: พฤติกรรมการซื้อ' : compKey.toUpperCase();
 
                 scoreFactorsRows.push([
                     { text: compName, bold: true, colSpan: 3, fillColor: '#f9f9f9', margin: [0, 5, 0, 5] },
@@ -823,7 +823,7 @@ const generateCreditRequestPDF = async (req, res) => {
                                 { text: c2Score, alignment: 'right', noWrap: true }
                             ],
                             [
-                                { text: 'C3: พฤติกรรมการซื้อและประวัติ' },
+                                { text: 'C3: พฤติกรรมการซื้อ' },
                                 { text: c3Score, alignment: 'right', noWrap: true }
                             ]
                         ]
