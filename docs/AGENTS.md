@@ -10,3 +10,4 @@ When working on `/create-credit-request`, you must strictly adhere to the "Searc
 
 ## General Rules
 * Before modifying core UI workflows, check existing architecture documentation (e.g., in `docs/architecture/`) to ensure you are not accidentally reverting intentional design patterns.
+* **Database Schema Synchronization:** We use two database environments (`db-sqlite.js` for testing/local, and `db-mssql.js` for production). **Any schema modifications** (e.g., adding a new column to a table, modifying data types) **must be mirrored in BOTH files.** Failure to do so will cause "invalid column name" errors when switching environments.
