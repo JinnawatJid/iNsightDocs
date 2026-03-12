@@ -372,15 +372,28 @@ const generateCreditRequestPDF = async (req, res) => {
         if (targetPath) {
             const dataBuffer = fs.readFileSync(targetPath);
             const extracted = await extractDBDData(dataBuffer);
+
+            console.log(`[PDF] Extracted DBD Profile Data for ${customerNoClean}:`, JSON.stringify({
+                success: extracted.success,
+                registrationDate: extracted.registrationDate,
+                yearsInBusiness: extracted.yearsInBusiness,
+                registeredCapital: extracted.registeredCapital,
+                directorsCount: extracted.directors ? extracted.directors.length : 0,
+                directors: extracted.directors,
+                debug: extracted.debug
+            }, null, 2));
+
             if (extracted.success) {
                 if (extracted.registrationDate) dbdProfileData.registrationDate = extracted.registrationDate;
                 if (extracted.yearsInBusiness) dbdProfileData.yearsInBusiness = `${extracted.yearsInBusiness} ปี`;
                 if (extracted.registeredCapital) dbdProfileData.registeredCapital = formatCurrency(extracted.registeredCapital);
                 if (extracted.directors && extracted.directors.length > 0) dbdProfileData.directors = extracted.directors;
             }
+        } else {
+             console.log(`[PDF] DBD_Profile.pdf not found for customer ${customerNoClean} at paths:`, profilePath, fallbackProfilePath);
         }
     } catch (err) {
-        console.warn('PDF: Failed to extract DBD Profile Data:', err.message);
+        console.warn(`[PDF] Failed to extract DBD Profile Data for ${customerNoClean}:`, err.message);
     }
     let dbdTableWidths = [];
 
