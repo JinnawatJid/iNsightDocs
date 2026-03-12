@@ -55,21 +55,18 @@ const availableActions = computed(() => {
   if (status === 'Opened' && role === 'ผู้จัดการภาค') {
     actions.push({ key: 'approve', label: 'อนุมัติ (Approve)', targetStatus: 'RegionalSubmitted', class: 'btn-success' });
     actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
-    actions.push({ key: 'return', label: 'ส่งกลับแก้ไข (Return)', targetStatus: 'Draft', class: 'btn-warning', requireComment: true });
   }
 
   // 3. Sales Manager (RegionalSubmitted -> SalesSubmitted)
   if (status === 'RegionalSubmitted' && role === 'ผู้จัดการฝ่ายขาย') {
     actions.push({ key: 'approve', label: 'อนุมัติ (Approve)', targetStatus: 'SalesSubmitted', class: 'btn-success' });
     actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
-    actions.push({ key: 'return', label: 'ส่งกลับแก้ไข (Return)', targetStatus: 'Opened', class: 'btn-warning', requireComment: true });
   }
 
   // 4. Finance Officer (SalesSubmitted -> Reviewed)
   if (status === 'SalesSubmitted' && role === 'เจ้าหน้าที่ฝ่ายการเงิน') {
     actions.push({ key: 'review', label: 'ตรวจสอบ (Verify)', targetStatus: 'Reviewed', class: 'btn-success' });
     actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
-    actions.push({ key: 'return', label: 'ขอข้อมูลเพิ่ม (Return)', targetStatus: 'RegionalSubmitted', class: 'btn-warning', requireComment: true });
   }
 
   // 5. Finance Manager (Reviewed -> Approved if <= 300k)
@@ -77,7 +74,6 @@ const availableActions = computed(() => {
     if (amount <= 300000) {
         actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
         actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
-        actions.push({ key: 'return', label: 'ส่งกลับ (Return)', targetStatus: 'SalesSubmitted', class: 'btn-warning', requireComment: true });
     } else {
         // High Value: FM sees no actions or maybe just "Reject"?
         // For now, no actions, as CC must approve.
@@ -89,7 +85,6 @@ const availableActions = computed(() => {
     if (amount > 300000) {
         actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
         actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
-        actions.push({ key: 'return', label: 'ส่งกลับ (Return)', targetStatus: 'SalesSubmitted', class: 'btn-warning', requireComment: true });
     }
   }
 
