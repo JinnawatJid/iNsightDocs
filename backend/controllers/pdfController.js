@@ -2,6 +2,7 @@ const PdfPrinter = require('pdfmake');
 const fs = require('fs');
 const path = require('path');
 const db = require('../db');
+const dbdParser = require('../utils/dbdExcelParser');
 
 // Define fonts
 const fonts = {
@@ -340,6 +341,90 @@ const generateCreditRequestPDF = async (req, res) => {
 
     let c3Score = isDefined(scoreData.breakdown?.c3?.total) ? scoreData.breakdown.c3.total.toFixed(2) : '-';
     if (c3Score !== '-' && maxC3 > 0) c3Score += ` / ${maxC3.toFixed(2)}`;
+
+    // --- Fetch DBD Financial Data ---
+    const dbdFinancialData = dbdParser.getCustomerFinancialData(customerNoClean);
+    let dbdTableBody = [];
+    let dbdTableWidths = [];
+
+    const formatPercent = (val) => {
+        if (val === null || val === undefined || val === '-') return '-';
+        const num = Number(val);
+        if (isNaN(num)) return val;
+        return num > 0 ? `+${num.toFixed(2)}%` : `${num.toFixed(2)}%`;
+    };
+
+    if (dbdFinancialData) {
+        // Collect all available years to find top 3 most recent
+        let allYearsSet = new Set();
+        if (dbdFinancialData.financialPosition?.years) dbdFinancialData.financialPosition.years.forEach(y => allYearsSet.add(y));
+        if (dbdFinancialData.incomeStatement?.years) dbdFinancialData.incomeStatement.years.forEach(y => allYearsSet.add(y));
+        if (dbdFinancialData.financialRatios?.years) dbdFinancialData.financialRatios.years.forEach(y => allYearsSet.add(y));
+
+        let displayYears = Array.from(allYearsSet).sort((a, b) => b - a).slice(0, 3).reverse();
+
+        if (displayYears.length > 0) {
+            // Define widths: 1st col gets remaining space, then 2 cols per year
+            dbdTableWidths = ['*'];
+            for (let i = 0; i < displayYears.length * 2; i++) dbdTableWidths.push('auto');
+
+            // Header rows
+            let headerRow1 = [ { text: 'รายการ (หน่วย: บาท)', rowSpan: 2, style: 'tableHeader', alignment: 'center', margin: [0, 10, 0, 0], fillColor: '#f0f0f0' } ];
+            let headerRow2 = [ '' ];
+
+            displayYears.forEach(year => {
+                headerRow1.push({ text: year, colSpan: 2, style: 'tableHeader', alignment: 'center', fillColor: '#f0f0f0' });
+                headerRow1.push(''); // placeholder
+                headerRow2.push({ text: 'จำนวนเงิน', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' });
+                headerRow2.push({ text: '% เปลี่ยนแปลง', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' });
+            });
+
+            dbdTableBody.push(headerRow1);
+            dbdTableBody.push(headerRow2);
+
+            // Function to extract specific metrics
+            const extractRows = (sectionKey, sectionLabel, metricsToFind) => {
+                const sectionData = dbdFinancialData[sectionKey];
+                if (!sectionData || !sectionData.rows) return;
+
+                metricsToFind.forEach(metricName => {
+                    const rowData = sectionData.rows.find(r => r.metric && r.metric.includes(metricName));
+                    let pdfRow = [ { text: metricName } ];
+
+                    displayYears.forEach(year => {
+                        if (rowData && rowData.values && rowData.values[year]) {
+                            const val = rowData.values[year];
+                            pdfRow.push({ text: formatCurrency(val.amount), alignment: 'right' });
+                            pdfRow.push({
+                                text: formatPercent(val.percentChange),
+                                alignment: 'right',
+                                color: Number(val.percentChange) < 0 ? '#dc3545' : (Number(val.percentChange) > 0 ? '#28a745' : 'black')
+                            });
+                        } else {
+                            pdfRow.push({ text: '-', alignment: 'right' });
+                            pdfRow.push({ text: '-', alignment: 'right' });
+                        }
+                    });
+                    dbdTableBody.push(pdfRow);
+                });
+            };
+
+            const targetMetrics = {
+                financialPosition: ['สินทรัพย์รวม', 'หนี้สินรวม', 'ส่วนของผู้ถือหุ้น'],
+                incomeStatement: ['รายได้รวม', 'กำไร (ขาดทุน) สุทธิ'],
+                financialRatios: ['อัตราส่วนทุนหมุนเวียน', 'อัตราส่วนหนี้สินต่อส่วนของผู้ถือหุ้น']
+            };
+
+            dbdTableBody.push([{ text: 'งบแสดงฐานะการเงิน', colSpan: 1 + displayYears.length * 2, bold: true, fillColor: '#f9f9f9', margin: [0, 5, 0, 5] }, ...Array(displayYears.length * 2).fill('')]);
+            extractRows('financialPosition', 'งบแสดงฐานะการเงิน', targetMetrics.financialPosition);
+
+            dbdTableBody.push([{ text: 'งบกำไรขาดทุน', colSpan: 1 + displayYears.length * 2, bold: true, fillColor: '#f9f9f9', margin: [0, 5, 0, 5] }, ...Array(displayYears.length * 2).fill('')]);
+            extractRows('incomeStatement', 'งบกำไรขาดทุน', targetMetrics.incomeStatement);
+
+            dbdTableBody.push([{ text: 'อัตราส่วนทางการเงิน', colSpan: 1 + displayYears.length * 2, bold: true, fillColor: '#f9f9f9', margin: [0, 5, 0, 5] }, ...Array(displayYears.length * 2).fill('')]);
+            extractRows('financialRatios', 'อัตราส่วนทางการเงิน', targetMetrics.financialRatios);
+        }
+    }
 
     // Financial Data Overview
     let extractedData = snapshot.financials?.extractedData || snapshot.extractedData || {};
@@ -749,8 +834,19 @@ const generateCreditRequestPDF = async (req, res) => {
             margin: [0, 0, 0, 20]
         },
 
-        // 4.3 Key Financial Overview
-        { text: 'ข้อมูลทางการเงินที่สำคัญ', style: 'subheader' },
+        // 4.3 Key Financial Overview (from DBD)
+        dbdTableBody.length > 0 ? { text: 'ข้อมูลทางการเงินที่สำคัญ (อ้างอิงงบการเงิน DBD)', style: 'subheader' } : null,
+        dbdTableBody.length > 0 ? {
+            table: {
+                widths: dbdTableWidths,
+                body: dbdTableBody
+            },
+            layout: 'lightHorizontalLines',
+            margin: [0, 0, 0, 20]
+        } : null,
+
+        // 4.4 Original Financial Overview (extracted)
+        { text: 'ข้อมูลประกอบอื่นๆ', style: 'subheader' },
         {
             table: {
                 widths: ['33%', '33%', '34%'],
@@ -819,6 +915,9 @@ const generateCreditRequestPDF = async (req, res) => {
         }
       }
     };
+
+    // Filter out null elements from the content array
+    docDefinition.content = docDefinition.content.filter(item => item !== null);
 
     // Create PDF
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
