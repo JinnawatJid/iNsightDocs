@@ -20,7 +20,7 @@ This functionality is primarily used by approvers on the `/pending-requests` das
 The core extraction logic utilizes the `xlsx` NPM library.
 * **Buffer Mode:** Files are read synchronously using `fs.readFileSync(filePath)` to create a raw buffer, which is then passed to `xlsx.read(buffer, { type: 'buffer' })`. This completely bypasses the `Error: end of central directory record signature not found` (ZIP format error) that occurs when the `xlsx` library attempts to stream or read certain specific file paths directly on some OS configurations.
 * **Dynamic Year Extraction:** DBD Excel files do not always have clean "2564", "2565" headers. They often contain text (e.g., "ปี 2565"). The parser uses the regex `/(25\d{2}|20\d{2})/` to safely scan the header row and dynamically identify which columns contain the 3 years of financial data.
-* **Metric Mapping:** The parser scans down the first column to identify key financial metrics (e.g., "สินทรัพย์รวม", "กำไร (ขาดทุน) สุทธิ") and extracts the absolute values ("จำนวนเงิน") and percentage changes ("%เปลี่ยนแปลง") for the identified year columns.
+* **Metric Mapping:** The parser scans down the first column (`row[0]`) to identify key financial metrics (e.g., "สินทรัพย์รวม", "กำไร (ขาดทุน) สุทธิ"). However, in specific sheets like "Financial Ratios", the first column contains numeric row indices (1, 2, 3...) and the actual metric name resides in the second column (`row[1]`). The parser intelligently falls back to `row[1]` if `row[0]` is empty or strictly numeric. It extracts the absolute values ("จำนวนเงิน") and percentage changes ("%เปลี่ยนแปลง") for the identified year columns while filtering out sub-headers (e.g. "อัตราส่วนแสดง...").
 
 ---
 
