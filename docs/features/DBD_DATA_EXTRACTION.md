@@ -31,6 +31,12 @@ The `extractDBDData` function utilizes the `pdf-parse` library to extract raw te
 * **Directors (กรรมการ):** Locates the `รายชื่อกรรมการ` or `กรรมการ` label, scans the subsequent lines, and matches name prefixes (นาย, นาง, นางสาว, etc.) until it hits the next major section (like `อำนาจกรรมการ`).
 * **Path Lookup:** When generating PDFs via `pdfController.js`, the system does not look for the `DBD_Profile.pdf` at the base customer directory. Instead, it dynamically reads the `customers/{customer_no}/` directory, identifies the latest date-stamped folder (e.g., `20260310`), and extracts the PDF from within that latest folder to ensure data freshness.
 
+### 3. PDF PDF Generation (`pdfController.js`)
+When generating the final Credit Request PDF, the system dynamically injects the parsed financial data (from `dbdExcelParser.js`) into a structured table.
+* **Metric Mapping (Search vs. Display):** The DBD Excel files use long, specific strings (e.g., "อัตราส่วนหนี้สินรวมต่อส่วนของผู้ถือหุ้น (เท่า)"). To keep the PDF clean, the `targetMetrics` configuration in `pdfController.js` uses a `{ searchKey, displayLabel }` structure. This allows the backend to search the exact string required to parse the Excel file (`searchKey`), but output a much shorter, human-readable string (`displayLabel`, e.g., "หนี้สินรวมต่อผู้ถือหุ้น (เท่า)") in the generated PDF document.
+* **Ratio Formatting:** Standard financial amounts are formatted as currency with 0 decimal places. However, financial ratios (defined in the `financialRatios` array) are explicitly formatted using a `formatRatio` helper to ensure they always display with exactly 2 decimal places.
+* **Dynamic Table Widths:** To ensure metric labels (like "อัตราส่วนทุนหมุนเวียน (เท่า)") stay on a single line without wrapping, the first column of the financial table is given a relative width (e.g., `26%`), while the remaining year columns dynamically fill the remaining space (`*`).
+
 ---
 
 ## Known Obstacles & Troubleshooting Guide (Maintenance Handoff)

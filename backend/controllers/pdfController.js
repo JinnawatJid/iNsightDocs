@@ -430,8 +430,8 @@ const generateCreditRequestPDF = async (req, res) => {
 
         if (displayYears.length > 0) {
             // Define widths: 1st col gets remaining space, then 2 cols per year
-            dbdTableWidths = ['*'];
-            for (let i = 0; i < displayYears.length * 2; i++) dbdTableWidths.push('auto');
+            dbdTableWidths = ['26%'];
+            for (let i = 0; i < displayYears.length * 2; i++) dbdTableWidths.push('*');
 
             // Header rows
             let headerRow1 = [ { text: 'รายการ (หน่วย: บาท)', rowSpan: 2, style: 'tableHeader', alignment: 'center', margin: [0, 10, 0, 0], fillColor: '#f0f0f0' } ];
@@ -447,19 +447,34 @@ const generateCreditRequestPDF = async (req, res) => {
             dbdTableBody.push(headerRow1);
             dbdTableBody.push(headerRow2);
 
+            // Function to format ratios to 2 decimal places
+            const formatRatio = (val) => {
+                if (!val && val !== 0) return '-';
+                const num = Number(val);
+                return isNaN(num) ? val : num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            };
+
             // Function to extract specific metrics
             const extractRows = (sectionKey, sectionLabel, metricsToFind) => {
                 const sectionData = dbdFinancialData[sectionKey];
                 if (!sectionData || !sectionData.rows) return;
 
-                metricsToFind.forEach(metricName => {
-                    const rowData = sectionData.rows.find(r => r.metric && r.metric.includes(metricName));
-                    let pdfRow = [ { text: metricName } ];
+                metricsToFind.forEach(metricDef => {
+                    // Check if metricDef is a string or an object with searchKey and displayLabel
+                    const searchKey = typeof metricDef === 'string' ? metricDef : metricDef.searchKey;
+                    const displayLabel = typeof metricDef === 'string' ? metricDef : metricDef.displayLabel;
+
+                    const rowData = sectionData.rows.find(r => r.metric && r.metric.includes(searchKey));
+                    let pdfRow = [ { text: displayLabel } ];
 
                     displayYears.forEach(year => {
                         if (rowData && rowData.values && rowData.values[year]) {
                             const val = rowData.values[year];
-                            pdfRow.push({ text: formatCurrency(val.amount), alignment: 'right' });
+
+                            // Format amount depending on the section
+                            let formattedAmount = sectionKey === 'financialRatios' ? formatRatio(val.amount) : formatCurrency(val.amount);
+
+                            pdfRow.push({ text: formattedAmount, alignment: 'right' });
                             pdfRow.push({
                                 text: formatPercent(val.percentChange),
                                 alignment: 'right',
@@ -476,8 +491,12 @@ const generateCreditRequestPDF = async (req, res) => {
 
             const targetMetrics = {
                 financialPosition: ['สินทรัพย์รวม', 'หนี้สินรวม', 'ส่วนของผู้ถือหุ้น'],
-                incomeStatement: ['รายได้รวม', 'กำไร (ขาดทุน) สุทธิ'],
-                financialRatios: ['อัตราส่วนทุนหมุนเวียน', 'อัตราส่วนหนี้สินต่อส่วนของผู้ถือหุ้น']
+                incomeStatement: ['รายได้รวม', 'กำไร(ขาดทุน) ขั้นต้น', 'กำไร(ขาดทุน) สุทธิ'],
+                financialRatios: [
+                    { searchKey: 'อัตราส่วนทุนหมุนเวียน (เท่า)', displayLabel: 'อัตราส่วนทุนหมุนเวียน (เท่า)' },
+                    { searchKey: 'อัตราส่วนหนี้สินรวมต่อส่วนของผู้ถือหุ้น (เท่า)', displayLabel: 'หนี้สินรวมต่อผู้ถือหุ้น (เท่า)' },
+                    { searchKey: 'ผลตอบแทนจากกำไรสุทธิต่อรายได้รวม (%)', displayLabel: 'กำไรสุทธิต่อรายได้รวม (%)' }
+                ]
             };
 
             dbdTableBody.push([{ text: 'งบแสดงฐานะการเงิน', colSpan: 1 + displayYears.length * 2, bold: true, fillColor: '#f9f9f9', margin: [0, 5, 0, 5] }, ...Array(displayYears.length * 2).fill('')]);
