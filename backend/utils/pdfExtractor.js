@@ -15,6 +15,7 @@ const extractDBDData = async (buffer) => {
             registeredCapital: 0,
             registrationDate: null,
             companyName: null,
+            directors: [],
             debug: {}
         };
 
@@ -153,6 +154,56 @@ const extractDBDData = async (buffer) => {
                      result.debug.capStrategy = 'Label Window (Simple)';
                  }
              }
+        }
+
+        // --- 3. Directors Extraction ---
+        // Look for "รายชื่อกรรมการ" or "กรรมการ" and extract subsequent names
+        try {
+            // Find the index of "รายชื่อกรรมการ" or "กรรมการ"
+            const dirRegex = /(?:รายชื่อกรรมการ|กรรมการ)\s*[:]?\s*/;
+            const dirMatch = text.match(dirRegex);
+
+            if (dirMatch) {
+                const dirIndex = dirMatch.index + dirMatch[0].length;
+                // Look for the end of the directors section, often marked by "อำนาจกรรมการ", "ทุนจดทะเบียน", or other sections
+                const endRegex = /(?:อำนาจกรรมการ|ข้อจำกัดอำนาจ|ที่ตั้ง|ทุนจดทะเบียน|วัตถุประสงค์)/;
+                const endMatch = text.substring(dirIndex).match(endRegex);
+
+                let dirSection = text.substring(dirIndex);
+                if (endMatch) {
+                    dirSection = text.substring(dirIndex, dirIndex + endMatch.index);
+                }
+
+                // Extract lines that look like names. Typically prefixed by a number e.g. "1. นาย..."
+                // or just lines containing "นาย", "นาง", "นางสาว"
+                const lines = dirSection.split('\n');
+                const directors = [];
+
+                for (let line of lines) {
+                    line = line.trim();
+                    if (!line) continue;
+
+                    // Match pattern: optional number, followed by name prefix
+                    const namePattern = /^(?:\d+\.\s*)?((?:นาย|นาง|นางสาว|พล\.|ดร\.|ม\.ร\.ว\.)[^\d]+)/;
+                    const nameMatch = line.match(namePattern);
+
+                    if (nameMatch) {
+                        let name = nameMatch[1].trim();
+                        // Clean trailing noise like " / " or extra spaces
+                        name = name.replace(/[\/\|].*$/, '').trim();
+                        if (name.length > 3 && !directors.includes(name)) {
+                            directors.push(name);
+                        }
+                    }
+                }
+
+                if (directors.length > 0) {
+                    result.directors = directors;
+                    result.debug.dirStrategy = 'Prefix Scan';
+                }
+            }
+        } catch (dirErr) {
+            console.warn("Failed to extract directors via pdfExtractor:", dirErr.message);
         }
 
         return result;

@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const db = require('../db');
 const dbdParser = require('../utils/dbdExcelParser');
+const { extractDBDData } = require('../utils/pdfExtractor');
 
 // Define fonts
 const fonts = {
@@ -345,6 +346,42 @@ const generateCreditRequestPDF = async (req, res) => {
     // --- Fetch DBD Financial Data ---
     const dbdFinancialData = dbdParser.getCustomerFinancialData(customerNoClean);
     let dbdTableBody = [];
+
+    // --- Fetch DBD Profile Data ---
+    let dbdProfileData = {
+        companyName: customerName,
+        taxId: taxId,
+        registrationDate: '-',
+        yearsInBusiness: yearsInBusiness !== '-' ? `${yearsInBusiness} ปี` : '-',
+        registeredCapital: '-',
+        directors: []
+    };
+
+    try {
+        // Try to read local DBD_Profile.pdf
+        const profilePath = path.resolve(__dirname, `../../../../customers/${customerNoClean}/DBD_Profile.pdf`);
+        const fallbackProfilePath = path.resolve(__dirname, `../../customers/${customerNoClean}/DBD_Profile.pdf`);
+
+        let targetPath = null;
+        if (fs.existsSync(profilePath)) {
+            targetPath = profilePath;
+        } else if (fs.existsSync(fallbackProfilePath)) {
+            targetPath = fallbackProfilePath;
+        }
+
+        if (targetPath) {
+            const dataBuffer = fs.readFileSync(targetPath);
+            const extracted = await extractDBDData(dataBuffer);
+            if (extracted.success) {
+                if (extracted.registrationDate) dbdProfileData.registrationDate = extracted.registrationDate;
+                if (extracted.yearsInBusiness) dbdProfileData.yearsInBusiness = `${extracted.yearsInBusiness} ปี`;
+                if (extracted.registeredCapital) dbdProfileData.registeredCapital = formatCurrency(extracted.registeredCapital);
+                if (extracted.directors && extracted.directors.length > 0) dbdProfileData.directors = extracted.directors;
+            }
+        }
+    } catch (err) {
+        console.warn('PDF: Failed to extract DBD Profile Data:', err.message);
+    }
     let dbdTableWidths = [];
 
     const formatPercent = (val) => {
@@ -831,6 +868,24 @@ const generateCreditRequestPDF = async (req, res) => {
                     layout: 'lightHorizontalLines'
                 }
             ],
+            margin: [0, 0, 0, 20]
+        },
+
+        // 4.2 DBD Profile Details
+        { text: 'ข้อมูลนิติบุคคล (DBD Profile)', style: 'subheader' },
+        {
+            table: {
+                widths: ['25%', '75%'],
+                body: [
+                    [{ text: 'ชื่อบริษัท:', bold: true }, dbdProfileData.companyName || '-'],
+                    [{ text: 'เลขทะเบียนนิติบุคคล:', bold: true }, dbdProfileData.taxId || '-'],
+                    [{ text: 'วันที่จดทะเบียนจัดตั้ง:', bold: true }, dbdProfileData.registrationDate || '-'],
+                    [{ text: 'ระยะเวลาดำเนินธุรกิจ:', bold: true }, dbdProfileData.yearsInBusiness || '-'],
+                    [{ text: 'ทุนจดทะเบียน (บาท):', bold: true }, dbdProfileData.registeredCapital !== '-' ? `${dbdProfileData.registeredCapital}` : '-'],
+                    [{ text: 'กรรมการ:', bold: true }, dbdProfileData.directors.length > 0 ? dbdProfileData.directors.join('\n') : '-']
+                ]
+            },
+            layout: 'lightHorizontalLines',
             margin: [0, 0, 0, 20]
         },
 
