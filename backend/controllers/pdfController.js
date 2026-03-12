@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const db = require('../db');
 const dbdParser = require('../utils/dbdExcelParser');
+const { extractDBDData } = require('../utils/pdfExtractor');
 
 // Define fonts
 const fonts = {
@@ -345,6 +346,70 @@ const generateCreditRequestPDF = async (req, res) => {
     // --- Fetch DBD Financial Data ---
     const dbdFinancialData = dbdParser.getCustomerFinancialData(customerNoClean);
     let dbdTableBody = [];
+
+    // --- Fetch DBD Profile Data ---
+    let dbdProfileData = {
+        companyName: customerName,
+        taxId: taxId,
+        registrationDate: '-',
+        yearsInBusiness: yearsInBusiness !== '-' ? `${yearsInBusiness} ปี` : '-',
+        registeredCapital: '-',
+        directors: []
+    };
+
+    try {
+        // Find the correct base customer directory
+        const baseProfileDir = path.resolve(__dirname, `../../../../customers/${customerNoClean}`);
+        const fallbackBaseDir = path.resolve(__dirname, `../../customers/${customerNoClean}`);
+
+        let activeBaseDir = null;
+        if (fs.existsSync(baseProfileDir)) activeBaseDir = baseProfileDir;
+        else if (fs.existsSync(fallbackBaseDir)) activeBaseDir = fallbackBaseDir;
+
+        let targetPath = null;
+        if (activeBaseDir) {
+            // Read date folders, e.g., 20260310
+            const items = fs.readdirSync(activeBaseDir);
+            const dateFolders = items.filter(i => fs.statSync(path.join(activeBaseDir, i)).isDirectory() && /^\d+$/.test(i));
+
+            if (dateFolders.length > 0) {
+                // Sort descending so the newest date folder is first
+                dateFolders.sort((a, b) => b.localeCompare(a));
+                const latestFolder = dateFolders[0];
+                const possiblePath = path.join(activeBaseDir, latestFolder, 'DBD_Profile.pdf');
+
+                if (fs.existsSync(possiblePath)) {
+                    targetPath = possiblePath;
+                }
+            }
+        }
+
+        if (targetPath) {
+            const dataBuffer = fs.readFileSync(targetPath);
+            const extracted = await extractDBDData(dataBuffer);
+
+            console.log(`[PDF] Extracted DBD Profile Data for ${customerNoClean}:`, JSON.stringify({
+                success: extracted.success,
+                registrationDate: extracted.registrationDate,
+                yearsInBusiness: extracted.yearsInBusiness,
+                registeredCapital: extracted.registeredCapital,
+                directorsCount: extracted.directors ? extracted.directors.length : 0,
+                directors: extracted.directors,
+                debug: extracted.debug
+            }, null, 2));
+
+            if (extracted.success) {
+                if (extracted.registrationDate) dbdProfileData.registrationDate = extracted.registrationDate;
+                if (extracted.yearsInBusiness) dbdProfileData.yearsInBusiness = `${extracted.yearsInBusiness} ปี`;
+                if (extracted.registeredCapital) dbdProfileData.registeredCapital = formatCurrency(extracted.registeredCapital);
+                if (extracted.directors && extracted.directors.length > 0) dbdProfileData.directors = extracted.directors;
+            }
+        } else {
+             console.log(`[PDF] DBD_Profile.pdf not found for customer ${customerNoClean} in latest date folder at base dir:`, activeBaseDir);
+        }
+    } catch (err) {
+        console.warn(`[PDF] Failed to extract DBD Profile Data for ${customerNoClean}:`, err.message);
+    }
     let dbdTableWidths = [];
 
     const formatPercent = (val) => {
@@ -831,6 +896,24 @@ const generateCreditRequestPDF = async (req, res) => {
                     layout: 'lightHorizontalLines'
                 }
             ],
+            margin: [0, 0, 0, 20]
+        },
+
+        // 4.2 DBD Profile Details
+        { text: 'ข้อมูลนิติบุคคล (DBD Profile)', style: 'subheader' },
+        {
+            table: {
+                widths: ['25%', '75%'],
+                body: [
+                    [{ text: 'ชื่อบริษัท:', bold: true }, dbdProfileData.companyName || '-'],
+                    [{ text: 'เลขทะเบียนนิติบุคคล:', bold: true }, dbdProfileData.taxId || '-'],
+                    [{ text: 'วันที่จดทะเบียนจัดตั้ง:', bold: true }, dbdProfileData.registrationDate || '-'],
+                    [{ text: 'ระยะเวลาดำเนินธุรกิจ:', bold: true }, dbdProfileData.yearsInBusiness || '-'],
+                    [{ text: 'ทุนจดทะเบียน (บาท):', bold: true }, dbdProfileData.registeredCapital !== '-' ? `${dbdProfileData.registeredCapital}` : '-'],
+                    [{ text: 'กรรมการ:', bold: true }, dbdProfileData.directors.length > 0 ? dbdProfileData.directors.join('\n') : '-']
+                ]
+            },
+            layout: 'lightHorizontalLines',
             margin: [0, 0, 0, 20]
         },
 
