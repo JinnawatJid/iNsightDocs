@@ -54,27 +54,32 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     blacklistAlert: null,
 
     // UI State
-    activeTab: 'requestInfo',
-
-    // Simulation State
-    userRole: 'ผู้จัดการสาขา' // Default Role
+    activeTab: 'requestInfo'
   }),
 
   getters: {
     // Determine the role that *should* be acting on the current status
-    targetRole: (state) => {
+    userRole: (state) => {
       const s = state.requestStatus;
       if (!s || s === 'Draft') return 'ผู้จัดการสาขา';
       if (s === 'Opened') return 'ผู้จัดการภาค';
       if (s === 'RegionalSubmitted') return 'ผู้จัดการฝ่ายขาย';
       if (s === 'SalesSubmitted') return 'เจ้าหน้าที่ฝ่ายการเงิน';
-      if (s === 'Reviewed') return 'ผู้จัดการฝ่ายการเงิน / กรรมการเครดิต';
+      if (s === 'Reviewed') {
+        const amount = Number(state.transactionData?.amount || 0);
+        return amount <= 300000 ? 'ผู้จัดการฝ่ายการเงิน' : 'กรรมการเครดิต';
+      }
 
       // Legacy support
       if (s === 'Submitted') return 'ผู้จัดการฝ่ายขาย (HO)';
       if (s === 'PendingSales (ชั่วคราว)') return 'เจ้าหน้าที่ฝ่ายการเงิน';
       if (s === 'PendingFinance (ชั่วคราว)') return 'กรรมการเครดิต';
       return '';
+    },
+
+    // Alias for legacy support if anything still uses targetRole
+    targetRole() {
+      return this.userRole;
     },
 
     uploadedDocumentCount: (state) => {
@@ -810,10 +815,6 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     setActiveTab(tabId) {
       this.activeTab = tabId;
-    },
-
-    setUserRole(role) {
-      this.userRole = role;
     },
 
     async updateStatus(newStatus, comment = '') {

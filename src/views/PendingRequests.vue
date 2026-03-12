@@ -2,10 +2,6 @@
   <div class="pending-requests">
     <Navbar />
     <div class="page-content">
-      <div class="sim-role-wrapper">
-        <RoleSelector />
-      </div>
-
       <div class="main-grid">
         <!-- Left Column: Request Sidebar -->
         <div class="grid-col left">
@@ -67,7 +63,6 @@ import RequestSidebar from '@/components/credit/RequestSidebar.vue';
 import CustomerTitleCard from '@/components/credit/CustomerTitleCard.vue';
 import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
 import WorkflowActionBar from '@/components/credit/WorkflowActionBar.vue';
-import RoleSelector from '@/components/credit/RoleSelector.vue';
 import CreditReviewSection from '@/components/credit/CreditReviewSection.vue';
 import ReviewDashboard from '@/components/credit/ReviewDashboard.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
@@ -109,13 +104,6 @@ const showTerms = computed(() => {
   max-width: 1600px;
   margin: 0 auto;
   position: relative;
-}
-
-.sim-role-wrapper {
-  position: absolute;
-  top: -60px;
-  right: 40px;
-  z-index: 100;
 }
 
 .main-grid {
