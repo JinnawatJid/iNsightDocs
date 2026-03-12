@@ -808,7 +808,7 @@ const generateCreditRequestPDF = async (req, res) => {
                     width: '40%',
                     margin: [15, 0, 0, 0], // Margin left to separate from left column
                     table: {
-                        widths: ['70%', '30%'],
+                        widths: ['auto', 'auto'],
                         body: [
                             [
                                 { text: 'หัวข้อการวิเคราะห์', style: 'tableHeader', fillColor: '#f0f0f0' },
@@ -816,15 +816,15 @@ const generateCreditRequestPDF = async (req, res) => {
                             ],
                             [
                                 { text: 'C1: ความแข็งแกร่งของบริษัท' },
-                                { text: c1Score, alignment: 'right' }
+                                { text: c1Score, alignment: 'right', noWrap: true }
                             ],
                             [
                                 { text: 'C2: กระแสเงินสด' },
-                                { text: c2Score, alignment: 'right' }
+                                { text: c2Score, alignment: 'right', noWrap: true }
                             ],
                             [
                                 { text: 'C3: พฤติกรรมการซื้อและประวัติ' },
-                                { text: c3Score, alignment: 'right' }
+                                { text: c3Score, alignment: 'right', noWrap: true }
                             ]
                         ]
                     },
@@ -844,53 +844,6 @@ const generateCreditRequestPDF = async (req, res) => {
             layout: 'lightHorizontalLines',
             margin: [0, 0, 0, 20]
         } : null,
-
-        // 4.4 Original Financial Overview (extracted)
-        { text: 'ข้อมูลประกอบอื่นๆ', style: 'subheader' },
-        {
-            table: {
-                widths: ['33%', '33%', '34%'],
-                body: [
-                    [
-                        { text: 'รายการ', style: 'tableHeader', fillColor: '#f0f0f0' },
-                        { text: 'มูลค่า (บาท)', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' },
-                        { text: 'หมายเหตุ / อัตราส่วน', style: 'tableHeader', alignment: 'right', fillColor: '#f0f0f0' }
-                    ],
-                    [
-                        { text: 'รายได้รวม (เฉลี่ย)' },
-                        { text: avgRevenue, alignment: 'right' },
-                        { text: '-' }
-                    ],
-                    [
-                        { text: 'กำไรขั้นต้น (ปีล่าสุด)' },
-                        { text: grossProfit, alignment: 'right' },
-                        { text: '-' }
-                    ],
-                    [
-                        { text: 'หนี้สินรวม' },
-                        { text: totalLiabilities, alignment: 'right' },
-                        { text: `D/E Ratio: ${deRatio}`, alignment: 'right' }
-                    ],
-                    [
-                        { text: 'ส่วนของผู้ถือหุ้น' },
-                        { text: shareholdersEquity, alignment: 'right' },
-                        { text: '-' }
-                    ],
-                    [
-                        { text: 'ความสามารถในการชำระหนี้ (DSCR)' },
-                        { text: '-' },
-                        { text: dscr, alignment: 'right' }
-                    ],
-                    [
-                        { text: 'อัตราการหมุนเวียนสินค้าคงเหลือ' },
-                        { text: '-' },
-                        { text: inventoryTurnover, alignment: 'right' }
-                    ]
-                ]
-            },
-            layout: 'lightHorizontalLines',
-            margin: [0, 0, 0, 20]
-        },
 
         // --- SECTION 5: ATTACHMENTS (Removed as requested) ---
       ],
