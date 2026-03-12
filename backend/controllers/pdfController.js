@@ -477,7 +477,7 @@ const generateCreditRequestPDF = async (req, res) => {
             const targetMetrics = {
                 financialPosition: ['สินทรัพย์รวม', 'หนี้สินรวม', 'ส่วนของผู้ถือหุ้น'],
                 incomeStatement: ['รายได้รวม', 'กำไร(ขาดทุน) ขั้นต้น', 'กำไร(ขาดทุน) สุทธิ'],
-                financialRatios: ['อัตราส่วนทุนหมุนเวียน', 'อัตราส่วนหนี้สินต่อส่วนของผู้ถือหุ้น', 'อัตรากำไรสุทธิ']
+                financialRatios: ['อัตราส่วนทุนหมุนเวียน (เท่า)', 'อัตราส่วนหนี้สินรวมต่อส่วนของผู้ถือหุ้น (เท่า)', 'ผลตอบแทนจากกำไรสุทธิต่อรายได้รวม (%)']
             };
 
             dbdTableBody.push([{ text: 'งบแสดงฐานะการเงิน', colSpan: 1 + displayYears.length * 2, bold: true, fillColor: '#f9f9f9', margin: [0, 5, 0, 5] }, ...Array(displayYears.length * 2).fill('')]);
