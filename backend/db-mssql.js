@@ -121,6 +121,11 @@ const initDB = async () => {
 
         // Ensure Coordinate and Landmark columns exist in Customers table
         const coordinateColumns = [
+            'credit_limit_real',
+            'term_gs',
+            'term_ae',
+            'term_yc',
+            'status_code',
             'residence_latitude',
             'residence_longitude',
             'store_latitude',
@@ -183,10 +188,21 @@ const initDB = async () => {
         for (const col of coordinateColumns) {
             try {
                 // MSSQL check if column exists before adding
-                let alterTableQuery = `ALTER TABLE Customers ADD ${col} NVARCHAR(255)`;
-                if (col === 'credit_status') {
-                    alterTableQuery += ` DEFAULT 'N'`;
+                let dataType = 'NVARCHAR(255)';
+                let defaultVal = '';
+
+                if (col === 'credit_limit_real') {
+                    dataType = 'DECIMAL(18,2)';
+                } else if (['term_gs', 'term_ae', 'term_yc'].includes(col)) {
+                    dataType = 'INT';
+                } else if (col === 'status_code') {
+                    dataType = 'NVARCHAR(50)';
+                    defaultVal = " DEFAULT 'N'";
+                } else if (col === 'credit_status') {
+                    defaultVal = " DEFAULT 'N'";
                 }
+
+                let alterTableQuery = `ALTER TABLE Customers ADD ${col} ${dataType}${defaultVal}`;
 
                 const checkSql = `
                     IF NOT EXISTS (

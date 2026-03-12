@@ -149,6 +149,14 @@
         ตรวจเอกสารการเงิน
       </button>
 
+      <button
+        class="btn-outline-primary"
+        @click="syncCreditData"
+        :disabled="isProcessing || queue.length === 0"
+      >
+        บันทึกข้อมูลเครดิต
+      </button>
+
       <!-- DROPDOWN FOR EXPORT -->
       <div class="dropdown" v-click-outside="closeExportDropdown">
         <button
@@ -1571,6 +1579,53 @@ const startBatch = async () => {
   if (!shouldStop.value) {
      Swal.fire('เสร็จสมบูรณ์', 'การประมวลผลแบบ Batch เสร็จสิ้น', 'success');
   }
+};
+
+// --- Sync Data ---
+
+const syncCreditData = async () => {
+    if (queue.value.length === 0) return;
+
+    Swal.fire({
+        title: 'กำลังบันทึกข้อมูล...',
+        text: 'ระบบกำลังบันทึกข้อมูลเครดิตไปยังฐานข้อมูล',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+        for (const item of queue.value) {
+            if (item.customerId) {
+                try {
+                    const terms = parseInt(item.paymentTerms) || 0;
+                    const payload = {
+                        credit_limit: parseFloat(calculateCycleLimit(item.newLimit, item.paymentTerms, item.billingTerms)) || parseFloat(item.currentLimit) || 0,
+                        term_gs: terms,
+                        term_ae: terms,
+                        term_yc: terms,
+                        status: item.grade && ['D', 'E', 'F'].includes(item.grade) ? 'P' : 'N'
+                    };
+
+                    await axios.post(`/api/customers/${item.customerId}/sync-credit-status`, payload);
+                    successCount++;
+                } catch (err) {
+                    console.error(`Error syncing ${item.customerId}:`, err);
+                    errorCount++;
+                }
+            }
+        }
+
+        Swal.fire(
+            'เสร็จสมบูรณ์',
+            `บันทึกข้อมูลสำเร็จ ${successCount} รายการ<br>ไม่สำเร็จ ${errorCount} รายการ`,
+            'success'
+        );
+    } catch (err) {
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error');
+    }
 };
 
 // --- Report & Export ---

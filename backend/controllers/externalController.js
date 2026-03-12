@@ -769,67 +769,24 @@ exports.downloadDBDProfile = async (req, res) => {
  */
 exports.getCreditStatus = async (req, res) => {
     const { customerId } = req.params;
-    const isMock = String(req.query.mock).trim().toLowerCase() === 'true' || String(req.headers['x-mock-mode']).trim().toLowerCase() === 'true';
 
-    console.log(`[External API] Request for ${customerId}. Mock Mode: ${isMock} (Query: ${req.query.mock}, Header: ${req.headers['x-mock-mode']})`);
+    console.log(`[External API] Requesting real credit status for ${customerId}`);
 
     if (!customerId) {
         return res.status(400).json({ error: 'Customer ID is required' });
     }
 
-    // --- MOCK MODE LOGIC ---
-    if (isMock) {
-        console.log(`[Mock Mode] Serving credit status for ${customerId}`);
-
-        // Logic: Check the last digit of the numeric part of the ID
-        // Format example: 08015AY -> Numeric part 08015 -> Last digit 5
-        const numericPart = customerId.match(/\d+/);
-        let status = 'N'; // Default
-
-        if (numericPart) {
-            const lastDigit = parseInt(numericPart[0].slice(-1));
-
-            if (lastDigit >= 0 && lastDigit <= 4) {
-                status = 'N'; // Normal
-            } else if (lastDigit >= 5 && lastDigit <= 6) {
-                status = 'P'; // Problem
-            } else if (lastDigit >= 7 && lastDigit <= 8) {
-                status = 'NPL'; // Non-Performing Loan
-            } else if (lastDigit === 9) {
-                status = 'L'; // Legal/Loss
-            }
-        }
-
-        const mockData = {
-            customer_id: customerId,
-            customer_name: `Mock Customer (${status} Scenario)`,
-            status: status,
-            credit_limit: status === 'N' ? 500000.00 : (status === 'P' ? 250000.00 : 0.00),
-            credit_terms: {
-                gs: status === 'N' ? 30 : 0,
-                ae: status === 'N' ? 60 : 30,
-                yc: status === 'N' ? 45 : 0
-            },
-            updated_at: new Date().toISOString(),
-            _is_mock: true // Indicator for debugging
-        };
-
-        return res.status(200).json(mockData);
-    }
-    // --- END MOCK MODE ---
-
     try {
-        // 1. Fetch Customer Status and Fallback Data
         let customerSql;
-        // Removed "credit_status" as it does not exist in the schema
+
         if (db.dbType === 'mssql') {
              customerSql = `
-                SELECT TOP 1 "No_", "Credit Limit (LCY)", "Payment Terms Code", "Name"
+                SELECT TOP 1 "No_", "Name", credit_limit_real, term_gs, term_ae, term_yc, status_code
                 FROM Customers WHERE "No_" = ?
             `;
         } else {
              customerSql = `
-                SELECT "No_", "Credit Limit (LCY)", "Payment Terms Code", "Name"
+                SELECT "No_", "Name", credit_limit_real, term_gs, term_ae, term_yc, status_code
                 FROM Customers WHERE "No_" = ? LIMIT 1
             `;
         }
@@ -841,82 +798,22 @@ exports.getCreditStatus = async (req, res) => {
         }
 
         const customer = customerRows[0];
-        const status = 'N'; // Default to Normal (since DB has no status column yet)
 
-        // 2. Fetch Latest Active Credit Request (Approved/Submitted)
-        // We prioritize the request data as it reflects the latest approved terms
-        const activeStatuses = ['Submitted', 'Reviewed', 'RegionalSubmitted', 'SalesSubmitted'];
-        const statusPlaceholders = activeStatuses.map(() => '?').join(',');
+        // Ensure terms are converted to numbers and handle nulls
+        const parseTerm = (val) => val ? parseInt(val, 10) : 0;
+        const parseLimit = (val) => val ? parseFloat(val) : 0.00;
 
-        let requestSql;
-        if (db.dbType === 'mssql') {
-            requestSql = `
-                SELECT TOP 1 request_amount, term_gs, term_ae, term_yc, updated_at
-                FROM CreditRequests
-                WHERE customer_no = ? AND status IN (${statusPlaceholders})
-                ORDER BY updated_at DESC
-            `;
-        } else {
-            requestSql = `
-                SELECT request_amount, term_gs, term_ae, term_yc, updated_at
-                FROM CreditRequests
-                WHERE customer_no = ? AND status IN (${statusPlaceholders})
-                ORDER BY updated_at DESC
-                LIMIT 1
-            `;
-        }
-
-        const { rows: requestRows } = await db.query(requestSql, [customerId, ...activeStatuses]);
-        const latestRequest = (requestRows && requestRows.length > 0) ? requestRows[0] : null;
-
-        // 3. Determine Final Values
-        let creditLimit = 0;
-        let creditTerms = { gs: 0, ae: 0, yc: 0 };
-        let lastUpdated = new Date().toISOString();
-
-        if (latestRequest) {
-            // Case A: Have a recent request
-            creditLimit = latestRequest.request_amount;
-            creditTerms = {
-                gs: latestRequest.term_gs || 0,
-                ae: latestRequest.term_ae || 0,
-                yc: latestRequest.term_yc || 0
-            };
-            lastUpdated = latestRequest.updated_at;
-        } else {
-            // Case B: Fallback to Customer Table (Legacy/Synced Data)
-            // Parse "Credit Limit (LCY)" (might be string with commas)
-            const rawLimit = customer['Credit Limit (LCY)'];
-            if (rawLimit) {
-                if (typeof rawLimit === 'number') {
-                    creditLimit = rawLimit;
-                } else if (typeof rawLimit === 'string') {
-                    creditLimit = parseFloat(rawLimit.replace(/,/g, ''));
-                }
-            }
-
-            // Parse "Payment Terms Code" (e.g., "30 Days", "60 Days") if needed
-            // For now, we return 0 for breakdown if not explicitly known
-            // Or try to parse simple integer from string
-            const termsCode = customer['Payment Terms Code'];
-            if (termsCode) {
-                 const match = termsCode.match(/\d+/);
-                 if (match) {
-                     // Assume standard term applies to all (or just GS?) - Logic TBD
-                     // For safety, let's just leave 0 unless specific mapping rules exist
-                     // creditTerms.gs = parseInt(match[0]);
-                 }
-            }
-        }
-
-        // 4. Construct Response
         const responseData = {
             customer_id: customer['No_'],
-            customer_name: customer['Name'], // Added for convenience
-            status: status,
-            credit_limit: creditLimit,
-            credit_terms: creditTerms,
-            updated_at: lastUpdated
+            customer_name: customer['Name'],
+            status: customer.status_code || 'N',
+            credit_limit: parseLimit(customer.credit_limit_real),
+            credit_terms: {
+                gs: parseTerm(customer.term_gs),
+                ae: parseTerm(customer.term_ae),
+                yc: parseTerm(customer.term_yc)
+            },
+            updated_at: new Date().toISOString()
         };
 
         res.status(200).json(responseData);

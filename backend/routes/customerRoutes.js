@@ -6,5 +6,6 @@ router.get('/search', customerController.searchCustomers);
 router.get('/by-branch', customerController.searchCustomersByBranch);
 router.get('/suggestions', customerController.getSuggestions);
 router.patch('/:id', customerController.updateCustomer);
+router.post('/:id/sync-credit-status', customerController.syncCreditStatus);
 
 module.exports = router;

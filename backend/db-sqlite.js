@@ -129,6 +129,11 @@ const initDB = async () => {
 
         // Ensure Coordinate and Landmark columns exist in Customers table
         const coordinateColumns = [
+            'credit_limit_real',
+            'term_gs',
+            'term_ae',
+            'term_yc',
+            'status_code',
             'residence_latitude',
             'residence_longitude',
             'store_latitude',
@@ -190,12 +195,23 @@ const initDB = async () => {
 
         for (const col of coordinateColumns) {
             try {
-                // Try to add column. If it exists, SQLite will throw an error, which we catch.
-                let alterSql = `ALTER TABLE Customers ADD COLUMN ${col} TEXT`;
-                // Set default for credit_status
-                if (col === 'credit_status') {
-                    alterSql += ` DEFAULT 'N'`;
+                let dataType = 'TEXT';
+                let defaultVal = '';
+
+                if (col === 'credit_limit_real') {
+                    dataType = 'REAL';
+                } else if (['term_gs', 'term_ae', 'term_yc'].includes(col)) {
+                    dataType = 'INTEGER';
+                } else if (col === 'status_code') {
+                    dataType = 'TEXT';
+                    defaultVal = " DEFAULT 'N'";
+                } else if (col === 'credit_status') {
+                    defaultVal = " DEFAULT 'N'";
                 }
+
+                // Try to add column. If it exists, SQLite will throw an error, which we catch.
+                let alterSql = `ALTER TABLE Customers ADD COLUMN ${col} ${dataType}${defaultVal}`;
+
                 await db.runAsync(alterSql);
                 console.log(`Added column ${col} to Customers`);
             } catch (err) {

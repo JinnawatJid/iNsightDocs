@@ -1332,4 +1332,63 @@ exports.searchCustomersByBranch = async (req, res) => {
     }
 };
 
+/**
+ * Sync Credit Status from Batch Automation
+ * Saves credit limit, terms, and status to the Customers table
+ */
+exports.syncCreditStatus = async (req, res) => {
+    const { id: customerId } = req.params;
+    const { credit_limit, term_gs, term_ae, term_yc, status } = req.body;
+
+    if (!customerId) {
+        return res.status(400).json({ error: 'Customer ID is required' });
+    }
+
+    try {
+        let sql;
+        let params = [
+            credit_limit || 0,
+            term_gs || 0,
+            term_ae || 0,
+            term_yc || 0,
+            status || 'N',
+            customerId
+        ];
+
+        if (db.dbType === 'mssql') {
+            sql = `
+                UPDATE Customers
+                SET credit_limit_real = ?,
+                    term_gs = ?,
+                    term_ae = ?,
+                    term_yc = ?,
+                    status_code = ?
+                WHERE "No_" = ?
+            `;
+        } else {
+            sql = `
+                UPDATE Customers
+                SET credit_limit_real = ?,
+                    term_gs = ?,
+                    term_ae = ?,
+                    term_yc = ?,
+                    status_code = ?
+                WHERE "No_" = ?
+            `;
+        }
+
+        const result = await db.query(sql, params);
+
+        if (result.changes === 0 && db.dbType !== 'mssql') {
+             // Basic check for SQLite if customer exists
+             return res.status(404).json({ error: 'Customer not found' });
+        }
+
+        res.status(200).json({ message: 'Credit status synced successfully' });
+    } catch (error) {
+        console.error('Error in syncCreditStatus:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 exports.checkBlacklist = checkBlacklist;
