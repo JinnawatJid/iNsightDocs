@@ -663,19 +663,9 @@ export const useCreditRequestStore = defineStore('creditRequest', {
             }
         });
 
-        // 3. Conditional Checks (Residence & Store) - Skip for Special unless "Show All" is active?
-        // Let's skip for special to be safe/lenient as requested ("Overlap" logic).
-        if (!isSpecial) {
-            const resOwnership = this.customer.residence_ownership;
-            if (resOwnership === 'บ้านเช่า' || resOwnership === 'อื่นๆ') {
-                 if (!this.customer.residence_ownership_other) missingFields.push('residence_ownership_other');
-            }
-
-            const storeOwnership = this.customer.store_ownership;
-            if (storeOwnership === 'เช่าซื้อ' || storeOwnership === 'เช่า') {
-                 if (!this.customer.store_ownership_other) missingFields.push('store_ownership_other');
-            }
-        }
+        // 3. Conditional Checks (Residence & Store)
+        // (Previously checked for 'ownership_other' fields here, but removed per new requirements
+        // to strictly use 'residence_value' and 'store_value' from mandatory keys instead).
 
         // 4. Validate Files (Only on Submit)
         const missingFiles = [];
