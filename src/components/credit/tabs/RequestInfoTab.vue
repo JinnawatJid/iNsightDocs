@@ -559,11 +559,9 @@ const errors = computed(() => {
     check('billing_requirement', store.customer.billing_requirement);
     check('payment_method', store.customer.payment_method);
 
-    if (store.customer.payment_method) {
-        check('payment_bank_name', store.customer.payment_bank_name);
-        check('payment_bank_branch', store.customer.payment_bank_branch);
-        check('payment_account_no', store.customer.payment_account_no);
-    }
+    // Note: payment_bank_name, payment_bank_branch, and payment_account_no are not strictly
+    // mandatory in store.validateRequest() so we omit them here to prevent red borders
+    // on fields that aren't actually blocking submission.
 
     return e;
 });
