@@ -430,8 +430,8 @@ const generateCreditRequestPDF = async (req, res) => {
 
         if (displayYears.length > 0) {
             // Define widths: 1st col gets remaining space, then 2 cols per year
-            dbdTableWidths = ['*'];
-            for (let i = 0; i < displayYears.length * 2; i++) dbdTableWidths.push('auto');
+            dbdTableWidths = ['35%'];
+            for (let i = 0; i < displayYears.length * 2; i++) dbdTableWidths.push('*');
 
             // Header rows
             let headerRow1 = [ { text: 'รายการ (หน่วย: บาท)', rowSpan: 2, style: 'tableHeader', alignment: 'center', margin: [0, 10, 0, 0], fillColor: '#f0f0f0' } ];
