@@ -268,7 +268,7 @@
 
             <!-- Billing Schedule (Moved here, ensuring 3rd slot) -->
             <div class="form-group" v-if="store.customer.billing_requirement && store.customer.billing_requirement !== 'not_required'">
-                <label>กำหนดวัน-เวลาวางบิล</label>
+                <label>เงื่อนไขการวางบิล</label>
                 <input
                   type="text"
                   class="form-input"
