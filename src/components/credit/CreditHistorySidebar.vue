@@ -64,6 +64,7 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 
 export default {
   name: 'CreditHistorySidebar',
+  emits: ['request-selected'],
   props: {
     customerName: {
       type: String,
@@ -100,6 +101,7 @@ export default {
           const txId = item.amount;
           if (txId) {
               this.store.loadRequestDetail(txId);
+              this.$emit('request-selected', item);
           }
       },
       getRequestTypeClass(type) {
