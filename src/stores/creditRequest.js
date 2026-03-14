@@ -121,8 +121,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
     },
 
     isReadOnly: (state) => {
-      const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled'];
-      return finalStatuses.includes(state.requestStatus);
+      // Anything that is not Draft is read-only for form editing
+      return !!state.requestStatus && state.requestStatus !== 'Draft';
     }
   },
 
