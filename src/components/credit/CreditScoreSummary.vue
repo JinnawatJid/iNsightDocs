@@ -121,7 +121,7 @@
               <div v-for="(cat, idx) in visibleCategories" :key="idx" class="category-row">
                   <div class="cat-info">
                       <span class="cat-label">{{ cat.label }}</span>
-                      <span class="cat-value">{{ cat.formattedValue }} บาท</span>
+                      <span class="cat-value">{{ formatDecimal(cat.value) }} บาท</span>
                   </div>
                   <div class="progress-bar-bg">
                       <div class="progress-bar-fill" :style="{ width: cat.percentage + '%' }"></div>
