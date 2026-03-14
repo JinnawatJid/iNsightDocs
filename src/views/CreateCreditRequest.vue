@@ -40,6 +40,7 @@
             :customerCode="store.displayCustomer.id"
             :historyItems="store.history"
             :searched="store.hasSearched"
+            @request-selected="isRequestStarted = true"
           />
         </div>
 
@@ -124,16 +125,6 @@ const handleStartRequest = async (type) => {
         await store.saveTransactionData();
     }
 };
-
-// Watch for loading an existing request (e.g. from History Sidebar)
-watch(
-  () => store.requestId,
-  (newVal) => {
-    if (newVal) {
-      isRequestStarted.value = true;
-    }
-  }
-);
 
 // Watch for Blacklist Alert
 watch(
