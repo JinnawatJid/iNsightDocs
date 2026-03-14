@@ -421,10 +421,35 @@
     <div class="personal-info-section">
       <div class="section-separator"></div>
       <div class="section-header">
-        <h3>ข้อมูลบริษัทที่ท่านมีเครดิตอยู่</h3>
+        <h3>ลูกค้าได้เครดิตที่อื่นหรือไม่ <span v-if="isRequired('has_other_credit')" class="text-red-500">*</span></h3>
       </div>
 
-      <div class="credit-history-container">
+      <!-- New Radio Button Group -->
+      <div class="form-group" style="margin-bottom: 20px;">
+        <div class="radio-group-horizontal">
+            <label class="radio-label">
+              <input
+                type="radio"
+                value="yes"
+                v-model="store.customer.has_other_credit"
+                :disabled="!isEditing"
+              >
+              มีเครดิตจากที่อื่น
+            </label>
+            <label class="radio-label">
+              <input
+                type="radio"
+                value="no"
+                v-model="store.customer.has_other_credit"
+                :disabled="!isEditing"
+              >
+              ไม่มีเครดิตจากที่อื่น
+            </label>
+        </div>
+        <span v-if="errors.has_other_credit" class="error-text">กรุณาระบุข้อมูล</span>
+      </div>
+
+      <div class="credit-history-container" v-if="store.customer.has_other_credit === 'yes'">
         <div v-for="(item, index) in store.customer.existing_credits" :key="index" class="credit-history-row">
             <div class="row-index">{{ index + 1 }}.</div>
             <div class="form-group flex-grow">
@@ -473,7 +498,7 @@
         </div>
       </div>
 
-      <div class="add-row-section" v-if="isEditing">
+      <div class="add-row-section" v-if="isEditing && store.customer.has_other_credit === 'yes'">
           <button class="add-btn" @click="addCreditRow">+ เพิ่มรายการ</button>
       </div>
     </div>
@@ -558,6 +583,7 @@ const errors = computed(() => {
     check('reason', store.transactionData.reason);
     check('billing_requirement', store.customer.billing_requirement);
     check('payment_method', store.customer.payment_method);
+    check('has_other_credit', store.customer.has_other_credit);
 
     if (store.customer.payment_method) {
         check('payment_bank_name', store.customer.payment_bank_name);
@@ -571,6 +597,17 @@ const errors = computed(() => {
 const files = reactive({
   creditApp: null,
   quotation: null
+});
+
+watch(() => store.customer.has_other_credit, (newVal) => {
+    if (newVal === 'no') {
+        store.customer.existing_credits = [];
+    } else if (newVal === 'yes') {
+        // Automatically add one empty row if none exists
+        if (!store.customer.existing_credits || store.customer.existing_credits.length === 0) {
+            store.customer.existing_credits = [{ companyName: '', goods: '', term: '', limit: '' }];
+        }
+    }
 });
 
 // Watch for file changes to update store
@@ -856,6 +893,33 @@ function restrictLocalCreditInput(e, item, field) {
   margin: 0;
   padding: 0;
   overflow: hidden;
+}
+
+/* Radio Group Styles */
+.radio-group-horizontal {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #333;
+}
+
+.radio-label input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.radio-label input[type="radio"]:disabled {
+  cursor: not-allowed;
 }
 
 /* Responsive adjustments */

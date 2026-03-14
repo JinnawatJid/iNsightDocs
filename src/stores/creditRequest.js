@@ -182,6 +182,11 @@ export const useCreditRequestStore = defineStore('creditRequest', {
             this.customer.existing_credits = [];
         }
 
+        // Initialize has_other_credit if empty
+        if (!this.customer.has_other_credit) {
+            this.customer.has_other_credit = this.customer.existing_credits.length > 0 ? 'yes' : '';
+        }
+
         this.displayCustomer = { ...this.customer }; // Init display copy
         this.financialSummary = parsedSnapshot.financial_summary || {};
         this.creditScore = parsedSnapshot.credit_score || {};
@@ -360,6 +365,11 @@ export const useCreditRequestStore = defineStore('creditRequest', {
               this.customer.existing_credits = [];
           }
 
+          // Initialize has_other_credit if empty
+          if (!this.customer.has_other_credit) {
+              this.customer.has_other_credit = this.customer.existing_credits.length > 0 ? 'yes' : '';
+          }
+
           // Clone for original state comparison
           this.originalCustomer = JSON.parse(JSON.stringify(this.customer));
 
@@ -446,6 +456,11 @@ export const useCreditRequestStore = defineStore('creditRequest', {
                   this.customer.existing_credits = this.parseExistingCredits(this.customer.existing_credits);
               } else {
                   this.customer.existing_credits = [];
+              }
+
+              // Initialize has_other_credit if empty
+              if (!this.customer.has_other_credit) {
+                  this.customer.has_other_credit = this.customer.existing_credits.length > 0 ? 'yes' : '';
               }
 
               // Load financial data if present in snapshot
