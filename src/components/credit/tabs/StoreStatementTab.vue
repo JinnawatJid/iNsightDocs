@@ -934,6 +934,9 @@ const analyzeFinancials = async () => {
       formData.append('customer_no', customerNo);
   }
 
+  // Determine model_type
+  formData.append('model_type', currentModelType.value);
+
   try {
     const response = await axios.post('/api/financials/analyze', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
@@ -990,7 +993,10 @@ const openFullReport = () => {
     // Save current data to localStorage to pass to new tab
     const data = {
         analysisResults: analysisResults.value,
-        inputs: sheetInputs.value
+        inputs: {
+            ...sheetInputs.value,
+            model_type: currentModelType.value
+        }
     };
     localStorage.setItem('credit_report_data', JSON.stringify(data));
 
@@ -1002,6 +1008,12 @@ const openFullReport = () => {
 // Computed for Diagnostics
 const cleanStatus = computed(() => store.requestStatus ? String(store.requestStatus).trim().toLowerCase() : '');
 const isDraft = computed(() => !store.requestStatus || cleanStatus.value === 'draft' || cleanStatus.value === '');
+
+// Computed for Model Type
+const currentModelType = computed(() => {
+    const reqType = store.transactionData?.requestType || 'เครดิตใหม่';
+    return reqType !== 'เครดิตใหม่' ? 'existing' : 'new';
+});
 
 // Visibility Logic for Financial Analysis
 const shouldShowFinancialAnalysis = computed(() => {
