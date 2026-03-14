@@ -460,7 +460,7 @@
                 <input
                   type="text"
                   class="form-input"
-                  v-model="item.limit"
+                  :value="formatWithCommas(item.limit)"
                   :disabled="!isEditing"
                   @input="(e) => restrictLocalCreditInput(e, item, 'limit')"
                 />
@@ -653,13 +653,26 @@ function handleNumericInput(e, storeKey, isTransactionData = false) {
     }
 }
 
+// Helper for comma formatting
+function formatWithCommas(val) {
+    if (!val) return '';
+    const parts = String(val).split('.');
+    let formatted = Number(parts[0]).toLocaleString('en-US');
+    if (parts.length > 1) {
+        formatted += '.' + parts[1];
+    }
+    return formatted;
+}
+
 // Helper for number input in loop
 function restrictLocalCreditInput(e, item, field) {
     let value = e.target.value.replace(/[^0-9.]/g, '');
     const parts = value.split('.');
     if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
-    e.target.value = value;
+    // Store raw value
     item[field] = value;
+    // Format display value
+    e.target.value = formatWithCommas(value);
 }
 
 </script>

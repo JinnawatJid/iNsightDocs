@@ -223,11 +223,8 @@
                   class="form-control"
                   :class="{ 'border-red-500': errors.storeValue, 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formData.storeValue"
+                  v-model="formattedStoreValue"
                   placeholder="ระบุจำนวนเงิน"
-                  @input="handleInput('storeValue', $event)"
-                  @blur="onBlurValue('storeValue')"
-                  @focus="onFocusValue('storeValue')"
                 />
                 <span v-if="errors.storeValue" class="error-text">{{ errors.storeValue }}</span>
              </div>
@@ -360,35 +357,26 @@ function formatCurrency(val) {
   return new Intl.NumberFormat('en-US').format(num);
 }
 
-function handleInput(key, event) {
-  // Allow only numbers and dot
-  let val = event.target.value.replace(/[^0-9.]/g, '');
-
-  // Prevent multiple dots
-  const parts = val.split('.');
-  if (parts.length > 2) {
-      val = parts[0] + '.' + parts.slice(1).join('');
+const formattedStoreValue = computed({
+  get: () => {
+    if (!formData.storeValue) return '';
+    const parts = String(formData.storeValue).split('.');
+    let formatted = Number(parts[0]).toLocaleString('en-US');
+    if (parts.length > 1) {
+      formatted += '.' + parts[1];
+    }
+    return formatted;
+  },
+  set: (val) => {
+    let num = val.replace(/[^0-9.]/g, '');
+    const parts = num.split('.');
+    if (parts.length > 2) {
+      num = parts[0] + '.' + parts.slice(1).join('');
+    }
+    formData.storeValue = num;
+    validateField('storeValue', num, ['required']);
   }
-
-  formData[key] = val;
-  if (val) validateField(key, val, ['required']);
-}
-
-function onBlurValue(key) {
-  const val = formData[key];
-  if (val) {
-     formData[key] = formatCurrency(val);
-  }
-  validateField(key, formData[key], ['required']);
-}
-
-function onFocusValue(key) {
-  const val = formData[key];
-  if (val) {
-      // Strip commas for editing
-      formData[key] = val.replace(/,/g, '');
-  }
-}
+});
 
 function formatPhoneNumber(phone) {
   if (!phone) return '';
@@ -429,11 +417,10 @@ watch(() => store.customer, (newVal) => {
         formData.locationTypeOther = newVal.store_location_type_other || '';
         formData.ownershipSelect = newVal.store_ownership || '';
 
-        // Only update if changed (avoid focus fighting)
         const storeVal = String(newVal.store_value || '');
         const currentFormVal = String(formData.storeValue || '').replace(/,/g, '');
         if (storeVal !== currentFormVal) {
-             formData.storeValue = formatCurrency(storeVal);
+             formData.storeValue = storeVal;
         }
 
     } else {
@@ -467,7 +454,7 @@ watch(() => store.customer, (newVal) => {
         const storeVal = String(newVal.store_value || '');
         const currentFormVal = String(formData.storeValue || '').replace(/,/g, '');
         if (storeVal !== currentFormVal) {
-             formData.storeValue = formatCurrency(storeVal);
+             formData.storeValue = storeVal;
         }
     }
   }
