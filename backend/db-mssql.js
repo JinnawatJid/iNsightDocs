@@ -179,15 +179,29 @@ const initDB = async () => {
             'residence_value',
             'store_value',
             // Has Other Credit
-            'has_other_credit'
+            'has_other_credit',
+            // Real credit limits and terms
+            'credit_limit_real',
+            'term_gs',
+            'term_ae',
+            'term_yc',
+            'status_code'
         ];
 
         for (const col of coordinateColumns) {
             try {
                 // MSSQL check if column exists before adding
                 let alterTableQuery = `ALTER TABLE Customers ADD ${col} NVARCHAR(255)`;
-                if (col === 'credit_status') {
+                if (col === 'credit_status' || col === 'status_code') {
                     alterTableQuery += ` DEFAULT 'N'`;
+                } else if (['credit_limit_real', 'term_gs', 'term_ae', 'term_yc'].includes(col)) {
+                    // For numeric types we use FLOAT or INT, but coordinateColumns creates NVARCHAR by default
+                    // Let's create them as FLOAT for limit, and INT for terms
+                    if (col === 'credit_limit_real') {
+                        alterTableQuery = `ALTER TABLE Customers ADD ${col} FLOAT DEFAULT 0`;
+                    } else {
+                        alterTableQuery = `ALTER TABLE Customers ADD ${col} INT DEFAULT 0`;
+                    }
                 }
 
                 const checkSql = `
