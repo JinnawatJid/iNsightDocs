@@ -187,7 +187,13 @@ const initDB = async () => {
             'residence_value',
             'store_value',
             // Has Other Credit
-            'has_other_credit'
+            'has_other_credit',
+            // Real credit limits and terms
+            'credit_limit_real',
+            'term_gs',
+            'term_ae',
+            'term_yc',
+            'status_code'
         ];
 
         for (const col of coordinateColumns) {
@@ -195,8 +201,14 @@ const initDB = async () => {
                 // Try to add column. If it exists, SQLite will throw an error, which we catch.
                 let alterSql = `ALTER TABLE Customers ADD COLUMN ${col} TEXT`;
                 // Set default for credit_status
-                if (col === 'credit_status') {
+                if (col === 'credit_status' || col === 'status_code') {
                     alterSql += ` DEFAULT 'N'`;
+                } else if (['credit_limit_real', 'term_gs', 'term_ae', 'term_yc'].includes(col)) {
+                    if (col === 'credit_limit_real') {
+                        alterSql = `ALTER TABLE Customers ADD COLUMN ${col} REAL DEFAULT 0`;
+                    } else {
+                        alterSql = `ALTER TABLE Customers ADD COLUMN ${col} INTEGER DEFAULT 0`;
+                    }
                 }
                 await db.runAsync(alterSql);
                 console.log(`Added column ${col} to Customers`);

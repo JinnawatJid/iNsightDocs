@@ -819,17 +819,16 @@ exports.getCreditStatus = async (req, res) => {
     // --- END MOCK MODE ---
 
     try {
-        // 1. Fetch Customer Status and Fallback Data
+        // 1. Fetch Customer Status and Data from database directly
         let customerSql;
-        // Removed "credit_status" as it does not exist in the schema
         if (db.dbType === 'mssql') {
              customerSql = `
-                SELECT TOP 1 "No_", "Credit Limit (LCY)", "Payment Terms Code", "Name"
+                SELECT TOP 1 "No_", "Name", credit_limit_real, term_gs, term_ae, term_yc, status_code
                 FROM Customers WHERE "No_" = ?
             `;
         } else {
              customerSql = `
-                SELECT "No_", "Credit Limit (LCY)", "Payment Terms Code", "Name"
+                SELECT "No_", "Name", credit_limit_real, term_gs, term_ae, term_yc, status_code
                 FROM Customers WHERE "No_" = ? LIMIT 1
             `;
         }
@@ -841,73 +840,21 @@ exports.getCreditStatus = async (req, res) => {
         }
 
         const customer = customerRows[0];
-        const status = 'N'; // Default to Normal (since DB has no status column yet)
 
-        // 2. Fetch Latest Active Credit Request (Approved/Submitted)
-        // We prioritize the request data as it reflects the latest approved terms
-        const activeStatuses = ['Submitted', 'Reviewed', 'RegionalSubmitted', 'SalesSubmitted'];
-        const statusPlaceholders = activeStatuses.map(() => '?').join(',');
-
-        let requestSql;
-        if (db.dbType === 'mssql') {
-            requestSql = `
-                SELECT TOP 1 request_amount, term_gs, term_ae, term_yc, updated_at
-                FROM CreditRequests
-                WHERE customer_no = ? AND status IN (${statusPlaceholders})
-                ORDER BY updated_at DESC
-            `;
-        } else {
-            requestSql = `
-                SELECT request_amount, term_gs, term_ae, term_yc, updated_at
-                FROM CreditRequests
-                WHERE customer_no = ? AND status IN (${statusPlaceholders})
-                ORDER BY updated_at DESC
-                LIMIT 1
-            `;
+        let creditLimit = customer.credit_limit_real || 0;
+        if (typeof creditLimit === 'string') {
+            creditLimit = parseFloat(creditLimit.replace(/,/g, '')) || 0;
         }
 
-        const { rows: requestRows } = await db.query(requestSql, [customerId, ...activeStatuses]);
-        const latestRequest = (requestRows && requestRows.length > 0) ? requestRows[0] : null;
+        const status = customer.status_code || 'N';
 
-        // 3. Determine Final Values
-        let creditLimit = 0;
-        let creditTerms = { gs: 0, ae: 0, yc: 0 };
-        let lastUpdated = new Date().toISOString();
+        const creditTerms = {
+            gs: parseInt(customer.term_gs) || 0,
+            ae: parseInt(customer.term_ae) || 0,
+            yc: parseInt(customer.term_yc) || 0
+        };
 
-        if (latestRequest) {
-            // Case A: Have a recent request
-            creditLimit = latestRequest.request_amount;
-            creditTerms = {
-                gs: latestRequest.term_gs || 0,
-                ae: latestRequest.term_ae || 0,
-                yc: latestRequest.term_yc || 0
-            };
-            lastUpdated = latestRequest.updated_at;
-        } else {
-            // Case B: Fallback to Customer Table (Legacy/Synced Data)
-            // Parse "Credit Limit (LCY)" (might be string with commas)
-            const rawLimit = customer['Credit Limit (LCY)'];
-            if (rawLimit) {
-                if (typeof rawLimit === 'number') {
-                    creditLimit = rawLimit;
-                } else if (typeof rawLimit === 'string') {
-                    creditLimit = parseFloat(rawLimit.replace(/,/g, ''));
-                }
-            }
-
-            // Parse "Payment Terms Code" (e.g., "30 Days", "60 Days") if needed
-            // For now, we return 0 for breakdown if not explicitly known
-            // Or try to parse simple integer from string
-            const termsCode = customer['Payment Terms Code'];
-            if (termsCode) {
-                 const match = termsCode.match(/\d+/);
-                 if (match) {
-                     // Assume standard term applies to all (or just GS?) - Logic TBD
-                     // For safety, let's just leave 0 unless specific mapping rules exist
-                     // creditTerms.gs = parseInt(match[0]);
-                 }
-            }
-        }
+        const lastUpdated = new Date().toISOString();
 
         // 4. Construct Response
         const responseData = {
