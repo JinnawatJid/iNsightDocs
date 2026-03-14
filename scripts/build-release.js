@@ -271,22 +271,52 @@ const downloadFile = async (url, destPath) => {
     ].join('\n');
     await fs.writeFile(path.join(RELEASE_DIR, 'backend', '.env'), envContent);
 
+    // Create a PowerShell script to safely disable QuickEdit
+    const ps1Content = `
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public class ConsoleUtility {
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr GetStdHandle(int nStdHandle);
+    [DllImport("kernel32.dll")]
+    public static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+    [DllImport("kernel32.dll")]
+    public static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+    public static void DisableQuickEdit() {
+        IntPtr hConsole = GetStdHandle(-10); // STD_INPUT_HANDLE
+        uint mode;
+        if (GetConsoleMode(hConsole, out mode)) {
+            mode &= ~0x0040U; // ENABLE_QUICK_EDIT_MODE
+            SetConsoleMode(hConsole, mode);
+        }
+    }
+}
+'@
+[ConsoleUtility]::DisableQuickEdit()
+`;
+    await fs.writeFile(path.join(RELEASE_DIR, 'disable_quickedit.ps1'), ps1Content.trim());
+
     // Create start_server.bat
     const batContent = `@echo off
 setlocal
 
+:: Set the title of the command prompt window for easy identification
+title Credit Request System Backend Server
+
 echo ===================================================
-echo Starting Credit Request System...
+echo Starting Credit Request System Backend Server...
 echo ===================================================
+
+:: Run the PowerShell script to safely disable QuickEdit mode dynamically
+:: We use ExecutionPolicy Bypass to ensure the script runs even on restricted systems
+powershell -ExecutionPolicy Bypass -File "%~dp0disable_quickedit.ps1" >nul 2>&1
 
 :: Add bundled Node to PATH
 set "PATH=%~dp0node;%PATH%"
 
 :: Navigate to backend
 cd backend
-
-:: Start UAT Monitor in a new window
-start "UAT Dashboard" cmd /k "mode con: cols=60 lines=20 & node scripts/uat-monitor.js"
 
 :: Start Server in the current window
 echo Starting backend server...
