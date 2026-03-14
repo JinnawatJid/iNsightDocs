@@ -48,7 +48,12 @@ During the development of this feature, several critical edge cases and bugs wer
 * **Root Cause:** A mismatch between the frontend API call (`/api/financials/${customer_no}/check-local`) and the backend Express route definition (`/api/financials/check-local/:customer_no`). The mismatch caused Express to return a 404 HTML page instead of JSON, resulting in a falsy `response.data.exists` evaluation.
 * **Resolution:** Ensure UI API paths perfectly match the `financialRoutes.js` definitions. The current correct path for checking status is `GET /api/financials/check-local/:customer_no`.
 
-### 2. `xlsx` Library "Central Directory" ZIP Error
+### 2. Missing Company Profile in Manual Upload (Frontend Payload)
+* **Symptom:** A user manually uploads all 4 DBD documents (Profile, Balance Sheet, P&L, Ratios) in the Store Statement tab and clicks "Analyze". The Excel files parse correctly, but the "DBD Profile" shows up as missing/yellow on the pending requests page, and the backend logs "File NOT FOUND" for `DBD_Profile.pdf`.
+* **Root Cause:** The `companyProfile` file was omitted from the `FormData` appended in the `analyzeFinancials` method of `StoreStatementTab.vue`. Only the three Excel files were being sent to the `/api/financials/analyze` backend endpoint.
+* **Resolution:** Explicitly append the `companyProfile` to the `FormData` object as `company_profile` before issuing the POST request. This ensures the backend receives the file, saves it to the `customers/{customer_no}/{date}/` directory, and successfully extracts fallback data like Registered Capital and Years in Business.
+
+### 3. `xlsx` Library "Central Directory" ZIP Error
 * **Symptom:** The backend crashes with `Error: end of central directory record signature not found` when attempting to parse the Excel files.
 * **Root Cause:** The `xlsx.readFile(filepath)` method occasionally struggles with file descriptors or slight stream corruptions created by Puppeteer downloads.
 * **Resolution:** *Do not* use `xlsx.readFile()`. The parser must strictly use `fs.readFileSync()` to load the file into a Node.js `Buffer` first, and then use `xlsx.read(buffer, { type: 'buffer' })`.
