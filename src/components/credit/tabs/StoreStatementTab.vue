@@ -132,7 +132,6 @@
           <input
             type="text"
             v-model="registeredCapital"
-            @input="handleCapitalInput"
             class="form-control"
             placeholder="ระบุทุนจดทะเบียน (บาท)"
           />
@@ -397,9 +396,21 @@ watch(customBridgeHost, (newVal) => {
 
 // Computed Properties for Data Binding (Audit Trail)
 const registeredCapital = computed({
-    get: () => store.customer.registered_capital ? Number(store.customer.registered_capital).toLocaleString('en-US') : '',
+    get: () => {
+        if (!store.customer.registered_capital) return '';
+        const parts = String(store.customer.registered_capital).split('.');
+        let formatted = Number(parts[0]).toLocaleString('en-US');
+        if (parts.length > 1) {
+            formatted += '.' + parts[1];
+        }
+        return formatted;
+    },
     set: (val) => {
-        const num = val.replace(/[^0-9]/g, '');
+        let num = val.replace(/[^0-9.]/g, '');
+        const parts = num.split('.');
+        if (parts.length > 2) {
+            num = parts[0] + '.' + parts.slice(1).join('');
+        }
         store.updateCustomerData({ registered_capital: num });
     }
 });
@@ -521,12 +532,6 @@ watch(() => store.files, (newVal) => {
       files.bankStatement = [];
   }
 }, { immediate: true, deep: true });
-
-const handleCapitalInput = (event) => {
-    let val = event.target.value;
-    val = val.replace(/[^0-9]/g, '');
-    registeredCapital.value = val; // Triggers setter
-};
 
 const handleDurationInput = (event) => {
     let val = event.target.value;

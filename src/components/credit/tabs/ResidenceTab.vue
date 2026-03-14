@@ -194,11 +194,8 @@
                   class="form-control"
                   :class="{ 'border-red-500': errors.residenceValue, 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formData.residenceValue"
+                  v-model="formattedResidenceValue"
                   placeholder="ระบุจำนวนเงิน"
-                  @input="handleInput('residenceValue', $event)"
-                  @blur="onBlurValue('residenceValue')"
-                  @focus="onFocusValue('residenceValue')"
                 />
                 <span v-if="errors.residenceValue" class="error-text">{{ errors.residenceValue }}</span>
              </div>
@@ -320,38 +317,26 @@ function formatCurrency(val) {
   return new Intl.NumberFormat('en-US').format(num);
 }
 
-function handleInput(key, event) {
-  // Allow only numbers and dot
-  let val = event.target.value.replace(/[^0-9.]/g, '');
-
-  // Prevent multiple dots
-  const parts = val.split('.');
-  if (parts.length > 2) {
-      val = parts[0] + '.' + parts.slice(1).join('');
+const formattedResidenceValue = computed({
+  get: () => {
+    if (!formData.residenceValue) return '';
+    const parts = String(formData.residenceValue).split('.');
+    let formatted = Number(parts[0]).toLocaleString('en-US');
+    if (parts.length > 1) {
+      formatted += '.' + parts[1];
+    }
+    return formatted;
+  },
+  set: (val) => {
+    let num = val.replace(/[^0-9.]/g, '');
+    const parts = num.split('.');
+    if (parts.length > 2) {
+      num = parts[0] + '.' + parts.slice(1).join('');
+    }
+    formData.residenceValue = num;
+    validateField('residenceValue', num, ['required']);
   }
-
-  formData[key] = val;
-  // Don't validate here immediately if we want to allow intermediate typing (e.g. empty string temporarily)
-  // But required check is good.
-  // We validate on blur mostly, but if we want real-time red border removal:
-  if (val) validateField(key, val, ['required']);
-}
-
-function onBlurValue(key) {
-  const val = formData[key];
-  if (val) {
-     formData[key] = formatCurrency(val);
-  }
-  validateField(key, formData[key], ['required']);
-}
-
-function onFocusValue(key) {
-  const val = formData[key];
-  if (val) {
-      // Strip commas for editing
-      formData[key] = val.replace(/,/g, '');
-  }
-}
+});
 
 // Watch isSameAddress for toggling
 watch(isSameAddress, (isSame) => {
@@ -384,7 +369,7 @@ watch(isSameAddress, (isSame) => {
         // Actually, "Property Value" might differ if it's the same building?
         // "Property Value" of the building is the same.
         // So yes, copy store_value.
-        formData.residenceValue = formatCurrency(store.customer.store_value) || '';
+        formData.residenceValue = store.customer.store_value || '';
 
     } else {
         // Company: Source = address keys (Company Address)
@@ -404,7 +389,7 @@ watch(isSameAddress, (isSame) => {
         formData.locationTypeSelect = store.customer.store_location_type || '';
         formData.locationTypeOther = store.customer.store_location_type_other || '';
         formData.ownershipSelect = store.customer.store_ownership || '';
-        formData.residenceValue = formatCurrency(store.customer.store_value) || '';
+        formData.residenceValue = store.customer.store_value || '';
     }
   } else {
      // Revert / Clear or Reload from original Residence Fields
@@ -426,7 +411,7 @@ watch(isSameAddress, (isSame) => {
             formData.locationTypeSelect = store.customer.residence_location_type || '';
             formData.locationTypeOther = store.customer.residence_location_type_other || '';
             formData.ownershipSelect = store.customer.residence_ownership || '';
-            formData.residenceValue = formatCurrency(store.customer.residence_value) || '';
+            formData.residenceValue = store.customer.residence_value || '';
         } else {
             // Company: Load 'residence_' fields (if any)
             formData.houseAddress = store.customer.residence_address || '';
@@ -444,7 +429,7 @@ watch(isSameAddress, (isSame) => {
             formData.locationTypeSelect = store.customer.residence_location_type || '';
             formData.locationTypeOther = store.customer.residence_location_type_other || '';
             formData.ownershipSelect = store.customer.residence_ownership || '';
-            formData.residenceValue = formatCurrency(store.customer.residence_value) || '';
+            formData.residenceValue = store.customer.residence_value || '';
         }
      }
   }
@@ -498,7 +483,7 @@ watch(() => store.customer, (newVal) => {
         const storeVal = String(newVal.residence_value || '');
         const currentFormVal = String(formData.residenceValue || '').replace(/,/g, '');
         if (storeVal !== currentFormVal) {
-             formData.residenceValue = formatCurrency(storeVal);
+             formData.residenceValue = storeVal;
         }
     }
   }
