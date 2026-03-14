@@ -15,9 +15,9 @@
             <label>วงเงินที่ขอ</label>
             <div class="value amount">{{ formatNumber(store.transactionData.amount) }} บาท</div>
         </div>
-        <div class="deal-item">
+        <div class="deal-item highlight-terms">
             <label>เครดิตเทอม (GS/AE/YC)</label>
-            <div class="value">{{ formatTerms(store.transactionData) }}</div>
+            <div class="value terms-amount">{{ formatTerms(store.transactionData) }}</div>
         </div>
         <div class="deal-item">
             <label>วิธีชำระเงิน</label>
@@ -158,7 +158,14 @@ const formatNumber = (num) => {
 
 const formatTerms = (data) => {
     if (!data) return '-';
-    return `${data.termGS || 0} / ${data.termAE || 0} / ${data.termYC || 0}`;
+    const gs = data.termGS || 0;
+    const ae = data.termAE || 0;
+    const yc = data.termYC || 0;
+
+    if (gs === ae && ae === yc) {
+        return `${gs}`;
+    }
+    return `${gs} / ${ae} / ${yc}`;
 };
 
 // Document Logic (Reused from DocumentChecklist)
@@ -365,6 +372,12 @@ const openFinancialModal = async () => {
     font-size: 24px;
     font-weight: bold;
     color: #0056FF;
+}
+
+.deal-item.highlight-terms .value.terms-amount {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
 }
 
 .reason-text {
