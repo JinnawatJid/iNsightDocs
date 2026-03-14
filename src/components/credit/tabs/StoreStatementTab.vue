@@ -914,6 +914,7 @@ const analyzeFinancials = async () => {
   if (files.balanceSheet) formData.append('balance_sheet', files.balanceSheet);
   if (files.profitLoss) formData.append('profit_loss', files.profitLoss);
   if (files.financialRatios) formData.append('financial_ratios', files.financialRatios);
+  if (files.companyProfile) formData.append('company_profile', files.companyProfile);
 
   const cleanCapital = registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : '0';
   formData.append('registered_capital', cleanCapital);
