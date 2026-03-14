@@ -20,11 +20,25 @@ const MOCK_FINANCIAL_API = process.env.MOCK_FINANCIAL_API === 'true';
 
 const { getMockFinancialData, getMockCategoryData } = require('../utils/mockData');
 
+
 // Helper to format currency
 const formatCurrency = (val) => {
-    if (!val) return "0";
-    if (typeof val === 'string' && val.includes(',')) return val;
-    return new Intl.NumberFormat('en-US').format(val);
+    if (val === null || val === undefined) return "0.00";
+
+    // Parse value first if it's already a formatted string
+    let parsedVal = val;
+    if (typeof val === 'string') {
+        parsedVal = parseAmount(val);
+    }
+
+    // Ensure it's a number and format with 2 decimal places
+    const numVal = Number(parsedVal);
+    if (isNaN(numVal)) return "0.00";
+
+    return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(numVal);
 };
 
 // Helper to parse float from string (remove commas)
