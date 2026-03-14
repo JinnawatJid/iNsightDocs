@@ -80,10 +80,10 @@ const isReadOnly = computed(() => {
     // but the Review Section (terms/comments) might be editable depending on role.
     // However, CreditReviewSection's 'readOnly' prop controls the INPUTS.
     // If the user is an approver, they should be able to edit Terms/Comment.
-    // If the request is truly final (Approved/Rejected), then it's read-only.
+    // If the request is truly final (Approved/Rejected/Closed/Canceled), then it's read-only.
 
-    // store.isReadOnly covers Final statuses (Approved/Rejected/Canceled).
-    return store.isReadOnly;
+    const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled'];
+    return finalStatuses.includes(store.requestStatus);
 });
 
 const showTerms = computed(() => {
