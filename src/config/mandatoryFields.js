@@ -39,8 +39,7 @@ export const mandatoryStoreKeys = {
         common: [
             'credit_application_doc', // Request Info
             'id_card', // General Info
-            'home_reg', // General Info
-            'home_photo' // Residence
+            'home_reg' // General Info
         ],
         company: [
             'legal_entity_certificate',

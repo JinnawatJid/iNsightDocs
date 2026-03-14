@@ -4,11 +4,11 @@ export const workflowConfig = {
     // Branch Manager (Start)
     'Draft': [
         {
-            label: 'บันทึกแบบร่าง',
+            label: 'Save',
             action: 'saveDraft',
             variant: 'secondary', // Grey button
             targetStatus: 'Draft',
-            confirmMessage: 'บันทึกแบบร่างสำเร็จ'
+            confirmMessage: 'บันทึกสำเร็จ'
         },
         {
             label: 'ส่งคำขอ',

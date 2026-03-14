@@ -192,9 +192,10 @@
                   @change="() => { validateField('locationType', formData.locationTypeSelect, ['required']); }"
                 >
                   <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
-                  <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
-                  <option value="สำนักงานบนอาคารชุด">สำนักงานบนอาคารชุด</option>
                   <option value="บ้าน">บ้าน</option>
+                  <option value="อาคารสำนักงาน">อาคารสำนักงาน</option>
+                  <option value="ร้านค้า">ร้านค้า</option>
+                  <option value="ตึกแถว">ตึกแถว</option>
                   <option value="โรงงาน">โรงงาน</option>
                 </select>
                 <span v-if="errors.locationType" class="error-text">{{ errors.locationType }}</span>
