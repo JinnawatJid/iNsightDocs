@@ -125,6 +125,16 @@ const handleStartRequest = async (type) => {
     }
 };
 
+// Watch for loading an existing request (e.g. from History Sidebar)
+watch(
+  () => store.requestId,
+  (newVal) => {
+    if (newVal) {
+      isRequestStarted.value = true;
+    }
+  }
+);
+
 // Watch for Blacklist Alert
 watch(
   () => store.blacklistAlert,
