@@ -86,7 +86,7 @@
               {{ showMonthlyDetails ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด' }}
             </button>
           </div>
-          <div class="stat-value highlight">{{ financial.total_purchase_3_months }} บาท</div>
+          <div class="stat-value highlight">{{ formatDecimal(financial.total_purchase_3_months) }} บาท</div>
           <div class="stat-trend" :class="getTrendClass(financial.total_purchase_growth)" v-if="financial.total_purchase_growth">
               {{ financial.total_purchase_growth }}
           </div>
@@ -94,7 +94,7 @@
           <div v-if="showMonthlyDetails" class="monthly-breakdown">
             <div v-for="(month, index) in financial.monthly_history" :key="index" class="month-row">
               <span class="month-label">{{ month.label }}</span>
-              <span class="month-value">{{ month.value }} บาท</span>
+              <span class="month-value">{{ formatDecimal(month.value) }} บาท</span>
             </div>
           </div>
         </div>
@@ -104,7 +104,7 @@
             <span class="currency-symbol">฿</span>
             <span>ค่าเฉลี่ยต่อรอบการจ่ายเงิน</span>
           </div>
-          <div class="stat-value blue">{{ financial.avg_monthly }} บาท</div>
+          <div class="stat-value blue">{{ formatDecimal(financial.avg_monthly) }} บาท</div>
           <div class="stat-trend" :class="getTrendClass(financial.avg_monthly_trend)" v-if="financial.avg_monthly_trend">
               {{ financial.avg_monthly_trend }}
           </div>
@@ -121,7 +121,7 @@
               <div v-for="(cat, idx) in visibleCategories" :key="idx" class="category-row">
                   <div class="cat-info">
                       <span class="cat-label">{{ cat.label }}</span>
-                      <span class="cat-value">{{ cat.formattedValue }} บาท</span>
+                      <span class="cat-value">{{ formatDecimal(cat.value) }} บาท</span>
                   </div>
                   <div class="progress-bar-bg">
                       <div class="progress-bar-fill" :style="{ width: cat.percentage + '%' }"></div>
@@ -219,7 +219,16 @@ export default {
       },
       formatDecimal(num) {
          if (num === null || num === undefined) return '-';
-         return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+         let parsedNum = num;
+         if (typeof num === 'string') {
+             // Remove commas before parsing to float
+             parsedNum = parseFloat(num.replace(/,/g, ''));
+         }
+
+         if (isNaN(parsedNum)) return '-';
+
+         return parsedNum.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       },
       getGradeClass(grade) {
           if (grade === 'A') return 'grade-a';
