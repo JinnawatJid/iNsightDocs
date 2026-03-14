@@ -185,7 +185,9 @@ const initDB = async () => {
             'credit_status',
             // New columns for Property Value
             'residence_value',
-            'store_value'
+            'store_value',
+            // Has Other Credit
+            'has_other_credit'
         ];
 
         for (const col of coordinateColumns) {

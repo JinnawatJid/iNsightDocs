@@ -9,6 +9,7 @@ export const mandatoryStoreKeys = {
         'reason', // creditReason
         'billing_requirement',
         'payment_method',
+        'has_other_credit',
 
         // General Info
         'name', // Company Name
