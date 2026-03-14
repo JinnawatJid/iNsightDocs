@@ -18,14 +18,14 @@ backend/services/scoring/
 ## Strategies
 
 ### 1. New Customer (`NewCustomerScorecard.js`)
-- **Trigger:** Customer has `Current Credit Limit <= 0`.
+- **Trigger:** Request type is `เครดิตใหม่` (or passed to backend as `model_type="new"`).
 - **Focus:** Financial stability and potential.
 - **Output:**
   - Recommended Limit: **50,000 - 500,000 THB** (Calculated based on Score).
   - Grade: A+ to D.
 
 ### 2. Existing Customer (`ExistingCustomerScorecard.js`)
-- **Trigger:** Customer has `Current Credit Limit > 0`.
+- **Trigger:** Request type implies an existing relationship, such as `เครดิตเพิ่ม`, `เปลี่ยนแปลงคำขอเครดิต`, `เปลี่ยนแปลงเงื่อนไขการชำระเงิน` (passed to backend as `model_type="existing"`).
 - **Focus:** Purchase behavior and Payment history.
 - **Output:**
   - Recommended Limit: **Current Limit * Adjustment Factor**.
