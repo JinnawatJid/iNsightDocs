@@ -45,11 +45,12 @@ The `build-release.js` script orchestrates a 9-step automated process to create 
 ### Step 8: Configuring the Production Environment
 - **Directories:** Ensures `uploads/` and `downloads/` directories exist within `release/backend/`.
 - **.env Template:** Generates a template `.env` file populated with default production database connection strings (e.g., `DB_SERVER=localhost`, `DB_NAME=CreditRequestDB`). Maintainers must update this file on the target server.
-- **Startup Script:** Generates `start_server.bat`, which is placed in the root of the release. This script:
-  1. Temporarily adds the bundled `release/node/` binary to the system `PATH`.
-  2. Navigates to the backend directory.
-  3. Starts the UAT Dashboard monitor in a separate command window.
-  4. Starts the main Node.js backend server.
+- **Startup Script:** Generates `disable_quickedit.ps1` and `start_server.bat`, which are placed in the root of the release. The batch script:
+  1. Sets a custom title for the active terminal window (`Credit Request System Backend Server`) for easy identification.
+  2. Executes the `disable_quickedit.ps1` PowerShell script using the C# `SetConsoleMode` API to dynamically disable Windows QuickEdit Mode for the active console. This prevents the Node.js process from freezing indefinitely when a user accidentally clicks inside the terminal.
+  3. Temporarily adds the bundled `release/node/` binary to the system `PATH`.
+  4. Navigates to the backend directory.
+  5. Starts the main Node.js backend server.
 
 ### Step 9: Zipping the Artifact
 - Uses the `archiver` library to compress the entire `release/` directory into a single `release.zip` file located in the project root.
@@ -59,11 +60,12 @@ The `build-release.js` script orchestrates a 9-step automated process to create 
 The final output is a single `release.zip` file containing:
 ```text
 release.zip
-├── backend/            (Source code + prod node_modules)
-├── dist/               (Compiled Vue frontend)
-├── node/               (Standalone Windows Node.js binaries)
-├── start_server.bat    (Entry point script)
-└── .env                (Template environment configuration)
+├── backend/                (Source code + prod node_modules)
+├── dist/                   (Compiled Vue frontend)
+├── node/                   (Standalone Windows Node.js binaries)
+├── disable_quickedit.ps1   (PowerShell script to prevent console freezing)
+├── start_server.bat        (Entry point script)
+└── .env                    (Template environment configuration)
 ```
 This artifact is entirely self-contained and is what developers will transfer to the air-gapped production Windows Server.
 
