@@ -158,7 +158,14 @@ const formatNumber = (num) => {
 
 const formatTerms = (data) => {
     if (!data) return '-';
-    return `${data.termGS || 0} / ${data.termAE || 0} / ${data.termYC || 0}`;
+    const gs = data.termGS || 0;
+    const ae = data.termAE || 0;
+    const yc = data.termYC || 0;
+
+    if (gs === ae && ae === yc) {
+        return `${gs}`;
+    }
+    return `${gs} / ${ae} / ${yc}`;
 };
 
 // Document Logic (Reused from DocumentChecklist)
