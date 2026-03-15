@@ -57,13 +57,14 @@ JWT ที่ถูกส่งกลับมาใน Cookie `token` (Sign ด
 
 1. **การตรวจสอบสิทธิ์:**
    - ใช้ `vue-router` Navigation Guard (`beforeEach`)
-   - อ่านค่า `token` จาก Cookie (เช่นใช้ไลบรารี `js-cookie`)
-   - หากไม่มี Cookie นี้ ให้บังคับ Redirect ไปที่:
+   - เนื่องจาก Cookie `token` ถูกตั้งค่าเป็น **HttpOnly** จาก Central Portal ทำให้ Frontend (JavaScript) ไม่สามารถอ่านค่า Cookie ได้โดยตรง (ไม่สามารถใช้ `js-cookie` ได้)
+   - Frontend จะต้องทำการเรียก API `GET /api/auth/me` ไปยัง Backend เพื่อให้ Backend ทำหน้าที่อ่าน Cookie และส่งข้อมูลผู้ใช้กลับมา
+   - หาก Backend ตอบกลับด้วย 401 Unauthorized (ไม่มี Cookie หรือหมดอายุ) ให้บังคับ Redirect ไปที่:
      `http://192.192.0.37:53683/login?redirect={CURRENT_URL}&appName=Smart+Credit+Application`
 
-2. **การถอดรหัส (Decode):**
-   - เมื่อมี Cookie ให้ใช้ `jwt-decode` ถอดรหัส JWT (เฉพาะส่วน Payload) โดยไม่ต้อง Verify Signature บนฝั่ง Frontend เพื่อนำข้อมูล `userId`, `username`, `roles` มาแสดงผล หรือบันทึกลงใน Pinia Store
-   - ในการเชื่อมต่อกับ Backend (Axios), Frontend สามารถส่ง Request ไปตามปกติ โดยระบุ `withCredentials: true` เพื่อให้เบราว์เซอร์แนบ Cookie `token` ไปกับทุกๆ HTTP Request หรือสามารถดึงค่าจาก Cookie มาใส่เป็น Header `Authorization: Bearer <Token>` อย่างชัดเจน
+2. **การถอดรหัส (Decode) และการดึงข้อมูล:**
+   - Backend จะเป็นผู้ถอดรหัส JWT จาก HttpOnly Cookie และส่งข้อมูล `userId`, `username`, `roles`, `branchCode` กลับมาให้ Frontend นำไปบันทึกลงใน Pinia Store (`auth.js`)
+   - ในการเชื่อมต่อกับ Backend (Axios), Frontend จะต้องระบุ `withCredentials: true` เสมอ เพื่อให้เบราว์เซอร์แนบ HttpOnly Cookie ไปกับทุกๆ HTTP Request อย่างถูกต้อง
 
 ### 3. ฝั่ง Backend (Node.js/Express)
 
