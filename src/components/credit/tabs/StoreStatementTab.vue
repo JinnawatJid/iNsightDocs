@@ -223,63 +223,32 @@
 
         <!-- Score Breakdown (New Section) -->
         <div v-if="analysisResults.scoringResult && analysisResults.scoringResult.breakdown" class="score-breakdown-section">
-             <h4>รายละเอียดคะแนน (Score Breakdown)</h4>
+             <h4>รายละเอียดคะแนน</h4>
              <div class="breakdown-grid">
                  <!-- C1 -->
                  <div class="breakdown-card">
                      <div class="bd-title">C1: ความแข็งแกร่งของบริษัท</div>
-                     <div class="bd-value">{{ formatDecimal(analysisResults.scoringResult.breakdown.c1.total) }}</div>
+                     <div class="bd-value">{{ Math.round(analysisResults.scoringResult.breakdown.c1.total) }}/{{ getCMaxScore(analysisResults.scoringResult.breakdown.c1) }}</div>
                  </div>
                  <!-- C2 -->
                  <div class="breakdown-card">
                      <div class="bd-title">C2: กระแสเงินสดและสภาพคล่อง</div>
-                     <div class="bd-value">{{ formatDecimal(analysisResults.scoringResult.breakdown.c2.total) }}</div>
+                     <div class="bd-value">{{ Math.round(analysisResults.scoringResult.breakdown.c2.total) }}/{{ getCMaxScore(analysisResults.scoringResult.breakdown.c2) }}</div>
                  </div>
                  <!-- C3 -->
                  <div class="breakdown-card">
                      <div class="bd-title">C3: พฤติกรรมการซื้อและประวัติ</div>
-                     <div class="bd-value">{{ formatDecimal(analysisResults.scoringResult.breakdown.c3.total) }}</div>
+                     <div class="bd-value">{{ Math.round(analysisResults.scoringResult.breakdown.c3.total) }}/{{ getCMaxScore(analysisResults.scoringResult.breakdown.c3) }}</div>
                  </div>
              </div>
         </div>
 
         <div class="results-header-row">
-           <h4>ข้อมูลทางการเงิน (Financial Data)</h4>
-           <div class="toggle-switch">
-              <label class="switch">
-                <input type="checkbox" v-model="showDebug" :data-empty="!showDebug">
-                <span class="slider round"></span>
-              </label>
-              <span class="toggle-label">แสดงข้อมูล Debug</span>
-           </div>
-        </div>
-
-        <!-- DEBUG TABLE VIEW -->
-        <div v-if="showDebug && analysisResults.debugData" class="debug-table-container">
-            <table class="debug-table">
-                <thead>
-                    <tr>
-                        <th>รายการ (Item)</th>
-                        <th>ค่า (Value)</th>
-                        <th>คอลัมน์ (Column)</th>
-                        <th>น้ำหนัก (Weight)</th>
-                        <th>คะแนน (Score)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(item, index) in analysisResults.debugData" :key="index">
-                        <td>{{ item.label }}</td>
-                        <td class="text-right">{{ formatValue(item.value) }}</td>
-                        <td class="text-center">{{ item.column || '-' }}</td>
-                        <td class="text-right">{{ item.weight ? item.weight : '-' }}</td>
-                        <td class="text-right">{{ item.score ? formatDecimal(item.score) : '-' }}</td>
-                    </tr>
-                </tbody>
-            </table>
+           <h4>ข้อมูลทางการเงิน</h4>
         </div>
 
         <!-- NORMAL GRID VIEW -->
-        <div v-else class="result-grid">
+        <div class="result-grid">
           <div class="result-item">
             <span class="label">รายได้รวม:</span>
             <span class="value">
@@ -320,12 +289,12 @@
 
         <div class="calculated-ratios">
           <div class="ratio-card">
-            <div class="ratio-title">อัตราส่วนความสามารถในการชำระหนี้ (DSCR)</div>
-            <div class="ratio-value">{{ formatDecimal(analysisResults.calculations.dscr) }}</div>
+            <div class="ratio-title">อัตราส่วนความสามารถในการชำระหนี้</div>
+            <div class="ratio-value">{{ formatNumber(analysisResults.calculations.dscr) }}</div>
           </div>
           <div class="ratio-card">
-            <div class="ratio-title">สัดส่วนเครดิตต่อทุน (Credit / Capital Ratio)</div>
-            <div class="ratio-value">{{ formatDecimal(analysisResults.calculations.creditCapitalRatio) }}</div>
+            <div class="ratio-title">สัดส่วนเครดิตต่อทุน</div>
+            <div class="ratio-value">{{ formatNumber(analysisResults.calculations.creditCapitalRatio) }}</div>
           </div>
         </div>
       </div>
@@ -357,7 +326,6 @@ const analyzing = ref(false);
 const downloadingDBD = ref(false);
 const dbdQuery = ref('');
 const analysisResults = ref(null);
-const showDebug = ref(false);
 const showBridgeInput = ref(false);
 const customBridgeHost = ref(localStorage.getItem('bridgeHost') || 'localhost');
 
@@ -981,6 +949,16 @@ const formatDecimal = (num) => {
    return num.toLocaleString('th-TH', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 };
 
+const getCMaxScore = (cObj) => {
+    if (!cObj) return 0;
+    // Check if factors, items, or debug arrays exist
+    const factorList = cObj.factors || cObj.items || cObj.debug;
+    if (!factorList || !Array.isArray(factorList)) return 0;
+
+    const maxScore = factorList.reduce((sum, f) => sum + (f.weight || 0), 0);
+    return Math.round(maxScore);
+};
+
 const formatValue = (val) => {
     if (typeof val === 'number') {
         if (Number.isInteger(val)) return val.toLocaleString('th-TH');
@@ -1412,101 +1390,6 @@ const shouldShowFinancialAnalysis = computed(() => {
 
 .results-header-row h4 {
     margin: 0;
-}
-
-.toggle-switch {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.toggle-label {
-    font-size: 0.9em;
-    font-weight: bold;
-    color: #555;
-}
-
-/* TOGGLE CSS */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 40px;
-  height: 20px;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 16px;
-  width: 16px;
-  left: 2px;
-  bottom: 2px;
-  background-color: white;
-  transition: .4s;
-}
-
-input:checked + .slider {
-  background-color: #007bff;
-}
-
-input:checked + .slider:before {
-  transform: translateX(20px);
-}
-
-.slider.round {
-  border-radius: 20px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
-/* DEBUG TABLE */
-.debug-table-container {
-    overflow-x: auto;
-    margin-bottom: 20px;
-}
-
-.debug-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-}
-
-.debug-table th, .debug-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    font-size: 0.9em;
-}
-
-.debug-table th {
-    background-color: #f2f2f2;
-    text-align: left;
-}
-
-.debug-table td.text-right {
-    text-align: right;
-}
-
-.debug-table td.text-center {
-    text-align: center;
 }
 
 /* NORMAL GRID */
