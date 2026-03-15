@@ -16,17 +16,32 @@ Located in `backend/controllers/customerController.js`:
 *   **Logic:** It uses `Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`.
 *   **Safety:** It includes a `parseAmount` fallback that safely strips commas from string inputs (e.g., `"1,000"`) and parses them to a float before applying the `Intl.NumberFormat`, ensuring no `NaN` or formatting errors occur if raw API sources return pre-formatted strings.
 
-## 3. Frontend Implementation (`CreditScoreSummary.vue`)
+## 3. Frontend Implementation (`CreditScoreSummary.vue`, `StoreStatementTab.vue`)
 
 Even if the backend formats the data correctly, frontend components must rigorously enforce this standard locally to account for edge cases (e.g., reactive recalculations, alternative data sources, or raw unformatted numeric injections).
 
-### `formatDecimal` Utility
-Located in `src/components/credit/CreditScoreSummary.vue`:
+### `formatDecimal` vs `formatNumber` Utility
 
-*   **Usage:** Always wrap financial data variables in the Vue template with this function (e.g., `{{ formatDecimal(financial.total_purchase_3_months) }}`, `{{ formatDecimal(cat.value) }}`).
-*   **Logic:** It also implements `Intl.NumberFormat` with exactly two fraction digits.
-*   **Safety:** Similar to the backend, it detects if the input is a `string`, strips any existing commas (`replace(/,/g, '')`), and parses it to a `float` before applying the standardized decimal formatting.
+*   **`formatDecimal`:** Typically used for precision values (e.g., up to 4 decimal places in certain specific legacy views).
+*   **`formatNumber`:** Extensively used for displaying standard financial data, ratios, and limits with exactly two fraction digits (e.g., `toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`).
+*   **Specific Ratios:** Ratios like **DSCR (อัตราส่วนความสามารถในการชำระหนี้)** and **Credit / Capital Ratio (สัดส่วนเครดิตต่อทุน)** must explicitly use `formatNumber` to ensure exactly 2 decimal places are displayed consistently, rather than 4.
 
-## 4. Summary
+## 4. Score Breakdown UI Formatting
 
-Whenever introducing new financial metrics to the application, developers must ensure these specific formatting utilities are used to strictly enforce the two-decimal standard across the stack.
+When displaying credit score breakdowns (e.g., C1, C2, C3 scores), the UI should clearly indicate the achieved score relative to the maximum possible score.
+
+*   **HTML Structure:** Use the `score-val-container` wrapper class to match the main "คะแนนเครดิต" card design.
+*   **Main Score:** The achieved score should be rounded to the nearest whole number and styled with the `.score-main` class (larger, bold font).
+*   **Max Score:** The maximum possible component score should be displayed directly beneath the main score using the `.score-max` class (smaller, grey font, prefixed with `/ `).
+
+Example usage in Vue templates:
+```html
+<div class="score-val-container text-primary">
+    <div class="score-main">{{ Math.round(c1.total) }}</div>
+    <div class="score-max">/ {{ getCMaxScore(c1) }}</div>
+</div>
+```
+
+## 5. Summary
+
+Whenever introducing new financial metrics to the application, developers must ensure these specific formatting utilities and UI conventions (like `.score-val-container`) are used to strictly enforce consistent presentation across the stack.
