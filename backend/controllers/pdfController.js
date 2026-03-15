@@ -21,7 +21,7 @@ const printer = new PdfPrinter(fonts);
  * Generate PDF Summary for a Credit Request
  */
 const generateCreditRequestPDF = async (req, res) => {
-  const { id } = req.params; // Transaction ID (e.g., AYCA2312/001)
+  const id = decodeURIComponent(req.params.id); // Transaction ID (e.g., AYCA2312/001), decode to handle %2F
 
   try {
     // 1. Fetch Credit Request Data
@@ -67,7 +67,7 @@ const generateCreditRequestPDF = async (req, res) => {
         c.payment_account_no,
         c.existing_credits
       FROM CreditRequests cr
-      JOIN Customers c ON cr.customer_no = c."No_"
+      LEFT JOIN Customers c ON cr.customer_no = c."No_"
       WHERE cr.tx_id = ?
     `;
 
