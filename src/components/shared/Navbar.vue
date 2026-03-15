@@ -114,18 +114,19 @@ export default {
 }
 
 .logout-btn {
-  background-color: transparent;
+  background-color: #dc3545;
   color: #fff;
-  border: 1px solid #fff;
-  padding: 6px 16px;
+  border: none;
+  padding: 8px 20px;
   border-radius: 4px;
   font-size: 14px;
+  font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
   font-family: inherit;
 }
 
 .logout-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: #c82333;
 }
 </style>
