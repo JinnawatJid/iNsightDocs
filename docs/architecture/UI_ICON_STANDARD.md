@@ -37,3 +37,25 @@ File icons should be used to help users quickly identify file types and attachme
 *   **Spacing:** Always include a single space between the functional emoji and the text label (e.g., `✅ เชื่อมต่อสำเร็จ` NOT `✅เชื่อมต่อสำเร็จ`).
 *   **Consistency:** Do not mix different emojis for the same state across different pages. Stick strictly to the mapping above.
 *   **No Redundancy:** Avoid stacking emojis (e.g., `❌⚠️ ผิดพลาด`). Pick the single most appropriate functional icon.
+
+## 4. Form Fields & Input Styling
+
+### 4.1 Disabled and Read-Only Fields
+
+To improve readability and reduce cognitive load for users reviewing submitted applications, disabled (`:disabled`) and read-only (`.readonly`) form fields must adhere to the following styling rules:
+
+*   **Filled Fields (Contains Data):**
+    Must maintain a "normal" appearance to ensure the data stands out.
+    *   **Background:** Very light grey/white (e.g., `#f9f9f9`)
+    *   **Text:** High contrast black (`#000000`)
+*   **Empty Fields (No Data):**
+    Must be visually subdued to allow users to focus easily on the provided data.
+    *   **Background:** Standard grey (`#f5f5f5`)
+    *   **Text (Placeholder):** Muted grey (`#999`)
+*   **Select Elements:** Disabled dropdowns must hide their dropdown arrows to resemble standard text fields.
+*   **Interaction:** All disabled fields must display the `cursor: not-allowed` indicator.
+
+**Implementation Note:**
+These styles are maintained globally in `src/components/credit/tabs/shared-styles.css`.
+*   Standard `<input>` elements rely on the CSS `:placeholder-shown` pseudo-class to determine if they are empty.
+*   Vue-bound elements (like `<select v-model="var">`) must explicitly bind the `:data-empty="!var"` attribute in the template to trigger the empty styling, as native DOM attributes for `<select>` do not always reflect reactive state changes reliably.
