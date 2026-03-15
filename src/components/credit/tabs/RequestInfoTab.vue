@@ -745,12 +745,7 @@ function restrictLocalCreditInput(e, item, field) {
   border-color: #ef4444 !important;
 }
 
-/* Ensure disabled style is consistent */
-.form-input.disabled {
-  background-color: #f5f5f5;
-  color: #999;
-  cursor: not-allowed;
-}
+
 
 /* Updated Grid for 2 Rows */
 .contact-grid-layout {

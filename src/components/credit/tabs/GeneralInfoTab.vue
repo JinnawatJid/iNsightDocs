@@ -457,11 +457,7 @@ watch(() => store.showValidationErrors, (val) => {
 }
 
 /* Ensure disabled style is consistent */
-.form-input.disabled {
-  background-color: #f5f5f5;
-  color: #999;
-  cursor: not-allowed;
-}
+
 
 .grid-three-col {
   display: grid;

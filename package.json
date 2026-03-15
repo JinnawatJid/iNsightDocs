@@ -13,7 +13,7 @@
     "csv-parser": "^3.2.0",
     "dotenv": "^17.2.3",
     "fs-extra": "^11.3.3",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "mime-types": "^3.0.2",
     "pdfmake": "^0.3.1",
     "pinia": "^3.0.4",

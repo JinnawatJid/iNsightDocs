@@ -174,9 +174,11 @@ label {
 }
 
 .form-input.disabled,
-.form-control.readonly {
-  background-color: #f0f0f0;
-  color: #888;
+.form-control.readonly,
+.form-input:disabled,
+.form-control:disabled {
+  background-color: #f9f9f9;
+  color: #000000;
   cursor: not-allowed;
 }
 
@@ -190,6 +192,13 @@ select.form-control {
     background-position: right .7em top 50%;
     background-size: .65em auto;
     color: #000000; /* Ensure text is black */
+}
+
+select.form-input:disabled,
+select.form-control:disabled {
+    background-image: none; /* Hide dropdown arrow for disabled select */
+    background-color: #f9f9f9;
+    color: #000000;
 }
 
 .form-grid-three-columns {
