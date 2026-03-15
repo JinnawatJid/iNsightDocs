@@ -10,36 +10,34 @@
         <img :src="iconBell" alt="Notifications" width="24" height="24" />
         <div class="notification-badge">1</div>
       </div>
-      <div class="user-info" @click="toggleDropdown">
-        <span>{{ user.branch }} : {{ user.name }}</span>
-        <div v-if="dropdownOpen" class="dropdown-menu">
-          <a href="#">Setting</a>
-          <a href="#">Sign Out</a>
-        </div>
+      <div class="user-info">
+        <span class="user-name">{{ authStore.user?.branchCode || 'N/A' }} : {{ authStore.user?.username || 'User' }}</span>
       </div>
+      <button class="logout-btn" @click="handleLogout">ออกจากระบบ</button>
     </div>
   </nav>
 </template>
 
 <script>
 import iconBell from '@/assets/icons/bell.svg';
+import { useAuthStore } from '@/stores/auth';
 
 export default {
   name: 'Navbar',
   data() {
     return {
       iconBell,
-      user: {
-        branch: 'AY',
-        name: 'จิณณวัฒน์ จิตเสนาะ',
-      },
-      dropdownOpen: false,
     };
   },
+  computed: {
+    authStore() {
+      return useAuthStore();
+    }
+  },
   methods: {
-    toggleDropdown() {
-      this.dropdownOpen = !this.dropdownOpen;
-    },
+    async handleLogout() {
+      await this.authStore.logout();
+    }
   },
 };
 </script>
@@ -105,30 +103,30 @@ export default {
 }
 
 .user-info {
-  cursor: pointer;
-  position: relative;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 4px;
   display: flex;
-  flex-direction: column;
-  padding: 0.5rem 0;
-  z-index: 100;
+  align-items: center;
+  margin-right: 1.5rem;
 }
 
-.dropdown-menu a {
-  color: black;
-  text-decoration: none;
-  padding: 0.5rem 1rem;
+.user-name {
+  font-size: 16px;
+  color: #fff;
 }
 
-.dropdown-menu a:hover {
-  background-color: #f0f0f0;
+.logout-btn {
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-family: inherit;
+}
+
+.logout-btn:hover {
+  background-color: #c82333;
 }
 </style>

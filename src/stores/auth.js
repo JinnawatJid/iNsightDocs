@@ -69,9 +69,26 @@ export const useAuthStore = defineStore('auth', {
       Cookies.remove('token');
     },
 
-    logout() {
+    async logout() {
+      try {
+        // 1. Clear cookie on our backend first
+        await fetch('/api/auth/logout', { method: 'POST' });
+
+        // 2. Clear SSO session via external portal hub (no-cors to ignore typical cross-origin read limits, just post it)
+        await fetch('http://192.192.0.37:52683/auth/logout', {
+          method: 'POST',
+          mode: 'no-cors',
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.error('Logout request failed:', error);
+        // Continue to clear local auth anyway to ensure user is logged out locally
+      }
+
+      // 3. Clear local store
       this.clearAuth();
-      // Redirect to portal hub
+
+      // 4. Redirect to portal hub
       window.location.href = this.hubUrl;
     }
   }
