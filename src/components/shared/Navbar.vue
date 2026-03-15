@@ -11,10 +11,9 @@
         <div class="notification-badge">1</div>
       </div>
       <div class="user-info" @click="toggleDropdown">
-        <span>{{ user.branch }} : {{ user.name }}</span>
+        <span>{{ authStore.user?.branchCode || 'N/A' }} : {{ authStore.user?.username || 'User' }}</span>
         <div v-if="dropdownOpen" class="dropdown-menu">
-          <a href="#">Setting</a>
-          <a href="#">Sign Out</a>
+          <a href="#" @click.prevent="handleLogout">Sign Out</a>
         </div>
       </div>
     </div>
@@ -23,23 +22,28 @@
 
 <script>
 import iconBell from '@/assets/icons/bell.svg';
+import { useAuthStore } from '@/stores/auth';
 
 export default {
   name: 'Navbar',
   data() {
     return {
       iconBell,
-      user: {
-        branch: 'AY',
-        name: 'จิณณวัฒน์ จิตเสนาะ',
-      },
       dropdownOpen: false,
     };
+  },
+  computed: {
+    authStore() {
+      return useAuthStore();
+    }
   },
   methods: {
     toggleDropdown() {
       this.dropdownOpen = !this.dropdownOpen;
     },
+    async handleLogout() {
+      await this.authStore.logout();
+    }
   },
 };
 </script>
