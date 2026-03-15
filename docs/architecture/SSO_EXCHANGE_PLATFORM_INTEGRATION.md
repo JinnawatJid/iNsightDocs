@@ -78,5 +78,12 @@ JWT ที่ถูกส่งกลับมาใน Cookie `token` (Sign ด
    - **(ปัจจุบัน):** เพื่อความรวดเร็วในการ Implement ชั้นต้น จะใช้คำสั่ง `jwt.decode(token)` (ไม่มีการ Verify Signature ด้วย Public Key ของตัวแม่) และนำข้อมูล Payload ไปผูกกับตัวแปร `req.user`
    - **(อนาคต):** เพื่อความปลอดภัยระดับ Production ควรเปลี่ยนไปใช้ `jwt.verify(token, PUBLIC_KEY, { algorithms: ['RS256'] })` โดยรับ Public Key (JWKS) จาก URL ของ Identity Provider
 
-3. **การใช้งานภายใน Endpoint:**
+3. **การเปิด/ปิดระบบ Authentication (สำหรับทดสอบ)**
+   - ระบบนี้สามารถถูกปิด (Bypass) ได้ชั่วคราว หากเซิร์ฟเวอร์มีปัญหาหรือต้องการข้ามขั้นตอน Login ในช่วงการทดสอบ (UAT)
+   - การปิดระบบทำได้โดยกำหนดค่าตัวแปร `ENABLE_AUTH=false` ในไฟล์ `backend/.env` ของฝั่ง Backend เพียงที่เดียว
+   - **เมื่อกำหนดค่าเป็น `false`:**
+     - ฝั่ง Frontend จะทำการเรียก API `GET /api/config/auth` ตอนเปิดหน้าเว็บเพื่อเช็คสถานะ หากพบว่าปิดอยู่ จะข้ามการเช็ค Navigation Guard ใน Vue Router ทันที
+     - ฝั่ง Backend จะข้ามการเช็ค Token และจ่ายค่า Mock User ปลอม (`{ username: "DEV_MODE_USER", branchCode: "00TR", ... }`) เข้าไปที่ `req.user` ทันทีเพื่อให้ API เดินหน้าต่อได้โดยไม่พัง
+
+4. **การใช้งานภายใน Endpoint:**
    - Endpoint สามารถเข้าถึงข้อมูลผู้ใช้ (เช่น รหัสพนักงาน, สาขา) ผ่าน `req.user` ได้ทันที (เช่น `req.user.username` หรือ `req.user.branchCode`)

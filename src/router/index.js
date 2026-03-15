@@ -54,6 +54,10 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
 
+  if (!authStore.authRequired) {
+    return next(); // Bypass authentication completely
+  }
+
   if (!authStore.isAuthenticated) {
     // Attempt to re-initialize just in case the cookie was added between page loads
     authStore.initAuth();

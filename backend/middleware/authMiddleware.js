@@ -1,6 +1,27 @@
 const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 const authMiddleware = (req, res, next) => {
+    // Check if authentication is enabled via environment variable
+    // Default to true for safety if the variable is not explicitly set to 'false'
+    const isAuthEnabled = process.env.ENABLE_AUTH !== 'false';
+
+    if (!isAuthEnabled) {
+        // Mock user payload so backend routes don't crash when trying to access req.user
+        req.user = {
+            userId: 99999,
+            username: "DEV_MODE_USER",
+            roles: [
+                {
+                    app: "Smart Credit Application",
+                    role: "ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)"
+                }
+            ],
+            branchCode: "00TR"
+        };
+        return next();
+    }
+
     try {
         let token = null;
 

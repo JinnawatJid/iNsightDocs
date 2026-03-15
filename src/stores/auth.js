@@ -7,6 +7,7 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     token: null,
     isAuthenticated: false,
+    authRequired: true, // Default to true until fetched from backend
   }),
 
   getters: {
@@ -20,6 +21,20 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    async fetchAuthConfig() {
+      try {
+        // We use a basic fetch here instead of axios to avoid circular dependencies with the interceptor
+        const response = await fetch('/api/config/auth');
+        if (response.ok) {
+          const data = await response.json();
+          this.authRequired = data.authRequired;
+        }
+      } catch (error) {
+        console.error('Failed to fetch auth config:', error);
+        // Default stays true on failure for safety
+      }
+    },
+
     initAuth() {
       // 1. Check for token cookie
       const token = Cookies.get('token');

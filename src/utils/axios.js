@@ -32,9 +32,9 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response && error.response.status === 401) {
-      const authStore = useAuthStore();
+    const authStore = useAuthStore();
 
+    if (authStore.authRequired && error.response && error.response.status === 401) {
       // Clear token and redirect to login if backend rejects it
       authStore.clearAuth();
       window.location.href = authStore.loginUrl;

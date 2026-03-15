@@ -10,10 +10,18 @@ const pinia = createPinia();
 
 app.use(pinia);
 
-// Initialize authentication state on startup
-const authStore = useAuthStore(pinia);
-authStore.initAuth();
+async function initializeApp() {
+  const authStore = useAuthStore(pinia);
 
-app.use(router);
+  // 1. Fetch backend configuration to see if auth is required (e.g., checking .env)
+  await authStore.fetchAuthConfig();
 
-app.mount('#app');
+  // 2. Initialize token parsing
+  authStore.initAuth();
+
+  // 3. Mount router and app
+  app.use(router);
+  app.mount('#app');
+}
+
+initializeApp();

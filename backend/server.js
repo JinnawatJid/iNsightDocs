@@ -45,6 +45,14 @@ app.use('/api/external', externalRoutes);
 // Serve downloaded files
 app.use('/api/downloads', express.static(path.join(__dirname, 'downloads')));
 
+// Configuration Endpoint (Public)
+app.get('/api/config/auth', (req, res) => {
+    // Check if authentication is enabled via environment variable
+    // Default to true for safety if the variable is not explicitly set to 'false'
+    const isAuthEnabled = process.env.ENABLE_AUTH !== 'false';
+    res.status(200).json({ authRequired: isAuthEnabled });
+});
+
 // Health Check
 app.get('/api/health', async (req, res) => {
   try {
