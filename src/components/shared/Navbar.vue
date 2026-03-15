@@ -2,7 +2,9 @@
   <nav class="nav-bar">
     <div class="nav-left">
       <img src="@/assets/logo.png" alt="Company Logo" class="logo" />
-      <router-link to="/create-credit-request" class="nav-link">สร้างคำขอ</router-link>
+      <router-link to="/create-credit-request" class="nav-link">
+        {{ authStore.isInitiator ? 'สร้างคำขอ' : 'ค้นหาลูกค้า' }}
+      </router-link>
       <router-link to="/pending-requests" class="nav-link">คำขอทั้งหมด</router-link>
     </div>
     <div class="nav-right">

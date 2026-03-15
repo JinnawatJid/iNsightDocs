@@ -17,6 +17,34 @@ export const useAuthStore = defineStore('auth', {
     },
     hubUrl: () => {
       return `http://192.192.0.37:53683/hub`;
+    },
+    // RBAC Getters
+    userRoles: (state) => {
+      return state.user?.roles || [];
+    },
+    isInitiator: (state) => {
+      // BM: Branch Manager
+      return state.user?.roles?.some(r => r.role === 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)');
+    },
+    isRegionalManager: (state) => {
+      // RM: First Level Approver
+      return state.user?.roles?.some(r => r.role === 'ผู้พิจารณาของพื้นที่');
+    },
+    isSalesManager: (state) => {
+      // SM: Sales Reviewer
+      return state.user?.roles?.some(r => r.role === 'ผู้พิจารณาฝ่ายขาย');
+    },
+    isFinanceOfficer: (state) => {
+      // FO: Document Screener
+      return state.user?.roles?.some(r => r.role === 'ผู้ตรวจสอบเอกสาร');
+    },
+    isFinanceManager: (state) => {
+      // FM: Final Approver (< 300k)
+      return state.user?.roles?.some(r => r.role === 'ผู้อนุมัติ (วงเงิน <300K)');
+    },
+    isCreditCommittee: (state) => {
+      // CC: Final Approver (> 300k)
+      return state.user?.roles?.some(r => r.role === 'ผู้อนุมัติ (วงเงิน > 300K)');
     }
   },
 
