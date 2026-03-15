@@ -182,6 +182,15 @@ label {
   cursor: not-allowed;
 }
 
+/* Style for inputs that are disabled AND empty (placeholder is shown) */
+.form-input:disabled:placeholder-shown,
+.form-input.disabled:placeholder-shown,
+.form-control:disabled:placeholder-shown,
+.form-control.readonly:placeholder-shown {
+  background-color: #f5f5f5;
+  color: #999;
+}
+
 select.form-input,
 select.form-control {
     appearance: none;
@@ -199,6 +208,24 @@ select.form-control:disabled {
     background-image: none; /* Hide dropdown arrow for disabled select */
     background-color: #f9f9f9;
     color: #000000;
+}
+
+/* Style for select elements that are disabled AND empty.
+   Since :placeholder-shown doesn't apply to select, we rely on the value attribute.
+   However, Vue v-model doesn't always reflect in the DOM attribute dynamically.
+   Therefore, we will also add a class-based approach (.is-empty) as a fallback/primary method. */
+select.form-input:disabled[value=""],
+select.form-control:disabled[value=""],
+.form-input.disabled.is-empty,
+.form-control.readonly.is-empty,
+.form-input:disabled.is-empty,
+.form-control:disabled.is-empty,
+.form-input:disabled[data-empty="true"],
+.form-control:disabled[data-empty="true"],
+.form-input.disabled[data-empty="true"],
+.form-control.readonly[data-empty="true"] {
+  background-color: #f5f5f5;
+  color: #999;
 }
 
 .form-grid-three-columns {

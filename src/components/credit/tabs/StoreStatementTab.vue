@@ -55,7 +55,7 @@
             <div class="form-group dbd-input-group">
                 <input
                   type="text"
-                  v-model="dbdQuery"
+                  v-model="dbdQuery" :data-empty="!dbdQuery"
                   class="form-control"
                   :class="{'disabled-input': localDBDStatus.exists && !localDBDStatus.isNoFinancialData}"
                   placeholder="เลขทะเบียนนิติบุคคล หรือ ชื่อบริษัท"
@@ -88,7 +88,7 @@
             <div v-if="showBridgeInput" class="mt-1">
                 <input
                     type="text"
-                    v-model="customBridgeHost"
+                    v-model="customBridgeHost" :data-empty="!customBridgeHost"
                     class="form-control form-control-sm"
                     placeholder="เช่น 10.10.10.9 หรือ localhost"
                 >
@@ -131,7 +131,7 @@
           <label>ทุนจดทะเบียน</label>
           <input
             type="text"
-            v-model="registeredCapital"
+            v-model="registeredCapital" :data-empty="!registeredCapital"
             class="form-control"
             placeholder="ระบุทุนจดทะเบียน (บาท)"
           />
@@ -140,7 +140,7 @@
           <label>ระยะเวลาการเป็นลูกค้า</label>
           <input
             type="text"
-            v-model="customerDuration"
+            v-model="customerDuration" :data-empty="!customerDuration"
             @input="handleDurationInput"
             class="form-control"
             placeholder="ระบุจำนวนปี"
@@ -247,7 +247,7 @@
            <h4>ข้อมูลทางการเงิน (Financial Data)</h4>
            <div class="toggle-switch">
               <label class="switch">
-                <input type="checkbox" v-model="showDebug">
+                <input type="checkbox" v-model="showDebug" :data-empty="!showDebug">
                 <span class="slider round"></span>
               </label>
               <span class="toggle-label">แสดงข้อมูล Debug</span>

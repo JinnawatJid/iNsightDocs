@@ -42,7 +42,7 @@
                 class="form-input"
                 :class="{ 'border-red-500': errors.contact_person, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="store.customer.contact_person"
+                v-model="store.customer.contact_person" :data-empty="!store.customer.contact_person"
                 placeholder="ระบุชื่อผู้ติดต่อ"
             />
             <span v-if="errors.contact_person" class="error-text">กรุณาระบุข้อมูล</span>
@@ -54,7 +54,7 @@
                 class="form-input"
                 :class="{ 'border-red-500': errors.contact_position, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="store.customer.contact_position"
+                v-model="store.customer.contact_position" :data-empty="!store.customer.contact_position"
                 placeholder="ระบุตำแหน่ง"
             />
             <span v-if="errors.contact_position" class="error-text">กรุณาระบุข้อมูล</span>
@@ -66,7 +66,7 @@
                 class="form-input"
                 :class="{ 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="store.customer.contact_department"
+                v-model="store.customer.contact_department" :data-empty="!store.customer.contact_department"
                 placeholder="ระบุแผนก"
             />
             </div>
@@ -79,7 +79,7 @@
                 class="form-input"
                 :class="{ 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="store.customer.contact_division"
+                v-model="store.customer.contact_division" :data-empty="!store.customer.contact_division"
                 placeholder="ระบุฝ่าย"
             />
             </div>
@@ -90,7 +90,7 @@
                 class="form-input"
                 :class="{ 'border-red-500': errors.contact_phone_number, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="store.customer.contact_phone_number"
+                v-model="store.customer.contact_phone_number" :data-empty="!store.customer.contact_phone_number"
                 placeholder="0XX-XXX-XXXX"
                 @input="(e) => handlePhoneInput(e, 'contact_phone_number')"
             />
@@ -114,7 +114,7 @@
                 type="text"
                 class="form-input disabled"
                 disabled
-                :value="store.financialSummary.current_credit_limit || 'N/A'"
+                :value="store.financialSummary.current_credit_limit || 'N/A'" :data-empty="!store.financialSummary.current_credit_limit || 'N/A'"
               />
             </div>
 
@@ -129,7 +129,7 @@
                 :class="{ 'border-red-500': errors.amount, 'disabled': !canEditAmount }"
                 :disabled="!canEditAmount"
                 placeholder="ระบุวงเงินที่ต้องการ"
-                v-model="formattedAmount"
+                v-model="formattedAmount" :data-empty="!formattedAmount"
                 @input="handleAmountInput"
               />
               <span v-if="errors.amount" class="error-text">กรุณาระบุข้อมูล</span>
@@ -151,7 +151,7 @@
                   :class="{ 'disabled': !canEditTerms }"
                   :disabled="!canEditTerms"
                   placeholder="ระบุระยะเวลาเครดิต (กระจก, กาว)"
-                  v-model="store.transactionData.termGS"
+                  v-model="store.transactionData.termGS" :data-empty="!store.transactionData.termGS"
                   @input="(e) => handleNumericInput(e, 'termGS', true)"
                 />
               </div>
@@ -168,7 +168,7 @@
                   :class="{ 'disabled': !canEditTerms }"
                   :disabled="!canEditTerms"
                   placeholder="ระบุระยะเวลาเครดิต (อลูมิเนียม, Acc)"
-                  v-model="store.transactionData.termAE"
+                  v-model="store.transactionData.termAE" :data-empty="!store.transactionData.termAE"
                   @input="(e) => handleNumericInput(e, 'termAE', true)"
                 />
               </div>
@@ -185,7 +185,7 @@
                   :class="{ 'disabled': !canEditTerms }"
                   :disabled="!canEditTerms"
                   placeholder="ระบุระยะเวลาเครดิต (ยิปซั่ม, ซีลาย)"
-                  v-model="store.transactionData.termYC"
+                  v-model="store.transactionData.termYC" :data-empty="!store.transactionData.termYC"
                   @input="(e) => handleNumericInput(e, 'termYC', true)"
                 />
               </div>
@@ -197,7 +197,7 @@
                 class="form-input"
                 :class="{ 'border-red-500': errors.reason, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="store.transactionData.reason"
+                v-model="store.transactionData.reason" :data-empty="!store.transactionData.reason"
               >
                   <option value="" disabled>เลือกเหตุผล</option>
                   <option v-for="option in reasonOptions" :key="option" :value="option">
@@ -220,7 +220,7 @@
                   class="form-input"
                   :class="{ 'border-red-500': errors.billing_requirement, 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="store.customer.billing_requirement"
+                  v-model="store.customer.billing_requirement" :data-empty="!store.customer.billing_requirement"
                 >
                     <option value="" disabled>เลือกการวางบิล</option>
                     <option value="required">ต้องการ</option>
@@ -234,7 +234,7 @@
                         type="text"
                         class="form-input"
                         placeholder="ระบุ"
-                        v-model="store.customer.billing_requirement_note"
+                        v-model="store.customer.billing_requirement_note" :data-empty="!store.customer.billing_requirement_note"
                         :disabled="!isEditing"
                     >
                 </div>
@@ -246,7 +246,7 @@
                   class="form-input"
                   :class="{ 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="store.customer.billing_method"
+                  v-model="store.customer.billing_method" :data-empty="!store.customer.billing_method"
                 >
                     <option value="" disabled>เลือกวิธีในการวางบิล</option>
                     <option value="delivery">พร้อมการส่งมอบสินค้า</option>
@@ -260,7 +260,7 @@
                         type="text"
                         class="form-input"
                         placeholder="ระบุ"
-                        v-model="store.customer.billing_method_note"
+                        v-model="store.customer.billing_method_note" :data-empty="!store.customer.billing_method_note"
                         :disabled="!isEditing"
                     >
                 </div>
@@ -272,7 +272,7 @@
                 <input
                   type="text"
                   class="form-input"
-                  v-model="store.customer.billing_schedule"
+                  v-model="store.customer.billing_schedule" :data-empty="!store.customer.billing_schedule"
                   placeholder="ระบุวันที่/เวลา"
                   :disabled="!isEditing"
                 >
@@ -286,7 +286,7 @@
                     <input
                       type="text"
                       class="form-input"
-                      v-model="store.customer.billing_contact"
+                      v-model="store.customer.billing_contact" :data-empty="!store.customer.billing_contact"
                       placeholder="ระบุชื่อผู้รับวางบิล"
                       :disabled="!isEditing"
                     >
@@ -296,7 +296,7 @@
                     <input
                       type="text"
                       class="form-input"
-                      v-model="store.customer.billing_department"
+                      v-model="store.customer.billing_department" :data-empty="!store.customer.billing_department"
                       placeholder="ระบุแผนก"
                       :disabled="!isEditing"
                     >
@@ -309,7 +309,7 @@
                     <input
                       type="text"
                       class="form-input"
-                      v-model="store.customer.billing_phone"
+                      v-model="store.customer.billing_phone" :data-empty="!store.customer.billing_phone"
                       placeholder="ระบุเบอร์โทรศัพท์"
                       :disabled="!isEditing"
                     >
@@ -319,7 +319,7 @@
                     <input
                       type="text"
                       class="form-input"
-                      v-model="store.customer.billing_mobile"
+                      v-model="store.customer.billing_mobile" :data-empty="!store.customer.billing_mobile"
                       placeholder="ระบุเบอร์มือถือ"
                       :disabled="!isEditing"
                     >
@@ -329,7 +329,7 @@
                     <input
                       type="text"
                       class="form-input"
-                      v-model="store.customer.billing_email"
+                      v-model="store.customer.billing_email" :data-empty="!store.customer.billing_email"
                       placeholder="ระบุอีเมล"
                       :disabled="!isEditing"
                     >
@@ -351,7 +351,7 @@
                 class="form-input"
                 :class="{ 'border-red-500': errors.payment_method, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="store.customer.payment_method"
+                v-model="store.customer.payment_method" :data-empty="!store.customer.payment_method"
                 >
                 <option value="" disabled>เลือกวิธีการชำระเงิน</option>
                 <option value="โอนเงิน">โอนเงิน</option>
@@ -366,7 +366,7 @@
                 <input
                     type="text"
                     class="form-input"
-                    v-model="store.customer.payment_condition"
+                    v-model="store.customer.payment_condition" :data-empty="!store.customer.payment_condition"
                     :disabled="!isEditing"
                 />
             </div>
@@ -381,7 +381,7 @@
                 class="form-input"
                 :class="{ 'border-red-500': errors.payment_bank_name, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="store.customer.payment_bank_name"
+                v-model="store.customer.payment_bank_name" :data-empty="!store.customer.payment_bank_name"
                 placeholder="ระบุชื่อธนาคาร"
             />
             <span v-if="errors.payment_bank_name" class="error-text">กรุณาระบุข้อมูล</span>
@@ -393,7 +393,7 @@
                 class="form-input"
                 :class="{ 'border-red-500': errors.payment_bank_branch, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="store.customer.payment_bank_branch"
+                v-model="store.customer.payment_bank_branch" :data-empty="!store.customer.payment_bank_branch"
                 placeholder="ระบุสาขา"
             />
             <span v-if="errors.payment_bank_branch" class="error-text">กรุณาระบุข้อมูล</span>
@@ -405,7 +405,7 @@
                 class="form-input"
                 :class="{ 'border-red-500': errors.payment_account_no, 'disabled': !isEditing }"
                 :disabled="!isEditing"
-                v-model="store.customer.payment_account_no"
+                v-model="store.customer.payment_account_no" :data-empty="!store.customer.payment_account_no"
                 placeholder="ระบุเลขที่บัญชี"
                 @input="(e) => handlePhoneInput(e, 'payment_account_no')"
             />
@@ -431,7 +431,7 @@
               <input
                 type="radio"
                 value="yes"
-                v-model="store.customer.has_other_credit"
+                v-model="store.customer.has_other_credit" :data-empty="!store.customer.has_other_credit"
                 :disabled="!isEditing"
               >
               มีเครดิตจากที่อื่น
@@ -440,7 +440,7 @@
               <input
                 type="radio"
                 value="no"
-                v-model="store.customer.has_other_credit"
+                v-model="store.customer.has_other_credit" :data-empty="!store.customer.has_other_credit"
                 :disabled="!isEditing"
               >
               ไม่มีเครดิตจากที่อื่น
@@ -457,7 +457,7 @@
                 <input
                   type="text"
                   class="form-input"
-                  v-model="item.companyName"
+                  v-model="item.companyName" :data-empty="!item.companyName"
                   :disabled="!isEditing"
                 />
             </div>
@@ -466,7 +466,7 @@
                 <input
                   type="text"
                   class="form-input"
-                  v-model="item.goods"
+                  v-model="item.goods" :data-empty="!item.goods"
                   :disabled="!isEditing"
                 />
             </div>
@@ -475,7 +475,7 @@
                 <input
                   type="text"
                   class="form-input"
-                  v-model="item.term"
+                  v-model="item.term" :data-empty="!item.term"
                   :disabled="!isEditing"
                   @input="(e) => { e.target.value = e.target.value.replace(/\D/g, ''); item.term = e.target.value; }"
                 />
@@ -485,7 +485,7 @@
                 <input
                   type="text"
                   class="form-input"
-                  :value="formatWithCommas(item.limit)"
+                  :value="formatWithCommas(item.limit)" :data-empty="!formatWithCommas(item.limit)"
                   :disabled="!isEditing"
                   @input="(e) => restrictLocalCreditInput(e, item, 'limit')"
                 />
