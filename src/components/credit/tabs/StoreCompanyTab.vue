@@ -83,7 +83,7 @@
             class="form-control"
             :class="{ 'border-red-500': errors.houseAddress, 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.houseAddress"
+            v-model="formData.houseAddress" :data-empty="!formData.houseAddress"
             placeholder="ระบุบ้านเลขที่, ถนน"
             @input="validateField('houseAddress', formData.houseAddress, ['required'])"
             @blur="validateField('houseAddress', formData.houseAddress, ['required'])"
@@ -97,7 +97,7 @@
             class="form-control"
             :class="{ 'border-red-500': errors.subdistrict, 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.subdistrict"
+            v-model="formData.subdistrict" :data-empty="!formData.subdistrict"
             placeholder="ระบุตำบล/แขวง"
             @input="validateField('subdistrict', formData.subdistrict, ['required'])"
             @blur="validateField('subdistrict', formData.subdistrict, ['required'])"
@@ -111,7 +111,7 @@
             class="form-control"
             :class="{ 'border-red-500': errors.postCode, 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.postCode"
+            v-model="formData.postCode" :data-empty="!formData.postCode"
             placeholder="ระบุรหัสไปรษณีย์"
             @input="validateField('postCode', formData.postCode, ['required'])"
             @blur="validateField('postCode', formData.postCode, ['required'])"
@@ -125,7 +125,7 @@
             class="form-control"
             :class="{ 'border-red-500': errors.district, 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.district"
+            v-model="formData.district" :data-empty="!formData.district"
             placeholder="ระบุอำเภอ/เขต"
             @input="validateField('district', formData.district, ['required'])"
             @blur="validateField('district', formData.district, ['required'])"
@@ -139,7 +139,7 @@
             class="form-control"
             :class="{ 'border-red-500': errors.city, 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.city"
+            v-model="formData.city" :data-empty="!formData.city"
             placeholder="ระบุจังหวัด"
             @input="validateField('city', formData.city, ['required'])"
             @blur="validateField('city', formData.city, ['required'])"
@@ -160,7 +160,7 @@
             class="form-control"
             :class="{ 'border-red-500': errors.phone, 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.phone"
+            v-model="formData.phone" :data-empty="!formData.phone"
             placeholder="0XX-XXX-XXXX"
             @input="(e) => { validateField('phone', e.target.value, ['required']); }"
             @blur="validateField('phone', formData.phone, ['required']);"
@@ -174,7 +174,7 @@
             class="form-control"
             :class="{ 'disabled': !isEditing }"
             :disabled="!isEditing"
-            v-model="formData.email"
+            v-model="formData.email" :data-empty="!formData.email"
             placeholder="example@email.com"
           />
         </div>
@@ -188,7 +188,7 @@
                   class="form-control"
                   :class="{ 'border-red-500': errors.locationType, 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formData.locationTypeSelect"
+                  v-model="formData.locationTypeSelect" :data-empty="!formData.locationTypeSelect"
                   @change="() => { validateField('locationType', formData.locationTypeSelect, ['required']); }"
                 >
                   <option value="" disabled selected>เลือกประเภทที่ตั้ง</option>
@@ -206,7 +206,7 @@
                   class="form-control"
                   :class="{ 'border-red-500': errors.propertyOwnership, 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formData.ownershipSelect"
+                  v-model="formData.ownershipSelect" :data-empty="!formData.ownershipSelect"
                   @change="() => { validateField('propertyOwnership', formData.ownershipSelect, ['required']); }"
                 >
                   <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
@@ -223,7 +223,7 @@
                   class="form-control"
                   :class="{ 'border-red-500': errors.storeValue, 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formattedStoreValue"
+                  v-model="formattedStoreValue" :data-empty="!formattedStoreValue"
                   placeholder="ระบุจำนวนเงิน"
                 />
                 <span v-if="errors.storeValue" class="error-text">{{ errors.storeValue }}</span>
@@ -235,7 +235,7 @@
                   class="form-control"
                   :class="{ 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formData.locationTypeOther"
+                  v-model="formData.locationTypeOther" :data-empty="!formData.locationTypeOther"
                   placeholder="ระบุ..."
                 />
              </div>
