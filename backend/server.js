@@ -11,6 +11,7 @@ const creditRequestRoutes = require('./routes/creditRequestRoutes');
 const financialRoutes = require('./routes/financialRoutes');
 const ocrRoutes = require('./routes/ocrRoutes');
 const externalRoutes = require('./routes/externalRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,6 +33,13 @@ if (!fs.existsSync(logDirectory)) {
 const accessLogStream = fs.createWriteStream(path.join(logDirectory, 'access.log'), { flags: 'a' });
 app.use(morgan('combined', { stream: accessLogStream })); // Log to file
 app.use(morgan('dev')); // Log to console
+
+// Public Authentication Routes
+app.use('/api/auth', authRoutes);
+
+// TODO: Implement Role-Based Access Control (RBAC) middleware for protected routes
+// TODO: Implement proper JWT signature validation (using JWKS) for token verification
+// TODO: Secure auth token cookie (HttpOnly, Secure, SameSite) to prevent XSS/CSRF
 
 // Routes (Protected with Auth Middleware)
 app.use('/api/customers', authMiddleware, customerRoutes);
