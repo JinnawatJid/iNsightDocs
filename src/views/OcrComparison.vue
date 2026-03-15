@@ -57,7 +57,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
+import axios from '../utils/axios.js';
 import Swal from 'sweetalert2';
 
 const file = ref(null);

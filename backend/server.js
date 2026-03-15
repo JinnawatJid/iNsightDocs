@@ -3,7 +3,9 @@ const cors = require('cors');
 const path = require('path'); // Added path module
 const morgan = require('morgan');
 const fs = require('fs');
+const cookieParser = require('cookie-parser');
 const db = require('./db');
+const authMiddleware = require('./middleware/authMiddleware');
 const customerRoutes = require('./routes/customerRoutes');
 const creditRequestRoutes = require('./routes/creditRequestRoutes');
 const financialRoutes = require('./routes/financialRoutes');
@@ -13,8 +15,12 @@ const externalRoutes = require('./routes/externalRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({
+    origin: true, // or your frontend domain
+    credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 // Ensure logs directory exists
 const logDirectory = path.join(__dirname, 'logs');
@@ -27,11 +33,13 @@ const accessLogStream = fs.createWriteStream(path.join(logDirectory, 'access.log
 app.use(morgan('combined', { stream: accessLogStream })); // Log to file
 app.use(morgan('dev')); // Log to console
 
-// Routes
-app.use('/api/customers', customerRoutes);
-app.use('/api/credit-requests', creditRequestRoutes);
-app.use('/api/financials', financialRoutes);
-app.use('/api/ocr', ocrRoutes);
+// Routes (Protected with Auth Middleware)
+app.use('/api/customers', authMiddleware, customerRoutes);
+app.use('/api/credit-requests', authMiddleware, creditRequestRoutes);
+app.use('/api/financials', authMiddleware, financialRoutes);
+app.use('/api/ocr', authMiddleware, ocrRoutes);
+
+// External Routes (Should typically have their own API key protection, not user JWT)
 app.use('/api/external', externalRoutes);
 
 // Serve downloaded files

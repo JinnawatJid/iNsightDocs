@@ -319,7 +319,7 @@ import FileUploader from '@/components/shared/FileUploader.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 import CreditScoreSheet from '../CreditScoreSheet.vue';
-import axios from 'axios';
+import axios from '../../../utils/axios.js';
 import Swal from 'sweetalert2';
 import { useFormValidation } from '@/composables/useFormValidation';
 

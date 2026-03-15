@@ -151,7 +151,7 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { getMandatoryKeys } from '@/config/mandatoryFields';
 import ApplicationTabs from './ApplicationTabs.vue';
 import FinancialStatementModal from './FinancialStatementModal.vue';
-import axios from 'axios';
+import axios from '../../utils/axios.js';
 
 const store = useCreditRequestStore();
 const showFullDetails = ref(false);

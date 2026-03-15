@@ -77,7 +77,7 @@ import ChangeSummaryModal from './ChangeSummaryModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { workflowConfig, roleLabels } from '@/config/workflow';
 import Swal from 'sweetalert2';
-import axios from 'axios';
+import axios from '../../utils/axios.js';
 import { computed, ref } from 'vue';
 import { useFeatureFlag } from '@/composables/useFeatureFlag';
 

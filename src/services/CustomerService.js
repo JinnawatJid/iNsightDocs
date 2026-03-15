@@ -1,5 +1,5 @@
 // src/services/CustomerService.js
-import axios from 'axios';
+import axios from '../utils/axios.js';
 
 // In development with Vite proxy, this will go to http://localhost:3000/api/customers/search
 const API_URL = '/api/customers';
