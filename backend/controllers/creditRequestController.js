@@ -8,7 +8,7 @@ const UPLOAD_BASE = process.env.UPLOAD_PATH
     : path.join(__dirname, '../uploads');
 
 exports.getCreditRequestDetail = async (req, res) => {
-    const { id } = req.params; // tx_id
+    const id = decodeURIComponent(req.params.id); // tx_id
 
     try {
         let sql;
@@ -74,7 +74,8 @@ exports.getCreditRequestDetail = async (req, res) => {
 };
 
 exports.downloadCreditRequestFile = async (req, res) => {
-    const { id, fileId } = req.params; // id = tx_id, fileId = attachment ID
+    const id = decodeURIComponent(req.params.id); // tx_id
+    const { fileId } = req.params; // attachment ID
 
     try {
         let sql;
@@ -485,7 +486,7 @@ exports.getCreditRequests = async (req, res) => {
 };
 
 exports.cancelCreditRequest = async (req, res) => {
-  const { id } = req.params;
+  const id = decodeURIComponent(req.params.id);
 
   try {
     // Check if request exists
@@ -523,7 +524,7 @@ exports.cancelCreditRequest = async (req, res) => {
 };
 
 exports.getComments = async (req, res) => {
-    const { id } = req.params; // tx_id
+    const id = decodeURIComponent(req.params.id); // tx_id
     try {
         let sql = `SELECT * FROM RequestComments WHERE tx_id = ? ORDER BY created_at ASC`;
         const { rows } = await db.query(sql, [id]);
