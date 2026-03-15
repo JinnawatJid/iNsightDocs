@@ -228,17 +228,26 @@
                  <!-- C1 -->
                  <div class="breakdown-card">
                      <div class="bd-title">C1: ความแข็งแกร่งของบริษัท</div>
-                     <div class="bd-value">{{ Math.round(analysisResults.scoringResult.breakdown.c1.total) }}/{{ getCMaxScore(analysisResults.scoringResult.breakdown.c1) }}</div>
+                     <div class="score-val-container text-primary">
+                         <div class="score-main">{{ Math.round(analysisResults.scoringResult.breakdown.c1.total) }}</div>
+                         <div class="score-max">/ {{ getCMaxScore(analysisResults.scoringResult.breakdown.c1) }}</div>
+                     </div>
                  </div>
                  <!-- C2 -->
                  <div class="breakdown-card">
-                     <div class="bd-title">C2: กระแสเงินสดและสภาพคล่อง</div>
-                     <div class="bd-value">{{ Math.round(analysisResults.scoringResult.breakdown.c2.total) }}/{{ getCMaxScore(analysisResults.scoringResult.breakdown.c2) }}</div>
+                     <div class="bd-title">C2: กระแสเงินสด</div>
+                     <div class="score-val-container text-primary">
+                         <div class="score-main">{{ Math.round(analysisResults.scoringResult.breakdown.c2.total) }}</div>
+                         <div class="score-max">/ {{ getCMaxScore(analysisResults.scoringResult.breakdown.c2) }}</div>
+                     </div>
                  </div>
                  <!-- C3 -->
                  <div class="breakdown-card">
-                     <div class="bd-title">C3: พฤติกรรมการซื้อและประวัติ</div>
-                     <div class="bd-value">{{ Math.round(analysisResults.scoringResult.breakdown.c3.total) }}/{{ getCMaxScore(analysisResults.scoringResult.breakdown.c3) }}</div>
+                     <div class="bd-title">C3: พฤติกรรมการซื้อ</div>
+                     <div class="score-val-container text-primary">
+                         <div class="score-main">{{ Math.round(analysisResults.scoringResult.breakdown.c3.total) }}</div>
+                         <div class="score-max">/ {{ getCMaxScore(analysisResults.scoringResult.breakdown.c3) }}</div>
+                     </div>
                  </div>
              </div>
         </div>
