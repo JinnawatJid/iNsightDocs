@@ -17,7 +17,8 @@ class NewCustomerScorecard extends BaseScorecard {
             accumData,
             requestTerm,
             customerDuration,
-            isCompany
+            isCompany,
+            limitExponent
         } = context;
 
         // 1. Calculate Component Scores
@@ -31,8 +32,8 @@ class NewCustomerScorecard extends BaseScorecard {
         // 3. Determine Recommended Limit (New Customer Formula: 50k - 500k)
         const minLimit = 50000;
         const maxLimit = 500000;
-        const n = 1.2;
-        const ratio = Math.pow((totalScore / 200), n);
+        const exponent = typeof limitExponent === 'number' ? limitExponent : (this.evaluator.config.limitExponent || 2.0);
+        const ratio = Math.pow((totalScore / 200), exponent);
         const recommendedLimit = minLimit + (maxLimit - minLimit) * ratio;
         const roundedLimit = Math.round(recommendedLimit / 1000) * 1000;
 
