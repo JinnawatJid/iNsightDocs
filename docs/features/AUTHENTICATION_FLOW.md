@@ -45,10 +45,22 @@ The logout sequence is triggered via the prominent "ออกจากระบ�
 4. **Redirect**:
    - Finally, the user is redirected to the Central Portal Hub (`http://192.192.0.37:53683/hub`).
 
-## 4. Future Security Roadmap
+## 4. Role-Based Access Control (RBAC) & Contextual Logic
 
-As noted in `backend/server.js`, several security enhancements are deferred for future implementation to align with stricter industry standards:
+The application implements Frontend Role-Based Access Control (RBAC) driven by the roles embedded in the SSO JWT.
+
+1. **Role Mapping**: The `src/stores/auth.js` Pinia store maps exact Thai strings from the JWT to computed getters (e.g., `isInitiator`, `isRegionalManager`, `isFinanceManager`).
+   - For example, if a user has the role `ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)`, they are identified as an "Initiator" (Branch Manager).
+2. **View-Based Access**: These getters control UI visibility across the application.
+   - **Navigation**: The primary CTA in `Navbar.vue` dynamically displays "สร้างคำขอ" (Create Request) for Initiators, but "ค้นหาลูกค้า" (Search Customer) for other roles.
+   - **Action Menus**: The "+ เพิ่มคำขอเครดิตใหม่" button on the `/create-credit-request` page is completely hidden from non-initiators to prevent unauthorized request creation.
+   - **Dashboard Filtering**: In the `/pending-requests` dashboard, the `RequestSidebar.vue` automatically filters the API query for the "Pending" tab so users only see requests in statuses relevant to their approval level (e.g., `Draft` for Initiators, `Opened` for Regional Managers).
+3. **Dynamic Identifiers**: The `branchCode` payload from the JWT (`req.user.branchCode`) is actively used by the backend `creditRequestController.js` to dynamically generate localized Transaction IDs (e.g., prefixing `TRCA2603/001` for branch `TR` instead of a hardcoded value).
+
+## 5. Future Security Roadmap
+
+As noted in `backend/server.js`, several backend security enhancements are deferred for future implementation to align with stricter industry standards:
 
 - **JWT Signature Validation (JWKS)**: The backend `authMiddleware.js` should be updated to fetch the Identity Provider's public keys (JSON Web Key Set) to cryptographically verify the RS256 signature of incoming tokens, preventing token forgery.
 - **Strict Cookie Security**: The backend should enforce `HttpOnly`, `Secure`, and `SameSite` flags when setting the auth token cookie to mitigate Cross-Site Scripting (XSS) and Cross-Site Request Forgery (CSRF) vulnerabilities. This will require the frontend to fetch user details via a secure `/api/auth/me` endpoint rather than reading the cookie directly via JavaScript.
-- **Role-Based Access Control (RBAC)**: Backend routes should implement an RBAC middleware to strictly enforce authorization rules based on the `req.user.roles` and `req.user.branchCode` payloads (e.g., preventing Branch Managers from approving requests, or restricting queries to specific branch codes).
+- **Backend API RBAC Enforcement**: While Frontend RBAC is implemented, backend routes should also implement a strict RBAC middleware to enforce authorization rules on API mutations (e.g., preventing a hijacked session from explicitly calling an approval endpoint if the user lacks the required `req.user.roles`).
