@@ -96,7 +96,7 @@ import SmartImportModal from '@/components/credit/SmartImportModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFeatureFlag } from '@/composables/useFeatureFlag';
 import iconSearchLarge from '@/assets/icons/search-large.svg';
-import { ref, watch } from 'vue';
+import { ref, watch , onMounted} from 'vue';
 import Swal from 'sweetalert2';
 
 const store = useCreditRequestStore();
@@ -108,6 +108,12 @@ const closePreview = () => {
     store.resetState();
     isRequestStarted.value = false;
 };
+
+onMounted(() => {
+    // Reset state when visiting the page to ensure a clean slate
+    store.resetState();
+    isRequestStarted.value = false;
+});
 
 const handleSearch = async (query) => {
     // Reset local state before search
