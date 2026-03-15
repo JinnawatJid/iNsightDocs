@@ -205,7 +205,10 @@ exports.createCreditRequest = async (req, res) => {
             const year = now.getFullYear();
             const yy = year.toString().slice(-2);
             const mm = (now.getMonth() + 1).toString().padStart(2, '0');
-            const prefix = `AYCA${yy}${mm}/`;
+
+            // Extract branchCode from JWT payload (req.user is set by authMiddleware)
+            const branchCode = req.user?.branchCode || 'XX';
+            const prefix = `${branchCode}CA${yy}${mm}/`;
 
             // Find the latest running number
             let latestSql;

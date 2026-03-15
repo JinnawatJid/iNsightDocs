@@ -85,6 +85,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 import { debounce } from 'lodash';
 
 // Import Icons
@@ -94,6 +95,7 @@ import iconApproved from '@/assets/icons/check-circle-green.svg';
 import iconRejected from '@/assets/icons/x-circle-red.svg';
 
 const store = useCreditRequestStore();
+const authStore = useAuthStore();
 const activeTab = ref('pending');
 const searchQuery = ref('');
 
@@ -107,10 +109,36 @@ const switchTab = (tab) => {
 
 const fetchData = () => {
   const query = searchQuery.value;
-  // Included 'Draft' and others to match backend active statuses
+
   if (activeTab.value === 'pending') {
-    store.fetchRequests('Draft,Opened,RegionalSubmitted,SalesSubmitted,Reviewed,Submitted,PendingSales (ชั่วคราว),PendingFinance (ชั่วคราว)', query);
+    let allowedStatuses = [];
+
+    // Determine allowed statuses based on the user's role
+    if (authStore.isInitiator) {
+      allowedStatuses.push('Draft', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
+    }
+    if (authStore.isRegionalManager) {
+      allowedStatuses.push('Opened');
+    }
+    if (authStore.isSalesManager) {
+      allowedStatuses.push('RegionalSubmitted');
+    }
+    if (authStore.isFinanceOfficer) {
+      allowedStatuses.push('SalesSubmitted');
+    }
+    if (authStore.isFinanceManager || authStore.isCreditCommittee) {
+      allowedStatuses.push('Reviewed');
+    }
+
+    // If no roles match or array is empty, fallback to a safe default so it doesn't break,
+    // though in a perfect RBAC system, they might just see nothing.
+    const statusQuery = allowedStatuses.length > 0
+      ? allowedStatuses.join(',')
+      : 'Draft';
+
+    store.fetchRequests(statusQuery, query);
   } else {
+    // History tab: everyone can see final statuses
     store.fetchRequests('Approved,Rejected,Closed,Canceled', query);
   }
 };

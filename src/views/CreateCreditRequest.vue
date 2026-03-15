@@ -15,7 +15,7 @@
           <RequestStatus v-if="store.hasSearched" />
         </div>
         <div class="grid-col center">
-          <div v-if="isOcrEnabled" class="smart-import-wrapper">
+          <div v-if="isOcrEnabled && authStore.isInitiator" class="smart-import-wrapper">
              <button class="btn-smart-import" @click="showSmartImport = true">
                 📷 Smart Import (Thai ID)
              </button>
@@ -50,7 +50,7 @@
            <div v-if="!store.hasSearched" class="placeholder-state">
              <div class="placeholder-content">
                <img :src="iconSearchLarge" alt="Search" width="64" height="64" />
-               <h3>ค้นหาลูกค้า เพื่อเริ่มสร้างคำขอเครดิต</h3>
+               <h3>{{ authStore.isInitiator ? 'ค้นหาลูกค้า เพื่อเริ่มสร้างคำขอเครดิต' : 'ค้นหาลูกค้า เพื่อดูข้อมูล' }}</h3>
              </div>
            </div>
 
@@ -95,11 +95,13 @@ import DocumentChecklist from '@/components/credit/DocumentChecklist.vue';
 import SmartImportModal from '@/components/credit/SmartImportModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFeatureFlag } from '@/composables/useFeatureFlag';
+import { useAuthStore } from '@/stores/auth';
 import iconSearchLarge from '@/assets/icons/search-large.svg';
 import { ref, watch , onMounted} from 'vue';
 import Swal from 'sweetalert2';
 
 const store = useCreditRequestStore();
+const authStore = useAuthStore();
 const { isOcrEnabled } = useFeatureFlag();
 const showSmartImport = ref(false);
 const isRequestStarted = ref(false);
