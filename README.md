@@ -51,7 +51,18 @@ The application currently supports the following workflows:
 2.  **View Pending Requests**:
     -   Access the "Pending Requests" view (if enabled in navigation) to see a list of ongoing applications.
 
-**Note**: Authentication (Login/Password) has been removed. The application is open for internal use.
+## Authentication (SSO)
+
+This application uses Single Sign-On (SSO) integrated with an external Identity Provider (Exchange Platform).
+When a user accesses the application, they will be automatically redirected to the Identity Provider to log in. Upon success, they are returned to the application with a JWT `token` stored in their cookies.
+
+**Local Development / Testing Bypass:**
+If you need to bypass authentication for local development or testing purposes, you can disable the entire SSO flow.
+Create or edit the `.env` file inside the `backend/` directory and add:
+```env
+ENABLE_AUTH=false
+```
+Restart the backend server. The frontend will dynamically detect this configuration on startup, bypass the login redirect, and the backend will inject a mock user (`DEV_MODE_USER`) to allow API calls to function normally.
 
 ## IDE Support
 

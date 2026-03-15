@@ -43,9 +43,34 @@ const routes = [
   },
 ];
 
+import { useAuthStore } from '../stores/auth';
+
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+// Global authentication guard
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore();
+
+  if (!authStore.authRequired) {
+    return next(); // Bypass authentication completely
+  }
+
+  if (!authStore.isAuthenticated) {
+    // Attempt to re-initialize just in case the cookie was added between page loads
+    authStore.initAuth();
+
+    if (!authStore.isAuthenticated) {
+      // Redirect to Identity Provider
+      window.location.href = authStore.loginUrl;
+      return next(false); // Abort current navigation
+    }
+  }
+
+  // User is authenticated, proceed to route
+  next();
 });
 
 export default router;

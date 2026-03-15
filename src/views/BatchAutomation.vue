@@ -304,7 +304,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import * as XLSX from 'xlsx';
-import axios from 'axios';
+import axios from '../utils/axios.js';
 import Swal from 'sweetalert2';
 import CustomerService from '@/services/CustomerService';
 

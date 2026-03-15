@@ -14,7 +14,8 @@ This document outlines the critical readiness checks required before launching t
 
 ## 3. Configuration
 - [ ] **Log Path & Log Storage:** Verify that application logs (Winston/Morgan) are configured to write to permanent, rotating files on the disk rather than just the standard output console. Ensure log rotation is active to prevent server disk exhaustion over time.
-- [ ] **File Paths Configuration:** Double-check the `.env` configuration to guarantee all file paths point correctly to the absolute paths outside the release folder (e.g., ensuring `UPLOAD_PATH` resolves correctly to the persistent `SP682/customers/` root).
+- [ ] **File Paths Configuration:** Double-check the `backend/.env` configuration to guarantee all file paths point correctly to the absolute paths outside the release folder (e.g., ensuring `UPLOAD_PATH` resolves correctly to the persistent `SP682/customers/` root).
+- [ ] **Authentication Toggle:** Ensure `ENABLE_AUTH=true` is set (or explicitly omit the variable to default to true) in the `backend/.env` file so that the Single Sign-On flow with the external Exchange Platform is actively enforced on both the backend middleware and the frontend router guard. Do not leave `ENABLE_AUTH=false` active in a production environment.
 
 ## 4. Security
 - [ ] **Service Account:** Ensure the application processes (`start_server.bat` or the background service) are run using a dedicated Windows Service Account with least-privilege access, rather than an Administrator or SYSTEM account.

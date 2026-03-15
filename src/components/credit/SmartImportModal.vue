@@ -60,7 +60,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
+import axios from '../../utils/axios.js';
 
 const emit = defineEmits(['close', 'data-extracted']);
 

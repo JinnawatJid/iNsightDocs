@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '../utils/axios.js';
 
 // Assume base URL is configured in axios or via proxy
 const API_URL = '/api/credit-requests';
