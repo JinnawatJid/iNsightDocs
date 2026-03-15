@@ -77,7 +77,8 @@ export const useAuthStore = defineStore('auth', {
         // 2. Clear SSO session via external portal hub (no-cors to ignore typical cross-origin read limits, just post it)
         await fetch('http://192.192.0.37:52683/auth/logout', {
           method: 'POST',
-          mode: 'no-cors'
+          mode: 'no-cors',
+          credentials: 'include'
         });
       } catch (error) {
         console.error('Logout request failed:', error);

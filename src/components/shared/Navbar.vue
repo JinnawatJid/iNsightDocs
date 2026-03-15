@@ -10,12 +10,10 @@
         <img :src="iconBell" alt="Notifications" width="24" height="24" />
         <div class="notification-badge">1</div>
       </div>
-      <div class="user-info" @click="toggleDropdown">
-        <span>{{ authStore.user?.branchCode || 'N/A' }} : {{ authStore.user?.username || 'User' }}</span>
-        <div v-if="dropdownOpen" class="dropdown-menu">
-          <a href="#" @click.prevent="handleLogout">Sign Out</a>
-        </div>
+      <div class="user-info">
+        <span class="user-name">{{ authStore.user?.branchCode || 'N/A' }} : {{ authStore.user?.username || 'User' }}</span>
       </div>
+      <button class="logout-btn" @click="handleLogout">ออกจากระบบ</button>
     </div>
   </nav>
 </template>
@@ -29,7 +27,6 @@ export default {
   data() {
     return {
       iconBell,
-      dropdownOpen: false,
     };
   },
   computed: {
@@ -38,9 +35,6 @@ export default {
     }
   },
   methods: {
-    toggleDropdown() {
-      this.dropdownOpen = !this.dropdownOpen;
-    },
     async handleLogout() {
       await this.authStore.logout();
     }
@@ -109,30 +103,29 @@ export default {
 }
 
 .user-info {
-  cursor: pointer;
-  position: relative;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 4px;
   display: flex;
-  flex-direction: column;
-  padding: 0.5rem 0;
-  z-index: 100;
+  align-items: center;
+  margin-right: 1.5rem;
 }
 
-.dropdown-menu a {
-  color: black;
-  text-decoration: none;
-  padding: 0.5rem 1rem;
+.user-name {
+  font-size: 16px;
+  color: #fff;
 }
 
-.dropdown-menu a:hover {
-  background-color: #f0f0f0;
+.logout-btn {
+  background-color: transparent;
+  color: #fff;
+  border: 1px solid #fff;
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.logout-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 </style>
