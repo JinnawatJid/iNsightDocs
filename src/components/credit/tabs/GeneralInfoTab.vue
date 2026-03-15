@@ -173,7 +173,7 @@
             <span v-if="errors.mainProducts" class="error-text">{{ errors.mainProducts }}</span>
           </div>
           <div class="form-group">
-             <label>ดำเนินธุรกิจ (ปี) <span v-if="isRequired('years_in_business')" class="text-red-500">*</span></label>
+             <label>ดำเนินธุรกิจ (ปี หรือ พ.ศ. ที่จัดตั้ง) <span v-if="isRequired('years_in_business')" class="text-red-500">*</span></label>
              <input
               type="text"
               class="form-input"
@@ -307,7 +307,7 @@ watch(() => store.customer, (newVal, oldVal) => {
       ? newVal.name
       : '';
 
-    const authName = (newVal.authorized_person) ? newVal.authorized_person : contact;
+    const authName = newVal.authorized_person || '';
 
     if (formData.companyName !== company) formData.companyName = company;
 
