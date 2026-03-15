@@ -14,7 +14,8 @@ The Credit Scoring Model is configuration-driven, allowing business logic (weigh
 *   **Config File:** `backend/config/credit_scorecard_v1.json`
 *   **Key Logic:** Heavy emphasis on external financial data (D/E Ratio, DSCR) and Company Strength.
 *   **Credit Limit Formula:**
-    $$ Limit = 50,000 + (450,000 \times (\frac{TotalScore}{200})^{1.2}) $$
+    $$ Limit = 50,000 + (450,000 \times (\frac{TotalScore}{200})^{\text{Exponent}}) $$
+    *   **Exponent:** Configurable via `limitExponent`. Defaults to `2.0`.
 
 ### 2. Existing Customer Model
 *   **Target:** Current customers requesting a credit increase.
@@ -24,8 +25,7 @@ The Credit Scoring Model is configuration-driven, allowing business logic (weigh
 *   **Gatekeeper:** If **Avg 1.5 Month Purchases (K10)** is `0`, the WADL score is automatically set to `0`.
 *   **Credit Limit Formula:**
     $$ Limit = \frac{\text{Avg 1.5 Month Sales}}{2} \times (\frac{TotalScore}{200})^{\text{Exponent}} $$
-    *   **Exponent:** Configurable. Defaults to `2.0` but can be overridden via API request.
-    *   **Note:** The **Batch Automation** tool defaults this value to **0.5** for safer initial limits.
+    *   **Exponent:** Configurable. Defaults to `0.5` (as used in Batch Automation for safer initial limits), but can be overridden via API request.
 
 ---
 
@@ -36,7 +36,7 @@ The configuration files follow this hierarchical structure:
 ```json
 {
   "version": "1.0",
-  "limitExponent": 2.0,  // Default exponent for Existing Model
+  "limitExponent": 0.5,  // Default exponent for the Model (0.5 for Existing, 2.0 for New)
   "components": {
     "c1": {
       "name": "Company Strength",
@@ -98,10 +98,10 @@ In the configuration file, you define these categories as an array of labels, **
 ```
 The model automatically divides the maximum possible score evenly into sections to determine the thresholds. If factor weights change, the Size and Grade thresholds scale automatically.
 
-### 4. Configuring the Limit Curve (Existing Model)
-To change the sensitivity of the credit limit calculation, adjust the `limitExponent` in `credit_scorecard_existing_v1.json`.
+### 4. Configuring the Limit Curve
+To change the sensitivity of the credit limit calculation, adjust the `limitExponent` in the respective configuration file (`credit_scorecard_v1.json` or `credit_scorecard_existing_v1.json`).
 *   **Higher Exponent (e.g., 2.5):** Steeper curve. Low scores get very low limits; high scores get much higher limits.
-*   **Lower Exponent (e.g., 1.0):** Linear relationship.
+*   **Lower Exponent (e.g., 1.0 or 0.5):** Flatter/Linear relationship.
 
 ---
 

@@ -2,6 +2,7 @@
   "version": "1.0",
   "name": "Standard Credit Scorecard",
   "description": "Standard scorecard logic extracted from NewCustomerScorecard",
+  "limitExponent": 2,
   "size_definitions": [
     "S",
     "M",

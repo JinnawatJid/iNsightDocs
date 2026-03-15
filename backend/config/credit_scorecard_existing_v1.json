@@ -2,7 +2,7 @@
   "version": "1.1",
   "name": "Existing Customer Scorecard",
   "description": "Scorecard logic for Existing Customers with WADL factor",
-  "limitExponent": 2,
+  "limitExponent": 0.5,
   "size_definitions": [
     "S",
     "M",
