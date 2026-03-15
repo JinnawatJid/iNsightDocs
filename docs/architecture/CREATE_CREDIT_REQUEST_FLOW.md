@@ -27,3 +27,9 @@ The `CreateCreditRequest` feature STRICTLY enforces a **"Search First"** pattern
 **DO NOT CHANGE HEADER LAYOUT:** The header layout is strictly "Search (Left) | Action (Right)".
 
 *Note: This document serves as the absolute source of truth for the Create Credit Request UI behavior to prevent accidental reversions of this workflow.*
+
+## 3. State Management and Navigation
+To ensure the "Search First" pattern is preserved and no stale data persists across different application views, the `creditRequest` Pinia store MUST be explicitly reset when navigating to the Create Credit Request flow.
+
+- **Component-Level Cleanup:** The `CreateCreditRequest.vue` view component enforces this by calling `store.resetState()` within its `onMounted` lifecycle hook.
+- **Why it matters:** Other views, such as `/pending-requests`, share the global `creditRequest` store to display detailed customer data. If a user views a pending request and then navigates to `/create-credit-request`, the store would retain the pending request's ID and customer data, completely bypassing the "Initial State" search requirement and jumping straight into the "Form Mode" with incorrect context. The `onMounted` cleanup guarantees a clean slate.
