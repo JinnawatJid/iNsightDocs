@@ -97,6 +97,20 @@
                 </small>
             </div>
          </div>
+
+         <!-- Manual No Financial Data Checkbox -->
+         <div class="dbd-manual-override mt-3 pt-3" style="border-top: 1px dashed #90caf9;">
+             <label class="d-flex align-items-center mb-0 cursor-pointer" style="font-size: 0.95em;">
+                 <input
+                     type="checkbox"
+                     v-model="store.transactionData.noFinancialData"
+                     :disabled="!isEditing"
+                     class="mr-2"
+                     style="width: 18px; height: 18px; cursor: pointer;"
+                 />
+                 <b>ลูกค้าไม่ส่งงบการเงิน</b> (ส่งเฉพาะ Company Profile ไม่ต้องส่งงบ Excel)
+             </label>
+         </div>
       </div>
 
       <div class="upload-grid-small" v-if="store.isCompany">
@@ -109,23 +123,23 @@
         />
         <FileUploader
           label="งบแสดงฐานะการเงิน (Balance Sheet)"
-          required
+          :required="!store.transactionData.noFinancialData"
           v-model="files.balanceSheet"
-          :disabled="!isEditing"
+          :disabled="!isEditing || store.transactionData.noFinancialData"
           accept=".xlsx, .xls"
         />
         <FileUploader
           label="งบกำไรขาดทุน (Profit & Loss)"
-          required
+          :required="!store.transactionData.noFinancialData"
           v-model="files.profitLoss"
-          :disabled="!isEditing"
+          :disabled="!isEditing || store.transactionData.noFinancialData"
           accept=".xlsx, .xls"
         />
         <FileUploader
           label="งบอัตราส่วนทางการเงิน (Ratios)"
-          required
+          :required="!store.transactionData.noFinancialData"
           v-model="files.financialRatios"
-          :disabled="!isEditing"
+          :disabled="!isEditing || store.transactionData.noFinancialData"
           accept=".xlsx, .xls"
         />
       </div>
@@ -905,6 +919,14 @@ const analyzeFinancials = async () => {
       if (!cleanCapital) {
          Swal.fire('Warning', 'กรุณาระบุทุนจดทะเบียนเพื่อการคำนวณที่ถูกต้อง', 'warning');
          return;
+      }
+
+      // If not marked as "no financial data", ensure excel files are present before analysis
+      if (!store.transactionData.noFinancialData) {
+          if (!files.balanceSheet || !files.profitLoss || !files.financialRatios) {
+              Swal.fire('Warning', 'กรุณาแนบไฟล์งบการเงิน Excel ให้ครบถ้วน หรือติ๊กเลือก "ลูกค้าไม่ส่งงบการเงิน" หากไม่มีข้อมูล', 'warning');
+              return;
+          }
       }
   }
 
