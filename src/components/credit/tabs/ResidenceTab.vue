@@ -362,7 +362,21 @@ watch(isSameAddress, (isSame) => {
         formData.note = store.customer.store_note || '';
         formData.locationTypeSelect = store.customer.store_location_type || '';
         formData.locationTypeOther = store.customer.store_location_type_other || '';
-        formData.ownershipSelect = store.customer.store_ownership || '';
+
+        if (store.customer.store_location_type === 'บ้าน') {
+          if (store.customer.store_ownership === 'เป็นเจ้าของ') {
+            formData.ownershipSelect = 'บ้านตนเอง';
+          } else if (store.customer.store_ownership === 'เช่าซื้อ') {
+            formData.ownershipSelect = 'เช่าซื้อ';
+          } else if (store.customer.store_ownership === 'เช่า') {
+            formData.ownershipSelect = 'บ้านเช่า';
+          } else {
+            formData.ownershipSelect = '';
+          }
+        } else {
+          formData.ownershipSelect = '';
+        }
+
         // Note: For Individual, we map residence_value (NEW) or stick to store_value if logic dictates?
         // Plan says: Individual -> Residence Value maps to residence_value.
         // Wait, the block above is: "if (isSame && store.customer)".
@@ -392,7 +406,21 @@ watch(isSameAddress, (isSame) => {
         formData.note = store.customer.store_note || store.customer.note || '';
         formData.locationTypeSelect = store.customer.store_location_type || '';
         formData.locationTypeOther = store.customer.store_location_type_other || '';
-        formData.ownershipSelect = store.customer.store_ownership || '';
+
+        if (store.customer.store_location_type === 'บ้าน') {
+          if (store.customer.store_ownership === 'เป็นเจ้าของ') {
+            formData.ownershipSelect = 'บ้านตนเอง';
+          } else if (store.customer.store_ownership === 'เช่าซื้อ') {
+            formData.ownershipSelect = 'เช่าซื้อ';
+          } else if (store.customer.store_ownership === 'เช่า') {
+            formData.ownershipSelect = 'บ้านเช่า';
+          } else {
+            formData.ownershipSelect = '';
+          }
+        } else {
+          formData.ownershipSelect = '';
+        }
+
         formData.residenceValue = store.customer.store_value || '';
     }
   } else {
