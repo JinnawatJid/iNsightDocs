@@ -11,10 +11,12 @@ This document outlines the architecture for token ingestion, local state managem
 ## 1. SSO Login and Token Ingestion
 
 1. **Authentication Flow**: When a user navigates to the application unauthenticated, they are redirected to the Central Portal Hub login page (`http://192.192.0.37:53683/login`).
-2. **Token Delivery**: Upon successful authentication at the Hub, the provider redirects the user back to the application, setting a JWT in a cookie named `token`.
-3. **Frontend Ingestion**:
-   - The Vue frontend (`src/stores/auth.js`) reads the `token` cookie.
-   - Using the `jwt-decode` library, it extracts the `userId`, `username`, `roles`, and `branchCode` payloads directly from the token without validating the RS256 signature (as this is currently handled implicitly by the trusted environment, though validation is planned for the future).
+2. **Token Delivery**: Upon successful authentication at the Hub, the provider redirects the user back to the application, setting a JWT in an `HttpOnly` cookie named `token`.
+3. **Frontend Ingestion (Updated for `HttpOnly` security)**:
+   - Because the SSO provider sets the `token` cookie as `HttpOnly` for enhanced security (mitigating XSS risks), the Vue frontend cannot directly read it using JavaScript (`js-cookie`).
+   - Instead, during initialization (`authStore.initAuth()`), the frontend makes a `GET` request to the local backend's `/api/auth/me` endpoint.
+   - The browser automatically includes the `HttpOnly` cookie in this request.
+   - The backend `authMiddleware` reads the cookie, decodes the token, and returns the user data (`userId`, `username`, `roles`, `branchCode`) to the frontend.
    - This data is stored in the global Pinia `authStore` to govern UI state (e.g., displaying the user's name in the `Navbar.vue` and managing Role-Based UI visibility).
 
 ## 2. Protected Routes
@@ -62,5 +64,5 @@ The application implements Frontend Role-Based Access Control (RBAC) driven by t
 As noted in `backend/server.js`, several backend security enhancements are deferred for future implementation to align with stricter industry standards:
 
 - **JWT Signature Validation (JWKS)**: The backend `authMiddleware.js` should be updated to fetch the Identity Provider's public keys (JSON Web Key Set) to cryptographically verify the RS256 signature of incoming tokens, preventing token forgery.
-- **Strict Cookie Security**: The backend should enforce `HttpOnly`, `Secure`, and `SameSite` flags when setting the auth token cookie to mitigate Cross-Site Scripting (XSS) and Cross-Site Request Forgery (CSRF) vulnerabilities. This will require the frontend to fetch user details via a secure `/api/auth/me` endpoint rather than reading the cookie directly via JavaScript.
+- **Strict Cookie Security**: Partially implemented. The SSO provider now sets the `token` cookie with `HttpOnly` and `SameSite=Lax`. The local frontend has been updated to fetch user details securely via `/api/auth/me` rather than reading the cookie directly.
 - **Backend API RBAC Enforcement**: While Frontend RBAC is implemented, backend routes should also implement a strict RBAC middleware to enforce authorization rules on API mutations (e.g., preventing a hijacked session from explicitly calling an approval endpoint if the user lacks the required `req.user.roles`).
