@@ -6,7 +6,7 @@
           v-for="(tab, index) in tabs"
           :key="index"
           :class="['tab-item', { active: currentTab === tab.id }]"
-          @click="currentTab = tab.id"
+          @click="handleTabClick(tab.id)"
         >
           {{ tab.label }}
         </div>
@@ -65,6 +65,11 @@ const tabs = computed(() => {
 
   return allTabs;
 });
+
+const handleTabClick = (tabId) => {
+  currentTab.value = tabId;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 
 const currentTabComponent = computed(() => {
   switch (currentTab.value) {
