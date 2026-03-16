@@ -1508,4 +1508,19 @@ const shouldShowFinancialAnalysis = computed(() => {
     font-weight: bold;
     color: #007bff;
 }
+
+.text-red-500 {
+  color: #ef4444;
+}
+
+.border-red-500 {
+  border-color: #ef4444 !important;
+}
+
+.error-text {
+  color: #ef4444;
+  font-size: 0.8em;
+  margin-top: 4px;
+  display: block;
+}
 </style>
