@@ -97,6 +97,19 @@
                 </small>
             </div>
          </div>
+
+         <!-- Manual No Financial Data Checkbox -->
+         <div class="dbd-manual-override">
+             <label class="dbd-checkbox-label">
+                 <input
+                     type="checkbox"
+                     v-model="store.transactionData.noFinancialData"
+                     :disabled="!isEditing"
+                     class="dbd-checkbox"
+                 />
+                 <span class="dbd-checkbox-text"><b>ลูกค้าไม่ส่งงบการเงิน</b> <span class="text-muted">(ส่งเฉพาะ Company Profile ไม่ต้องส่งงบ Excel)</span></span>
+             </label>
+         </div>
       </div>
 
       <div class="upload-grid-small" v-if="store.isCompany">
@@ -109,23 +122,23 @@
         />
         <FileUploader
           label="งบแสดงฐานะการเงิน (Balance Sheet)"
-          required
+          :required="!store.transactionData.noFinancialData"
           v-model="files.balanceSheet"
-          :disabled="!isEditing"
+          :disabled="!isEditing || store.transactionData.noFinancialData"
           accept=".xlsx, .xls"
         />
         <FileUploader
           label="งบกำไรขาดทุน (Profit & Loss)"
-          required
+          :required="!store.transactionData.noFinancialData"
           v-model="files.profitLoss"
-          :disabled="!isEditing"
+          :disabled="!isEditing || store.transactionData.noFinancialData"
           accept=".xlsx, .xls"
         />
         <FileUploader
           label="งบอัตราส่วนทางการเงิน (Ratios)"
-          required
+          :required="!store.transactionData.noFinancialData"
           v-model="files.financialRatios"
-          :disabled="!isEditing"
+          :disabled="!isEditing || store.transactionData.noFinancialData"
           accept=".xlsx, .xls"
         />
       </div>
@@ -906,6 +919,14 @@ const analyzeFinancials = async () => {
          Swal.fire('Warning', 'กรุณาระบุทุนจดทะเบียนเพื่อการคำนวณที่ถูกต้อง', 'warning');
          return;
       }
+
+      // If not marked as "no financial data", ensure excel files are present before analysis
+      if (!store.transactionData.noFinancialData) {
+          if (!files.balanceSheet || !files.profitLoss || !files.financialRatios) {
+              Swal.fire('Warning', 'กรุณาแนบไฟล์งบการเงิน Excel ให้ครบถ้วน หรือติ๊กเลือก "ลูกค้าไม่ส่งงบการเงิน" หากไม่มีข้อมูล', 'warning');
+              return;
+          }
+      }
   }
 
   analyzing.value = true;
@@ -1176,6 +1197,78 @@ const shouldShowFinancialAnalysis = computed(() => {
 .btn-dbd:disabled {
     background-color: #90caf9;
     cursor: not-allowed;
+}
+
+.dbd-manual-override {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed rgba(25, 118, 210, 0.3);
+}
+
+.dbd-section-disabled .dbd-manual-override {
+    border-top: 1px dashed rgba(0, 0, 0, 0.1);
+}
+
+.dbd-checkbox-label {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.2s;
+}
+
+.dbd-checkbox-label:hover {
+    opacity: 0.9;
+}
+
+.dbd-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #1976d2;
+    border-radius: 4px;
+    margin-right: 10px;
+    position: relative;
+    cursor: pointer;
+    background-color: white;
+    flex-shrink: 0;
+}
+
+.dbd-section-disabled .dbd-checkbox {
+    border-color: #adb5bd;
+}
+
+.dbd-checkbox:checked {
+    background-color: #1976d2;
+    border-color: #1976d2;
+}
+
+.dbd-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.dbd-checkbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.dbd-checkbox-text {
+    font-size: 0.95em;
+    color: #333;
+}
+
+.dbd-section-disabled .dbd-checkbox-text b {
+    color: #6c757d;
 }
 
 .dbd-local-status {
