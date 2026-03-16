@@ -39,7 +39,7 @@ const currentTab = computed({
 });
 
 const tabs = computed(() => {
-  const storeLabel = store.isCompany ? 'ที่อยู่บริษัท' : 'ที่อยู่ร้านค้า';
+  const storeLabel = store.isCompany ? 'ข้อมูลบริษัท' : 'ข้อมูลร้านค้า';
   const requestType = store.transactionData.requestType;
 
   const isChangeRequest = [
@@ -48,12 +48,12 @@ const tabs = computed(() => {
     'เปลี่ยนแปลงเงื่อนไขการชำระเงิน'
   ].some(t => requestType && requestType.includes(t));
 
-  const requestInfoLabel = (isChangeRequest && props.viewMode === 'focus') ? 'เปลี่ยนแปลงข้อมูลคำขอ' : 'ข้อมูลคำขอ';
+  const requestInfoLabel = (isChangeRequest && props.viewMode === 'focus') ? 'เปลี่ยนแปลงข้อมูลคำขอ' : 'เงื่อนไขและคำขอ';
 
   const allTabs = [
     { id: 'requestInfo', label: requestInfoLabel },
-    { id: 'general', label: 'ข้อมูลทั่วไป' },
     { id: 'store', label: storeLabel },
+    { id: 'general', label: 'ข้อมูลผู้มีอำนาจ' },
     { id: 'residence', label: 'ที่อยู่อาศัย' },
     { id: 'financial', label: 'เอกสารการเงิน' }
   ];
