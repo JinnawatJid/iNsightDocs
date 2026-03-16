@@ -31,6 +31,9 @@
       </FileUploader>
     </div>
 
+    <!-- Other Documents Section -->
+    <OtherDocumentsSection :readOnly="!isEditing" />
+
     <!-- Financial Analysis Section -->
     <div class="financial-analysis-section" v-if="shouldShowFinancialAnalysis" data-testid="financial-analysis-section">
       <div class="section-header">การวิเคราะห์ทางการเงินและคะแนนเครดิต</div>
@@ -324,6 +327,7 @@
 import { reactive, ref, watch, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import FileUploader from '@/components/shared/FileUploader.vue';
+import OtherDocumentsSection from '../OtherDocumentsSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 import CreditScoreSheet from '../CreditScoreSheet.vue';

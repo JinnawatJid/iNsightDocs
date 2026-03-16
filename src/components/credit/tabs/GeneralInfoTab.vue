@@ -18,6 +18,9 @@
           multiple
         />
       </div>
+
+      <!-- Other Documents Section -->
+      <OtherDocumentsSection :readOnly="!isEditing" />
     </div>
 
     <!-- Company Info Section -->
@@ -194,6 +197,7 @@
 <script setup>
 import { reactive, watch, ref } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
+import OtherDocumentsSection from '../OtherDocumentsSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
