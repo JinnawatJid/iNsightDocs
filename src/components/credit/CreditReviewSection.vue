@@ -23,8 +23,7 @@
                 <input
                 type="text"
                 class="form-input"
-                v-model="store.transactionData.amount"
-                @input="handleAmountInput"
+                v-model="formattedAmount"
                 :disabled="readOnly"
                 />
             </div>
@@ -105,28 +104,19 @@ const placeholderText = computed(() => {
     return commentPlaceholders[status] || 'ระบุพฤติกรรมลูกค้า, ประวัติโครงการ, การซื้อขายล่าสุด, หรือข้อมูลประกอบการพิจารณาอื่นๆ...';
 });
 
-function handleAmountInput(e) {
-  // 1. Get raw value, remove commas
-  let rawValue = e.target.value.replace(/,/g, '');
-  
-  // 2. Remove non-numeric chars (allow one dot)
-  rawValue = rawValue.replace(/[^0-9.]/g, '');
-  const parts = rawValue.split('.');
-  if (parts.length > 2) rawValue = parts[0] + '.' + parts.slice(1).join('');
-
-  // 3. Update store directly
-  store.transactionData.amount = rawValue;
-
-  // 4. Update Display Value (Force it back if needed, but usually v-model handles it)
-  // If we want commas while typing, we need a local display value.
-  // BUT, to keep it simple and match RequestInfoTab logic, we'll store the raw value
-  // and maybe just let the user type numbers.
-  // OR we just update the DOM to show commas without changing the model?
-  // Let's stick to the simplest "Raw Number" approach for now to avoid the cursor jumping issues common with comma formatting.
-  // If the user REALLY wants commas, we'd need a directive or a computed property with get/set.
-
-  e.target.value = rawValue;
-}
+const formattedAmount = computed({
+    get: () => {
+        if (store.transactionData.amount === null || store.transactionData.amount === undefined || store.transactionData.amount === '') return '';
+        const num = Number(store.transactionData.amount);
+        return isNaN(num) ? '' : num.toLocaleString('en-US');
+    },
+    set: (val) => {
+        let num = String(val).replace(/[^0-9.]/g, '');
+        const parts = num.split('.');
+        if (parts.length > 2) num = parts[0] + '.' + parts.slice(1).join('');
+        store.transactionData.amount = num;
+    }
+});
 
 function restrictNumber(field, e) {
   const val = e.target.value.replace(/\D/g, '');
