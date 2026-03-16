@@ -874,15 +874,28 @@ const autoDownloadDBD = async () => {
 };
 
 const analyzeFinancials = async () => {
-  // Validate Files only if Company
+  // Use global validation logic to ensure all required fields/files are present
+  // Passing true, true to simulate strict submit-level validation including financials
+  const validation = store.validateRequest(true, true);
+  if (!validation.valid) {
+      console.log('Validation Failed during Financial Analysis:', validation);
+      store.triggerValidation();
+      Swal.fire({
+          icon: 'warning',
+          title: 'ข้อมูลไม่ครบถ้วน',
+          text: 'กรุณากรอกข้อมูลและแนบเอกสารให้ครบถ้วนตามรายการที่มีเครื่องหมาย * ก่อนทำการวิเคราะห์ข้อมูล'
+      });
+      return;
+  } else {
+      store.clearValidation();
+  }
+
+  // Extra validation specific to financial analysis
   if (store.isCompany) {
-      if (!files.balanceSheet || !files.profitLoss || !files.financialRatios) {
-        Swal.fire('Error', 'กรุณาอัปโหลดไฟล์ งบดุล, งบกำไรขาดทุน และ อัตราส่วนทางการเงิน', 'error');
-        return;
-      }
       const cleanCapital = registeredCapital.value ? registeredCapital.value.replace(/,/g, '') : '';
       if (!cleanCapital) {
          Swal.fire('Warning', 'กรุณาระบุทุนจดทะเบียนเพื่อการคำนวณที่ถูกต้อง', 'warning');
+         return;
       }
   }
 

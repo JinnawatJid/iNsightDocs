@@ -686,7 +686,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         const missingFiles = [];
         if (isSubmit) {
             // Add Financial Documents to check list if mandatory
-            if (isFinancialMandatory) {
+            if (isFinancialMandatory && this.isCompany) {
                 const financialFiles = ['balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc'];
                 financialFiles.forEach(f => {
                     if (!filesToCheck.includes(f)) filesToCheck.push(f);
