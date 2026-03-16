@@ -114,13 +114,13 @@
                 type="text"
                 class="form-input disabled"
                 disabled
-                :value="store.financialSummary.current_credit_limit || 'N/A'" :data-empty="!store.financialSummary.current_credit_limit || 'N/A'"
+                :value="formattedCurrentCreditLimit" :data-empty="!store.customer.current_credit_limit"
               />
             </div>
 
             <div class="form-group" v-if="isDraftMode">
               <label>
-                  {{ isRequestIncrease ? 'วงเงินรวมใหม่ที่ต้องการ' : 'วงเงินเครดิตที่ต้องการ (บาท)' }}
+                  {{ isRequestIncrease ? 'ต้องการวงเงินเพิ่ม' : 'วงเงินเครดิตที่ต้องการ (บาท)' }}
                   <span v-if="isRequired('amount')" class="text-red-500">*</span>
               </label>
               <input
@@ -133,6 +133,16 @@
                 @input="handleAmountInput"
               />
               <span v-if="errors.amount" class="error-text">กรุณาระบุข้อมูล</span>
+            </div>
+
+            <div class="form-group" v-if="isRequestIncrease && isDraftMode">
+              <label>วงเงินรวมทั้งหมด</label>
+              <input
+                type="text"
+                class="form-input disabled"
+                disabled
+                :value="totalLimit" :data-empty="totalLimit === 'N/A'"
+              />
             </div>
 
             <!-- New Split Terms for Draft Mode -->
@@ -652,6 +662,21 @@ function removeCreditRow(index) {
         store.customer.existing_credits[0] = { companyName: '', goods: '', term: '', limit: '' };
     }
 }
+
+const formattedCurrentCreditLimit = computed(() => {
+    return store.customer.current_credit_limit ? Number(store.customer.current_credit_limit).toLocaleString('en-US') : 'N/A';
+});
+
+const totalLimit = computed(() => {
+    if (!isRequestIncrease.value) return 'N/A';
+
+    const currentLimit = Number(store.customer.current_credit_limit || 0);
+    const requestedAmount = Number(store.transactionData.amount || 0);
+
+    const sum = currentLimit + requestedAmount;
+
+    return sum ? sum.toLocaleString('en-US') : 'N/A';
+});
 
 const formattedAmount = computed({
     get: () => store.transactionData.amount ? Number(store.transactionData.amount).toLocaleString('en-US') : '',
