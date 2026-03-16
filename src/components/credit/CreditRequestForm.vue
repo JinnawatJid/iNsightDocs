@@ -186,6 +186,7 @@ const handleNextTab = () => {
     const currentIndex = activeTabsList.value.indexOf(store.activeTab);
     if (currentIndex >= 0 && currentIndex < activeTabsList.value.length - 1) {
         store.setActiveTab(activeTabsList.value[currentIndex + 1]);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 };
 
