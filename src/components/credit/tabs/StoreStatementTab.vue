@@ -132,23 +132,27 @@
 
       <div class="manual-input-row" v-if="isEditing">
         <div class="form-group" v-if="store.isCompany">
-          <label>ทุนจดทะเบียน</label>
+          <label>ทุนจดทะเบียน <span class="text-red-500">*</span></label>
           <input
             type="text"
             v-model="registeredCapital" :data-empty="!registeredCapital"
             class="form-control"
+            :class="{ 'border-red-500': errors.registered_capital && store.showValidationErrors }"
             placeholder="ระบุทุนจดทะเบียน (บาท)"
           />
+          <span v-if="errors.registered_capital && store.showValidationErrors" class="error-text">กรุณาระบุข้อมูล</span>
         </div>
         <div class="form-group">
-          <label>ระยะเวลาการเป็นลูกค้า</label>
+          <label>ระยะเวลาการเป็นลูกค้า <span class="text-red-500">*</span></label>
           <input
             type="text"
             v-model="customerDuration" :data-empty="!customerDuration"
             @input="handleDurationInput"
             class="form-control"
+            :class="{ 'border-red-500': errors.customer_duration_years && store.showValidationErrors }"
             placeholder="ระบุจำนวนปี"
           />
+          <span v-if="errors.customer_duration_years && store.showValidationErrors" class="error-text">กรุณาระบุข้อมูล</span>
           <small v-if="customerSinceDate" class="text-muted d-block mt-1" style="font-size: 0.8em;">
             เป็นลูกค้าตั้งแต่: {{ formatDate(customerSinceDate) }} ({{ calculatedDuration }} ปี)
           </small>
@@ -475,7 +479,8 @@ watch(() => props.readOnly, (val) => {
 
 watch(() => store.showValidationErrors, (val) => {
     if (val) {
-        // Validation logic
+        validateField('registered_capital', registeredCapital.value, ['required']);
+        validateField('customer_duration_years', customerDuration.value, ['required']);
     }
 }, { immediate: true });
 

@@ -678,6 +678,14 @@ export const useCreditRequestStore = defineStore('creditRequest', {
             }
         });
 
+        if (this.isCompany && (!this.customer.registered_capital || String(this.customer.registered_capital).trim() === '')) {
+            missingFields.push('registered_capital');
+        }
+
+        if (!this.customer.customer_duration_years || String(this.customer.customer_duration_years).trim() === '') {
+            missingFields.push('customer_duration_years');
+        }
+
         // 3. Conditional Checks (Residence & Store & Billing & Payment & Credit)
         // (Previously checked for 'ownership_other' fields here, but removed per new requirements
         // to strictly use 'residence_value' and 'store_value' from mandatory keys instead).
