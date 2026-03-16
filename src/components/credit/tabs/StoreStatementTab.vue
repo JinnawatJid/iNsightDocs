@@ -164,9 +164,10 @@
             type="text"
             v-model="customerDuration" :data-empty="!customerDuration"
             @input="handleDurationInput"
+            @blur="handleDurationBlur"
             class="form-control"
             :class="{ 'border-red-500': errors.customer_duration_years && store.showValidationErrors }"
-            placeholder="ระบุจำนวนปี"
+            placeholder="ระบุจำนวนปี (หรือปี พ.ศ. ที่เริ่มเป็นลูกค้า)"
           />
           <span v-if="errors.customer_duration_years && store.showValidationErrors" class="error-text">กรุณาระบุข้อมูล</span>
           <small v-if="customerSinceDate" class="text-muted d-block mt-1" style="font-size: 0.8em;">
@@ -540,6 +541,29 @@ const handleDurationInput = (event) => {
     let val = event.target.value;
     val = val.replace(/[^0-9]/g, '');
     customerDuration.value = val; // Triggers setter
+};
+
+const handleDurationBlur = () => {
+    let val = customerDuration.value;
+    if (!val) return;
+
+    // Smart Input Logic:
+    // If user enters a 4-digit year (e.g. 2560), calculate duration.
+    if (val.length === 4) {
+        const inputYear = parseInt(val);
+        const currentYear = new Date().getFullYear() + 543; // Current Buddhist Year
+
+        // Simple sanity check: Year must be <= Current Year
+        if (inputYear <= currentYear && inputYear > 2400) {
+            const diff = currentYear - inputYear;
+            // Ensure non-negative
+            customerDuration.value = Math.max(0, diff).toString();
+        }
+    }
+
+    if (store.showValidationErrors) {
+        validateField('customer_duration_years', customerDuration.value, ['required']);
+    }
 };
 
 // Format DBD date string (YYYYMMDD) to DD/MM/YYYY
