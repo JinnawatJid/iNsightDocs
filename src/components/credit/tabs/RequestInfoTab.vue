@@ -241,10 +241,10 @@
             </div>
 
             <div class="form-group" v-if="store.customer.billing_requirement === 'required'">
-               <label>กรณีต้องวางบิลขอให้เลือกวิธีวางบิล</label>
+               <label>กรณีต้องวางบิลขอให้เลือกวิธีวางบิล <span class="text-red-500">*</span></label>
                <select
                   class="form-input"
-                  :class="{ 'disabled': !isEditing }"
+                  :class="{ 'border-red-500': errors.billing_method, 'disabled': !isEditing }"
                   :disabled="!isEditing"
                   v-model="store.customer.billing_method" :data-empty="!store.customer.billing_method"
                 >
@@ -254,28 +254,33 @@
                     <option value="company">ที่บริษัท ร้านค้า</option>
                     <option value="other">อื่นๆ</option>
                 </select>
+                <span v-if="errors.billing_method" class="error-text">กรุณาระบุข้อมูล</span>
                  <!-- Other Input for Method -->
                  <div v-if="store.customer.billing_method === 'other'" style="margin-top: 10px;">
                     <input
                         type="text"
                         class="form-input"
+                        :class="{ 'border-red-500': errors.billing_method_note, 'disabled': !isEditing }"
                         placeholder="ระบุ"
                         v-model="store.customer.billing_method_note" :data-empty="!store.customer.billing_method_note"
                         :disabled="!isEditing"
                     >
+                    <span v-if="errors.billing_method_note" class="error-text">กรุณาระบุข้อมูล</span>
                 </div>
             </div>
 
             <!-- Billing Schedule (Moved here, ensuring 3rd slot) -->
             <div class="form-group" v-if="store.customer.billing_requirement && store.customer.billing_requirement !== 'not_required'">
-                <label>เงื่อนไขการวางบิล</label>
+                <label>เงื่อนไขการวางบิล <span v-if="store.customer.billing_requirement === 'required'" class="text-red-500">*</span></label>
                 <input
                   type="text"
                   class="form-input"
+                  :class="{ 'border-red-500': errors.billing_schedule, 'disabled': !isEditing }"
                   v-model="store.customer.billing_schedule" :data-empty="!store.customer.billing_schedule"
                   placeholder="ระบุวันที่/เวลา"
                   :disabled="!isEditing"
                 >
+                <span v-if="errors.billing_schedule" class="error-text">กรุณาระบุข้อมูล</span>
              </div>
         </div>
 
@@ -362,20 +367,22 @@
 
              <!-- Conditional Payment Condition Input -->
              <div class="form-group" v-if="store.customer.payment_method">
-                <label>{{ store.customer.payment_method === 'โอนเงิน' ? 'เงื่อนไขการโอนเงิน' : 'เงื่อนไขการรับเช็ค' }}</label>
+                <label>{{ store.customer.payment_method === 'โอนเงิน' ? 'เงื่อนไขการโอนเงิน' : 'เงื่อนไขการรับเช็ค' }} <span class="text-red-500">*</span></label>
                 <input
                     type="text"
                     class="form-input"
+                    :class="{ 'border-red-500': errors.payment_condition, 'disabled': !isEditing }"
                     v-model="store.customer.payment_condition" :data-empty="!store.customer.payment_condition"
                     :disabled="!isEditing"
                 />
+                <span v-if="errors.payment_condition" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
         </div>
 
         <!-- Bank Details Grid (Visible only when method is selected) -->
         <div v-if="store.customer.payment_method" class="form-grid-three-columns">
             <div class="form-group">
-            <label>จากบัญชีธนาคาร </label>
+            <label>จากบัญชีธนาคาร <span class="text-red-500">*</span></label>
             <input
                 type="text"
                 class="form-input"
@@ -387,7 +394,7 @@
             <span v-if="errors.payment_bank_name" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
             <div class="form-group">
-            <label>สาขา </label>
+            <label>สาขา <span class="text-red-500">*</span></label>
             <input
                 type="text"
                 class="form-input"
@@ -399,7 +406,7 @@
             <span v-if="errors.payment_bank_branch" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
             <div class="form-group">
-            <label>เลขที่บัญชี </label>
+            <label>เลขที่บัญชี <span class="text-red-500">*</span></label>
             <input
                 type="text"
                 class="form-input"
@@ -453,42 +460,50 @@
         <div v-for="(item, index) in store.customer.existing_credits" :key="index" class="credit-history-row">
             <div class="row-index">{{ index + 1 }}.</div>
             <div class="form-group flex-grow">
-                <label>ชื่อบริษัท</label>
+                <label>ชื่อบริษัท <span class="text-red-500">*</span></label>
                 <input
                   type="text"
                   class="form-input"
+                  :class="{ 'border-red-500': errors[`existing_credit_${index}_companyName`], 'disabled': !isEditing }"
                   v-model="item.companyName" :data-empty="!item.companyName"
                   :disabled="!isEditing"
                 />
+                <span v-if="errors[`existing_credit_${index}_companyName`]" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
             <div class="form-group flex-grow">
-                <label>สินค้าที่ซื้อ</label>
+                <label>สินค้าที่ซื้อ <span class="text-red-500">*</span></label>
                 <input
                   type="text"
                   class="form-input"
+                  :class="{ 'border-red-500': errors[`existing_credit_${index}_goods`], 'disabled': !isEditing }"
                   v-model="item.goods" :data-empty="!item.goods"
                   :disabled="!isEditing"
                 />
+                <span v-if="errors[`existing_credit_${index}_goods`]" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
             <div class="form-group small-width">
-                <label>เครดิต (วัน)</label>
+                <label>เครดิต (วัน) <span class="text-red-500">*</span></label>
                 <input
                   type="text"
                   class="form-input"
+                  :class="{ 'border-red-500': errors[`existing_credit_${index}_term`], 'disabled': !isEditing }"
                   v-model="item.term" :data-empty="!item.term"
                   :disabled="!isEditing"
                   @input="(e) => { e.target.value = e.target.value.replace(/\D/g, ''); item.term = e.target.value; }"
                 />
+                <span v-if="errors[`existing_credit_${index}_term`]" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
             <div class="form-group medium-width">
-                <label>วงเงิน (บาท)</label>
+                <label>วงเงิน (บาท) <span class="text-red-500">*</span></label>
                 <input
                   type="text"
                   class="form-input"
+                  :class="{ 'border-red-500': errors[`existing_credit_${index}_limit`], 'disabled': !isEditing }"
                   :value="formatWithCommas(item.limit)" :data-empty="!formatWithCommas(item.limit)"
                   :disabled="!isEditing"
                   @input="(e) => restrictLocalCreditInput(e, item, 'limit')"
                 />
+                <span v-if="errors[`existing_credit_${index}_limit`]" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
             <div class="action-col" v-if="isEditing">
                <button class="delete-btn" @click="removeCreditRow(index)" title="ลบรายการ">
@@ -585,10 +600,28 @@ const errors = computed(() => {
     check('payment_method', store.customer.payment_method);
     check('has_other_credit', store.customer.has_other_credit);
 
+    if (store.customer.billing_requirement === 'required') {
+        check('billing_method', store.customer.billing_method);
+        check('billing_schedule', store.customer.billing_schedule);
+        if (store.customer.billing_method === 'other') {
+            check('billing_method_note', store.customer.billing_method_note);
+        }
+    }
+
     if (store.customer.payment_method) {
+        check('payment_condition', store.customer.payment_condition);
         check('payment_bank_name', store.customer.payment_bank_name);
         check('payment_bank_branch', store.customer.payment_bank_branch);
         check('payment_account_no', store.customer.payment_account_no);
+    }
+
+    if (store.customer.has_other_credit === 'yes' && store.customer.existing_credits) {
+        store.customer.existing_credits.forEach((item, index) => {
+            check(`existing_credit_${index}_companyName`, item.companyName);
+            check(`existing_credit_${index}_goods`, item.goods);
+            check(`existing_credit_${index}_term`, item.term);
+            check(`existing_credit_${index}_limit`, item.limit);
+        });
     }
 
     return e;

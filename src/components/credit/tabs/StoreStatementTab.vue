@@ -102,24 +102,28 @@
       <div class="upload-grid-small" v-if="store.isCompany">
         <FileUploader
           label="ข้อมูลบริษัท (Company Profile)"
+          required
           v-model="files.companyProfile"
           :disabled="!isEditing"
           accept=".pdf"
         />
         <FileUploader
           label="งบแสดงฐานะการเงิน (Balance Sheet)"
+          required
           v-model="files.balanceSheet"
           :disabled="!isEditing"
           accept=".xlsx, .xls"
         />
         <FileUploader
           label="งบกำไรขาดทุน (Profit & Loss)"
+          required
           v-model="files.profitLoss"
           :disabled="!isEditing"
           accept=".xlsx, .xls"
         />
         <FileUploader
           label="งบอัตราส่วนทางการเงิน (Ratios)"
+          required
           v-model="files.financialRatios"
           :disabled="!isEditing"
           accept=".xlsx, .xls"

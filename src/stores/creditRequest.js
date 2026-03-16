@@ -678,16 +678,40 @@ export const useCreditRequestStore = defineStore('creditRequest', {
             }
         });
 
-        // 3. Conditional Checks (Residence & Store)
+        // 3. Conditional Checks (Residence & Store & Billing & Payment & Credit)
         // (Previously checked for 'ownership_other' fields here, but removed per new requirements
         // to strictly use 'residence_value' and 'store_value' from mandatory keys instead).
+
+        if (this.customer.billing_requirement === 'required') {
+            if (!this.customer.billing_method) missingFields.push('billing_method');
+            if (!this.customer.billing_schedule) missingFields.push('billing_schedule');
+            if (this.customer.billing_method === 'other' && !this.customer.billing_method_note) {
+                missingFields.push('billing_method_note');
+            }
+        }
+
+        if (this.customer.payment_method) {
+            if (!this.customer.payment_condition) missingFields.push('payment_condition');
+            if (!this.customer.payment_bank_name) missingFields.push('payment_bank_name');
+            if (!this.customer.payment_bank_branch) missingFields.push('payment_bank_branch');
+            if (!this.customer.payment_account_no) missingFields.push('payment_account_no');
+        }
+
+        if (this.customer.has_other_credit === 'yes' && this.customer.existing_credits) {
+            this.customer.existing_credits.forEach((item, index) => {
+                if (!item.companyName) missingFields.push(`existing_credit_${index}_companyName`);
+                if (!item.goods) missingFields.push(`existing_credit_${index}_goods`);
+                if (!item.term) missingFields.push(`existing_credit_${index}_term`);
+                if (!item.limit) missingFields.push(`existing_credit_${index}_limit`);
+            });
+        }
 
         // 4. Validate Files (Only on Submit)
         const missingFiles = [];
         if (isSubmit) {
             // Add Financial Documents to check list if mandatory
             if (isFinancialMandatory && this.isCompany) {
-                const financialFiles = ['balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc'];
+                const financialFiles = ['company_profile_doc', 'balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc'];
                 financialFiles.forEach(f => {
                     if (!filesToCheck.includes(f)) filesToCheck.push(f);
                 });
