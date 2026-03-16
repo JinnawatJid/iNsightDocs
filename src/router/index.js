@@ -51,7 +51,7 @@ const router = createRouter({
 });
 
 // Global authentication guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
 
   if (!authStore.authRequired) {
@@ -60,7 +60,7 @@ router.beforeEach((to, from, next) => {
 
   if (!authStore.isAuthenticated) {
     // Attempt to re-initialize just in case the cookie was added between page loads
-    authStore.initAuth();
+    await authStore.initAuth();
 
     if (!authStore.isAuthenticated) {
       // Redirect to Identity Provider

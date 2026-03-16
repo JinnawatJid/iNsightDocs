@@ -17,7 +17,7 @@ async function initializeApp() {
   await authStore.fetchAuthConfig();
 
   // 2. Initialize token parsing
-  authStore.initAuth();
+  await authStore.initAuth();
 
   // 3. Mount router and app
   app.use(router);

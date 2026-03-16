@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import Cookies from 'js-cookie';
-import { jwtDecode } from 'jwt-decode';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -63,7 +62,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    initAuth() {
+    async initAuth() {
       if (!this.authRequired) {
         this.user = {
           userId: 99999,
@@ -80,28 +79,34 @@ export const useAuthStore = defineStore('auth', {
         return;
       }
 
-      // 1. Check for token cookie
-      const token = Cookies.get('token');
+      try {
+        // Fetch user data from backend which reads the HttpOnly cookie
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
 
-      if (token) {
-        try {
-          // 2. Decode the token without verifying signature
-          const decoded = jwtDecode(token);
-
-          // 3. Store the token and user data
-          this.token = token;
+        if (response.ok) {
+          const data = await response.json();
           this.user = {
-            userId: decoded.userId,
-            username: decoded.username,
-            roles: decoded.roles,
-            branchCode: decoded.branchCode
+            userId: data.user.userId,
+            username: data.user.username,
+            roles: data.user.roles,
+            branchCode: data.user.branchCode
           };
+          // We don't store the raw token anymore because it's HttpOnly,
+          // and requests will automatically include the cookie
+          this.token = null;
           this.isAuthenticated = true;
-        } catch (error) {
-          console.error('Failed to decode JWT token:', error);
+        } else {
+          // 401 Unauthorized or other errors mean token is invalid or missing
+          console.warn('Authentication failed:', response.status);
           this.clearAuth();
         }
-      } else {
+      } catch (error) {
+        console.error('Failed to verify authentication:', error);
         this.clearAuth();
       }
     },
@@ -110,6 +115,9 @@ export const useAuthStore = defineStore('auth', {
       this.token = null;
       this.user = null;
       this.isAuthenticated = false;
+      // We can't remove HttpOnly cookies from JS,
+      // but logout endpoint handles it backend-side.
+      // Still good practice to try to clear any non-HttpOnly fallbacks
       Cookies.remove('token');
     },
 
