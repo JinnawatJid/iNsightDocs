@@ -156,7 +156,7 @@
           <span v-if="errors.registered_capital && store.showValidationErrors" class="error-text">กรุณาระบุข้อมูล</span>
         </div>
         <div class="form-group">
-          <label>ระยะเวลาการเป็นลูกค้า <span class="text-red-500">*</span></label>
+          <label>ระยะเวลาการเป็นลูกค้า (ปี หรือ พ.ศ. ที่จัดตั้ง) <span class="text-red-500">*</span></label>
           <input
             type="text"
             v-model="customerDuration" :data-empty="!customerDuration"
