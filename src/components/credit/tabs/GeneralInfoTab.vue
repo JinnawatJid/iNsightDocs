@@ -68,7 +68,7 @@
       <div class="form-layout-columns">
          <div class="column-layout">
            <div class="form-group">
-            <label>ชื่อผู้มีอำนาจลงนาม 1 <span v-if="isRequired('authorized_person')" class="text-red-500">*</span></label>
+            <label>ชื่อผู้มีอำนาจลงนาม <span v-if="isRequired('authorized_person')" class="text-red-500">*</span></label>
             <input
               type="text"
               class="form-input"
@@ -96,38 +96,6 @@
               @blur="handleBlur('authorizedPosition')"
             />
             <span v-if="errors.authorizedPosition" class="error-text">{{ errors.authorizedPosition }}</span>
-          </div>
-         </div>
-      </div>
-
-      <!-- Signatory 2 -->
-      <div class="form-layout-columns" style="margin-top: 15px;">
-         <div class="column-layout">
-           <div class="form-group">
-            <label>ชื่อผู้มีอำนาจลงนาม 2</label>
-            <input
-              type="text"
-              class="form-input"
-              :class="{ 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="formData.authorizedName2" :data-empty="!formData.authorizedName2"
-              placeholder="ระบุชื่อ"
-              @blur="saveToBackend"
-            />
-          </div>
-         </div>
-         <div class="column-layout">
-            <div class="form-group">
-             <label>ตำแหน่ง</label>
-            <input
-              type="text"
-              class="form-input"
-              :class="{ 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              placeholder="ระบุตำแหน่ง"
-              v-model="formData.authorizedPosition2" :data-empty="!formData.authorizedPosition2"
-              @blur="saveToBackend"
-            />
           </div>
          </div>
       </div>
@@ -254,8 +222,6 @@ const formData = reactive({
   taxId: '',
   authorizedName: '',
   authorizedPosition: '',
-  authorizedName2: '',
-  authorizedPosition2: '',
   businessType: '',
   businessTypeOther: '',
   mainProducts: '',
@@ -321,10 +287,6 @@ watch(() => store.customer, (newVal, oldVal) => {
     if (formData.authorizedName !== authName) formData.authorizedName = authName;
     if (formData.authorizedPosition !== newVal.authorized_position) formData.authorizedPosition = newVal.authorized_position || '';
 
-    // New Fields
-    if (formData.authorizedName2 !== newVal.authorized_person_2) formData.authorizedName2 = newVal.authorized_person_2 || '';
-    if (formData.authorizedPosition2 !== newVal.authorized_position_2) formData.authorizedPosition2 = newVal.authorized_position_2 || '';
-
     // Business Type Logic
     const businessVal = newVal.business_type || '';
     if (validBusinessNames.includes(businessVal)) {
@@ -353,9 +315,6 @@ watch(formData, (newVal) => {
   updates['VAT Registration No_'] = newVal.taxId;
   updates.authorized_person = newVal.authorizedName;
   updates.authorized_position = newVal.authorizedPosition;
-
-  updates.authorized_person_2 = newVal.authorizedName2;
-  updates.authorized_position_2 = newVal.authorizedPosition2;
 
   // Combine Business Type
   updates.business_type = newVal.businessType === 'Other' ? newVal.businessTypeOther : newVal.businessType;
@@ -386,9 +345,6 @@ function saveToBackend() {
     updates['VAT Registration No_'] = formData.taxId;
     updates.authorized_person = formData.authorizedName;
     updates.authorized_position = formData.authorizedPosition;
-
-    updates.authorized_person_2 = formData.authorizedName2;
-    updates.authorized_position_2 = formData.authorizedPosition2;
 
     // Combine Business Type
     updates.business_type = formData.businessType === 'Other' ? formData.businessTypeOther : formData.businessType;

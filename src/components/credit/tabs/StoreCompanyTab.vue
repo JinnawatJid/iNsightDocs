@@ -210,12 +210,13 @@
                   :class="{ 'border-red-500': errors.propertyOwnership, 'disabled': !isEditing }"
                   :disabled="!isEditing"
                   v-model="formData.ownershipSelect" :data-empty="!formData.ownershipSelect"
-                  @change="() => { validateField('propertyOwnership', formData.ownershipSelect, ['required']); }"
+                  @change="() => { validateField('propertyOwnership', formData.ownershipSelect, ['required']); if(formData.ownershipSelect === 'อื่นๆ') validateField('ownershipOther', formData.ownershipOther, ['required']); else validateField('ownershipOther', '', []); }"
                 >
                   <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
                   <option value="เป็นเจ้าของ">เป็นเจ้าของ</option>
                   <option value="เช่าซื้อ">เช่าซื้อ</option>
                   <option value="เช่า">เช่า</option>
+                  <option value="อื่นๆ">อื่นๆ</option>
                 </select>
                 <span v-if="errors.propertyOwnership" class="error-text">{{ errors.propertyOwnership }}</span>
              </div>
@@ -232,15 +233,18 @@
                 <span v-if="errors.storeValue" class="error-text">{{ errors.storeValue }}</span>
              </div>
              <div class="form-group">
-                <label>คำอธิบายเพิ่มเติม</label>
+                <label>คำอธิบายเพิ่มเติม <span v-if="formData.ownershipSelect === 'อื่นๆ'" class="text-red-500">*</span></label>
                 <input
                   type="text"
                   class="form-control"
-                  :class="{ 'disabled': !isEditing }"
+                  :class="{ 'border-red-500': errors.ownershipOther, 'disabled': !isEditing }"
                   :disabled="!isEditing"
-                  v-model="formData.locationTypeOther" :data-empty="!formData.locationTypeOther"
+                  v-model="formData.ownershipOther" :data-empty="!formData.ownershipOther"
                   placeholder="ระบุ..."
+                  @input="() => { if(formData.ownershipSelect === 'อื่นๆ') validateField('ownershipOther', formData.ownershipOther, ['required']); }"
+                  @blur="() => { if(formData.ownershipSelect === 'อื่นๆ') validateField('ownershipOther', formData.ownershipOther, ['required']); }"
                 />
+                <span v-if="errors.ownershipOther" class="error-text">{{ errors.ownershipOther }}</span>
              </div>
         </div>
 
@@ -336,6 +340,7 @@ const formData = reactive({
   locationTypeSelect: '',
   locationTypeOther: '',
   ownershipSelect: '',
+  ownershipOther: '',
   storeValue: '',
   mapCode: '',
   landmark: '',
@@ -420,6 +425,7 @@ watch(() => store.customer, (newVal) => {
         formData.locationTypeSelect = newVal.store_location_type || '';
         formData.locationTypeOther = newVal.store_location_type_other || '';
         formData.ownershipSelect = newVal.store_ownership || '';
+        formData.ownershipOther = newVal.store_ownership_other || '';
 
         const storeVal = String(newVal.store_value || '');
         const currentFormVal = String(formData.storeValue || '').replace(/,/g, '');
@@ -453,6 +459,7 @@ watch(() => store.customer, (newVal) => {
         formData.locationTypeSelect = newVal.store_location_type || '';
         formData.locationTypeOther = newVal.store_location_type_other || '';
         formData.ownershipSelect = newVal.store_ownership || '';
+        formData.ownershipOther = newVal.store_ownership_other || '';
 
         // Only update if changed
         const storeVal = String(newVal.store_value || '');
@@ -488,6 +495,7 @@ watch(formData, (newVal) => {
       store_location_type: newVal.locationTypeSelect,
       store_location_type_other: newVal.locationTypeOther,
       store_ownership: newVal.ownershipSelect,
+      store_ownership_other: newVal.ownershipOther,
       // Save raw
       store_value: String(newVal.storeValue || '').replace(/,/g, ''),
     };
@@ -510,6 +518,7 @@ watch(formData, (newVal) => {
       store_location_type: newVal.locationTypeSelect,
       store_location_type_other: newVal.locationTypeOther,
       store_ownership: newVal.ownershipSelect,
+      store_ownership_other: newVal.ownershipOther,
       // Save raw
       store_value: String(newVal.storeValue || '').replace(/,/g, ''),
     };
@@ -554,6 +563,9 @@ watch(() => store.showValidationErrors, (val) => {
         validateField('locationType', formData.locationTypeSelect, ['required']);
         validateField('propertyOwnership', formData.ownershipSelect, ['required']);
         validateField('storeValue', formData.storeValue, ['required']);
+        if (formData.ownershipSelect === 'อื่นๆ') {
+          validateField('ownershipOther', formData.ownershipOther, ['required']);
+        }
     }
 }, { immediate: true });
 </script>

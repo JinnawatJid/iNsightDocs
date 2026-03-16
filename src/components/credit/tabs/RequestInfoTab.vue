@@ -114,13 +114,13 @@
                 type="text"
                 class="form-input disabled"
                 disabled
-                :value="store.financialSummary.current_credit_limit || 'N/A'" :data-empty="!store.financialSummary.current_credit_limit || 'N/A'"
+                :value="formattedCurrentCreditLimit" :data-empty="!store.customer.current_credit_limit"
               />
             </div>
 
             <div class="form-group" v-if="isDraftMode">
               <label>
-                  {{ isRequestIncrease ? 'วงเงินรวมใหม่ที่ต้องการ' : 'วงเงินเครดิตที่ต้องการ (บาท)' }}
+                  {{ isRequestIncrease ? 'ต้องการวงเงินเพิ่ม' : 'วงเงินเครดิตที่ต้องการ (บาท)' }}
                   <span v-if="isRequired('amount')" class="text-red-500">*</span>
               </label>
               <input
@@ -133,6 +133,16 @@
                 @input="handleAmountInput"
               />
               <span v-if="errors.amount" class="error-text">กรุณาระบุข้อมูล</span>
+            </div>
+
+            <div class="form-group" v-if="isRequestIncrease && isDraftMode">
+              <label>วงเงินรวมทั้งหมด</label>
+              <input
+                type="text"
+                class="form-input disabled"
+                disabled
+                :value="totalLimit" :data-empty="totalLimit === 'N/A'"
+              />
             </div>
 
             <!-- New Split Terms for Draft Mode -->
@@ -285,40 +295,7 @@
         </div>
 
         <div v-if="store.customer.billing_requirement && store.customer.billing_requirement !== 'not_required'">
-            <div class="billing-details-grid">
-                 <div class="form-group full-width">
-                    <label>ชื่อผู้ติดต่อรับวางบิล</label>
-                    <input
-                      type="text"
-                      class="form-input"
-                      v-model="store.customer.billing_contact" :data-empty="!store.customer.billing_contact"
-                      placeholder="ระบุชื่อผู้รับวางบิล"
-                      :disabled="!isEditing"
-                    >
-                 </div>
-                 <div class="form-group full-width">
-                    <label>แผนก</label>
-                    <input
-                      type="text"
-                      class="form-input"
-                      v-model="store.customer.billing_department" :data-empty="!store.customer.billing_department"
-                      placeholder="ระบุแผนก"
-                      :disabled="!isEditing"
-                    >
-                 </div>
-            </div>
-
             <div class="billing-contact-grid">
-                 <div class="form-group">
-                    <label>โทรศัพท์</label>
-                    <input
-                      type="text"
-                      class="form-input"
-                      v-model="store.customer.billing_phone" :data-empty="!store.customer.billing_phone"
-                      placeholder="ระบุเบอร์โทรศัพท์"
-                      :disabled="!isEditing"
-                    >
-                 </div>
                  <div class="form-group">
                     <label>มือถือ</label>
                     <input
@@ -686,6 +663,21 @@ function removeCreditRow(index) {
     }
 }
 
+const formattedCurrentCreditLimit = computed(() => {
+    return store.customer.current_credit_limit ? Number(store.customer.current_credit_limit).toLocaleString('en-US') : 'N/A';
+});
+
+const totalLimit = computed(() => {
+    if (!isRequestIncrease.value) return 'N/A';
+
+    const currentLimit = Number(store.customer.current_credit_limit || 0);
+    const requestedAmount = Number(store.transactionData.amount || 0);
+
+    const sum = currentLimit + requestedAmount;
+
+    return sum ? sum.toLocaleString('en-US') : 'N/A';
+});
+
 const formattedAmount = computed({
     get: () => store.transactionData.amount ? Number(store.transactionData.amount).toLocaleString('en-US') : '',
     set: (val) => {
@@ -816,7 +808,7 @@ function restrictLocalCreditInput(e, item, field) {
 
 .billing-contact-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-top: 15px;
 }
