@@ -64,6 +64,22 @@ export const useAuthStore = defineStore('auth', {
     },
 
     initAuth() {
+      if (!this.authRequired) {
+        this.user = {
+          userId: 99999,
+          username: "DEV_MODE_USER",
+          roles: [
+            {
+              app: "Smart Credit Application",
+              role: "ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)"
+            }
+          ],
+          branchCode: "00TR"
+        };
+        this.isAuthenticated = true;
+        return;
+      }
+
       // 1. Check for token cookie
       const token = Cookies.get('token');
 
