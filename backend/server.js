@@ -17,7 +17,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-    origin: true, // or your frontend domain
+    origin: ['http://192.192.0.37:53683', 'http://localhost:53683', 'http://localhost:5173'], // Restrict to specific origins that use credentials
     credentials: true
 }));
 app.use(express.json());

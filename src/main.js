@@ -16,8 +16,8 @@ async function initializeApp() {
   // 1. Fetch backend configuration to see if auth is required (e.g., checking .env)
   await authStore.fetchAuthConfig();
 
-  // 2. Initialize token parsing
-  authStore.initAuth();
+  // 2. Initialize token parsing by making an API request to the backend (/me)
+  await authStore.initAuth();
 
   // 3. Mount router and app
   app.use(router);
