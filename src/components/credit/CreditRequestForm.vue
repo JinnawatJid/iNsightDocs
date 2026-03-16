@@ -26,6 +26,7 @@
       <div class="form-footer">
         <!-- Unified Review Section (Terms + Comments) -->
         <CreditReviewSection
+          v-if="store.activeTab === 'financial' || viewMode === 'focus'"
           :readOnly="isReadOnly"
           :showTerms="showTerms"
           :comments="comments"
@@ -38,8 +39,8 @@
         </div>
 
         <div class="action-buttons">
-            <!-- Dynamic Actions based on Workflow Config -->
-            <template v-for="(btn, index) in availableActions" :key="index">
+            <!-- Secondary Actions (e.g., Save, Reject) -->
+            <template v-for="(btn, index) in secondaryActions" :key="'sec-'+index">
                 <button
                     :class="getButtonClass(btn.variant)"
                     @click="handleAction(btn)"
@@ -48,6 +49,25 @@
                 </button>
             </template>
 
+            <!-- Next Button (if not on last tab) -->
+            <button
+                v-if="!isLastTab"
+                class="btn-primary"
+                @click="handleNextTab"
+            >
+                ถัดไป
+            </button>
+
+            <!-- Primary Actions (Submit, Approve) only on last tab -->
+            <template v-for="(btn, index) in primaryActions" :key="'pri-'+index">
+                <button
+                    v-if="isLastTab"
+                    :class="getButtonClass(btn.variant)"
+                    @click="handleAction(btn)"
+                >
+                    {{ btn.label }}
+                </button>
+            </template>
         </div>
       </div>
     </div>
@@ -137,6 +157,37 @@ const availableActions = computed(() => {
         return true;
     });
 });
+
+// Group Actions
+const secondaryActions = computed(() => {
+    // Actions that are not submit or approve (e.g., Save, Reject)
+    return availableActions.value.filter(a => a.variant === 'secondary' || a.variant === 'reject');
+});
+
+const primaryActions = computed(() => {
+    // Actions that push the workflow forward (e.g., Submit, Approve)
+    return availableActions.value.filter(a => a.variant !== 'secondary' && a.variant !== 'reject');
+});
+
+// Tab navigation logic
+const activeTabsList = computed(() => {
+    if (viewMode.value === 'focus') {
+        return ['requestInfo'];
+    }
+    return ['requestInfo', 'store', 'general', 'residence', 'financial'];
+});
+
+const isLastTab = computed(() => {
+    if (activeTabsList.value.length === 0) return true;
+    return store.activeTab === activeTabsList.value[activeTabsList.value.length - 1];
+});
+
+const handleNextTab = () => {
+    const currentIndex = activeTabsList.value.indexOf(store.activeTab);
+    if (currentIndex >= 0 && currentIndex < activeTabsList.value.length - 1) {
+        store.setActiveTab(activeTabsList.value[currentIndex + 1]);
+    }
+};
 
 const newComment = ref('');
 
