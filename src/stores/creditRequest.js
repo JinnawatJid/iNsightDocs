@@ -38,7 +38,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       termAE: '',
       termYC: '',
       reason: '',
-      requestType: 'เครดิตใหม่'
+      requestType: 'เครดิตใหม่',
+      noFinancialData: false
     },
 
     // List of requests (Pending/History)
@@ -248,7 +249,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           termGS: data.term_gs,
           termAE: data.term_ae,
           termYC: data.term_yc,
-          requestType: data.request_type || 'เครดิตใหม่'
+          requestType: data.request_type || 'เครดิตใหม่',
+          noFinancialData: parsedSnapshot.transaction_data?.noFinancialData || false
         };
 
         this.hasSearched = true; // To show the form
@@ -510,7 +512,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
               termAE: resData.term_ae || '',
               termYC: resData.term_yc || '',
               reason: resData.request_reason || '',
-              requestType: resData.request_type || 'เครดิตใหม่'
+              requestType: resData.request_type || 'เครดิตใหม่',
+              noFinancialData: resData.snapshot_data ? (typeof resData.snapshot_data === 'string' ? JSON.parse(resData.snapshot_data).transaction_data?.noFinancialData || false : resData.snapshot_data.transaction_data?.noFinancialData || false) : false
             };
           }
         }
@@ -719,10 +722,21 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         if (isSubmit) {
             // Add Financial Documents to check list if mandatory
             if (isFinancialMandatory && this.isCompany) {
-                const financialFiles = ['company_profile_doc', 'balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc'];
+                let financialFiles = ['company_profile_doc', 'balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc'];
+
+                // If user checked "noFinancialData", only require company profile
+                if (this.transactionData.noFinancialData) {
+                    financialFiles = ['company_profile_doc'];
+                }
+
                 financialFiles.forEach(f => {
                     if (!filesToCheck.includes(f)) filesToCheck.push(f);
                 });
+
+                // Also ensure we remove them from filesToCheck if they were already there but user checked the box
+                if (this.transactionData.noFinancialData) {
+                    filesToCheck = filesToCheck.filter(f => !['balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc'].includes(f));
+                }
             }
 
             filesToCheck.forEach(key => {
@@ -806,7 +820,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termAE: '',
         termYC: '',
         reason: '',
-        requestType: 'เครดิตใหม่'
+        requestType: 'เครดิตใหม่',
+        noFinancialData: false
       };
     },
 
@@ -838,7 +853,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termAE: '',
         termYC: '',
         reason: '',
-        requestType: 'เครดิตใหม่'
+        requestType: 'เครดิตใหม่',
+        noFinancialData: false
       };
     },
 
