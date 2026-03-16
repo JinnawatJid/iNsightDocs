@@ -65,6 +65,9 @@
           multiple
         />
       </div>
+
+      <!-- Other Documents Section -->
+      <OtherDocumentsSection :readOnly="!isEditing" />
     </div>
 
     <!-- Address Section -->
@@ -262,6 +265,7 @@
 import { reactive, computed, watch, ref } from 'vue';
 import { searchAddressByZipcode } from 'thai-address-database';
 import FileUploader from '@/components/shared/FileUploader.vue';
+import OtherDocumentsSection from '../OtherDocumentsSection.vue';
 import CoordinateMap from '@/components/shared/CoordinateMap.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
