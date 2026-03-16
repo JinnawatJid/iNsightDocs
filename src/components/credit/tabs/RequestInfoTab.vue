@@ -285,40 +285,7 @@
         </div>
 
         <div v-if="store.customer.billing_requirement && store.customer.billing_requirement !== 'not_required'">
-            <div class="billing-details-grid">
-                 <div class="form-group full-width">
-                    <label>ชื่อผู้ติดต่อรับวางบิล</label>
-                    <input
-                      type="text"
-                      class="form-input"
-                      v-model="store.customer.billing_contact" :data-empty="!store.customer.billing_contact"
-                      placeholder="ระบุชื่อผู้รับวางบิล"
-                      :disabled="!isEditing"
-                    >
-                 </div>
-                 <div class="form-group full-width">
-                    <label>แผนก</label>
-                    <input
-                      type="text"
-                      class="form-input"
-                      v-model="store.customer.billing_department" :data-empty="!store.customer.billing_department"
-                      placeholder="ระบุแผนก"
-                      :disabled="!isEditing"
-                    >
-                 </div>
-            </div>
-
             <div class="billing-contact-grid">
-                 <div class="form-group">
-                    <label>โทรศัพท์</label>
-                    <input
-                      type="text"
-                      class="form-input"
-                      v-model="store.customer.billing_phone" :data-empty="!store.customer.billing_phone"
-                      placeholder="ระบุเบอร์โทรศัพท์"
-                      :disabled="!isEditing"
-                    >
-                 </div>
                  <div class="form-group">
                     <label>มือถือ</label>
                     <input
@@ -816,7 +783,7 @@ function restrictLocalCreditInput(e, item, field) {
 
 .billing-contact-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-top: 15px;
 }
