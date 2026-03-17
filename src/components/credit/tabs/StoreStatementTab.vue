@@ -556,9 +556,12 @@ const handleDurationBlur = () => {
         // Simple sanity check: Year must be <= Current Year
         if (inputYear <= currentYear && inputYear > 2400) {
             const diff = currentYear - inputYear;
-            // Ensure non-negative
-            customerDuration.value = Math.max(0, diff).toString();
+            // Ensure non-negative and minimum 1
+            customerDuration.value = Math.max(1, diff).toString();
         }
+    } else if (parseInt(val) === 0) {
+        // Enforce minimum 1 for direct duration input
+        customerDuration.value = '1';
     }
 
     if (store.showValidationErrors) {

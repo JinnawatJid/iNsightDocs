@@ -12,5 +12,6 @@ router.get('/:id/detail', creditRequestController.getCreditRequestDetail);
 router.get('/:id/files/:fileId', creditRequestController.downloadCreditRequestFile);
 router.patch('/:id/cancel', creditRequestController.cancelCreditRequest);
 router.get('/:id/comments', creditRequestController.getComments);
+router.post('/:id/revise', creditRequestController.reviseRequest);
 
 module.exports = router;

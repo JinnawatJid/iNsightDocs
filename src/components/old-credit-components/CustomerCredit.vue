@@ -1,7 +1,7 @@
 <template>
   <div class="customer-credit">
     <div class="title-container">
-      <img src="@/assets/wallet-icon.svg" alt="Wallet Icon" class="title-icon" />
+      <img src="@/assets/icons/wallet-icon.svg" alt="Wallet Icon" class="title-icon" />
       <h3>ข้อมูลเครดิต</h3>
     </div>
     <div class="credit-summary">

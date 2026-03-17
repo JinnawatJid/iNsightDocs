@@ -25,11 +25,6 @@ Before beginning UAT, the testing environment and its external dependencies must
 *   **Check:** Navigate to `/create-credit-request` and search for a known test customer ID or Name.
 *   **Expected:** The search dropdown should populate with results. Selecting a customer should successfully fetch their details and transition the UI to the form view.
 
-### 2.3 Verify Python Bridge (DBD Auto-Download)
-*   **Why:** The automatic fetching of corporate financial data relies on a local Python bridge API (typically running on `http://127.0.0.1:4343`).
-*   **Check:** Ensure the bridge server is running in the environment (refer to `README_OCR_SETUP.md` or infrastructure docs for startup instructions).
-*   **Verification during test:** In the "Store / Financial" tab of a corporate customer request, clicking "ดึงข้อมูลจาก DataWarehouse" should successfully connect and pull data without timing out.
-
 ---
 
 ## 3. UAT Test Cases
@@ -49,10 +44,10 @@ Before beginning UAT, the testing environment and its external dependencies must
 2.  **Action:** Attempt to submit or proceed without filling a known mandatory field (e.g., "Credit Request Amount").
 3.  **Expected:** The system should block submission and highlight the missing required fields.
 
-#### Test Case M-03: Document Uploads & DBD Integration (Corporate Customer)
+#### Test Case M-03: Document Uploads & Data Retrieval (Corporate Customer)
 1.  **Action:** Navigate to the **Financial / Documents** tab (StoreStatementTab).
-2.  **Action:** Click the button to automatically pull DBD data ("ดึงข้อมูลจาก DataWarehouse").
-3.  **Expected:** Financial data and DBD Profile documents are fetched successfully via the Python bridge and displayed.
+2.  **Action:** Click the button to pull financial data ("ดึงข้อมูลจาก DataWarehouse").
+3.  **Expected:** Financial data and related documents are fetched successfully and displayed correctly on the interface.
 4.  **Action:** Manually upload an additional required document (e.g., ID Card) in the "Other Documents" section.
 5.  **Expected:** The document uploads successfully and appears in the global document checklist.
 
@@ -120,6 +115,31 @@ Before beginning UAT, the testing environment and its external dependencies must
 
 ---
 
+### Part D: Edge Cases & Boundary Value Testing
+*These tests ensure the system handles extreme or unusual data inputs gracefully without crashing or allowing invalid states.*
+
+#### Test Case E-01: Numeric Boundaries (Credit Amounts)
+1.  **Action:** In a new credit request, navigate to the field for "Credit Request Amount" or "Requested Additional Credit".
+2.  **Action:** Enter an extremely high number (e.g., beyond typical maximum limits or standard integer bounds).
+3.  **Expected:** The system either formats the large number correctly without breaking the UI, or displays a validation error if a maximum threshold is exceeded.
+4.  **Action:** Enter a zero (`0`) or negative (`-50000`) value in the credit amount field.
+5.  **Expected:** The system should display a clear validation error indicating that credit amounts must be greater than zero.
+
+#### Test Case E-02: Text Field Boundaries (Long Comments/Justifications)
+1.  **Action:** As an Approver reviewing a request, navigate to the "Review Section" (บันทึกการพิจารณา).
+2.  **Action:** Paste an excessively long string of text (e.g., 5000+ characters) into the mandatory review comment/justification field.
+3.  **Action:** Attempt to submit the approval/rejection.
+4.  **Expected:** The system should either truncate the text gracefully, successfully save the long text without database errors, or show a clear validation error if a character limit is enforced. The UI layout should not break.
+
+#### Test Case E-03: Zero/Null Financials (Scoring & PDF Handling)
+1.  **Action:** Select or create a test customer where financial data (e.g., revenue, assets, liabilities) contains zeroes (`0`) or empty fields.
+2.  **Action:** View the "Credit Evaluation" section.
+3.  **Expected:** The scoring model processes the zeroes without crashing, returning a valid (though potentially low or rejected) score and limit.
+4.  **Action:** Generate the Export PDF Report for this customer.
+5.  **Expected:** The PDF is generated successfully. Financial tables should display `0` correctly, and ratios involving division by zero should be handled gracefully (e.g., showing `N/A` or `0.00` instead of `Infinity` or `NaN`).
+
+---
+
 ## 4. Sign-Off & Issue Reporting
 *   If any test case fails, log an issue detailing:
     *   The Role being tested.
@@ -128,3 +148,17 @@ Before beginning UAT, the testing environment and its external dependencies must
     *   Browser and Environment details.
     *   Any error messages in the console or UI.
 *   Once all Critical and High-priority test cases pass successfully, the system is deemed ready for Production deployment.
+### 3.4. Request Revision Feature
+**Description:** Branch Managers can revise rejected requests without starting from scratch.
+**Pre-conditions:** A credit request must be in the `Rejected` status.
+**Test Steps:**
+1. Login as a Maker (Branch Manager).
+2. Navigate to Pending Requests -> History or search for a `Rejected` request.
+3. Scroll to the bottom of the Credit Review Section.
+4. Verify the "สร้างคำขอใหม่ (แก้ไข)" button is visible.
+5. Click the button. Verify the confirmation SweetAlert appears.
+6. Click "Confirm".
+7. Verify the system redirects to `/create-credit-request` and loads a newly generated transaction ID (e.g., `-R1` suffix).
+8. Verify that customer data, form fields, and uploaded documents are preserved.
+9. Verify that previous approval comments and specific workflow timestamps are cleared.
+10. Submit the new draft and verify it successfully enters the workflow as a new request.

@@ -3,6 +3,7 @@ import CustomerService from '@/services/CustomerService';
 import CreditRequestService from '@/services/CreditRequestService';
 import Swal from 'sweetalert2';
 import { getMandatoryKeys } from '@/config/mandatoryFields';
+import { useAuthStore } from '@/stores/auth';
 
 export const useCreditRequestStore = defineStore('creditRequest', {
   state: () => ({
@@ -39,7 +40,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       termYC: '',
       reason: '',
       requestType: 'เครดิตใหม่',
-      noFinancialData: false
+      noFinancialData: false,
+      draftComment: ''
     },
 
     // List of requests (Pending/History)
@@ -250,7 +252,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           termAE: data.term_ae,
           termYC: data.term_yc,
           requestType: data.request_type || 'เครดิตใหม่',
-          noFinancialData: parsedSnapshot.transaction_data?.noFinancialData || false
+          noFinancialData: parsedSnapshot.transaction_data?.noFinancialData || false,
+          draftComment: parsedSnapshot.transaction_data?.draftComment || ''
         };
 
         this.hasSearched = true; // To show the form
@@ -529,6 +532,18 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         this.requestStatus = 'Canceled';
       } catch (err) {
         console.error('Failed to cancel request', err);
+        throw err;
+      }
+    },
+
+    async reviseRequest() {
+      if (!this.requestId) return null;
+      try {
+        const response = await CreditRequestService.reviseRequest(this.requestId);
+        // Returns { message: '...', newTxId: '...' }
+        return response.data.newTxId;
+      } catch (err) {
+        console.error('Failed to revise request', err);
         throw err;
       }
     },
@@ -821,7 +836,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termYC: '',
         reason: '',
         requestType: 'เครดิตใหม่',
-        noFinancialData: false
+        noFinancialData: false,
+        draftComment: ''
       };
     },
 
@@ -854,7 +870,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termYC: '',
         reason: '',
         requestType: 'เครดิตใหม่',
-        noFinancialData: false
+        noFinancialData: false,
+        draftComment: ''
       };
     },
 
@@ -906,7 +923,35 @@ export const useCreditRequestStore = defineStore('creditRequest', {
            // If status changed to something that removes it from the current user's list,
            // we might want to refresh the sidebar list too.
            // Triggering a list refresh for the current active tab
-           const listStatus = this.activeTab === 'history' ? 'Approved,Rejected,Closed,Canceled' : 'Draft,Opened,RegionalSubmitted,SalesSubmitted,Reviewed,Submitted,PendingSales (ชั่วคราว),PendingFinance (ชั่วคราว)';
+           let listStatus = 'Approved,Rejected,Closed,Canceled'; // Default to history
+
+           if (this.activeTab !== 'history') {
+             const authStore = useAuthStore();
+             let allowedStatuses = [];
+
+             if (authStore.isInitiator) {
+               allowedStatuses.push('Draft', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
+             }
+             if (authStore.isRegionalManager) {
+               allowedStatuses.push('Opened');
+             }
+             if (authStore.isSalesManager) {
+               allowedStatuses.push('RegionalSubmitted');
+             }
+             if (authStore.isFinanceOfficer) {
+               allowedStatuses.push('SalesSubmitted');
+             }
+             if (authStore.isFinanceManager || authStore.isCreditCommittee) {
+               allowedStatuses.push('Reviewed');
+             }
+
+             if (allowedStatuses.length > 0) {
+                 listStatus = allowedStatuses.join(',');
+             } else {
+                 listStatus = 'Draft';
+             }
+           }
+
            await this.fetchRequests(listStatus);
         }
 
