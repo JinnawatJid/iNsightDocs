@@ -190,7 +190,10 @@ const handleNextTab = () => {
     }
 };
 
-const newComment = ref('');
+const newComment = computed({
+    get: () => store.transactionData.draftComment || '',
+    set: (val) => { store.transactionData.draftComment = val; }
+});
 
 // Button Styling Map
 const getButtonClass = (variant) => {
@@ -349,18 +352,34 @@ const submitTransaction = async (btn) => {
         formData.append('term_ae', store.transactionData.termAE || '');
         formData.append('term_yc', store.transactionData.termYC || '');
 
-        // Snapshot
-        const snapshot = store.getSnapshot();
-        formData.append('snapshot_data', JSON.stringify(snapshot));
-
-        // Status & Comment
+        // Status
         formData.append('status', btn.targetStatus);
 
         formData.append('is_submit', btn.action === 'saveDraft' ? 'false' : 'true');
 
+        // Handle Comment Logic
+        let originalDraftComment = '';
         if (newComment.value.trim()) {
-            formData.append('comment', newComment.value.trim());
-            formData.append('actor_role', currentRoleLabel.value);
+            if (btn.action !== 'saveDraft') {
+                // For actual submission, send as a permanent comment
+                formData.append('comment', newComment.value.trim());
+                formData.append('actor_role', currentRoleLabel.value);
+
+                // Temporarily clear it from snapshot so it doesn't linger
+                originalDraftComment = store.transactionData.draftComment;
+                store.transactionData.draftComment = '';
+            }
+            // For saveDraft, we do NOT append 'comment' to formData.
+            // It will naturally be saved within 'snapshot_data' since it's in transactionData.draftComment
+        }
+
+        // Snapshot MUST be taken AFTER modifying draftComment (if we cleared it)
+        const snapshot = store.getSnapshot();
+        formData.append('snapshot_data', JSON.stringify(snapshot));
+
+        // Restore draftComment so the UI doesn't jump before the page reloads
+        if (originalDraftComment) {
+            store.transactionData.draftComment = originalDraftComment;
         }
 
         // Files
