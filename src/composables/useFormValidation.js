@@ -40,41 +40,8 @@ export function useFormValidation() {
     return true;
   };
 
-  const clearError = (fieldName) => {
-    if (errors[fieldName]) {
-      errors[fieldName] = null;
-    }
-  };
-
-  const restrictPhoneInput = (event) => {
-    const input = event.target;
-    const val = input.value;
-    const clean = val.replace(/[^0-9]/g, '');
-    if (clean !== val) {
-      input.value = clean;
-      input.dispatchEvent(new Event('input'));
-    }
-    if (clean.length > 10) {
-      input.value = clean.slice(0, 10);
-      input.dispatchEvent(new Event('input'));
-    }
-  };
-
-  const restrictCreditAmountInput = (event) => {
-    const input = event.target;
-    const val = input.value;
-    const clean = val.replace(/[^0-9,]/g, '');
-    if (clean !== val) {
-      input.value = clean;
-      input.dispatchEvent(new Event('input'));
-    }
-  };
-
   return {
     errors,
-    validateField,
-    clearError,
-    restrictPhoneInput,
-    restrictCreditAmountInput
+    validateField
   };
 }

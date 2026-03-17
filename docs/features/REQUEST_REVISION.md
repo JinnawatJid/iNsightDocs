@@ -37,5 +37,6 @@ To save the user from re-uploading files, the system uses `fs-extra` to physical
 - Example: `uploads/01CA2310_001` is copied to `uploads/01CA2310_001-R1`.
 
 ## Security & Access Control
-- The UI button is protected by a computed property `showReviseButton` which verifies both the status (`Rejected`) and the user's role/roleGroup (e.g., `Branch Manager`, `Initiator`).
+- The UI button is protected by a computed property `showReviseButton` which verifies both the status (`Rejected`) and the user's role via the Pinia auth store getter `authStore.isInitiator`.
+- **Note on Roles:** The system manages user roles as an array of objects (`authStore.user?.roles = [{ role: 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)' }]`). Authorization checks must use these centralized getters rather than explicit hardcoded string matches against a single `role` property.
 - The backend API does not currently have RBAC middleware (per future security requirements), but enforces the `Rejected` status requirement before processing the duplicate action.
