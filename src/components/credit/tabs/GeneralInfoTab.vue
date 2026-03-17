@@ -254,9 +254,12 @@ function handleYearsInBusinessBlur() {
         // Simple sanity check: Year must be <= Current Year
         if (inputYear <= currentYear && inputYear > 2400) {
             const diff = currentYear - inputYear;
-            // Ensure non-negative
-            formData.yearsInBusiness = Math.max(0, diff).toString();
+            // Ensure non-negative and minimum 1
+            formData.yearsInBusiness = Math.max(1, diff).toString();
         }
+    } else if (parseInt(val) === 0) {
+        // Enforce minimum 1 for direct duration input
+        formData.yearsInBusiness = '1';
     }
 
     validateField('yearsInBusiness', formData.yearsInBusiness, ['required']);
