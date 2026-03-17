@@ -75,15 +75,26 @@
             rows="5"
         ></textarea>
       </div>
+
+      <!-- Revision Button for Maker on Rejected Requests -->
+      <div v-if="showReviseButton" class="revision-action-wrapper">
+        <button class="btn btn-secondary revise-btn" @click="handleReviseRequest" :disabled="isRevising">
+            <span v-if="isRevising" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            สร้างคำขอใหม่ (แก้ไข)
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 import CommentHistory from './CommentHistory.vue';
 import { commentPlaceholders } from '@/config/workflow';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import Swal from 'sweetalert2';
 
 const props = defineProps({
   readOnly: { type: Boolean, default: false },
@@ -96,6 +107,60 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const store = useCreditRequestStore();
+const authStore = useAuthStore();
+const router = useRouter();
+
+const isRevising = ref(false);
+
+const showReviseButton = computed(() => {
+    const isRejected = store.requestStatus === 'Rejected';
+    const isMaker = authStore.user?.role === 'Branch Manager' ||
+                    authStore.user?.role === 'Sales Representative' ||
+                    authStore.user?.role === 'Credit Assistant' ||
+                    authStore.user?.roleGroup === 'Initiator';
+    return isRejected && isMaker;
+});
+
+const handleReviseRequest = async () => {
+    if (isRevising.value) return;
+
+    try {
+        const result = await Swal.fire({
+            title: 'สร้างคำขอใหม่ (แก้ไข)',
+            text: 'ระบบจะสร้างฉบับร่างใหม่จากข้อมูลเดิม โดยไม่คัดลอกประวัติการพิจารณา คุณต้องการดำเนินการต่อหรือไม่?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#0052cc',
+            cancelButtonColor: '#dc3545'
+        });
+
+        if (result.isConfirmed) {
+            isRevising.value = true;
+            const newTxId = await store.reviseRequest();
+            if (newTxId) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'สร้างคำขอใหม่สำเร็จ',
+                    text: `รหัสคำขอใหม่ของคุณคือ: ${newTxId}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                // Redirect to create page and load the new draft
+                router.push(`/create-credit-request?search=${store.customer.id}`);
+            }
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'เกิดข้อผิดพลาด',
+            text: error.response?.data?.error || 'ไม่สามารถสร้างคำขอใหม่ได้',
+        });
+    } finally {
+        isRevising.value = false;
+    }
+};
 
 const placeholderText = computed(() => {
     const status = store.requestStatus || 'Draft';
@@ -125,6 +190,33 @@ function restrictNumber(field, e) {
 </script>
 
 <style scoped>
+.revision-action-wrapper {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 1rem;
+}
+
+.revise-btn {
+  background-color: #f8f9fa;
+  color: #333;
+  border: 1px solid #ced4da;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.revise-btn:hover:not(:disabled) {
+  background-color: #e2e6ea;
+  border-color: #dae0e5;
+}
+
+.revise-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 .credit-review-section {
   margin-bottom: 20px;
   background-color: #f8f9fa; /* Unified light background */

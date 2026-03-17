@@ -148,3 +148,17 @@ Before beginning UAT, the testing environment and its external dependencies must
     *   Browser and Environment details.
     *   Any error messages in the console or UI.
 *   Once all Critical and High-priority test cases pass successfully, the system is deemed ready for Production deployment.
+### 3.4. Request Revision Feature
+**Description:** Branch Managers can revise rejected requests without starting from scratch.
+**Pre-conditions:** A credit request must be in the `Rejected` status.
+**Test Steps:**
+1. Login as a Maker (Branch Manager).
+2. Navigate to Pending Requests -> History or search for a `Rejected` request.
+3. Scroll to the bottom of the Credit Review Section.
+4. Verify the "สร้างคำขอใหม่ (แก้ไข)" button is visible.
+5. Click the button. Verify the confirmation SweetAlert appears.
+6. Click "Confirm".
+7. Verify the system redirects to `/create-credit-request` and loads a newly generated transaction ID (e.g., `-R1` suffix).
+8. Verify that customer data, form fields, and uploaded documents are preserved.
+9. Verify that previous approval comments and specific workflow timestamps are cleared.
+10. Submit the new draft and verify it successfully enters the workflow as a new request.
