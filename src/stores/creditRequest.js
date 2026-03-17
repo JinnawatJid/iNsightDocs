@@ -40,7 +40,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       termYC: '',
       reason: '',
       requestType: 'เครดิตใหม่',
-      noFinancialData: false
+      noFinancialData: false,
+      draftComment: ''
     },
 
     // List of requests (Pending/History)
@@ -251,7 +252,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           termAE: data.term_ae,
           termYC: data.term_yc,
           requestType: data.request_type || 'เครดิตใหม่',
-          noFinancialData: parsedSnapshot.transaction_data?.noFinancialData || false
+          noFinancialData: parsedSnapshot.transaction_data?.noFinancialData || false,
+          draftComment: parsedSnapshot.transaction_data?.draftComment || ''
         };
 
         this.hasSearched = true; // To show the form
@@ -822,7 +824,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termYC: '',
         reason: '',
         requestType: 'เครดิตใหม่',
-        noFinancialData: false
+        noFinancialData: false,
+        draftComment: ''
       };
     },
 
@@ -855,7 +858,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
         termYC: '',
         reason: '',
         requestType: 'เครดิตใหม่',
-        noFinancialData: false
+        noFinancialData: false,
+        draftComment: ''
       };
     },
 
