@@ -1,7 +1,7 @@
 <template>
   <div class="customer-general-detail">
     <div class="title-container">
-      <img src="@/assets/user-icon.svg" alt="User Icon" class="title-icon" />
+      <img src="@/assets/icons/user-icon.svg" alt="User Icon" class="title-icon" />
       <h3>ข้อมูลส่วนตัว</h3>
     </div>
     <div class="detail-grid">
