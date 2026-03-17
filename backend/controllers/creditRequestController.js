@@ -653,7 +653,7 @@ exports.reviseRequest = async (req, res) => {
             ];
         }
 
-        const insertResult = await db.runAsync(insertSql, insertParams);
+        const insertResult = await db.query(insertSql, insertParams);
 
         // 5. Copy physical files
         const cleanOldId = id.replace(/\//g, '_');
