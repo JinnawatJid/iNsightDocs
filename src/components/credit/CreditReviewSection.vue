@@ -114,10 +114,7 @@ const isRevising = ref(false);
 
 const showReviseButton = computed(() => {
     const isRejected = store.requestStatus === 'Rejected';
-    const isMaker = authStore.user?.role === 'Branch Manager' ||
-                    authStore.user?.role === 'Sales Representative' ||
-                    authStore.user?.role === 'Credit Assistant' ||
-                    authStore.user?.roleGroup === 'Initiator';
+    const isMaker = authStore.isInitiator;
     return isRejected && isMaker;
 });
 
