@@ -536,6 +536,18 @@ export const useCreditRequestStore = defineStore('creditRequest', {
       }
     },
 
+    async reviseRequest() {
+      if (!this.requestId) return null;
+      try {
+        const response = await CreditRequestService.reviseRequest(this.requestId);
+        // Returns { message: '...', newTxId: '...' }
+        return response.data.newTxId;
+      } catch (err) {
+        console.error('Failed to revise request', err);
+        throw err;
+      }
+    },
+
     updateDocumentStatus(docKey, hasFile) {
       this.uploadedDocuments[docKey] = hasFile;
     },

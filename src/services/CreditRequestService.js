@@ -38,6 +38,10 @@ export default {
     return axios.patch(`${API_URL}/${encodeURIComponent(id)}/cancel`);
   },
 
+  async reviseRequest(id) {
+    return axios.post(`${API_URL}/${encodeURIComponent(id)}/revise`);
+  },
+
   async getComments(txId) {
     return axios.get(`${API_URL}/${encodeURIComponent(txId)}/comments`);
   },

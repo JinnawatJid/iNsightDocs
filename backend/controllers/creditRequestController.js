@@ -534,3 +534,147 @@ exports.getComments = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+exports.reviseRequest = async (req, res) => {
+    const id = decodeURIComponent(req.params.id); // tx_id
+    console.log(`Revise Request called for tx_id: ${id}`);
+    try {
+        // 1. Fetch the existing rejected request
+        let requestSql;
+        if (db.dbType === 'mssql') {
+            requestSql = 'SELECT TOP 1 * FROM CreditRequests WHERE tx_id = ?';
+        } else {
+            requestSql = 'SELECT * FROM CreditRequests WHERE tx_id = ? LIMIT 1';
+        }
+        const { rows } = await db.query(requestSql, [id]);
+
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: 'Credit request not found' });
+        }
+
+        const oldRequest = rows[0];
+
+        // 2. Verify it's rejected
+        if (oldRequest.status !== 'Rejected') {
+            return res.status(400).json({ error: 'Only rejected requests can be revised.' });
+        }
+
+        // 3. Generate new revision ID
+        let baseId = id;
+        let revisionNumber = 1;
+
+        const match = id.match(/(.*?)-R(\d+)$/);
+        if (match) {
+            baseId = match[1];
+            revisionNumber = parseInt(match[2], 10) + 1;
+        }
+
+        const newTxId = `${baseId}-R${revisionNumber}`;
+        console.log(`Creating revision: ${newTxId} from ${id}`);
+
+        // Check if this revision already exists (safety check)
+        let checkRevisionSql;
+        if (db.dbType === 'mssql') {
+            checkRevisionSql = 'SELECT TOP 1 * FROM CreditRequests WHERE tx_id = ?';
+        } else {
+            checkRevisionSql = 'SELECT * FROM CreditRequests WHERE tx_id = ? LIMIT 1';
+        }
+        const { rows: existingRevision } = await db.query(checkRevisionSql, [newTxId]);
+
+        if (existingRevision && existingRevision.length > 0) {
+            return res.status(400).json({ error: `Revision ${newTxId} already exists.` });
+        }
+
+        // 4. Duplicate the request record (exclude approval flags, comments, set status to Draft)
+        let snapshotDataObj = {};
+        if (oldRequest.snapshot_data) {
+            try {
+                snapshotDataObj = typeof oldRequest.snapshot_data === 'string' ? JSON.parse(oldRequest.snapshot_data) : oldRequest.snapshot_data;
+
+                // Clear out approval comments from snapshot data if they exist
+                if (snapshotDataObj.review_comment) snapshotDataObj.review_comment = '';
+                if (snapshotDataObj.regional_review_comment) snapshotDataObj.regional_review_comment = '';
+                if (snapshotDataObj.sales_review_comment) snapshotDataObj.sales_review_comment = '';
+            } catch (e) {
+                console.error('Error parsing old snapshot data for revision', e);
+            }
+        }
+
+        // Convert back to string for db storage
+        const newSnapshotData = JSON.stringify(snapshotDataObj);
+
+        let insertSql;
+        let insertParams;
+
+        if (db.dbType === 'mssql') {
+           insertSql = `
+                INSERT INTO CreditRequests (
+                    customer_no, customer_name, tx_id, status, request_amount,
+                    request_reason, request_credit_term, term_gs, term_ae, term_yc,
+                    request_type, snapshot_data, is_approved, reviewed_by, review_date
+                )
+                OUTPUT INSERTED.id
+                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL)
+            `;
+            insertParams = [
+                oldRequest.customer_no,
+                oldRequest.customer_name,
+                newTxId,
+                oldRequest.request_amount,
+                oldRequest.request_reason,
+                oldRequest.request_credit_term,
+                oldRequest.term_gs,
+                oldRequest.term_ae,
+                oldRequest.term_yc,
+                oldRequest.request_type,
+                newSnapshotData
+            ];
+        } else {
+            insertSql = `
+                INSERT INTO CreditRequests (
+                    customer_no, customer_name, tx_id, status, request_amount,
+                    request_reason, request_credit_term, term_gs, term_ae, term_yc,
+                    request_type, snapshot_data, is_approved, reviewed_by, review_date
+                )
+                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL)
+            `;
+            insertParams = [
+                oldRequest.customer_no,
+                oldRequest.customer_name,
+                newTxId,
+                oldRequest.request_amount,
+                oldRequest.request_reason,
+                oldRequest.request_credit_term,
+                oldRequest.term_gs,
+                oldRequest.term_ae,
+                oldRequest.term_yc,
+                oldRequest.request_type,
+                newSnapshotData
+            ];
+        }
+
+        const insertResult = await db.query(insertSql, insertParams);
+
+        // 5. Copy physical files
+        const cleanOldId = id.replace(/\//g, '_');
+        const cleanNewId = newTxId.replace(/\//g, '_');
+        const oldDirPath = path.join(UPLOAD_BASE, cleanOldId);
+        const newDirPath = path.join(UPLOAD_BASE, cleanNewId);
+
+        if (await fs.pathExists(oldDirPath)) {
+             await fs.copy(oldDirPath, newDirPath);
+             console.log(`Copied files from ${oldDirPath} to ${newDirPath}`);
+        } else {
+             console.log(`No files found to copy at ${oldDirPath}`);
+        }
+
+        res.status(200).json({
+            message: 'Request revised successfully',
+            newTxId: newTxId
+        });
+
+    } catch (error) {
+        console.error('Error revising credit request:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
