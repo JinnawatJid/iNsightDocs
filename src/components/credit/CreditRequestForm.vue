@@ -34,19 +34,21 @@
           v-model="newComment"
         />
 
-        <div class="footer-info">
+        <div v-if="!isReadOnly" class="footer-info">
             <span class="author">สถานะปัจจุบัน: {{ currentRoleLabel }}</span>
         </div>
 
         <div class="action-buttons">
             <!-- Secondary Actions (e.g., Save, Reject) -->
-            <template v-for="(btn, index) in secondaryActions" :key="'sec-'+index">
-                <button
-                    :class="getButtonClass(btn.variant)"
-                    @click="handleAction(btn)"
-                >
-                    {{ btn.label }}
-                </button>
+            <template v-if="!isReadOnly">
+                <template v-for="(btn, index) in secondaryActions" :key="'sec-'+index">
+                    <button
+                        :class="getButtonClass(btn.variant)"
+                        @click="handleAction(btn)"
+                    >
+                        {{ btn.label }}
+                    </button>
+                </template>
             </template>
 
             <!-- Next Button (if not on last tab) -->
@@ -59,14 +61,16 @@
             </button>
 
             <!-- Primary Actions (Submit, Approve) only on last tab -->
-            <template v-for="(btn, index) in primaryActions" :key="'pri-'+index">
-                <button
-                    v-if="isLastTab"
-                    :class="getButtonClass(btn.variant)"
-                    @click="handleAction(btn)"
-                >
-                    {{ btn.label }}
-                </button>
+            <template v-if="!isReadOnly">
+                <template v-for="(btn, index) in primaryActions" :key="'pri-'+index">
+                    <button
+                        v-if="isLastTab"
+                        :class="getButtonClass(btn.variant)"
+                        @click="handleAction(btn)"
+                    >
+                        {{ btn.label }}
+                    </button>
+                </template>
             </template>
         </div>
       </div>
