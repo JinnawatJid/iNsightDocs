@@ -65,7 +65,7 @@
       </div>
 
       <!-- New Comment Input (Bottom) -->
-      <div class="new-comment-box">
+      <div v-if="!readOnly" class="new-comment-box">
         <h5 class="comment-label">ความคิดเห็น: {{ currentRole }}</h5>
         <textarea
             class="comment-input"
@@ -73,7 +73,6 @@
             :value="modelValue"
             @input="$emit('update:modelValue', $event.target.value)"
             rows="5"
-            :disabled="readOnly"
         ></textarea>
       </div>
     </div>
