@@ -182,6 +182,13 @@
                   @change="() => { validateField('propertyOwnership', formData.ownershipSelect, ['required']); }"
                 >
                   <option value="" disabled selected>เลือกประเภทกรรมสิทธิ์</option>
+                  <!-- Dynamically show option if copied from store but not in standard list -->
+                  <option
+                    v-if="formData.ownershipSelect && !['บ้านตนเอง', 'บ้านญาติ', 'บ้านเช่า', 'บ้านบิดา/มารดา', 'เช่าซื้อ'].includes(formData.ownershipSelect)"
+                    :value="formData.ownershipSelect"
+                  >
+                    {{ formData.ownershipSelect }}
+                  </option>
                   <option value="บ้านตนเอง">บ้านตนเอง</option>
                   <option value="บ้านญาติ">บ้านญาติ</option>
                   <option value="บ้านเช่า">บ้านเช่า</option>
