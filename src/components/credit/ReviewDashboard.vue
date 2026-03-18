@@ -28,12 +28,12 @@
             <div class="value">{{ store.customer.payment_method || '-' }}</div>
         </div>
         <div class="deal-item">
-            <label>เงื่อนไขการชำระเงิน</label>
-            <div class="value">{{ store.customer.payment_condition || '-' }}</div>
-        </div>
-        <div class="deal-item">
             <label>เงื่อนไขการวางบิล</label>
             <div class="value">{{ store.customer.billing_schedule || '-' }}</div>
+        </div>
+        <div class="deal-item">
+            <label>เงื่อนไขการชำระเงิน</label>
+            <div class="value">{{ store.customer.payment_condition || '-' }}</div>
         </div>
       </div>
     </div>
