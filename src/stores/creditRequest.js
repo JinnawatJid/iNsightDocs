@@ -87,18 +87,18 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     uploadedDocumentCount: (state) => {
       // Use the files object to count, ensuring we have actual files and ignoring empty arrays
-      // Exclude 'other:' keys from the count as they are optional/misc
+      // Exclude 'other_' keys from the count as they are optional/misc
       return Object.entries(state.files)
-        .filter(([key, f]) => !key.startsWith('other:') && f && (!Array.isArray(f) || f.length > 0))
+        .filter(([key, f]) => !key.startsWith('other_') && f && (!Array.isArray(f) || f.length > 0))
         .length;
     },
 
     approvalChanceLevel: (state) => {
       // Total docs tracked = 5 (2 from GeneralInfo, 2 from Residence, 1 from RequestInfo)
       const totalDocs = 5;
-      // Exclude 'other:' keys
+      // Exclude 'other_' keys
       const count = Object.entries(state.files)
-        .filter(([key, f]) => !key.startsWith('other:') && f && (!Array.isArray(f) || f.length > 0))
+        .filter(([key, f]) => !key.startsWith('other_') && f && (!Array.isArray(f) || f.length > 0))
         .length;
       const ratio = count / totalDocs;
 
@@ -109,9 +109,9 @@ export const useCreditRequestStore = defineStore('creditRequest', {
 
     approvalChancePercent: (state) => {
       const totalDocs = 5;
-      // Exclude 'other:' keys
+      // Exclude 'other_' keys
       const count = Object.entries(state.files)
-        .filter(([key, f]) => !key.startsWith('other:') && f && (!Array.isArray(f) || f.length > 0))
+        .filter(([key, f]) => !key.startsWith('other_') && f && (!Array.isArray(f) || f.length > 0))
         .length;
       return Math.min(100, Math.round((count / totalDocs) * 100));
     },

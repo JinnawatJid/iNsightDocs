@@ -36,17 +36,25 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import Swal from 'sweetalert2';
 
-const props = defineProps(['readOnly']);
+const props = defineProps({
+  readOnly: Boolean,
+  tabName: {
+    type: String,
+    required: true
+  }
+});
 const store = useCreditRequestStore();
 
 const isEditing = computed(() => !props.readOnly);
 
-// Computed property to get all 'other:' keys from the store's files
+const prefix = computed(() => `other_${props.tabName}:`);
+
+// Computed property to get all 'other_tabName:' keys from the store's files
 const otherDocs = computed(() => {
   const docs = {};
   if (store.files) {
     Object.keys(store.files).forEach(key => {
-      if (key.startsWith('other:')) {
+      if (key.startsWith(prefix.value)) {
         docs[key] = store.files[key];
       }
     });
@@ -57,8 +65,8 @@ const otherDocs = computed(() => {
 const hasOtherDocs = computed(() => Object.keys(otherDocs.value).length > 0);
 
 const getLabel = (key) => {
-  // Format: "other:LabelName" -> "LabelName"
-  return key.replace('other:', '');
+  // Format: "other_tabName:LabelName" -> "LabelName"
+  return key.replace(prefix.value, '');
 };
 
 const addCategory = async () => {
@@ -74,7 +82,7 @@ const addCategory = async () => {
         return 'กรุณาระบุชื่อเอกสาร';
       }
       // Check for duplicate key
-      const key = `other:${value.trim()}`;
+      const key = `${prefix.value}${value.trim()}`;
       if (store.files[key]) {
           return 'มีเอกสารชื่อนี้อยู่แล้ว';
       }
@@ -82,7 +90,7 @@ const addCategory = async () => {
   });
 
   if (label) {
-    const key = `other:${label.trim()}`;
+    const key = `${prefix.value}${label.trim()}`;
     // Initialize in store
     store.updateFile(key, []);
   }

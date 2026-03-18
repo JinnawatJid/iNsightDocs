@@ -20,7 +20,7 @@
       </div>
 
       <!-- Other Documents Section -->
-      <OtherDocumentsSection :readOnly="!isEditing" />
+      <OtherDocumentsSection tabName="general" :readOnly="!isEditing" />
     </div>
 
     <!-- Company Info Section -->

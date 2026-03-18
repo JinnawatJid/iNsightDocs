@@ -32,7 +32,7 @@
     </div>
 
     <!-- Other Documents Section -->
-    <OtherDocumentsSection :readOnly="!isEditing" />
+    <OtherDocumentsSection tabName="storeStatement" :readOnly="!isEditing" />
 
     <!-- Financial Analysis Section -->
     <div class="financial-analysis-section" v-if="shouldShowFinancialAnalysis" data-testid="financial-analysis-section">
