@@ -18,7 +18,7 @@ Before beginning UAT, the testing environment and its external dependencies must
 ### 2.1 Verify Authentication (SSO)
 *   **Check:** Access the frontend application URL.
 *   **Expected:** You should be redirected to the external Identity Provider (Exchange Platform) to log in. Upon success, you should be redirected back to the application.
-*   *Note: If testing locally with `ENABLE_AUTH=false`, ensure you are automatically logged in as `DEV_MODE_USER`.*
+*   *Note: If testing locally with `ENABLE_AUTH=false`, ensure you are automatically logged in as `DEV_MODE_USER`. You can use the Dev Role dropdown in the Navbar to switch roles (e.g., Maker vs Checker).*
 
 ### 2.2 Verify External ERP/DataWarehouse Connection
 *   **Why:** Customer search relies on an external API (`searchApiCustomers`). If this is down, users cannot start a request.

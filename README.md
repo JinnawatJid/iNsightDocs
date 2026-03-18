@@ -62,7 +62,7 @@ Create or edit the `.env` file inside the `backend/` directory and add:
 ```env
 ENABLE_AUTH=false
 ```
-Restart the backend server. The frontend will dynamically detect this configuration on startup, bypass the login redirect, and the backend will inject a mock user (`DEV_MODE_USER`) to allow API calls to function normally.
+Restart the backend server. The frontend will dynamically detect this configuration on startup, bypass the login redirect, and the backend will inject a mock user (`DEV_MODE_USER`) to allow API calls to function normally. You can switch between different user roles dynamically using the **Dev Role Switcher** dropdown located in the Navbar.
 
 ## IDE Support
 
