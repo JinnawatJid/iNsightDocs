@@ -49,12 +49,24 @@
 
       <!-- DBD Auto Import Section -->
       <div class="dbd-section" :class="{'dbd-section-disabled': localDBDStatus.exists && !localDBDStatus.isNoFinancialData}" v-if="isEditing && store.isCompany">
-         <div class="dbd-header">
+         <div class="dbd-header" v-if="false">
             <span class="dbd-title">DBD Auto Import</span>
             <span class="dbd-subtitle">ดึงข้อมูลจาก DataWarehouse</span>
          </div>
 
-         <div class="dbd-controls">
+         <!-- VAT Number Display -->
+         <div class="form-group dbd-input-group mb-3">
+            <label>เลขประจำตัวผู้เสียภาษี (VAT Number)</label>
+            <input
+              type="text"
+              :value="dbdQuery"
+              class="form-control disabled-input"
+              disabled
+            />
+         </div>
+
+         <!-- HIDDEN Original Controls (Kept for future use) -->
+         <div class="dbd-controls" v-if="false">
             <div class="form-group dbd-input-group">
                 <input
                   type="text"
@@ -84,7 +96,7 @@
          </div>
 
          <!-- Manual Bridge Host Override -->
-         <div class="dbd-host-setting" v-if="!localDBDStatus.exists || localDBDStatus.isNoFinancialData">
+         <div class="dbd-host-setting" v-if="false">
             <small class="text-muted cursor-pointer" @click="showBridgeInput = !showBridgeInput">
                ⚙️ ตั้งค่า Bridge IP {{ showBridgeInput ? '(ซ่อน)' : '' }}
             </small>
