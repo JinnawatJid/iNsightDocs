@@ -67,7 +67,7 @@
       </div>
 
       <!-- Other Documents Section -->
-      <OtherDocumentsSection :readOnly="!isEditing" />
+      <OtherDocumentsSection tabName="storeCompany" :readOnly="!isEditing" />
     </div>
 
     <!-- Address Section -->

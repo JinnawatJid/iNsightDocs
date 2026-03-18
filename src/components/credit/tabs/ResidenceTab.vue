@@ -27,7 +27,7 @@
       </div>
 
       <!-- Other Documents Section -->
-      <OtherDocumentsSection :readOnly="!isEditing" />
+      <OtherDocumentsSection tabName="residence" :readOnly="!isEditing" />
     </div>
 
     <!-- Address Verification Section -->

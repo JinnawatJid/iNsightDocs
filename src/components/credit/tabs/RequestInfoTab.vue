@@ -21,7 +21,7 @@
         </div>
 
         <!-- Other Documents Section -->
-        <OtherDocumentsSection :readOnly="!isEditing" />
+        <OtherDocumentsSection tabName="requestInfo" :readOnly="!isEditing" />
         </div>
     </transition>
 
