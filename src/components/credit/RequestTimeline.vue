@@ -66,13 +66,13 @@ export default {
     const formatDate = (dateString) => {
       if (!dateString) return '';
 
-      // The backend returns UTC dates like "2026-03-19 00:42:00.000" but misses the 'Z' indicator.
-      // If we pass a string without 'Z', Safari/Chrome assumes it is LOCAL time.
-      // We must append 'Z' so JS knows it's UTC and properly converts it to Thai time (+7).
+      // The backend SQL database stores timestamps in local Thai time (UTC+7) but the Node.js SQL driver
+      // incorrectly assumes it's UTC when serializing to JSON, appending a 'Z' to the end (e.g. "2026-03-18T19:30:00.560Z").
+      // When the browser reads this 'Z', it adds another 7 hours to the time, causing a +7 hour display bug!
+      // To fix this, we must STRIP the 'Z' from the end so the browser interprets the string as local time.
       let normalizedDateString = dateString;
-      if (!dateString.endsWith('Z') && !dateString.includes('+')) {
-        // Replace space with T to make it strict ISO 8601, then append Z
-        normalizedDateString = dateString.replace(' ', 'T') + 'Z';
+      if (normalizedDateString.endsWith('Z')) {
+          normalizedDateString = normalizedDateString.slice(0, -1);
       }
 
       const date = new Date(normalizedDateString);
@@ -96,6 +96,10 @@ export default {
       'Reviewed': 4,          // 4: กรรมการเครดิต
       'Approved': 5,          // 5: Done (all 0-4 are completed)
       'Closed': 5,            // 5: Done
+      // Legacy Support
+      'Submitted': 2,
+      'PendingSales (ชั่วคราว)': 3,
+      'PendingFinance (ชั่วคราว)': 4,
       'Rejected': -1,         // Special handling below
       'Canceled': -1          // Special handling below
     };
@@ -144,7 +148,7 @@ export default {
 
       // Handle Rejection State globally
       if (props.currentStatus === 'Rejected' || props.currentStatus === 'Canceled') {
-        // Find the last completed step and mark it as the rejector
+        // Find the last completed step (based on comments) and mark it as the rejector
         let lastCompletedIndex = -1;
         for (let i = steps.length - 1; i >= 0; i--) {
           if (steps[i].completed) {
@@ -158,6 +162,11 @@ export default {
           steps[lastCompletedIndex].completed = false; // It's rejected, not successfully completed
           steps[lastCompletedIndex].actionLabel = props.currentStatus === 'Rejected' ? 'ปฏิเสธคำขอ' : 'ยกเลิก';
           steps[lastCompletedIndex].actionType = 'badge-danger';
+
+          // Fix: Ensure all steps BEFORE the rejector are marked as completed, even without comments
+          for (let i = 0; i < lastCompletedIndex; i++) {
+            steps[i].completed = true;
+          }
         }
 
         // Hide all steps after the rejected step
