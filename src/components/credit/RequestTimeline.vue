@@ -42,12 +42,13 @@
 import { computed } from 'vue';
 
 // Define the static 5-step workflow
+// Use an array of roleKeys to support multiple actors for the same step (e.g. Finance Manager OR Credit Committee)
 const WORKFLOW_STEPS = [
-  { id: 'step-1', roleKey: 'ผู้จัดการสาขา', label: 'ผู้จัดการสาขา' },
-  { id: 'step-2', roleKey: 'ผู้จัดการภาค', label: 'ผู้จัดการภาค' },
-  { id: 'step-3', roleKey: 'ผู้จัดการฝ่ายขาย', label: 'ผู้จัดการฝ่ายขาย' },
-  { id: 'step-4', roleKey: 'เจ้าหน้าที่ฝ่ายการเงิน', label: 'เจ้าหน้าที่ฝ่ายการเงิน' },
-  { id: 'step-5', roleKey: 'ผู้จัดการฝ่ายการเงิน / กรรมการเครดิต', label: 'ผู้จัดการฝ่ายการเงิน / กรรมการเครดิต' }
+  { id: 'step-1', roleKeys: ['ผู้จัดการสาขา'], label: 'ผู้จัดการสาขา' },
+  { id: 'step-2', roleKeys: ['ผู้จัดการภาค'], label: 'ผู้จัดการภาค' },
+  { id: 'step-3', roleKeys: ['ผู้จัดการฝ่ายขาย', 'ผู้จัดการฝ่ายขาย (Legacy)'], label: 'ผู้จัดการฝ่ายขาย' },
+  { id: 'step-4', roleKeys: ['เจ้าหน้าที่ฝ่ายการเงิน', 'เจ้าหน้าที่ฝ่ายการเงิน (Legacy)'], label: 'เจ้าหน้าที่ฝ่ายการเงิน' },
+  { id: 'step-5', roleKeys: ['ผู้จัดการฝ่ายการเงิน / กรรมการเครดิต', 'ผู้จัดการฝ่ายการเงิน', 'กรรมการเครดิต', 'กรรมการเครดิต (Legacy)'], label: 'ผู้จัดการฝ่ายการเงิน / กรรมการเครดิต' }
 ];
 
 export default {
@@ -122,7 +123,7 @@ export default {
 
       // 1. Populate data from comments (if they exist)
       steps.forEach((step) => {
-        const matchingComments = sortedComments.filter(c => c.actor_role === step.roleKey);
+        const matchingComments = sortedComments.filter(c => step.roleKeys.includes(c.actor_role));
 
         if (matchingComments.length > 0) {
           // Take the latest action for this role
@@ -130,6 +131,12 @@ export default {
           step.completed = true;
           step.date = lastComment.created_at;
           step.comment = lastComment.comment_text;
+
+          // If the actual actor role was "ผู้จัดการฝ่ายการเงิน" or "กรรมการเครดิต",
+          // let's dynamically update the label to show specifically who approved/rejected it!
+          if (step.id === 'step-5' && lastComment.actor_role && lastComment.actor_role !== 'ผู้จัดการฝ่ายการเงิน / กรรมการเครดิต') {
+              step.roleLabel = lastComment.actor_role;
+          }
         }
       });
 
