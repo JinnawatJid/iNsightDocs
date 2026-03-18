@@ -7,7 +7,7 @@
         :class="{ active: activeTab === 'pending' }"
         @click="switchTab('pending')"
       >
-        รออนุมัติ
+        {{ pendingTabLabel }}
       </div>
       <div
         class="tab-item"
@@ -102,6 +102,10 @@ const searchQuery = ref('');
 const requests = computed(() => store.requestsList);
 const loading = computed(() => store.loading);
 
+const pendingTabLabel = computed(() => {
+  return authStore.isInitiator ? 'ติดตามคำขอ' : 'รออนุมัติ';
+});
+
 const switchTab = (tab) => {
   activeTab.value = tab;
   fetchData();
@@ -115,7 +119,8 @@ const fetchData = () => {
 
     // Determine allowed statuses based on the user's role
     if (authStore.isInitiator) {
-      allowedStatuses.push('PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
+      // Initiator (Branch Manager) should see all active requests they submitted
+      allowedStatuses.push('Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
     }
     if (authStore.isRegionalManager) {
       allowedStatuses.push('Opened');

@@ -66,8 +66,10 @@ import WorkflowActionBar from '@/components/credit/WorkflowActionBar.vue';
 import CreditReviewSection from '@/components/credit/CreditReviewSection.vue';
 import ReviewDashboard from '@/components/credit/ReviewDashboard.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 
 const store = useCreditRequestStore();
+const authStore = useAuthStore();
 
 onMounted(() => {
     store.resetState();
@@ -85,6 +87,21 @@ const isReadOnly = computed(() => {
     // However, CreditReviewSection's 'readOnly' prop controls the INPUTS.
     // If the user is an approver, they should be able to edit Terms/Comment.
     // If the request is truly final (Approved/Rejected/Closed/Canceled), then it's read-only.
+
+    // NEW: If the user is just tracking the request (Initiator) and the request is not in Draft
+    // or pending their specific action, it should be entirely read-only.
+    // The current userRole logic in store evaluates to the role that *should* be acting.
+    // We can use authStore to check if the current logged-in user is an Initiator.
+
+    // If they are an initiator tracking progress, and the request is past Draft
+    if (authStore.isInitiator && store.requestStatus && store.requestStatus !== 'Draft') {
+        // Technically Initiators might have actions if it's "PendingSales (ชั่วคราว)" etc.
+        // But normally if it's Opened, RegionalSubmitted etc., it's read-only for them.
+        const trackingStatuses = ['Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed'];
+        if (trackingStatuses.includes(store.requestStatus)) {
+             return true;
+        }
+    }
 
     const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled'];
     return finalStatuses.includes(store.requestStatus);
