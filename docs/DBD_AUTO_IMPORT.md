@@ -1,5 +1,7 @@
 # DBD Auto Import & Local Bridge Documentation
 
+> **Notice (March 2025 Update):** The interactive UI controls for the DBD Auto Import feature (Auto Download button, Manual Bridge IP setting) are currently **hidden from the user interface** on the frontend (`StoreStatementTab.vue`) using `v-if="false"` to declutter the form based on recent business requirements. The underlying logic, API endpoints, and Local Bridge functionality remain fully intact in the codebase to allow for easy reinstatement in the future. The documentation below describes the system as it operates when the UI is fully enabled.
+
 ## Overview
 
 The **DBD Auto Import** feature allows users to automatically download financial documents (Balance Sheet, Income Statement, Financial Ratios) and Company Profiles from the **Department of Business Development (DBD)** DataWarehouse website directly into the Credit Management System.
