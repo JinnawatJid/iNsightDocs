@@ -931,7 +931,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
              let allowedStatuses = [];
 
              if (authStore.isInitiator) {
-               allowedStatuses.push('PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
+               allowedStatuses.push('Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
              }
              if (authStore.isRegionalManager) {
                allowedStatuses.push('Opened');
