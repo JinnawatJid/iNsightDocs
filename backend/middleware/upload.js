@@ -9,11 +9,9 @@ const storage = multer.diskStorage({
     // For now, save to a temp directory
     const UPLOAD_BASE = process.env.UPLOAD_PATH
         ? path.resolve(process.cwd(), process.env.UPLOAD_PATH)
-        : null;
+        : path.join(__dirname, '../uploads');
 
-    const tempDir = UPLOAD_BASE
-        ? path.join(UPLOAD_BASE, 'temp')
-        : path.join(__dirname, '../../temp_uploads');
+    const tempDir = path.join(UPLOAD_BASE, 'temp');
 
     fs.ensureDirSync(tempDir);
     cb(null, tempDir);

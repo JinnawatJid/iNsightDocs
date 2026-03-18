@@ -255,7 +255,6 @@ const downloadFile = async (url, destPath) => {
   // 8. Configure Environment
   await logger.step('Configuring Production Environment', async () => {
     // Ensure data directories exist
-    await fs.ensureDir(path.join(RELEASE_DIR, 'backend', 'uploads'));
     await fs.ensureDir(path.join(RELEASE_DIR, 'backend', 'downloads'));
 
     // Create .env
@@ -267,7 +266,7 @@ const downloadFile = async (url, destPath) => {
       'DB_SERVER=localhost',
       'DB_PORT=1433',
       'DB_NAME=CreditRequestDB',
-      'UPLOAD_PATH=../../uploads'
+      'UPLOAD_PATH=../../customers'
     ].join('\n');
     await fs.writeFile(path.join(RELEASE_DIR, 'backend', '.env'), envContent);
 

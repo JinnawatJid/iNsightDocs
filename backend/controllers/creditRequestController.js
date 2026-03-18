@@ -237,35 +237,14 @@ exports.createCreditRequest = async (req, res) => {
             console.log(`Finalizing Draft ${oldTxId} to ${newRealTxId}`);
 
             // 1. Rename Folder
-            // Determine old directory path (might be from a previous month)
-            let oldDir = null;
-            // Check if any attachments exist to get the exact path
-            let attSql;
-            if (db.dbType === 'mssql') {
-                 attSql = 'SELECT TOP 1 file_path FROM CreditRequestAttachments WHERE tx_id = ?';
-            } else {
-                 attSql = 'SELECT file_path FROM CreditRequestAttachments WHERE tx_id = ? LIMIT 1';
-            }
-            const { rows: attRows } = await db.query(attSql, [oldTxId]);
+            // Determine old and new directory paths based on customer code
+            const cleanOldTxId = oldTxId.replace(/\//g, '_');
+            const cleanNewTxId = newRealTxId.replace(/\//g, '_');
 
-            if (attRows && attRows.length > 0) {
-                 // DB stores path as YYYY/MM/ID/filename.ext (Forward slashes)
-                 const parts = attRows[0].file_path.split('/');
-                 parts.pop(); // remove filename
-                 // Join with OS separator for local FS operations
-                 const relativeOldDir = parts.join(path.sep);
-                 oldDir = path.join(UPLOAD_BASE, relativeOldDir);
-            } else {
-                 // Fallback: Use created_at of the draft
-                 const createdDate = new Date(existing.created_at);
-                 const cYear = createdDate.getFullYear();
-                 const cMm = (createdDate.getMonth() + 1).toString().padStart(2, '0');
-                 oldDir = path.join(UPLOAD_BASE, cYear.toString(), cMm, oldTxId);
-            }
+            const oldDir = path.join(UPLOAD_BASE, existing.customer_no, cleanOldTxId);
+            const newDir = path.join(UPLOAD_BASE, existing.customer_no, cleanNewTxId);
 
-            const newDir = path.join(UPLOAD_BASE, year.toString(), mm, newRealTxId);
-
-            if (oldDir && await fs.pathExists(oldDir)) {
+            if (await fs.pathExists(oldDir)) {
                 // Ensure parent of newDir exists
                 await fs.ensureDir(path.dirname(newDir));
                 await fs.move(oldDir, newDir);
@@ -298,9 +277,11 @@ exports.createCreditRequest = async (req, res) => {
             const newRequestId = insertResult.id;
 
             // 3. Update DB Attachments Paths (Move Children)
-            // Path format: YYYY/MM/TXID/file.ext
-            const oldPathSegment = `${oldTxId}/`;
-            const newPathSegment = `${newRealTxId}/`;
+            // Path format: customer_no/TXID/file.ext
+            const cleanOldTxIdUpdate = oldTxId.replace(/\//g, '_');
+            const cleanNewTxIdUpdate = newRealTxId.replace(/\//g, '_');
+            const oldPathSegment = `${cleanOldTxIdUpdate}/`;
+            const newPathSegment = `${cleanNewTxIdUpdate}/`;
 
             await db.runAsync(
                 `UPDATE CreditRequestAttachments SET tx_id = ?, file_path = REPLACE(file_path, ?, ?) WHERE tx_id = ?`,
@@ -364,12 +345,14 @@ exports.createCreditRequest = async (req, res) => {
 
     // Handle File Uploads
     if (req.files && req.files.length > 0) {
-        const now = new Date();
-        const year = now.getFullYear();
-        const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+        // Construct relative path components based on customer code and transaction ID
+        const activeCustomerNo = customer_no || existing?.customer_no;
+        if (!activeCustomerNo) {
+             throw new Error("Customer Number is required to save uploaded files.");
+        }
 
-        // Construct relative path components
-        const relativeDir = path.join(year.toString(), mm, txId);
+        const cleanTxId = txId.replace(/\//g, '_');
+        const relativeDir = path.join(activeCustomerNo, cleanTxId);
         const targetDir = path.join(UPLOAD_BASE, relativeDir);
         await fs.ensureDir(targetDir);
 
@@ -389,7 +372,7 @@ exports.createCreditRequest = async (req, res) => {
             const finalPath = path.join(targetDir, file.originalname);
             await fs.move(file.path, finalPath, { overwrite: true });
 
-            // Store relative path in DB (e.g., 2023/10/TXID/file.pdf)
+            // Store relative path in DB (e.g., 00001AY/TXID/file.pdf)
             // Use path.relative to get the relative path from UPLOAD_BASE
             // and normalize slashes to forward slashes for cross-platform compatibility
             const relativeFilePath = path.relative(UPLOAD_BASE, finalPath).split(path.sep).join('/');
@@ -658,12 +641,31 @@ exports.reviseRequest = async (req, res) => {
         // 5. Copy physical files
         const cleanOldId = id.replace(/\//g, '_');
         const cleanNewId = newTxId.replace(/\//g, '_');
-        const oldDirPath = path.join(UPLOAD_BASE, cleanOldId);
-        const newDirPath = path.join(UPLOAD_BASE, cleanNewId);
+        const oldDirPath = path.join(UPLOAD_BASE, oldRequest.customer_no, cleanOldId);
+        const newDirPath = path.join(UPLOAD_BASE, oldRequest.customer_no, cleanNewId);
 
         if (await fs.pathExists(oldDirPath)) {
              await fs.copy(oldDirPath, newDirPath);
              console.log(`Copied files from ${oldDirPath} to ${newDirPath}`);
+
+             // After copying physical files, copy the DB attachment records for the new revision
+             // with updated relative paths.
+             const oldAttSql = 'SELECT * FROM CreditRequestAttachments WHERE tx_id = ?';
+             const { rows: oldAttachments } = await db.query(oldAttSql, [id]);
+
+             if (oldAttachments && oldAttachments.length > 0) {
+                 for (const att of oldAttachments) {
+                     // Path format: customer_no/oldTxId/file.ext
+                     const oldPathSegment = `${cleanOldId}/`;
+                     const newPathSegment = `${cleanNewId}/`;
+                     const newRelativePath = att.file_path.replace(oldPathSegment, newPathSegment);
+
+                     await db.runAsync(
+                         'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name) VALUES (?, ?, ?, ?)',
+                         [newTxId, att.file_type, newRelativePath, att.original_name]
+                     );
+                 }
+             }
         } else {
              console.log(`No files found to copy at ${oldDirPath}`);
         }
