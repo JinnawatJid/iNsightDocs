@@ -126,6 +126,12 @@ const handleSearch = async (query) => {
 const handleStartRequest = async (type) => {
     console.log('Starting Request Type:', type);
     store.updateTransactionData({ requestType: type });
+
+    // Create the credit request now that a type is selected
+    if (!store.requestId && store.customer && store.customer.id) {
+        await store.createCreditRequest(store.customer.id, store.customer.name);
+    }
+
     isRequestStarted.value = true;
 
     // Save to backend immediately so the Draft correctly reflects the chosen type
