@@ -29,7 +29,7 @@
             </div>
             <!-- item.amount is actually the TxID in the current API mapping -->
             <div class="amount">{{ item.amount }}</div>
-            <div class="date">{{ item.date }}</div>
+            <div class="date">{{ formatDate(item.date) }}</div>
           </div>
           <div class="item-status">
              <!-- Active Statuses -->
@@ -110,6 +110,30 @@ export default {
           if (type.includes('เครดิตโครงการ')) return 'type-project';
           if (type.includes('เปลี่ยนแปลง')) return 'type-change';
           return 'type-new';
+      },
+      formatDate(dateString) {
+          if (!dateString) return '';
+
+          // Apply the same timezone offset fix as RequestTimeline (strip 'Z')
+          let normalizedDateString = dateString;
+          if (normalizedDateString.endsWith('Z')) {
+              normalizedDateString = normalizedDateString.slice(0, -1);
+          }
+
+          const date = new Date(normalizedDateString);
+
+          // Check if date is invalid (e.g. if item.date is not an ISO string but pre-formatted)
+          if (isNaN(date.getTime())) {
+              return dateString; // Fallback to raw string if it can't be parsed
+          }
+
+          const d = String(date.getDate()).padStart(2, '0');
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const y = date.getFullYear(); // Gregorian year
+          const hh = String(date.getHours()).padStart(2, '0');
+          const mm = String(date.getMinutes()).padStart(2, '0');
+
+          return `${d}/${m}/${y} ${hh}:${mm} น.`;
       }
   }
 };
