@@ -29,16 +29,19 @@ To prevent data loss during version upgrades, customer files must be stored **ou
 ```text
 SP682/
 └── customers/
-    └── {Customer_Code}/       <-- Strictly Customer Code (e.g., CUST001)
-        └── {YYYYMMDD}/        <-- Date of download (e.g., 20231027)
-            ├── DBD_Profile.pdf
-            ├── DBD_BalanceSheet.xlsx
-            ├── DBD_IncomeStatement.xlsx
-            └── DBD_FinancialRatios.xlsx
+    └── {Customer_Code}/       <-- Strictly Customer Code (e.g., 00001AY)
+        ├── {YYYYMMDD}/        <-- Date of DBD automation download (e.g., 20260212)
+        │   ├── DBD_Profile.pdf
+        │   ├── DBD_BalanceSheet.xlsx
+        │   ├── DBD_IncomeStatement.xlsx
+        │   └── DBD_FinancialRatios.xlsx
+        └── {Transaction_ID}/  <-- Manually uploaded documents by users for a specific request
+            ├── my_uploaded_file.pdf
+            └── receipt.png
 ```
 
 ## Key Rules
-1.  **Persistence:** Files in `customers/` must survive when `SP682_x_x_x` folders are deleted.
-2.  **Identifier:** Always use **Customer Code** for the folder name. Do not fallback to Tax ID or Name.
-3.  **Overwrite:** If data for the same Customer and Date exists, it should be overwritten.
-4.  **Date Format:** `YYYYMMDD` (Compact format).
+1.  **Persistence:** All user-uploaded documents and automated downloads in `customers/` must survive when `SP682_x_x_x` version folders are deleted. The backend must map uploads dynamically to `../../customers/{Customer_Code}/{Transaction_ID}/` to ensure state is decoupled from the current release folder.
+2.  **Identifier:** Always use **Customer Code** for the root folder name. Do not fallback to Tax ID or Name.
+3.  **Transaction Structure:** For user uploads, any slashes (`/`) in the Transaction ID (e.g., `AYCA2603/006`) must be converted to underscores (`_`) before creating the folder (`AYCA2603_006`) to ensure OS compatibility.
+4.  **Date Format (DBD):** `YYYYMMDD` (Compact format).
