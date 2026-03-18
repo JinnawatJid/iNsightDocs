@@ -115,7 +115,7 @@ const fetchData = () => {
 
     // Determine allowed statuses based on the user's role
     if (authStore.isInitiator) {
-      allowedStatuses.push('Draft', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
+      allowedStatuses.push('PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
     }
     if (authStore.isRegionalManager) {
       allowedStatuses.push('Opened');
@@ -134,9 +134,14 @@ const fetchData = () => {
     // though in a perfect RBAC system, they might just see nothing.
     const statusQuery = allowedStatuses.length > 0
       ? allowedStatuses.join(',')
-      : 'Draft';
+      : '';
 
-    store.fetchRequests(statusQuery, query);
+    if (statusQuery) {
+        store.fetchRequests(statusQuery, query);
+    } else {
+        // If there are no allowed statuses, don't fetch and clear the list
+        store.requestsList = [];
+    }
   } else {
     // History tab: everyone can see final statuses
     store.fetchRequests('Approved,Rejected,Closed,Canceled', query);
