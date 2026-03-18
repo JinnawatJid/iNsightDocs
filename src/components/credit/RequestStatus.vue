@@ -1,17 +1,17 @@
 <template>
-  <div v-if="store.requestId" class="request-status-component">
+  <div class="request-status-component">
     <div class="content-wrapper">
       <div class="info-section">
         <div class="header">
           <span class="label">เลขที่คำขอ:</span>
-          <span class="value">{{ store.requestId }}</span>
+          <span class="value">{{ store.requestId || '-' }}</span>
         </div>
         <div class="status-row">
           <span class="label">สถานะ:</span>
           <div class="status-badge-container">
             <div :class="['status-badge', statusClass]">
-              <img :src="statusIcon" alt="" width="16" height="16" class="icon" />
-              <span>{{ statusLabel }}</span>
+              <img v-if="store.requestId" :src="statusIcon" alt="" width="16" height="16" class="icon" />
+              <span>{{ store.requestId ? statusLabel : '-' }}</span>
             </div>
             <button v-if="showExportButton" class="btn-icon-export" @click="exportPDF" title="PDF">
               <img src="@/assets/icons/download.svg" alt="PDF" width="16" height="16" />
@@ -53,6 +53,7 @@ const statusLabel = computed(() => {
 });
 
 const statusClass = computed(() => {
+  if (!store.requestId) return 'default';
   return statusConfig[currentStatus.value]?.class || 'default';
 });
 
