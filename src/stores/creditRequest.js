@@ -931,7 +931,7 @@ export const useCreditRequestStore = defineStore('creditRequest', {
              let allowedStatuses = [];
 
              if (authStore.isInitiator) {
-               allowedStatuses.push('Draft', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
+               allowedStatuses.push('PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
              }
              if (authStore.isRegionalManager) {
                allowedStatuses.push('Opened');
@@ -949,11 +949,15 @@ export const useCreditRequestStore = defineStore('creditRequest', {
              if (allowedStatuses.length > 0) {
                  listStatus = allowedStatuses.join(',');
              } else {
-                 listStatus = 'Draft';
+                 listStatus = '';
              }
            }
 
-           await this.fetchRequests(listStatus);
+           if (listStatus) {
+               await this.fetchRequests(listStatus);
+           } else {
+               this.requestsList = [];
+           }
         }
 
         return true;
