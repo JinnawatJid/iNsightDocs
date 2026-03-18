@@ -32,9 +32,8 @@
             <h3>ตรวจสอบข้อมูลผู้ติดต่อ</h3>
         </div>
 
-        <!-- New Layout: 2 Rows -->
+        <!-- New Layout: 1 Row -->
         <div class="contact-grid-layout">
-            <!-- Row 1 -->
             <div class="form-group">
             <label>ชื่อผู้ติดต่อ <span v-if="isRequired('contact_person')" class="text-red-500">*</span></label>
             <input
@@ -60,19 +59,6 @@
             <span v-if="errors.contact_position" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
             <div class="form-group">
-            <label>แผนก</label>
-            <input
-                type="text"
-                class="form-input"
-                :class="{ 'disabled': !isEditing }"
-                :disabled="!isEditing"
-                v-model="store.customer.contact_department" :data-empty="!store.customer.contact_department"
-                placeholder="ระบุแผนก"
-            />
-            </div>
-
-            <!-- Row 2 -->
-            <div class="form-group">
             <label>ฝ่าย</label>
             <input
                 type="text"
@@ -96,7 +82,6 @@
             />
             <span v-if="errors.contact_phone_number" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
-            <div class="form-group"></div> <!-- Empty Placeholder -->
         </div>
         </div>
     </transition>
@@ -772,10 +757,10 @@ function restrictLocalCreditInput(e, item, field) {
 
 
 
-/* Updated Grid for 2 Rows */
+/* Updated Grid for 1 Row */
 .contact-grid-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 15px;
   margin-top: 15px;
 }
