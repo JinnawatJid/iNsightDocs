@@ -394,7 +394,8 @@ export const useCreditRequestStore = defineStore('creditRequest', {
           this.dataSource = data._source || null;
           this.hasSearched = true;
 
-          await this.createCreditRequest(this.customer.id, this.customer.name);
+          // Note: Request creation (createCreditRequest) is now deferred
+          // until the user explicitly selects a request type (e.g. "เครดิตใหม่")
 
           // Fetch comments
           await this.fetchComments();
