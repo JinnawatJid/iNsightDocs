@@ -22,6 +22,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -32,56 +33,51 @@ const props = defineProps({
 });
 
 const store = useCreditRequestStore();
+const authStore = useAuthStore();
 
 const currentStatus = computed(() => store.requestStatus);
-const userRole = computed(() => store.userRole);
+
 
 // Workflow Logic
 const availableActions = computed(() => {
   const status = currentStatus.value;
-  const role = userRole.value;
   const actions = [];
 
   if (!status) return [];
 
   const amount = Number(store.transactionData.amount || 0);
 
-  // 1. Branch Manager (Draft -> Opened)
-  if (status === 'Draft' && role === 'ผู้จัดการสาขา') {
-    actions.push({ key: 'submit', label: 'ส่งคำขอ (Submit)', targetStatus: 'Opened', class: 'btn-primary' });
-  }
+  // Note: /pending-requests shouldn't show Draft requests, so Initiators shouldn't have actions here.
+  // Draft submission is handled entirely within /create-credit-request.
 
-  // 2. Regional Manager (Opened -> RegionalSubmitted)
-  if (status === 'Opened' && role === 'ผู้จัดการภาค') {
+  // 1. Regional Manager (Opened -> RegionalSubmitted)
+  if (status === 'Opened' && authStore.isRegionalManager) {
     actions.push({ key: 'approve', label: 'อนุมัติ (Approve)', targetStatus: 'RegionalSubmitted', class: 'btn-success' });
     actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
   }
 
-  // 3. Sales Manager (RegionalSubmitted -> SalesSubmitted)
-  if (status === 'RegionalSubmitted' && role === 'ผู้จัดการฝ่ายขาย') {
+  // 2. Sales Manager (RegionalSubmitted -> SalesSubmitted)
+  if (status === 'RegionalSubmitted' && authStore.isSalesManager) {
     actions.push({ key: 'approve', label: 'อนุมัติ (Approve)', targetStatus: 'SalesSubmitted', class: 'btn-success' });
     actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
   }
 
-  // 4. Finance Officer (SalesSubmitted -> Reviewed)
-  if (status === 'SalesSubmitted' && role === 'เจ้าหน้าที่ฝ่ายการเงิน') {
+  // 3. Finance Officer (SalesSubmitted -> Reviewed)
+  if (status === 'SalesSubmitted' && authStore.isFinanceOfficer) {
     actions.push({ key: 'review', label: 'ตรวจสอบ (Verify)', targetStatus: 'Reviewed', class: 'btn-success' });
     actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
   }
 
-  // 5. Finance Manager (Reviewed -> Approved if <= 300k)
-  if (status === 'Reviewed' && role === 'ผู้จัดการฝ่ายการเงิน') {
+  // 4. Finance Manager (Reviewed -> Approved if <= 300k)
+  if (status === 'Reviewed' && authStore.isFinanceManager) {
     if (amount <= 300000) {
         actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
         actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
-    } else {
-        // High Value: FM sees no actions or maybe just "Reject"?
-        // For now, no actions, as CC must approve.
     }
   }
 
-  // 6. Credit Committee (Reviewed -> Approved if > 300k)
-  if (status === 'Reviewed' && role === 'กรรมการเครดิต') {
+  // 5. Credit Committee (Reviewed -> Approved if > 300k)
+  if (status === 'Reviewed' && authStore.isCreditCommittee) {
     if (amount > 300000) {
         actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
         actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
