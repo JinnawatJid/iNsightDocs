@@ -30,7 +30,6 @@ A new record is inserted into the `CreditRequests` table with the following prop
 - **Copied Data:** `customer_no`, `customer_name`, `request_amount`, `request_reason`, `request_credit_term`, `term_gs`, `term_ae`, `term_yc`, `request_type`.
 - **Status:** Hardcoded to `Draft`.
 - **Snapshot Data (Form Fields):** The `snapshot_data` JSON string is parsed. To ensure a clean slate, approval comments (`review_comment`, `regional_review_comment`, `sales_review_comment`) are explicitly cleared (`""`). The cleaned object is re-stringified and saved.
-- **Workflow Flags & Timestamps:** Fields like `is_approved`, `reviewed_by`, and `review_date` are explicitly set to `0` or `NULL` so the new draft begins fresh.
 
 ### 4. Physical Document Duplication
 To save the user from re-uploading files, the system uses `fs-extra` to physically copy the entire document folder associated with the old Transaction ID to a new folder named after the new Revision ID.
