@@ -611,10 +611,10 @@ exports.reviseRequest = async (req, res) => {
                 INSERT INTO CreditRequests (
                     customer_no, customer_name, tx_id, status, request_amount,
                     request_reason, request_credit_term, term_gs, term_ae, term_yc,
-                    request_type, snapshot_data, is_approved, reviewed_by, review_date
+                    request_type, snapshot_data
                 )
                 OUTPUT INSERTED.id
-                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL)
+                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             insertParams = [
                 oldRequest.customer_no,
@@ -634,9 +634,9 @@ exports.reviseRequest = async (req, res) => {
                 INSERT INTO CreditRequests (
                     customer_no, customer_name, tx_id, status, request_amount,
                     request_reason, request_credit_term, term_gs, term_ae, term_yc,
-                    request_type, snapshot_data, is_approved, reviewed_by, review_date
+                    request_type, snapshot_data
                 )
-                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL)
+                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             insertParams = [
                 oldRequest.customer_no,
