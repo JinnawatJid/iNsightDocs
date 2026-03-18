@@ -59,7 +59,7 @@
             />
             <span v-if="errors.contact_position" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
-            <div class="form-group">
+            <div class="form-group" v-if="false">
             <label>แผนก</label>
             <input
                 type="text"
@@ -96,8 +96,7 @@
             />
             <span v-if="errors.contact_phone_number" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
-            <div class="form-group"></div> <!-- Empty Placeholder -->
-        </div>
+            </div>
         </div>
     </transition>
 
@@ -775,7 +774,7 @@ function restrictLocalCreditInput(e, item, field) {
 /* Updated Grid for 2 Rows */
 .contact-grid-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 15px;
   margin-top: 15px;
 }
