@@ -6,9 +6,9 @@
     </div>
 
     <div class="review-content">
-      <!-- Comment History (Moved to Top) -->
+      <!-- Request Timeline (Moved to Top) -->
       <div class="comments-history-wrapper">
-         <CommentHistory :comments="comments" />
+         <RequestTimeline :comments="comments" :currentStatus="store.requestStatus" />
       </div>
 
       <!-- Separator if we have terms -->
@@ -90,7 +90,7 @@
 <script setup>
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
-import CommentHistory from './CommentHistory.vue';
+import RequestTimeline from './RequestTimeline.vue';
 import { commentPlaceholders } from '@/config/workflow';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
