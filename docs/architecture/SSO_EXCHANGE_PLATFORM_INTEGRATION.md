@@ -83,7 +83,7 @@ JWT ที่ถูกส่งกลับมาใน Cookie `token` (Sign ด
    - การปิดระบบทำได้โดยกำหนดค่าตัวแปร `ENABLE_AUTH=false` ในไฟล์ `backend/.env` ของฝั่ง Backend เพียงที่เดียว
    - **เมื่อกำหนดค่าเป็น `false`:**
      - ฝั่ง Frontend จะทำการเรียก API `GET /api/config/auth` ตอนเปิดหน้าเว็บเพื่อเช็คสถานะ หากพบว่าปิดอยู่ จะข้ามการเช็ค Navigation Guard ใน Vue Router ทันที
-     - ฝั่ง Backend จะข้ามการเช็ค Token และจ่ายค่า Mock User ปลอม (`{ username: "DEV_MODE_USER", branchCode: "00TR", ... }`) เข้าไปที่ `req.user` ทันทีเพื่อให้ API เดินหน้าต่อได้โดยไม่พัง
+     - ฝั่ง Backend จะข้ามการเช็ค Token และจ่ายค่า Mock User ปลอม (`{ username: "DEV_MODE_USER", branchCode: "00TR", ... }`) เข้าไปที่ `req.user` ทันทีเพื่อให้ API เดินหน้าต่อได้โดยไม่พัง (หมายเหตุ: บทบาท role ของ Mock User สามารถเปลี่ยนได้อิสระผ่านเมนู Dev Role Switcher บน Navbar ของหน้าเว็บ)
 
 4. **การใช้งานภายใน Endpoint:**
    - Endpoint สามารถเข้าถึงข้อมูลผู้ใช้ (เช่น รหัสพนักงาน, สาขา) ผ่าน `req.user` ได้ทันที (เช่น `req.user.username` หรือ `req.user.branchCode`)
