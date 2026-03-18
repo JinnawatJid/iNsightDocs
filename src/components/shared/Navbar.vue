@@ -8,6 +8,12 @@
       <router-link to="/pending-requests" class="nav-link">คำขอทั้งหมด</router-link>
     </div>
     <div class="nav-right">
+      <div class="dev-role-switcher" v-if="!authStore.authRequired">
+        <label for="dev-role-select">Dev Role:</label>
+        <select id="dev-role-select" :value="currentDevRole" @change="handleDevRoleChange">
+          <option v-for="role in devRoles" :key="role" :value="role">{{ role }}</option>
+        </select>
+      </div>
       <div class="notification-bell">
         <img :src="iconBell" alt="Notifications" width="24" height="24" />
         <div class="notification-badge">1</div>
@@ -29,16 +35,31 @@ export default {
   data() {
     return {
       iconBell,
+      devRoles: [
+        'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)',
+        'ผู้พิจารณาของพื้นที่',
+        'ผู้พิจารณาฝ่ายขาย',
+        'ผู้ตรวจสอบเอกสาร',
+        'ผู้อนุมัติ (วงเงิน <300K)',
+        'ผู้อนุมัติ (วงเงิน > 300K)'
+      ]
     };
   },
   computed: {
     authStore() {
       return useAuthStore();
+    },
+    currentDevRole() {
+      // Default to initiator role if no specific dev role is set
+      return this.authStore.user?.roles?.[0]?.role || 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)';
     }
   },
   methods: {
     async handleLogout() {
       await this.authStore.logout();
+    },
+    handleDevRoleChange(event) {
+      this.authStore.setDevRole(event.target.value);
     }
   },
 };
@@ -130,5 +151,37 @@ export default {
 
 .logout-btn:hover {
   background-color: #c82333;
+}
+
+.dev-role-switcher {
+  display: flex;
+  align-items: center;
+  margin-right: 1.5rem;
+  background-color: #333;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.dev-role-switcher label {
+  font-size: 12px;
+  color: #ccc;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.dev-role-switcher select {
+  background-color: #222;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 4px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+
+.dev-role-switcher select:focus {
+  border-color: #888;
 }
 </style>

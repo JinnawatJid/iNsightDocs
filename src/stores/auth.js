@@ -64,13 +64,15 @@ export const useAuthStore = defineStore('auth', {
 
     async initAuth() {
       if (!this.authRequired) {
+        // Read dev role from cookie, fallback to default initiator role
+        const devRole = Cookies.get('dev_role') || "ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)";
         this.user = {
           userId: 99999,
           username: "DEV_MODE_USER",
           roles: [
             {
               app: "Smart Credit Application",
-              role: "ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)"
+              role: devRole
             }
           ],
           branchCode: "00TR"
@@ -111,6 +113,15 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    setDevRole(role) {
+      if (!this.authRequired) {
+        // Set the non-HttpOnly cookie so both frontend and backend can read it
+        Cookies.set('dev_role', role, { path: '/' });
+        // Reload the page to ensure all state and backend calls use the new role
+        window.location.reload();
+      }
+    },
+
     clearAuth() {
       this.token = null;
       this.user = null;
@@ -119,6 +130,7 @@ export const useAuthStore = defineStore('auth', {
       // but logout endpoint handles it backend-side.
       // Still good practice to try to clear any non-HttpOnly fallbacks
       Cookies.remove('token');
+      Cookies.remove('dev_role');
     },
 
     async logout() {
