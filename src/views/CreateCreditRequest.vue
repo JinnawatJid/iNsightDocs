@@ -96,12 +96,14 @@ import SmartImportModal from '@/components/credit/SmartImportModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFeatureFlag } from '@/composables/useFeatureFlag';
 import { useAuthStore } from '@/stores/auth';
+import { useRoute } from 'vue-router';
 import iconSearchLarge from '@/assets/icons/search-large.svg';
 import { ref, watch , onMounted} from 'vue';
 import Swal from 'sweetalert2';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const route = useRoute();
 const { isOcrEnabled } = useFeatureFlag();
 const showSmartImport = ref(false);
 const isRequestStarted = ref(false);
@@ -111,10 +113,22 @@ const closePreview = () => {
     isRequestStarted.value = false;
 };
 
-onMounted(() => {
-    // Reset state when visiting the page to ensure a clean slate
+onMounted(async () => {
+    // Reset state unconditionally when visiting the page to ensure a clean slate
     store.resetState();
     isRequestStarted.value = false;
+
+    const { search, txId } = route.query;
+
+    if (search) {
+        // If we are given a search parameter, we should fetch it.
+        await store.searchCustomer(search);
+        if (txId) {
+            // Load the specific draft and start the request
+            await store.loadRequestDetail(txId);
+            isRequestStarted.value = true;
+        }
+    }
 });
 
 const handleSearch = async (query) => {
@@ -139,6 +153,25 @@ const handleStartRequest = async (type) => {
         await store.saveTransactionData();
     }
 };
+
+// Watch for route changes to handle query parameters (e.g. from Revision flow)
+watch(
+  () => route.query,
+  async (newQuery) => {
+    const { search, txId } = newQuery;
+    if (search) {
+        // We need to re-fetch customer data if search parameter changes or if we need to load a new txId
+        // store.requestId check prevents infinite loop if the route stays the same
+        if (txId && store.requestId !== txId) {
+             await store.searchCustomer(search);
+             await store.loadRequestDetail(txId);
+             isRequestStarted.value = true;
+        } else if (!txId && store.customer?.id !== search) {
+             await store.searchCustomer(search);
+        }
+    }
+  }
+);
 
 // Watch for Blacklist Alert
 watch(
