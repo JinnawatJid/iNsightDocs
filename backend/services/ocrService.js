@@ -168,10 +168,8 @@ const ocrService = {
   async extractEasyOCR(imageBuffer) {
       const UPLOAD_BASE = process.env.UPLOAD_PATH
           ? path.resolve(process.cwd(), process.env.UPLOAD_PATH)
-          : null;
-      const tempDir = UPLOAD_BASE
-          ? path.join(UPLOAD_BASE, 'temp')
-          : path.join(__dirname, '../../uploads/temp');
+          : path.join(__dirname, '../uploads');
+      const tempDir = path.join(UPLOAD_BASE, 'temp');
 
       await fs.ensureDir(tempDir);
       const tempFile = path.join(tempDir, `easyocr_${Date.now()}.jpg`);
@@ -305,10 +303,8 @@ const ocrService = {
     const popplerPath = path.join(__dirname, '../poppler/pdftocairo.exe');
     const UPLOAD_BASE = process.env.UPLOAD_PATH
         ? path.resolve(process.cwd(), process.env.UPLOAD_PATH)
-        : null;
-    const tempDir = UPLOAD_BASE
-        ? path.join(UPLOAD_BASE, 'temp')
-        : path.join(__dirname, '../../uploads/temp');
+        : path.join(__dirname, '../uploads');
+    const tempDir = path.join(UPLOAD_BASE, 'temp');
 
     await fs.ensureDir(tempDir);
 

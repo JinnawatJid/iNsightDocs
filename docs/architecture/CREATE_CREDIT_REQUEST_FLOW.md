@@ -14,15 +14,17 @@ The `CreateCreditRequest` feature STRICTLY enforces a **"Search First"** pattern
    - The `CustomerProfileDashboard` is displayed, giving the user context about the customer's current limits, terms, and history.
    - The Action area transforms into a `+ เพิ่มคำขอเครดิตใหม่` (Start New Request) button. Clicking this opens a popover menu to select the specific request type (New, Increase, Change Terms, etc.).
    - Options in the popover are dynamically disabled based on the customer's current credit limit (e.g., cannot request "New Credit" if they already have an existing limit).
+   - **Important:** At this stage, a temporary Draft Request ID (`store.requestId`) has **not** been generated yet. It is explicitly deferred until the user makes a selection.
 
 3. **Form Mode (Action State)**:
    - Triggered when `isRequestStarted = true` (after selecting a type from the popover or clicking a previous request from the history sidebar via the `@request-selected` event).
+   - Upon selecting a request type from the popover (e.g., "เครดิตใหม่"), the system **finally generates the temporary Draft Request ID** and saves the initial transaction data.
    - The `CustomerProfileDashboard` is hidden, and the `CreditRequestForm` is displayed.
    - The Action area transforms into a standard `MultiSelectDropdown` to allow changing the request type while editing the form.
    - **Note:** If a request opened from the sidebar has any status other than 'Draft', the form is strictly **read-only** (`isReadOnly = true` in the `creditRequest` store) to prevent modification of submitted data.
 
 ## 2. Preventing Accidental Reverts
-**DO NOT REMOVE THE DASHBOARD:** The `CustomerProfileDashboard.vue` is a critical intermediate step designed to give users financial context *before* they initiate a request. Reverting this to jump straight to the form bypasses vital business logic and UX design. Do not use global watchers on `store.requestId` to automatically set `isRequestStarted = true`, as this will skip the dashboard when a background search auto-populates the draft ID.
+**DO NOT REMOVE THE DASHBOARD:** The `CustomerProfileDashboard.vue` is a critical intermediate step designed to give users financial context *before* they initiate a request. Reverting this to jump straight to the form bypasses vital business logic and UX design. Do not trigger the creation of a temporary draft ID immediately upon searching; this ID must only be created after the user explicitly selects a request type, preventing the database from filling with unused, blank drafts.
 
 **DO NOT CHANGE HEADER LAYOUT:** The header layout is strictly "Search (Left) | Action (Right)".
 
