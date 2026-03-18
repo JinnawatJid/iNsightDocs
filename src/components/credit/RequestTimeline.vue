@@ -65,7 +65,18 @@ export default {
   setup(props) {
     const formatDate = (dateString) => {
       if (!dateString) return '';
-      const date = new Date(dateString);
+
+      // The backend returns UTC dates like "2026-03-19 00:42:00.000" but misses the 'Z' indicator.
+      // If we pass a string without 'Z', Safari/Chrome assumes it is LOCAL time.
+      // We must append 'Z' so JS knows it's UTC and properly converts it to Thai time (+7).
+      let normalizedDateString = dateString;
+      if (!dateString.endsWith('Z') && !dateString.includes('+')) {
+        // Replace space with T to make it strict ISO 8601, then append Z
+        normalizedDateString = dateString.replace(' ', 'T') + 'Z';
+      }
+
+      const date = new Date(normalizedDateString);
+
       return date.toLocaleString('th-TH', {
         year: 'numeric',
         month: 'short',
@@ -73,6 +84,20 @@ export default {
         hour: '2-digit',
         minute: '2-digit'
       });
+    };
+
+    // Map current request status to the corresponding workflow step index that is CURRENTLY pending/active.
+    // Anything BEFORE this index is guaranteed to be completed.
+    const STATUS_TO_CURRENT_STEP_INDEX = {
+      'Draft': 0,             // 0: ผู้จัดการสาขา
+      'Opened': 1,            // 1: ผู้จัดการภาค
+      'RegionalSubmitted': 2, // 2: ผู้จัดการฝ่ายขาย
+      'SalesSubmitted': 3,    // 3: เจ้าหน้าที่ฝ่ายการเงิน
+      'Reviewed': 4,          // 4: กรรมการเครดิต
+      'Approved': 5,          // 5: Done (all 0-4 are completed)
+      'Closed': 5,            // 5: Done
+      'Rejected': -1,         // Special handling below
+      'Canceled': -1          // Special handling below
     };
 
     const timelineSteps = computed(() => {
@@ -91,18 +116,8 @@ export default {
         actionType: null
       }));
 
-      // In real scenarios, users might revise and send again.
-      // We will try to match comments sequentially to the steps.
-      // But typically, comments log the action *from* a role.
-
-      // We iterate through comments to populate the steps
-      steps.forEach((step, index) => {
-        // Find if there's a comment for this role.
-        // If there are multiple (e.g., due to some back and forth, though system might not support it),
-        // we take the latest one for this specific step in this iteration, or just match sequentially.
-
-        // Let's find the first comment matching this role that hasn't been "consumed" yet
-        // A better approach is matching by role.
+      // 1. Populate data from comments (if they exist)
+      steps.forEach((step) => {
         const matchingComments = sortedComments.filter(c => c.actor_role === step.roleKey);
 
         if (matchingComments.length > 0) {
@@ -111,13 +126,21 @@ export default {
           step.completed = true;
           step.date = lastComment.created_at;
           step.comment = lastComment.comment_text;
-
-          // Determine if this was a rejection
-          // Since we don't store action type in RequestComments table right now,
-          // we infer from the overall request status if it's rejected and this is the last step.
-          // Wait, actually, let's check if the comment text says something or if status is rejected
         }
       });
+
+      // 2. Force previous steps to be 'completed' even if they left no comment.
+      // E.g., if status is 'SalesSubmitted' (index 3), then steps 0, 1, and 2 MUST be completed.
+      const currentStepIndex = STATUS_TO_CURRENT_STEP_INDEX[props.currentStatus];
+
+      if (currentStepIndex !== undefined && currentStepIndex !== -1) {
+        for (let i = 0; i < currentStepIndex; i++) {
+            if (i < steps.length) {
+                steps[i].completed = true;
+                // We cannot force a date if there was no comment, but the step will light up blue.
+            }
+        }
+      }
 
       // Handle Rejection State globally
       if (props.currentStatus === 'Rejected' || props.currentStatus === 'Canceled') {
