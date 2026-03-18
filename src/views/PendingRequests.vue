@@ -57,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import Navbar from '@/components/shared/Navbar.vue';
 import RequestSidebar from '@/components/credit/RequestSidebar.vue';
 import CustomerTitleCard from '@/components/credit/CustomerTitleCard.vue';
@@ -68,6 +68,10 @@ import ReviewDashboard from '@/components/credit/ReviewDashboard.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const store = useCreditRequestStore();
+
+onMounted(() => {
+    store.resetState();
+});
 const newComment = ref('');
 
 // Watch for request ID changes to reset comment box
