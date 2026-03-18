@@ -7,6 +7,9 @@ const authMiddleware = (req, res, next) => {
     const isAuthEnabled = process.env.ENABLE_AUTH !== 'false';
 
     if (!isAuthEnabled) {
+        // Read the requested developer role from cookies, fallback to standard mock role
+        const devRole = (req.cookies && req.cookies.dev_role) ? req.cookies.dev_role : "ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)";
+
         // Mock user payload so backend routes don't crash when trying to access req.user
         req.user = {
             userId: 99999,
@@ -14,7 +17,7 @@ const authMiddleware = (req, res, next) => {
             roles: [
                 {
                     app: "Smart Credit Application",
-                    role: "ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)"
+                    role: devRole
                 }
             ],
             branchCode: "00TR"
