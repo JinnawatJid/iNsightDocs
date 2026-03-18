@@ -164,12 +164,22 @@ watch(searchQuery, () => {
 
 const formatDate = (dateString) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric'
-    });
+
+    // Apply the same timezone offset fix as RequestTimeline (strip 'Z')
+    let normalizedDateString = dateString;
+    if (normalizedDateString.endsWith('Z')) {
+        normalizedDateString = normalizedDateString.slice(0, -1);
+    }
+
+    const date = new Date(normalizedDateString);
+
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const y = date.getFullYear(); // Gregorian year
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mm = String(date.getMinutes()).padStart(2, '0');
+
+    return `${d}/${m}/${y} ${hh}:${mm} น.`;
 };
 
 const selectRequest = (req) => {
