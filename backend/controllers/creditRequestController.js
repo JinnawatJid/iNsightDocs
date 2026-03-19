@@ -107,7 +107,10 @@ exports.downloadCreditRequestFile = async (req, res) => {
         res.setHeader('Content-Type', mimeType);
         // Use filename*=UTF-8''... for better browser support of non-ASCII characters
         const encodedFilename = encodeURIComponent(fileRecord.original_name);
-        res.setHeader('Content-Disposition', `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`);
+
+        // Check if the client requested inline viewing (e.g. for native PDF/Image preview in browser)
+        const disposition = req.query.inline === 'true' ? 'inline' : 'attachment';
+        res.setHeader('Content-Disposition', `${disposition}; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`);
 
         const fileStream = fs.createReadStream(filePath);
         fileStream.pipe(res);
