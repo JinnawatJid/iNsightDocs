@@ -6,7 +6,7 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     token: null,
     isAuthenticated: false,
-    authRequired: true, // Default to true until fetched from backend
+    authRequired: true,
   }),
 
   getters: {
@@ -17,32 +17,26 @@ export const useAuthStore = defineStore('auth', {
     hubUrl: () => {
       return `http://192.192.0.37:53683/hub`;
     },
-    // RBAC Getters
+
     userRoles: (state) => {
       return state.user?.roles || [];
     },
     isInitiator: (state) => {
-      // BM: Branch Manager
       return state.user?.roles?.some(r => r.role === 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)');
     },
     isRegionalManager: (state) => {
-      // RM: First Level Approver
       return state.user?.roles?.some(r => r.role === 'ผู้พิจารณาของพื้นที่');
     },
     isSalesManager: (state) => {
-      // SM: Sales Reviewer
       return state.user?.roles?.some(r => r.role === 'ผู้พิจารณาฝ่ายขาย');
     },
     isFinanceOfficer: (state) => {
-      // FO: Document Screener
       return state.user?.roles?.some(r => r.role === 'ผู้ตรวจสอบเอกสาร');
     },
     isFinanceManager: (state) => {
-      // FM: Final Approver (< 300k)
       return state.user?.roles?.some(r => r.role === 'ผู้อนุมัติ (วงเงิน <300K)');
     },
     isCreditCommittee: (state) => {
-      // CC: Final Approver (> 300k)
       return state.user?.roles?.some(r => r.role === 'ผู้อนุมัติ (วงเงิน > 300K)');
     }
   },
@@ -50,7 +44,6 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async fetchAuthConfig() {
       try {
-        // We use a basic fetch here instead of axios to avoid circular dependencies with the interceptor
         const response = await fetch('/api/config/auth');
         if (response.ok) {
           const data = await response.json();
@@ -58,13 +51,11 @@ export const useAuthStore = defineStore('auth', {
         }
       } catch (error) {
         console.error('Failed to fetch auth config:', error);
-        // Default stays true on failure for safety
       }
     },
 
     async initAuth() {
       if (!this.authRequired) {
-        // Read dev role from cookie, fallback to default initiator role
         const devRole = Cookies.get('dev_role') || "ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)";
         this.user = {
           userId: 99999,
@@ -82,7 +73,6 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
-        // Fetch user data from backend which reads the HttpOnly cookie
         const response = await fetch('/api/auth/me', {
           method: 'GET',
           headers: {
@@ -98,12 +88,9 @@ export const useAuthStore = defineStore('auth', {
             roles: data.user.roles,
             branchCode: data.user.branchCode
           };
-          // We don't store the raw token anymore because it's HttpOnly,
-          // and requests will automatically include the cookie
           this.token = null;
           this.isAuthenticated = true;
         } else {
-          // 401 Unauthorized or other errors mean token is invalid or missing
           console.warn('Authentication failed:', response.status);
           this.clearAuth();
         }
@@ -115,9 +102,7 @@ export const useAuthStore = defineStore('auth', {
 
     setDevRole(role) {
       if (!this.authRequired) {
-        // Set the non-HttpOnly cookie so both frontend and backend can read it
         Cookies.set('dev_role', role, { path: '/' });
-        // Reload the page to ensure all state and backend calls use the new role
         window.location.reload();
       }
     },
@@ -126,19 +111,15 @@ export const useAuthStore = defineStore('auth', {
       this.token = null;
       this.user = null;
       this.isAuthenticated = false;
-      // We can't remove HttpOnly cookies from JS,
-      // but logout endpoint handles it backend-side.
-      // Still good practice to try to clear any non-HttpOnly fallbacks
+
       Cookies.remove('token');
       Cookies.remove('dev_role');
     },
 
     async logout() {
       try {
-        // 1. Clear cookie on our backend first
         await fetch('/api/auth/logout', { method: 'POST' });
 
-        // 2. Clear SSO session via external portal hub (no-cors to ignore typical cross-origin read limits, just post it)
         await fetch('http://192.192.0.37:52683/auth/logout', {
           method: 'POST',
           mode: 'no-cors',
@@ -146,13 +127,9 @@ export const useAuthStore = defineStore('auth', {
         });
       } catch (error) {
         console.error('Logout request failed:', error);
-        // Continue to clear local auth anyway to ensure user is logged out locally
       }
 
-      // 3. Clear local store
       this.clearAuth();
-
-      // 4. Redirect to portal hub
       window.location.href = this.hubUrl;
     }
   }
