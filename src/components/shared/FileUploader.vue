@@ -39,12 +39,15 @@
     <div v-if="!isEmpty" class="file-list-container">
         <!-- Single File Preview -->
         <div v-if="!multiple && file" class="file-preview-row">
-            <div class="file-info">
+            <div class="file-info" @click.stop="openPreview(file)" style="cursor: pointer;">
                  <img :src="iconFileBlue" width="16" height="16" class="file-icon"/>
                  <span class="file-name" :title="file.name">{{ file.name }}</span>
             </div>
 
             <div class="file-actions">
+                 <button class="action-btn view-btn" @click.stop="openPreview(file)" title="View">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                 </button>
                  <button v-if="isRemote(file)" class="action-btn download-btn" @click.stop="downloadFile(file)" title="Download">
                      <img src="@/assets/icons/download.svg" alt="Download" />
                  </button>
@@ -55,12 +58,15 @@
         <!-- Multiple Files List -->
         <ul v-else-if="multiple && file && file.length > 0" class="file-list-scrollable">
             <li v-for="(f, index) in file" :key="index" class="file-preview-row">
-                 <div class="file-info">
+                 <div class="file-info" @click.stop="openPreview(f)" style="cursor: pointer;">
                      <img :src="iconFileBlue" width="16" height="16" class="file-icon"/>
                      <span class="file-name" :title="f.name">{{ f.name }}</span>
                  </div>
 
                  <div class="file-actions">
+                     <button class="action-btn view-btn" @click.stop="openPreview(f)" title="View">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                     </button>
                      <button v-if="isRemote(f)" class="action-btn download-btn" @click.stop="downloadFile(f)" title="Download">
                         <img src="@/assets/icons/download.svg" alt="Download" />
                      </button>
@@ -69,6 +75,13 @@
             </li>
         </ul>
     </div>
+
+    <!-- Document Preview Modal -->
+    <DocumentPreviewModal
+      :isOpen="previewModalOpen"
+      :file="fileToPreview"
+      @close="closePreview"
+    />
   </div>
 </template>
 
@@ -78,14 +91,20 @@ import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { computed } from 'vue';
 import Swal from 'sweetalert2';
+import DocumentPreviewModal from '@/components/shared/DocumentPreviewModal.vue';
 
 export default {
   name: 'FileUploader',
+  components: {
+    DocumentPreviewModal
+  },
   data() {
     return {
       file: this.initializeFile(this.modelValue),
       iconFileBlue,
-      iconUploadMulti
+      iconUploadMulti,
+      previewModalOpen: false,
+      fileToPreview: null
     };
   },
   setup(props) {
@@ -229,7 +248,26 @@ export default {
         if (this.isRemote(file)) {
              const url = `/api/credit-requests/${encodeURIComponent(file.txId)}/files/${file.id}`;
              window.open(url, '_blank');
+        } else if (file instanceof File) {
+             const url = URL.createObjectURL(file);
+             const link = document.createElement('a');
+             link.href = url;
+             link.download = file.name;
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+             URL.revokeObjectURL(url);
         }
+    },
+    openPreview(file) {
+        this.fileToPreview = file;
+        this.previewModalOpen = true;
+    },
+    closePreview() {
+        this.previewModalOpen = false;
+        setTimeout(() => {
+            this.fileToPreview = null;
+        }, 200); // Wait for transition if any
     }
   },
   computed: {
@@ -377,6 +415,11 @@ label {
     overflow: hidden;
 }
 
+.file-info:hover .file-name {
+    text-decoration: underline;
+    color: #0056FF;
+}
+
 .file-icon {
     opacity: 0.7;
     flex-shrink: 0;
@@ -389,6 +432,7 @@ label {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 200px; /* Adjust based on container */
+    transition: color 0.2s;
 }
 
 .file-actions {
@@ -415,7 +459,11 @@ label {
     filter: invert(32%) sepia(85%) saturate(2220%) hue-rotate(209deg) brightness(96%) contrast(106%); /* #0056FF */
 }
 
-.download-btn:hover {
+.view-btn {
+    color: #0056FF;
+}
+
+.download-btn:hover, .view-btn:hover {
     background-color: #e6f0ff;
 }
 
