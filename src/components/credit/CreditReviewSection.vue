@@ -148,14 +148,12 @@ const handleReviseRequest = async () => {
                 // It's up to the user to select the new draft from the left side history
                 // or we could force a page reload and then load it.
                 // The easiest way is to pass a ?search and tell the store to load it
-                // Actually, CreateCreditRequest handles search query but doesn't load a specific txId via URL right now.
-                // We will navigate to the create-credit-request page with search, and then load the specific request.
-                await router.push(`/create-credit-request?search=${store.customer.id}`);
-
-                // After navigation, explicitly tell the store to load the newly created draft
-                setTimeout(() => {
-                    store.loadRequestDetail(newTxId);
-                }, 500); // Short delay to ensure search request logic doesn't override
+                // Navigate to the create-credit-request page with both search and txId query parameters.
+                // This ensures the page automatically loads the customer and the specific draft request.
+                await router.push({
+                    path: '/create-credit-request',
+                    query: { search: store.customer.id, txId: newTxId }
+                });
             }
         }
     } catch (error) {

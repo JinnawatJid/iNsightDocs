@@ -201,7 +201,7 @@ exports.createCreditRequest = async (req, res) => {
 
         // --- TxID Generation Logic (Draft -> Opened) ---
         // If we are transitioning from Draft to Opened, we must generate the real ID
-        if (existing.status === 'Draft' && newStatus === 'Opened') {
+        if (existing.status === 'Draft' && newStatus === 'Opened' && !existing.tx_id.includes('-R')) {
             const now = new Date();
             const year = now.getFullYear();
             const yy = year.toString().slice(-2);
