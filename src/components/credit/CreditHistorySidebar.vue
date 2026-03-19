@@ -49,7 +49,7 @@
       </div>
 
       <div class="no-history" v-else-if="searched">
-        ลูกค้าไม่เคยได้รับเครดิตมาก่อน
+        ไม่พบคำขอเครดิตก่อนหน้าในระบบ
       </div>
     </div>
   </div>
