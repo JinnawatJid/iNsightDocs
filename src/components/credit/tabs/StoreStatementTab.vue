@@ -164,6 +164,7 @@
           <input
             type="text"
             v-model="registeredCapital" :data-empty="!registeredCapital"
+            @blur="handleRegisteredCapitalBlur"
             class="form-control"
             :class="{ 'border-red-500': errors.registered_capital && store.showValidationErrors }"
             placeholder="ระบุทุนจดทะเบียน (บาท)"
@@ -548,6 +549,12 @@ watch(() => store.files, (newVal) => {
       files.bankStatement = [];
   }
 }, { immediate: true, deep: true });
+
+const handleRegisteredCapitalBlur = () => {
+    if (store.showValidationErrors) {
+        validateField('registered_capital', registeredCapital.value, ['required']);
+    }
+};
 
 const handleDurationInput = (event) => {
     let val = event.target.value;
