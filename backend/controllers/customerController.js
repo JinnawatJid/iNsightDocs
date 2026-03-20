@@ -9,6 +9,7 @@ const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
 
 // Configuration
 const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://192.192.0.37:8280/sales-summary-6-months/1.0.0";
+const FINANCIAL_API_TAX_URL = process.env.FINANCIAL_API_TAX_URL || "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
 const CATEGORY_API_URL = process.env.CATEGORY_API_URL || "http://192.192.0.37:8280/sales-by-category-6-months/1.0.0";
 const ENABLE_LOCAL_FALLBACK = process.env.ENABLE_LOCAL_FALLBACK === 'true';
 
@@ -101,14 +102,37 @@ const getCategoryLabel = (code) => {
     return map[code] || `Category ${code}`;
 };
 
-const fetchPurchasingBehavior = async (customerNo) => {
+const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
     if (MOCK_EXTERNAL_APIS || MOCK_FINANCIAL_API) {
         console.log(`[Financial API] Using Mock Data for ${customerNo}`);
-        return getMockFinancialData(customerNo);
+        const data = getMockFinancialData(customerNo);
+        data.fetchSource = taxId ? 'tax_no' : 'customer_code';
+        return data;
     }
 
     try {
-        // Updated to POST method with JSON body
+        if (taxId && taxId.trim().length > 0) {
+            console.log(`[Financial API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
+            const response = await axios.get(FINANCIAL_API_TAX_URL, {
+                params: { tax_no: taxId.trim() },
+                headers: {
+                    "apikey": API_KEY,
+                    "Content-Type": "application/json"
+                },
+                timeout: 5000
+            });
+            const data = response.data;
+            if (data) {
+                data.fetchSource = 'tax_no';
+            }
+            return data;
+        }
+    } catch (error) {
+         console.warn(`[Financial API] Failed fetching via tax_no for ${customerNo}. Error: ${error.message}. Falling back to customer_code...`);
+    }
+
+    try {
+        console.log(`[Financial API] Fetching via customer_code for customer: ${customerNo}`);
         const response = await axios.post(FINANCIAL_API_URL, {
             customer_code: customerNo
         }, {
@@ -118,7 +142,11 @@ const fetchPurchasingBehavior = async (customerNo) => {
             },
             timeout: 5000
         });
-        return response.data;
+        const data = response.data;
+        if (data) {
+            data.fetchSource = 'customer_code';
+        }
+        return data;
     } catch (error) {
         console.error(`Error fetching purchasing behavior for ${customerNo}:`, error.message);
         throw error;
@@ -341,9 +369,10 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
  * Enriches a customer object with local database data (History, Financials).
  * @param {string} customerNo - The customer ID (No_).
  * @param {number} currentCreditLimit - The customer's current credit limit.
+ * @param {string} taxId - The customer's Tax ID (VAT Registration No_).
  * @returns {Promise<Object>} - Object containing { history, financial_summary, suggestions }
  */
-const enrichCustomerData = async (customerNo, currentCreditLimit = 0) => {
+const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = null) => {
     let financialSummary = {};
     let suggestions = [];
     let history = [];
@@ -372,7 +401,7 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0) => {
     // 2. Fetch Financial Data (New API)
     try {
         const results = await Promise.allSettled([
-            fetchPurchasingBehavior(customerNo),
+            fetchPurchasingBehavior(customerNo, taxId),
             fetchCategorySummary(customerNo, categoryMonths)
         ]);
 
@@ -470,7 +499,8 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0) => {
                 avg_monthly_trend: avgMonthlyTrend, // Use distinct Slope-based string
                 monthly_history: monthlyHistory,
                 category_breakdown: categoryBreakdown,
-                category_months_used: categoryMonths
+                category_months_used: categoryMonths,
+                fetchSource: apiData.fetchSource || 'customer_code' // Include fetchSource flag
             };
 
             // Generate Suggestions Logic (Adapted for Dynamic Data - Based on Calc Set)
@@ -520,7 +550,8 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0) => {
                 avg_monthly_trend: null,
                 monthly_history: [],
                 category_breakdown: categoryBreakdown,
-                category_months_used: categoryMonths
+                category_months_used: categoryMonths,
+                fetchSource: apiData ? apiData.fetchSource : 'customer_code'
             };
             suggestions.push("ไม่พบข้อมูลประวัติการซื้อ");
         }
@@ -535,6 +566,7 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0) => {
             monthly_history: [],
             category_breakdown: [],
             category_months_used: categoryMonths,
+            fetchSource: 'error',
             error: "ไม่สามารถเรียกข้อมูลพฤติกรรมการซื้อได้"
         };
     }
@@ -633,7 +665,8 @@ const searchCustomersFallback = async (req, res, query) => {
 
         // Enrich with History & Financials
         const currentCreditLimit = parseFloat(row["Fixed Credit Limit"]) || 0;
-        const enriched = await enrichCustomerData(row["No_"], currentCreditLimit);
+        const taxIdForEnrich = row["VAT Registration No_"] ? row["VAT Registration No_"].trim() : null;
+        const enriched = await enrichCustomerData(row["No_"], currentCreditLimit, taxIdForEnrich);
 
         // Blacklist Check (Advanced)
         const isCompanyRec = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
@@ -784,7 +817,8 @@ exports.searchCustomers = async (req, res) => {
 
               // Side-load History & Financials from Local DB
               const currentCreditLimit = parseFloat(row["Fixed Credit Limit"]) || 0;
-              const enriched = await enrichCustomerData(row["No_"], currentCreditLimit);
+              const taxIdForEnrich = row["VAT Registration No_"] ? row["VAT Registration No_"].trim() : null;
+              const enriched = await enrichCustomerData(row["No_"], currentCreditLimit, taxIdForEnrich);
 
               // Improved Blacklist Logic: Gather Tax ID and Names (from API + Local Fallback)
               let taxId = row["VAT Registration No_"];
@@ -956,7 +990,8 @@ exports.searchCustomers = async (req, res) => {
 
       // Enrich with History & Financials
       const currentCreditLimit = parseFloat(row["Fixed Credit Limit"]) || 0;
-      const enriched = await enrichCustomerData(row["No_"], currentCreditLimit);
+      const taxIdForEnrich = row["VAT Registration No_"] ? row["VAT Registration No_"].trim() : null;
+      const enriched = await enrichCustomerData(row["No_"], currentCreditLimit, taxIdForEnrich);
 
       // Blacklist Check (Advanced)
       const isCompanyRec = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;

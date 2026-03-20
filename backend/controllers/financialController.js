@@ -10,6 +10,7 @@ const pdf = require('pdf-parse');
 
 // Configuration
 const FINANCIAL_API_URL = "http://192.192.0.37:8280/sales-summary-6-months/1.0.0";
+const FINANCIAL_API_TAX_URL = "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
 const LATE_PAYMENT_API_URL = "http://192.192.0.37:8280/customer-late-payment/1.0.0";
 // New WADL API Endpoint
 const LATE_PAYMENT_WADL_API_URL = "http://192.192.0.37:8280/weight-baselatepayment/1.0.0";
@@ -118,14 +119,38 @@ const sanitizeInvoices = (invoices) => {
 };
 
 // Helper: Fetch Purchasing Behavior from External API
-const fetchPurchasingBehavior = async (customerNo) => {
+const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
     if (MOCK_EXTERNAL_APIS || MOCK_FINANCIAL_API) {
         console.log(`[Financial API] Using Mock Data for ${customerNo}`);
-        return getMockFinancialData(customerNo);
+        const data = getMockFinancialData(customerNo);
+        data.fetchSource = taxId ? 'tax_no' : 'customer_code';
+        return data;
     }
 
     try {
-        console.log(`[Financial API] Fetching data for ${customerNo} from ${FINANCIAL_API_URL}`);
+        if (taxId && taxId.trim().length > 0) {
+            console.log(`[Financial API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
+            const response = await axios.get(FINANCIAL_API_TAX_URL, {
+                params: { tax_no: taxId.trim() },
+                headers: {
+                    "apikey": API_KEY,
+                    "Content-Type": "application/json"
+                },
+                timeout: 5000
+            });
+            console.log(`[Financial API] Success for ${customerNo} (via tax_no)`);
+            const data = response.data;
+            if (data) {
+                data.fetchSource = 'tax_no';
+            }
+            return data;
+        }
+    } catch (error) {
+         console.warn(`[Financial API] Failed fetching via tax_no for ${customerNo}. Error: ${error.message}. Falling back to customer_code...`);
+    }
+
+    try {
+        console.log(`[Financial API] Fetching via customer_code for ${customerNo} from ${FINANCIAL_API_URL}`);
         const response = await axios.post(FINANCIAL_API_URL, {
             customer_code: customerNo
         }, {
@@ -730,9 +755,12 @@ exports.analyzeFinancials = async (req, res) => {
         if (residence_ownership) customerData.residence_ownership = residence_ownership;
         if (residence_ownership_other) customerData.residence_ownership_other = residence_ownership_other;
 
+        // We need tax_id for fetchPurchasingBehavior if available
+        const taxIdForFinancials = tax_id || (customerData && customerData.tax_id ? customerData.tax_id : null);
+
         // Parallel Fetch: Financial Data (API) & Late Payment Data (API) & WADL Data
         const [apiData, lateData, wadlData] = await Promise.all([
-             fetchPurchasingBehavior(customer_no),
+             fetchPurchasingBehavior(customer_no, taxIdForFinancials),
              fetchLatePaymentData(customer_no),
              fetchWADLData(customer_no)
         ]);
@@ -744,6 +772,11 @@ exports.analyzeFinancials = async (req, res) => {
         const monthlyData = apiData && (apiData.monthly || apiData.data);
 
         if (monthlyData) {
+            // Include fetchSource in context if available
+            if (apiData.fetchSource) {
+                 customerData.fetchSource = apiData.fetchSource;
+            }
+
             // New Logic: Use Continuous Timeline
             const timeline = generateContinuousTimeline(monthlyData);
 
