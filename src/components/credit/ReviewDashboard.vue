@@ -44,7 +44,7 @@
             <h3>สถานะเอกสาร</h3>
             <div class="doc-header-actions" style="display: flex; align-items: center; gap: 15px;">
                 <span class="doc-count">ครบแล้ว {{ uploadedCount }}/{{ documents.length }} รายการ</span>
-                <button class="btn-view-financials" @click="isAllDocsModalOpen = true">
+                <button class="btn-view-financials" @click="handleOpenAllDocs">
                    ดูเอกสารทั้งหมด
                 </button>
             </div>
@@ -220,6 +220,13 @@ const documents = computed(() => {
 const uploadedCount = computed(() => documents.value.filter(d => d.isUploaded).length);
 
 const isAllDocsModalOpen = ref(false);
+
+const handleOpenAllDocs = () => {
+    console.log('[DEBUG UI] Opening All Documents Modal');
+    console.log('[DEBUG UI] isAllDocsModalOpen currently:', isAllDocsModalOpen.value);
+    isAllDocsModalOpen.value = true;
+};
+
 const isFinancialModalOpen = ref(false);
 const financialData = ref(null);
 const financialLoading = ref(false);

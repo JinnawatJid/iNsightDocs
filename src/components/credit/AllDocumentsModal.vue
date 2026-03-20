@@ -241,9 +241,11 @@ const documentGroups = computed(() => {
 
 
 watch(() => props.isOpen, (newVal) => {
+    console.log('[DEBUG AllDocsModal] isOpen changed to:', newVal);
     if (newVal) {
         // Auto-select first available file
         selectedFile.value = null;
+        console.log('[DEBUG AllDocsModal] documentGroups length:', documentGroups.value.length);
         for (const group of documentGroups.value) {
             const firstWithFile = group.items.find(i => i.hasFile);
             if (firstWithFile) {
