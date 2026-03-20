@@ -60,7 +60,7 @@
               </div>
               <template v-else>
                 <template v-if="displayFileType === 'pdf'">
-                  <iframe :src="currentFileUrl" type="application/pdf" class="preview-iframe" title="PDF Preview" sandbox="allow-same-origin allow-scripts"></iframe>
+                  <iframe :src="currentFileUrl" type="application/pdf" class="preview-iframe" title="PDF Preview"></iframe>
                 </template>
                 <template v-else-if="['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(displayFileType)">
                   <div class="image-preview-container">
@@ -334,9 +334,6 @@ const updateFileUrl = async (doc) => {
                 responseType: 'blob'
             });
 
-            activeObjectURL = URL.createObjectURL(response.data);
-            currentFileUrl.value = activeObjectURL;
-
             // Try to extract real type from Content-Type header if baseType is unknown
             if (baseType === 'unknown' && response.headers['content-type']) {
                 const mimeType = response.headers['content-type'];
@@ -346,6 +343,17 @@ const updateFileUrl = async (doc) => {
                 else if (mimeType.includes('webp')) baseType = 'webp';
             }
             currentFileType.value = baseType;
+
+            // Force correct MIME type for PDF to prevent Edge/Chrome from blocking or downloading
+            // application/octet-stream blobs, and to neutralize HTML/XSS uploads disguised as PDFs.
+            let blobType = response.data.type;
+            if (baseType === 'pdf') {
+                 blobType = 'application/pdf';
+            }
+            const safeBlob = new Blob([response.data], { type: blobType });
+
+            activeObjectURL = URL.createObjectURL(safeBlob);
+            currentFileUrl.value = activeObjectURL;
 
         } catch (err) {
             console.error('Failed to load remote file for preview', err);
