@@ -42,7 +42,12 @@
     <div class="dashboard-card documents-snapshot">
         <div class="card-header">
             <h3>สถานะเอกสาร</h3>
-            <span class="doc-count">ครบแล้ว {{ uploadedCount }}/{{ documents.length }} รายการ</span>
+            <div class="doc-header-actions" style="display: flex; align-items: center; gap: 15px;">
+                <span class="doc-count">ครบแล้ว {{ uploadedCount }}/{{ documents.length }} รายการ</span>
+                <button class="btn-view-financials" @click="isAllDocsModalOpen = true">
+                   ดูเอกสารทั้งหมด
+                </button>
+            </div>
         </div>
 
         <div class="documents-grid">
@@ -130,6 +135,12 @@
 
 
     <!-- Section 3: Full Details Toggle -->
+    <!-- All Documents Modal -->
+    <AllDocumentsModal
+        :is-open="isAllDocsModalOpen"
+        @close="isAllDocsModalOpen = false"
+    />
+
     <div class="details-toggle-section">
         <button class="btn-toggle-details" @click="showFullDetails = !showFullDetails">
             <span v-if="!showFullDetails">ดูรายละเอียดข้อมูลลูกค้าแบบเต็ม</span>
@@ -151,6 +162,7 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { getMandatoryKeys } from '@/config/mandatoryFields';
 import ApplicationTabs from './ApplicationTabs.vue';
 import FinancialStatementModal from './FinancialStatementModal.vue';
+import AllDocumentsModal from './AllDocumentsModal.vue';
 import axios from '../../utils/axios.js';
 
 const store = useCreditRequestStore();
@@ -207,6 +219,7 @@ const documents = computed(() => {
 
 const uploadedCount = computed(() => documents.value.filter(d => d.isUploaded).length);
 
+const isAllDocsModalOpen = ref(false);
 const isFinancialModalOpen = ref(false);
 const financialData = ref(null);
 const financialLoading = ref(false);
