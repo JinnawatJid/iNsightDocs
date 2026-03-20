@@ -56,11 +56,11 @@
             <div class="viewer-content">
               <!-- Reusing DocumentPreviewModal logic -->
               <template v-if="fileType(selectedFile) === 'pdf'">
-                <iframe :src="fileUrl(selectedFile)" type="application/pdf" class="preview-iframe" title="PDF Preview"></iframe>
+                <iframe :src="currentFileUrl" type="application/pdf" class="preview-iframe" title="PDF Preview"></iframe>
               </template>
               <template v-else-if="['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(fileType(selectedFile))">
                 <div class="image-preview-container">
-                    <img :src="fileUrl(selectedFile)" :alt="selectedFile.displayName" class="preview-image" />
+                    <img :src="currentFileUrl" :alt="selectedFile.displayName" class="preview-image" />
                 </div>
               </template>
               <template v-else>
@@ -92,7 +92,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, toRaw, onUnmounted } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { getMandatoryKeys } from '@/config/mandatoryFields';
 
@@ -269,40 +269,64 @@ const selectFile = (doc) => {
 // Utilities for File Viewer
 const getActualFile = (doc) => {
     if (!doc) return null;
-    if (doc.fileData) return doc.fileData; // Local File object
+    if (doc.fileData) return doc.fileData; // Local File object or metadata if initialized from remote
     if (doc.remoteMetadata) return doc.remoteMetadata;
     return null;
 };
 
 const isRemote = (doc) => {
-    return !!doc?.remoteMetadata;
+    const file = getActualFile(doc);
+    // It's remote if it has remoteMetadata or if the fileData itself looks like remote metadata (has id and txId)
+    if (doc?.remoteMetadata) return true;
+    if (file && ! (file instanceof File || file instanceof Blob) && file.id && file.txId) return true;
+    return false;
 };
 
-const fileUrl = (doc) => {
+const currentFileUrl = ref('');
+let activeObjectURL = null;
+
+const updateFileUrl = (doc) => {
+    if (activeObjectURL) {
+        URL.revokeObjectURL(activeObjectURL);
+        activeObjectURL = null;
+    }
+
+    currentFileUrl.value = '';
     const file = getActualFile(doc);
-    if (!file) return '';
+    if (!file) return;
 
     if (isRemote(doc)) {
-        // Generate remote URL logic from FileUploader.vue / DocumentPreviewModal
+        // Extract id and txId from either remoteMetadata or the fileData object itself
+        const fileId = doc.remoteMetadata?.fileKey || file.id;
+        const txId = store.transactionData.txId || store.transactionId || file.txId;
         // Important: use ?inline=true for PDF previews
-        return `/api/credit-requests/${store.transactionData.txId || store.transactionId}/files/${encodeURIComponent(doc.remoteMetadata.fileKey)}?inline=true`;
+        currentFileUrl.value = `/api/credit-requests/${txId}/files/${encodeURIComponent(fileId)}?inline=true`;
     } else {
-        return URL.createObjectURL(file);
+        const rawFile = toRaw(file);
+        if (rawFile instanceof File || rawFile instanceof Blob) {
+            activeObjectURL = URL.createObjectURL(rawFile);
+            currentFileUrl.value = activeObjectURL;
+        } else if (rawFile.url) {
+            currentFileUrl.value = rawFile.url;
+        }
     }
 };
+
+watch(selectedFile, (newDoc) => {
+    updateFileUrl(newDoc);
+});
+
+onUnmounted(() => {
+    if (activeObjectURL) {
+        URL.revokeObjectURL(activeObjectURL);
+    }
+});
 
 const fileType = (doc) => {
     const file = getActualFile(doc);
     if (!file) return '';
 
-    let typeStr = '';
-    if (isRemote(doc)) {
-        // try to guess from original name or fallback
-        typeStr = file.originalName || file.name || '';
-    } else {
-        typeStr = file.name || '';
-    }
-
+    let typeStr = file.originalName || file.name || '';
     const parts = typeStr.split('.');
     return parts.length > 1 ? parts.pop().toLowerCase() : '';
 };
@@ -312,17 +336,24 @@ const downloadFile = (doc) => {
     if (!file) return;
 
     if (isRemote(doc)) {
-        const url = `/api/credit-requests/${store.transactionData.txId || store.transactionId}/files/${encodeURIComponent(doc.remoteMetadata.fileKey)}`;
+        const fileId = doc.remoteMetadata?.fileKey || file.id;
+        const txId = store.transactionData.txId || store.transactionId || file.txId;
+        const url = `/api/credit-requests/${txId}/files/${encodeURIComponent(fileId)}`;
         window.open(url, '_blank');
     } else {
-        const url = URL.createObjectURL(file);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const rawFile = toRaw(file);
+        if (rawFile instanceof File || rawFile instanceof Blob) {
+            const url = URL.createObjectURL(rawFile);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = rawFile.name || 'download';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } else if (rawFile.url) {
+            window.open(rawFile.url, '_blank');
+        }
     }
 };
 
