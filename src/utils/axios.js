@@ -6,17 +6,10 @@ const api = axios.create({
   // baseURL can be set if needed, e.g., baseURL: '/api'
 });
 
-// Request interceptor to attach the JWT token
+// Request interceptor to configure API calls
 api.interceptors.request.use(
   (config) => {
-    const authStore = useAuthStore();
-
-    // Ensure the token from the cookie is attached
-    if (authStore.token) {
-      config.headers['Authorization'] = `Bearer ${authStore.token}`;
-    }
-
-    // Also include credentials so that cookies are sent
+    // Include credentials so that cookies are sent
     config.withCredentials = true;
 
     return config;
