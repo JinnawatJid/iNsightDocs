@@ -54,15 +54,19 @@
             </div>
 
             <div class="viewer-content">
-              <!-- Reusing DocumentPreviewModal logic -->
-              <template v-if="fileType(selectedFile) === 'pdf'">
-                <iframe :src="currentFileUrl" type="application/pdf" class="preview-iframe" title="PDF Preview"></iframe>
-              </template>
-              <template v-else-if="['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(fileType(selectedFile))">
-                <div class="image-preview-container">
-                    <img :src="currentFileUrl" :alt="selectedFile.displayName" class="preview-image" />
-                </div>
-              </template>
+              <div v-if="isLoadingFile" class="loading-state">
+                  <div class="spinner"></div>
+                  <p>กำลังโหลดเอกสาร...</p>
+              </div>
+              <template v-else>
+                <template v-if="displayFileType === 'pdf'">
+                  <iframe :src="currentFileUrl" type="application/pdf" class="preview-iframe" title="PDF Preview" sandbox="allow-same-origin allow-scripts"></iframe>
+                </template>
+                <template v-else-if="['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(displayFileType)">
+                  <div class="image-preview-container">
+                      <img :src="currentFileUrl" :alt="selectedFile.displayName" class="preview-image" />
+                  </div>
+                </template>
               <template v-else>
                 <div class="unsupported-preview">
                   <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -72,12 +76,14 @@
                       <line x1="16" y1="17" x2="8" y2="17"></line>
                       <polyline points="10 9 9 9 8 9"></polyline>
                   </svg>
-                  <p>ไม่สามารถแสดงตัวอย่างไฟล์ประเภท <strong>.{{ fileType(selectedFile) }}</strong> ได้</p>
+                  <p v-if="displayFileType !== 'unknown'">ไม่สามารถแสดงตัวอย่างไฟล์ประเภท <strong>.{{ displayFileType }}</strong> ได้</p>
+                  <p v-else>ไม่สามารถแสดงตัวอย่างไฟล์ประเภทนี้ได้</p>
                   <p class="sub-text">กรุณาดาวน์โหลดเพื่อดูข้อมูล</p>
                   <button class="btn-download-large" @click="downloadFile(selectedFile)">
                       ดาวน์โหลดไฟล์
                   </button>
                 </div>
+              </template>
               </template>
             </div>
           </template>
@@ -95,6 +101,7 @@
 import { ref, computed, watch, toRaw, onUnmounted } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { getMandatoryKeys } from '@/config/mandatoryFields';
+import axios from '@/utils/axios';
 
 const props = defineProps({
   isOpen: {
@@ -157,13 +164,15 @@ const documentGroups = computed(() => {
                 remoteMetadata: null
             });
         } else if (uploadedMetadata) {
-             // Remote file
+             // Remote file (metadata is often just 'true' in uploadedDocuments map,
+             // but file array might hold the actual RemoteFile objects. If not, fallback to fileKey)
+             const remoteFallback = { id: key, fileKey: key, name: key };
              mandatoryItems.push({
                 key,
                 displayName: config.label,
                 hasFile: true,
                 fileData: null,
-                remoteMetadata: { ...uploadedMetadata, fileKey: key }
+                remoteMetadata: typeof uploadedMetadata === 'object' ? { ...uploadedMetadata, fileKey: key } : remoteFallback
             });
         }
     } else {
@@ -221,12 +230,14 @@ const documentGroups = computed(() => {
            if (key.startsWith('other_') && !otherItems.some(i => i.key === key)) {
                const parts = key.split(':');
                const labelName = parts.length > 1 ? parts[1] : key;
+               const uploadedMeta = store.uploadedDocuments[key];
+               const remoteFallback = { id: key, fileKey: key, name: key };
                otherItems.push({
                     key,
                     displayName: labelName,
                     hasFile: true,
                     fileData: null,
-                    remoteMetadata: { ...store.uploadedDocuments[key], fileKey: key }
+                    remoteMetadata: typeof uploadedMeta === 'object' ? { ...uploadedMeta, fileKey: key } : remoteFallback
                 });
            }
        });
@@ -255,6 +266,10 @@ watch(() => props.isOpen, (newVal) => {
         }
     } else {
         selectedFile.value = null;
+        if (activeObjectURL) {
+            URL.revokeObjectURL(activeObjectURL);
+            activeObjectURL = null;
+        }
     }
 });
 
@@ -276,31 +291,68 @@ const getActualFile = (doc) => {
 
 const isRemote = (doc) => {
     const file = getActualFile(doc);
-    // It's remote if it has remoteMetadata or if the fileData itself looks like remote metadata (has id and txId)
+    // It's remote if it has remoteMetadata or if the fileData itself looks like remote metadata
     if (doc?.remoteMetadata) return true;
-    if (file && ! (file instanceof File || file instanceof Blob) && file.id && file.txId) return true;
+    if (file && ! (file instanceof File || file instanceof Blob) && (file.id || file.isRemote)) return true;
     return false;
 };
 
 const currentFileUrl = ref('');
+const currentFileType = ref('');
+const isLoadingFile = ref(false);
 let activeObjectURL = null;
 
-const updateFileUrl = (doc) => {
+const updateFileUrl = async (doc) => {
     if (activeObjectURL) {
         URL.revokeObjectURL(activeObjectURL);
         activeObjectURL = null;
     }
 
     currentFileUrl.value = '';
+    currentFileType.value = '';
     const file = getActualFile(doc);
     if (!file) return;
 
+    let baseType = getBaseFileType(doc);
+
     if (isRemote(doc)) {
-        // Extract id and txId from either remoteMetadata or the fileData object itself
-        const fileId = doc.remoteMetadata?.fileKey || file.id;
-        const txId = store.transactionData.txId || store.transactionId || file.txId;
-        // Important: use ?inline=true for PDF previews
-        currentFileUrl.value = `/api/credit-requests/${txId}/files/${encodeURIComponent(fileId)}?inline=true`;
+        isLoadingFile.value = true;
+        try {
+            // Extract id and txId from either remoteMetadata or the fileData object itself
+            let fileId = doc.remoteMetadata?.fileKey || file.id;
+            if (Array.isArray(file) && file.length > 0) fileId = file[0].id || fileId;
+            const txId = store.requestId || file.txId || (Array.isArray(file) ? file[0]?.txId : null);
+
+            if (!txId || !fileId) {
+                 console.error('Missing transaction ID or file ID');
+                 currentFileType.value = baseType;
+                 return;
+            }
+
+            // Fetch file via axios to include auth headers
+            const response = await axios.get(`/api/credit-requests/${encodeURIComponent(txId)}/files/${encodeURIComponent(fileId)}?inline=true`, {
+                responseType: 'blob'
+            });
+
+            activeObjectURL = URL.createObjectURL(response.data);
+            currentFileUrl.value = activeObjectURL;
+
+            // Try to extract real type from Content-Type header if baseType is unknown
+            if (baseType === 'unknown' && response.headers['content-type']) {
+                const mimeType = response.headers['content-type'];
+                if (mimeType.includes('pdf')) baseType = 'pdf';
+                else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) baseType = 'jpg';
+                else if (mimeType.includes('png')) baseType = 'png';
+                else if (mimeType.includes('webp')) baseType = 'webp';
+            }
+            currentFileType.value = baseType;
+
+        } catch (err) {
+            console.error('Failed to load remote file for preview', err);
+            currentFileType.value = baseType; // Still set it so fallback UI works
+        } finally {
+            isLoadingFile.value = false;
+        }
     } else {
         const rawFile = toRaw(file);
         if (rawFile instanceof File || rawFile instanceof Blob) {
@@ -309,6 +361,7 @@ const updateFileUrl = (doc) => {
         } else if (rawFile.url) {
             currentFileUrl.value = rawFile.url;
         }
+        currentFileType.value = baseType;
     }
 };
 
@@ -322,24 +375,55 @@ onUnmounted(() => {
     }
 });
 
-const fileType = (doc) => {
+const getBaseFileType = (doc) => {
     const file = getActualFile(doc);
     if (!file) return '';
-
-    let typeStr = file.originalName || file.name || '';
+    let typeStr = file.originalName || file.name || file.fileKey || '';
     const parts = typeStr.split('.');
-    return parts.length > 1 ? parts.pop().toLowerCase() : '';
+    return parts.length > 1 ? parts.pop().toLowerCase() : 'unknown';
 };
 
-const downloadFile = (doc) => {
+const displayFileType = computed(() => {
+    return currentFileType.value || getBaseFileType(selectedFile.value);
+});
+
+const downloadFile = async (doc) => {
     const file = getActualFile(doc);
     if (!file) return;
 
     if (isRemote(doc)) {
-        const fileId = doc.remoteMetadata?.fileKey || file.id;
-        const txId = store.transactionData.txId || store.transactionId || file.txId;
-        const url = `/api/credit-requests/${txId}/files/${encodeURIComponent(fileId)}`;
-        window.open(url, '_blank');
+        let fileId = doc.remoteMetadata?.fileKey || file.id;
+        if (Array.isArray(file) && file.length > 0) fileId = file[0].id || fileId;
+        const txId = store.requestId || file.txId || (Array.isArray(file) ? file[0]?.txId : null);
+        if (!txId) return;
+
+        try {
+            // Fetch as blob with auth cookies intact via axios
+            const response = await axios.get(`/api/credit-requests/${txId}/files/${encodeURIComponent(fileId)}`, {
+                responseType: 'blob'
+            });
+
+            // Extract original filename if available, or fallback
+            let fileName = 'download';
+            if (response.headers['content-disposition']) {
+                const match = response.headers['content-disposition'].match(/filename="?([^"]+)"?/);
+                if (match && match[1]) fileName = decodeURIComponent(match[1]);
+            } else if (file.originalName || file.name) {
+                fileName = file.originalName || file.name;
+            }
+
+            const url = URL.createObjectURL(response.data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to download file', err);
+            // Optionally notify user
+        }
     } else {
         const rawFile = toRaw(file);
         if (rawFile instanceof File || rawFile instanceof Blob) {

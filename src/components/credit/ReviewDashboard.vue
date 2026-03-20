@@ -44,7 +44,7 @@
             <h3>สถานะเอกสาร</h3>
             <div class="doc-header-actions" style="display: flex; align-items: center; gap: 15px;">
                 <span class="doc-count">ครบแล้ว {{ uploadedCount }}/{{ documents.length }} รายการ</span>
-                <button class="btn-view-financials" @click="handleOpenAllDocs">
+                <button class="btn-view-all-docs" @click="handleOpenAllDocs">
                    ดูเอกสารทั้งหมด
                 </button>
             </div>
@@ -420,7 +420,7 @@ const openFinancialModal = async () => {
     grid-template-columns: repeat(4, 1fr);
     gap: 15px;
 }
-.btn-view-financials {
+.btn-view-financials, .btn-view-all-docs {
     background: #e3f2fd;
     color: #0d47a1;
     border: 1px solid #bbdefb;
@@ -431,7 +431,7 @@ const openFinancialModal = async () => {
     cursor: pointer;
     transition: all 0.2s;
 }
-.btn-view-financials:hover {
+.btn-view-financials:hover, .btn-view-all-docs:hover {
     background: #bbdefb;
 }
 .doc-icon {
