@@ -42,7 +42,12 @@
     <div class="dashboard-card documents-snapshot">
         <div class="card-header">
             <h3>สถานะเอกสาร</h3>
-            <span class="doc-count">ครบแล้ว {{ uploadedCount }}/{{ documents.length }} รายการ</span>
+            <div class="doc-header-actions" style="display: flex; align-items: center; gap: 15px;">
+                <span class="doc-count">ครบแล้ว {{ uploadedCount }}/{{ documents.length }} รายการ</span>
+                <button class="btn-view-all-docs" @click="handleOpenAllDocs">
+                   ดูเอกสารทั้งหมด
+                </button>
+            </div>
         </div>
 
         <div class="documents-grid">
@@ -130,6 +135,12 @@
 
 
     <!-- Section 3: Full Details Toggle -->
+    <!-- All Documents Modal -->
+    <AllDocumentsModal
+        :is-open="isAllDocsModalOpen"
+        @close="isAllDocsModalOpen = false"
+    />
+
     <div class="details-toggle-section">
         <button class="btn-toggle-details" @click="showFullDetails = !showFullDetails">
             <span v-if="!showFullDetails">ดูรายละเอียดข้อมูลลูกค้าแบบเต็ม</span>
@@ -151,6 +162,7 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { getMandatoryKeys } from '@/config/mandatoryFields';
 import ApplicationTabs from './ApplicationTabs.vue';
 import FinancialStatementModal from './FinancialStatementModal.vue';
+import AllDocumentsModal from './AllDocumentsModal.vue';
 import axios from '../../utils/axios.js';
 
 const store = useCreditRequestStore();
@@ -206,6 +218,14 @@ const documents = computed(() => {
 });
 
 const uploadedCount = computed(() => documents.value.filter(d => d.isUploaded).length);
+
+const isAllDocsModalOpen = ref(false);
+
+const handleOpenAllDocs = () => {
+    console.log('[DEBUG UI] Opening All Documents Modal');
+    console.log('[DEBUG UI] isAllDocsModalOpen currently:', isAllDocsModalOpen.value);
+    isAllDocsModalOpen.value = true;
+};
 
 const isFinancialModalOpen = ref(false);
 const financialData = ref(null);
@@ -400,7 +420,7 @@ const openFinancialModal = async () => {
     grid-template-columns: repeat(4, 1fr);
     gap: 15px;
 }
-.btn-view-financials {
+.btn-view-financials, .btn-view-all-docs {
     background: #e3f2fd;
     color: #0d47a1;
     border: 1px solid #bbdefb;
@@ -411,7 +431,7 @@ const openFinancialModal = async () => {
     cursor: pointer;
     transition: all 0.2s;
 }
-.btn-view-financials:hover {
+.btn-view-financials:hover, .btn-view-all-docs:hover {
     background: #bbdefb;
 }
 .doc-icon {
@@ -462,16 +482,19 @@ const openFinancialModal = async () => {
 .doc-meta {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
 }
 
 .doc-name {
     font-size: 14px;
     font-weight: 500;
+    text-align: left;
 }
 
 .doc-status {
     font-size: 11px;
     color: #888;
+    text-align: left;
 }
 
 /* Toggle Section */
