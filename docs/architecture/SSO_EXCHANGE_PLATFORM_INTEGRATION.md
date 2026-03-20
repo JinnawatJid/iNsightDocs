@@ -63,15 +63,13 @@ JWT ที่ถูกส่งกลับมาใน Cookie `token` (Sign ด
 
 2. **การถอดรหัส (Decode):**
    - เมื่อมี Cookie ให้ใช้ `jwt-decode` ถอดรหัส JWT (เฉพาะส่วน Payload) โดยไม่ต้อง Verify Signature บนฝั่ง Frontend เพื่อนำข้อมูล `userId`, `username`, `roles` มาแสดงผล หรือบันทึกลงใน Pinia Store
-   - ในการเชื่อมต่อกับ Backend (Axios), Frontend สามารถส่ง Request ไปตามปกติ โดยระบุ `withCredentials: true` เพื่อให้เบราว์เซอร์แนบ Cookie `token` ไปกับทุกๆ HTTP Request หรือสามารถดึงค่าจาก Cookie มาใส่เป็น Header `Authorization: Bearer <Token>` อย่างชัดเจน
+   - ในการเชื่อมต่อกับ Backend (Axios), Frontend สามารถส่ง Request ไปตามปกติ โดยระบุ `withCredentials: true` เพื่อให้เบราว์เซอร์แนบ Cookie `token` (ชนิด HttpOnly) ไปกับทุกๆ HTTP Request โดยอัตโนมัติ
 
 ### 3. ฝั่ง Backend (Node.js/Express)
 
 1. **Auth Middleware (`authMiddleware.js`):**
    - ตรวจสอบ Request ที่เข้ามายัง Protected Routes (เช่น `/api/customers`, `/api/credit-requests`)
-   - ค้นหา Token ได้จาก 2 ช่องทาง:
-     1. Header `Authorization: Bearer <Token>`
-     2. Cookie ที่ชื่อ `token` (ผ่านไลบรารี `cookie-parser`)
+   - ค้นหา Token จาก Cookie ที่ชื่อ `token` (ผ่านไลบรารี `cookie-parser`)
    - หากไม่พบ ให้ตอบกลับ `401 Unauthorized`
 
 2. **การ Verify Token:**
