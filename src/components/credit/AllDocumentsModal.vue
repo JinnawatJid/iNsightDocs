@@ -603,6 +603,7 @@ const downloadFile = async (doc) => {
 .item-status {
   font-size: 11px;
   color: #888;
+  text-align: left;
 }
 
 .sidebar-item.uploaded .item-status {

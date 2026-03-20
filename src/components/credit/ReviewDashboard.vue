@@ -482,16 +482,19 @@ const openFinancialModal = async () => {
 .doc-meta {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
 }
 
 .doc-name {
     font-size: 14px;
     font-weight: 500;
+    text-align: left;
 }
 
 .doc-status {
     font-size: 11px;
     color: #888;
+    text-align: left;
 }
 
 /* Toggle Section */
