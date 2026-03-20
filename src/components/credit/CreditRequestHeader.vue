@@ -328,9 +328,15 @@ export default {
       
       const phone = normalize(item.phone);
       const mobile = normalize(item.mobile);
+      const vatNo = normalize(item.vatNo);
       
       const phoneMatch = phone.includes(q) || mobile.includes(q);
+      const vatMatch = vatNo.includes(q);
       const idMatch = item.id.toLowerCase().includes(this.searchQuery.toLowerCase());
+
+      if (vatMatch && vatNo !== '') {
+        return `${item.vatNo} - ${item.name}`;
+      }
 
       if (phoneMatch) {
         let displayPhone = item.phone || item.mobile;

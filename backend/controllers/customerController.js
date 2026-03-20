@@ -175,7 +175,8 @@ const searchApiCustomers = async (query) => {
     const searchRequests = [
         { label: "By ID",   payload: { "No_": { "$like": `%${query}%` } } },
         { label: "By Name", payload: { "Name": { "$like": `%${query}%` } } },
-        { label: "By Mobile", payload: { "Mobile Phone No_": { "$like": `%${query}%` } } }
+        { label: "By Mobile", payload: { "Mobile Phone No_": { "$like": `%${query}%` } } },
+        { label: "By VAT", payload: { "VAT Registration No_": { "$like": `%${query}%` } } }
     ];
 
     // Execute in parallel
@@ -582,7 +583,8 @@ const searchCustomersFallback = async (req, res, query) => {
           "No_" LIKE ? OR
           "Phone No_" LIKE ? OR
           "Mobile Phone No_" LIKE ? OR
-          "Contact" LIKE ?
+          "Contact" LIKE ? OR
+          "VAT Registration No_" LIKE ?
       `;
     } else {
       sql = `
@@ -593,13 +595,14 @@ const searchCustomersFallback = async (req, res, query) => {
           "No_" LIKE ? OR
           "Phone No_" LIKE ? OR
           "Mobile Phone No_" LIKE ? OR
-          "Contact" LIKE ?
+          "Contact" LIKE ? OR
+          "VAT Registration No_" LIKE ?
         LIMIT 20
       `;
     }
 
     const searchPattern = `%${query}%`;
-    const params = [searchPattern, searchPattern, searchPattern, searchPattern, searchPattern];
+    const params = [searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern];
 
     try {
       const { rows } = await db.query(sql, params);
@@ -903,7 +906,8 @@ exports.searchCustomers = async (req, res) => {
         "No_" LIKE ? OR
         "Phone No_" LIKE ? OR
         "Mobile Phone No_" LIKE ? OR
-        "Contact" LIKE ?
+        "Contact" LIKE ? OR
+        "VAT Registration No_" LIKE ?
     `;
   } else {
     sql = `
@@ -914,13 +918,14 @@ exports.searchCustomers = async (req, res) => {
         "No_" LIKE ? OR
         "Phone No_" LIKE ? OR
         "Mobile Phone No_" LIKE ? OR
-        "Contact" LIKE ?
+        "Contact" LIKE ? OR
+        "VAT Registration No_" LIKE ?
       LIMIT 20
     `;
   }
 
   const searchPattern = `%${query}%`;
-  const params = [searchPattern, searchPattern, searchPattern, searchPattern, searchPattern];
+  const params = [searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern];
 
   try {
     const { rows } = await db.query(sql, params);
@@ -1074,7 +1079,8 @@ exports.getSuggestions = async (req, res) => {
           id: row["No_"],
           name: row["Name"],
           phone: row["Phone No_"],
-          mobile: row["Mobile Phone No_"]
+          mobile: row["Mobile Phone No_"],
+          vatNo: row["VAT Registration No_"]
       })).slice(0, 4); // Limit to 4
 
       // If API returns results, use them.
@@ -1109,13 +1115,15 @@ exports.getSuggestions = async (req, res) => {
         "No_",
         "Name",
         "Phone No_",
-        "Mobile Phone No_"
+        "Mobile Phone No_",
+        "VAT Registration No_"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR
         "No_" LIKE ? OR
         "Phone No_" LIKE ? OR
-        "Mobile Phone No_" LIKE ?
+        "Mobile Phone No_" LIKE ? OR
+        "VAT Registration No_" LIKE ?
     `;
   } else {
     sql = `
@@ -1123,22 +1131,23 @@ exports.getSuggestions = async (req, res) => {
         "No_",
         "Name",
         "Phone No_",
-        "Mobile Phone No_"
+        "Mobile Phone No_",
+        "VAT Registration No_"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR
         "No_" LIKE ? OR
         "Phone No_" LIKE ? OR
-        "Mobile Phone No_" LIKE ?
+        "Mobile Phone No_" LIKE ? OR
+        "VAT Registration No_" LIKE ?
       LIMIT 4
     `;
   }
 
   const searchPattern = `%${query}%`;
-  // Fix: Removed extra param for SQLite (4 placeholders vs 5 params)
   const params = db.dbType === 'mssql'
-      ? [searchPattern, searchPattern, searchPattern, searchPattern]
-      : [searchPattern, searchPattern, searchPattern, searchPattern];
+      ? [searchPattern, searchPattern, searchPattern, searchPattern, searchPattern]
+      : [searchPattern, searchPattern, searchPattern, searchPattern, searchPattern];
 
   try {
     const { rows } = await db.query(sql, params);
@@ -1147,7 +1156,8 @@ exports.getSuggestions = async (req, res) => {
       id: row["No_"],
       name: row["Name"],
       phone: row["Phone No_"],
-      mobile: row["Mobile Phone No_"]
+      mobile: row["Mobile Phone No_"],
+      vatNo: row["VAT Registration No_"]
     }));
 
     res.json(suggestions);
