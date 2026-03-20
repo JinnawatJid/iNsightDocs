@@ -11,6 +11,7 @@ const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
 const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://192.192.0.37:8280/sales-summary-6-months/1.0.0";
 const FINANCIAL_API_TAX_URL = process.env.FINANCIAL_API_TAX_URL || "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
 const CATEGORY_API_URL = process.env.CATEGORY_API_URL || "http://192.192.0.37:8280/sales-by-category-6-months/1.0.0";
+const CATEGORY_API_TAX_URL = process.env.CATEGORY_API_TAX_URL || "http://192.192.0.37:8000/api/customer-analytics/category-summary";
 const ENABLE_LOCAL_FALLBACK = process.env.ENABLE_LOCAL_FALLBACK === 'true';
 
 // Global mock flag for external APIs
@@ -153,7 +154,7 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
     }
 };
 
-const fetchCategorySummary = async (customerNo, months = 6) => {
+const fetchCategorySummary = async (customerNo, months = 6, taxId = null) => {
     if (MOCK_EXTERNAL_APIS) {
         console.log(`[Category API] Using Mock Data for ${customerNo}`);
         const mockData = getMockCategoryData(customerNo);
@@ -163,10 +164,32 @@ const fetchCategorySummary = async (customerNo, months = 6) => {
             acc[cat] = (acc[cat] || 0) + amount;
             return acc;
         }, {});
-        return { by_category };
+        return { by_category, fetchSource: taxId ? 'tax_no' : 'customer_code' };
     }
 
     try {
+        if (taxId && taxId.trim().length > 0) {
+            console.log(`[Category API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
+            const response = await axios.get(CATEGORY_API_TAX_URL, {
+                params: { tax_no: taxId.trim(), months: months },
+                headers: {
+                    "apikey": API_KEY,
+                    "Content-Type": "application/json"
+                },
+                timeout: 5000
+            });
+
+            // The new API endpoint directly returns a `by_category` object.
+            const by_category = response.data.by_category || {};
+
+            return { by_category, fetchSource: 'tax_no' };
+        }
+    } catch (error) {
+        console.warn(`[Category API] Failed fetching via tax_no for ${customerNo}. Error: ${error.message}. Falling back to customer_code...`);
+    }
+
+    try {
+        console.log(`[Category API] Fetching via customer_code for customer: ${customerNo}`);
         // Updated to POST method with JSON body
         const response = await axios.post(CATEGORY_API_URL, {
             customer_code: customerNo,
@@ -188,7 +211,7 @@ const fetchCategorySummary = async (customerNo, months = 6) => {
             return acc;
         }, {});
 
-        return { by_category };
+        return { by_category, fetchSource: 'customer_code' };
     } catch (error) {
         console.error(`Error fetching category summary for ${customerNo}:`, error.message);
         throw error;
@@ -402,7 +425,7 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
     try {
         const results = await Promise.allSettled([
             fetchPurchasingBehavior(customerNo, taxId),
-            fetchCategorySummary(customerNo, categoryMonths)
+            fetchCategorySummary(customerNo, categoryMonths, taxId)
         ]);
 
         const apiDataResult = results[0];
