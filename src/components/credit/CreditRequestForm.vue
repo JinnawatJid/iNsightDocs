@@ -27,7 +27,7 @@
       <div class="form-footer">
         <!-- Unified Review Section (Terms + Comments) -->
         <CreditReviewSection
-          v-if="( (isProjectWizardStep2 && store.activeProjectTab === 'requestInfo') || (!isProjectWizardStep2 && store.activeTab === 'financial') || viewMode === 'focus')"
+          v-if="( (isProjectWizardStep2 && store.activeProjectTab === 'requestInfo') || (!isProjectWizardStep2 && !isProjectCredit && store.activeTab === 'financial') || viewMode === 'focus')"
           :readOnly="isReadOnly"
           :showTerms="showTerms"
           :comments="comments"

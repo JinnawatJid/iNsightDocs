@@ -507,6 +507,10 @@ const isChangeTerm = computed(() => store.transactionData.requestType && store.t
 const isNewRequest = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตใหม่'));
 const isProjectCredit = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตโครงการ'));
 
+const isQuotationRequired = computed(() => {
+    return store.transactionData.reason === 'ขออนุมัติเครดิต (มีใบสั่งซื้อแนบมาพร้อม)';
+});
+
 // VISIBILITY LOGIC
 const showAll = computed(() => props.viewMode === 'full');
 
