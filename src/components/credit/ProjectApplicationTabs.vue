@@ -86,7 +86,7 @@ const currentTabComponent = computed(() => {
 .tab-item {
   flex: 1;
   text-align: center;
-  padding: 8px 0px; /* slightly taller for better click area */
+  padding: 4px 0px;
   cursor: pointer;
   font-weight: 500;
   color: white;

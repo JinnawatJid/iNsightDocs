@@ -167,6 +167,11 @@ const isProjectCredit = computed(() => {
 watch(isProjectCredit, (newVal) => {
     if (!newVal) {
         isProjectWizardStep2.value = false;
+    } else {
+        // When switching to project credit, if activeTab is requestInfo, shift to store to hide the blank tab
+        if (store.activeTab === 'requestInfo') {
+            store.setActiveTab('store');
+        }
     }
 });
 
