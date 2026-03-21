@@ -1,179 +1,9 @@
 <template>
   <div class="request-info-tab">
     <!-- Upload Section -->
-    <!-- Project Selection Section -->
-    <div class="personal-info-section" v-if="isProjectCredit">
-      <div class="section-header">
-        <h3>เลือกโครงการ (Project Selection)</h3>
-      </div>
-      <div class="form-grid-three-columns">
-        <div class="form-group full-width-in-grid">
-          <label>โครงการที่มีอยู่ <span class="text-red-500">*</span></label>
-          <select
-            class="form-input"
-            :class="{ 'border-red-500': errors.project_code, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="store.transactionData.project_code"
-            @change="handleProjectSelect"
-          >
-            <option value="" disabled>เลือกโครงการ</option>
-            <option v-for="proj in availableProjects" :key="proj.code" :value="proj.code">
-              {{ proj.code }} - {{ proj.name }}
-            </option>
-          </select>
-          <span v-if="errors.project_code" class="error-text">กรุณาเลือกโครงการ</span>
-        </div>
-      </div>
-
-      <!-- Project Details (Read-only after selection) -->
-      <div class="form-grid-three-columns" v-if="store.transactionData.project_code" style="margin-top: 20px;">
-        <div class="form-group">
-          <label>รหัสโครงการ</label>
-          <input type="text" class="form-input disabled" disabled :value="selectedProjectDetails?.code || '-'" />
-        </div>
-        <div class="form-group">
-          <label>ชื่อโครงการ</label>
-          <input type="text" class="form-input disabled" disabled :value="selectedProjectDetails?.name || '-'" />
-        </div>
-        <div class="form-group">
-          <label>สาขา</label>
-          <input type="text" class="form-input disabled" disabled :value="selectedProjectDetails?.branch || '-'" />
-        </div>
-        <div class="form-group">
-          <label>ผู้ขอ</label>
-          <input type="text" class="form-input disabled" disabled :value="selectedProjectDetails?.requester || '-'" />
-        </div>
-        <div class="form-group">
-          <label>สินค้าหลัก</label>
-          <input type="text" class="form-input disabled" disabled :value="selectedProjectDetails?.mainProduct || '-'" />
-        </div>
-      </div>
-    </div>
-
-    <!-- Project Credit Details -->
-    <div class="personal-info-section" v-if="isProjectCredit && store.transactionData.project_code">
-      <div class="section-separator"></div>
-      <div class="section-header">
-        <h3>รายละเอียดและหลักประกัน (Project Credit & Security)</h3>
-      </div>
-      <div class="form-grid-three-columns">
-        <div class="form-group">
-          <label>ประเภทลูกค้า <span class="text-red-500">*</span></label>
-          <select
-            class="form-input"
-            :class="{ 'border-red-500': errors.customer_type_project, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            v-model="store.transactionData.customer_type_project"
-          >
-            <option value="" disabled>เลือกประเภทลูกค้า</option>
-            <option value="ผู้ติดตั้งหลัก">ผู้ติดตั้งหลัก</option>
-            <option value="ผู้ติดตั้งรายย่อย">ผู้ติดตั้งรายย่อย</option>
-          </select>
-          <span v-if="errors.customer_type_project" class="error-text">กรุณาระบุข้อมูล</span>
-        </div>
-        <div class="form-group">
-          <label>วงเงินเครดิตโครงการที่ขอ (บาท) <span class="text-red-500">*</span></label>
-          <input
-            type="text"
-            class="form-input"
-            :class="{ 'border-red-500': errors.amount, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            placeholder="ระบุวงเงินเครดิต"
-            v-model="formattedAmount"
-            @input="handleAmountInput"
-          />
-          <span v-if="errors.amount" class="error-text">กรุณาระบุข้อมูล</span>
-        </div>
-      </div>
-
-      <div class="form-grid-three-columns" style="margin-top: 15px;">
-        <div class="form-group">
-          <label style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" v-model="store.transactionData.has_deposit" :disabled="!isEditing" />
-            เงินมัดจำ (Deposit)
-          </label>
-          <input
-            v-if="store.transactionData.has_deposit"
-            type="text"
-            class="form-input"
-            :class="{ 'border-red-500': errors.deposit_amount, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            placeholder="ระบุจำนวนเงินมัดจำ"
-            v-model="formattedDeposit"
-            @input="handleDepositInput"
-            style="margin-top: 8px;"
-          />
-        </div>
-        <div class="form-group">
-          <label style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" v-model="store.transactionData.has_bg" :disabled="!isEditing" />
-            Bank Guarantee
-          </label>
-          <input
-            v-if="store.transactionData.has_bg"
-            type="text"
-            class="form-input"
-            :class="{ 'border-red-500': errors.bg_amount, 'disabled': !isEditing }"
-            :disabled="!isEditing"
-            placeholder="ระบุจำนวนเงิน BG"
-            v-model="formattedBg"
-            @input="handleBgInput"
-            style="margin-top: 8px;"
-          />
-        </div>
-      </div>
-
-      <!-- Simple Milestone Plan -->
-      <div class="section-header" style="margin-top: 30px;">
-        <h3>แผนการรับสินค้า / แบ่งงวด (Phasing Plan)</h3>
-      </div>
-      <div class="credit-history-container">
-        <div v-for="(phase, index) in projectPhases" :key="index" class="credit-history-row">
-            <div class="row-index">งวดที่ {{ index + 1 }}.</div>
-            <div class="form-group medium-width">
-                <label>วันที่คาดว่าจะรับ</label>
-                <input
-                  type="date"
-                  class="form-input"
-                  v-model="phase.expected_date"
-                  :disabled="!isEditing"
-                />
-            </div>
-            <div class="form-group flex-grow">
-                <label>รายละเอียด/สินค้า</label>
-                <input
-                  type="text"
-                  class="form-input"
-                  v-model="phase.details"
-                  placeholder="เช่น กระจกงวดแรก"
-                  :disabled="!isEditing"
-                />
-            </div>
-            <div class="form-group medium-width">
-                <label>มูลค่า (บาท)</label>
-                <input
-                  type="text"
-                  class="form-input"
-                  :value="formatWithCommas(phase.amount)"
-                  @input="(e) => restrictLocalCreditInput(e, phase, 'amount')"
-                  :disabled="!isEditing"
-                />
-            </div>
-            <div class="action-col" v-if="isEditing">
-               <button class="delete-btn" @click="removePhase(index)" title="ลบงวด">
-                 <img src="@/assets/icons/x-circle-red.svg" alt="Delete" style="width: 16px; height: 16px;">
-               </button>
-            </div>
-        </div>
-      </div>
-      <div class="add-row-section" v-if="isEditing">
-          <button class="add-btn" @click="addPhase">+ เพิ่มงวด</button>
-      </div>
-    </div>
-
     <transition name="slide-fade">
-        <div class="upload-section" v-if="isUploadsVisible">
-        <div class="upload-grid" v-if="!isProjectCredit">
+        <div class="upload-section" v-if="isUploadsVisible && !isProjectCredit">
+        <div class="upload-grid">
             <FileUploader
             label="ใบขอเปิดเครดิต"
             required
@@ -185,37 +15,6 @@
             label="ใบเสนอราคา"
             :required="isQuotationRequired"
             v-model="files.quotation"
-            :disabled="!isEditing"
-            multiple
-            />
-        </div>
-
-        <!-- Project Specific Uploads -->
-        <div class="upload-grid" v-if="isProjectCredit">
-            <FileUploader
-            label="สัญญาโปรเจค/ป้ายหน้า Site งาน"
-            required
-            v-model="files.projectContract"
-            :disabled="!isEditing"
-            multiple
-            />
-            <FileUploader
-            label="แผนการรับสินค้า"
-            required
-            v-model="files.projectPlan"
-            :disabled="!isEditing"
-            multiple
-            />
-            <FileUploader
-            label="ใบเสนอราคาจากตังน้ำ"
-            required
-            v-model="files.quotation"
-            :disabled="!isEditing"
-            multiple
-            />
-            <FileUploader
-            label="สำเนา Bank Guarantee / หลักฐานเงินมัดจำ"
-            v-model="files.projectSecurity"
             :disabled="!isEditing"
             multiple
             />
@@ -288,7 +87,7 @@
     </transition>
 
     <!-- Credit Details Section -->
-    <div class="personal-info-section" v-if="!isProjectCredit">
+    <div class="personal-info-section">
       <div class="section-header">
         <h3>รายละเอียดคำขอเครดิต</h3>
       </div>
@@ -588,7 +387,7 @@
     </div>
 
     <!-- Existing Credit Info Section -->
-    <div class="personal-info-section" v-if="!isProjectCredit">
+    <div class="personal-info-section">
       <div class="section-separator"></div>
       <div class="section-header">
         <h3>ลูกค้าได้เครดิตที่อื่นหรือไม่ <span v-if="isRequired('has_other_credit')" class="text-red-500">*</span></h3>
@@ -708,58 +507,6 @@ const isChangeTerm = computed(() => store.transactionData.requestType && store.t
 const isNewRequest = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตใหม่'));
 const isProjectCredit = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตโครงการ'));
 
-const isQuotationRequired = computed(() => {
-    return store.transactionData.reason === 'ขออนุมัติเครดิต (มีใบสั่งซื้อแนบมาพร้อม)';
-});
-
-// Mock Data for Projects
-const availableProjects = ref([]);
-
-const mockFetchProjects = (customerCode) => {
-    // Simulate API call to Sales system
-    const fakeProjects = [
-        {
-            code: 'PJ2024-001',
-            name: 'โครงการคอนโดเลต รัชดา',
-            branch: 'สำนักงานใหญ่',
-            requester: 'นายสมศักดิ์ ขยันขาย',
-            mainProduct: 'กระจกใส 6 มม.',
-            customerCode: customerCode
-        },
-        {
-            code: 'PJ2024-002',
-            name: 'โครงการหมู่บ้านสราญสิริ',
-            branch: 'สาขาบางนา',
-            requester: 'นางสาวสุดา ใจดี',
-            mainProduct: 'อลูมิเนียมเส้น',
-            customerCode: customerCode
-        }
-    ];
-    return fakeProjects;
-};
-
-// Fetch projects when it's a project credit request and customer is loaded
-watch(() => [isProjectCredit.value, store.customer?.id], ([isProj, custId]) => {
-    if (isProj && custId && custId !== 'NEW') {
-        availableProjects.value = mockFetchProjects(custId);
-    } else {
-        availableProjects.value = [];
-    }
-}, { immediate: true });
-
-const selectedProjectDetails = computed(() => {
-    if (!store.transactionData.project_code || !availableProjects.value.length) return null;
-    return availableProjects.value.find(p => p.code === store.transactionData.project_code);
-});
-
-const handleProjectSelect = (event) => {
-    const selectedCode = event.target.value;
-    const project = availableProjects.value.find(p => p.code === selectedCode);
-    if (project) {
-        store.transactionData.project_name = project.name;
-    }
-};
-
 // VISIBILITY LOGIC
 const showAll = computed(() => props.viewMode === 'full');
 
@@ -767,14 +514,12 @@ const isUploadsVisible = computed(() => {
     if (showAll.value) return true;
     if (isNewRequest.value) return true;
     if (isRequestIncrease.value) return true;
-    if (isProjectCredit.value) return true;
     return false;
 });
 
 const isContactInfoVisible = computed(() => {
     if (showAll.value) return true;
     if (isNewRequest.value) return true;
-    if (isProjectCredit.value) return true;
     return false;
 });
 
@@ -782,13 +527,12 @@ const isBillingVisible = computed(() => {
     if (showAll.value) return true;
     if (isNewRequest.value) return true;
     if (isChangePayment.value) return true;
-    if (isProjectCredit.value) return true;
     return false;
 });
 
 // Field Visibility / Editability Logic
 const canEditAmount = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isNewRequest.value));
-const canEditTerms = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isChangeTerm.value || isNewRequest.value) && !isProjectCredit.value);
+const canEditTerms = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isChangeTerm.value || isNewRequest.value));
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
@@ -806,47 +550,37 @@ const errors = computed(() => {
         }
     };
 
-    if (isProjectCredit.value) {
-        check('project_code', store.transactionData.project_code);
-        check('customer_type_project', store.transactionData.customer_type_project);
-        check('amount', store.transactionData.amount);
-        if (store.transactionData.has_deposit) check('deposit_amount', store.transactionData.deposit_amount);
-        if (store.transactionData.has_bg) check('bg_amount', store.transactionData.bg_amount);
-    } else {
-        check('contact_person', store.customer.contact_person);
-        check('contact_position', store.customer.contact_position);
-        check('contact_phone_number', store.customer.contact_phone_number);
-        check('amount', store.transactionData.amount);
-        check('reason', store.transactionData.reason);
-        check('billing_requirement', store.customer.billing_requirement);
-        check('payment_method', store.customer.payment_method);
-        check('has_other_credit', store.customer.has_other_credit);
+    check('contact_person', store.customer.contact_person);
+    check('contact_position', store.customer.contact_position);
+    check('contact_phone_number', store.customer.contact_phone_number);
+    check('amount', store.transactionData.amount);
+    check('reason', store.transactionData.reason);
+    check('billing_requirement', store.customer.billing_requirement);
+    check('payment_method', store.customer.payment_method);
+    check('has_other_credit', store.customer.has_other_credit);
+
+    if (store.customer.billing_requirement === 'required') {
+        check('billing_method', store.customer.billing_method);
+        check('billing_schedule', store.customer.billing_schedule);
+        if (store.customer.billing_method === 'other') {
+            check('billing_method_note', store.customer.billing_method_note);
+        }
     }
 
-    if (!isProjectCredit.value) {
-        if (store.customer.billing_requirement === 'required') {
-            check('billing_method', store.customer.billing_method);
-            check('billing_schedule', store.customer.billing_schedule);
-            if (store.customer.billing_method === 'other') {
-                check('billing_method_note', store.customer.billing_method_note);
-            }
-        }
+    if (store.customer.payment_method) {
+        check('payment_condition', store.customer.payment_condition);
+        check('payment_bank_name', store.customer.payment_bank_name);
+        check('payment_bank_branch', store.customer.payment_bank_branch);
+        check('payment_account_no', store.customer.payment_account_no);
+    }
 
-        if (store.customer.payment_method) {
-            check('payment_condition', store.customer.payment_condition);
-            check('payment_bank_name', store.customer.payment_bank_name);
-            check('payment_bank_branch', store.customer.payment_bank_branch);
-            check('payment_account_no', store.customer.payment_account_no);
-        }
-
-        if (store.customer.has_other_credit === 'yes' && store.customer.existing_credits) {
-            store.customer.existing_credits.forEach((item, index) => {
-                check(`existing_credit_${index}_companyName`, item.companyName);
-                check(`existing_credit_${index}_goods`, item.goods);
-                check(`existing_credit_${index}_term`, item.term);
-                check(`existing_credit_${index}_limit`, item.limit);
-            });
-        }
+    if (store.customer.has_other_credit === 'yes' && store.customer.existing_credits) {
+        store.customer.existing_credits.forEach((item, index) => {
+            check(`existing_credit_${index}_companyName`, item.companyName);
+            check(`existing_credit_${index}_goods`, item.goods);
+            check(`existing_credit_${index}_term`, item.term);
+            check(`existing_credit_${index}_limit`, item.limit);
+        });
     }
 
     return e;
@@ -956,66 +690,8 @@ const handleAmountInput = (event) => {
     let val = event.target.value;
     val = val.replace(/[^0-9]/g, '');
     // The setter in computed property handles the store update,
-    // but we can ensure clean value in input if needed, though v-model handles it.
-    // Similar to handleCapitalInput pattern in StoreStatementTab
     formattedAmount.value = val;
 };
-
-// Formatted properties for Project Security
-const formattedDeposit = computed({
-    get: () => store.transactionData.deposit_amount ? Number(store.transactionData.deposit_amount).toLocaleString('en-US') : '',
-    set: (val) => {
-        const num = val.replace(/[^0-9]/g, '');
-        store.transactionData.deposit_amount = num;
-    }
-});
-
-const handleDepositInput = (event) => {
-    let val = event.target.value;
-    val = val.replace(/[^0-9]/g, '');
-    formattedDeposit.value = val;
-};
-
-const formattedBg = computed({
-    get: () => store.transactionData.bg_amount ? Number(store.transactionData.bg_amount).toLocaleString('en-US') : '',
-    set: (val) => {
-        const num = val.replace(/[^0-9]/g, '');
-        store.transactionData.bg_amount = num;
-    }
-});
-
-const handleBgInput = (event) => {
-    let val = event.target.value;
-    val = val.replace(/[^0-9]/g, '');
-    formattedBg.value = val;
-};
-
-// Project Phasing Logic
-const projectPhases = ref(store.transactionData.project_phases || []);
-
-watch(() => store.transactionData.project_phases, (newVal) => {
-    if (newVal) projectPhases.value = newVal;
-}, { immediate: true });
-
-watch(projectPhases, (newVal) => {
-    store.transactionData.project_phases = newVal;
-}, { deep: true });
-
-const addPhase = () => {
-    projectPhases.value.push({ expected_date: '', details: '', amount: '' });
-};
-
-const removePhase = (index) => {
-    projectPhases.value.splice(index, 1);
-};
-
-// Clean up security fields if untoggled
-watch(() => store.transactionData.has_deposit, (val) => {
-    if (!val) store.transactionData.deposit_amount = '';
-});
-watch(() => store.transactionData.has_bg, (val) => {
-    if (!val) store.transactionData.bg_amount = '';
-});
 
 // Helper for phone/numeric inputs to ensure model update
 function handlePhoneInput(e, storeKey) {

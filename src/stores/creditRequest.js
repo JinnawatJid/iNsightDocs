@@ -50,6 +50,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
     blacklistAlert: null,
 
     activeTab: "requestInfo",
+    activeProjectTab: "projectInfo",
   }),
 
   getters: {
@@ -638,6 +639,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         "เปลี่ยนแปลงเงื่อนไขการชำระเงิน",
         "เปลี่ยนแปลงระยะเวลาเครดิต",
       ].includes(reqType);
+      const isProject = reqType && reqType.includes("เครดิตโครงการ");
 
       const { fields, files } = getMandatoryKeys(this.isCompany);
       const missingFields = [];
@@ -645,7 +647,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       let fieldsToCheck = fields;
       let filesToCheck = files;
 
-      if (isSpecial) {
+      if (isSpecial && !isProject) {
         const essential = [
           "amount",
           "reason",
@@ -720,6 +722,18 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           if (!item.term) missingFields.push(`existing_credit_${index}_term`);
           if (!item.limit) missingFields.push(`existing_credit_${index}_limit`);
         });
+      }
+
+      // Project specific validations
+      if (isSubmit && isProject) {
+          if (!this.transactionData.projectId) {
+              missingFields.push('projectId');
+          }
+          if (!this.transactionData.amount || String(this.transactionData.amount).trim() === '') {
+              missingFields.push('amount');
+          }
+          filesToCheck.push('project_contract_doc');
+          filesToCheck.push('project_plan_doc');
       }
 
       const missingFiles = [];
@@ -887,6 +901,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
     setActiveTab(tabId) {
       this.activeTab = tabId;
+    },
+
+    setActiveProjectTab(tabId) {
+      this.activeProjectTab = tabId;
     },
 
     async updateStatus(newStatus, comment = "") {
