@@ -53,16 +53,6 @@
                  </div>
              </div>
 
-             <div class="form-group full-width">
-                 <label>วงเงินเครดิตโครงการที่ขอ (บาท)</label>
-                 <input
-                    type="text"
-                    v-model="formattedAmount"
-                    :disabled="props.readOnly"
-                    @input="handleAmountInput"
-                 />
-             </div>
-
              <!-- Project Specific Uploads -->
              <div class="form-group full-width" style="margin-top: 20px;">
                 <div class="upload-grid">
@@ -160,25 +150,6 @@ const transactionData = computed({
   set: (val) => { store.transactionData = val; }
 });
 
-const formattedAmount = computed({
-    get: () => store.transactionData.amount ? Number(store.transactionData.amount).toLocaleString('en-US') : '',
-    set: (val) => {
-        const num = String(val).replace(/[^0-9]/g, '');
-        store.transactionData.amount = num;
-    }
-});
-
-const handleAmountInput = (event) => {
-    let val = event.target.value;
-    val = val.replace(/[^0-9]/g, '');
-    formattedAmount.value = val;
-};
-
-const formatNumber = (num) => {
-    if (!num) return '0';
-    return Number(num).toLocaleString('en-US');
-};
-
 // Project Actions
 const handleProjectSearch = async () => {
     isSearchingProject.value = true;
@@ -218,10 +189,6 @@ const selectProject = (proj) => {
 const clearProject = () => {
     store.transactionData.projectId = '';
     store.transactionData.projectData = null;
-    store.transactionData.projectDepositPercent = '0';
-    store.transactionData.projectDepositAmount = '0';
-    store.transactionData.projectBgPercent = '0';
-    store.transactionData.projectBgAmount = '0';
     store.transactionData.projectPhasing = [];
     store.transactionData.amount = '';
 };

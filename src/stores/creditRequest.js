@@ -729,9 +729,6 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           if (!this.transactionData.projectId) {
               missingFields.push('projectId');
           }
-          if (!this.transactionData.amount || String(this.transactionData.amount).trim() === '') {
-              missingFields.push('amount');
-          }
           filesToCheck.push('project_contract_doc');
           filesToCheck.push('project_plan_doc');
       }

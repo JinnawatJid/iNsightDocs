@@ -6,58 +6,8 @@
 
     <template v-else>
       <div class="form-section">
-        <div class="section-header">
-          <h3>เงื่อนไขการรับประกันและการชำระเงิน</h3>
-        </div>
-        <div class="form-grid project-financials">
-          <div class="financial-row">
-            <div class="fin-col">
-              <label>เงินมัดจำ (Deposit)</label>
-              <div class="input-group">
-                <input
-                  type="number"
-                  v-model="transactionData.projectDepositPercent"
-                  :disabled="props.readOnly"
-                  @input="calculateDepositAmount"
-                  class="percent-input"
-                />
-                <span class="addon">%</span>
-                <input
-                  type="text"
-                  v-model="transactionData.projectDepositAmount"
-                  disabled
-                  class="amount-input"
-                />
-                <span class="addon">บาท</span>
-              </div>
-            </div>
-            <div class="fin-col">
-              <label>หนังสือค้ำประกัน (Bank Guarantee)</label>
-              <div class="input-group">
-                <input
-                  type="number"
-                  v-model="transactionData.projectBgPercent"
-                  :disabled="props.readOnly"
-                  @input="calculateBgAmount"
-                  class="percent-input"
-                />
-                <span class="addon">%</span>
-                <input
-                  type="text"
-                  v-model="transactionData.projectBgAmount"
-                  disabled
-                  class="amount-input"
-                />
-                <span class="addon">บาท</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
         <div class="phasing-header">
-          <h3>ตารางแบ่งงวด (Phasing Plan) / แผนการสั่งซื้อ</h3>
+          <h3>แผนการใช้เครดิตแบบแบ่งงวด</h3>
           <button v-if="!props.readOnly" class="btn-add-phase" @click="addPhase">
             + เพิ่มงวด
           </button>
@@ -66,10 +16,10 @@
           <thead>
             <tr>
               <th width="5%">งวดที่</th>
-              <th width="35%">รายการ / รายละเอียด</th>
-              <th width="20%">มูลค่า (บาท)</th>
-              <th width="15%">วันคาดการณ์สั่งซื้อ</th>
-              <th width="15%">วันคาดการณ์รับเงิน</th>
+              <th width="35%">ชื่อระยะเวลา / รายละเอียดงาน</th>
+              <th width="15%">วันที่คาดว่าจะรับบิล</th>
+              <th width="15%">วันที่คาดว่าจะจ่ายชำระ</th>
+              <th width="20%">จำนวนเงิน (บาท)</th>
               <th width="10%" v-if="!props.readOnly">จัดการ</th>
             </tr>
           </thead>
@@ -82,22 +32,13 @@
                   v-model="phase.description"
                   :disabled="props.readOnly"
                   class="table-input"
-                />
-              </td>
-              <td>
-                <input
-                  type="text"
-                  v-model="phase.amount"
-                  :disabled="props.readOnly"
-                  @blur="formatPhaseAmount(idx)"
-                  @input="handlePhaseAmountInput(idx, $event)"
-                  class="table-input"
+                  placeholder="เช่น งวดที่ 1..."
                 />
               </td>
               <td>
                 <input
                   type="date"
-                  v-model="phase.orderDate"
+                  v-model="phase.billingDate"
                   :disabled="props.readOnly"
                   class="table-input"
                 />
@@ -108,6 +49,16 @@
                   v-model="phase.paymentDate"
                   :disabled="props.readOnly"
                   class="table-input"
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  v-model="phase.amount"
+                  :disabled="props.readOnly"
+                  @blur="formatPhaseAmount(idx)"
+                  @input="handlePhaseAmountInput(idx, $event)"
+                  class="table-input text-right"
                 />
               </td>
               <td v-if="!props.readOnly" class="text-center">
@@ -122,9 +73,9 @@
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="2" class="text-right font-bold">รวมมูลค่าตามงวด:</td>
-              <td class="font-bold">{{ formatNumber(totalPhaseAmount) }}</td>
-              <td :colspan="props.readOnly ? 2 : 3">
+              <td colspan="4" class="text-right font-bold">รวมมูลค่าตามงวด:</td>
+              <td class="font-bold text-right">{{ formatNumber(totalPhaseAmount) }}</td>
+              <td v-if="!props.readOnly">
                 <span
                   :class="{
                     'text-error': totalPhaseAmount > transactionData.projectData.value,
@@ -159,18 +110,6 @@ const formatNumber = (num) => {
     return Number(num).toLocaleString('en-US');
 };
 
-const calculateDepositAmount = () => {
-    const val = store.transactionData.projectData?.value || 0;
-    const pct = parseFloat(store.transactionData.projectDepositPercent) || 0;
-    store.transactionData.projectDepositAmount = formatNumber((val * pct) / 100);
-};
-
-const calculateBgAmount = () => {
-    const val = store.transactionData.projectData?.value || 0;
-    const pct = parseFloat(store.transactionData.projectBgPercent) || 0;
-    store.transactionData.projectBgAmount = formatNumber((val * pct) / 100);
-};
-
 // Phasing Array Actions
 const addPhase = () => {
     if (!store.transactionData.projectPhasing) {
@@ -178,9 +117,9 @@ const addPhase = () => {
     }
     store.transactionData.projectPhasing.push({
         description: '',
-        amount: '',
-        orderDate: '',
-        paymentDate: ''
+        billingDate: '',
+        paymentDate: '',
+        amount: ''
     });
 };
 
@@ -229,63 +168,6 @@ const totalPhaseAmount = computed(() => {
 
 .form-section {
     margin-bottom: 30px;
-}
-
-.section-header {
-  margin-bottom: 20px;
-}
-
-.section-header h3 {
-  margin: 0;
-}
-
-.project-financials {
-    padding: 20px;
-    background-color: #f8f9fa;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-}
-
-.financial-row {
-    display: flex;
-    gap: 40px;
-}
-
-.fin-col {
-    flex: 1;
-}
-
-.fin-col label {
-    font-weight: 500;
-    margin-bottom: 8px;
-    display: block;
-}
-
-.input-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.percent-input {
-    width: 80px;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    text-align: center;
-}
-
-.amount-input {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background-color: #e9ecef;
-}
-
-.addon {
-    color: #555;
-    font-weight: 500;
 }
 
 .phasing-header {
