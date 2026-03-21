@@ -29,8 +29,8 @@
                   class="project-item"
                   @click="selectProject(proj)"
               >
-                 <div class="proj-title">{{ proj.name }}</div>
-                 <div class="proj-desc">เจ้าของ: {{ proj.owner }} | มูลค่า: {{ formatNumber(proj.value) }} บาท</div>
+                 <div class="proj-title">{{ proj.id }} - {{ proj.name }}</div>
+                 <div class="proj-desc">ลูกค้า: {{ proj.customerName }} | ผู้รับผิดชอบ: {{ proj.projectManager }}</div>
               </div>
           </div>
           <div v-if="projectSearchMsg" class="project-search-msg">{{ projectSearchMsg }}</div>
@@ -40,15 +40,16 @@
         <template v-if="transactionData.projectData">
              <div class="form-group full-width selected-project-card">
                  <div class="card-header">
-                     <h4>{{ transactionData.projectData.name }}</h4>
+                     <h4>ข้อมูลโครงการที่เลือก</h4>
                      <button v-if="!props.readOnly" class="btn-clear" @click="clearProject">เปลี่ยนโครงการ</button>
                  </div>
                  <div class="project-details-grid">
                      <div class="detail-item"><span>รหัสโครงการ:</span> {{ transactionData.projectData.id }}</div>
-                     <div class="detail-item"><span>เจ้าของโครงการ:</span> {{ transactionData.projectData.owner }}</div>
-                     <div class="detail-item"><span>ผู้รับเหมาหลัก:</span> {{ transactionData.projectData.contractor }}</div>
-                     <div class="detail-item"><span>มูลค่าโครงการรวม:</span> {{ formatNumber(transactionData.projectData.value) }} บาท</div>
-                     <div class="detail-item"><span>สถานะ:</span> {{ transactionData.projectData.status }}</div>
+                     <div class="detail-item"><span>ชื่อโครงการ:</span> {{ transactionData.projectData.name }}</div>
+                     <div class="detail-item"><span>รหัสลูกค้า:</span> {{ transactionData.projectData.customerCode }}</div>
+                     <div class="detail-item"><span>ชื่อลูกค้า:</span> {{ transactionData.projectData.customerName }}</div>
+                     <div class="detail-item"><span>สาขา:</span> {{ transactionData.projectData.branch }}</div>
+                     <div class="detail-item"><span>ผู้รับผิดชอบโครงการ:</span> {{ transactionData.projectData.projectManager }}</div>
                  </div>
              </div>
 
@@ -230,9 +231,39 @@ const mockFetchProjects = async (query) => {
     return new Promise((resolve) => {
         setTimeout(() => {
             const db = [
-                { id: 'PRJ-2023-001', name: 'ก่อสร้างคอนโดหรู ใจกลางเมือง', owner: 'บริษัท แสนสิริ จำกัด (มหาชน)', contractor: 'ผู้รับเหมา A', value: 15000000, status: 'Active' },
-                { id: 'PRJ-2023-002', name: 'ปรับปรุงอาคารสำนักงาน กฟผ.', owner: 'การไฟฟ้าฝ่ายผลิตแห่งประเทศไทย', contractor: 'ผู้รับเหมา B', value: 8500000, status: 'Active' },
-                { id: 'PRJ-2024-003', name: 'หมู่บ้านจัดสรร เฟส 3', owner: 'บริษัท แลนด์แอนด์เฮ้าส์ จำกัด', contractor: 'ผู้รับเหมา C', value: 25000000, status: 'Planning' }
+                {
+                    id: 'PRJ-2023-001',
+                    name: 'ก่อสร้างคอนโดหรู ใจกลางเมือง',
+                    customerCode: 'CUST-001',
+                    customerName: 'บริษัท แสนสิริ จำกัด (มหาชน)',
+                    branch: 'สาขาสำนักงานใหญ่',
+                    projectManager: 'นายช่างใหญ่ ใจดี',
+                    productList: ['กระจกใส 6 มม.', 'กระจกเงา'],
+                    value: 15000000,
+                    status: 'Active'
+                },
+                {
+                    id: 'PRJ-2023-002',
+                    name: 'ปรับปรุงอาคารสำนักงาน กฟผ.',
+                    customerCode: 'CUST-002',
+                    customerName: 'การไฟฟ้าฝ่ายผลิตแห่งประเทศไทย',
+                    branch: 'สาขานนทบุรี',
+                    projectManager: 'นางสาววิศวกร เก่งงาน',
+                    productList: ['อลูมิเนียมเส้น'],
+                    value: 8500000,
+                    status: 'Active'
+                },
+                {
+                    id: 'PRJ-2024-003',
+                    name: 'หมู่บ้านจัดสรร เฟส 3',
+                    customerCode: 'CUST-003',
+                    customerName: 'บริษัท แลนด์แอนด์เฮ้าส์ จำกัด',
+                    branch: 'สาขารังสิต',
+                    projectManager: 'นายนักพัฒนา ที่ดิน',
+                    productList: ['ซิลิโคน', 'อุปกรณ์ฟิตติ้ง'],
+                    value: 25000000,
+                    status: 'Planning'
+                }
             ];
             if (!query.trim()) {
                  resolve(db);
