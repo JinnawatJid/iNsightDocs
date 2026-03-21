@@ -27,7 +27,7 @@
       <div class="form-footer">
         <!-- Unified Review Section (Terms + Comments) -->
         <CreditReviewSection
-          v-if="(isProjectWizardStep2 || store.activeTab === 'financial' || viewMode === 'focus')"
+          v-if="( (isProjectWizardStep2 && store.activeProjectTab === 'requestInfo') || (!isProjectWizardStep2 && store.activeTab === 'financial') || viewMode === 'focus')"
           :readOnly="isReadOnly"
           :showTerms="showTerms"
           :comments="comments"
@@ -72,7 +72,11 @@
             <button
                 v-else-if="isProjectCredit && !isProjectWizardStep2"
                 class="btn-primary"
-                @click="isProjectWizardStep2 = true"
+                @click="() => {
+                   isProjectWizardStep2 = true;
+                   store.setActiveProjectTab('projectInfo');
+                   window.scrollTo({ top: 0, behavior: 'smooth' });
+                }"
             >
                 ถัดไป (ข้อมูลโครงการ)
             </button>
@@ -119,7 +123,7 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { workflowConfig, roleLabels } from '@/config/workflow';
 import Swal from 'sweetalert2';
 import axios from '../../utils/axios.js';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useFeatureFlag } from '@/composables/useFeatureFlag';
 
 const store = useCreditRequestStore();
@@ -157,6 +161,13 @@ const isSpecialRequestType = computed(() => {
 const isProjectCredit = computed(() => {
     const type = store.transactionData.requestType;
     return type && type.includes('เครดิตโครงการ');
+});
+
+// Auto-reset state if request type changes back to non-project
+watch(isProjectCredit, (newVal) => {
+    if (!newVal) {
+        isProjectWizardStep2.value = false;
+    }
 });
 
 // View Mode Logic
@@ -199,10 +210,14 @@ const primaryActions = computed(() => {
 // Tab navigation logic
 const activeTabsList = computed(() => {
     if (isProjectWizardStep2.value) {
-        return ['projectInfo', 'projectPhasing'];
+        return ['projectInfo', 'projectPhasing', 'requestInfo'];
     }
     if (viewMode.value === 'focus') {
         return ['requestInfo'];
+    }
+
+    if (isProjectCredit.value) {
+        return ['store', 'general', 'residence', 'financial'];
     }
     return ['requestInfo', 'store', 'general', 'residence', 'financial'];
 });

@@ -19,6 +19,7 @@
                  {{ isSearchingProject ? 'กำลังค้นหา...' : 'ค้นหา' }}
              </button>
           </div>
+          <div class="search-hint">พิมพ์ชื่อ/รหัสโครงการ หรือกดปุ่ม "ค้นหา" ทันทีเพื่อดูโครงการทั้งหมด</div>
 
           <!-- Project Results Dropdown -->
           <div v-if="projectSearchResults.length > 0" class="project-results">
@@ -179,7 +180,6 @@ const formatNumber = (num) => {
 
 // Project Actions
 const handleProjectSearch = async () => {
-    if (!projectSearchQuery.value.trim()) return;
     isSearchingProject.value = true;
     projectSearchResults.value = [];
     projectSearchMsg.value = '';
@@ -234,6 +234,10 @@ const mockFetchProjects = async (query) => {
                 { id: 'PRJ-2023-002', name: 'ปรับปรุงอาคารสำนักงาน กฟผ.', owner: 'การไฟฟ้าฝ่ายผลิตแห่งประเทศไทย', contractor: 'ผู้รับเหมา B', value: 8500000, status: 'Active' },
                 { id: 'PRJ-2024-003', name: 'หมู่บ้านจัดสรร เฟส 3', owner: 'บริษัท แลนด์แอนด์เฮ้าส์ จำกัด', contractor: 'ผู้รับเหมา C', value: 25000000, status: 'Planning' }
             ];
+            if (!query.trim()) {
+                 resolve(db);
+                 return;
+            }
             const q = query.toLowerCase();
             resolve(db.filter(p => p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)));
         }, 500);
@@ -290,6 +294,13 @@ const mockFetchProjects = async (query) => {
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
+}
+
+.search-hint {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 .btn-search-project {

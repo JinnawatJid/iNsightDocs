@@ -25,6 +25,7 @@
 import { computed } from 'vue';
 import ProjectInfoTab from './tabs/ProjectInfoTab.vue';
 import ProjectPhasingTab from './tabs/ProjectPhasingTab.vue';
+import RequestInfoTab from './tabs/RequestInfoTab.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const props = defineProps(['readOnly']);
@@ -38,7 +39,8 @@ const currentTab = computed({
 const tabs = computed(() => {
   return [
     { id: 'projectInfo', label: 'ข้อมูลและเอกสารโครงการ' },
-    { id: 'projectPhasing', label: 'รอบเครดิตและการจ่ายเงิน' }
+    { id: 'projectPhasing', label: 'รอบเครดิตและการจ่ายเงิน' },
+    { id: 'requestInfo', label: 'เงื่อนไขและคำขอ' }
   ];
 });
 
@@ -53,6 +55,8 @@ const currentTabComponent = computed(() => {
       return ProjectInfoTab;
     case 'projectPhasing':
       return ProjectPhasingTab;
+    case 'requestInfo':
+      return RequestInfoTab;
     default:
       return ProjectInfoTab;
   }
@@ -74,7 +78,7 @@ const currentTabComponent = computed(() => {
   background-color: #999;
   border-radius: 52px;
   overflow: hidden;
-  width: 60%; /* Slightly smaller for just 2 tabs */
+  width: 80%;
   height: fit-content;
   margin: 0 auto;
 }

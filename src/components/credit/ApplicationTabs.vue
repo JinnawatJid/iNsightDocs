@@ -70,6 +70,11 @@ const tabs = computed(() => {
       return [allTabs[0]];
   }
 
+  // If it's a project credit, the request info is moved to step 2
+  if (isProjectCredit) {
+      return allTabs.filter(tab => tab.id !== 'requestInfo');
+  }
+
   return allTabs;
 });
 
@@ -91,7 +96,8 @@ const currentTabComponent = computed(() => {
     case 'financial':
       return StoreStatementTab;
     default:
-      return RequestInfoTab;
+      // When requestInfo is removed, default to store
+      return StoreCompanyTab;
   }
 });
 </script>
