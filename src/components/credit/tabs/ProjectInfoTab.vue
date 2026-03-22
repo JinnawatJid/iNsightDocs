@@ -519,7 +519,7 @@ const mockFetchProjects = async (query) => {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    max-width: 320px;
+    max-width: 250px;
     width: 100%;
 }
 
