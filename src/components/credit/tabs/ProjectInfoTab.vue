@@ -150,6 +150,11 @@ const transactionData = computed({
   set: (val) => { store.transactionData = val; }
 });
 
+const formatNumber = (num) => {
+    if (!num) return '0';
+    return Number(num).toLocaleString('en-US');
+};
+
 // Project Actions
 const handleProjectSearch = async () => {
     isSearchingProject.value = true;
@@ -177,6 +182,10 @@ const selectProject = (proj) => {
     projectSearchResults.value = [];
     projectSearchQuery.value = '';
 
+    // Initialize Editable Values
+    store.transactionData.adjustedProjectValue = formatNumber(proj.value);
+    store.transactionData.adjustedProductList = proj.productList ? [...proj.productList] : [];
+
     // Auto-fill amount based on project value initially (can be changed by user)
     store.transactionData.amount = String(proj.value);
 
@@ -189,6 +198,8 @@ const selectProject = (proj) => {
 const clearProject = () => {
     store.transactionData.projectId = '';
     store.transactionData.projectData = null;
+    store.transactionData.adjustedProjectValue = '';
+    store.transactionData.adjustedProductList = [];
     store.transactionData.projectPhasing = [];
     store.transactionData.amount = '';
 };
