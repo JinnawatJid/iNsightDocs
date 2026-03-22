@@ -43,32 +43,6 @@
           </div>
       </div>
 
-      <!-- Credit Calculation Section -->
-      <div class="credit-calc-card">
-        <div class="calc-header">
-          <h3>การวิเคราะห์วงเงินเครดิตโครงการ</h3>
-        </div>
-        <div class="calc-body">
-          <div class="calc-item">
-            <span class="calc-label">วงเงินเครดิตปัจจุบัน</span>
-            <span class="calc-value text-muted">{{ formatNumber(currentCreditLimit) }} บาท</span>
-          </div>
-          <div class="calc-operator">-</div>
-          <div class="calc-item">
-            <span class="calc-label">ยอดหนี้สะสมสูงสุด (Peak Exposure)</span>
-            <span class="calc-value font-bold" :class="{'text-error': peakExposure > currentCreditLimit}">{{ formatNumber(peakExposure) }} บาท</span>
-          </div>
-          <div class="calc-operator">=</div>
-          <div class="calc-item highlight">
-            <span class="calc-label">ยอดขอเครดิตโครงการ</span>
-            <span class="calc-value text-primary font-bold">{{ formatNumber(requestedCreditAmount) }} บาท</span>
-          </div>
-        </div>
-        <div v-if="requestedCreditAmount > 0" class="alert-banner">
-          ⚠️ วงเงินไม่เพียงพอสำหรับรอบการส่งมอบที่ซ้อนทับกัน ระบบได้คำนวณยอดขออนุมัติเพิ่มให้โดยอัตโนมัติ
-        </div>
-      </div>
-
       <div class="form-section">
         <div class="phasing-header">
           <h3>แผนการใช้เครดิตแบบแบ่งงวด</h3>
@@ -163,6 +137,32 @@
             </div>
         </div>
       </div>
+
+      <!-- Credit Calculation Section -->
+      <div class="credit-calc-card" style="margin-top: 30px;">
+        <div class="calc-header">
+          <h3>การวิเคราะห์วงเงินเครดิตโครงการ</h3>
+        </div>
+        <div class="calc-body">
+          <div class="calc-item">
+            <span class="calc-label">วงเงินเครดิตปัจจุบัน</span>
+            <span class="calc-value text-muted">{{ formatNumber(currentCreditLimit) }} บาท</span>
+          </div>
+          <div class="calc-operator">-</div>
+          <div class="calc-item">
+            <span class="calc-label">ยอดหนี้สะสมสูงสุด (Peak Exposure)</span>
+            <span class="calc-value font-bold" :class="{'text-error': peakExposure > currentCreditLimit}">{{ formatNumber(peakExposure) }} บาท</span>
+          </div>
+          <div class="calc-operator">=</div>
+          <div class="calc-item highlight">
+            <span class="calc-label">ยอดขอเครดิตโครงการ</span>
+            <span class="calc-value text-primary font-bold">{{ formatNumber(requestedCreditAmount) }} บาท</span>
+          </div>
+        </div>
+        <div v-if="requestedCreditAmount > 0" class="alert-banner">
+          ⚠️ วงเงินไม่เพียงพอสำหรับรอบการส่งมอบที่ซ้อนทับกัน ระบบได้คำนวณยอดขออนุมัติเพิ่มให้โดยอัตโนมัติ
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -179,10 +179,10 @@ const transactionData = computed({
   set: (val) => { store.transactionData = val; }
 });
 
-const formatNumber = (num) => {
+function formatNumber(num) {
     if (!num) return '0';
     return Number(num).toLocaleString('en-US');
-};
+}
 
 // Editable Project Summary Actions
 const handleAdjustedValueInput = (event) => {
@@ -200,6 +200,7 @@ const formatAdjustedValue = () => {
 };
 
 const addProduct = () => {
+    if (!store.transactionData) store.transactionData = {};
     if (!store.transactionData.adjustedProductList) {
         store.transactionData.adjustedProductList = [];
     }
@@ -212,6 +213,7 @@ const removeProduct = (idx) => {
 
 // Phasing Array Actions
 const addPhase = () => {
+    if (!store.transactionData) store.transactionData = {};
     if (!store.transactionData.projectPhasing) {
         store.transactionData.projectPhasing = [];
     }
@@ -242,7 +244,7 @@ const formatPhaseAmount = (index) => {
 };
 
 const totalPhaseAmount = computed(() => {
-    if (!store.transactionData.projectPhasing) return 0;
+    if (!store.transactionData?.projectPhasing) return 0;
     return store.transactionData.projectPhasing.reduce((sum, phase) => {
         const amt = parseFloat(String(phase.amount).replace(/,/g, '')) || 0;
         return sum + amt;
@@ -253,17 +255,17 @@ const currentProjectValueLimit = computed(() => {
     if (!store.transactionData) return 0;
 
     // Prefer adjusted value if set, fallback to original project data value
-    const adjusted = store.transactionData.adjustedProjectValue;
+    const adjusted = store.transactionData?.adjustedProjectValue;
     if (adjusted) {
          return parseFloat(String(adjusted).replace(/,/g, '')) || 0;
     }
-    return store.transactionData.projectData?.value || 0;
+    return store.transactionData?.projectData?.value || 0;
 });
 
 // Credit Calculation Logic
 const currentCreditLimit = computed(() => {
   // Use mock for now, can be updated later when API is ready
-  return Number(store.customer.current_credit_limit) || 0;
+  return Number(store.customer?.current_credit_limit) || 0;
 });
 
 // Helper to parse dates securely
@@ -275,7 +277,7 @@ const parseDate = (dateString) => {
 };
 
 const phaseExposures = computed(() => {
-  if (!store.transactionData.projectPhasing) return [];
+  if (!store.transactionData?.projectPhasing) return [];
 
   const events = [];
   store.transactionData.projectPhasing.forEach((p, i) => {
@@ -323,7 +325,7 @@ const phaseExposures = computed(() => {
 });
 
 const peakExposure = computed(() => {
-  if (!store.transactionData.projectPhasing || store.transactionData.projectPhasing.length === 0) return 0;
+  if (!store.transactionData?.projectPhasing || store.transactionData.projectPhasing.length === 0) return 0;
 
   const events = [];
   store.transactionData.projectPhasing.forEach((p) => {
