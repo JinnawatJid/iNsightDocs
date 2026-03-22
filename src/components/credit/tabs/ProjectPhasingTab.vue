@@ -5,44 +5,6 @@
     </div>
 
     <template v-else>
-      <div class="project-summary-card">
-          <div class="summary-item" style="flex: 1; max-width: 300px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
-                  <span class="summary-label">มูลค่าโครงการรวม (บาท):</span>
-              </div>
-              <input
-                  type="text"
-                  v-model="transactionData.adjustedProjectValue"
-                  :disabled="props.readOnly"
-                  @blur="formatAdjustedValue"
-                  @input="handleAdjustedValueInput"
-                  class="summary-input text-primary font-bold"
-                  placeholder="ระบุมูลค่าโครงการ"
-              />
-          </div>
-          <div class="summary-item" style="flex: 2;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
-                  <span class="summary-label">รายการสินค้าหลัก:</span>
-                  <button v-if="!props.readOnly" @click="addProduct" class="btn-text-add">+ เพิ่มสินค้า</button>
-              </div>
-              <div v-if="transactionData.adjustedProductList && transactionData.adjustedProductList.length > 0" class="product-list">
-                  <div v-for="(prod, idx) in transactionData.adjustedProductList" :key="idx" class="product-item">
-                      <input
-                          type="text"
-                          v-model="transactionData.adjustedProductList[idx]"
-                          :disabled="props.readOnly"
-                          class="summary-input"
-                          placeholder="ชื่อสินค้า..."
-                      />
-                      <button v-if="!props.readOnly" class="btn-icon-delete-small" @click="removeProduct(idx)">✕</button>
-                  </div>
-              </div>
-              <div v-else class="text-muted" style="font-size: 14px; margin-top: 5px;">
-                  (ไม่มีรายการสินค้าหลัก)
-              </div>
-          </div>
-      </div>
-
       <div class="form-section">
         <div class="phasing-header">
           <h3>แผนการใช้เครดิตแบบแบ่งงวด</h3>
@@ -211,33 +173,6 @@ function formatNumber(num) {
     if (!num) return '0';
     return Number(num).toLocaleString('en-US');
 }
-
-// Editable Project Summary Actions
-const handleAdjustedValueInput = (event) => {
-    let val = event.target.value;
-    val = val.replace(/[^0-9]/g, '');
-    store.transactionData.adjustedProjectValue = val;
-};
-
-const formatAdjustedValue = () => {
-    const raw = store.transactionData.adjustedProjectValue;
-    const num = parseFloat(String(raw).replace(/,/g, ''));
-    if (!isNaN(num)) {
-        store.transactionData.adjustedProjectValue = formatNumber(num);
-    }
-};
-
-const addProduct = () => {
-    if (!store.transactionData) store.transactionData = {};
-    if (!store.transactionData.adjustedProductList) {
-        store.transactionData.adjustedProductList = [];
-    }
-    store.transactionData.adjustedProductList.push('');
-};
-
-const removeProduct = (idx) => {
-    store.transactionData.adjustedProductList.splice(idx, 1);
-};
 
 // Phasing Array Actions
 const addPhase = () => {
@@ -515,103 +450,6 @@ watch(requestedCreditAmount, (newVal) => {
     border: 1px dashed #ccc;
     border-radius: 8px;
     color: #666;
-}
-
-.project-summary-card {
-    background-color: #f4f5f7;
-    border-radius: 8px;
-    padding: 15px 20px;
-    margin-bottom: 25px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 30px;
-}
-
-.summary-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.summary-label {
-    font-size: 13px;
-    color: #666;
-}
-
-.summary-value {
-    font-size: 16px;
-    color: #333;
-}
-
-.summary-input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 16px;
-    transition: border-color 0.2s;
-    background-color: white;
-}
-
-.summary-input:focus {
-    outline: none;
-    border-color: #0056FF;
-}
-
-.summary-input:disabled {
-    background-color: transparent;
-    border-color: transparent;
-    padding-left: 0;
-    color: #333;
-}
-
-.text-primary {
-    color: #0056FF;
-}
-
-.btn-text-add {
-    background: none;
-    border: none;
-    color: #0056FF;
-    font-size: 13px;
-    cursor: pointer;
-    font-weight: 500;
-    padding: 0;
-    line-height: 1;
-}
-
-.btn-text-add:hover {
-    text-decoration: underline;
-}
-
-.product-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.product-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.btn-icon-delete-small {
-    background: none;
-    border: none;
-    color: #999;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 50%;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-icon-delete-small:hover {
-    color: #dc3545;
-    background-color: #fee2e2;
 }
 
 .text-muted {

@@ -53,6 +53,68 @@
                  </div>
              </div>
 
+             <div class="form-group full-width project-summary-card">
+                 <div class="summary-item">
+                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
+                         <span class="summary-label">วันเริ่มโครงการ:</span>
+                     </div>
+                     <input
+                         type="text"
+                         v-model="transactionData.adjustedStartDate"
+                         :disabled="props.readOnly"
+                         class="summary-input"
+                         placeholder="DD/MM/YYYY"
+                     />
+                 </div>
+                 <div class="summary-item">
+                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
+                         <span class="summary-label">วันที่คาดว่าจะแล้วเสร็จ:</span>
+                     </div>
+                     <input
+                         type="text"
+                         v-model="transactionData.adjustedExpectedEndDate"
+                         :disabled="props.readOnly"
+                         class="summary-input"
+                         placeholder="DD/MM/YYYY"
+                     />
+                 </div>
+                 <div class="summary-item">
+                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
+                         <span class="summary-label">มูลค่าโครงการรวม (บาท):</span>
+                     </div>
+                     <input
+                         type="text"
+                         v-model="transactionData.adjustedProjectValue"
+                         :disabled="props.readOnly"
+                         @blur="formatAdjustedValue"
+                         @input="handleAdjustedValueInput"
+                         class="summary-input text-primary font-bold"
+                         placeholder="ระบุมูลค่าโครงการ"
+                     />
+                 </div>
+                 <div class="summary-item">
+                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
+                         <span class="summary-label">รายการสินค้าหลัก:</span>
+                         <button v-if="!props.readOnly" @click="addProduct" class="btn-text-add">+ เพิ่มสินค้า</button>
+                     </div>
+                     <div v-if="transactionData.adjustedProductList && transactionData.adjustedProductList.length > 0" class="product-list">
+                         <div v-for="(prod, idx) in transactionData.adjustedProductList" :key="idx" class="product-item">
+                             <input
+                                 type="text"
+                                 v-model="transactionData.adjustedProductList[idx]"
+                                 :disabled="props.readOnly"
+                                 class="summary-input"
+                                 placeholder="ชื่อสินค้า..."
+                             />
+                             <button v-if="!props.readOnly" class="btn-icon-delete-small" @click="removeProduct(idx)">✕</button>
+                         </div>
+                     </div>
+                     <div v-else class="text-muted" style="font-size: 14px; margin-top: 5px;">
+                         (ไม่มีรายการสินค้าหลัก)
+                     </div>
+                 </div>
+             </div>
+
              <!-- Project Specific Uploads -->
              <div class="form-group full-width" style="margin-top: 20px;">
                 <div class="upload-grid">
@@ -155,6 +217,32 @@ const formatNumber = (num) => {
     return Number(num).toLocaleString('en-US');
 };
 
+const handleAdjustedValueInput = (event) => {
+    let val = event.target.value;
+    val = val.replace(/[^0-9]/g, '');
+    store.transactionData.adjustedProjectValue = val;
+};
+
+const formatAdjustedValue = () => {
+    const raw = store.transactionData.adjustedProjectValue;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        store.transactionData.adjustedProjectValue = formatNumber(num);
+    }
+};
+
+const addProduct = () => {
+    if (!store.transactionData) store.transactionData = {};
+    if (!store.transactionData.adjustedProductList) {
+        store.transactionData.adjustedProductList = [];
+    }
+    store.transactionData.adjustedProductList.push('');
+};
+
+const removeProduct = (idx) => {
+    store.transactionData.adjustedProductList.splice(idx, 1);
+};
+
 // Project Actions
 const handleProjectSearch = async () => {
     isSearchingProject.value = true;
@@ -185,6 +273,8 @@ const selectProject = (proj) => {
     // Initialize Editable Values
     store.transactionData.adjustedProjectValue = formatNumber(proj.value);
     store.transactionData.adjustedProductList = proj.productList ? [...proj.productList] : [];
+    store.transactionData.adjustedStartDate = proj.startDate || '';
+    store.transactionData.adjustedExpectedEndDate = proj.expectedEndDate || '';
 
     // Auto-fill amount based on project value initially (can be changed by user)
     store.transactionData.amount = String(proj.value);
@@ -200,6 +290,8 @@ const clearProject = () => {
     store.transactionData.projectData = null;
     store.transactionData.adjustedProjectValue = '';
     store.transactionData.adjustedProductList = [];
+    store.transactionData.adjustedStartDate = '';
+    store.transactionData.adjustedExpectedEndDate = '';
     store.transactionData.projectPhasing = [];
     store.transactionData.amount = '';
 };
@@ -215,7 +307,9 @@ const mockFetchProjects = async (query) => {
                     customerCode: 'CUST-001',
                     customerName: 'บริษัท แสนสิริ จำกัด (มหาชน)',
                     branch: 'สาขาสำนักงานใหญ่',
-                    projectManager: 'นายช่างใหญ่ ใจดี',
+                    projectManager: 'นายสมชาย ขายเก่ง',
+                    startDate: '01/06/2023',
+                    expectedEndDate: '31/12/2024',
                     productList: ['กระจกใส 6 มม.', 'กระจกเงา'],
                     value: 15000000,
                     status: 'Active'
@@ -226,7 +320,9 @@ const mockFetchProjects = async (query) => {
                     customerCode: 'CUST-002',
                     customerName: 'การไฟฟ้าฝ่ายผลิตแห่งประเทศไทย',
                     branch: 'สาขานนทบุรี',
-                    projectManager: 'นางสาววิศวกร เก่งงาน',
+                    projectManager: 'นางสาวสุดสวย ปิดยอดไว',
+                    startDate: '15/08/2023',
+                    expectedEndDate: '15/05/2024',
                     productList: ['อลูมิเนียมเส้น'],
                     value: 8500000,
                     status: 'Active'
@@ -237,7 +333,9 @@ const mockFetchProjects = async (query) => {
                     customerCode: 'CUST-003',
                     customerName: 'บริษัท แลนด์แอนด์เฮ้าส์ จำกัด',
                     branch: 'สาขารังสิต',
-                    projectManager: 'นายนักพัฒนา ที่ดิน',
+                    projectManager: 'นายยอดเยี่ยม ทะลุเป้า',
+                    startDate: '10/01/2024',
+                    expectedEndDate: '30/11/2025',
                     productList: ['ซิลิโคน', 'อุปกรณ์ฟิตติ้ง'],
                     value: 25000000,
                     status: 'Planning'
@@ -404,5 +502,109 @@ const mockFetchProjects = async (query) => {
 .required::after {
     content: " *";
     color: red;
+}
+
+.project-summary-card {
+    background-color: #f4f5f7;
+    border-radius: 8px;
+    padding: 20px 25px;
+    margin-bottom: 25px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    row-gap: 25px;
+    column-gap: 30px;
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 250px;
+    width: 100%;
+}
+
+.summary-label {
+    font-size: 13px;
+    color: #666;
+}
+
+.summary-value {
+    font-size: 16px;
+    color: #333;
+}
+
+.summary-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    transition: border-color 0.2s;
+    background-color: white;
+}
+
+.summary-input:focus {
+    outline: none;
+    border-color: #0056FF;
+}
+
+.summary-input:disabled {
+    background-color: transparent;
+    border-color: transparent;
+    padding-left: 0;
+    color: #333;
+}
+
+.text-primary {
+    color: #0056FF;
+}
+
+.btn-text-add {
+    background: none;
+    border: none;
+    color: #0056FF;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+    padding: 0;
+    line-height: 1;
+}
+
+.btn-text-add:hover {
+    text-decoration: underline;
+}
+
+.product-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.product-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-icon-delete-small {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon-delete-small:hover {
+    color: #dc3545;
+    background-color: #fee2e2;
+}
+
+.text-muted {
+    color: #888;
 }
 </style>

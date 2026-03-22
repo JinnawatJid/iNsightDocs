@@ -1,7 +1,7 @@
 <template>
   <div class="store-company-tab">
     <!-- Conditional Upload Section -->
-    <div class="upload-section">
+    <div v-if="!isProjectAddress" class="upload-section">
       <!-- Company Uploads -->
       <div v-if="isCompany" class="upload-grid">
         <FileUploader
@@ -71,7 +71,7 @@
     </div>
 
     <!-- Address Section -->
-    <div class="address-verification">
+    <div class="address-verification" :style="{ marginTop: isProjectAddress ? '0px' : '40px' }">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลที่อยู่ร้านค้า/บริษัท</h3>
         <!-- Removed Edit button -->
@@ -184,7 +184,7 @@
       </div>
 
         <!-- Location Type and Ownership Grid -->
-        <div class="form-grid-four-columns">
+        <div v-if="!isProjectAddress" class="form-grid-four-columns">
             <div class="form-group">
                <label>ลักษณะที่ตั้ง <span v-if="isRequired('store_location_type')" class="text-red-500">*</span></label>
                <select
@@ -276,7 +276,10 @@ import { useFormValidation } from '@/composables/useFormValidation';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 import iconImage from '@/assets/icons/image.svg';
 
-const props = defineProps(['readOnly']);
+const props = defineProps({
+  readOnly: { type: Boolean, default: false },
+  isProjectAddress: { type: Boolean, default: false }
+});
 const store = useCreditRequestStore();
 const { errors, validateField } = useFormValidation();
 
@@ -560,11 +563,13 @@ watch(() => store.showValidationErrors, (val) => {
         validateField('phone', formData.phone, ['required']);
 
         // New Fields
-        validateField('locationType', formData.locationTypeSelect, ['required']);
-        validateField('propertyOwnership', formData.ownershipSelect, ['required']);
-        validateField('storeValue', formData.storeValue, ['required']);
-        if (formData.ownershipSelect === 'อื่นๆ') {
-          validateField('ownershipOther', formData.ownershipOther, ['required']);
+        if (!props.isProjectAddress) {
+          validateField('locationType', formData.locationTypeSelect, ['required']);
+          validateField('propertyOwnership', formData.ownershipSelect, ['required']);
+          validateField('storeValue', formData.storeValue, ['required']);
+          if (formData.ownershipSelect === 'อื่นๆ') {
+            validateField('ownershipOther', formData.ownershipOther, ['required']);
+          }
         }
     }
 }, { immediate: true });
