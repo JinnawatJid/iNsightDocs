@@ -55,7 +55,6 @@
               <th width="15%">วันเบิก</th>
               <th width="15%">วันจบ</th>
               <th width="20%">จำนวนเงิน (บาท)</th>
-              <th width="15%">ยอดหนี้สะสม (Exposure)</th>
               <th width="4%" v-if="!props.readOnly"></th>
             </tr>
           </thead>
@@ -98,9 +97,6 @@
                   placeholder="0.00"
                 />
               </td>
-              <td class="text-right font-bold text-muted">
-                {{ formatNumber(phaseExposures[idx]) }}
-              </td>
               <td v-if="!props.readOnly" class="text-center action-col">
                 <button class="btn-icon-delete" @click="removePhase(idx)" title="ลบงวดนี้">
                   ✕
@@ -108,7 +104,7 @@
               </td>
             </tr>
             <tr v-if="transactionData.projectPhasing.length === 0 && props.readOnly">
-              <td colspan="6" class="text-center empty-row">
+              <td colspan="5" class="text-center empty-row">
                 ไม่มีข้อมูลตารางแบ่งงวด
               </td>
             </tr>
@@ -119,6 +115,12 @@
         <button v-if="!props.readOnly" class="btn-add-phase-dashed" @click="addPhase">
           + เพิ่มงวดใหม่
         </button>
+
+        <div class="analyze-section" v-if="transactionData?.projectPhasing?.length > 0 && !showAnalysis">
+           <button class="btn-primary" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px; border-radius: 8px;" @click="showAnalysis = true">
+               📊 วิเคราะห์และคำนวณรอบส่ง
+           </button>
+        </div>
 
         <!-- Keep Total Footer separate to match design's clean table look -->
         <div class="phasing-footer">
@@ -139,7 +141,7 @@
       </div>
 
       <!-- Credit Calculation Section -->
-      <div class="credit-calc-card" style="margin-top: 30px;">
+      <div v-if="showAnalysis" class="credit-calc-card" style="margin-top: 30px;">
         <div class="calc-header">
           <h3>การวิเคราะห์วงเงินเครดิตโครงการ</h3>
         </div>
@@ -162,14 +164,48 @@
         <div v-if="requestedCreditAmount > 0" class="alert-banner">
           ⚠️ วงเงินไม่เพียงพอสำหรับรอบการส่งมอบที่ซ้อนทับกัน ระบบได้คำนวณยอดขออนุมัติเพิ่มให้โดยอัตโนมัติ
         </div>
+        <!-- Chart Section -->
+        <div class="chart-container" style="padding: 20px; border-top: 1px solid #eee;">
+            <Bar v-if="chartData" :data="chartData" :options="chartOptions" />
+            <div v-else class="text-center text-muted" style="padding: 20px;">
+                ไม่มีข้อมูลเพียงพอสำหรับสร้างกราฟ กรุณาระบุวันที่และจำนวนเงินให้ครบถ้วน
+            </div>
+        </div>
       </div>
     </template>
   </div>
 </template>
 
 <script setup>
-import { computed, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { Bar } from 'vue-chartjs';
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Filler
+} from 'chart.js';
+
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Filler
+);
+
+const showAnalysis = ref(false);
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
@@ -276,54 +312,6 @@ const parseDate = (dateString) => {
   return d.getTime();
 };
 
-const phaseExposures = computed(() => {
-  if (!store.transactionData?.projectPhasing) return [];
-
-  const events = [];
-  store.transactionData.projectPhasing.forEach((p, i) => {
-    const amt = parseFloat(String(p.amount || '0').replace(/,/g, '')) || 0;
-    if (amt > 0) {
-      if (p.billingDate) {
-        events.push({ time: parseDate(p.billingDate), type: 'add', amount: amt, idx: i });
-      }
-      if (p.paymentDate) {
-        events.push({ time: parseDate(p.paymentDate), type: 'sub', amount: amt, idx: i });
-      }
-    }
-  });
-
-  events.sort((a, b) => {
-    if (a.time === null) return 1;
-    if (b.time === null) return -1;
-    if (a.time !== b.time) return a.time - b.time;
-    if (a.type !== b.type) return a.type === 'add' ? -1 : 1;
-    return 0;
-  });
-
-  let currentExposure = 0;
-  const exposures = new Array(store.transactionData.projectPhasing.length).fill(0);
-
-  for (const ev of events) {
-    if (ev.time !== null) {
-      if (ev.type === 'add') currentExposure += ev.amount;
-      if (ev.type === 'sub') currentExposure -= ev.amount;
-
-      if (ev.type === 'add') {
-         exposures[ev.idx] = Math.max(0, currentExposure);
-      }
-    }
-  }
-
-  // Fallback to 0 if no billing date
-  store.transactionData.projectPhasing.forEach((p, i) => {
-    if (!parseDate(p.billingDate)) {
-      exposures[i] = 0;
-    }
-  });
-
-  return exposures;
-});
-
 const peakExposure = computed(() => {
   if (!store.transactionData?.projectPhasing || store.transactionData.projectPhasing.length === 0) return 0;
 
@@ -372,6 +360,127 @@ const requestedCreditAmount = computed(() => {
   const diff = peakExposure.value - currentCreditLimit.value;
   return Math.max(0, diff);
 });
+
+// Chart.js Data Configuration
+const chartData = computed(() => {
+  if (!store.transactionData?.projectPhasing || store.transactionData.projectPhasing.length === 0) return null;
+
+  const events = [];
+  store.transactionData.projectPhasing.forEach((p, i) => {
+    const amt = parseFloat(String(p.amount || '0').replace(/,/g, '')) || 0;
+    if (amt > 0) {
+      if (p.billingDate) {
+        events.push({ time: parseDate(p.billingDate), rawDate: p.billingDate, type: 'add', amount: amt, phase: i + 1 });
+      }
+      if (p.paymentDate) {
+        events.push({ time: parseDate(p.paymentDate), rawDate: p.paymentDate, type: 'sub', amount: amt, phase: i + 1 });
+      }
+    }
+  });
+
+  const validEvents = events.filter(e => e.time !== null);
+  if (validEvents.length === 0) return null;
+
+  validEvents.sort((a, b) => {
+    if (a.time !== b.time) return a.time - b.time;
+    if (a.type !== b.type) return a.type === 'add' ? -1 : 1;
+    return 0;
+  });
+
+  const labels = [];
+  const exposureData = [];
+  let currentExposure = 0;
+
+  validEvents.forEach(ev => {
+    const dateObj = new Date(ev.time);
+    const labelDate = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
+    const actionLabel = ev.type === 'add' ? `เริ่มเบิกรอบ ${ev.phase}` : `รับชำระรอบ ${ev.phase}`;
+
+    if (ev.type === 'add') currentExposure += ev.amount;
+    if (ev.type === 'sub') currentExposure -= ev.amount;
+
+    // Push the state *after* the event occurs
+    labels.push(`${labelDate} (${actionLabel})`);
+    exposureData.push(Math.max(0, currentExposure));
+  });
+
+  return {
+    labels: labels,
+    datasets: [
+      {
+        type: 'bar',
+        label: 'ยอดหนี้สะสม (Exposure)',
+        data: exposureData,
+        backgroundColor: '#0056FF',
+        borderRadius: 4,
+        order: 2
+      },
+      {
+        type: 'line',
+        label: 'วงเงินเครดิตปัจจุบัน',
+        data: Array(labels.length).fill(currentCreditLimit.value),
+        borderColor: '#dc3545',
+        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+        borderWidth: 2,
+        borderDash: [5, 5],
+        fill: true,
+        pointRadius: 0,
+        order: 1
+      }
+    ]
+  };
+});
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'top',
+    },
+    title: {
+      display: true,
+      text: 'กราฟแสดงการทับซ้อนของยอดหนี้ (Exposure Over Time)',
+      font: {
+        size: 16
+      }
+    },
+    tooltip: {
+      callbacks: {
+        label: function(context) {
+          let label = context.dataset.label || '';
+          if (label) {
+            label += ': ';
+          }
+          if (context.parsed.y !== null) {
+            label += new Intl.NumberFormat('en-US').format(context.parsed.y) + ' บาท';
+          }
+          return label;
+        }
+      }
+    }
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      title: {
+        display: true,
+        text: 'จำนวนเงิน (บาท)'
+      },
+      ticks: {
+        callback: function(value) {
+          return new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(value);
+        }
+      }
+    },
+    x: {
+      ticks: {
+         maxRotation: 45,
+         minRotation: 45
+      }
+    }
+  }
+};
 
 watch(requestedCreditAmount, (newVal) => {
   if (!props.readOnly && newVal > 0) {
