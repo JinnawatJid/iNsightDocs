@@ -104,7 +104,7 @@
               </td>
             </tr>
             <tr v-if="transactionData.projectPhasing.length === 0 && props.readOnly">
-              <td colspan="6" class="text-center empty-row">
+              <td colspan="5" class="text-center empty-row">
                 ไม่มีข้อมูลตารางแบ่งงวด
               </td>
             </tr>
@@ -116,20 +116,51 @@
           + เพิ่มงวดใหม่
         </button>
 
-        <!-- Keep Total Footer separate to match design's clean table look -->
-        <div class="phasing-footer">
-            <div class="total-label font-bold">รวมมูลค่าตามงวด:</div>
-            <div class="total-amount font-bold">
-                {{ formatNumber(totalPhaseAmount) }} บาท
-                <span
-                  v-if="currentProjectValueLimit > 0"
-                  :class="{
-                    'text-error': totalPhaseAmount > currentProjectValueLimit,
-                  }"
-                  class="summary-note"
-                >
-                  <br>(สูงสุดไม่เกินมูลค่าโครงการ {{ formatNumber(currentProjectValueLimit) }} บาท)
-                </span>
+        <div class="analyze-section" v-if="transactionData?.projectPhasing?.length > 0 && !showAnalysis">
+           <button class="btn-primary" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px; border-radius: 8px; color: white;" @click="showAnalysis = true">
+               วิเคราะห์และคำนวณรอบส่ง
+           </button>
+        </div>
+
+
+      </div>
+
+      <!-- Credit Calculation Section -->
+      <div v-if="showAnalysis" class="credit-calc-card" style="margin-top: 30px;">
+        <div class="calc-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <h3>การวิเคราะห์วงเงินเครดิตโครงการ</h3>
+          <div class="text-right" style="font-size: 14px;">
+            <span class="text-muted">รวมมูลค่าตามงวด:</span>
+            <span class="font-bold ml-2" style="font-size: 16px;">{{ formatNumber(totalPhaseAmount) }} บาท</span>
+            <span v-if="currentProjectValueLimit > 0" :class="{'text-error': totalPhaseAmount > currentProjectValueLimit}" class="summary-note">
+               (สูงสุดไม่เกินมูลค่าโครงการ {{ formatNumber(currentProjectValueLimit) }} บาท)
+            </span>
+          </div>
+        </div>
+        <div class="calc-body">
+          <div class="calc-item">
+            <span class="calc-label">วงเงินเครดิตปัจจุบัน</span>
+            <span class="calc-value text-muted">{{ formatNumber(currentCreditLimit) }} บาท</span>
+          </div>
+          <div class="calc-operator">-</div>
+          <div class="calc-item">
+            <span class="calc-label">ยอดหนี้สะสมสูงสุด (Peak Exposure)</span>
+            <span class="calc-value font-bold" :class="{'text-error': peakExposure > currentCreditLimit}">{{ formatNumber(peakExposure) }} บาท</span>
+          </div>
+          <div class="calc-operator">=</div>
+          <div class="calc-item highlight">
+            <span class="calc-label">ยอดขอเครดิตโครงการ</span>
+            <span class="calc-value text-primary font-bold">{{ formatNumber(requestedCreditAmount) }} บาท</span>
+          </div>
+        </div>
+        <div v-if="requestedCreditAmount > 0" class="alert-banner">
+          ⚠️ วงเงินไม่เพียงพอสำหรับรอบการส่งมอบที่ซ้อนทับกัน ระบบได้คำนวณยอดขออนุมัติเพิ่มให้โดยอัตโนมัติ
+        </div>
+        <!-- Chart Section -->
+        <div class="chart-container" style="position: relative; height: 400px; padding: 20px; border-top: 1px solid #eee;">
+            <Line v-if="chartData" :data="chartData" :options="chartOptions" />
+            <div v-else class="text-center text-muted" style="padding: 20px;">
+                ไม่มีข้อมูลเพียงพอสำหรับสร้างกราฟ กรุณาระบุวันที่และจำนวนเงินให้ครบถ้วน
             </div>
         </div>
       </div>
@@ -138,8 +169,35 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { Line } from 'vue-chartjs';
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Filler
+} from 'chart.js';
+
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Filler
+);
+
+const showAnalysis = ref(false);
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
@@ -149,10 +207,10 @@ const transactionData = computed({
   set: (val) => { store.transactionData = val; }
 });
 
-const formatNumber = (num) => {
+function formatNumber(num) {
     if (!num) return '0';
     return Number(num).toLocaleString('en-US');
-};
+}
 
 // Editable Project Summary Actions
 const handleAdjustedValueInput = (event) => {
@@ -170,6 +228,7 @@ const formatAdjustedValue = () => {
 };
 
 const addProduct = () => {
+    if (!store.transactionData) store.transactionData = {};
     if (!store.transactionData.adjustedProductList) {
         store.transactionData.adjustedProductList = [];
     }
@@ -182,6 +241,7 @@ const removeProduct = (idx) => {
 
 // Phasing Array Actions
 const addPhase = () => {
+    if (!store.transactionData) store.transactionData = {};
     if (!store.transactionData.projectPhasing) {
         store.transactionData.projectPhasing = [];
     }
@@ -212,7 +272,7 @@ const formatPhaseAmount = (index) => {
 };
 
 const totalPhaseAmount = computed(() => {
-    if (!store.transactionData.projectPhasing) return 0;
+    if (!store.transactionData?.projectPhasing) return 0;
     return store.transactionData.projectPhasing.reduce((sum, phase) => {
         const amt = parseFloat(String(phase.amount).replace(/,/g, '')) || 0;
         return sum + amt;
@@ -223,12 +283,222 @@ const currentProjectValueLimit = computed(() => {
     if (!store.transactionData) return 0;
 
     // Prefer adjusted value if set, fallback to original project data value
-    const adjusted = store.transactionData.adjustedProjectValue;
+    const adjusted = store.transactionData?.adjustedProjectValue;
     if (adjusted) {
          return parseFloat(String(adjusted).replace(/,/g, '')) || 0;
     }
-    return store.transactionData.projectData?.value || 0;
+    return store.transactionData?.projectData?.value || 0;
 });
+
+// Credit Calculation Logic
+const currentCreditLimit = computed(() => {
+  // Use mock for now, can be updated later when API is ready
+  return Number(store.customer?.current_credit_limit) || 300000;
+});
+
+// Helper to parse dates securely
+const parseDate = (dateString) => {
+  if (!dateString) return null;
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return null;
+  return d.getTime();
+};
+
+const peakExposure = computed(() => {
+  if (!store.transactionData?.projectPhasing || store.transactionData.projectPhasing.length === 0) return 0;
+
+  const events = [];
+  store.transactionData.projectPhasing.forEach((p) => {
+    const amt = parseFloat(String(p.amount || '0').replace(/,/g, '')) || 0;
+    if (amt > 0) {
+      if (p.billingDate) {
+        events.push({ time: parseDate(p.billingDate), type: 'add', amount: amt });
+      }
+      if (p.paymentDate) {
+        events.push({ time: parseDate(p.paymentDate), type: 'sub', amount: amt });
+      }
+    }
+  });
+
+  events.sort((a, b) => {
+    if (a.time === null) return 1;
+    if (b.time === null) return -1;
+    if (a.time !== b.time) return a.time - b.time;
+    if (a.type !== b.type) return a.type === 'add' ? -1 : 1;
+    return 0;
+  });
+
+  let maxExp = 0;
+  let currExp = 0;
+
+  for (const ev of events) {
+    if (ev.time !== null) {
+      if (ev.type === 'add') currExp += ev.amount;
+      if (ev.type === 'sub') currExp -= ev.amount;
+      if (currExp > maxExp) maxExp = currExp;
+    }
+  }
+
+  // If no dates are set at all, we can't calculate a timeline.
+  // We could return sum or 0. Returning 0 is safer until dates are set.
+  if (maxExp === 0 && totalPhaseAmount.value > 0 && events.filter(e => e.time !== null).length === 0) {
+     return 0; // Wait for dates to be set
+  }
+
+  return Math.max(0, maxExp);
+});
+
+const requestedCreditAmount = computed(() => {
+  const diff = peakExposure.value - currentCreditLimit.value;
+  return Math.max(0, diff);
+});
+
+// Chart.js Data Configuration
+const chartData = computed(() => {
+  if (!store.transactionData?.projectPhasing || store.transactionData.projectPhasing.length === 0) return null;
+
+  const events = [];
+  store.transactionData.projectPhasing.forEach((p, i) => {
+    const amt = parseFloat(String(p.amount || '0').replace(/,/g, '')) || 0;
+    if (amt > 0) {
+      if (p.billingDate) {
+        events.push({ time: parseDate(p.billingDate), rawDate: p.billingDate, type: 'add', amount: amt, phase: i + 1 });
+      }
+      if (p.paymentDate) {
+        events.push({ time: parseDate(p.paymentDate), rawDate: p.paymentDate, type: 'sub', amount: amt, phase: i + 1 });
+      }
+    }
+  });
+
+  const validEvents = events.filter(e => e.time !== null);
+  if (validEvents.length === 0) return null;
+
+  validEvents.sort((a, b) => {
+    if (a.time !== b.time) return a.time - b.time;
+    if (a.type !== b.type) return a.type === 'add' ? -1 : 1;
+    return 0;
+  });
+
+  const labels = [];
+  const exposureData = [];
+  let currentExposure = 0;
+
+  // Group events by exact date to prevent horizontal stretching of the same day
+  const groupedEvents = [];
+  validEvents.forEach(ev => {
+    const dateObj = new Date(ev.time);
+    const labelDate = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
+    const actionLabel = ev.type === 'add' ? `(เบิกรอบ ${ev.phase})` : `(รับเงินรอบ ${ev.phase})`;
+
+    const lastGroup = groupedEvents.length > 0 ? groupedEvents[groupedEvents.length - 1] : null;
+    if (lastGroup && lastGroup.date === labelDate) {
+        // Aggregate on the same day
+        lastGroup.events.push({ type: ev.type, amount: ev.amount, label: actionLabel });
+    } else {
+        // New day
+        groupedEvents.push({ date: labelDate, events: [{ type: ev.type, amount: ev.amount, label: actionLabel }] });
+    }
+  });
+
+  groupedEvents.forEach(group => {
+     let dayActionLabels = [];
+     group.events.forEach(ev => {
+         if (ev.type === 'add') currentExposure += ev.amount;
+         if (ev.type === 'sub') currentExposure -= ev.amount;
+         dayActionLabels.push(ev.label);
+     });
+     // Use the aggregated action labels for the day
+     labels.push([group.date, ...dayActionLabels]);
+     exposureData.push(Math.max(0, currentExposure));
+  });
+
+  return {
+    labels: labels,
+    datasets: [
+      {
+        type: 'line',
+        label: 'ยอดหนี้สะสม (Exposure)',
+        data: exposureData,
+        borderColor: '#0056FF',
+        backgroundColor: 'rgba(0, 86, 255, 0.1)',
+        borderWidth: 2,
+        stepped: 'after',
+        fill: true,
+        pointBackgroundColor: '#0056FF',
+        pointRadius: 4,
+        order: 2
+      },
+      {
+        type: 'line',
+        label: 'วงเงินเครดิตปัจจุบัน',
+        data: Array(labels.length).fill(currentCreditLimit.value),
+        borderColor: '#dc3545',
+        borderWidth: 2,
+        borderDash: [5, 5],
+        fill: false,
+        pointRadius: 0,
+        order: 1
+      }
+    ]
+  };
+});
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'top',
+    },
+    title: {
+      display: true,
+      text: 'กราฟแสดงการทับซ้อนของยอดหนี้ (Exposure Over Time)',
+      font: {
+        size: 16
+      }
+    },
+    tooltip: {
+      callbacks: {
+        label: function(context) {
+          let label = context.dataset.label || '';
+          if (label) {
+            label += ': ';
+          }
+          if (context.parsed.y !== null) {
+            label += new Intl.NumberFormat('en-US').format(context.parsed.y) + ' บาท';
+          }
+          return label;
+        }
+      }
+    }
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      title: {
+        display: true,
+        text: 'จำนวนเงิน (บาท)'
+      },
+      ticks: {
+        callback: function(value) {
+          return new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(value);
+        }
+      }
+    },
+    x: {
+      ticks: {
+         maxRotation: 0,
+         minRotation: 0
+      }
+    }
+  }
+};
+
+watch(requestedCreditAmount, (newVal) => {
+  if (!props.readOnly && newVal > 0) {
+    store.transactionData.amount = formatNumber(newVal);
+  }
+}, { immediate: true });
 </script>
 
 <style scoped>
@@ -490,4 +760,87 @@ const currentProjectValueLimit = computed(() => {
     color: #dc3545;
     font-weight: 500;
 }
+
+/* Credit Calculation Styles */
+.credit-calc-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 25px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.calc-header {
+  background-color: #f8f9fa;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.calc-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.calc-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 30px;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .calc-body {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .calc-operator {
+    text-align: center;
+    transform: rotate(90deg);
+  }
+}
+
+.calc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.calc-item.highlight {
+  background-color: #f0f5ff;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px dashed #0056FF;
+}
+
+.calc-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.calc-value {
+  font-size: 20px;
+}
+
+.calc-operator {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ccc;
+  padding: 0 10px;
+}
+
+.alert-banner {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 12px 20px;
+  font-size: 14px;
+  border-top: 1px solid #ffeeba;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ml-2 { margin-left: 8px; }
 </style>
