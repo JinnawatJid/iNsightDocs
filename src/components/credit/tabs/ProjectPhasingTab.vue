@@ -165,8 +165,8 @@
           ⚠️ วงเงินไม่เพียงพอสำหรับรอบการส่งมอบที่ซ้อนทับกัน ระบบได้คำนวณยอดขออนุมัติเพิ่มให้โดยอัตโนมัติ
         </div>
         <!-- Chart Section -->
-        <div class="chart-container" style="padding: 20px; border-top: 1px solid #eee;">
-            <Bar v-if="chartData" :data="chartData" :options="chartOptions" />
+        <div class="chart-container" style="position: relative; height: 400px; padding: 20px; border-top: 1px solid #eee;">
+            <Line v-if="chartData" :data="chartData" :options="chartOptions" />
             <div v-else class="text-center text-muted" style="padding: 20px;">
                 ไม่มีข้อมูลเพียงพอสำหรับสร้างกราฟ กรุณาระบุวันที่และจำนวนเงินให้ครบถ้วน
             </div>
@@ -179,7 +179,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
-import { Bar } from 'vue-chartjs';
+import { Line } from 'vue-chartjs';
 import {
   Chart as ChartJS,
   Title,
@@ -301,7 +301,7 @@ const currentProjectValueLimit = computed(() => {
 // Credit Calculation Logic
 const currentCreditLimit = computed(() => {
   // Use mock for now, can be updated later when API is ready
-  return Number(store.customer?.current_credit_limit) || 0;
+  return Number(store.customer?.current_credit_limit) || 300000;
 });
 
 // Helper to parse dates securely
@@ -391,28 +391,49 @@ const chartData = computed(() => {
   const exposureData = [];
   let currentExposure = 0;
 
+  // Group events by exact date to prevent horizontal stretching of the same day
+  const groupedEvents = [];
   validEvents.forEach(ev => {
     const dateObj = new Date(ev.time);
     const labelDate = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
-    const actionLabel = ev.type === 'add' ? `เริ่มเบิกรอบ ${ev.phase}` : `รับชำระรอบ ${ev.phase}`;
+    const actionLabel = ev.type === 'add' ? `(เบิกรอบ ${ev.phase})` : `(รับเงินรอบ ${ev.phase})`;
 
-    if (ev.type === 'add') currentExposure += ev.amount;
-    if (ev.type === 'sub') currentExposure -= ev.amount;
+    const lastGroup = groupedEvents.length > 0 ? groupedEvents[groupedEvents.length - 1] : null;
+    if (lastGroup && lastGroup.date === labelDate) {
+        // Aggregate on the same day
+        lastGroup.events.push({ type: ev.type, amount: ev.amount, label: actionLabel });
+    } else {
+        // New day
+        groupedEvents.push({ date: labelDate, events: [{ type: ev.type, amount: ev.amount, label: actionLabel }] });
+    }
+  });
 
-    // Push the state *after* the event occurs
-    labels.push(`${labelDate} (${actionLabel})`);
-    exposureData.push(Math.max(0, currentExposure));
+  groupedEvents.forEach(group => {
+     let dayActionLabels = [];
+     group.events.forEach(ev => {
+         if (ev.type === 'add') currentExposure += ev.amount;
+         if (ev.type === 'sub') currentExposure -= ev.amount;
+         dayActionLabels.push(ev.label);
+     });
+     // Use the aggregated action labels for the day
+     labels.push([group.date, ...dayActionLabels]);
+     exposureData.push(Math.max(0, currentExposure));
   });
 
   return {
     labels: labels,
     datasets: [
       {
-        type: 'bar',
+        type: 'line',
         label: 'ยอดหนี้สะสม (Exposure)',
         data: exposureData,
-        backgroundColor: '#0056FF',
-        borderRadius: 4,
+        borderColor: '#0056FF',
+        backgroundColor: 'rgba(0, 86, 255, 0.1)',
+        borderWidth: 2,
+        stepped: 'after',
+        fill: true,
+        pointBackgroundColor: '#0056FF',
+        pointRadius: 4,
         order: 2
       },
       {
@@ -420,10 +441,9 @@ const chartData = computed(() => {
         label: 'วงเงินเครดิตปัจจุบัน',
         data: Array(labels.length).fill(currentCreditLimit.value),
         borderColor: '#dc3545',
-        backgroundColor: 'rgba(220, 53, 69, 0.1)',
         borderWidth: 2,
         borderDash: [5, 5],
-        fill: true,
+        fill: false,
         pointRadius: 0,
         order: 1
       }
@@ -475,8 +495,8 @@ const chartOptions = {
     },
     x: {
       ticks: {
-         maxRotation: 45,
-         minRotation: 45
+         maxRotation: 0,
+         minRotation: 0
       }
     }
   }
