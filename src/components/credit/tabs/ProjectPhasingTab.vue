@@ -43,6 +43,32 @@
           </div>
       </div>
 
+      <!-- Credit Calculation Section -->
+      <div class="credit-calc-card">
+        <div class="calc-header">
+          <h3>การวิเคราะห์วงเงินเครดิตโครงการ</h3>
+        </div>
+        <div class="calc-body">
+          <div class="calc-item">
+            <span class="calc-label">วงเงินเครดิตปัจจุบัน</span>
+            <span class="calc-value text-muted">{{ formatNumber(currentCreditLimit) }} บาท</span>
+          </div>
+          <div class="calc-operator">-</div>
+          <div class="calc-item">
+            <span class="calc-label">ยอดหนี้สะสมสูงสุด (Peak Exposure)</span>
+            <span class="calc-value font-bold" :class="{'text-error': peakExposure > currentCreditLimit}">{{ formatNumber(peakExposure) }} บาท</span>
+          </div>
+          <div class="calc-operator">=</div>
+          <div class="calc-item highlight">
+            <span class="calc-label">ยอดขอเครดิตโครงการ</span>
+            <span class="calc-value text-primary font-bold">{{ formatNumber(requestedCreditAmount) }} บาท</span>
+          </div>
+        </div>
+        <div v-if="requestedCreditAmount > 0" class="alert-banner">
+          ⚠️ วงเงินไม่เพียงพอสำหรับรอบการส่งมอบที่ซ้อนทับกัน ระบบได้คำนวณยอดขออนุมัติเพิ่มให้โดยอัตโนมัติ
+        </div>
+      </div>
+
       <div class="form-section">
         <div class="phasing-header">
           <h3>แผนการใช้เครดิตแบบแบ่งงวด</h3>
@@ -55,6 +81,7 @@
               <th width="15%">วันเบิก</th>
               <th width="15%">วันจบ</th>
               <th width="20%">จำนวนเงิน (บาท)</th>
+              <th width="15%">ยอดหนี้สะสม (Exposure)</th>
               <th width="4%" v-if="!props.readOnly"></th>
             </tr>
           </thead>
@@ -97,6 +124,9 @@
                   placeholder="0.00"
                 />
               </td>
+              <td class="text-right font-bold text-muted">
+                {{ formatNumber(phaseExposures[idx]) }}
+              </td>
               <td v-if="!props.readOnly" class="text-center action-col">
                 <button class="btn-icon-delete" @click="removePhase(idx)" title="ลบงวดนี้">
                   ✕
@@ -138,7 +168,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const props = defineProps(['readOnly']);
@@ -229,6 +259,123 @@ const currentProjectValueLimit = computed(() => {
     }
     return store.transactionData.projectData?.value || 0;
 });
+
+// Credit Calculation Logic
+const currentCreditLimit = computed(() => {
+  // Use mock for now, can be updated later when API is ready
+  return Number(store.customer.current_credit_limit) || 0;
+});
+
+// Helper to parse dates securely
+const parseDate = (dateString) => {
+  if (!dateString) return null;
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return null;
+  return d.getTime();
+};
+
+const phaseExposures = computed(() => {
+  if (!store.transactionData.projectPhasing) return [];
+
+  const events = [];
+  store.transactionData.projectPhasing.forEach((p, i) => {
+    const amt = parseFloat(String(p.amount || '0').replace(/,/g, '')) || 0;
+    if (amt > 0) {
+      if (p.billingDate) {
+        events.push({ time: parseDate(p.billingDate), type: 'add', amount: amt, idx: i });
+      }
+      if (p.paymentDate) {
+        events.push({ time: parseDate(p.paymentDate), type: 'sub', amount: amt, idx: i });
+      }
+    }
+  });
+
+  events.sort((a, b) => {
+    if (a.time === null) return 1;
+    if (b.time === null) return -1;
+    if (a.time !== b.time) return a.time - b.time;
+    if (a.type !== b.type) return a.type === 'add' ? -1 : 1;
+    return 0;
+  });
+
+  let currentExposure = 0;
+  const exposures = new Array(store.transactionData.projectPhasing.length).fill(0);
+
+  for (const ev of events) {
+    if (ev.time !== null) {
+      if (ev.type === 'add') currentExposure += ev.amount;
+      if (ev.type === 'sub') currentExposure -= ev.amount;
+
+      if (ev.type === 'add') {
+         exposures[ev.idx] = Math.max(0, currentExposure);
+      }
+    }
+  }
+
+  // Fallback to 0 if no billing date
+  store.transactionData.projectPhasing.forEach((p, i) => {
+    if (!parseDate(p.billingDate)) {
+      exposures[i] = 0;
+    }
+  });
+
+  return exposures;
+});
+
+const peakExposure = computed(() => {
+  if (!store.transactionData.projectPhasing || store.transactionData.projectPhasing.length === 0) return 0;
+
+  const events = [];
+  store.transactionData.projectPhasing.forEach((p) => {
+    const amt = parseFloat(String(p.amount || '0').replace(/,/g, '')) || 0;
+    if (amt > 0) {
+      if (p.billingDate) {
+        events.push({ time: parseDate(p.billingDate), type: 'add', amount: amt });
+      }
+      if (p.paymentDate) {
+        events.push({ time: parseDate(p.paymentDate), type: 'sub', amount: amt });
+      }
+    }
+  });
+
+  events.sort((a, b) => {
+    if (a.time === null) return 1;
+    if (b.time === null) return -1;
+    if (a.time !== b.time) return a.time - b.time;
+    if (a.type !== b.type) return a.type === 'add' ? -1 : 1;
+    return 0;
+  });
+
+  let maxExp = 0;
+  let currExp = 0;
+
+  for (const ev of events) {
+    if (ev.time !== null) {
+      if (ev.type === 'add') currExp += ev.amount;
+      if (ev.type === 'sub') currExp -= ev.amount;
+      if (currExp > maxExp) maxExp = currExp;
+    }
+  }
+
+  // If no dates are set at all, we can't calculate a timeline.
+  // We could return sum or 0. Returning 0 is safer until dates are set.
+  if (maxExp === 0 && totalPhaseAmount.value > 0 && events.filter(e => e.time !== null).length === 0) {
+     return 0; // Wait for dates to be set
+  }
+
+  return Math.max(0, maxExp);
+});
+
+const requestedCreditAmount = computed(() => {
+  const diff = peakExposure.value - currentCreditLimit.value;
+  return Math.max(0, diff);
+});
+
+watch(requestedCreditAmount, (newVal) => {
+  if (!props.readOnly && newVal > 0) {
+    store.transactionData.amount = formatNumber(newVal);
+  }
+}, { immediate: true });
 </script>
 
 <style scoped>
@@ -489,5 +636,87 @@ const currentProjectValueLimit = computed(() => {
 .text-error {
     color: #dc3545;
     font-weight: 500;
+}
+
+/* Credit Calculation Styles */
+.credit-calc-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 25px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.calc-header {
+  background-color: #f8f9fa;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.calc-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.calc-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 30px;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .calc-body {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .calc-operator {
+    text-align: center;
+    transform: rotate(90deg);
+  }
+}
+
+.calc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.calc-item.highlight {
+  background-color: #f0f5ff;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px dashed #0056FF;
+}
+
+.calc-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.calc-value {
+  font-size: 20px;
+}
+
+.calc-operator {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ccc;
+  padding: 0 10px;
+}
+
+.alert-banner {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 12px 20px;
+  font-size: 14px;
+  border-top: 1px solid #ffeeba;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 </style>
