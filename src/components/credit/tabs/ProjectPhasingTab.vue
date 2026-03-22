@@ -8,29 +8,27 @@
       <div class="form-section">
         <div class="phasing-header">
           <h3>แผนการใช้เครดิตแบบแบ่งงวด</h3>
-          <button v-if="!props.readOnly" class="btn-add-phase" @click="addPhase">
-            + เพิ่มงวด
-          </button>
         </div>
         <table class="phasing-table">
           <thead>
             <tr>
-              <th width="10%">งวด</th>
-              <th width="40%">รายละเอียดงาน</th>
-              <th width="15%">วันเบิก</th>
-              <th width="15%">วันจบ</th>
+              <th width="10%">งวดที่</th>
+              <th width="40%">ชื่อระยะ / รายละเอียดงาน</th>
+              <th width="15%">วันที่คาดว่าจะเบิก</th>
+              <th width="15%">วันที่คาดว่าจะจบ</th>
               <th width="20%">จำนวนเงิน (บาท)</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(phase, idx) in transactionData.projectPhasing" :key="idx">
-              <td class="text-center">{{ idx + 1 }}</td>
+              <td class="text-center font-bold" style="font-size: 16px;">{{ idx + 1 }}</td>
               <td>
                 <input
                   type="text"
                   v-model="phase.description"
                   :disabled="props.readOnly"
                   class="table-input"
+                  placeholder="เช่น เทพื้นชั้น 1-3"
                 />
               </td>
               <td>
@@ -38,7 +36,7 @@
                   type="date"
                   v-model="phase.billingDate"
                   :disabled="props.readOnly"
-                  class="table-input"
+                  class="table-input text-center"
                 />
               </td>
               <td>
@@ -46,7 +44,7 @@
                   type="date"
                   v-model="phase.paymentDate"
                   :disabled="props.readOnly"
-                  class="table-input"
+                  class="table-input text-center"
                 />
               </td>
               <td>
@@ -57,34 +55,39 @@
                   @blur="formatPhaseAmount(idx)"
                   @input="handlePhaseAmountInput(idx, $event)"
                   class="table-input text-right"
+                  placeholder="0.00"
                 />
               </td>
             </tr>
-            <tr v-if="transactionData.projectPhasing.length === 0">
+            <tr v-if="transactionData.projectPhasing.length === 0 && props.readOnly">
               <td colspan="5" class="text-center empty-row">
-                ไม่มีข้อมูลตารางแบ่งงวด กดปุ่ม "เพิ่มงวด" เพื่อเพิ่มข้อมูล
+                ไม่มีข้อมูลตารางแบ่งงวด
               </td>
             </tr>
           </tbody>
-          <tfoot>
-            <tr>
-              <td colspan="4" class="text-right font-bold">รวมมูลค่าตามงวด:</td>
-              <td class="font-bold text-right">
-                {{ formatNumber(totalPhaseAmount) }}
-                <br>
+        </table>
+
+        <!-- Add Phase Button below the table to match design -->
+        <button v-if="!props.readOnly" class="btn-add-phase-dashed" @click="addPhase">
+          + เพิ่มงวดใหม่
+        </button>
+
+        <!-- Keep Total Footer separate to match design's clean table look -->
+        <div class="phasing-footer">
+            <div class="total-label font-bold">รวมมูลค่าตามงวด:</div>
+            <div class="total-amount font-bold">
+                {{ formatNumber(totalPhaseAmount) }} บาท
                 <span
+                  v-if="transactionData.projectData && transactionData.projectData.value"
                   :class="{
                     'text-error': totalPhaseAmount > transactionData.projectData.value,
                   }"
                   class="summary-note"
-                  style="margin-left: 0; display: block; margin-top: 5px;"
                 >
-                  (สูงสุดไม่เกินมูลค่าโครงการ {{ formatNumber(transactionData.projectData.value) }} บาท)
+                  <br>(สูงสุดไม่เกินมูลค่าโครงการ {{ formatNumber(transactionData.projectData.value) }} บาท)
                 </span>
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+            </div>
+        </div>
       </div>
     </template>
   </div>
@@ -174,37 +177,63 @@ const totalPhaseAmount = computed(() => {
     margin: 0;
 }
 
-.btn-add-phase {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 14px;
+.btn-add-phase-dashed {
+    width: 100%;
+    background-color: white;
+    color: #0056FF;
+    border: 1px dashed #ccc;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 16px;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: bold;
+    margin-top: 15px;
+    transition: all 0.2s;
 }
 
-.btn-add-phase:hover {
-    background-color: #218838;
+.btn-add-phase-dashed:hover {
+    background-color: #f8f9fa;
+    border-color: #0056FF;
 }
 
 .phasing-table {
     width: 100%;
     border-collapse: collapse;
     background-color: white;
-    border: 1px solid #ddd;
-}
-
-.phasing-table th, .phasing-table td {
-    border: 1px solid #ddd;
-    padding: 10px;
 }
 
 .phasing-table th {
-    background-color: #f4f6f8;
+    background-color: #f4f5f7;
     color: #333;
-    font-weight: 600;
+    font-weight: bold;
+    text-align: center;
+    padding: 15px 10px;
+    border: none;
+}
+
+.phasing-table td {
+    padding: 15px 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.phasing-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    gap: 20px;
+}
+
+.total-label {
+    font-size: 16px;
+    color: #333;
+}
+
+.total-amount {
+    font-size: 16px;
+    text-align: right;
 }
 
 .table-input {
