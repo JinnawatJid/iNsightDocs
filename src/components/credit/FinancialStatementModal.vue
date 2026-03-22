@@ -23,8 +23,24 @@
               <h3>{{ currentTitle }}</h3>
             </div>
 
-            <div class="table-wrapper">
-                <table v-if="currentData && currentData.years" class="financial-table">
+            <div class="table-wrapper" :class="{ 'pdf-wrapper': currentTab === 'companyProfile' }">
+                <!-- PDF Viewer for Company Profile -->
+                <div v-if="currentTab === 'companyProfile'" class="pdf-container">
+                    <div v-if="pdfLoading" class="loading-state">
+                        <div class="spinner"></div>
+                        <p>กำลังโหลดเอกสาร...</p>
+                    </div>
+                    <div v-else-if="pdfError" class="error-state">
+                        <p>{{ pdfError }}</p>
+                    </div>
+                    <iframe v-else-if="pdfUrl" :src="pdfUrl" type="application/pdf" class="preview-iframe" title="PDF Preview"></iframe>
+                    <div v-else class="no-data-msg">
+                        <p>ไม่พบไฟล์ข้อมูลนิติบุคคล</p>
+                    </div>
+                </div>
+
+                <!-- Financial Table for other tabs -->
+                <table v-else-if="currentData && currentData.years" class="financial-table">
                   <thead>
                     <!-- Year Header Row -->
                     <tr>
@@ -66,6 +82,13 @@
                 <div class="doc-buttons">
                     <button
                         class="doc-btn"
+                        :class="{ active: currentTab === 'companyProfile' }"
+                        @click="currentTab = 'companyProfile'"
+                    >
+                        ข้อมูลนิติบุคคล
+                    </button>
+                    <button
+                        class="doc-btn"
                         :class="{ active: currentTab === 'financialPosition' }"
                         @click="currentTab = 'financialPosition'"
                     >
@@ -95,7 +118,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
+import axios from '@/utils/axios';
 
 const props = defineProps({
   isOpen: {
@@ -113,12 +137,19 @@ const props = defineProps({
   error: {
     type: String,
     default: null
+  },
+  customerNo: {
+    type: String,
+    default: null
   }
 });
 
 const emit = defineEmits(['close']);
 
-const currentTab = ref('financialPosition');
+const currentTab = ref('companyProfile');
+const pdfUrl = ref(null);
+const pdfLoading = ref(false);
+const pdfError = ref(null);
 
 const currentData = computed(() => {
     if (!props.financialData) return null;
@@ -126,9 +157,63 @@ const currentData = computed(() => {
 });
 
 const currentTitle = computed(() => {
+    if (currentTab.value === 'companyProfile') return 'ข้อมูลนิติบุคคล';
     if (currentTab.value === 'financialPosition') return 'งบแสดงฐานะการเงิน';
     if (currentTab.value === 'incomeStatement') return 'งบกำไรขาดทุน';
     return 'อัตราส่วนทางการเงิน';
+});
+
+const fetchPdf = async () => {
+    if (!props.customerNo) return;
+
+    pdfLoading.value = true;
+    pdfError.value = null;
+
+    try {
+        const response = await axios.get(`/api/financials/download-local/${props.customerNo}/profile`, {
+            responseType: 'blob'
+        });
+
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+
+        // Revoke previous URL if exists
+        if (pdfUrl.value) {
+            URL.revokeObjectURL(pdfUrl.value);
+        }
+
+        pdfUrl.value = URL.createObjectURL(blob);
+    } catch (err) {
+        console.error('Failed to fetch PDF:', err);
+        pdfError.value = 'ไม่สามารถดึงข้อมูลเอกสารได้ หรือไม่พบไฟล์';
+    } finally {
+        pdfLoading.value = false;
+    }
+};
+
+watch(() => currentTab.value, (newTab) => {
+    if (newTab === 'companyProfile' && !pdfUrl.value && !pdfLoading.value && !pdfError.value) {
+        fetchPdf();
+    }
+});
+
+watch(() => props.isOpen, (isOpen) => {
+    if (isOpen && currentTab.value === 'companyProfile' && !pdfUrl.value) {
+        fetchPdf();
+    } else if (!isOpen) {
+        // Reset tab to default when closed
+        currentTab.value = 'companyProfile';
+    }
+});
+
+const revokePdfUrl = () => {
+    if (pdfUrl.value) {
+        URL.revokeObjectURL(pdfUrl.value);
+        pdfUrl.value = null;
+    }
+};
+
+onUnmounted(() => {
+    revokePdfUrl();
 });
 
 const closeModal = () => {
@@ -295,6 +380,26 @@ const getPercentClass = (num) => {
     overflow-x: auto;
     border-radius: 6px;
     border: 1px solid #e0e0e0;
+    height: 100%;
+}
+
+.table-wrapper.pdf-wrapper {
+    overflow: hidden;
+    height: 70vh; /* Make sure PDF takes sufficient height */
+}
+
+.pdf-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    flex: 1;
 }
 
 .financial-table {

@@ -130,6 +130,7 @@
             :financial-data="financialData"
             :loading="financialLoading"
             :error="financialError"
+            :customer-no="store.customer?.id"
             @close="isFinancialModalOpen = false"
         />
 
