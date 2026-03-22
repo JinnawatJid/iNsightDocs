@@ -5,6 +5,17 @@
     </div>
 
     <template v-else>
+      <div class="project-summary-card">
+          <div class="summary-item">
+              <span class="summary-label">มูลค่าโครงการรวม:</span>
+              <span class="summary-value text-primary font-bold">{{ formatNumber(transactionData.projectData.value) }} บาท</span>
+          </div>
+          <div class="summary-item">
+              <span class="summary-label">รายการสินค้าหลัก:</span>
+              <span class="summary-value">{{ transactionData.projectData.productList?.join(', ') || '-' }}</span>
+          </div>
+      </div>
+
       <div class="form-section">
         <div class="phasing-header">
           <h3>แผนการใช้เครดิตแบบแบ่งงวด</h3>
@@ -12,15 +23,16 @@
         <table class="phasing-table">
           <thead>
             <tr>
-              <th width="10%">งวดที่</th>
-              <th width="40%">ชื่อระยะ / รายละเอียดงาน</th>
-              <th width="15%">วันที่คาดว่าจะเบิก</th>
-              <th width="15%">วันที่คาดว่าจะจบ</th>
+              <th width="8%">งวด</th>
+              <th width="38%">รายละเอียดงาน</th>
+              <th width="15%">วันเบิก</th>
+              <th width="15%">วันจบ</th>
               <th width="20%">จำนวนเงิน (บาท)</th>
+              <th width="4%" v-if="!props.readOnly"></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(phase, idx) in transactionData.projectPhasing" :key="idx">
+            <tr v-for="(phase, idx) in transactionData.projectPhasing" :key="idx" class="phase-row">
               <td class="text-center font-bold" style="font-size: 16px;">{{ idx + 1 }}</td>
               <td>
                 <input
@@ -58,9 +70,14 @@
                   placeholder="0.00"
                 />
               </td>
+              <td v-if="!props.readOnly" class="text-center action-col">
+                <button class="btn-icon-delete" @click="removePhase(idx)" title="ลบงวดนี้">
+                  ✕
+                </button>
+              </td>
             </tr>
             <tr v-if="transactionData.projectPhasing.length === 0 && props.readOnly">
-              <td colspan="5" class="text-center empty-row">
+              <td colspan="6" class="text-center empty-row">
                 ไม่มีข้อมูลตารางแบ่งงวด
               </td>
             </tr>
@@ -123,6 +140,10 @@ const addPhase = () => {
     });
 };
 
+const removePhase = (index) => {
+    store.transactionData.projectPhasing.splice(index, 1);
+};
+
 const handlePhaseAmountInput = (index, event) => {
     let val = event.target.value;
     val = val.replace(/[^0-9]/g, '');
@@ -160,6 +181,36 @@ const totalPhaseAmount = computed(() => {
     border: 1px dashed #ccc;
     border-radius: 8px;
     color: #666;
+}
+
+.project-summary-card {
+    background-color: #f4f5f7;
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin-bottom: 25px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.summary-label {
+    font-size: 13px;
+    color: #666;
+}
+
+.summary-value {
+    font-size: 16px;
+    color: #333;
+}
+
+.text-primary {
+    color: #0056FF;
 }
 
 .form-section {
@@ -214,6 +265,36 @@ const totalPhaseAmount = computed(() => {
 .phasing-table td {
     padding: 15px 10px;
     border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.phase-row {
+    position: relative;
+}
+
+.action-col {
+    padding: 0 !important;
+}
+
+.btn-icon-delete {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.btn-icon-delete:hover {
+    color: #dc3545;
+    background-color: #fee2e2;
 }
 
 .phasing-footer {
