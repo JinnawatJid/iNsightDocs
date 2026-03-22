@@ -15,12 +15,11 @@
         <table class="phasing-table">
           <thead>
             <tr>
-              <th width="5%">งวดที่</th>
-              <th width="35%">ชื่อระยะเวลา / รายละเอียดงาน</th>
-              <th width="15%">วันที่คาดว่าจะรับบิล</th>
-              <th width="15%">วันที่คาดว่าจะจ่ายชำระ</th>
+              <th width="10%">งวด</th>
+              <th width="40%">รายละเอียดงาน</th>
+              <th width="15%">วันเบิก</th>
+              <th width="15%">วันจบ</th>
               <th width="20%">จำนวนเงิน (บาท)</th>
-              <th width="10%" v-if="!props.readOnly">จัดการ</th>
             </tr>
           </thead>
           <tbody>
@@ -32,7 +31,6 @@
                   v-model="phase.description"
                   :disabled="props.readOnly"
                   class="table-input"
-                  placeholder="เช่น งวดที่ 1..."
                 />
               </td>
               <td>
@@ -61,12 +59,9 @@
                   class="table-input text-right"
                 />
               </td>
-              <td v-if="!props.readOnly" class="text-center">
-                <button class="btn-remove" @click="removePhase(idx)">ลบ</button>
-              </td>
             </tr>
             <tr v-if="transactionData.projectPhasing.length === 0">
-              <td :colspan="props.readOnly ? 5 : 6" class="text-center empty-row">
+              <td colspan="5" class="text-center empty-row">
                 ไม่มีข้อมูลตารางแบ่งงวด กดปุ่ม "เพิ่มงวด" เพื่อเพิ่มข้อมูล
               </td>
             </tr>
@@ -74,13 +69,15 @@
           <tfoot>
             <tr>
               <td colspan="4" class="text-right font-bold">รวมมูลค่าตามงวด:</td>
-              <td class="font-bold text-right">{{ formatNumber(totalPhaseAmount) }}</td>
-              <td v-if="!props.readOnly">
+              <td class="font-bold text-right">
+                {{ formatNumber(totalPhaseAmount) }}
+                <br>
                 <span
                   :class="{
                     'text-error': totalPhaseAmount > transactionData.projectData.value,
                   }"
                   class="summary-note"
+                  style="margin-left: 0; display: block; margin-top: 5px;"
                 >
                   (สูงสุดไม่เกินมูลค่าโครงการ {{ formatNumber(transactionData.projectData.value) }} บาท)
                 </span>
@@ -121,10 +118,6 @@ const addPhase = () => {
         paymentDate: '',
         amount: ''
     });
-};
-
-const removePhase = (index) => {
-    store.transactionData.projectPhasing.splice(index, 1);
 };
 
 const handlePhaseAmountInput = (index, event) => {
@@ -230,22 +223,6 @@ const totalPhaseAmount = computed(() => {
 .table-input:disabled {
     background-color: #f5f5f5;
     color: #777;
-}
-
-.btn-remove {
-    background-color: white;
-    color: #dc3545;
-    border: 1px solid #dc3545;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn-remove:hover {
-    background-color: #dc3545;
-    color: white;
 }
 
 .text-center { text-align: center; }
