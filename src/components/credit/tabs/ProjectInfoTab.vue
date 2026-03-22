@@ -50,13 +50,35 @@
                      <div class="detail-item"><span>ชื่อลูกค้า:</span> {{ transactionData.projectData.customerName }}</div>
                      <div class="detail-item"><span>สาขา:</span> {{ transactionData.projectData.branch }}</div>
                      <div class="detail-item"><span>ผู้รับผิดชอบโครงการ:</span> {{ transactionData.projectData.projectManager }}</div>
-                     <div class="detail-item"><span>วันเริ่มโครงการ:</span> {{ transactionData.projectData.startDate }}</div>
-                     <div class="detail-item"><span>วันที่คาดว่าจะแล้วเสร็จ:</span> {{ transactionData.projectData.expectedEndDate }}</div>
                  </div>
              </div>
 
              <div class="project-summary-card">
-                 <div class="summary-item" style="flex: 1; max-width: 300px;">
+                 <div class="summary-item">
+                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
+                         <span class="summary-label">วันเริ่มโครงการ:</span>
+                     </div>
+                     <input
+                         type="text"
+                         v-model="transactionData.adjustedStartDate"
+                         :disabled="props.readOnly"
+                         class="summary-input"
+                         placeholder="DD/MM/YYYY"
+                     />
+                 </div>
+                 <div class="summary-item">
+                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
+                         <span class="summary-label">วันที่คาดว่าจะแล้วเสร็จ:</span>
+                     </div>
+                     <input
+                         type="text"
+                         v-model="transactionData.adjustedExpectedEndDate"
+                         :disabled="props.readOnly"
+                         class="summary-input"
+                         placeholder="DD/MM/YYYY"
+                     />
+                 </div>
+                 <div class="summary-item">
                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
                          <span class="summary-label">มูลค่าโครงการรวม (บาท):</span>
                      </div>
@@ -70,7 +92,7 @@
                          placeholder="ระบุมูลค่าโครงการ"
                      />
                  </div>
-                 <div class="summary-item" style="flex: 2;">
+                 <div class="summary-item">
                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
                          <span class="summary-label">รายการสินค้าหลัก:</span>
                          <button v-if="!props.readOnly" @click="addProduct" class="btn-text-add">+ เพิ่มสินค้า</button>
@@ -251,6 +273,8 @@ const selectProject = (proj) => {
     // Initialize Editable Values
     store.transactionData.adjustedProjectValue = formatNumber(proj.value);
     store.transactionData.adjustedProductList = proj.productList ? [...proj.productList] : [];
+    store.transactionData.adjustedStartDate = proj.startDate || '';
+    store.transactionData.adjustedExpectedEndDate = proj.expectedEndDate || '';
 
     // Auto-fill amount based on project value initially (can be changed by user)
     store.transactionData.amount = String(proj.value);
@@ -266,6 +290,8 @@ const clearProject = () => {
     store.transactionData.projectData = null;
     store.transactionData.adjustedProjectValue = '';
     store.transactionData.adjustedProductList = [];
+    store.transactionData.adjustedStartDate = '';
+    store.transactionData.adjustedExpectedEndDate = '';
     store.transactionData.projectPhasing = [];
     store.transactionData.amount = '';
 };
@@ -483,9 +509,9 @@ const mockFetchProjects = async (query) => {
     border-radius: 8px;
     padding: 15px 20px;
     margin-bottom: 25px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 30px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
 }
 
 .summary-item {
