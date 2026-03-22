@@ -71,7 +71,7 @@
     </div>
 
     <!-- Address Section -->
-    <div class="address-section" :style="{ marginTop: isProjectAddress ? '0px' : '40px' }">
+    <div class="address-verification" :style="{ marginTop: isProjectAddress ? '0px' : '40px' }">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลที่อยู่ร้านค้า/บริษัท</h3>
         <!-- Removed Edit button -->
