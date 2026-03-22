@@ -7,6 +7,7 @@ export const useAuthStore = defineStore('auth', {
     token: null,
     isAuthenticated: false,
     authRequired: true,
+    projectCreditEnabled: false,
   }),
 
   getters: {
@@ -48,6 +49,7 @@ export const useAuthStore = defineStore('auth', {
         if (response.ok) {
           const data = await response.json();
           this.authRequired = data.authRequired;
+          this.projectCreditEnabled = data.projectCreditEnabled;
         }
       } catch (error) {
         console.error('Failed to fetch auth config:', error);

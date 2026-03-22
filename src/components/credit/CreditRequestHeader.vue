@@ -79,13 +79,6 @@
             <div
                class="menu-item"
                :class="{ disabled: !canRequestExisting }"
-               @click="handleMenuSelect('เครดิตโครงการ')"
-            >
-               เครดิตโครงการ
-            </div>
-            <div
-               class="menu-item"
-               :class="{ disabled: !canRequestExisting }"
                @click="handleMenuSelect('เปลี่ยนแปลงระยะเวลาเครดิต')"
             >
                เปลี่ยนแปลงระยะเวลาเครดิต
@@ -96,6 +89,15 @@
                @click="handleMenuSelect('เปลี่ยนแปลงเงื่อนไขการชำระเงิน')"
             >
                เปลี่ยนแปลงเงื่อนไขการชำระเงิน
+            </div>
+            <div class="menu-divider"></div>
+            <div
+               class="menu-item"
+               :class="{ disabled: !canRequestExisting || !projectCreditEnabled }"
+               @click="handleMenuSelect('เครดิตโครงการ')"
+            >
+               เครดิตโครงการ
+               <span v-if="!projectCreditEnabled" class="reason-hint">(ยังไม่เปิดใช้งาน)</span>
             </div>
          </div>
       </div>
@@ -143,6 +145,7 @@ export default {
     const menuContainer = ref(null);
 
     const hasSearched = computed(() => creditStore.hasSearched);
+    const projectCreditEnabled = computed(() => authStore.projectCreditEnabled);
 
     // Logic for Request Types
     const currentLimit = computed(() => {
@@ -160,6 +163,7 @@ export default {
     const handleMenuSelect = (type) => {
         // Validate selection against logic
         if (type === 'เครดิตใหม่' && !canRequestNew.value) return;
+        if (type === 'เครดิตโครงการ' && (!canRequestExisting.value || !projectCreditEnabled.value)) return;
         if (type !== 'เครดิตใหม่' && !canRequestExisting.value) return;
 
         emit('start-request', type);
@@ -190,7 +194,8 @@ export default {
         showMenu,
         menuContainer,
         toggleMenu,
-        handleMenuSelect
+        handleMenuSelect,
+        projectCreditEnabled
     };
   },
   data() {
@@ -199,9 +204,9 @@ export default {
       requestTypeOptions: [
         { label: 'เครดิตใหม่', value: 'เครดิตใหม่' },
         { label: 'เครดิตเพิ่ม', value: 'เครดิตเพิ่ม' },
-        { label: 'เครดิตโครงการ', value: 'เครดิตโครงการ' },
         { label: 'เปลี่ยนแปลงระยะเวลาเครดิต', value: 'เปลี่ยนแปลงระยะเวลาเครดิต' },
-        { label: 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน', value: 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน' }
+        { label: 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน', value: 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน' },
+        { label: 'เครดิตโครงการ', value: 'เครดิตโครงการ' }
       ],
       selectedTypes: ['เครดิตใหม่'],
       searchQuery: '',
@@ -250,8 +255,9 @@ export default {
   },
   methods: {
     isOptionDisabled(option) {
+      if (option.value === 'เครดิตโครงการ' && (!this.canRequestExisting || !this.projectCreditEnabled)) return true;
       if (option.value === 'เครดิตใหม่' && !this.canRequestNew) return true;
-      if (option.value !== 'เครดิตใหม่' && !this.canRequestExisting) return true;
+      if (option.value !== 'เครดิตใหม่' && option.value !== 'เครดิตโครงการ' && !this.canRequestExisting) return true;
       return false;
     },
     handleSelectionChange(newVal) {
