@@ -7,7 +7,9 @@
     <template v-else>
       <div class="project-summary-card">
           <div class="summary-item" style="flex: 1; max-width: 300px;">
-              <span class="summary-label">มูลค่าโครงการรวม (บาท):</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
+                  <span class="summary-label">มูลค่าโครงการรวม (บาท):</span>
+              </div>
               <input
                   type="text"
                   v-model="transactionData.adjustedProjectValue"
@@ -19,7 +21,7 @@
               />
           </div>
           <div class="summary-item" style="flex: 2;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
                   <span class="summary-label">รายการสินค้าหลัก:</span>
                   <button v-if="!props.readOnly" @click="addProduct" class="btn-text-add">+ เพิ่มสินค้า</button>
               </div>
@@ -304,6 +306,8 @@ const currentProjectValueLimit = computed(() => {
     font-size: 13px;
     cursor: pointer;
     font-weight: 500;
+    padding: 0;
+    line-height: 1;
 }
 
 .btn-text-add:hover {
