@@ -510,7 +510,8 @@ exports.analyzeFinancials = async (req, res) => {
       residence_ownership_other,
       model_type, // 'new' or 'existing'
       limit_exponent, // Optional override
-      wadl // Manual override for WADL
+      wadl, // Manual override for WADL
+      tax_id
     } = req.body;
 
     // --- LOCAL FILE HANDLING ---
