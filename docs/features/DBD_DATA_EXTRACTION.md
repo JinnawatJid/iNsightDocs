@@ -9,12 +9,13 @@ The **DBD Data Extraction Feature** enables the Credit Management System to read
 
 ## Architecture
 
-### 1. Excel Parsing Data Flow
+### 1. Data Flow (Excel & PDF Parsing)
 1. **Trigger:** A user (Approver) opens a pending credit request for a corporate customer.
 2. **Status Check:** The UI (`ReviewDashboard.vue`) calls `GET /api/financials/check-local/:customer_no` to determine if the local server has the required DBD documents stored in `/customers/{customer_no}/[DATE]/`.
-3. **Data Request:** When the user clicks "ดูรายละเอียดงบการเงิน" (View Financial Details), the UI calls `GET /api/financials/:customer_no/dbd-data`.
-4. **Backend Parsing:** The `financialController.js` delegates the file reading to `backend/utils/dbdExcelParser.js`. The parser reads the `.xlsx` files into memory buffers and extracts the structured tabular data.
-5. **UI Rendering:** The structured JSON is sent back to the frontend and rendered in `FinancialStatementModal.vue`, utilizing dynamic tabs, color-coded percentage changes, and formatted currency values.
+3. **Data Request (Financial Data):** When the user clicks "ดูรายละเอียดงบการเงิน" (View Financial Details), the UI opens the `FinancialStatementModal.vue` and defaults to the "ข้อมูลนิติบุคคล" (Company Profile) tab. For other tabs (Balance Sheet, Income Statement, Ratios), the UI calls `GET /api/financials/:customer_no/dbd-data`.
+4. **Backend Parsing (Financial Data):** The `financialController.js` delegates the file reading to `backend/utils/dbdExcelParser.js`. The parser reads the `.xlsx` files into memory buffers and extracts the structured tabular data.
+5. **Data Request (Profile PDF):** For the "ข้อมูลนิติบุคคล" tab, the UI calls `GET /api/financials/download-local/:customer_no/profile` to fetch the `DBD_Profile.pdf` file as a blob.
+6. **UI Rendering:** The structured JSON for financial data is rendered in `FinancialStatementModal.vue` using dynamic tabs, color-coded percentage changes, and formatted currency values. The Profile PDF is rendered securely using an object URL in an `iframe` within the same modal.
 
 ### 2. File Parsing Mechanism (`dbdExcelParser.js` & `pdfExtractor.js`)
 #### Excel Parser (`dbdExcelParser.js`)
