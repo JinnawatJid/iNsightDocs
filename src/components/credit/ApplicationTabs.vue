@@ -48,7 +48,14 @@ const tabs = computed(() => {
     'เปลี่ยนแปลงเงื่อนไขการชำระเงิน'
   ].some(t => requestType && requestType.includes(t));
 
-  const requestInfoLabel = (isChangeRequest && props.viewMode === 'focus') ? 'เปลี่ยนแปลงข้อมูลคำขอ' : 'เงื่อนไขและคำขอ';
+  const isProjectCredit = requestType && requestType.includes('เครดิตโครงการ');
+
+  let requestInfoLabel = 'เงื่อนไขและคำขอ';
+  if (isProjectCredit) {
+    requestInfoLabel = 'เงื่อนไขและโครงการ';
+  } else if (isChangeRequest && props.viewMode === 'focus') {
+    requestInfoLabel = 'เปลี่ยนแปลงข้อมูลคำขอ';
+  }
 
   const allTabs = [
     { id: 'requestInfo', label: requestInfoLabel },
@@ -61,6 +68,11 @@ const tabs = computed(() => {
   // If viewMode is 'focus', only show Request Info tab
   if (props.viewMode === 'focus') {
       return [allTabs[0]];
+  }
+
+  // If it's a project credit, the request info is moved to step 2
+  if (isProjectCredit) {
+      return allTabs.filter(tab => tab.id !== 'requestInfo');
   }
 
   return allTabs;
@@ -84,7 +96,8 @@ const currentTabComponent = computed(() => {
     case 'financial':
       return StoreStatementTab;
     default:
-      return RequestInfoTab;
+      // When requestInfo is removed, default to store
+      return StoreCompanyTab;
   }
 });
 </script>

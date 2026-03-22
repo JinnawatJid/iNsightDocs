@@ -2,7 +2,7 @@
   <div class="request-info-tab">
     <!-- Upload Section -->
     <transition name="slide-fade">
-        <div class="upload-section" v-if="isUploadsVisible">
+        <div class="upload-section" v-if="isUploadsVisible && !isProjectCredit">
         <div class="upload-grid">
             <FileUploader
             label="ใบขอเปิดเครดิต"
@@ -27,7 +27,7 @@
 
     <!-- Contact Info Section -->
     <transition name="slide-fade">
-        <div class="personal-info-section" v-if="isContactInfoVisible">
+        <div class="personal-info-section" v-if="isContactInfoVisible && !isProjectCredit">
         <div class="section-header">
             <h3>ตรวจสอบข้อมูลผู้ติดต่อ</h3>
         </div>
@@ -131,7 +131,7 @@
             </div>
 
             <!-- New Split Terms for Draft Mode -->
-            <template v-if="isDraftMode">
+            <template v-if="isDraftMode && !isProjectCredit">
               <div class="form-group">
                 <label>
                     ระยะเวลาเครดิต (กระจก, กาว)
@@ -205,7 +205,7 @@
 
       <!-- Billing Information Section -->
       <transition name="slide-fade">
-      <div class="billing-info-section" v-if="isBillingVisible">
+      <div class="billing-info-section" v-if="isBillingVisible && !isProjectCredit">
 
         <!-- New 3-Column Grid for Requirement, Method, and Schedule -->
         <div class="form-grid-three-columns">
@@ -505,6 +505,7 @@ const isRequestIncrease = computed(() => store.transactionData.requestType && st
 const isChangePayment = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เปลี่ยนแปลงเงื่อนไขการชำระเงิน'));
 const isChangeTerm = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เปลี่ยนแปลงระยะเวลาเครดิต'));
 const isNewRequest = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตใหม่'));
+const isProjectCredit = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตโครงการ'));
 
 const isQuotationRequired = computed(() => {
     return store.transactionData.reason === 'ขออนุมัติเครดิต (มีใบสั่งซื้อแนบมาพร้อม)';
@@ -591,7 +592,10 @@ const errors = computed(() => {
 
 const files = reactive({
   creditApp: null,
-  quotation: null
+  quotation: null,
+  projectContract: null,
+  projectPlan: null,
+  projectSecurity: null
 });
 
 watch(() => store.customer.has_other_credit, (newVal) => {
@@ -614,10 +618,25 @@ watch(() => files.quotation, (newVal) => {
   store.updateFile('quotation_doc', newVal);
 });
 
+watch(() => files.projectContract, (newVal) => {
+  store.updateFile('project_contract_doc', newVal);
+});
+
+watch(() => files.projectPlan, (newVal) => {
+  store.updateFile('project_plan_doc', newVal);
+});
+
+watch(() => files.projectSecurity, (newVal) => {
+  store.updateFile('project_security_doc', newVal);
+});
+
 // Initialize files from store (to support Edit mode or tab switching)
 watch(() => store.files, (newVal) => {
   files.creditApp = newVal?.credit_application_doc || null;
   files.quotation = newVal?.quotation_doc || null;
+  files.projectContract = newVal?.project_contract_doc || null;
+  files.projectPlan = newVal?.project_plan_doc || null;
+  files.projectSecurity = newVal?.project_security_doc || null;
 }, { immediate: true, deep: true });
 
 const reasonOptions = computed(() => {
@@ -675,8 +694,6 @@ const handleAmountInput = (event) => {
     let val = event.target.value;
     val = val.replace(/[^0-9]/g, '');
     // The setter in computed property handles the store update,
-    // but we can ensure clean value in input if needed, though v-model handles it.
-    // Similar to handleCapitalInput pattern in StoreStatementTab
     formattedAmount.value = val;
 };
 
