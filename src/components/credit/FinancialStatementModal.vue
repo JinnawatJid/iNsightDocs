@@ -146,7 +146,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close']);
 
-const currentTab = ref('financialPosition');
+const currentTab = ref('companyProfile');
 const pdfUrl = ref(null);
 const pdfLoading = ref(false);
 const pdfError = ref(null);
@@ -201,7 +201,7 @@ watch(() => props.isOpen, (isOpen) => {
         fetchPdf();
     } else if (!isOpen) {
         // Reset tab to default when closed
-        currentTab.value = 'financialPosition';
+        currentTab.value = 'companyProfile';
     }
 });
 
