@@ -507,11 +507,12 @@ const mockFetchProjects = async (query) => {
 .project-summary-card {
     background-color: #f4f5f7;
     border-radius: 8px;
-    padding: 15px 20px;
+    padding: 20px 25px;
     margin-bottom: 25px;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    row-gap: 25px;
+    column-gap: 30px;
 }
 
 .summary-item {
