@@ -1010,6 +1010,11 @@ const analyzeFinancials = async () => {
       formData.append('customer_no', customerNo);
   }
 
+  const taxId = store.customer?.tax_id || store.customer?.['VAT Registration No_'] || store.customer?.vat_registration_no || '';
+  if (taxId) {
+      formData.append('tax_id', taxId);
+  }
+
   // Determine model_type
   formData.append('model_type', currentModelType.value);
 
