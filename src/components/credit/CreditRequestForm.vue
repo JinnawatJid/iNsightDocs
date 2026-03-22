@@ -9,25 +9,42 @@
     </div>
 
     <div v-if="hasData" :key="store.customer.id" class="form-content-wrapper">
-    <div class="unified-card">
+    <!-- Application Tabs (Customer Info) -->
+    <div class="unified-card" :class="{ 'collapsed-card': isProjectCredit && !isCustomerInfoExpanded }">
       <div class="card-header">
-        <h3>{{ isProjectWizardStep2 ? 'ข้อมูลและเงื่อนไขโครงการ' : 'เอกสารประกอบการพิจารณา' }}</h3>
-        <button
-            v-if="isSpecialRequestType && !isProjectWizardStep2"
-            class="toggle-details-btn"
-            @click="showAllDetails = !showAllDetails"
-        >
-            {{ showAllDetails ? 'ซ่อนข้อมูลทั้งหมด' : 'แสดงข้อมูลทั้งหมด' }}
-        </button>
+        <h3>เอกสารประกอบการพิจารณา</h3>
+        <div class="header-actions">
+            <button
+                v-if="isSpecialRequestType"
+                class="toggle-details-btn"
+                @click="showAllDetails = !showAllDetails"
+            >
+                {{ showAllDetails ? 'ซ่อนข้อมูลทั้งหมด' : 'แสดงข้อมูลทั้งหมด' }}
+            </button>
+            <button
+                v-if="isProjectCredit"
+                class="toggle-details-btn"
+                @click="isCustomerInfoExpanded = !isCustomerInfoExpanded"
+            >
+                {{ isCustomerInfoExpanded ? 'พับข้อมูลลูกค้า' : 'แสดงข้อมูลลูกค้า' }}
+            </button>
+        </div>
       </div>
-      <ProjectApplicationTabs v-if="isProjectWizardStep2" :readOnly="isReadOnly" />
-      <ApplicationTabs v-else :readOnly="isReadOnly" :viewMode="viewMode" />
+      <ApplicationTabs v-show="!isProjectCredit || isCustomerInfoExpanded" :readOnly="isReadOnly" :viewMode="viewMode" />
+    </div>
+
+    <!-- Project Tabs (Project Info) -->
+    <div v-if="isProjectCredit" class="unified-card project-card">
+      <div class="card-header">
+        <h3>ข้อมูลและเงื่อนไขโครงการ</h3>
+      </div>
+      <ProjectApplicationTabs :readOnly="isReadOnly" />
     </div>
 
       <div class="form-footer">
         <!-- Unified Review Section (Terms + Comments) -->
         <CreditReviewSection
-          v-if="( (isProjectWizardStep2 && store.activeProjectTab === 'requestInfo') || (!isProjectWizardStep2 && !isProjectCredit && store.activeTab === 'financial') || viewMode === 'focus')"
+          v-if="( (isProjectCredit && store.activeProjectTab === 'requestInfo') || (!isProjectCredit && store.activeTab === 'financial') || viewMode === 'focus')"
           :readOnly="isReadOnly"
           :showTerms="showTerms"
           :comments="comments"
@@ -40,17 +57,8 @@
         </div>
 
         <div class="action-buttons">
-            <!-- Back Button for Step 2 -->
-            <button
-                v-if="isProjectWizardStep2"
-                class="btn-secondary"
-                @click="isProjectWizardStep2 = false"
-            >
-                ย้อนกลับ
-            </button>
-
-            <!-- Secondary Actions (e.g., Save, Reject) - Only show in relevant step -->
-            <template v-if="!isReadOnly && (!isProjectCredit || isProjectWizardStep2)">
+            <!-- Secondary Actions (e.g., Save, Reject) -->
+            <template v-if="!isReadOnly">
                 <template v-for="(btn, index) in secondaryActions" :key="'sec-'+index">
                     <button
                         :class="getButtonClass(btn.variant)"
@@ -61,7 +69,7 @@
                 </template>
             </template>
 
-            <!-- Next Button (Tab Navigation or Step 1 -> Step 2 transition) -->
+            <!-- Next Button (Tab Navigation) -->
             <button
                 v-if="!isLastTab"
                 class="btn-primary"
@@ -69,20 +77,9 @@
             >
                 ถัดไป
             </button>
-            <button
-                v-else-if="isProjectCredit && !isProjectWizardStep2"
-                class="btn-primary"
-                @click="() => {
-                   isProjectWizardStep2 = true;
-                   store.setActiveProjectTab('projectInfo');
-                   window.scrollTo({ top: 0, behavior: 'smooth' });
-                }"
-            >
-                ถัดไป (ข้อมูลโครงการ)
-            </button>
 
-            <!-- Primary Actions (Submit, Approve) only on last tab / last step -->
-            <template v-if="!isReadOnly && isLastTab && (!isProjectCredit || isProjectWizardStep2)">
+            <!-- Primary Actions (Submit, Approve) only on last tab -->
+            <template v-if="!isReadOnly && isLastTab">
                 <template v-for="(btn, index) in primaryActions" :key="'pri-'+index">
                     <button
                         :class="getButtonClass(btn.variant)"
@@ -134,7 +131,7 @@ const showAllDetails = ref(false);
 const showChangeSummary = ref(false);
 const changesToConfirm = ref([]);
 const pendingActionBtn = ref(null);
-const isProjectWizardStep2 = ref(false);
+const isCustomerInfoExpanded = ref(true); // Control visibility of top section for Project Credits
 
 // Computeds
 const isReadOnly = computed(() => store.isReadOnly);
@@ -163,12 +160,11 @@ const isProjectCredit = computed(() => {
     return type && type.includes('เครดิตโครงการ');
 });
 
-// Auto-reset state if request type changes back to non-project
 watch(isProjectCredit, (newVal) => {
-    if (!newVal) {
-        isProjectWizardStep2.value = false;
-    } else {
-        // When switching to project credit, if activeTab is requestInfo, shift to store to hide the blank tab
+    if (newVal) {
+        // When switching to project credit, ensure the customer info starts expanded
+        isCustomerInfoExpanded.value = true;
+        // if activeTab is requestInfo, shift to store to hide the blank tab
         if (store.activeTab === 'requestInfo') {
             store.setActiveTab('store');
         }
@@ -214,29 +210,26 @@ const primaryActions = computed(() => {
 
 // Tab navigation logic
 const activeTabsList = computed(() => {
-    if (isProjectWizardStep2.value) {
+    if (isProjectCredit.value) {
         return ['projectInfo', 'projectPhasing', 'requestInfo'];
     }
     if (viewMode.value === 'focus') {
         return ['requestInfo'];
     }
 
-    if (isProjectCredit.value) {
-        return ['store', 'general', 'residence', 'financial'];
-    }
     return ['requestInfo', 'store', 'general', 'residence', 'financial'];
 });
 
 const isLastTab = computed(() => {
     if (activeTabsList.value.length === 0) return true;
-    if (isProjectWizardStep2.value) {
+    if (isProjectCredit.value) {
         return store.activeProjectTab === activeTabsList.value[activeTabsList.value.length - 1];
     }
     return store.activeTab === activeTabsList.value[activeTabsList.value.length - 1];
 });
 
 const handleNextTab = () => {
-    if (isProjectWizardStep2.value) {
+    if (isProjectCredit.value) {
         const currentIndex = activeTabsList.value.indexOf(store.activeProjectTab);
         if (currentIndex >= 0 && currentIndex < activeTabsList.value.length - 1) {
             store.setActiveProjectTab(activeTabsList.value[currentIndex + 1]);
@@ -524,6 +517,11 @@ const submitTransaction = async (btn) => {
   margin: 0;
 }
 
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .toggle-details-btn {
   background: none;
   border: 1px solid #0056FF;
@@ -536,6 +534,15 @@ const submitTransaction = async (btn) => {
 
 .toggle-details-btn:hover {
   background-color: #f0f5ff;
+}
+
+.collapsed-card .card-header {
+  margin-bottom: 0; /* Remove bottom margin when collapsed */
+  padding-bottom: 20px;
+}
+
+.project-card {
+  margin-top: 20px; /* Space between unified cards */
 }
 
 /* Icon style reused from previous version */
