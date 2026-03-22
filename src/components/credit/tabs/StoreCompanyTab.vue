@@ -184,7 +184,7 @@
       </div>
 
         <!-- Location Type and Ownership Grid -->
-        <div class="form-grid-four-columns">
+        <div v-if="!isProjectAddress" class="form-grid-four-columns">
             <div class="form-group">
                <label>ลักษณะที่ตั้ง <span v-if="isRequired('store_location_type')" class="text-red-500">*</span></label>
                <select
@@ -563,11 +563,13 @@ watch(() => store.showValidationErrors, (val) => {
         validateField('phone', formData.phone, ['required']);
 
         // New Fields
-        validateField('locationType', formData.locationTypeSelect, ['required']);
-        validateField('propertyOwnership', formData.ownershipSelect, ['required']);
-        validateField('storeValue', formData.storeValue, ['required']);
-        if (formData.ownershipSelect === 'อื่นๆ') {
-          validateField('ownershipOther', formData.ownershipOther, ['required']);
+        if (!props.isProjectAddress) {
+          validateField('locationType', formData.locationTypeSelect, ['required']);
+          validateField('propertyOwnership', formData.ownershipSelect, ['required']);
+          validateField('storeValue', formData.storeValue, ['required']);
+          if (formData.ownershipSelect === 'อื่นๆ') {
+            validateField('ownershipOther', formData.ownershipOther, ['required']);
+          }
         }
     }
 }, { immediate: true });
