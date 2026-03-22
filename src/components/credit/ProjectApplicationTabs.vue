@@ -24,6 +24,7 @@
 <script setup>
 import { computed } from 'vue';
 import ProjectInfoTab from './tabs/ProjectInfoTab.vue';
+import StoreCompanyTab from './tabs/StoreCompanyTab.vue';
 import ProjectPhasingTab from './tabs/ProjectPhasingTab.vue';
 import RequestInfoTab from './tabs/RequestInfoTab.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
@@ -39,6 +40,7 @@ const currentTab = computed({
 const tabs = computed(() => {
   return [
     { id: 'projectInfo', label: 'ข้อมูลและเอกสารโครงการ' },
+    { id: 'projectAddress', label: 'ที่อยู่โครงการ' },
     { id: 'projectPhasing', label: 'รอบเครดิตและการจ่ายเงิน' },
     { id: 'requestInfo', label: 'เงื่อนไขและคำขอ' }
   ];
@@ -53,6 +55,8 @@ const currentTabComponent = computed(() => {
   switch (currentTab.value) {
     case 'projectInfo':
       return ProjectInfoTab;
+    case 'projectAddress':
+      return StoreCompanyTab;
     case 'projectPhasing':
       return ProjectPhasingTab;
     case 'requestInfo':
