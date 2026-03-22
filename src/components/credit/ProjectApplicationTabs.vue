@@ -15,7 +15,7 @@
 
     <div class="tab-content">
       <keep-alive>
-        <component :is="currentTabComponent" :readOnly="readOnly" />
+        <component :is="currentTabComponent" :readOnly="readOnly" :isProjectAddress="currentTab === 'projectAddress'" />
       </keep-alive>
     </div>
   </div>
@@ -39,7 +39,7 @@ const currentTab = computed({
 
 const tabs = computed(() => {
   return [
-    { id: 'projectInfo', label: 'ข้อมูลและเอกสารโครงการ' },
+    { id: 'projectInfo', label: 'ข้อมูลโครงการ' },
     { id: 'projectAddress', label: 'ที่อยู่โครงการ' },
     { id: 'projectPhasing', label: 'รอบเครดิตและการจ่ายเงิน' },
     { id: 'requestInfo', label: 'เงื่อนไขและคำขอ' }

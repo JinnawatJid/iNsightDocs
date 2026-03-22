@@ -1,7 +1,7 @@
 <template>
   <div class="store-company-tab">
     <!-- Conditional Upload Section -->
-    <div class="upload-section">
+    <div v-if="!isProjectAddress" class="upload-section">
       <!-- Company Uploads -->
       <div v-if="isCompany" class="upload-grid">
         <FileUploader
@@ -71,7 +71,7 @@
     </div>
 
     <!-- Address Section -->
-    <div class="address-verification">
+    <div class="address-section" :style="{ marginTop: isProjectAddress ? '0px' : '40px' }">
       <div class="section-header">
         <h3>ตรวจสอบข้อมูลที่อยู่ร้านค้า/บริษัท</h3>
         <!-- Removed Edit button -->
@@ -276,7 +276,10 @@ import { useFormValidation } from '@/composables/useFormValidation';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 import iconImage from '@/assets/icons/image.svg';
 
-const props = defineProps(['readOnly']);
+const props = defineProps({
+  readOnly: { type: Boolean, default: false },
+  isProjectAddress: { type: Boolean, default: false }
+});
 const store = useCreditRequestStore();
 const { errors, validateField } = useFormValidation();
 
