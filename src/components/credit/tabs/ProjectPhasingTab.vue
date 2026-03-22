@@ -117,33 +117,25 @@
         </button>
 
         <div class="analyze-section" v-if="transactionData?.projectPhasing?.length > 0 && !showAnalysis">
-           <button class="btn-primary" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px; border-radius: 8px;" @click="showAnalysis = true">
-               📊 วิเคราะห์และคำนวณรอบส่ง
+           <button class="btn-primary" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px; border-radius: 8px; color: white;" @click="showAnalysis = true">
+               วิเคราะห์และคำนวณรอบส่ง
            </button>
         </div>
 
-        <!-- Keep Total Footer separate to match design's clean table look -->
-        <div class="phasing-footer">
-            <div class="total-label font-bold">รวมมูลค่าตามงวด:</div>
-            <div class="total-amount font-bold">
-                {{ formatNumber(totalPhaseAmount) }} บาท
-                <span
-                  v-if="currentProjectValueLimit > 0"
-                  :class="{
-                    'text-error': totalPhaseAmount > currentProjectValueLimit,
-                  }"
-                  class="summary-note"
-                >
-                  <br>(สูงสุดไม่เกินมูลค่าโครงการ {{ formatNumber(currentProjectValueLimit) }} บาท)
-                </span>
-            </div>
-        </div>
+
       </div>
 
       <!-- Credit Calculation Section -->
       <div v-if="showAnalysis" class="credit-calc-card" style="margin-top: 30px;">
-        <div class="calc-header">
+        <div class="calc-header" style="display: flex; justify-content: space-between; align-items: center;">
           <h3>การวิเคราะห์วงเงินเครดิตโครงการ</h3>
+          <div class="text-right" style="font-size: 14px;">
+            <span class="text-muted">รวมมูลค่าตามงวด:</span>
+            <span class="font-bold ml-2" style="font-size: 16px;">{{ formatNumber(totalPhaseAmount) }} บาท</span>
+            <span v-if="currentProjectValueLimit > 0" :class="{'text-error': totalPhaseAmount > currentProjectValueLimit}" class="summary-note">
+               (สูงสุดไม่เกินมูลค่าโครงการ {{ formatNumber(currentProjectValueLimit) }} บาท)
+            </span>
+          </div>
         </div>
         <div class="calc-body">
           <div class="calc-item">
@@ -850,4 +842,5 @@ watch(requestedCreditAmount, (newVal) => {
   align-items: center;
   gap: 10px;
 }
+.ml-2 { margin-left: 8px; }
 </style>
