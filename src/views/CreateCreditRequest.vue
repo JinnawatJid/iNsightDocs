@@ -180,13 +180,7 @@ watch(
     if (newVal) {
       Swal.fire({
         icon: 'error',
-        title: 'แจ้งเตือน: ลูกค้ารายนี้อยู่ในบัญชี Blacklist',
-        html: `
-          <div style="text-align: left; font-size: 14px; margin-top: 10px;">
-             <p><strong>สถานะ:</strong> <span style="color: red;">${newVal.status || 'N/A'}</span></p>
-             <p><strong>หมายเหตุ:</strong> ${newVal.remark || '-'}</p>
-          </div>
-        `,
+        title: 'แจ้งเตือน: ลูกค้ารายนี้อยู่ในบัญชี NPL',
         showCancelButton: true,
         confirmButtonText: 'ดำเนินการต่อ',
         cancelButtonText: 'ยกเลิก',

@@ -71,7 +71,7 @@
       <div v-if="financial.is_blacklisted" class="blacklist-warning-panel">
           <div class="warning-icon">⚠️</div>
           <div class="warning-text">
-              คำเตือน: ลูกค้ารายนี้อยู่ในบัญชี Blacklist โปรดพิจารณาอย่างรอบคอบ
+              คำเตือน: ลูกค้ารายนี้อยู่ในบัญชี NPL โปรดพิจารณาอย่างรอบคอบ
           </div>
       </div>
 
