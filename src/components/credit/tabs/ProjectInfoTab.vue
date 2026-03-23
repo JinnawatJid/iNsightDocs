@@ -21,7 +21,6 @@
           </div>
           <div class="search-hint">พิมพ์ชื่อ/รหัสโครงการ หรือกดปุ่ม "ค้นหา" ทันทีเพื่อดูโครงการทั้งหมด</div>
 
-          <!-- Project Results Dropdown -->
           <div v-if="projectSearchResults.length > 0" class="project-results">
               <div
                   v-for="proj in projectSearchResults"
@@ -36,7 +35,6 @@
           <div v-if="projectSearchMsg" class="project-search-msg">{{ projectSearchMsg }}</div>
         </div>
 
-        <!-- Selected Project Details -->
         <template v-if="transactionData.projectData">
              <div class="form-group full-width selected-project-card">
                  <div class="card-header">
@@ -115,7 +113,6 @@
                  </div>
              </div>
 
-             <!-- Project Specific Uploads -->
              <div class="form-group full-width" style="margin-top: 20px;">
                 <div class="upload-grid">
                     <FileUploader
@@ -125,7 +122,6 @@
                         :disabled="props.readOnly"
                         multiple
                     />
-                    <!--
                     <FileUploader
                         label="แผนการรับสินค้า"
                         required

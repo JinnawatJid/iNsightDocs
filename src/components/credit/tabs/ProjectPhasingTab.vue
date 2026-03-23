@@ -143,7 +143,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
-import { Line, Bar, Chart as VueChart } from 'vue-chartjs';
+import { Line, Chart as VueChart } from 'vue-chartjs';
 import {
   Chart as ChartJS,
   Title,
@@ -368,7 +368,18 @@ const chartData = computed(() => {
   const minTime = exposureData.length > 0 ? exposureData[0].x : 0;
   const maxTime = exposureData.length > 0 ? exposureData[exposureData.length - 1].x : 0;
 
-  const limitData = [];
+
+  // Add initial zero point to create a vertical jump from 0 at the start of the first phase
+  if (exposureData.length > 0) {
+      const firstEvent = exposureData[0];
+      exposureData.unshift({
+          x: firstEvent.x,
+          y: 0,
+          labels: ['เริ่มต้นโครงการ', 'ยอดหนี้ 0 บาท']
+      });
+  }
+
+const limitData = [];
   if (exposureData.length > 0) {
       // Add two points to draw a horizontal line across the entire timeframe
       limitData.push({ x: minTime, y: currentCreditLimit.value });
