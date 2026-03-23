@@ -2,6 +2,7 @@
   <div class="store-statement-tab">
     <!-- Guarantee Docs Section (Moved from Request Info) -->
     <div class="upload-grid-small">
+
         <FileUploader
           label="Bank Guarantee"
           v-model="files.bankGuarantee"
@@ -14,6 +15,87 @@
           :disabled="!isEditing"
           multiple
         />
+=======
+        <div class="guarantee-section">
+          <FileUploader
+            label="Bank Guarantee"
+            v-model="files.bankGuarantee"
+            :disabled="!isEditing"
+            multiple
+          />
+
+          <div v-if="files.bankGuarantee && files.bankGuarantee.length > 0" class="guarantee-details mt-2">
+             <div v-for="(file, index) in files.bankGuarantee" :key="index" class="guarantee-detail-card mb-2">
+                <div class="guarantee-file-name text-primary text-sm mb-1 font-semibold truncate" :title="file.name">
+                    {{ file.name }}
+                </div>
+                <div class="guarantee-inputs row g-2">
+                    <div class="col-6">
+                        <label class="text-xs text-muted mb-1">จำนวนเงิน</label>
+                        <input
+                            type="text"
+                            class="form-control form-control-sm"
+                            placeholder="เช่น 1,000,000"
+                            :value="getGuaranteeDetail('bankGuaranteeDetails', file.name, 'amount')"
+                            @input="(e) => updateGuaranteeDetail('bankGuaranteeDetails', file.name, 'amount', e.target.value)"
+                            :disabled="!isEditing"
+                        />
+                    </div>
+                    <div class="col-6">
+                        <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
+                        <input
+                            type="date"
+                            class="form-control form-control-sm"
+                            :value="getGuaranteeDetail('bankGuaranteeDetails', file.name, 'expiryDate')"
+                            @input="(e) => updateGuaranteeDetail('bankGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
+                            :disabled="!isEditing"
+                        />
+                    </div>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        <div class="guarantee-section">
+          <FileUploader
+            label="เอกสารค้ำประกัน"
+            v-model="files.letterGuarantee"
+            :disabled="!isEditing"
+            multiple
+          />
+
+          <div v-if="files.letterGuarantee && files.letterGuarantee.length > 0" class="guarantee-details mt-2">
+             <div v-for="(file, index) in files.letterGuarantee" :key="index" class="guarantee-detail-card mb-2">
+                <div class="guarantee-file-name text-primary text-sm mb-1 font-semibold truncate" :title="file.name">
+                    {{ file.name }}
+                </div>
+                <div class="guarantee-inputs row g-2">
+                    <div class="col-6">
+                        <label class="text-xs text-muted mb-1">จำนวนเงิน</label>
+                        <input
+                            type="text"
+                            class="form-control form-control-sm"
+                            placeholder="เช่น 500,000"
+                            :value="getGuaranteeDetail('letterGuaranteeDetails', file.name, 'amount')"
+                            @input="(e) => updateGuaranteeDetail('letterGuaranteeDetails', file.name, 'amount', e.target.value)"
+                            :disabled="!isEditing"
+                        />
+                    </div>
+                    <div class="col-6">
+                        <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
+                        <input
+                            type="date"
+                            class="form-control form-control-sm"
+                            :value="getGuaranteeDetail('letterGuaranteeDetails', file.name, 'expiryDate')"
+                            @input="(e) => updateGuaranteeDetail('letterGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
+                            :disabled="!isEditing"
+                        />
+                    </div>
+                </div>
+             </div>
+          </div>
+        </div>
+>>>>>>> pr-614
     </div>
 
     <!-- Main Upload Section -->
@@ -534,6 +616,22 @@ watch(() => files.profitLoss, (v) => store.updateFile('profit_loss_doc', v));
 watch(() => files.financialRatios, (v) => store.updateFile('financial_ratios_doc', v));
 watch(() => files.companyProfile, (v) => store.updateFile('company_profile_doc', v));
 
+// Helper to manage guarantee details in the store
+const getGuaranteeDetail = (storeKey, fileName, field) => {
+    if (!store.transactionData[storeKey]) return '';
+    if (!store.transactionData[storeKey][fileName]) return '';
+    return store.transactionData[storeKey][fileName][field] || '';
+};
+
+const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
+    if (!store.transactionData[storeKey]) {
+        store.transactionData[storeKey] = {};
+    }
+    if (!store.transactionData[storeKey][fileName]) {
+        store.transactionData[storeKey][fileName] = {};
+    }
+    store.transactionData[storeKey][fileName][field] = value;
+};
 // Initialize files from store
 watch(() => store.files, (newVal) => {
   files.bankGuarantee = newVal?.bank_guarantee_doc || [];
@@ -1670,5 +1768,23 @@ const shouldShowFinancialAnalysis = computed(() => {
   font-size: 0.8em;
   margin-top: 4px;
   display: block;
+}
+
+.guarantee-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.guarantee-detail-card {
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 10px;
+}
+
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 </style>

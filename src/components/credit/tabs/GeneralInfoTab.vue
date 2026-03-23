@@ -160,6 +160,7 @@
       </div>
     </div>
 
+
     <!-- Tungnam Relationship Section -->
     <div class="personal-info-section">
       <div class="section-separator"></div>
@@ -485,6 +486,7 @@ function toggleEdit() {
   isEditing.value = !isEditing.value;
 }
 
+
 // Tungnam Relationship Logic
 const searchQuery = ref('');
 const suggestions = ref([]);
@@ -695,6 +697,7 @@ watch(() => store.showValidationErrors, (val) => {
   gap: 15px;
   margin-top: 15px;
 }
+
 
 /* Section Separator */
 .section-separator {
