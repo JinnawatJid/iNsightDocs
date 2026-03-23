@@ -1287,7 +1287,11 @@ exports.updateCustomer = async (req, res) => {
     'payment_condition',
     'payment_bank_name',
     'payment_bank_branch',
-    'payment_account_no'
+    'payment_account_no',
+    // Tungnam Relationship
+    'has_tungnam_relationship',
+    'tungnam_relationship_customer_id',
+    'tungnam_relationship_note'
   ];
 
   const keysToUpdate = Object.keys(updates).filter(key => allowedColumns.includes(key));

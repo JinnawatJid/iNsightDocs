@@ -724,6 +724,12 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         });
       }
 
+      if (this.customer.has_tungnam_relationship === "yes") {
+        if (!this.customer.tungnam_relationship_customer_id) {
+          missingFields.push("tungnam_relationship_customer_id");
+        }
+      }
+
       // Project specific validations
       if (isSubmit && isProject) {
           if (!this.transactionData.projectId) {
@@ -826,6 +832,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         registered_capital: "",
         years_in_business: "",
         customer_since: "",
+        has_tungnam_relationship: "",
+        tungnam_relationship_customer_id: "",
+        tungnam_relationship_note: "",
       };
       this.originalCustomer = {};
       this.history = [];
@@ -862,6 +871,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         registered_capital: "",
         years_in_business: "",
         customer_since: "",
+        has_tungnam_relationship: "",
+        tungnam_relationship_customer_id: "",
+        tungnam_relationship_note: "",
       };
       this.originalCustomer = {};
       this.history = [];

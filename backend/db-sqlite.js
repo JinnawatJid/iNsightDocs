@@ -193,7 +193,10 @@ const initDB = async () => {
             'term_gs',
             'term_ae',
             'term_yc',
-            'status_code'
+            'status_code',
+            'has_tungnam_relationship',
+            'tungnam_relationship_customer_id',
+            'tungnam_relationship_note'
         ];
 
         for (const col of coordinateColumns) {
