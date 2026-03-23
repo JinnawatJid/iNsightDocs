@@ -301,8 +301,6 @@ watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
 
-
-
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
 }
@@ -431,7 +429,6 @@ watch(() => store.customer, (newVal, oldVal) => {
     if (formData.yearsInBusiness !== newVal.years_in_business) formData.yearsInBusiness = newVal.years_in_business || '';
   }
 }, { immediate: true, deep: true });
-
 
 // Sync changes locally to store on change
 watch(formData, (newVal) => {
@@ -687,7 +684,6 @@ watch(() => store.showValidationErrors, (val) => {
 }
 
 /* Ensure disabled style is consistent */
-
 
 .grid-three-col {
   display: grid;
