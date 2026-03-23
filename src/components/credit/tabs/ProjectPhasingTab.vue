@@ -124,13 +124,13 @@
              <label style="font-size: 14px; color: #555;">รูปแบบกราฟ (Chart Type):</label>
              <select v-model="chartType" class="table-input" style="width: auto; padding: 4px 8px;">
                <option value="stepped">Stepped Line (Industry Standard)</option>
-               <option value="bar">Histogram (Bar Chart)</option>
+               <option value="bar">Histogram (Area Chart)</option>
              </select>
            </div>
         </div>
         <!-- Chart Section -->
         <div class="chart-container" :style="{ position: 'relative', height: '400px', padding: '20px', 'border-top': !chartData ? '1px solid #eee' : 'none' }">
-            <VueChart v-if="chartData" :type="chartType === 'bar' ? 'bar' : 'line'" :data="chartData" :options="chartOptions" />
+            <VueChart v-if="chartData" type="line" :data="chartData" :options="chartOptions" />
             <div v-else class="text-center text-muted" style="padding: 20px;">
                 ไม่มีข้อมูลเพียงพอสำหรับสร้างกราฟ กรุณาระบุวันที่และจำนวนเงินให้ครบถ้วน
             </div>
@@ -377,21 +377,21 @@ const chartData = computed(() => {
 
   const isBar = chartType.value === 'bar';
 
+  // For the 'Histogram' view, we want a solid area without a thick border or points,
+  // making it look like contiguous rectangular blocks (a continuous bar chart / area chart)
   return {
     datasets: [
       {
-        type: isBar ? 'bar' : 'line',
+        type: 'line',
         label: 'ยอดหนี้สะสม (Exposure)',
         data: exposureData,
-        borderColor: '#0056FF',
-        backgroundColor: isBar ? '#0056FF' : 'rgba(0, 86, 255, 0.1)',
-        borderWidth: 2,
-        stepped: isBar ? false : 'after',
-        fill: !isBar,
+        borderColor: isBar ? 'transparent' : '#0056FF',
+        backgroundColor: isBar ? 'rgba(0, 86, 255, 0.8)' : 'rgba(0, 86, 255, 0.1)',
+        borderWidth: isBar ? 0 : 2,
+        stepped: 'after',
+        fill: true,
         pointBackgroundColor: '#0056FF',
         pointRadius: isBar ? 0 : 4,
-        barPercentage: 1.0,
-        categoryPercentage: 1.0,
         order: 2
       },
       {
