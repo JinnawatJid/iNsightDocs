@@ -1653,6 +1653,23 @@ const extractFinancialData = (item, key, prop = 'displayValue') => {
 const exportFullDetailReport = () => {
    closeExportDropdown();
 
+   // Find the correct month labels from the first valid customer
+   let globalMonthLabels = ['Month 1', 'Month 2', 'Month 3', 'Month 4', 'Month 5', 'Month 6'];
+   const validItem = queue.value.find(item =>
+       item.analysisResult?.financialSummary?.monthlyHistory &&
+       item.analysisResult.financialSummary.monthlyHistory.length >= 7
+   );
+
+   if (validItem) {
+       const validHistory = validItem.analysisResult.financialSummary.monthlyHistory.slice(1, 7);
+       const exportMonths = [...validHistory].reverse();
+       for (let i = 0; i < 6; i++) {
+           if (exportMonths[i] && exportMonths[i].label) {
+               globalMonthLabels[i] = exportMonths[i].label;
+           }
+       }
+   }
+
    const data = queue.value.map(item => {
       const branchCode = item.customerId && item.customerId.length > 2
           ? item.customerId.slice(-2)
@@ -1731,7 +1748,7 @@ const exportFullDetailReport = () => {
 
       for (let i = 0; i < 6; i++) {
           const m = exportMonths[i];
-          const label = m ? m.label : `Month ${i+1}`;
+          const label = globalMonthLabels[i];
           const val = m ? (Number(m.amount) || 0) : 0;
           row[label] = val;
       }
