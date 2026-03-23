@@ -20,7 +20,7 @@
             <div class="value terms-amount">{{ formatTerms(store.transactionData) }}</div>
         </div>
         <div class="deal-item">
-            <label>เหตุผล/วัตถุประสงค์</label>
+            <label>ที่มาของเครดิต</label>
             <div class="value reason-text">{{ store.transactionData.reason || '-' }}</div>
         </div>
         <div class="deal-item">
