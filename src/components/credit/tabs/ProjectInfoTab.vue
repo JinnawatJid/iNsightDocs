@@ -125,6 +125,7 @@
                         :disabled="props.readOnly"
                         multiple
                     />
+                    <!--
                     <FileUploader
                         label="แผนการรับสินค้า"
                         required
@@ -132,6 +133,7 @@
                         :disabled="props.readOnly"
                         multiple
                     />
+                    -->
                     <FileUploader
                         label="ใบเสนอราคาจากตังน้ำ"
                         required
