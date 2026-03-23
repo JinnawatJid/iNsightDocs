@@ -105,8 +105,11 @@ exports.downloadCreditRequestFile = async (req, res) => {
 
         const mimeType = mime.lookup(filePath) || 'application/octet-stream';
         res.setHeader('Content-Type', mimeType);
+
+        // Use the actual physical file name for downloads instead of the short original name
+        const physicalFilename = path.basename(filePath);
         // Use filename*=UTF-8''... for better browser support of non-ASCII characters
-        const encodedFilename = encodeURIComponent(fileRecord.original_name);
+        const encodedFilename = encodeURIComponent(physicalFilename);
 
         // Check if the client requested inline viewing (e.g. for native PDF/Image preview in browser)
         const disposition = req.query.inline === 'true' ? 'inline' : 'attachment';
@@ -372,7 +375,29 @@ exports.createCreditRequest = async (req, res) => {
                 console.error('Error fixing encoding for fieldname:', file.fieldname, e);
             }
 
-            const finalPath = path.join(targetDir, file.originalname);
+            // Generate secure contextual file name: [Customer_No]_[Original_Name_Without_Ext]_[YYYYMMDD_HHMMSS]_[Milliseconds].[Ext]
+            const parsedName = path.parse(file.originalname);
+            const originalNameWithoutExt = parsedName.name;
+            const ext = parsedName.ext;
+
+            // Format timestamp (YYYYMMDD_HHMMSS_SSS)
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
+            const ms = String(now.getMilliseconds()).padStart(3, '0');
+            const timestamp = `${yyyy}${mm}${dd}_${hh}${min}${ss}_${ms}`;
+
+            // Replace spaces with underscores and remove any problematic characters from the original name (optional but good practice)
+            // But we'll mostly leave it alone to preserve the original as requested, just appending the rest.
+            const safeOriginalName = originalNameWithoutExt.replace(/[\/:*?"<>|]/g, '_');
+
+            const secureFileName = `${customer_no}_${safeOriginalName}_${timestamp}${ext}`;
+
+            const finalPath = path.join(targetDir, secureFileName);
             await fs.move(file.path, finalPath, { overwrite: true });
 
             // Store relative path in DB (e.g., 00001AY/TXID/file.pdf)
