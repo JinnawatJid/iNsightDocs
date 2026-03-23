@@ -159,16 +159,132 @@
           </div>
       </div>
     </div>
+
+    <!-- Tungnam Relationship Section -->
+    <div class="personal-info-section">
+      <div class="section-separator"></div>
+      <div class="section-header">
+        <h3>ความสัมพันธ์กับลูกค้ารายอื่นของตังน้ำ <span v-if="isRequired('has_tungnam_relationship')" class="text-red-500">*</span></h3>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 20px;">
+        <div class="radio-group-horizontal">
+            <label class="radio-label">
+              <input
+                type="radio"
+                value="yes"
+                v-model="store.customer.has_tungnam_relationship" :data-empty="!store.customer.has_tungnam_relationship"
+                :disabled="!isEditing"
+                @change="handleTungnamRelationshipChange"
+              >
+              มี
+            </label>
+            <label class="radio-label">
+              <input
+                type="radio"
+                value="no"
+                v-model="store.customer.has_tungnam_relationship" :data-empty="!store.customer.has_tungnam_relationship"
+                :disabled="!isEditing"
+                @change="handleTungnamRelationshipChange"
+              >
+              ไม่มี
+            </label>
+        </div>
+        <span v-if="localErrors.has_tungnam_relationship" class="error-text">กรุณาระบุข้อมูล</span>
+      </div>
+
+      <div v-if="store.customer.has_tungnam_relationship === 'yes'" class="tungnam-relationship-container">
+        <!-- Search Input like CreditRequestHeader -->
+        <div class="search-section">
+            <label>รหัสลูกค้าหรือชื่อ <span class="text-red-500">*</span></label>
+            <div class="search-group" ref="searchContainer">
+                <div class="search-icon">
+                   <img src="@/assets/icons/search-bi.svg" alt="Search" width="16" height="16" />
+                </div>
+                <input
+                  type="text"
+                  class="form-input search-input-field"
+                  :class="{ 'border-red-500': localErrors.tungnam_relationship_customer_id, 'disabled': !isEditing }"
+                  placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ"
+                  v-model="searchQuery"
+                  @input="onInput"
+                  @focus="onFocus"
+                  @keyup.enter="performSearch"
+                  :disabled="!isEditing"
+                />
+                <button class="btn-search" @click="performSearch" :disabled="!isEditing">ค้นหา</button>
+
+                <!-- Dropdown Suggestions -->
+                <div v-if="showDropdown" class="suggestions-dropdown">
+                   <div v-if="suggestions.length === 0" class="no-results">
+                     ไม่พบข้อมูลลูกค้า
+                   </div>
+                   <div
+                     v-else
+                     v-for="item in suggestions"
+                     :key="item.id"
+                     class="suggestion-item"
+                     @click="selectSuggestion(item)"
+                   >
+                     {{ getDisplayText(item) }}
+                   </div>
+                </div>
+            </div>
+            <span v-if="localErrors.tungnam_relationship_customer_id" class="error-text">กรุณาระบุข้อมูล</span>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="summary-section" v-if="summaryData">
+            <h4 class="summary-title">ข้อมูลสรุป ({{ summaryData.name }})</h4>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <span class="summary-label">วงเงินเครดิต</span>
+                    <span class="summary-value">{{ formatCurrency(summaryData.creditLimit) }} บาท</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">ระยะเวลาเครดิต</span>
+                    <span class="summary-value">{{ summaryData.paymentTerms }}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">เงื่อนไขการชำระเงิน</span>
+                    <span class="summary-value">{{ summaryData.paymentMethod || '-' }} {{ summaryData.paymentCondition ? `(${summaryData.paymentCondition})` : '' }}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">เงื่อนไขการวางบิล/รับเช็ค</span>
+                    <span class="summary-value">{{ summaryData.billingSchedule || '-' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input field for explicit relationship description -->
+        <div class="form-group" style="margin-top: 15px;">
+           <label>ความสัมพันธ์ <span class="text-red-500">*</span></label>
+           <input
+              type="text"
+              class="form-input"
+              :class="{ 'border-red-500': localErrors.tungnam_relationship_note, 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              v-model="store.customer.tungnam_relationship_note" :data-empty="!store.customer.tungnam_relationship_note"
+              placeholder="ระบุความสัมพันธ์"
+              @blur="saveTungnamRelationship"
+            />
+            <span v-if="localErrors.tungnam_relationship_note" class="error-text">กรุณาระบุข้อมูล</span>
+        </div>
+
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, watch, ref } from 'vue';
+import { reactive, watch, ref, computed, onMounted, onUnmounted } from 'vue';
+import debounce from 'lodash/debounce';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import OtherDocumentsSection from '../OtherDocumentsSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
+import CustomerService from '@/services/CustomerService';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
@@ -363,6 +479,151 @@ function toggleEdit() {
   isEditing.value = !isEditing.value;
 }
 
+// Tungnam Relationship Logic
+const searchQuery = ref('');
+const suggestions = ref([]);
+const showDropdown = ref(false);
+const summaryData = ref(null);
+const searchContainer = ref(null);
+
+const localErrors = computed(() => {
+    if (!store.showValidationErrors) return {};
+
+    const e = {};
+    if (!store.customer.has_tungnam_relationship) e.has_tungnam_relationship = true;
+
+    if (store.customer.has_tungnam_relationship === 'yes') {
+        if (!store.customer.tungnam_relationship_customer_id) e.tungnam_relationship_customer_id = true;
+        // Optionally require a note describing the relationship
+        if (!store.customer.tungnam_relationship_note) e.tungnam_relationship_note = true;
+    }
+
+    return e;
+});
+
+function handleTungnamRelationshipChange() {
+    if (store.customer.has_tungnam_relationship === 'no') {
+        store.customer.tungnam_relationship_customer_id = '';
+        store.customer.tungnam_relationship_note = '';
+        searchQuery.value = '';
+        summaryData.value = null;
+    }
+    saveTungnamRelationship();
+}
+
+function saveTungnamRelationship() {
+    store.updateCustomerData({
+        has_tungnam_relationship: store.customer.has_tungnam_relationship,
+        tungnam_relationship_customer_id: store.customer.tungnam_relationship_customer_id,
+        tungnam_relationship_note: store.customer.tungnam_relationship_note
+    });
+}
+
+const fetchSuggestions = async () => {
+    if (!searchQuery.value) return;
+    const results = await CustomerService.getSuggestions(searchQuery.value);
+    suggestions.value = results;
+    showDropdown.value = true;
+};
+
+const debouncedFetchSuggestions = debounce(fetchSuggestions, 300);
+
+function onInput() {
+    if (searchQuery.value.length >= 3) {
+        debouncedFetchSuggestions();
+    } else {
+        showDropdown.value = false;
+        suggestions.value = [];
+    }
+}
+
+function onFocus() {
+    if (searchQuery.value.length >= 3) {
+        fetchSuggestions();
+    }
+}
+
+function getDisplayText(item) {
+    const q = searchQuery.value.toLowerCase().replace(/[- ]/g, '');
+    const normalize = (val) => val ? val.replace(/[- ]/g, '') : '';
+    const phone = normalize(item.phone);
+    const mobile = normalize(item.mobile);
+    const vatNo = normalize(item.vatNo);
+
+    if (vatNo.includes(q) && vatNo !== '') return `${item.vatNo} - ${item.name}`;
+    if (phone.includes(q) || mobile.includes(q)) {
+        let displayPhone = item.phone || item.mobile;
+        return `${displayPhone} - ${item.name}`;
+    }
+    if (item.id.toLowerCase().includes(searchQuery.value.toLowerCase())) {
+        return `${item.id} - ${item.name}`;
+    }
+    return `${item.name} - ${item.id}`;
+}
+
+async function selectSuggestion(item) {
+    searchQuery.value = item.id;
+    showDropdown.value = false;
+    await performSearch();
+}
+
+async function performSearch() {
+    showDropdown.value = false;
+    if (!searchQuery.value) return;
+
+    try {
+        const results = await CustomerService.searchCustomers(searchQuery.value);
+        if (results && results.length > 0) {
+            const customer = results[0];
+            store.customer.tungnam_relationship_customer_id = customer.customer.id;
+
+            // Populate summary data
+            summaryData.value = {
+                name: customer.customer.name,
+                creditLimit: customer.customer.current_credit_limit || 0,
+                paymentTerms: customer.customer.payment_terms_code || '-',
+                paymentMethod: customer.customer.payment_method,
+                paymentCondition: customer.customer.payment_condition,
+                billingSchedule: customer.customer.billing_schedule
+            };
+
+            saveTungnamRelationship();
+        } else {
+            summaryData.value = null;
+        }
+    } catch (error) {
+        console.error("Failed to fetch customer details for Tungnam relationship", error);
+        summaryData.value = null;
+    }
+}
+
+function formatCurrency(value) {
+    if (!value) return '0';
+    return Number(value).toLocaleString('en-US');
+}
+
+function handleClickOutsideSearch(event) {
+    if (searchContainer.value && !searchContainer.value.contains(event.target)) {
+        showDropdown.value = false;
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutsideSearch);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutsideSearch);
+});
+
+// Watch to load existing relationship on load
+watch(() => store.customer, async (newVal) => {
+    if (newVal && newVal.has_tungnam_relationship === 'yes' && newVal.tungnam_relationship_customer_id && !summaryData.value) {
+        searchQuery.value = newVal.tungnam_relationship_customer_id;
+        await performSearch();
+    }
+}, { immediate: true, deep: true });
+
 // Validation Watcher (Moved to end)
 watch(() => store.showValidationErrors, (val) => {
     if (val) {
@@ -427,5 +688,156 @@ watch(() => store.showValidationErrors, (val) => {
   grid-template-columns: 1fr 1fr 1fr;
   gap: 15px;
   margin-top: 15px;
+}
+
+/* Radio Group Styles (from RequestInfoTab) */
+.radio-group-horizontal {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #333;
+}
+
+.radio-label input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.radio-label input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+
+/* Search Component Styles */
+.search-section {
+    position: relative;
+    max-width: 400px;
+    margin-bottom: 20px;
+}
+
+.search-group {
+    display: flex;
+    align-items: center;
+    position: relative;
+    margin-top: 8px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 10px;
+    color: #888;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-field {
+    padding-left: 35px !important;
+    width: 100%;
+    margin-right: 10px;
+}
+
+.btn-search {
+    padding: 10px 16px;
+    background-color: #0056FF;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.btn-search:hover {
+    background-color: #0046cc;
+}
+
+.btn-search:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Dropdown Styles */
+.suggestions-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: calc(100% - 65px); /* Match input width approx */
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    z-index: 1000;
+    max-height: 250px;
+    overflow-y: auto;
+    margin-top: 2px;
+}
+
+.suggestion-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background-color: #f5f5f5;
+}
+
+.no-results {
+    padding: 15px;
+    color: #888;
+    text-align: center;
+    font-style: italic;
+}
+
+/* Summary Section Styles */
+.summary-section {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.summary-title {
+    margin-top: 0;
+    margin-bottom: 12px;
+    color: #334155;
+    font-size: 1.1rem;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.summary-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.summary-value {
+    font-weight: 500;
+    color: #0f172a;
 }
 </style>
