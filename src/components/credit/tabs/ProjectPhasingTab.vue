@@ -118,9 +118,19 @@
         <div v-if="requestedCreditAmount > 0" class="alert-banner">
           ⚠️ วงเงินไม่เพียงพอสำหรับรอบการส่งมอบที่ซ้อนทับกัน ระบบได้คำนวณยอดขออนุมัติเพิ่มให้โดยอัตโนมัติ
         </div>
+        <!-- Chart Control Section -->
+        <div class="chart-controls" v-if="chartData" style="display: flex; justify-content: flex-end; padding: 15px 20px 0; border-top: 1px solid #eee;">
+           <div style="display: flex; gap: 10px; align-items: center;">
+             <label style="font-size: 14px; color: #555;">รูปแบบกราฟ (Chart Type):</label>
+             <select v-model="chartType" class="table-input" style="width: auto; padding: 4px 8px;">
+               <option value="stepped">Stepped Line (Industry Standard)</option>
+               <option value="bar">Histogram (Area Chart)</option>
+             </select>
+           </div>
+        </div>
         <!-- Chart Section -->
-        <div class="chart-container" style="position: relative; height: 400px; padding: 20px; border-top: 1px solid #eee;">
-            <Line v-if="chartData" :data="chartData" :options="chartOptions" />
+        <div class="chart-container" :style="{ position: 'relative', height: '400px', padding: '20px', 'border-top': !chartData ? '1px solid #eee' : 'none' }">
+            <VueChart v-if="chartData" type="line" :data="chartData" :options="chartOptions" />
             <div v-else class="text-center text-muted" style="padding: 20px;">
                 ไม่มีข้อมูลเพียงพอสำหรับสร้างกราฟ กรุณาระบุวันที่และจำนวนเงินให้ครบถ้วน
             </div>
@@ -133,13 +143,14 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
-import { Line } from 'vue-chartjs';
+import { Line, Bar, Chart as VueChart } from 'vue-chartjs';
 import {
   Chart as ChartJS,
   Title,
   Tooltip,
   Legend,
   BarElement,
+  BarController,
   CategoryScale,
   LinearScale,
   LineElement,
@@ -152,6 +163,7 @@ ChartJS.register(
   Tooltip,
   Legend,
   BarElement,
+  BarController,
   CategoryScale,
   LinearScale,
   LineElement,
@@ -160,6 +172,7 @@ ChartJS.register(
 );
 
 const showAnalysis = ref(false);
+const chartType = ref('stepped');
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
@@ -322,16 +335,19 @@ const chartData = computed(() => {
   const groupedEvents = [];
   validEvents.forEach(ev => {
     const dateObj = new Date(ev.time);
+    // Remove time components for exact day comparison
+    const dayStart = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()).getTime();
+
     const labelDate = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
     const actionLabel = ev.type === 'add' ? `(เบิกรอบ ${ev.phase})` : `(รับเงินรอบ ${ev.phase})`;
 
     const lastGroup = groupedEvents.length > 0 ? groupedEvents[groupedEvents.length - 1] : null;
-    if (lastGroup && lastGroup.date === labelDate) {
+    if (lastGroup && lastGroup.time === dayStart) {
         // Aggregate on the same day
         lastGroup.events.push({ type: ev.type, amount: ev.amount, label: actionLabel });
     } else {
         // New day
-        groupedEvents.push({ date: labelDate, events: [{ type: ev.type, amount: ev.amount, label: actionLabel }] });
+        groupedEvents.push({ time: dayStart, date: labelDate, events: [{ type: ev.type, amount: ev.amount, label: actionLabel }] });
     }
   });
 
@@ -343,30 +359,45 @@ const chartData = computed(() => {
          dayActionLabels.push(ev.label);
      });
      // Use the aggregated action labels for the day
+     // For a linear timescale (or scatter/line on numeric axis), we pass data as {x, y}
      labels.push([group.date, ...dayActionLabels]);
-     exposureData.push(Math.max(0, currentExposure));
+     exposureData.push({ x: group.time, y: Math.max(0, currentExposure), labels: [group.date, ...dayActionLabels] });
   });
 
+  // Calculate chart boundaries to extend limit line
+  const minTime = exposureData.length > 0 ? exposureData[0].x : 0;
+  const maxTime = exposureData.length > 0 ? exposureData[exposureData.length - 1].x : 0;
+
+  const limitData = [];
+  if (exposureData.length > 0) {
+      // Add two points to draw a horizontal line across the entire timeframe
+      limitData.push({ x: minTime, y: currentCreditLimit.value });
+      limitData.push({ x: maxTime, y: currentCreditLimit.value });
+  }
+
+  const isBar = chartType.value === 'bar';
+
+  // For the 'Histogram' view, we want a solid area without a thick border or points,
+  // making it look like contiguous rectangular blocks (a continuous bar chart / area chart)
   return {
-    labels: labels,
     datasets: [
       {
         type: 'line',
         label: 'ยอดหนี้สะสม (Exposure)',
         data: exposureData,
-        borderColor: '#0056FF',
-        backgroundColor: 'rgba(0, 86, 255, 0.1)',
-        borderWidth: 2,
+        borderColor: isBar ? 'transparent' : '#0056FF',
+        backgroundColor: isBar ? 'rgba(0, 86, 255, 0.8)' : 'rgba(0, 86, 255, 0.1)',
+        borderWidth: isBar ? 0 : 2,
         stepped: 'after',
         fill: true,
         pointBackgroundColor: '#0056FF',
-        pointRadius: 4,
+        pointRadius: isBar ? 0 : 4,
         order: 2
       },
       {
         type: 'line',
         label: 'วงเงินเครดิตปัจจุบัน',
-        data: Array(labels.length).fill(currentCreditLimit.value),
+        data: limitData,
         borderColor: '#dc3545',
         borderWidth: 2,
         borderDash: [5, 5],
@@ -378,7 +409,8 @@ const chartData = computed(() => {
   };
 });
 
-const chartOptions = {
+const chartOptions = computed(() => {
+  return {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -394,6 +426,17 @@ const chartOptions = {
     },
     tooltip: {
       callbacks: {
+        title: function(context) {
+           if (context.length > 0) {
+               const data = context[0].dataset.data[context[0].dataIndex];
+               if (data && data.labels) return data.labels;
+
+               // Fallback format if labels not present
+               const dateObj = new Date(context[0].parsed.x);
+               return `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
+           }
+           return '';
+        },
         label: function(context) {
           let label = context.dataset.label || '';
           if (label) {
@@ -421,13 +464,25 @@ const chartOptions = {
       }
     },
     x: {
+      type: 'linear',
+      bounds: 'ticks',
+      offset: false,
+      title: {
+         display: true,
+         text: 'ระยะเวลา (วันที่)'
+      },
       ticks: {
-         maxRotation: 0,
-         minRotation: 0
+         maxRotation: 45,
+         minRotation: 45,
+         callback: function(value) {
+             const dateObj = new Date(value);
+             return `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
+         }
       }
     }
   }
-};
+  };
+});
 
 watch(requestedCreditAmount, (newVal) => {
   if (!props.readOnly && newVal > 0) {
