@@ -194,7 +194,7 @@
       </div>
 
       <div v-if="store.customer.has_tungnam_relationship === 'yes'" class="tungnam-relationship-container">
-        <div class="form-layout-columns" style="margin-bottom: 20px; align-items: flex-start;">
+        <div class="form-layout-columns" style="margin-bottom: 20px; align-items: flex-start; grid-template-columns: 1fr 2fr;">
             <!-- Input field for explicit relationship description -->
             <div class="column-layout">
                <div class="form-group">
@@ -741,7 +741,7 @@ watch(() => store.showValidationErrors, (val) => {
     display: flex;
     align-items: center;
     position: relative;
-    margin-top: 8px;
+    margin-top: 0;
 }
 
 .search-icon {
