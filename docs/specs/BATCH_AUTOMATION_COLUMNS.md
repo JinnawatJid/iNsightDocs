@@ -58,6 +58,11 @@ The Excel export (`Batch_Credit_Automation_Report.xlsx`) serves as a data source
 | วงเงินแนะนำ ต่อเดือน | Number | `100000` | Raw number. |
 | วงเงินแนะนำ ต่อรอบบิล | Number | `250000` | Raw number. |
 
+### Full Detail Report Columns Update
+The system extracts dynamic monthly labels (e.g., ก.ย. 68) for the 6-month purchasing history.
+*   **Problem:** If the first few rows have no history, the system defaults to "Month 1...6", creating duplicate mismatched headers when later rows supply the Thai months.
+*   **Resolution:** The export function (`exportFullDetailReport`) scans the entire batch `queue` to find the *first valid customer* with financial history. It extracts the 6 correct Thai month labels and uses them globally for all rows in the report, padding 0s for customers without data.
+
 ### Export Logic Helper
 To ensure data integrity for analytics, the system uses specific helpers for export:
 *   `getBillingDurationValue(code)` -> Returns `Int` (e.g., 30, 0).
