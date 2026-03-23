@@ -1,7 +1,7 @@
-# Customer Blacklist Feature
+# Customer NPL (Non-Performing Loan) Feature
 
 ## 1. Overview
-The **Customer Blacklist** feature is a risk management tool integrated into the **Create Credit Request** workflow. Its purpose is to immediately alert users (Branch Managers/Sales) if they attempt to request credit for a customer who is on the company's restricted list (e.g., due to legal execution, bankruptcy, or bad debt).
+The **Customer NPL** feature (formerly known as Blacklist) is a risk management tool integrated into the **Create Credit Request** workflow. Its purpose is to immediately alert users (Branch Managers/Sales) if they attempt to request credit for a customer who is on the company's restricted list (e.g., due to legal execution, bankruptcy, or bad debt).
 
 ## 2. Key Identification Logic
 The system now uses a **Multi-Factor Identification Strategy** to detect high-risk customers, checking both individuals and businesses.
@@ -52,10 +52,9 @@ If a match is found:
 
 ### A. Immediate Modal Alert
 A blocking modal (SweetAlert2) appears immediately after the search.
-*   **Title:** "แจ้งเตือน: ลูกค้ารายนี้อยู่ในบัญชี Blacklist"
+*   **Title:** "แจ้งเตือน: ลูกค้ารายนี้อยู่ในบัญชี NPL"
 *   **Content:**
-    *   Displays **Status** (e.g., บังคับคดี) and **Remark**.
-    *   **Match Detail:** Indicates *why* it matched (e.g., "Tax ID", "Full Name", "Last Name").
+    *   The alert provides a simplified warning and purposely omits detailed financial status or remarks at the UI level.
 *   **Action Buttons:**
     *   **"ยกเลิก" (Cancel):** Clears the search result.
     *   **"ดำเนินการต่อ" (Proceed):** Allows proceeding (typically for "Warning" or manual override).
