@@ -39,6 +39,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       requestType: "เครดิตใหม่",
       noFinancialData: false,
       draftComment: "",
+      bankGuaranteeDetails: {},
+      letterGuaranteeDetails: {},
     },
 
     requestsList: [],
@@ -244,6 +246,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           noFinancialData:
             parsedSnapshot.transaction_data?.noFinancialData || false,
           draftComment: parsedSnapshot.transaction_data?.draftComment || "",
+          bankGuaranteeDetails: parsedSnapshot.transaction_data?.bankGuaranteeDetails || {},
+          letterGuaranteeDetails: parsedSnapshot.transaction_data?.letterGuaranteeDetails || {},
         };
 
         this.hasSearched = true;
@@ -485,6 +489,11 @@ export const useCreditRequestStore = defineStore("creditRequest", {
             resData.term_gs ||
             resData.request_type
           ) {
+            const parsedSnapshotTransactionData = resData.snapshot_data
+                ? typeof resData.snapshot_data === "string"
+                  ? JSON.parse(resData.snapshot_data).transaction_data || {}
+                  : resData.snapshot_data.transaction_data || {}
+                : {};
             this.transactionData = {
               amount: resData.request_amount || "",
               creditTerm: resData.request_credit_term || "",
@@ -493,13 +502,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               termYC: resData.term_yc || "",
               reason: resData.request_reason || "",
               requestType: resData.request_type || "เครดิตใหม่",
-              noFinancialData: resData.snapshot_data
-                ? typeof resData.snapshot_data === "string"
-                  ? JSON.parse(resData.snapshot_data).transaction_data
-                      ?.noFinancialData || false
-                  : resData.snapshot_data.transaction_data?.noFinancialData ||
-                    false
-                : false,
+              noFinancialData: parsedSnapshotTransactionData.noFinancialData || false,
+              bankGuaranteeDetails: parsedSnapshotTransactionData.bankGuaranteeDetails || {},
+              letterGuaranteeDetails: parsedSnapshotTransactionData.letterGuaranteeDetails || {},
             };
           }
         }
@@ -851,6 +856,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         requestType: "เครดิตใหม่",
         noFinancialData: false,
         draftComment: "",
+        bankGuaranteeDetails: {},
+        letterGuaranteeDetails: {},
       };
     },
 
@@ -885,6 +892,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         requestType: "เครดิตใหม่",
         noFinancialData: false,
         draftComment: "",
+        bankGuaranteeDetails: {},
+        letterGuaranteeDetails: {},
       };
     },
 
