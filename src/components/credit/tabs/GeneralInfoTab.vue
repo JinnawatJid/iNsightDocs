@@ -194,6 +194,21 @@
       </div>
 
       <div v-if="store.customer.has_tungnam_relationship === 'yes'" class="tungnam-relationship-container">
+        <!-- Input field for explicit relationship description -->
+        <div class="form-group" style="margin-bottom: 20px;">
+           <label>ความสัมพันธ์ <span class="text-red-500">*</span></label>
+           <input
+              type="text"
+              class="form-input"
+              :class="{ 'border-red-500': localErrors.tungnam_relationship_note, 'disabled': !isEditing }"
+              :disabled="!isEditing"
+              v-model="store.customer.tungnam_relationship_note" :data-empty="!store.customer.tungnam_relationship_note"
+              placeholder="ระบุความสัมพันธ์"
+              @blur="saveTungnamRelationship"
+            />
+            <span v-if="localErrors.tungnam_relationship_note" class="error-text">กรุณาระบุข้อมูล</span>
+        </div>
+
         <!-- Search Input like CreditRequestHeader -->
         <div class="search-section">
             <label>รหัสลูกค้าหรือชื่อ <span class="text-red-500">*</span></label>
@@ -254,21 +269,6 @@
                     <span class="summary-value">{{ summaryData.billingSchedule || '-' }}</span>
                 </div>
             </div>
-        </div>
-
-        <!-- Input field for explicit relationship description -->
-        <div class="form-group" style="margin-top: 15px;">
-           <label>ความสัมพันธ์ <span class="text-red-500">*</span></label>
-           <input
-              type="text"
-              class="form-input"
-              :class="{ 'border-red-500': localErrors.tungnam_relationship_note, 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="store.customer.tungnam_relationship_note" :data-empty="!store.customer.tungnam_relationship_note"
-              placeholder="ระบุความสัมพันธ์"
-              @blur="saveTungnamRelationship"
-            />
-            <span v-if="localErrors.tungnam_relationship_note" class="error-text">กรุณาระบุข้อมูล</span>
         </div>
 
       </div>
