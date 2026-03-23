@@ -160,7 +160,6 @@
       </div>
     </div>
 
-
     <!-- Tungnam Relationship Section -->
     <div class="personal-info-section">
       <div class="section-separator"></div>
@@ -302,8 +301,6 @@ watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
 
-
-
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
 }
@@ -433,7 +430,6 @@ watch(() => store.customer, (newVal, oldVal) => {
   }
 }, { immediate: true, deep: true });
 
-
 // Sync changes locally to store on change
 watch(formData, (newVal) => {
   const updates = {};
@@ -485,7 +481,6 @@ function saveToBackend() {
 function toggleEdit() {
   isEditing.value = !isEditing.value;
 }
-
 
 // Tungnam Relationship Logic
 const searchQuery = ref('');
@@ -690,14 +685,12 @@ watch(() => store.showValidationErrors, (val) => {
 
 /* Ensure disabled style is consistent */
 
-
 .grid-three-col {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 15px;
   margin-top: 15px;
 }
-
 
 /* Section Separator */
 .section-separator {

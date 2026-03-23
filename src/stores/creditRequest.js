@@ -509,7 +509,6 @@ export const useCreditRequestStore = defineStore("creditRequest", {
                   : resData.snapshot_data.transaction_data?.noFinancialData ||
                     false
                 : false,
-              noFinancialData: parsedSnapshotTransactionData.noFinancialData || false,
               bankGuaranteeDetails: parsedSnapshotTransactionData.bankGuaranteeDetails || {},
               letterGuaranteeDetails: parsedSnapshotTransactionData.letterGuaranteeDetails || {},
             };
