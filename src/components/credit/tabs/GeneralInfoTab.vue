@@ -194,58 +194,64 @@
       </div>
 
       <div v-if="store.customer.has_tungnam_relationship === 'yes'" class="tungnam-relationship-container">
-        <!-- Input field for explicit relationship description -->
-        <div class="form-group" style="margin-bottom: 20px;">
-           <label>ความสัมพันธ์ <span class="text-red-500">*</span></label>
-           <input
-              type="text"
-              class="form-input"
-              :class="{ 'border-red-500': localErrors.tungnam_relationship_note, 'disabled': !isEditing }"
-              :disabled="!isEditing"
-              v-model="store.customer.tungnam_relationship_note" :data-empty="!store.customer.tungnam_relationship_note"
-              placeholder="ระบุความสัมพันธ์"
-              @blur="saveTungnamRelationship"
-            />
-            <span v-if="localErrors.tungnam_relationship_note" class="error-text">กรุณาระบุข้อมูล</span>
-        </div>
-
-        <!-- Search Input like CreditRequestHeader -->
-        <div class="search-section">
-            <label>รหัสลูกค้าหรือชื่อ <span class="text-red-500">*</span></label>
-            <div class="search-group" ref="searchContainer">
-                <div class="search-icon">
-                   <img src="@/assets/icons/search-bi.svg" alt="Search" width="16" height="16" />
-                </div>
-                <input
-                  type="text"
-                  class="form-input search-input-field"
-                  :class="{ 'border-red-500': localErrors.tungnam_relationship_customer_id, 'disabled': !isEditing }"
-                  placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ"
-                  v-model="searchQuery"
-                  @input="onInput"
-                  @focus="onFocus"
-                  @keyup.enter="performSearch"
-                  :disabled="!isEditing"
-                />
-                <button class="btn-search" @click="performSearch" :disabled="!isEditing">ค้นหา</button>
-
-                <!-- Dropdown Suggestions -->
-                <div v-if="showDropdown" class="suggestions-dropdown">
-                   <div v-if="suggestions.length === 0" class="no-results">
-                     ไม่พบข้อมูลลูกค้า
-                   </div>
-                   <div
-                     v-else
-                     v-for="item in suggestions"
-                     :key="item.id"
-                     class="suggestion-item"
-                     @click="selectSuggestion(item)"
-                   >
-                     {{ getDisplayText(item) }}
-                   </div>
+        <div class="form-layout-columns" style="margin-bottom: 20px; align-items: flex-start;">
+            <!-- Input field for explicit relationship description -->
+            <div class="column-layout">
+               <div class="form-group">
+                   <label>ความสัมพันธ์ <span class="text-red-500">*</span></label>
+                   <input
+                      type="text"
+                      class="form-input"
+                      :class="{ 'border-red-500': localErrors.tungnam_relationship_note, 'disabled': !isEditing }"
+                      :disabled="!isEditing"
+                      v-model="store.customer.tungnam_relationship_note" :data-empty="!store.customer.tungnam_relationship_note"
+                      placeholder="ระบุความสัมพันธ์"
+                      @blur="saveTungnamRelationship"
+                    />
+                    <span v-if="localErrors.tungnam_relationship_note" class="error-text">กรุณาระบุข้อมูล</span>
                 </div>
             </div>
-            <span v-if="localErrors.tungnam_relationship_customer_id" class="error-text">กรุณาระบุข้อมูล</span>
+
+            <!-- Search Input like CreditRequestHeader -->
+            <div class="column-layout">
+               <div class="search-section" style="max-width: none; margin-bottom: 0;">
+                    <label>รหัสลูกค้าหรือชื่อ <span class="text-red-500">*</span></label>
+                    <div class="search-group" ref="searchContainer">
+                        <div class="search-icon">
+                           <img src="@/assets/icons/search-bi.svg" alt="Search" width="16" height="16" />
+                        </div>
+                        <input
+                          type="text"
+                          class="form-input search-input-field"
+                          :class="{ 'border-red-500': localErrors.tungnam_relationship_customer_id, 'disabled': !isEditing }"
+                          placeholder="ค้นหาด้วย รหัสลูกค้า, ชื่อ"
+                          v-model="searchQuery"
+                          @input="onInput"
+                          @focus="onFocus"
+                          @keyup.enter="performSearch"
+                          :disabled="!isEditing"
+                        />
+                        <button class="btn-search" @click="performSearch" :disabled="!isEditing">ค้นหา</button>
+
+                        <!-- Dropdown Suggestions -->
+                        <div v-if="showDropdown" class="suggestions-dropdown">
+                           <div v-if="suggestions.length === 0" class="no-results">
+                             ไม่พบข้อมูลลูกค้า
+                           </div>
+                           <div
+                             v-else
+                             v-for="item in suggestions"
+                             :key="item.id"
+                             class="suggestion-item"
+                             @click="selectSuggestion(item)"
+                           >
+                             {{ getDisplayText(item) }}
+                           </div>
+                        </div>
+                    </div>
+                    <span v-if="localErrors.tungnam_relationship_customer_id" class="error-text">กรุณาระบุข้อมูล</span>
+                </div>
+            </div>
         </div>
 
         <!-- Summary Section -->
@@ -688,6 +694,13 @@ watch(() => store.showValidationErrors, (val) => {
   grid-template-columns: 1fr 1fr 1fr;
   gap: 15px;
   margin-top: 15px;
+}
+
+/* Section Separator */
+.section-separator {
+  border-top: 1px solid #e0e0e0;
+  margin: 30px 0 20px 0;
+  width: 100%;
 }
 
 /* Radio Group Styles (from RequestInfoTab) */
