@@ -214,7 +214,7 @@
 
             <!-- Search Input like CreditRequestHeader -->
             <div class="column-layout">
-               <div class="search-section" style="max-width: none; margin-bottom: 0;">
+               <div class="form-group search-section" style="max-width: none; margin-bottom: 0;">
                     <label>รหัสลูกค้าหรือชื่อ <span class="text-red-500">*</span></label>
                     <div class="search-group" ref="searchContainer">
                         <div class="search-icon">
@@ -742,6 +742,12 @@ watch(() => store.showValidationErrors, (val) => {
     align-items: center;
     position: relative;
     margin-top: 0;
+}
+
+/* Override padding for search input to align vertically with standard form inputs */
+.search-group .form-input {
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 .search-icon {
