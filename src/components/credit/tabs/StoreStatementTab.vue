@@ -3,19 +3,7 @@
     <!-- Guarantee Docs Section (Moved from Request Info) -->
     <div class="upload-grid-small">
 
-        <FileUploader
-          label="Bank Guarantee"
-          v-model="files.bankGuarantee"
-          :disabled="!isEditing"
-          multiple
-        />
-        <FileUploader
-          label="เอกสารค้ำประกัน"
-          v-model="files.letterGuarantee"
-          :disabled="!isEditing"
-          multiple
-        />
-=======
+
         <div class="guarantee-section">
           <FileUploader
             label="Bank Guarantee"
@@ -95,7 +83,6 @@
              </div>
           </div>
         </div>
->>>>>>> pr-614
     </div>
 
     <!-- Main Upload Section -->
