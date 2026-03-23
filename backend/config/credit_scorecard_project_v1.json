@@ -1,0 +1,246 @@
+{
+  "version": "1.0",
+  "name": "Project Credit Risk Scorecard",
+  "description": "Scorecard logic for Project Credit Assessment",
+  "limitExponent": 1.0,
+  "size_definitions": [
+    "S",
+    "M",
+    "L"
+  ],
+  "grade_definitions": [
+    "High Risk",
+    "Medium Risk",
+    "Low Risk"
+  ],
+  "components": {
+    "c1": {
+      "name": "Contractor & Owner Profile",
+      "factors": [
+        {
+          "key": "project_owner_type",
+          "label": "ประเภทเจ้าของโครงการ",
+          "weight": 7.5,
+          "rules": [
+            {
+              "match": ["Government", "State Enterprise", "Public Company", "รัฐบาล", "รัฐวิสาหกิจ", "บริษัทมหาชน"],
+              "score": 2,
+              "label": "Low Risk (Gov/Public)"
+            },
+            {
+              "match": ["Large Corporate", "บริษัทเอกชนขนาดใหญ่"],
+              "score": 1,
+              "label": "Medium Risk (Large Corp)"
+            },
+            {
+              "match": ["SME", "บุคคลธรรมดา"],
+              "score": 0,
+              "label": "High Risk (SME)"
+            },
+            {
+              "default": true,
+              "score": 0,
+              "label": "Unknown/Other"
+            }
+          ]
+        },
+        {
+          "key": "contract_status",
+          "label": "สถานะสัญญา",
+          "weight": 7.5,
+          "rules": [
+            {
+              "match": ["Main Contractor", "ผู้รับเหมาหลัก"],
+              "score": 2,
+              "label": "Low Risk (Main)"
+            },
+            {
+              "match": ["Sub Contractor", "ผู้รับเหมาช่วง"],
+              "score": 0.5,
+              "label": "High Risk (Sub)"
+            },
+            {
+              "default": true,
+              "score": 0.5,
+              "label": "Unknown/Other"
+            }
+          ]
+        }
+      ]
+    },
+    "c2": {
+      "name": "Cash Flow & Late Payment Risk",
+      "factors": [
+        {
+          "key": "advance_payment_percent",
+          "label": "เงินเบิกล่วงหน้า (%)",
+          "weight": 5,
+          "rules": [
+            {
+              "min": 15,
+              "score": 2,
+              "label": "High Advance (>= 15%)"
+            },
+            {
+              "min": 5,
+              "max": 15,
+              "score": 1,
+              "label": "Moderate Advance (5-15%)"
+            },
+            {
+              "max": 5,
+              "score": 0.5,
+              "label": "Low/No Advance (< 5%)"
+            }
+          ]
+        },
+        {
+          "key": "payment_term_diff",
+          "label": "ผลต่าง Payment Term กับ Credit Term (วัน)",
+          "weight": 5,
+          "rules": [
+            {
+              "max": 0,
+              "score": 2,
+              "label": "Good (Payment <= Credit)"
+            },
+            {
+              "min": 0,
+              "max": 30,
+              "score": 1,
+              "label": "Fair (Payment > Credit by 1-30 days)"
+            },
+            {
+              "min": 30,
+              "score": 0,
+              "label": "Poor (Payment > Credit by > 30 days)"
+            }
+          ]
+        },
+        {
+          "key": "retention_money_percent",
+          "label": "เงินประกันผลงาน (%)",
+          "weight": 5,
+          "rules": [
+            {
+              "max": 5.01,
+              "score": 2,
+              "label": "Low Retention (<= 5%)"
+            },
+            {
+              "min": 5.01,
+              "max": 10.01,
+              "score": 1,
+              "label": "Standard Retention (5-10%)"
+            },
+            {
+              "min": 10.01,
+              "score": 0.5,
+              "label": "High Retention (> 10%)"
+            }
+          ]
+        }
+      ]
+    },
+    "c3": {
+      "name": "Security & Mitigants",
+      "factors": [
+        {
+          "key": "assignment_of_proceeds",
+          "label": "การโอนสิทธิเรียกร้อง (Assignment of Proceeds)",
+          "weight": 7.5,
+          "rules": [
+            {
+              "match": ["Yes", "มี", "true", true],
+              "score": 2,
+              "label": "Secured (Has Assignment)"
+            },
+            {
+              "match": ["No", "ไม่มี", "false", false],
+              "score": 0,
+              "label": "Unsecured (No Assignment)"
+            },
+            {
+              "default": true,
+              "score": 0,
+              "label": "Unknown"
+            }
+          ]
+        },
+        {
+          "key": "bank_guarantee",
+          "label": "Bank Guarantee / Project Security",
+          "weight": 5,
+          "rules": [
+            {
+              "match": ["Yes", "มี", "true", true],
+              "score": 2,
+              "label": "Has BG"
+            },
+            {
+              "match": ["No", "ไม่มี", "false", false],
+              "score": 0.5,
+              "label": "No BG"
+            },
+            {
+              "default": true,
+              "score": 0.5,
+              "label": "Unknown"
+            }
+          ]
+        }
+      ]
+    },
+    "c4": {
+      "name": "Execution & Delivery Risk",
+      "factors": [
+        {
+          "key": "milestone_phasing_count",
+          "label": "จำนวนงวดงาน (Milestone)",
+          "weight": 5,
+          "rules": [
+            {
+              "min": 5,
+              "score": 2,
+              "label": "Many Phases (>= 5)"
+            },
+            {
+              "min": 2,
+              "max": 5,
+              "score": 1.5,
+              "label": "Standard Phases (2-4)"
+            },
+            {
+              "max": 2,
+              "score": 0.5,
+              "label": "Lump Sum / Single Phase (1)"
+            }
+          ]
+        },
+        {
+          "key": "penalty_percent_per_day",
+          "label": "ค่าปรับล่าช้า (% ต่อวัน)",
+          "weight": 2.5,
+          "rules": [
+            {
+              "max": 0.05,
+              "score": 2,
+              "label": "Low Penalty (<= 0.05%)"
+            },
+            {
+              "min": 0.05,
+              "max": 0.1,
+              "score": 1,
+              "label": "Standard Penalty (0.05-0.1%)"
+            },
+            {
+              "min": 0.1,
+              "score": 0,
+              "label": "High Penalty (> 0.1%)"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
