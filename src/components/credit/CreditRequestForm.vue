@@ -63,6 +63,7 @@
                     <button
                         :class="getButtonClass(btn.variant)"
                         @click="handleAction(btn)"
+                        :disabled="isSubmitting"
                     >
                         {{ btn.label }}
                     </button>
@@ -74,6 +75,7 @@
                 v-if="!isLastTab"
                 class="btn-primary"
                 @click="handleNextTab"
+                :disabled="isSubmitting"
             >
                 ถัดไป
             </button>
@@ -84,6 +86,7 @@
                     <button
                         :class="getButtonClass(btn.variant)"
                         @click="handleAction(btn)"
+                        :disabled="isSubmitting"
                     >
                         {{ btn.label }}
                     </button>
@@ -132,6 +135,7 @@ const showChangeSummary = ref(false);
 const changesToConfirm = ref([]);
 const pendingActionBtn = ref(null);
 const isCustomerInfoExpanded = ref(true); // Control visibility of top section for Project Credits
+const isSubmitting = ref(false);
 
 // Computeds
 const isReadOnly = computed(() => store.isReadOnly);
@@ -313,18 +317,64 @@ const handleAction = async (btn) => {
     }
 
     // 4. Persist Data (Save Customer + Transaction)
-    await store.saveCustomerData(store.customer);
+    try {
+        isSubmitting.value = true;
+        Swal.fire({
+            title: 'กำลังบันทึกข้อมูล กรุณารอสักครู่...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
-    // 5. Submit Transaction
-    await submitTransaction(btn);
+        await store.saveCustomerData(store.customer);
+
+        // 5. Submit Transaction
+        await submitTransaction(btn);
+    } catch (error) {
+        console.error(error);
+        // Error handling is mainly in submitTransaction, but catch here just in case saveCustomerData fails
+        // We only show error here if it's not from submitTransaction (which already shows an error)
+        if (!error.isSubmitTransactionError) {
+            Swal.fire({
+                title: 'เกิดข้อผิดพลาด',
+                text: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล',
+                icon: 'error'
+            });
+        }
+    } finally {
+        isSubmitting.value = false;
+    }
 };
 
 const handleConfirmChanges = async () => {
     showChangeSummary.value = false;
     if (pendingActionBtn.value) {
-        await store.saveCustomerData(store.customer);
-        await submitTransaction(pendingActionBtn.value);
-        pendingActionBtn.value = null;
+        try {
+            isSubmitting.value = true;
+            Swal.fire({
+                title: 'กำลังบันทึกข้อมูล กรุณารอสักครู่...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            await store.saveCustomerData(store.customer);
+            await submitTransaction(pendingActionBtn.value);
+        } catch (error) {
+            console.error(error);
+            if (!error.isSubmitTransactionError) {
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล',
+                    icon: 'error'
+                });
+            }
+        } finally {
+            isSubmitting.value = false;
+            pendingActionBtn.value = null;
+        }
     }
 };
 
@@ -466,6 +516,8 @@ const submitTransaction = async (btn) => {
             text: 'เกิดข้อผิดพลาดในการส่งคำขอ',
             icon: 'error'
         });
+        error.isSubmitTransactionError = true;
+        throw error; // Rethrow to let caller (handleAction) know it failed
     }
 };
 </script>
