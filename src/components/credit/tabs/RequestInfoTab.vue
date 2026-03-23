@@ -13,7 +13,6 @@
             />
             <FileUploader
             label="ใบเสนอราคา"
-            :required="isQuotationRequired"
             v-model="files.quotation"
             :disabled="!isEditing"
             multiple
@@ -187,14 +186,14 @@
             </template>
 
             <div class="form-group">
-              <label>เหตุผลการขอเครดิต <span v-if="isRequired('reason')" class="text-red-500">*</span></label>
+              <label>ที่มาของเครดิต <span v-if="isRequired('reason')" class="text-red-500">*</span></label>
               <select
                 class="form-input"
                 :class="{ 'border-red-500': errors.reason, 'disabled': !isEditing }"
                 :disabled="!isEditing"
                 v-model="store.transactionData.reason" :data-empty="!store.transactionData.reason"
               >
-                  <option value="" disabled>เลือกเหตุผล</option>
+                  <option value="" disabled>เลือกที่มา</option>
                   <option v-for="option in reasonOptions" :key="option" :value="option">
                     {{ option }}
                   </option>
@@ -507,9 +506,6 @@ const isChangeTerm = computed(() => store.transactionData.requestType && store.t
 const isNewRequest = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตใหม่'));
 const isProjectCredit = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตโครงการ'));
 
-const isQuotationRequired = computed(() => {
-    return store.transactionData.reason === 'ขออนุมัติเครดิต (มีใบสั่งซื้อแนบมาพร้อม)';
-});
 
 // VISIBILITY LOGIC
 const showAll = computed(() => props.viewMode === 'full');
@@ -641,8 +637,8 @@ watch(() => store.files, (newVal) => {
 
 const reasonOptions = computed(() => {
   const standardOptions = [
-    'ขออนุมัติเครดิตล่วงหน้า (ยังไม่มีใบสั่งซื้อ)',
-    'ขออนุมัติเครดิต (มีใบสั่งซื้อแนบมาพร้อม)'
+    'ลูกค้าตังน้ำขอมา',
+    'ตังน้ำเสนอให้'
   ];
 
   // If current value is not in standard options and is not empty, add it (Legacy support)
