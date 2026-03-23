@@ -24,8 +24,8 @@
                             type="text"
                             class="form-control form-control-sm"
                             placeholder="เช่น 1,000,000"
-                            :value="getGuaranteeDetail('bankGuaranteeDetails', file.name, 'amount')"
-                            @input="(e) => updateGuaranteeDetail('bankGuaranteeDetails', file.name, 'amount', e.target.value)"
+                            :value="formatGuaranteeAmount(getGuaranteeDetail('bankGuaranteeDetails', file.name, 'amount'))"
+                            @input="(e) => handleGuaranteeAmountInput('bankGuaranteeDetails', file.name, 'amount', e.target.value)"
                             :disabled="!isEditing"
                         />
                     </div>
@@ -64,8 +64,8 @@
                             type="text"
                             class="form-control form-control-sm"
                             placeholder="เช่น 500,000"
-                            :value="getGuaranteeDetail('letterGuaranteeDetails', file.name, 'amount')"
-                            @input="(e) => updateGuaranteeDetail('letterGuaranteeDetails', file.name, 'amount', e.target.value)"
+                            :value="formatGuaranteeAmount(getGuaranteeDetail('letterGuaranteeDetails', file.name, 'amount'))"
+                            @input="(e) => handleGuaranteeAmountInput('letterGuaranteeDetails', file.name, 'amount', e.target.value)"
                             :disabled="!isEditing"
                         />
                     </div>
@@ -104,8 +104,8 @@
                             type="text"
                             class="form-control form-control-sm"
                             placeholder="เช่น 500,000"
-                            :value="getGuaranteeDetail('cashDepositDetails', file.name, 'amount')"
-                            @input="(e) => updateGuaranteeDetail('cashDepositDetails', file.name, 'amount', e.target.value)"
+                            :value="formatGuaranteeAmount(getGuaranteeDetail('cashDepositDetails', file.name, 'amount'))"
+                            @input="(e) => handleGuaranteeAmountInput('cashDepositDetails', file.name, 'amount', e.target.value)"
                             :disabled="!isEditing"
                         />
                     </div>
@@ -650,6 +650,25 @@ const getGuaranteeDetail = (storeKey, fileName, field) => {
     if (!store.transactionData[storeKey]) return '';
     if (!store.transactionData[storeKey][fileName]) return '';
     return store.transactionData[storeKey][fileName][field] || '';
+};
+
+const formatGuaranteeAmount = (val) => {
+    if (!val) return '';
+    const parts = String(val).split('.');
+    let formatted = Number(parts[0]).toLocaleString('en-US');
+    if (parts.length > 1) {
+        formatted += '.' + parts[1];
+    }
+    return formatted === 'NaN' ? val : formatted;
+};
+
+const handleGuaranteeAmountInput = (storeKey, fileName, field, rawValue) => {
+    let num = rawValue.replace(/[^0-9.]/g, '');
+    const parts = num.split('.');
+    if (parts.length > 2) {
+        num = parts[0] + '.' + parts.slice(1).join('');
+    }
+    updateGuaranteeDetail(storeKey, fileName, field, num);
 };
 
 const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
