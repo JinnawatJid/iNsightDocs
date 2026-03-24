@@ -451,6 +451,8 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
         let currentSystemMonth = '';
         let slope = 0;
         let trendRatio = 0;
+        let last3 = [];
+        let last6 = [];
 
         if (monthlyData) {
             // New Logic: Use Continuous Timeline (Fixes gap issues)
@@ -465,11 +467,11 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
             const calcData = timeline.slice(0, -1);
 
             // Last 3 Months (for New Customer / Limit 0)
-            const last3 = calcData.slice(-3);
+            last3 = calcData.slice(-3);
             sumLast3 = last3.reduce((acc, cur) => acc + cur.amount, 0);
 
             // Last 6 Months (for Existing Customer)
-            const last6 = calcData.slice(-6);
+            last6 = calcData.slice(-6);
             sumLast6 = last6.reduce((acc, cur) => acc + cur.amount, 0);
 
             // Trend is calculated based on categoryMonths (3 vs 6)
