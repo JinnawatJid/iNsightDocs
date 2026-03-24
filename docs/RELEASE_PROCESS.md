@@ -43,8 +43,8 @@ The `build-release.js` script orchestrates a 9-step automated process to create 
 - Immediately after installation, it runs `npm uninstall puppeteer` to further clean up the module. *(Note: If the air-gapped server requires Puppeteer functionality, the Chromium binary must be transferred manually outside this build process).*
 
 ### Step 8: Configuring the Production Environment
-- **Directories:** Ensures `downloads/` directory exists within `release/backend/`. User uploads and OCR temp processing files are externalized to the persistent `../../customers` directory to prevent data loss across deployments.
-- **.env Template:** Generates a template `.env` file populated with default production database connection strings (e.g., `DB_SERVER=localhost`, `DB_NAME=CreditRequestDB`) and configures `UPLOAD_PATH=../../customers`. Maintainers must update this file on the target server.
+- **Directories:** Ensures `downloads/` directory exists within `release/backend/`. User uploads and OCR temp processing files are externalized to the persistent `../../customers` and `../../uploads` directories to prevent data loss across deployments.
+- **.env Template:** Generates a template `.env` file populated with default production database connection strings (e.g., `DB_SERVER=localhost`, `DB_NAME=CreditRequestDB`) and configures `UPLOAD_PATH=../../uploads`. Maintainers must update this file on the target server.
 - **Startup Script:** Generates `disable_quickedit.ps1` and `start_server.bat`, which are placed in the root of the release. The batch script:
   1. Sets a custom title for the active terminal window (`Credit Request System Backend Server`) for easy identification.
   2. Executes the `disable_quickedit.ps1` PowerShell script using the C# `SetConsoleMode` API to dynamically disable Windows QuickEdit Mode for the active console. This prevents the Node.js process from freezing indefinitely when a user accidentally clicks inside the terminal.
