@@ -19,8 +19,8 @@ The following codes are used to categorize sales data:
 
 -   **API Endpoint:** `http://192.192.0.37:8280/sales-by-category-6-months/1.0.0` (POST)
 -   **Headers:** `apikey`, `Content-Type: application/json`
--   **Body:** `{"customer_code": "...", "months": 3 | 6}`
-    -   `months`: Dynamically passed as `6` if the customer's current credit limit is > 10 (existing customer), or `3` if the limit is ≤ 10 (new customer without credit limit).
+-   **Body:** `{"customer_code": "...", "months": 3}`
+    -   `months`: Dynamically passed as `3` to determine behavior over the prior 3 months.
 -   **Internal Processing:** The backend aggregates the raw `data` array (summing `total_amount` by `category`) into a `by_category` object (keys = category codes, values = total sales amounts). It also tracks `category_months_used` to inform the frontend.
 -   **Field:** `by_category` (JSON object used internally after transformation).
--   **Display:** In the Credit Score Summary, these categories are shown in the "สัดส่วนสินค้าที่ซื้อ 3 เดือน" (or 6 เดือน) section, sorted by sales volume (descending).
+-   **Display:** In the Credit Score Summary, these categories are shown in the "สัดส่วนสินค้าที่ซื้อ 3 เดือน" section, sorted by sales volume (descending).
