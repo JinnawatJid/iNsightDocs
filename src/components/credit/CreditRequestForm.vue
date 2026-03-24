@@ -124,10 +124,8 @@ import { workflowConfig, roleLabels } from '@/config/workflow';
 import Swal from 'sweetalert2';
 import axios from '../../utils/axios.js';
 import { computed, ref, watch } from 'vue';
-import { useFeatureFlag } from '@/composables/useFeatureFlag';
 
 const store = useCreditRequestStore();
-const { isFinancialDraftEnabled } = useFeatureFlag();
 
 // Local State for View Mode
 const showAllDetails = ref(false);
@@ -272,8 +270,8 @@ const handleAction = async (btn) => {
 
     // If it is a submit action, we run full validation
     if (isSubmit) {
-        // If status is Draft -> Opened (Submit action) and feature flag is ON, make financial docs mandatory
-        const isFinancialMandatory = (requestStatus.value === 'Draft' || !requestStatus.value) && isFinancialDraftEnabled.value;
+        // If status is Draft -> Opened (Submit action), make financial docs mandatory
+        const isFinancialMandatory = (requestStatus.value === 'Draft' || !requestStatus.value);
 
         const validation = store.validateRequest(true, isFinancialMandatory); // true = check files too
         if (!validation.valid) {
