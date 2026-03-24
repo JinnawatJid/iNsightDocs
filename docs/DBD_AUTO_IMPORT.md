@@ -10,6 +10,18 @@ Due to the security requirements of some deployments, the main application serve
 
 To solve this, we utilize a **Local Bridge (Sidecar) Approach**.
 
+## Validation & Mandatory Fields
+
+When a credit request transitions from the **Draft** status to **Opened** (submitted), the system strictly enforces that the following four financial documents are uploaded (for Corporate Customers):
+1.  **Company Profile** (`company_profile_doc`)
+2.  **Balance Sheet** (`balance_sheet_doc`)
+3.  **Profit & Loss** (`profit_loss_doc`)
+4.  **Financial Ratios** (`financial_ratios_doc`)
+
+**Important Note:** This validation rule is hardcoded in the frontend (`store.validateRequest`) and **cannot be bypassed** conditionally by any feature flags (e.g., `isFinancialDraftEnabled`).
+
+If the user has checked the "ลูกค้าไม่ส่งงบการเงิน" (Customer did not provide financial statements) checkbox, the system dynamically adjusts the requirements to only demand the **Company Profile** (`company_profile_doc`), exempting the three Excel files.
+
 ## Architecture
 
 ### 1. Local Cache Auto-Import (First Priority)
