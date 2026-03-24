@@ -575,7 +575,7 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
                     if (score === 0) {
                         suggestions.push("ชำระเงินตรงเวลา WADL 0 วัน");
                     } else if (score < 5) {
-                        suggestions.push(`ประวัติชำระเงินเกณฑ์ดี จ่ายล่าช้าเฉลี่ย ${roundedWadl} วัน`);
+                        suggestions.push(`ประวัติชำระเงินดี จ่ายล่าช้าเฉลี่ย ${roundedWadl} วัน`);
                     } else if (score < 10) {
                         suggestions.push(`ประวัติชำระเงินปานกลาง จ่ายล่าช้าเฉลี่ย ${roundedWadl} วัน`);
                     } else {
