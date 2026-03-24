@@ -80,7 +80,7 @@
           <div class="stat-icon-row">
             <div class="stat-icon">
               <img :src="iconShoppingCart" alt="Cart" width="20" height="20" />
-              <span>ยอดซื้อรวม 3 เดือน</span>
+              <span>ยอดซื้อรวม {{ financial.category_months_used || 3 }} เดือน</span>
             </div>
             <button class="toggle-btn" @click="toggleMonthlyDetails" v-if="financial.monthly_history && financial.monthly_history.length > 0">
               {{ showMonthlyDetails ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด' }}

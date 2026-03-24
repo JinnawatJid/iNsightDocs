@@ -434,21 +434,76 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
         const categoryDataResult = results[1];
         const wadlDataResult = results[2];
 
-        // Process Category Data (Graceful Failure)
+        // Process Financial Data (Critical) - MUST DO BEFORE CATEGORY TO GET TOTAL SALES
+        if (apiDataResult.status === 'rejected') {
+            throw new Error(`Financial API Failed: ${apiDataResult.reason.message}`);
+        }
+
+        const apiData = apiDataResult.value;
+
+        // Support both old 'monthly' and new 'data' formats
+        const monthlyData = apiData && (apiData.monthly || apiData.data);
+
+        // We need sumLast3 and sumLast6 upfront for proportional allocation
+        let sumLast3 = 0;
+        let sumLast6 = 0;
+        let timeline = [];
+        let currentSystemMonth = '';
+        let slope = 0;
+        let trendRatio = 0;
+
+        if (monthlyData) {
+            // New Logic: Use Continuous Timeline (Fixes gap issues)
+            timeline = generateContinuousTimeline(monthlyData);
+
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonthIdx = now.getMonth() + 1; // 1-12
+            currentSystemMonth = `${currentYear}-${String(currentMonthIdx).padStart(2, '0')}`;
+
+            // Calculation Set: Always exclude the last item (Current Month)
+            const calcData = timeline.slice(0, -1);
+
+            // Last 3 Months (for New Customer / Limit 0)
+            const last3 = calcData.slice(-3);
+            sumLast3 = last3.reduce((acc, cur) => acc + cur.amount, 0);
+
+            // Last 6 Months (for Existing Customer)
+            const last6 = calcData.slice(-6);
+            sumLast6 = last6.reduce((acc, cur) => acc + cur.amount, 0);
+
+            // Trend is calculated based on categoryMonths (3 vs 6)
+            const activeData = categoryMonths === 6 ? last6 : last3;
+            slope = calculateSlope(activeData);
+            const activeAvg = (categoryMonths === 6 ? sumLast6 : sumLast3) / categoryMonths;
+            trendRatio = calculateTrendRatio(slope, activeAvg);
+        }
+
+        // Process Category Data (Graceful Failure) - Proportional Allocation applied here
         let categoryBreakdown = [];
         if (categoryDataResult.status === 'fulfilled') {
             const categoryData = categoryDataResult.value;
             if (categoryData && categoryData.by_category) {
                  const entries = Object.entries(categoryData.by_category);
-                 // Calculate Total for Percentage
-                 const totalSales = entries.reduce((sum, [_, val]) => sum + val, 0);
+                 // Total from the 6-month raw category API (This is strictly just to find the ratio)
+                 const totalSales6mRaw = entries.reduce((sum, [_, val]) => sum + val, 0);
 
-                 categoryBreakdown = entries.map(([key, value]) => ({
-                     label: getCategoryLabel(key),
-                     value: value,
-                     formattedValue: formatCurrency(value),
-                     percentage: totalSales > 0 ? (value / totalSales) * 100 : 0
-                 }));
+                 // Target total amount to base our proportions on
+                 const targetTotalSales = categoryMonths === 6 ? sumLast6 : sumLast3;
+
+                 categoryBreakdown = entries.map(([key, value]) => {
+                     // Ratio from the API's 6-month aggregate
+                     const ratio = totalSales6mRaw > 0 ? (value / totalSales6mRaw) : 0;
+                     // Multiply by the *actual* total amount from the timeline calculation
+                     const proportionalValue = targetTotalSales * ratio;
+
+                     return {
+                         label: getCategoryLabel(key),
+                         value: proportionalValue, // Proportional amount
+                         formattedValue: formatCurrency(proportionalValue),
+                         percentage: ratio * 100 // Visual bar length
+                     };
+                 });
 
                  // Sort Descending
                  categoryBreakdown.sort((a, b) => b.value - a.value);
@@ -459,52 +514,8 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
             suggestions.push("ไม่สามารถดึงข้อมูลสัดส่วนสินค้า (Category Summary) ได้");
         }
 
-        // Process Financial Data (Critical)
-        if (apiDataResult.status === 'rejected') {
-            throw new Error(`Financial API Failed: ${apiDataResult.reason.message}`);
-        }
-
-        const apiData = apiDataResult.value;
-
-        // Support both old 'monthly' and new 'data' formats
-        const monthlyData = apiData && (apiData.monthly || apiData.data);
-
         if (monthlyData) {
-            // New Logic: Use Continuous Timeline (Fixes gap issues)
-            // This returns 7 months: [Month-6, Month-5, ..., Month-1, CurrentMonth]
-            // Gaps are filled with 0.
-            const timeline = generateContinuousTimeline(monthlyData);
-
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const currentMonthIdx = now.getMonth() + 1; // 1-12
-            const currentSystemMonth = `${currentYear}-${String(currentMonthIdx).padStart(2, '0')}`;
-
-            // Calculation Set: ALWAYS Exclude the last item (which is strictly the Current System Month)
-            // The generateContinuousTimeline function guarantees the last item is 'Current System Month'.
-            const calcData = timeline.slice(0, -1); // Take first 6 items (the completed months)
-
-            const totalCalcAvailable = calcData.length;
-
-            // Identify Last 3 Months (from Calculation Set)
-            const last3 = calcData.slice(-3);
-
-            // Identify Previous 3 Months (for trend - from Calculation Set)
-            let prev3 = [];
-            if (totalCalcAvailable >= 6) {
-                prev3 = calcData.slice(-6, -3);
-            } else if (totalCalcAvailable > 3) {
-                prev3 = calcData.slice(0, -3);
-            }
-
-            // Sum Calculations
-            const sumLast3 = last3.reduce((acc, cur) => acc + cur.amount, 0);
-
-            // Slope & Trend Ratio Calculation
-            const slope = calculateSlope(last3);
-            const averagePerMonth = sumLast3 / 3;
-            const trendRatio = calculateTrendRatio(slope, averagePerMonth);
-
+            // Formatting using the previously calculated trendRatio and slope
             const totalPurchaseGrowth = formatTrendFromRatio(trendRatio);
             const avgMonthlyTrend = formatAvgMonthlyChange(slope);
 
@@ -518,10 +529,12 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
                 };
             }).reverse();
 
+            // the UI always displays the text based on `categoryMonths`
+            // and sumLast3 or sumLast6 depending on it too (even if variable name is `total_purchase_3_months`)
             financialSummary = {
-                total_purchase_3_months: formatCurrency(sumLast3),
+                total_purchase_3_months: formatCurrency(categoryMonths === 6 ? sumLast6 : sumLast3),
                 total_purchase_growth: totalPurchaseGrowth,
-                avg_monthly: formatCurrency(sumLast3 / 3),
+                avg_monthly: formatCurrency((categoryMonths === 6 ? sumLast6 : sumLast3) / categoryMonths),
                 avg_monthly_trend: avgMonthlyTrend, // Use distinct Slope-based string
                 monthly_history: monthlyHistory,
                 category_breakdown: categoryBreakdown,
