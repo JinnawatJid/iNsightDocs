@@ -402,8 +402,9 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
     let history = [];
 
     // Determine the number of months to fetch for the category summary
-    // Now explicitly requested to always be 3 months for all customers
-    const categoryMonths = 3;
+    // As requested: Existing customers with credit get 6 months of Category Split.
+    // New customers (or no credit) get 3 months.
+    const categoryMonths = currentCreditLimit > 10 ? 6 : 3;
 
     // 1. Fetch Credit History (Requests)
     try {
@@ -474,10 +475,10 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
             last6 = calcData.slice(-6);
             sumLast6 = last6.reduce((acc, cur) => acc + cur.amount, 0);
 
-            // Trend is calculated based on categoryMonths (3 vs 6)
-            const activeData = categoryMonths === 6 ? last6 : last3;
-            slope = calculateSlope(activeData);
-            const activeAvg = (categoryMonths === 6 ? sumLast6 : sumLast3) / categoryMonths;
+            // Trend and Totals are ALWAYS calculated based on 3 months
+            // for the 'ยอดซื้อรวม 3 เดือน' widget, regardless of category split.
+            slope = calculateSlope(last3);
+            const activeAvg = sumLast3 / 3;
             trendRatio = calculateTrendRatio(slope, activeAvg);
         }
 
@@ -531,16 +532,15 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
                 };
             }).reverse();
 
-            // the UI always displays the text based on `categoryMonths`
-            // and sumLast3 or sumLast6 depending on it too (even if variable name is `total_purchase_3_months`)
+            // Total purchases are strictly 3 months as per requirement
             financialSummary = {
-                total_purchase_3_months: formatCurrency(categoryMonths === 6 ? sumLast6 : sumLast3),
+                total_purchase_3_months: formatCurrency(sumLast3),
                 total_purchase_growth: totalPurchaseGrowth,
-                avg_monthly: formatCurrency((categoryMonths === 6 ? sumLast6 : sumLast3) / categoryMonths),
+                avg_monthly: formatCurrency(sumLast3 / 3),
                 avg_monthly_trend: avgMonthlyTrend, // Use distinct Slope-based string
-                monthly_history: monthlyHistory,
+                monthly_history: monthlyHistory, // Contains full 7 month raw timeline
                 category_breakdown: categoryBreakdown,
-                category_months_used: categoryMonths,
+                category_months_used: categoryMonths, // Dynamic (3 or 6) only for the category breakdown widget
                 fetchSource: apiData.fetchSource || 'customer_code' // Include fetchSource flag
             };
 
