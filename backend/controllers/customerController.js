@@ -402,8 +402,8 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
     let history = [];
 
     // Determine the number of months to fetch for the category summary
-    // Existing customers (Credit > 10) use 6 months, new customers use 3 months
-    const categoryMonths = currentCreditLimit > 10 ? 6 : 3;
+    // Now explicitly requested to always be 3 months for all customers
+    const categoryMonths = 3;
 
     // 1. Fetch Credit History (Requests)
     try {
