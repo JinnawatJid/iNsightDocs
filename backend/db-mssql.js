@@ -35,6 +35,7 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
     return new Promise((resolve, reject) => {
         const rows = [];
         let headers = [];
+        const seenKeys = new Set();
         fs.createReadStream(csvFilePath)
             .pipe(csv())
             .on('headers', (headerList) => {
@@ -71,6 +72,14 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                     // Shop Name (Business)
                     const rawShop = newRow['ชื่อ - ร้าน'] || '';
                     newRow['normalized_shop'] = normalizeName(rawShop);
+                }
+
+                // Deduplicate rows if primaryKey is provided
+                if (primaryKey) {
+                    const pkValue = newRow[primaryKey];
+                    if (!pkValue || pkValue.trim() === '') return; // Skip empty primary keys
+                    if (seenKeys.has(pkValue)) return; // Skip duplicates
+                    seenKeys.add(pkValue);
                 }
 
                 rows.push(newRow);
