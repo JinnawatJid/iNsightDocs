@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const pdf = require('pdf-parse');
 const fs = require('fs');
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
@@ -53,7 +54,7 @@ const generateTestPDF = async () => {
     // Plan B: Mock `pdf-parse` in the test script to return the expected text, ensuring the REGEX logic works.
     // This verifies the parsing logic, if not the PDF reading itself.
 
-    console.log("Skipping PDF generation for Thai text (font issue). Mocking pdf-parse input.");
+    logger.info("Skipping PDF generation for Thai text (font issue). Mocking pdf-parse input.");
 };
 
 const testLogic = () => {
@@ -65,33 +66,33 @@ const testLogic = () => {
     สถานะนิติบุคคล : ยังดำเนินกิจการอยู่
     `;
 
-    console.log('--- Mocked Text ---');
-    console.log(text);
-    console.log('-------------------');
+    logger.info('--- Mocked Text ---');
+    logger.info(text);
+    logger.info('-------------------');
 
     const dateRegex = /วันที่จดทะเบียนจัดตั้ง\s*[:]\s*(\d{2}\/\d{2}\/\d{4})/;
     const match = text.match(dateRegex);
 
     if (match) {
         const dateStr = match[1];
-        console.log(`PASS: Found Date: ${dateStr}`);
+        logger.info(`PASS: Found Date: ${dateStr}`);
 
         const parts = dateStr.split('/');
         const yearBE = parseInt(parts[2]);
         const currentYearBE = new Date().getFullYear() + 543;
         const yearsInBusiness = currentYearBE - yearBE;
 
-        console.log(`Calculated Years in Business: ${yearsInBusiness}`);
+        logger.info(`Calculated Years in Business: ${yearsInBusiness}`);
 
         // Assertion
         if (dateStr === '29/01/2516' && yearsInBusiness > 50) {
-             console.log('TEST PASSED');
+             logger.info('TEST PASSED');
         } else {
-             console.error('TEST FAILED: Logic mismatch');
+             logger.error('TEST FAILED: Logic mismatch');
              process.exit(1);
         }
     } else {
-        console.error('TEST FAILED: Date not found');
+        logger.error('TEST FAILED: Date not found');
         process.exit(1);
     }
 };

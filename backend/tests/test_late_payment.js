@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const axios = require('axios');
 const { calculateSlope, calculateTrendRatio, generateContinuousTimeline } = require('../services/financialCalculator');
 const db = require('../db');
@@ -59,37 +60,37 @@ const simulateFetchLatePaymentData = async (mockData) => {
 };
 
 async function runTest() {
-    console.log("--- Testing Late Payment Logic ---");
+    logger.info("--- Testing Late Payment Logic ---");
 
     // Test Case 1: Mixed Data (0, 5, 10) -> Total 15 / 3 = 5.00
     const res1 = await simulateFetchLatePaymentData(SAMPLE_LATE_PAYMENT_DATA);
-    console.log("Test Case 1 (Expected Avg 5.00):", res1);
+    logger.info("Test Case 1 (Expected Avg 5.00):", res1);
     if (res1.average_late_days === 5.00 && res1.total_invoices === 3 && res1.late_count === 2) {
-        console.log("✅ Passed");
+        logger.info("✅ Passed");
     } else {
-        console.error("❌ Failed");
+        logger.error("❌ Failed");
     }
 
     // Test Case 2: Empty Data
     const res2 = await simulateFetchLatePaymentData([]);
-    console.log("Test Case 2 (Expected Avg 0):", res2);
+    logger.info("Test Case 2 (Expected Avg 0):", res2);
     if (res2.average_late_days === 0 && res2.total_invoices === 0) {
-        console.log("✅ Passed");
+        logger.info("✅ Passed");
     } else {
-        console.error("❌ Failed");
+        logger.error("❌ Failed");
     }
 
     // Test Case 3: All On-Time
     const onTimeData = [{ Late_Days: 0 }, { Late_Days: 0 }];
     const res3 = await simulateFetchLatePaymentData(onTimeData);
-    console.log("Test Case 3 (Expected Avg 0.00):", res3);
+    logger.info("Test Case 3 (Expected Avg 0.00):", res3);
     if (res3.average_late_days === 0 && res3.late_count === 0) {
-        console.log("✅ Passed");
+        logger.info("✅ Passed");
     } else {
-        console.error("❌ Failed");
+        logger.error("❌ Failed");
     }
 
-    console.log("--- End Test ---");
+    logger.info("--- End Test ---");
 }
 
 runTest();

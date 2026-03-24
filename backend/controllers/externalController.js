@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 // Lazy load puppeteer to prevent startup crash if module is missing (Offline Mode)
 // const puppeteer = require('puppeteer');
 const fs = require('fs-extra');
@@ -16,14 +17,14 @@ const sendSSE = (res, data) => {
  */
 const extractAndProcessDBDData = async (pdfPath, taxId, companyName) => {
     try {
-        console.log(`[DBD Extract] Reading PDF: ${pdfPath}`);
+        logger.info(`[DBD Extract] Reading PDF: ${pdfPath}`);
         const dataBuffer = await fs.readFile(pdfPath);
         const data = await pdf(dataBuffer);
         const text = data.text;
 
         // Extract Registration Date (วันที่จดทะเบียนจัดตั้ง)
         // Pattern: "วันที่จดทะเบียนจัดตั้ง : 29/01/2516" or similar
-        console.log('[DBD Extract] Extracted Text (First 500 chars):', text.substring(0, 500));
+        logger.info('[DBD Extract] Extracted Text (First 500 chars):', text.substring(0, 500));
 
         const dateRegex = /วันที่จดทะเบียนจัดตั้ง\s*[:]\s*(\d{2}\/\d{2}\/\d{4})/;
         const match = text.match(dateRegex);
@@ -35,7 +36,7 @@ const extractAndProcessDBDData = async (pdfPath, taxId, companyName) => {
             const currentYearBE = new Date().getFullYear() + 543;
             const yearsInBusiness = currentYearBE - yearBE;
 
-            console.log(`[DBD Extract] Found Registration Date: ${dateStr} (Year ${yearBE}). Years in Business: ${yearsInBusiness}`);
+            logger.info(`[DBD Extract] Found Registration Date: ${dateStr} (Year ${yearBE}). Years in Business: ${yearsInBusiness}`);
 
             // Update Database
             // We prioritize updating by Tax ID if available (likely unique)
@@ -60,14 +61,14 @@ const extractAndProcessDBDData = async (pdfPath, taxId, companyName) => {
 
             if (sql) {
                 await db.query(sql, params);
-                console.log(`[DBD Extract] Updated Customer DB with years_in_business = ${yearsInBusiness}`);
+                logger.info(`[DBD Extract] Updated Customer DB with years_in_business = ${yearsInBusiness}`);
                 return { success: true, yearsInBusiness };
             }
         } else {
-            console.warn('[DBD Extract] Registration Date not found in PDF text.');
+            logger.warn('[DBD Extract] Registration Date not found in PDF text.');
         }
     } catch (error) {
-        console.error('[DBD Extract] Error:', error.message);
+        logger.error('[DBD Extract] Error:', error.message);
     }
     return { success: false };
 };
@@ -99,7 +100,7 @@ exports.streamDBDProfile = async (req, res) => {
 
     // Handle Client Disconnect (Cancel)
     req.on('close', async () => {
-        console.log('[DBD Stream] Client disconnected (Cancel detected). Cleaning up...');
+        logger.info('[DBD Stream] Client disconnected (Cancel detected). Cleaning up...');
         if (browser) await browser.close().catch(() => {});
         if (tmpDir) await fs.remove(tmpDir).catch(() => {});
     });
@@ -182,7 +183,7 @@ exports.streamDBDProfile = async (req, res) => {
                     return false;
                 });
                 if (cookieClicked) await new Promise(r => setTimeout(r, 1000));
-            } catch (e) { console.warn('Popup handling warning:', e.message); }
+            } catch (e) { logger.warn('Popup handling warning:', e.message); }
         };
 
         const downloadExcel = async (label) => {
@@ -219,7 +220,7 @@ exports.streamDBDProfile = async (req, res) => {
                     });
 
                     if (!clicked) {
-                        console.warn(`[${label}] Print button not found/visible, retrying...`);
+                        logger.warn(`[${label}] Print button not found/visible, retrying...`);
                         await new Promise(r => setTimeout(r, 1000));
                         continue;
                     }
@@ -243,17 +244,17 @@ exports.streamDBDProfile = async (req, res) => {
                         menuOpen = true;
                         break;
                     } else {
-                        console.warn(`[${label}] Clicked Print, but Excel menu didn't appear. Retrying click...`);
+                        logger.warn(`[${label}] Clicked Print, but Excel menu didn't appear. Retrying click...`);
                         // Loop continues, clicking Print again
                     }
 
                  } catch (e) {
-                     console.warn(`[${label}] Attempt ${i+1} to click Print button failed: ${e.message}`);
+                     logger.warn(`[${label}] Attempt ${i+1} to click Print button failed: ${e.message}`);
                  }
                  await new Promise(r => setTimeout(r, 1000));
              }
 
-             if (!menuOpen) console.warn(`[${label}] Failed to open Print menu after retries`);
+             if (!menuOpen) logger.warn(`[${label}] Failed to open Print menu after retries`);
 
              // 2. Click Excel
              await new Promise(r => setTimeout(r, 500)); // Short stabilization
@@ -279,7 +280,7 @@ exports.streamDBDProfile = async (req, res) => {
                          if (btn) btn.click();
                      });
                  } catch (e) {
-                     console.warn(`[${label}] Final click Excel failed: ${e.message}`);
+                     logger.warn(`[${label}] Final click Excel failed: ${e.message}`);
                  }
              };
 
@@ -288,7 +289,7 @@ exports.streamDBDProfile = async (req, res) => {
 
         // 1. Navigate
         sendSSE(res, { status: 'progress', message: 'กำลังเชื่อมต่อกรมพัฒนาธุรกิจการค้า...' });
-        console.log('[DBD Stream] Navigating...');
+        logger.info('[DBD Stream] Navigating...');
         await page.goto('https://datawarehouse.dbd.go.th/', { waitUntil: 'networkidle2', timeout: 90000 });
 
         // --- POPUP HANDLING (Initial) ---
@@ -321,10 +322,10 @@ exports.streamDBDProfile = async (req, res) => {
                     searchSuccess = true;
                     break;
                 } else {
-                    console.warn(`Search input mismatch (Expected: ${query}, Got: ${inputValue}). Retrying...`);
+                    logger.warn(`Search input mismatch (Expected: ${query}, Got: ${inputValue}). Retrying...`);
                 }
              } catch (e) {
-                 console.warn(`Search attempt ${i+1} failed: ${e.message}`);
+                 logger.warn(`Search attempt ${i+1} failed: ${e.message}`);
              }
         }
 
@@ -412,14 +413,14 @@ exports.streamDBDProfile = async (req, res) => {
         const financialTab = financialTabHandle ? financialTabHandle.asElement() : null;
 
         if (financialTab) {
-            console.log('[DBD Stream] Hovering over Financial Data tab...');
+            logger.info('[DBD Stream] Hovering over Financial Data tab...');
             await financialTab.hover();
 
             // Wait for the dropdown menu to appear (looking for "งบการเงิน")
             await new Promise(r => setTimeout(r, 1000)); // Animation wait
 
             // 4.2 Click "Financial Statement" (งบการเงิน)
-            console.log('[DBD Stream] Clicking Financial Statement submenu...');
+            logger.info('[DBD Stream] Clicking Financial Statement submenu...');
             // FIXED: Use strict text matching to avoid matching the main menu "ข้อมูลนิติบุคคลและงบการเงิน" which links to /juristic
             const statementLinkHandle = await getElementByXPath(page, "//a[normalize-space(.)='งบการเงิน']");
             const statementLink = statementLinkHandle ? statementLinkHandle.asElement() : null;
@@ -431,7 +432,7 @@ exports.streamDBDProfile = async (req, res) => {
                  throw new Error('ไม่พบเมนูย่อย "งบการเงิน"');
             }
         } else {
-            console.warn('[DBD Stream] Financial Data tab not found via XPath, trying legacy generic search...');
+            logger.warn('[DBD Stream] Financial Data tab not found via XPath, trying legacy generic search...');
              // Fallback to legacy evaluator if XPath fails
             await page.evaluate(() => {
                 const items = Array.from(document.querySelectorAll('a, li, div, span'));
@@ -449,7 +450,7 @@ exports.streamDBDProfile = async (req, res) => {
         });
 
         if (noDataFound) {
-            console.log(`[Bridge] "ไม่พบข้อมูล" detected. Skipping financial documents for ${query}.`);
+            logger.info(`[Bridge] "ไม่พบข้อมูล" detected. Skipping financial documents for ${query}.`);
             hasFinancialData = false;
             sendSSE(res, { status: 'progress', message: 'ไม่มีงบการเงินในระบบ DBD (ข้ามการโหลด Excel)' });
         }
@@ -465,7 +466,7 @@ exports.streamDBDProfile = async (req, res) => {
                     { timeout: 60000 }
                 );
             } catch (e) {
-                console.warn('Timeout waiting for balance sheet text, but continuing...');
+                logger.warn('Timeout waiting for balance sheet text, but continuing...');
             }
 
             // 4.3 Download Excel (Balance Sheet)
@@ -485,7 +486,7 @@ exports.streamDBDProfile = async (req, res) => {
             }
 
             if (!balanceSheetExcel) {
-                 console.warn('Balance Sheet Excel download timed out');
+                 logger.warn('Balance Sheet Excel download timed out');
             }
         }
 
@@ -529,10 +530,10 @@ exports.streamDBDProfile = async (req, res) => {
         const incomeTab = incomeTabHandle ? incomeTabHandle.asElement() : null;
 
         if (incomeTab) {
-            console.log('[DBD Stream] Clicking Income Statement tab...');
+            logger.info('[DBD Stream] Clicking Income Statement tab...');
             await incomeTab.click();
         } else {
-            console.warn('[DBD Stream] Income Statement tab not found via XPath, trying JS fallback...');
+            logger.warn('[DBD Stream] Income Statement tab not found via XPath, trying JS fallback...');
              // Fallback JS with strict matching
             await page.evaluate(() => {
                 const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
@@ -549,14 +550,14 @@ exports.streamDBDProfile = async (req, res) => {
                 { timeout: 60000 }
             );
         } catch (e) {
-            console.warn('Timeout waiting for Income Statement specific text, but continuing...');
+            logger.warn('Timeout waiting for Income Statement specific text, but continuing...');
         }
 
         // Small buffer for animations
         await new Promise(r => setTimeout(r, 1000));
 
         // Click Print Info and Download (Income Statement)
-        console.log('[DBD Stream] Clicking Print Info for Income Statement...');
+        logger.info('[DBD Stream] Clicking Print Info for Income Statement...');
         await downloadExcel('IncomeStatement');
 
         // Wait for Income Statement Excel
@@ -594,10 +595,10 @@ exports.streamDBDProfile = async (req, res) => {
         const ratioTab = ratioTabHandle ? ratioTabHandle.asElement() : null;
 
         if (ratioTab) {
-            console.log('[DBD Stream] Clicking Financial Ratios tab...');
+            logger.info('[DBD Stream] Clicking Financial Ratios tab...');
             await ratioTab.click();
         } else {
-             console.warn('[DBD Stream] Financial Ratios tab not found via XPath, trying JS fallback...');
+             logger.warn('[DBD Stream] Financial Ratios tab not found via XPath, trying JS fallback...');
              await page.evaluate(() => {
                 const items = Array.from(document.querySelectorAll('button, a, li, span, div'));
                 const tab = items.find(el => el.innerText && el.innerText.trim() === 'อัตราส่วนทางการเงิน');
@@ -613,14 +614,14 @@ exports.streamDBDProfile = async (req, res) => {
                 { timeout: 60000 }
             );
         } catch (e) {
-            console.warn('Timeout waiting for Financial Ratios text, but continuing...');
+            logger.warn('Timeout waiting for Financial Ratios text, but continuing...');
         }
 
         // Small buffer
         await new Promise(r => setTimeout(r, 1000));
 
         // Click Print Info and Download (Ratios)
-        console.log('[DBD Stream] Clicking Print Info for Financial Ratios...');
+        logger.info('[DBD Stream] Clicking Print Info for Financial Ratios...');
         await downloadExcel('FinancialRatios');
 
         // Wait for Ratios Excel
@@ -668,7 +669,7 @@ exports.streamDBDProfile = async (req, res) => {
                 const customerDir = path.join(projectRoot, 'customers', customerCode, dateFolder);
 
                 await fs.ensureDir(customerDir);
-                console.log(`[DBD Persistent] Saving files to: ${customerDir}`);
+                logger.info(`[DBD Persistent] Saving files to: ${customerDir}`);
 
                 // Copy files with standardized names (Overwrite allowed)
 
@@ -707,11 +708,11 @@ exports.streamDBDProfile = async (req, res) => {
                 }
 
             } catch (persistErr) {
-                console.error('[DBD Persistent] Error saving files:', persistErr.message);
+                logger.error('[DBD Persistent] Error saving files:', persistErr.message);
                 // We do NOT stop the process, just log the error
             }
         } else {
-            console.warn('[DBD Persistent] Skipped: customerCode is missing.');
+            logger.warn('[DBD Persistent] Skipped: customerCode is missing.');
         }
 
         // 7. Complete
@@ -740,7 +741,7 @@ exports.streamDBDProfile = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('[DBD Stream] Error:', error);
+        logger.error('[DBD Stream] Error:', error);
         sendSSE(res, { status: 'error', message: error.message });
 
         // Clean up immediately on error (if browser still open)
@@ -771,7 +772,7 @@ exports.getCreditStatus = async (req, res) => {
     const { customerId } = req.params;
     const isMock = String(req.query.mock).trim().toLowerCase() === 'true' || String(req.headers['x-mock-mode']).trim().toLowerCase() === 'true';
 
-    console.log(`[External API] Request for ${customerId}. Mock Mode: ${isMock} (Query: ${req.query.mock}, Header: ${req.headers['x-mock-mode']})`);
+    logger.info(`[External API] Request for ${customerId}. Mock Mode: ${isMock} (Query: ${req.query.mock}, Header: ${req.headers['x-mock-mode']})`);
 
     if (!customerId) {
         return res.status(400).json({ error: 'Customer ID is required' });
@@ -779,7 +780,7 @@ exports.getCreditStatus = async (req, res) => {
 
     // --- MOCK MODE LOGIC ---
     if (isMock) {
-        console.log(`[Mock Mode] Serving credit status for ${customerId}`);
+        logger.info(`[Mock Mode] Serving credit status for ${customerId}`);
 
         // Logic: Check the last digit of the numeric part of the ID
         // Format example: 08015AY -> Numeric part 08015 -> Last digit 5
@@ -869,7 +870,7 @@ exports.getCreditStatus = async (req, res) => {
         res.status(200).json(responseData);
 
     } catch (error) {
-        console.error('Error in getCreditStatus:', error);
+        logger.error('Error in getCreditStatus:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };

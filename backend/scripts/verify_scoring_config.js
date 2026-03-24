@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const ScorecardEvaluator = require('../services/scoring/ScorecardEvaluator');
 
 /**
@@ -83,7 +84,7 @@ const testCases = [
 ];
 
 function runTests() {
-    console.log("Starting Verification Tests for Credit Scoring Model (JSON Config)...");
+    logger.info("Starting Verification Tests for Credit Scoring Model (JSON Config)...");
     let passed = 0;
     let failed = 0;
 
@@ -98,18 +99,18 @@ function runTests() {
         const labelMatch = result.matchedRule === test.expectedLabel;
 
         if (scoreMatch && labelMatch) {
-            console.log(`✅ Test ${index + 1}: ${test.factor} (${test.input}) -> Passed`);
+            logger.info(`✅ Test ${index + 1}: ${test.factor} (${test.input}) -> Passed`);
             passed++;
         } else {
-            console.error(`❌ Test ${index + 1}: ${test.factor} (${test.input}) -> FAILED`);
-            console.error(`   Expected Score: ${test.expectedScore}, Got: ${result.score}`);
-            console.error(`   Expected Label: ${test.expectedLabel}, Got: ${result.matchedRule}`);
+            logger.error(`❌ Test ${index + 1}: ${test.factor} (${test.input}) -> FAILED`);
+            logger.error(`   Expected Score: ${test.expectedScore}, Got: ${result.score}`);
+            logger.error(`   Expected Label: ${test.expectedLabel}, Got: ${result.matchedRule}`);
             failed++;
         }
     });
 
-    console.log("\n--------------------------------------------------");
-    console.log(`Results: ${passed} Passed, ${failed} Failed`);
+    logger.info("\n--------------------------------------------------");
+    logger.info(`Results: ${passed} Passed, ${failed} Failed`);
 
     if (failed > 0) {
         process.exit(1);

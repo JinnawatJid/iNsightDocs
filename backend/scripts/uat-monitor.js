@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const http = require('http');
 const db = require('../db');
 
@@ -19,11 +20,11 @@ const colors = {
 
 const printHeader = () => {
     console.clear();
-    console.log(`${colors.bright}${colors.cyan}========================================${colors.reset}`);
-    console.log(`${colors.bright}${colors.cyan}      UAT MONITORING DASHBOARD          ${colors.reset}`);
-    console.log(`${colors.bright}${colors.cyan}========================================${colors.reset}`);
-    console.log(`Time: ${new Date().toLocaleTimeString()}`);
-    console.log('----------------------------------------');
+    logger.info(`${colors.bright}${colors.cyan}========================================${colors.reset}`);
+    logger.info(`${colors.bright}${colors.cyan}      UAT MONITORING DASHBOARD          ${colors.reset}`);
+    logger.info(`${colors.bright}${colors.cyan}========================================${colors.reset}`);
+    logger.info(`Time: ${new Date().toLocaleTimeString()}`);
+    logger.info('----------------------------------------');
 };
 
 const checkHealth = () => {
@@ -80,11 +81,11 @@ const getDbStats = async () => {
 
 const runMonitor = async () => {
     // Initialize DB Connection
-    console.log('Connecting to database...');
+    logger.info('Connecting to database...');
     try {
         await db.initialize();
     } catch (e) {
-        console.error('Failed to connect to DB:', e);
+        logger.error('Failed to connect to DB:', e);
         process.exit(1);
     }
 
@@ -93,30 +94,30 @@ const runMonitor = async () => {
         const dbStats = await getDbStats();
 
         printHeader();
-        console.log(`Server Status: ${healthStatus}`);
-        console.log('----------------------------------------');
+        logger.info(`Server Status: ${healthStatus}`);
+        logger.info('----------------------------------------');
 
         if (dbStats.error) {
-            console.log(`${colors.red}Database Error: ${dbStats.error}${colors.reset}`);
+            logger.info(`${colors.red}Database Error: ${dbStats.error}${colors.reset}`);
         } else {
-            console.log(`${colors.bright}Data Statistics:${colors.reset}`);
-            console.log(`  Total Customers:      ${colors.yellow}${dbStats.customerCount}${colors.reset}`);
-            console.log(`  Total Credit Requests: ${colors.yellow}${dbStats.requestCount}${colors.reset}`);
-            console.log('----------------------------------------');
-            console.log(`${colors.bright}Latest Credit Request:${colors.reset}`);
+            logger.info(`${colors.bright}Data Statistics:${colors.reset}`);
+            logger.info(`  Total Customers:      ${colors.yellow}${dbStats.customerCount}${colors.reset}`);
+            logger.info(`  Total Credit Requests: ${colors.yellow}${dbStats.requestCount}${colors.reset}`);
+            logger.info('----------------------------------------');
+            logger.info(`${colors.bright}Latest Credit Request:${colors.reset}`);
             if (dbStats.latestRequest) {
                 const req = dbStats.latestRequest;
-                console.log(`  Tx ID:     ${colors.green}${req.tx_id}${colors.reset}`);
-                console.log(`  Customer:  ${req.customer_name} (${req.customer_no})`);
-                console.log(`  Status:    ${req.status}`);
-                console.log(`  Amount:    ${parseFloat(req.request_amount).toLocaleString()}`);
-                console.log(`  Created:   ${new Date(req.created_at).toLocaleString()}`);
+                logger.info(`  Tx ID:     ${colors.green}${req.tx_id}${colors.reset}`);
+                logger.info(`  Customer:  ${req.customer_name} (${req.customer_no})`);
+                logger.info(`  Status:    ${req.status}`);
+                logger.info(`  Amount:    ${parseFloat(req.request_amount).toLocaleString()}`);
+                logger.info(`  Created:   ${new Date(req.created_at).toLocaleString()}`);
             } else {
-                console.log(`  ${colors.dim}No requests found.${colors.reset}`);
+                logger.info(`  ${colors.dim}No requests found.${colors.reset}`);
             }
         }
-        console.log('----------------------------------------');
-        console.log(`${colors.dim}Press Ctrl+C to exit${colors.reset}`);
+        logger.info('----------------------------------------');
+        logger.info(`${colors.dim}Press Ctrl+C to exit${colors.reset}`);
 
         setTimeout(loop, REFRESH_INTERVAL);
     };

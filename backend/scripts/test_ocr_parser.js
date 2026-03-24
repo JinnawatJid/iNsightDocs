@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 
 const parser = (text) => {
     const result = {
@@ -91,8 +92,8 @@ const sample2 = `
 `;
 
 // Run Tests
-console.log("--- Sample 1 ---");
-console.log(parser(sample1));
+logger.info("--- Sample 1 ---");
+logger.info(parser(sample1));
 
-console.log("\n--- Sample 2 ---");
-console.log(parser(sample2));
+logger.info("\n--- Sample 2 ---");
+logger.info(parser(sample2));

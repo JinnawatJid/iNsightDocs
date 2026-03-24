@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 
 const ExistingCustomerScorecard = require('../services/scoring/strategies/ExistingCustomerScorecard');
 const { calculateSlope, calculateTrendRatio } = require('../services/financialCalculator');
@@ -30,11 +31,11 @@ const accumData = {
     Slope6: slope6
 };
 
-console.log('--- Mock Data Setup ---');
-console.log('Sum Last 6 Months:', sum6.toLocaleString());
-console.log('Sum Last 3 Months:', accumData.SecondAccum.toLocaleString());
-console.log('Slope (6m):', slope6.toFixed(2));
-console.log('Trend Ratio (6m):', trend6.toFixed(2));
+logger.info('--- Mock Data Setup ---');
+logger.info('Sum Last 6 Months:', sum6.toLocaleString());
+logger.info('Sum Last 3 Months:', accumData.SecondAccum.toLocaleString());
+logger.info('Slope (6m):', slope6.toFixed(2));
+logger.info('Trend Ratio (6m):', trend6.toFixed(2));
 
 // Test Cases
 const testCases = [
@@ -59,25 +60,25 @@ const testCases = [
 
 const scorecard = new ExistingCustomerScorecard();
 
-console.log('\n--- Running Tests ---');
+logger.info('\n--- Running Tests ---');
 
 testCases.forEach(tc => {
-    console.log(`Test: ${tc.name}`);
+    logger.info(`Test: ${tc.name}`);
     const result = scorecard.calculateScore(tc.context);
 
     // Verify C3 Breakdown
     const c3 = result.breakdown.c3;
     const debug = c3.debug;
 
-    console.log('C3 Breakdown Debug Items:');
+    logger.info('C3 Breakdown Debug Items:');
     debug.forEach(d => {
-        console.log(`- ${d.label}: ${d.value} (Score: ${d.score})`);
+        logger.info(`- ${d.label}: ${d.value} (Score: ${d.score})`);
     });
 
     // 1. Check Avg 1.5 Months Logic
     // Formula: Sum6 / 4
     const expectedAvg1_5 = sum6 / 4; // 187,500
-    console.log(`\nVerifying "Avg 1.5 Month" Logic:`);
+    logger.info(`\nVerifying "Avg 1.5 Month" Logic:`);
     // Note: Avg 1.5m is used inside Capacity Check & Turnover Speed, but not explicitly exposed as a debug item itself.
     // However, it feeds into "Capacity Check" = Avg 1.5m / RequestAmount
     // 187,500 / 500,000 = 0.375 -> 0.38
@@ -85,9 +86,9 @@ testCases.forEach(tc => {
     const expectedCapRatio = (expectedAvg1_5 / tc.context.requestAmount).toFixed(2);
 
     if (capCheckItem && capCheckItem.value === expectedCapRatio) {
-        console.log(`PASS: Capacity Check Ratio matches expected (${expectedCapRatio})`);
+        logger.info(`PASS: Capacity Check Ratio matches expected (${expectedCapRatio})`);
     } else {
-        console.log(`FAIL: Capacity Check Ratio expected ${expectedCapRatio}, got ${capCheckItem ? capCheckItem.value : 'N/A'}`);
+        logger.info(`FAIL: Capacity Check Ratio expected ${expectedCapRatio}, got ${capCheckItem ? capCheckItem.value : 'N/A'}`);
     }
 
     // 2. Check Turnover Speed (60 Days) Logic
@@ -99,22 +100,22 @@ testCases.forEach(tc => {
 
     if (turnoverItem) {
         if (turnoverItem.value === expectedTurnover) {
-            console.log(`PASS: Turnover Speed (Renamed) matches expected (${expectedTurnover})`);
+            logger.info(`PASS: Turnover Speed (Renamed) matches expected (${expectedTurnover})`);
         } else {
-            console.log(`FAIL: Turnover Speed expected ${expectedTurnover}, got ${turnoverItem.value}`);
+            logger.info(`FAIL: Turnover Speed expected ${expectedTurnover}, got ${turnoverItem.value}`);
         }
-        console.log(`PASS: Label Renamed Correctly`);
+        logger.info(`PASS: Label Renamed Correctly`);
     } else {
-        console.log(`FAIL: Turnover Speed item not found (Label might be wrong)`);
+        logger.info(`FAIL: Turnover Speed item not found (Label might be wrong)`);
     }
 
     // 3. Check Purchase Trend (Slope)
     // Should use Slope6
     const trendItem = debug.find(d => d.label.includes('Slope'));
     if (trendItem && parseFloat(trendItem.value).toFixed(2) === slope6.toFixed(2)) {
-         console.log(`PASS: Purchase Trend uses Slope6 (${slope6.toFixed(2)})`);
+         logger.info(`PASS: Purchase Trend uses Slope6 (${slope6.toFixed(2)})`);
     } else {
-         console.log(`FAIL: Purchase Trend expected ${slope6.toFixed(2)}, got ${trendItem ? trendItem.value : 'N/A'}`);
+         logger.info(`FAIL: Purchase Trend expected ${slope6.toFixed(2)}, got ${trendItem ? trendItem.value : 'N/A'}`);
     }
 
 });

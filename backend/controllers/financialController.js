@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const xlsx = require('xlsx');
 const db = require('../db');
 const axios = require('axios');
@@ -121,7 +122,7 @@ const sanitizeInvoices = (invoices) => {
 // Helper: Fetch Purchasing Behavior from External API
 const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
     if (MOCK_EXTERNAL_APIS || MOCK_FINANCIAL_API) {
-        console.log(`[Financial API] Using Mock Data for ${customerNo}`);
+        logger.info(`[Financial API] Using Mock Data for ${customerNo}`);
         const data = getMockFinancialData(customerNo);
         data.fetchSource = taxId ? 'tax_no' : 'customer_code';
         return data;
@@ -129,7 +130,7 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
 
     try {
         if (taxId && taxId.trim().length > 0) {
-            console.log(`[Financial API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
+            logger.info(`[Financial API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
             const response = await axios.get(FINANCIAL_API_TAX_URL, {
                 params: { tax_no: taxId.trim() },
                 headers: {
@@ -138,7 +139,7 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
                 },
                 timeout: 5000
             });
-            console.log(`[Financial API] Success for ${customerNo} (via tax_no)`);
+            logger.info(`[Financial API] Success for ${customerNo} (via tax_no)`);
             const data = response.data;
             if (data) {
                 data.fetchSource = 'tax_no';
@@ -146,11 +147,11 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
             return data;
         }
     } catch (error) {
-         console.warn(`[Financial API] Failed fetching via tax_no for ${customerNo}. Error: ${error.message}. Falling back to customer_code...`);
+         logger.warn(`[Financial API] Failed fetching via tax_no for ${customerNo}. Error: ${error.message}. Falling back to customer_code...`);
     }
 
     try {
-        console.log(`[Financial API] Fetching via customer_code for ${customerNo} from ${FINANCIAL_API_URL}`);
+        logger.info(`[Financial API] Fetching via customer_code for ${customerNo} from ${FINANCIAL_API_URL}`);
         const response = await axios.post(FINANCIAL_API_URL, {
             customer_code: customerNo
         }, {
@@ -160,10 +161,10 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
             },
             timeout: 5000
         });
-        console.log(`[Financial API] Success for ${customerNo}`);
+        logger.info(`[Financial API] Success for ${customerNo}`);
         return response.data;
     } catch (error) {
-        console.error(`[Financial API] Error fetching purchasing behavior for ${customerNo}:`, error.message);
+        logger.error(`[Financial API] Error fetching purchasing behavior for ${customerNo}:`, error.message);
         // Return null to indicate failure/no data
         return null;
     }
@@ -174,17 +175,17 @@ const fetchLatePaymentData = async (customerNo) => {
     try {
         let data;
         if (MOCK_EXTERNAL_APIS) {
-            console.log(`[Late Payment API] Using Mock Data for ${customerNo}`);
+            logger.info(`[Late Payment API] Using Mock Data for ${customerNo}`);
             data = getMockLatePaymentData(customerNo);
         } else {
-            console.log(`[Late Payment API] Fetching data for ${customerNo} from ${LATE_PAYMENT_API_URL}`);
+            logger.info(`[Late Payment API] Fetching data for ${customerNo} from ${LATE_PAYMENT_API_URL}`);
 
             // Debug API Key (First 5 chars)
             if (!LATE_PAYMENT_API_KEY || LATE_PAYMENT_API_KEY === 'YOUR_API_KEY') {
-                console.warn('[Late Payment API] WARNING: LATE_PAYMENT_API_KEY is not set or is default placeholder.');
+                logger.warn('[Late Payment API] WARNING: LATE_PAYMENT_API_KEY is not set or is default placeholder.');
             } else {
                 const maskedKey = LATE_PAYMENT_API_KEY.substring(0, 5) + '...';
-                console.log(`[Late Payment API] Using API Key: ${maskedKey}`);
+                logger.info(`[Late Payment API] Using API Key: ${maskedKey}`);
             }
 
             const response = await axios.post(LATE_PAYMENT_API_URL, {
@@ -251,11 +252,11 @@ const fetchLatePaymentData = async (customerNo) => {
         };
 
     } catch (error) {
-        console.error(`[Late Payment API] Error fetching data for ${customerNo}:`, error.message);
+        logger.error(`[Late Payment API] Error fetching data for ${customerNo}:`, error.message);
         if (error.response) {
-            console.error('[Late Payment API] Response Status:', error.response.status);
-            console.error('[Late Payment API] Response Headers:', JSON.stringify(error.response.headers));
-            console.error('[Late Payment API] Response Data:', JSON.stringify(error.response.data).substring(0, 500));
+            logger.error('[Late Payment API] Response Status:', error.response.status);
+            logger.error('[Late Payment API] Response Headers:', JSON.stringify(error.response.headers));
+            logger.error('[Late Payment API] Response Data:', JSON.stringify(error.response.data).substring(0, 500));
         }
         return null; // Return null to indicate error/no data available
     }
@@ -343,16 +344,16 @@ const fetchWADLData = async (customerNo) => {
     try {
         let data;
         if (MOCK_EXTERNAL_APIS) {
-            console.log(`[WADL API] Using Mock Data for ${customerNo}`);
+            logger.info(`[WADL API] Using Mock Data for ${customerNo}`);
             data = getMockLatePaymentData(customerNo);
         } else {
-            console.log(`[WADL API] Fetching data for ${customerNo} from ${LATE_PAYMENT_WADL_API_URL}`);
+            logger.info(`[WADL API] Fetching data for ${customerNo} from ${LATE_PAYMENT_WADL_API_URL}`);
 
             if (!LATE_PAYMENT_WADL_API_KEY || LATE_PAYMENT_WADL_API_KEY === 'YOUR_WADL_API_KEY') {
-                console.warn('[WADL API] WARNING: LATE_PAYMENT_WADL_API_KEY is not set or is default placeholder.');
+                logger.warn('[WADL API] WARNING: LATE_PAYMENT_WADL_API_KEY is not set or is default placeholder.');
             } else {
                 const maskedKey = LATE_PAYMENT_WADL_API_KEY.substring(0, 5) + '...';
-                console.log(`[WADL API] Using API Key: ${maskedKey}`);
+                logger.info(`[WADL API] Using API Key: ${maskedKey}`);
             }
 
             const response = await axios.post(LATE_PAYMENT_WADL_API_URL, {
@@ -378,7 +379,7 @@ const fetchWADLData = async (customerNo) => {
         return calculateWADL(invoices);
 
     } catch (error) {
-        console.error(`[WADL API] Error fetching data for ${customerNo}:`, error.message);
+        logger.error(`[WADL API] Error fetching data for ${customerNo}:`, error.message);
         return { score: 0, grade: 'Error' }; // Return error state
     }
 };
@@ -527,7 +528,7 @@ exports.analyzeFinancials = async (req, res) => {
              }
 
              const customerRoot = path.join(projectRoot, 'customers', customer_no);
-        console.log(`[DEBUG] Checking local files for ${customer_no} at path: ${customerRoot}`);
+        logger.info(`[DEBUG] Checking local files for ${customer_no} at path: ${customerRoot}`);
 
              // Find latest folder logic again (safety)
              if (await fs.pathExists(customerRoot)) {
@@ -536,7 +537,7 @@ exports.analyzeFinancials = async (req, res) => {
 
                  if (dateFolders.length > 0) {
                      const latestPath = path.join(customerRoot, dateFolders[0]);
-                     console.log(`[Financial Analysis] Using Local Files from: ${latestPath}`);
+                     logger.info(`[Financial Analysis] Using Local Files from: ${latestPath}`);
 
                      // Helper inside scope
                      const loadFile = async (filename) => {
@@ -560,7 +561,7 @@ exports.analyzeFinancials = async (req, res) => {
                      // Check for No Financial Data Marker
                      const hasNoFinancialMarker = await fs.pathExists(path.join(latestPath, 'DBD_NoFinancialData.txt'));
                      if (hasNoFinancialMarker) {
-                         console.log(`[Financial Analysis] Customer ${customer_no} has No Financial Data marker.`);
+                         logger.info(`[Financial Analysis] Customer ${customer_no} has No Financial Data marker.`);
                          // This will ensure Excel extraction yields zero but PDF extraction still works
                          req.body.is_no_financial_data = 'true';
                      }
@@ -574,7 +575,7 @@ exports.analyzeFinancials = async (req, res) => {
                          if (!registered_capital || registered_capital == 0 || !years_in_business) {
                              const extraction = await extractDBDData(cp);
                              if (extraction.success) {
-                                 console.log('[Financial Analysis] Extracted from Local PDF:', extraction);
+                                 logger.info('[Financial Analysis] Extracted from Local PDF:', extraction);
                                  if (extraction.registeredCapital) localRegisteredCapital = extraction.registeredCapital;
                                  if (extraction.yearsInBusiness) localYearsInBusiness = extraction.yearsInBusiness;
                              }
@@ -583,7 +584,7 @@ exports.analyzeFinancials = async (req, res) => {
                  }
              }
         } catch (localErr) {
-            console.error('[Financial Analysis] Error loading local files:', localErr);
+            logger.error('[Financial Analysis] Error loading local files:', localErr);
         }
     }
 
@@ -612,7 +613,7 @@ exports.analyzeFinancials = async (req, res) => {
             const customerDir = path.join(projectRoot, 'customers', customer_no, dateFolder);
 
             await fs.ensureDir(customerDir);
-            console.log(`[Financial Persistent] Saving files to: ${customerDir}`);
+            logger.info(`[Financial Persistent] Saving files to: ${customerDir}`);
 
             // Helper to save buffer
             const saveFile = async (field, filename) => {
@@ -628,7 +629,7 @@ exports.analyzeFinancials = async (req, res) => {
             await saveFile('financial_ratios', 'DBD_FinancialRatios.xlsx');
 
         } catch (persistErr) {
-            console.error('[Financial Persistent] Error saving files:', persistErr.message);
+            logger.error('[Financial Persistent] Error saving files:', persistErr.message);
         }
     }
 
@@ -660,7 +661,7 @@ exports.analyzeFinancials = async (req, res) => {
 
           results.shareholdersEquity = findValue(sheet, 'ส่วนของผู้ถือหุ้น', 'AMOUNT');
       } catch (e) {
-          console.error("Error parsing balance sheet:", e);
+          logger.error("Error parsing balance sheet:", e);
       }
     }
 
@@ -678,7 +679,7 @@ exports.analyzeFinancials = async (req, res) => {
               results.averageRevenue = sum / results.revenueHistory.length;
           }
       } catch (e) {
-          console.error("Error parsing profit loss:", e);
+          logger.error("Error parsing profit loss:", e);
       }
     }
 
@@ -690,7 +691,7 @@ exports.analyzeFinancials = async (req, res) => {
           // Updated: Search for BOTH 'อัตราการหมุนเวียน' AND 'สินค้าคงเหลือ'
           results.inventoryTurnover = findValue(sheet, ['อัตราการหมุนเวียน', 'สินค้าคงเหลือ'], 'RATIO');
       } catch (e) {
-          console.error("Error parsing financial ratios:", e);
+          logger.error("Error parsing financial ratios:", e);
       }
     }
 
@@ -923,7 +924,7 @@ exports.analyzeFinancials = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Financial Analysis Error:', error);
+    logger.error('Financial Analysis Error:', error);
     res.status(500).json({ success: false, message: 'Failed to analyze financial documents', error: error.message });
   }
 };
@@ -956,7 +957,7 @@ const fetchMultipleCustomersInfo = async (customerIds) => {
             return customerMap;
         }
     } catch (error) {
-        console.warn(`[Batch Check] Failed to fetch multiple customers info:`, error.message);
+        logger.warn(`[Batch Check] Failed to fetch multiple customers info:`, error.message);
     }
     return {};
 };
@@ -965,7 +966,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
     try {
         if (!customer_no) return { exists: false, reason: 'Customer No required' };
 
-        console.log(`[DEBUG-CHECK] Starting check for ${customer_no}`);
+        logger.info(`[DEBUG-CHECK] Starting check for ${customer_no}`);
 
         let projectRoot = path.resolve(__dirname, '../../../../');
         if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
@@ -973,19 +974,19 @@ const checkSingleCustomerFiles = async (customer_no) => {
         }
 
         const customerRoot = path.join(projectRoot, 'customers', customer_no);
-        console.log(`[DEBUG-CHECK] Resolved customerRoot: ${customerRoot}`);
+        logger.info(`[DEBUG-CHECK] Resolved customerRoot: ${customerRoot}`);
 
         if (!await fs.pathExists(customerRoot)) {
-            console.log(`[DEBUG-CHECK] FAIL: No customer directory at ${customerRoot}`);
+            logger.info(`[DEBUG-CHECK] FAIL: No customer directory at ${customerRoot}`);
             return { exists: false, reason: 'No customer directory' };
         }
 
         const subdirs = await fs.readdir(customerRoot);
         const dateFolders = subdirs.filter(d => /^\d{8}$/.test(d)).sort().reverse();
-        console.log(`[DEBUG-CHECK] Found dateFolders: ${dateFolders}`);
+        logger.info(`[DEBUG-CHECK] Found dateFolders: ${dateFolders}`);
 
         if (dateFolders.length === 0) {
-            console.log(`[DEBUG-CHECK] FAIL: No 8-digit date folders in ${customerRoot}`);
+            logger.info(`[DEBUG-CHECK] FAIL: No 8-digit date folders in ${customerRoot}`);
             return { exists: false, reason: 'No date folders' };
         }
 
@@ -1002,7 +1003,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         if (diffDays > 180) {
-            console.log(`[DEBUG] Local files for ${customer_no} (${latestFolder}) rejected. diffDays=${diffDays} > 180`);
+            logger.info(`[DEBUG] Local files for ${customer_no} (${latestFolder}) rejected. diffDays=${diffDays} > 180`);
             return { exists: false, reason: 'Files too old', days: diffDays, limit: 180 };
         }
 
@@ -1032,7 +1033,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
                         if (extracted.registeredCapital) dbdRegisteredCapital = extracted.registeredCapital;
                     }
                 } catch (pdfErr) {
-                    console.warn('Failed to parse profile for name:', pdfErr.message);
+                    logger.warn('Failed to parse profile for name:', pdfErr.message);
                 }
             }
 
@@ -1066,12 +1067,12 @@ const checkSingleCustomerFiles = async (customer_no) => {
         let dbdRegisteredCapital = null;
         for (const file of requiredFiles) {
             const filePath = path.join(latestPath, file.name);
-            console.log(`[DEBUG] Checking for file: ${filePath}`);
+            logger.info(`[DEBUG] Checking for file: ${filePath}`);
             if (!await fs.pathExists(filePath)) {
-                console.log(`[DEBUG] File NOT FOUND: ${filePath}`);
+                logger.info(`[DEBUG] File NOT FOUND: ${filePath}`);
                 continue; // Skip instead of returning false immediately
             }
-            console.log(`[DEBUG] File FOUND: ${filePath}`);
+            logger.info(`[DEBUG] File FOUND: ${filePath}`);
 
             // Get File Stats
             const stats = await fs.stat(filePath);
@@ -1092,7 +1093,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
                         if (extracted.registeredCapital) dbdRegisteredCapital = extracted.registeredCapital;
                     }
                 } catch (pdfErr) {
-                    console.warn('Failed to parse profile for name:', pdfErr.message);
+                    logger.warn('Failed to parse profile for name:', pdfErr.message);
                 }
             }
         }
@@ -1110,7 +1111,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
             dbdRegisteredCapital: dbdRegisteredCapital
         };
     } catch (error) {
-        console.error(`Check Local Files Error for ${customer_no}:`, error);
+        logger.error(`Check Local Files Error for ${customer_no}:`, error);
         return { exists: false, reason: error.message };
     }
 };
@@ -1132,7 +1133,7 @@ exports.checkLocalFiles = async (req, res) => {
     const result = await checkSingleCustomerFiles(customer_no);
     return res.json(result);
   } catch (error) {
-    console.error('Check Local Files Error:', error);
+    logger.error('Check Local Files Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1198,7 +1199,7 @@ exports.checkLocalFilesBatch = async (req, res) => {
 
     return res.json({ success: true, results });
   } catch (error) {
-    console.error('Check Local Files Batch Error:', error);
+    logger.error('Check Local Files Batch Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1246,7 +1247,7 @@ exports.downloadLocalFile = async (req, res) => {
         res.download(filePath);
 
     } catch (error) {
-        console.error('Download Local File Error:', error);
+        logger.error('Download Local File Error:', error);
         res.status(500).send('Internal Server Error');
     }
 };
@@ -1259,14 +1260,14 @@ exports.getLatePaymentBenchmark = async (req, res) => {
     const { customer_no } = req.params;
 
     try {
-        console.log(`[WADL API] Fetching data for ${customer_no} from ${LATE_PAYMENT_WADL_API_URL}`);
+        logger.info(`[WADL API] Fetching data for ${customer_no} from ${LATE_PAYMENT_WADL_API_URL}`);
 
         // Debug API Key (First 5 chars)
         if (!LATE_PAYMENT_WADL_API_KEY || LATE_PAYMENT_WADL_API_KEY === 'YOUR_WADL_API_KEY') {
-            console.warn('[WADL API] WARNING: LATE_PAYMENT_WADL_API_KEY is not set or is default placeholder.');
+            logger.warn('[WADL API] WARNING: LATE_PAYMENT_WADL_API_KEY is not set or is default placeholder.');
         } else {
             const maskedKey = LATE_PAYMENT_WADL_API_KEY.substring(0, 5) + '...';
-            console.log(`[WADL API] Using API Key: ${maskedKey}`);
+            logger.info(`[WADL API] Using API Key: ${maskedKey}`);
         }
 
         const response = await axios.post(LATE_PAYMENT_WADL_API_URL, {
@@ -1324,11 +1325,11 @@ exports.getLatePaymentBenchmark = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(`[WADL API] Error fetching data for ${customer_no}:`, error.message);
+        logger.error(`[WADL API] Error fetching data for ${customer_no}:`, error.message);
         if (error.response) {
-            console.error('[WADL API] Response Status:', error.response.status);
-            console.error('[WADL API] Response Headers:', JSON.stringify(error.response.headers));
-            console.error('[WADL API] Response Data:', JSON.stringify(error.response.data).substring(0, 500));
+            logger.error('[WADL API] Response Status:', error.response.status);
+            logger.error('[WADL API] Response Headers:', JSON.stringify(error.response.headers));
+            logger.error('[WADL API] Response Data:', JSON.stringify(error.response.data).substring(0, 500));
         }
 
         res.status(500).json({
@@ -1367,7 +1368,7 @@ exports.uploadLocalFiles = async (req, res) => {
 
         const customerDir = path.join(projectRoot, 'customers', customer_no, dateFolder);
         await fs.ensureDir(customerDir);
-        console.log(`[Financial Upload] Saving files to: ${customerDir}`);
+        logger.info(`[Financial Upload] Saving files to: ${customerDir}`);
 
         // Helper to save buffer
         const saveFile = async (field, filename) => {
@@ -1402,7 +1403,7 @@ exports.uploadLocalFiles = async (req, res) => {
         return res.json({ success: true, message: 'Files uploaded successfully.' });
 
     } catch (error) {
-        console.error('Upload Local Files Error:', error);
+        logger.error('Upload Local Files Error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 };
@@ -1428,7 +1429,7 @@ exports.getDBDData = async (req, res) => {
             data: data
         });
     } catch (error) {
-        console.error(`Error in getDBDData for ${req.params.customer_no}:`, error);
+        logger.error(`Error in getDBDData for ${req.params.customer_no}:`, error);
         res.status(500).json({ success: false, message: 'Failed to parse financial data' });
     }
 };

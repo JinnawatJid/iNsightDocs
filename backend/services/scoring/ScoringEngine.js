@@ -1,3 +1,4 @@
+const logger = require('../../utils/logger');
 const NewCustomerScorecard = require('./strategies/NewCustomerScorecard');
 const ExistingCustomerScorecard = require('./strategies/ExistingCustomerScorecard');
 
@@ -9,12 +10,12 @@ class ScoringEngine {
      */
     static getStrategy(context) {
         if (context.modelType === 'existing') {
-            console.log(`[ScoringEngine] Selected: Existing Customer Scorecard`);
+            logger.info(`[ScoringEngine] Selected: Existing Customer Scorecard`);
             return new ExistingCustomerScorecard();
         }
 
         // Default to New Customer Model
-        console.log(`[ScoringEngine] Selected: New Customer Scorecard (Standard)`);
+        logger.info(`[ScoringEngine] Selected: New Customer Scorecard (Standard)`);
         return new NewCustomerScorecard();
     }
 

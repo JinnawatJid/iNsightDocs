@@ -1,3 +1,4 @@
+const logger = require('./utils/logger');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
@@ -61,7 +62,7 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
             })
             .on('end', () => {
                 if (headers.length === 0) {
-                     console.log(`No headers in ${csvFilePath}, skipping table creation for ${tableName}`);
+                     logger.info(`No headers in ${csvFilePath}, skipping table creation for ${tableName}`);
                      return resolve();
                 }
 
@@ -79,10 +80,10 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
 
                 db.run(createTableSQL, (err) => {
                     if (err) {
-                        console.error(`Error creating table ${tableName}:`, err);
+                        logger.error(`Error creating table ${tableName}:`, err);
                         reject(err);
                     } else {
-                        console.log(`Table ${tableName} ensured.`);
+                        logger.info(`Table ${tableName} ensured.`);
 
                         // Check if data exists
                         db.get(`SELECT count(*) as count FROM ${tableName}`, (err, row) => {
@@ -104,7 +105,7 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                                     stmt.run(values);
                                 });
                                 stmt.finalize();
-                                console.log(`Imported ${rows.length} rows into ${tableName}`);
+                                logger.info(`Imported ${rows.length} rows into ${tableName}`);
                             }
                             resolve();
                         });
@@ -214,11 +215,11 @@ const initDB = async () => {
                     }
                 }
                 await db.runAsync(alterSql);
-                console.log(`Added column ${col} to Customers`);
+                logger.info(`Added column ${col} to Customers`);
             } catch (err) {
                 // Ignore error if column already exists
                 if (!err.message.includes('duplicate column name')) {
-                     console.error(`Error adding column ${col}:`, err);
+                     logger.error(`Error adding column ${col}:`, err);
                 }
             }
         }
@@ -253,10 +254,10 @@ const initDB = async () => {
         for (const col of creditRequestColumns) {
             try {
                 await db.runAsync(`ALTER TABLE CreditRequests ADD COLUMN ${col.name} ${col.type}`);
-                console.log(`Added column ${col.name} to CreditRequests`);
+                logger.info(`Added column ${col.name} to CreditRequests`);
             } catch (err) {
                  if (!err.message.includes('duplicate column name')) {
-                     console.error(`Error adding column ${col.name}:`, err);
+                     logger.error(`Error adding column ${col.name}:`, err);
                 }
             }
         }
@@ -270,9 +271,9 @@ const initDB = async () => {
                     term_yc = CAST(request_credit_term AS INTEGER)
                 WHERE term_gs IS NULL AND request_credit_term IS NOT NULL
             `);
-            console.log('Migrated legacy credit terms to new columns.');
+            logger.info('Migrated legacy credit terms to new columns.');
         } catch (e) {
-            console.error('Error migrating legacy credit terms:', e);
+            logger.error('Error migrating legacy credit terms:', e);
         }
 
         // Create CreditRequestAttachments table
@@ -296,9 +297,9 @@ const initDB = async () => {
             FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
         )`);
 
-        console.log('Database initialized (SQLite).');
+        logger.info('Database initialized (SQLite).');
     } catch (error) {
-        console.error('Database initialization failed (SQLite):', error);
+        logger.error('Database initialization failed (SQLite):', error);
     }
 };
 

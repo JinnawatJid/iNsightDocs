@@ -1,10 +1,11 @@
+const logger = require('../utils/logger');
 const puppeteer = require('puppeteer');
 const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
 
 (async () => {
-    console.log('Starting DBD Debug Script...');
+    logger.info('Starting DBD Debug Script...');
     const query = '0205538007136'; // Target from user issue
 
     const browser = await puppeteer.launch({
@@ -25,11 +26,11 @@ const os = require('os');
         page = await browser.newPage();
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
-        console.log('Navigating to DBD DataWarehouse...');
+        logger.info('Navigating to DBD DataWarehouse...');
         await page.goto('https://datawarehouse.dbd.go.th/', { waitUntil: 'networkidle2', timeout: 60000 });
 
         // --- POPUP HANDLING ---
-        console.log('Handling popups...');
+        logger.info('Handling popups...');
         try {
             await new Promise(r => setTimeout(r, 2000));
             await page.keyboard.press('Escape');
@@ -51,10 +52,10 @@ const os = require('os');
                 return false;
             });
             if (cookieClicked) await new Promise(r => setTimeout(r, 1000));
-        } catch (e) { console.warn('Popup handling warning:', e.message); }
+        } catch (e) { logger.warn('Popup handling warning:', e.message); }
 
         // --- SEARCH ---
-        console.log(`Searching for ${query}...`);
+        logger.info(`Searching for ${query}...`);
         const targetSelector = 'input[placeholder*="ค้นหาด้วยชื่อ"]';
         await page.waitForSelector(targetSelector, { visible: true, timeout: 10000 });
         await page.click(targetSelector);
@@ -62,14 +63,14 @@ const os = require('os');
         await page.keyboard.press('Enter');
 
         // --- WAIT FOR RESULT ---
-        console.log('Waiting for search results/profile...');
+        logger.info('Waiting for search results/profile...');
         const printButtonSelector = 'div.dropdown.print > a.btn-print';
 
         try {
             await page.waitForSelector(printButtonSelector, { visible: true, timeout: 15000 });
-            console.log('Directly landed on profile page.');
+            logger.info('Directly landed on profile page.');
         } catch (e) {
-            console.log('Print button not found immediately, checking for result list...');
+            logger.info('Print button not found immediately, checking for result list...');
              // Try to click the first profile link
              const resultLink = await page.evaluate(() => {
                 const links = Array.from(document.querySelectorAll('a'));
@@ -79,17 +80,17 @@ const os = require('os');
             });
 
             if (resultLink) {
-                 console.log('Clicked profile link, waiting for load...');
+                 logger.info('Clicked profile link, waiting for load...');
                  await page.waitForSelector(printButtonSelector, { visible: true, timeout: 60000 });
             } else {
                  throw new Error('Search failed or timed out.');
             }
         }
 
-        console.log('Successfully reached Profile Page.');
+        logger.info('Successfully reached Profile Page.');
 
         // --- FIX LOGIC: Click Dropdown -> Click Sub-item ---
-        console.log('Attempting to click "ข้อมูลงบการเงิน" (Dropdown Parent)...');
+        logger.info('Attempting to click "ข้อมูลงบการเงิน" (Dropdown Parent)...');
 
         // 1. Click Parent
         const parentClicked = await page.evaluate(() => {
@@ -103,11 +104,11 @@ const os = require('os');
         });
 
         if (!parentClicked) throw new Error('Could not click "ข้อมูลงบการเงิน"');
-        console.log('Clicked "ข้อมูลงบการเงิน". Waiting for animation...');
+        logger.info('Clicked "ข้อมูลงบการเงิน". Waiting for animation...');
         await new Promise(r => setTimeout(r, 1000));
 
         // 2. Click Sub-item "งบการเงิน"
-        console.log('Attempting to click "งบการเงิน" (Sub-item)...');
+        logger.info('Attempting to click "งบการเงิน" (Sub-item)...');
         const subItemClicked = await page.evaluate(() => {
             const items = Array.from(document.querySelectorAll('a, li'));
             const tab = items.find(el => el.innerText && el.innerText.trim() === 'งบการเงิน');
@@ -119,7 +120,7 @@ const os = require('os');
         });
 
         if (!subItemClicked) throw new Error('Could not click "งบการเงิน" sub-item');
-        console.log('Clicked "งบการเงิน". Waiting for table text "งบแสดงฐานะการเงิน"...');
+        logger.info('Clicked "งบการเงิน". Waiting for table text "งบแสดงฐานะการเงิน"...');
 
         // 3. Wait for Table
         await page.waitForFunction(
@@ -127,10 +128,10 @@ const os = require('os');
             { timeout: 30000 }
         );
 
-        console.log('SUCCESS: "งบแสดงฐานะการเงิน" text found!');
+        logger.info('SUCCESS: "งบแสดงฐานะการเงิน" text found!');
 
     } catch (error) {
-        console.error('An error occurred:', error);
+        logger.error('An error occurred:', error);
         if (page) await fs.writeFile('debug_final_fail.html', await page.content());
     } finally {
         await browser.close();

@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const ocrService = require('../services/ocrService');
 
 const ocrController = {
@@ -13,12 +14,12 @@ const ocrController = {
         req.file.originalname = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       }
 
-      console.log('OCR Controller: Received request for file:', req.file.originalname);
+      logger.info('OCR Controller: Received request for file:', req.file.originalname);
 
       const data = await ocrService.extractThaiID(req.file);
       res.json(data);
     } catch (error) {
-      console.error('OCR Controller: Error:', error.message);
+      logger.error('OCR Controller: Error:', error.message);
       res.status(500).json({ error: 'OCR processing failed', details: error.message });
     } finally {
       console.timeEnd('OCR Total Duration');
@@ -36,12 +37,12 @@ const ocrController = {
         req.file.originalname = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       }
 
-      console.log('OCR Controller: Received compare request for file:', req.file.originalname);
+      logger.info('OCR Controller: Received compare request for file:', req.file.originalname);
 
       const results = await ocrService.compareModels(req.file);
       res.json(results);
     } catch (error) {
-      console.error('OCR Controller: Compare Error:', error.message);
+      logger.error('OCR Controller: Compare Error:', error.message);
       res.status(500).json({ error: 'OCR comparison failed', details: error.message });
     } finally {
       console.timeEnd('OCR Compare Duration');

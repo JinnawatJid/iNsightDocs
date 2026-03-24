@@ -1,3 +1,4 @@
+const logger = require('./logger.js');
 const pdf = require('pdf-parse');
 
 /**
@@ -52,7 +53,7 @@ const extractDBDData = async (buffer) => {
                 }
             }
         } catch (nameErr) {
-            console.warn("Failed to extract name via pdfExtractor:", nameErr.message);
+            logger.warn("Failed to extract name via pdfExtractor:", nameErr.message);
         }
 
         const currentYearBE = new Date().getFullYear() + 543;
@@ -203,13 +204,13 @@ const extractDBDData = async (buffer) => {
                 }
             }
         } catch (dirErr) {
-            console.warn("Failed to extract directors via pdfExtractor:", dirErr.message);
+            logger.warn("Failed to extract directors via pdfExtractor:", dirErr.message);
         }
 
         return result;
 
     } catch (error) {
-        console.error('PDF Extraction Error:', error);
+        logger.error('PDF Extraction Error:', error);
         return { success: false, error: error.message };
     }
 };

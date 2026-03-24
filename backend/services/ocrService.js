@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs-extra');
@@ -37,7 +38,7 @@ const ocrService = {
    */
   async extractThaiID(file) {
     if (USE_MOCK) {
-      console.log('OCR Service: Using MOCK mode');
+      logger.info('OCR Service: Using MOCK mode');
       return this._getMockData();
     }
 
@@ -45,27 +46,27 @@ const ocrService = {
 
     try {
       if (file.mimetype === 'application/pdf') {
-         console.log('OCR Service: Detected PDF, converting to image...');
+         logger.info('OCR Service: Detected PDF, converting to image...');
          imageBuffer = await this._convertPdfToImage(file.buffer);
       }
 
-      console.log('OCR Service: Sending request to Ollama...');
+      logger.info('OCR Service: Sending request to Ollama...');
       const rawText = await this._extractTyphoonRaw(imageBuffer);
-      console.log('OCR Service: Received response from Ollama (Length: ' + rawText.length + ')');
+      logger.info('OCR Service: Received response from Ollama (Length: ' + rawText.length + ')');
 
       try {
         const data = this._parseMarkdownToData(rawText);
         return data;
       } catch (parseError) {
-        console.error('OCR Service: Failed to parse data from model response.');
-        console.error('--- RAW OLLAMA OUTPUT START ---');
-        console.error(rawText);
-        console.error('--- RAW OLLAMA OUTPUT END ---');
+        logger.error('OCR Service: Failed to parse data from model response.');
+        logger.error('--- RAW OLLAMA OUTPUT START ---');
+        logger.error(rawText);
+        logger.error('--- RAW OLLAMA OUTPUT END ---');
         throw new Error('Model returned unparseable format');
       }
 
     } catch (error) {
-      console.error('OCR Service: Error processing document', error.message);
+      logger.error('OCR Service: Error processing document', error.message);
       this._handleOllamaError(error);
       throw error;
     }
@@ -131,7 +132,7 @@ const ocrService = {
       const startTime = Date.now();
       const heartbeat = setInterval(() => {
         const elapsed = Math.round((Date.now() - startTime) / 1000);
-        console.log(`OCR Service: Waiting for Ollama... (${elapsed}s elapsed)`);
+        logger.info(`OCR Service: Waiting for Ollama... (${elapsed}s elapsed)`);
       }, 5000);
 
       try {
@@ -156,7 +157,7 @@ const ocrService = {
         imageBuffer,
         'tha+eng',
         {
-            // logger: m => console.log(m) // Optional logging
+            // logger: m => logger.info(m) // Optional logging
         }
       );
       return result.data.text;
@@ -324,11 +325,11 @@ const ocrService = {
     ];
 
     return new Promise((resolve, reject) => {
-      console.log(`OCR Service: Executing local Poppler binary at ${popplerPath}`);
+      logger.info(`OCR Service: Executing local Poppler binary at ${popplerPath}`);
 
       execFile(popplerPath, args, async (error, stdout, stderr) => {
         if (error) {
-          console.error('OCR Service: Poppler execution failed', stderr || error.message);
+          logger.error('OCR Service: Poppler execution failed', stderr || error.message);
           try { await fs.remove(tempPdfPath); } catch (e) {}
 
           if (error.code === 'ENOENT') {

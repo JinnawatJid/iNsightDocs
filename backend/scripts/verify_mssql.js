@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const sql = require('mssql');
 const path = require('path');
 require('dotenv').config();
@@ -16,8 +17,8 @@ const SA_CONFIG = {
 };
 
 if (!SA_CONFIG.password) {
-    console.error('Error: SA_PASSWORD environment variable is required.');
-    console.error('Usage: SA_PASSWORD=your_password node verify_mssql.js');
+    logger.error('Error: SA_PASSWORD environment variable is required.');
+    logger.error('Usage: SA_PASSWORD=your_password node verify_mssql.js');
     process.exit(1);
 }
 
@@ -26,41 +27,41 @@ const NEW_USER = 'SP682';
 const NEW_PASSWORD = 'SP682';
 
 async function main() {
-    console.log('--- Starting MSSQL Verification ---');
+    logger.info('--- Starting MSSQL Verification ---');
 
     let pool = null;
 
     try {
         // Step 1: Connect as SA to 'master'
-        console.log(`Connecting to ${SA_CONFIG.server}:${SA_CONFIG.port} as ${SA_CONFIG.user}...`);
+        logger.info(`Connecting to ${SA_CONFIG.server}:${SA_CONFIG.port} as ${SA_CONFIG.user}...`);
         pool = await sql.connect(SA_CONFIG);
-        console.log('Connected to MSSQL successfully.');
+        logger.info('Connected to MSSQL successfully.');
 
         // Step 2: Create Database if not exists
-        console.log(`Checking database '${NEW_DB_NAME}'...`);
+        logger.info(`Checking database '${NEW_DB_NAME}'...`);
         const dbCheck = await pool.request().query(`SELECT name FROM sys.databases WHERE name = '${NEW_DB_NAME}'`);
         if (dbCheck.recordset.length === 0) {
-            console.log(`Database '${NEW_DB_NAME}' does not exist. Creating...`);
+            logger.info(`Database '${NEW_DB_NAME}' does not exist. Creating...`);
             await pool.request().query(`CREATE DATABASE ${NEW_DB_NAME}`);
-            console.log(`Database '${NEW_DB_NAME}' created.`);
+            logger.info(`Database '${NEW_DB_NAME}' created.`);
         } else {
-            console.log(`Database '${NEW_DB_NAME}' already exists.`);
+            logger.info(`Database '${NEW_DB_NAME}' already exists.`);
         }
 
         // Step 3: Create Login if not exists (Server Level)
-        console.log(`Checking login '${NEW_USER}'...`);
+        logger.info(`Checking login '${NEW_USER}'...`);
         const loginCheck = await pool.request().query(`SELECT name FROM sys.server_principals WHERE name = '${NEW_USER}'`);
         if (loginCheck.recordset.length === 0) {
-            console.log(`Login '${NEW_USER}' does not exist. Creating...`);
+            logger.info(`Login '${NEW_USER}' does not exist. Creating...`);
             // Note: In real scenarios, use parameterized or sanitized inputs. Here strictly for verification script.
             await pool.request().query(`CREATE LOGIN ${NEW_USER} WITH PASSWORD = '${NEW_PASSWORD}', CHECK_POLICY = OFF`);
-            console.log(`Login '${NEW_USER}' created.`);
+            logger.info(`Login '${NEW_USER}' created.`);
         } else {
-            console.log(`Login '${NEW_USER}' already exists.`);
+            logger.info(`Login '${NEW_USER}' already exists.`);
         }
 
         // Step 4: Create User in the specific DB and assign roles (Database Level)
-        console.log(`Switching context to '${NEW_DB_NAME}' to manage users...`);
+        logger.info(`Switching context to '${NEW_DB_NAME}' to manage users...`);
         // We cannot USE database in Azure/some configs easily inside one connection if we pooled to master.
         // But for standard SQL Server, USE works.
         // Alternatively, create a new connection to the target DB.
@@ -69,35 +70,35 @@ async function main() {
 
         const dbConfig = { ...SA_CONFIG, database: NEW_DB_NAME };
         pool = await sql.connect(dbConfig);
-        console.log(`Connected to '${NEW_DB_NAME}' as SA.`);
+        logger.info(`Connected to '${NEW_DB_NAME}' as SA.`);
 
-        console.log(`Checking user '${NEW_USER}' in database '${NEW_DB_NAME}'...`);
+        logger.info(`Checking user '${NEW_USER}' in database '${NEW_DB_NAME}'...`);
         const userCheck = await pool.request().query(`SELECT name FROM sys.database_principals WHERE name = '${NEW_USER}'`);
         if (userCheck.recordset.length === 0) {
-            console.log(`User '${NEW_USER}' does not exist in DB. Creating...`);
+            logger.info(`User '${NEW_USER}' does not exist in DB. Creating...`);
             await pool.request().query(`CREATE USER ${NEW_USER} FOR LOGIN ${NEW_USER}`);
-            console.log(`User '${NEW_USER}' created.`);
+            logger.info(`User '${NEW_USER}' created.`);
 
             // Assign db_owner role
             await pool.request().query(`ALTER ROLE db_owner ADD MEMBER ${NEW_USER}`);
-            console.log(`User '${NEW_USER}' added to db_owner role.`);
+            logger.info(`User '${NEW_USER}' added to db_owner role.`);
         } else {
-            console.log(`User '${NEW_USER}' already exists in DB.`);
+            logger.info(`User '${NEW_USER}' already exists in DB.`);
             // Fix "Orphaned User" issue if SIDs don't match (common when recreating Logins)
-            console.log(`Attempting to re-link user '${NEW_USER}' to login '${NEW_USER}' (Fix Orphaned User)...`);
+            logger.info(`Attempting to re-link user '${NEW_USER}' to login '${NEW_USER}' (Fix Orphaned User)...`);
             try {
                 await pool.request().query(`ALTER USER ${NEW_USER} WITH LOGIN = ${NEW_USER}`);
-                console.log(`User '${NEW_USER}' successfully re-linked to login.`);
+                logger.info(`User '${NEW_USER}' successfully re-linked to login.`);
             } catch (relinkErr) {
-                console.error(`Warning: Failed to re-link user. It might already be correct. Error: ${relinkErr.message}`);
+                logger.error(`Warning: Failed to re-link user. It might already be correct. Error: ${relinkErr.message}`);
             }
         }
 
         await pool.close();
-        console.log('--- Admin Setup Complete ---');
+        logger.info('--- Admin Setup Complete ---');
 
         // Step 5: Verify App Logic (Simulate Application Startup)
-        console.log('\n--- Verifying Application Logic with New User ---');
+        logger.info('\n--- Verifying Application Logic with New User ---');
 
         // Set environment variables for db-mssql.js
         process.env.DB_TYPE = 'mssql';
@@ -107,27 +108,27 @@ async function main() {
         process.env.DB_USER = NEW_USER;
         process.env.DB_PASSWORD = NEW_PASSWORD;
 
-        console.log(`Initializing database module with user '${NEW_USER}'...`);
+        logger.info(`Initializing database module with user '${NEW_USER}'...`);
         // We need to clear the require cache for db-mssql.js if it was loaded (it wasn't in this process, but good practice)
         // require('../db-mssql.js') will read the NEW process.env values.
 
         const db = require('../db-mssql');
 
-        console.log('Running initDB()...');
+        logger.info('Running initDB()...');
         await db.initialize();
 
         // Verify Tables exist
-        console.log('Verifying table existence...');
+        logger.info('Verifying table existence...');
         const requiredTables = ['Customers', 'AY_ACCUM', 'CreditRequests', 'CreditRequestAttachments', 'RequestComments'];
 
         for (const table of requiredTables) {
              const check = await db.query(`SELECT COUNT(*) as count FROM ${table}`);
              // If query succeeds, table exists.
-             console.log(`[OK] Table '${table}' exists. Row count: ${check.rows[0].count}`);
+             logger.info(`[OK] Table '${table}' exists. Row count: ${check.rows[0].count}`);
         }
 
         // Verify Insert Permission (e.g. RequestComments)
-        console.log('Verifying Write Permission (INSERT into RequestComments)...');
+        logger.info('Verifying Write Permission (INSERT into RequestComments)...');
         const testTxId = 'VERIFY_TEST';
         const testComment = {
             tx_id: testTxId,
@@ -136,7 +137,7 @@ async function main() {
         };
 
         // Need to insert parent CreditRequest first due to FK constraint
-        console.log('Inserting dummy CreditRequest...');
+        logger.info('Inserting dummy CreditRequest...');
         try {
              await db.runAsync(
                 `INSERT INTO CreditRequests (tx_id, status) VALUES (?, ?)`,
@@ -146,24 +147,24 @@ async function main() {
             // Ignore if exists (re-run scenario)
         }
 
-        console.log('Inserting RequestComment...');
+        logger.info('Inserting RequestComment...');
         await db.runAsync(
             `INSERT INTO RequestComments (tx_id, actor_role, comment_text) VALUES (?, ?, ?)`,
             [testComment.tx_id, testComment.actor_role, testComment.comment_text]
         );
-        console.log('[OK] Insert successful.');
+        logger.info('[OK] Insert successful.');
 
         // Clean up test data
-        console.log('Cleaning up test data...');
+        logger.info('Cleaning up test data...');
         await db.query(`DELETE FROM RequestComments WHERE tx_id = '${testTxId}'`);
         await db.query(`DELETE FROM CreditRequests WHERE tx_id = '${testTxId}'`);
-        console.log('[OK] Cleanup successful.');
+        logger.info('[OK] Cleanup successful.');
 
-        console.log('\n--- MSSQL Verification PASSED Successfully ---');
+        logger.info('\n--- MSSQL Verification PASSED Successfully ---');
 
     } catch (err) {
-        console.error('\n!!! VERIFICATION FAILED !!!');
-        console.error(err);
+        logger.error('\n!!! VERIFICATION FAILED !!!');
+        logger.error(err);
         process.exit(1);
     } finally {
         if (pool) {

@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 
@@ -12,18 +13,18 @@ const fs = require('fs');
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
     try {
-        console.log('[Verify] Navigating to DBD DataWarehouse...');
+        logger.info('[Verify] Navigating to DBD DataWarehouse...');
         await page.goto('https://datawarehouse.dbd.go.th/', { waitUntil: 'networkidle2', timeout: 60000 });
 
-        console.log('[Verify] Checking for popups...');
+        logger.info('[Verify] Checking for popups...');
 
         // 1. Handle Initial Announcement Popup
         // Try pressing Escape first (often closes modals)
         try {
             await page.keyboard.press('Escape');
-            console.log('[Verify] Pressed Escape.');
+            logger.info('[Verify] Pressed Escape.');
             await new Promise(r => setTimeout(r, 1000));
-        } catch (e) { console.log('[Verify] Escape error:', e.message); }
+        } catch (e) { logger.info('[Verify] Escape error:', e.message); }
 
         // Try to click "Close" button if it exists
         const closeClicked = await page.evaluate(() => {
@@ -37,7 +38,7 @@ const fs = require('fs');
             }
             return false;
         });
-        if (closeClicked) console.log('[Verify] Clicked a "Close/ปิด" button.');
+        if (closeClicked) logger.info('[Verify] Clicked a "Close/ปิด" button.');
 
 
         // 2. Handle Cookie Consent
@@ -57,14 +58,14 @@ const fs = require('fs');
         });
 
         if (cookieClicked) {
-            console.log('[Verify] Clicked "ยอมรับทั้งหมด".');
+            logger.info('[Verify] Clicked "ยอมรับทั้งหมด".');
             // Wait for banner to disappear
             await new Promise(r => setTimeout(r, 2000));
         } else {
-            console.log('[Verify] Cookie button not found (might already be accepted or not present).');
+            logger.info('[Verify] Cookie button not found (might already be accepted or not present).');
         }
 
-        console.log('[Verify] Interacting with Search Input...');
+        logger.info('[Verify] Interacting with Search Input...');
 
         // Use the specific placeholder to target the correct input
         const searchSelector = 'input[placeholder*="ค้นหาด้วยชื่อ"]';
@@ -72,21 +73,21 @@ const fs = require('fs');
 
         // Type a dummy value
         await page.type(searchSelector, '0105550024505'); // PTT Global Chemical
-        console.log('[Verify] Typed search query.');
+        logger.info('[Verify] Typed search query.');
 
         // Press Enter
         await page.keyboard.press('Enter');
-        console.log('[Verify] Pressed Enter.');
+        logger.info('[Verify] Pressed Enter.');
 
         // Wait for navigation or results
         // Just waiting a bit to see if page reacts (snapshot)
         await new Promise(r => setTimeout(r, 5000));
 
         await page.screenshot({ path: 'verify_success.png' });
-        console.log('[Verify] Success screenshot saved.');
+        logger.info('[Verify] Success screenshot saved.');
 
     } catch (error) {
-        console.error('[Verify] Error:', error);
+        logger.error('[Verify] Error:', error);
         await page.screenshot({ path: 'verify_error_debug.png' });
     } finally {
         await browser.close();

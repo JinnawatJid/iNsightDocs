@@ -1,3 +1,4 @@
+const logger = require('./logger.js');
 const path = require('path');
 const xlsx = require('xlsx');
 const fs = require('fs');
@@ -78,7 +79,7 @@ function parseExcelFile(filePath) {
         }
 
         if (headerRowIdx === -1) {
-            console.warn(`Could not find header row in ${filePath}`);
+            logger.warn(`Could not find header row in ${filePath}`);
             return { rawData: rawData.slice(0, 10) }; // Return raw for debugging
         }
 
@@ -145,7 +146,7 @@ function parseExcelFile(filePath) {
         };
 
     } catch (error) {
-        console.error(`Error parsing Excel file ${filePath}:`, error);
+        logger.error(`Error parsing Excel file ${filePath}:`, error);
         return null;
     }
 }
@@ -164,7 +165,7 @@ function getCustomerFinancialData(customerNo) {
     }
 
     const customerDir = path.join(projectRoot, 'customers', sanitizedCustomerNo);
-    console.log(`[DEBUG-PARSER] Reading customer directory for parsing: ${customerDir}`);
+    logger.info(`[DEBUG-PARSER] Reading customer directory for parsing: ${customerDir}`);
 
     if (!fs.existsSync(customerDir)) {
         return null;

@@ -1,3 +1,4 @@
+const logger = require('../../utils/logger');
 const fs = require('fs');
 const path = require('path');
 
@@ -8,7 +9,7 @@ class ScorecardEvaluator {
             const raw = fs.readFileSync(configPath, 'utf8');
             this.config = JSON.parse(raw);
         } catch (error) {
-            console.error(`[ScorecardEvaluator] Error loading config (${configFileName}): ${error.message}`);
+            logger.error(`[ScorecardEvaluator] Error loading config (${configFileName}): ${error.message}`);
             this.config = null;
         }
     }

@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const db = require('../db');
 const axios = require('axios');
 const { calculateSlope, calculateTrendRatio, generateContinuousTimeline } = require('../services/financialCalculator');
@@ -105,7 +106,7 @@ const getCategoryLabel = (code) => {
 
 const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
     if (MOCK_EXTERNAL_APIS || MOCK_FINANCIAL_API) {
-        console.log(`[Financial API] Using Mock Data for ${customerNo}`);
+        logger.info(`[Financial API] Using Mock Data for ${customerNo}`);
         const data = getMockFinancialData(customerNo);
         data.fetchSource = taxId ? 'tax_no' : 'customer_code';
         return data;
@@ -113,7 +114,7 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
 
     try {
         if (taxId && taxId.trim().length > 0) {
-            console.log(`[Financial API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
+            logger.info(`[Financial API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
             const response = await axios.get(FINANCIAL_API_TAX_URL, {
                 params: { tax_no: taxId.trim() },
                 headers: {
@@ -129,11 +130,11 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
             return data;
         }
     } catch (error) {
-         console.warn(`[Financial API] Failed fetching via tax_no for ${customerNo}. Error: ${error.message}. Falling back to customer_code...`);
+         logger.warn(`[Financial API] Failed fetching via tax_no for ${customerNo}. Error: ${error.message}. Falling back to customer_code...`);
     }
 
     try {
-        console.log(`[Financial API] Fetching via customer_code for customer: ${customerNo}`);
+        logger.info(`[Financial API] Fetching via customer_code for customer: ${customerNo}`);
         const response = await axios.post(FINANCIAL_API_URL, {
             customer_code: customerNo
         }, {
@@ -149,14 +150,14 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
         }
         return data;
     } catch (error) {
-        console.error(`Error fetching purchasing behavior for ${customerNo}:`, error.message);
+        logger.error(`Error fetching purchasing behavior for ${customerNo}:`, error.message);
         throw error;
     }
 };
 
 const fetchCategorySummary = async (customerNo, months = 6, taxId = null) => {
     if (MOCK_EXTERNAL_APIS) {
-        console.log(`[Category API] Using Mock Data for ${customerNo}`);
+        logger.info(`[Category API] Using Mock Data for ${customerNo}`);
         const mockData = getMockCategoryData(customerNo);
         const by_category = mockData.data.reduce((acc, item) => {
             const cat = item.category;
@@ -169,7 +170,7 @@ const fetchCategorySummary = async (customerNo, months = 6, taxId = null) => {
 
     try {
         if (taxId && taxId.trim().length > 0) {
-            console.log(`[Category API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
+            logger.info(`[Category API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
             const response = await axios.get(CATEGORY_API_TAX_URL, {
                 params: { tax_no: taxId.trim(), months: months },
                 headers: {
@@ -185,11 +186,11 @@ const fetchCategorySummary = async (customerNo, months = 6, taxId = null) => {
             return { by_category, fetchSource: 'tax_no' };
         }
     } catch (error) {
-        console.warn(`[Category API] Failed fetching via tax_no for ${customerNo}. Error: ${error.message}. Falling back to customer_code...`);
+        logger.warn(`[Category API] Failed fetching via tax_no for ${customerNo}. Error: ${error.message}. Falling back to customer_code...`);
     }
 
     try {
-        console.log(`[Category API] Fetching via customer_code for customer: ${customerNo}`);
+        logger.info(`[Category API] Fetching via customer_code for customer: ${customerNo}`);
         // Updated to POST method with JSON body
         const response = await axios.post(CATEGORY_API_URL, {
             customer_code: customerNo,
@@ -213,7 +214,7 @@ const fetchCategorySummary = async (customerNo, months = 6, taxId = null) => {
 
         return { by_category, fetchSource: 'customer_code' };
     } catch (error) {
-        console.error(`Error fetching category summary for ${customerNo}:`, error.message);
+        logger.error(`Error fetching category summary for ${customerNo}:`, error.message);
         throw error;
     }
 };
@@ -288,7 +289,7 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
             try {
                 const { rows } = await db.query(sql, [normalized]);
                 if (rows && rows.length > 0) {
-                    console.log(`[Blacklist] MATCH Tax ID:`, rows[0]);
+                    logger.info(`[Blacklist] MATCH Tax ID:`, rows[0]);
                     return {
                         is_blacklisted: true,
                         blacklist_data: {
@@ -299,7 +300,7 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
                         }
                     };
                 }
-            } catch (e) { console.error('Error checking blacklist TaxID:', e.message); }
+            } catch (e) { logger.error('Error checking blacklist TaxID:', e.message); }
         }
     }
 
@@ -314,7 +315,7 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
             const sql = `SELECT * FROM CustomerBlacklist WHERE normalized_name = ? LIMIT 1`;
             const { rows } = await db.query(sql, [normalizedInput]);
             if (rows && rows.length > 0) {
-                 console.log(`[Blacklist] MATCH Full Name:`, rows[0]);
+                 logger.info(`[Blacklist] MATCH Full Name:`, rows[0]);
                  return {
                     is_blacklisted: true,
                     blacklist_data: {
@@ -325,7 +326,7 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
                     }
                 };
             }
-        } catch (e) { console.error('Error checking blacklist FullName:', e.message); }
+        } catch (e) { logger.error('Error checking blacklist FullName:', e.message); }
 
         // 2.2 Last Name Match (Warning / Low Confidence)
         // Only record warning if we don't already have one (or prioritize?)
@@ -339,7 +340,7 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
                     const { rows } = await db.query(sql, [lastName, `% ${lastName}`]);
 
                     if (rows && rows.length > 0) {
-                        console.log(`[Blacklist] MATCH Last Name (Warning stored):`, rows[0]);
+                        logger.info(`[Blacklist] MATCH Last Name (Warning stored):`, rows[0]);
                         warningMatch = {
                             is_blacklisted: true,
                             blacklist_data: {
@@ -351,7 +352,7 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
                             }
                         };
                     }
-                 } catch (e) { console.error('Error checking blacklist LastName:', e.message); }
+                 } catch (e) { logger.error('Error checking blacklist LastName:', e.message); }
             }
         }
     }
@@ -366,7 +367,7 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
             const sql = `SELECT * FROM CustomerBlacklist WHERE normalized_shop = ? LIMIT 1`;
             const { rows } = await db.query(sql, [normalizedComp]);
              if (rows && rows.length > 0) {
-                 console.log(`[Blacklist] MATCH Company Name:`, rows[0]);
+                 logger.info(`[Blacklist] MATCH Company Name:`, rows[0]);
                  return {
                     is_blacklisted: true,
                     blacklist_data: {
@@ -377,7 +378,7 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
                     }
                 };
             }
-        } catch (e) { console.error('Error checking blacklist Company:', e.message); }
+        } catch (e) { logger.error('Error checking blacklist Company:', e.message); }
     }
 
     // If no Block found, return Warning (if exists)
@@ -418,7 +419,7 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
             requestType: h.request_type || 'เครดิตใหม่'
         }));
     } catch (histErr) {
-        console.error(`Error fetching history for ${customerNo}:`, histErr);
+        logger.error(`Error fetching history for ${customerNo}:`, histErr);
     }
 
     // 2. Fetch Financial Data (New API)
@@ -451,7 +452,7 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
                  categoryBreakdown.sort((a, b) => b.value - a.value);
             }
         } else {
-            console.warn(`[Warning] Failed to fetch category summary for ${customerNo}:`, categoryDataResult.reason.message);
+            logger.warn(`[Warning] Failed to fetch category summary for ${customerNo}:`, categoryDataResult.reason.message);
             // Append warning to suggestions/status later if needed
             suggestions.push("ไม่สามารถดึงข้อมูลสัดส่วนสินค้า (Category Summary) ได้");
         }
@@ -580,7 +581,7 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
         }
 
     } catch (apiErr) {
-        console.error(`Error fetching purchasing behavior for ${customerNo}:`, apiErr);
+        logger.error(`Error fetching purchasing behavior for ${customerNo}:`, apiErr);
         financialSummary = {
             total_purchase_3_months: "0",
             total_purchase_growth: null,
@@ -605,7 +606,7 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
  * Fallback Search Strategy (Local Database)
  */
 const searchCustomersFallback = async (req, res, query) => {
-    console.log(`[Search] API Failed. Falling back to local database for query: "${query}"`);
+    logger.info(`[Search] API Failed. Falling back to local database for query: "${query}"`);
 
     let sql;
     if (db.dbType === 'mssql') {
@@ -787,7 +788,7 @@ const searchCustomersFallback = async (req, res, query) => {
       return res.json(results);
 
     } catch (err) {
-      console.error("Database fallback error:", err);
+      logger.error("Database fallback error:", err);
       return res.status(500).json({ error: "Internal Server Error (Fallback)", details: err.message });
     }
 };
@@ -804,7 +805,7 @@ exports.searchCustomers = async (req, res) => {
   }
 
   if (MOCK_EXTERNAL_APIS) {
-      console.log(`[Search] MOCK_EXTERNAL_APIS is true. Skipping API and using local DB...`);
+      logger.info(`[Search] MOCK_EXTERNAL_APIS is true. Skipping API and using local DB...`);
       // Use fallback logic by skipping try block
   } else {
       // 1. Try API Search
@@ -821,7 +822,7 @@ exports.searchCustomers = async (req, res) => {
           // Map & Enrich
           const mappedResults = await Promise.all(uniqueCustomers.map(async (row) => {
               // DEBUG: Log the raw row to inspect Tax ID field
-              console.log(`[Search] Processing customer: ${row["No_"]}. Tax ID (VAT Registration No_): '${row["VAT Registration No_"]}'`);
+              logger.info(`[Search] Processing customer: ${row["No_"]}. Tax ID (VAT Registration No_): '${row["VAT Registration No_"]}'`);
 
               // Address Concatenation
               const addressParts = [
@@ -865,7 +866,7 @@ exports.searchCustomers = async (req, res) => {
                       // Fallback Tax ID
                       if (!taxId || taxId.trim() === '') {
                           taxId = localData['VAT Registration No_'];
-                          console.log(`[Blacklist] Using Local DB Tax ID for ${row["No_"]}: ${taxId}`);
+                          logger.info(`[Blacklist] Using Local DB Tax ID for ${row["No_"]}: ${taxId}`);
                       }
 
                       // Add Local Names
@@ -873,7 +874,7 @@ exports.searchCustomers = async (req, res) => {
                       if (localData['authorized_person_2']) personNames.push(localData['authorized_person_2']);
                   }
               } catch (e) {
-                  console.error(`[Blacklist] Failed to lookup local data for ${row["No_"]}`, e);
+                  logger.error(`[Blacklist] Failed to lookup local data for ${row["No_"]}`, e);
               }
 
               const blacklistInfo = await checkBlacklist({
@@ -922,7 +923,7 @@ exports.searchCustomers = async (req, res) => {
 
       } catch (err) {
           // Fallback on any API error (Timeout, Network, 500)
-          console.warn("API Search failed:", err.message);
+          logger.warn("API Search failed:", err.message);
 
           if (!ENABLE_LOCAL_FALLBACK) {
              return res.status(503).json({ error: "External API Unavailable", details: err.message });
@@ -931,7 +932,7 @@ exports.searchCustomers = async (req, res) => {
   }
 
   // --- LOCAL DB FALLBACK FOR SEARCH ---
-  console.log(`[Search] Switching to fallback for query: "${query}"`);
+  logger.info(`[Search] Switching to fallback for query: "${query}"`);
   let sql;
   if (db.dbType === 'mssql') {
     sql = `
@@ -1112,7 +1113,7 @@ exports.searchCustomers = async (req, res) => {
     return res.json(results);
 
   } catch (err) {
-    console.error("Database fallback error:", err);
+    logger.error("Database fallback error:", err);
     return res.status(500).json({ error: "Internal Server Error (Fallback)", details: err.message });
   }
 };
@@ -1125,7 +1126,7 @@ exports.getSuggestions = async (req, res) => {
   }
 
   if (MOCK_EXTERNAL_APIS) {
-      console.log(`[Suggestion] MOCK_EXTERNAL_APIS is true. Skipping API and using local DB...`);
+      logger.info(`[Suggestion] MOCK_EXTERNAL_APIS is true. Skipping API and using local DB...`);
       // Use fallback logic by skipping try block
   } else {
       try {
@@ -1155,7 +1156,7 @@ exports.getSuggestions = async (req, res) => {
           // (Falling through to existing DB code)
 
       } catch (err) {
-          console.warn("API Suggestion failed:", err.message);
+          logger.warn("API Suggestion failed:", err.message);
           if (!ENABLE_LOCAL_FALLBACK) {
               // If fallback disabled, return empty
               return res.json([]);
@@ -1221,7 +1222,7 @@ exports.getSuggestions = async (req, res) => {
     res.json(suggestions);
 
   } catch (err) {
-    console.error("Database error in suggestions:", err);
+    logger.error("Database error in suggestions:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
@@ -1359,7 +1360,7 @@ exports.updateCustomer = async (req, res) => {
     await db.runAsync(sql, params);
     res.json({ success: true, message: "Customer updated successfully" });
   } catch (err) {
-    console.error("Error updating customer:", err);
+    logger.error("Error updating customer:", err);
     res.status(500).json({ error: "Failed to update customer" });
   }
 };
@@ -1372,7 +1373,7 @@ exports.searchCustomersByBranch = async (req, res) => {
     }
 
     try {
-        console.log(`[CustomerAPI] Fetching customers for branch: ${branchCode}`);
+        logger.info(`[CustomerAPI] Fetching customers for branch: ${branchCode}`);
 
         // Construct Payload
         const payload = {
@@ -1409,11 +1410,11 @@ exports.searchCustomersByBranch = async (req, res) => {
             Customer_Date: item["Customer Date"]
         }));
 
-        console.log(`[CustomerAPI] Found ${result.length} customers for branch ${branchCode}`);
+        logger.info(`[CustomerAPI] Found ${result.length} customers for branch ${branchCode}`);
         return res.json(result);
 
     } catch (error) {
-        console.error(`[CustomerAPI] Error fetching by branch ${branchCode}:`, error.message);
+        logger.error(`[CustomerAPI] Error fetching by branch ${branchCode}:`, error.message);
         return res.status(502).json({ error: "Failed to fetch customers from API", details: error.message });
     }
 };
