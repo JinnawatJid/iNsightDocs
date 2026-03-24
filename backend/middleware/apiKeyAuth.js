@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 // Middleware to check for API Key
 const apiKeyAuth = (req, res, next) => {
     // Get key from header
@@ -14,13 +15,13 @@ const apiKeyAuth = (req, res, next) => {
     // In production, strictly require the environment variable
     if (process.env.NODE_ENV === 'production') {
         if (!validKey) {
-            console.error('CRITICAL: EXTERNAL_API_KEY is not set in production environment.');
+            logger.error('CRITICAL: EXTERNAL_API_KEY is not set in production environment.');
             return res.status(500).json({ error: 'Server Configuration Error' });
         }
     } else {
         // In dev/test, use a fallback if not set
         if (!validKey) {
-            console.warn('WARNING: EXTERNAL_API_KEY is not set. Using default "dev-api-key" for development.');
+            logger.warn('WARNING: EXTERNAL_API_KEY is not set. Using default "dev-api-key" for development.');
             validKey = 'dev-api-key';
         }
     }

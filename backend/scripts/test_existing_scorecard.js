@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const ScoringEngine = require('../services/scoring/ScoringEngine');
 
 // Mock Data for Verification
@@ -57,58 +58,58 @@ const mockCustomer = {
 // Rounded: 167,000
 
 function runTest() {
-    console.log("=== Testing Existing Customer Scorecard ===");
+    logger.info("=== Testing Existing Customer Scorecard ===");
 
     try {
         const result = ScoringEngine.score(mockCustomer);
 
-        console.log(`Total Score: ${result.totalScore} (Expected ~149)`);
-        console.log(`Recommended Limit: ${result.recommendedLimit.toLocaleString()} (Expected ~167,000)`);
-        console.log(`Grade: ${result.grade}`);
+        logger.info(`Total Score: ${result.totalScore} (Expected ~149)`);
+        logger.info(`Recommended Limit: ${result.recommendedLimit.toLocaleString()} (Expected ~167,000)`);
+        logger.info(`Grade: ${result.grade}`);
 
         // Validation
         if (result.totalScore >= 148 && result.totalScore <= 151) {
-            console.log("✅ Score Calculation: PASS");
+            logger.info("✅ Score Calculation: PASS");
         } else {
-            console.error(`❌ Score Calculation: FAIL (Got ${result.totalScore})`);
+            logger.error(`❌ Score Calculation: FAIL (Got ${result.totalScore})`);
         }
 
         if (result.recommendedLimit >= 165000 && result.recommendedLimit <= 169000) {
-            console.log("✅ Limit Calculation: PASS");
+            logger.info("✅ Limit Calculation: PASS");
         } else {
-            console.error(`❌ Limit Calculation: FAIL (Got ${result.recommendedLimit})`);
+            logger.error(`❌ Limit Calculation: FAIL (Got ${result.recommendedLimit})`);
         }
 
         // Test WADL Sensitivity
-        console.log("\n=== Testing WADL Sensitivity ===");
+        logger.info("\n=== Testing WADL Sensitivity ===");
         const badWadl = { ...mockCustomer, wadl: 20 }; // > 15 Days (Score 0.0 * 9.9 = 0.0)
         // Diff = 14.85 - 0.0 = 14.85 points lower
         // Expected Score: 149.3 - 14.85 = 134.45
         const badResult = ScoringEngine.score(badWadl);
-        console.log(`Bad WADL Score: ${badResult.totalScore} (Expected ~134)`);
+        logger.info(`Bad WADL Score: ${badResult.totalScore} (Expected ~134)`);
 
         if (badResult.totalScore < result.totalScore) {
-             console.log("✅ WADL Impact: PASS (Score dropped)");
+             logger.info("✅ WADL Impact: PASS (Score dropped)");
         } else {
-             console.error("❌ WADL Impact: FAIL");
+             logger.error("❌ WADL Impact: FAIL");
         }
 
         // Test Exponent Sensitivity
-        console.log("\n=== Testing Exponent Sensitivity ===");
+        logger.info("\n=== Testing Exponent Sensitivity ===");
         const sensitive = { ...mockCustomer, limitExponent: 3.0 };
         const sensitiveResult = ScoringEngine.score(sensitive);
         // Ratio = (0.7465)^3 = 0.416
         // Limit = 300k * 0.416 = 124,800
-        console.log(`Exponent 3.0 Limit: ${sensitiveResult.recommendedLimit.toLocaleString()} (Expected ~125,000)`);
+        logger.info(`Exponent 3.0 Limit: ${sensitiveResult.recommendedLimit.toLocaleString()} (Expected ~125,000)`);
 
         if (sensitiveResult.recommendedLimit < result.recommendedLimit) {
-             console.log("✅ Exponent Impact: PASS (Limit dropped with higher exponent for score < 200)");
+             logger.info("✅ Exponent Impact: PASS (Limit dropped with higher exponent for score < 200)");
         } else {
-             console.error("❌ Exponent Impact: FAIL");
+             logger.error("❌ Exponent Impact: FAIL");
         }
 
     } catch (error) {
-        console.error("❌ Error running test:", error);
+        logger.error("❌ Error running test:", error);
     }
 }
 

@@ -1,3 +1,4 @@
+const logger = require('./utils/logger');
 const sql = require('mssql');
 const fs = require('fs');
 const path = require('path');
@@ -21,9 +22,9 @@ let pool;
 const connectDB = async () => {
     try {
         pool = await sql.connect(config);
-        console.log('Connected to MSSQL');
+        logger.info('Connected to MSSQL');
     } catch (err) {
-        console.error('Database connection failed (MSSQL):', err);
+        logger.error('Database connection failed (MSSQL):', err);
         // Do not exit, allow retry or fail gracefully
     }
 };
@@ -41,7 +42,7 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
             .on('data', (row) => rows.push(row))
             .on('end', async () => {
                 if (headers.length === 0) {
-                     console.log(`No headers in ${csvFilePath}, skipping table creation for ${tableName}`);
+                     logger.info(`No headers in ${csvFilePath}, skipping table creation for ${tableName}`);
                      return resolve();
                 }
 
@@ -66,12 +67,12 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                     `;
 
                     await pool.request().query(createTableSQL);
-                    console.log(`Table ${tableName} ensured.`);
+                    logger.info(`Table ${tableName} ensured.`);
 
                     // Check if data exists
                     const countResult = await pool.request().query(`SELECT COUNT(*) as count FROM ${tableName}`);
                     if (countResult.recordset[0].count === 0 && rows.length > 0) {
-                        console.log(`Importing ${rows.length} rows into ${tableName}...`);
+                        logger.info(`Importing ${rows.length} rows into ${tableName}...`);
 
                         // Use a transaction for bulk insert
                         const transaction = new sql.Transaction(pool);
@@ -92,7 +93,7 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                             }
 
                             await transaction.commit();
-                            console.log(`Imported ${rows.length} rows into ${tableName}`);
+                            logger.info(`Imported ${rows.length} rows into ${tableName}`);
                         } catch (err) {
                             await transaction.rollback();
                             throw err;
@@ -101,7 +102,7 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                     resolve();
 
                 } catch (err) {
-                    console.error(`Error processing table ${tableName}:`, err);
+                    logger.error(`Error processing table ${tableName}:`, err);
                     reject(err);
                 }
             });
@@ -217,9 +218,9 @@ const initDB = async () => {
                     END
                 `;
                 await pool.request().query(checkSql);
-                console.log(`Ensured column ${col} in Customers`);
+                logger.info(`Ensured column ${col} in Customers`);
             } catch (err) {
-                 console.error(`Error adding column ${col}:`, err);
+                 logger.error(`Error adding column ${col}:`, err);
             }
         }
 
@@ -263,9 +264,9 @@ const initDB = async () => {
                     END
                 `;
                 await pool.request().query(checkSql);
-                console.log(`Added column ${col.name} to CreditRequests`);
+                logger.info(`Added column ${col.name} to CreditRequests`);
             } catch (err) {
-                 console.error(`Error adding column ${col.name}:`, err);
+                 logger.error(`Error adding column ${col.name}:`, err);
             }
         }
 
@@ -279,9 +280,9 @@ const initDB = async () => {
                 WHERE term_gs IS NULL AND request_credit_term IS NOT NULL
             `;
             await pool.request().query(migrationSQL);
-            console.log('Migrated legacy credit terms to new columns.');
+            logger.info('Migrated legacy credit terms to new columns.');
         } catch (e) {
-            console.error('Error migrating legacy credit terms:', e);
+            logger.error('Error migrating legacy credit terms:', e);
         }
 
         // Migration: Ensure request_type is large enough
@@ -298,9 +299,9 @@ const initDB = async () => {
             // Note: We need a new request object for this query if reusing pool.request() could be problematic in loop, but here it is fine.
             const req = new sql.Request(pool);
             await req.query(alterSql);
-            console.log('Ensured request_type column size is NVARCHAR(255)');
+            logger.info('Ensured request_type column size is NVARCHAR(255)');
         } catch (err) {
-             console.error('Error altering request_type column:', err);
+             logger.error('Error altering request_type column:', err);
         }
 
          // Create CreditRequestAttachments table
@@ -332,9 +333,9 @@ const initDB = async () => {
         `;
         await pool.request().query(createRequestCommentsSQL);
 
-        console.log('Database initialized (MSSQL).');
+        logger.info('Database initialized (MSSQL).');
     } catch (error) {
-        console.error('Database initialization failed (MSSQL):', error);
+        logger.error('Database initialization failed (MSSQL):', error);
     }
 };
 
@@ -372,7 +373,7 @@ const db = {
             // Normalize output to match { rows: [...] }
             return { rows: result.recordset };
         } catch (err) {
-            console.error('Query error:', err);
+            logger.error('Query error:', err);
             throw err;
         }
     },
@@ -420,7 +421,7 @@ const db = {
                 changes: result.rowsAffected[0] // mimics this.changes
             };
         } catch (err) {
-            console.error('RunAsync error:', err);
+            logger.error('RunAsync error:', err);
             throw err;
         }
     }

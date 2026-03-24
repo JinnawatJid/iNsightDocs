@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 
 const axios = require('axios');
 const fs = require('fs');
@@ -6,9 +7,9 @@ const fs = require('fs');
 const searchTest = async () => {
     try {
         const response = await axios.get('http://localhost:3000/api/customers/search?q=40035RB');
-        console.log('Search Results:', JSON.stringify(response.data, null, 2));
+        logger.info('Search Results:', JSON.stringify(response.data, null, 2));
     } catch (error) {
-        console.error('Search failed:', error.message);
+        logger.error('Search failed:', error.message);
     }
 };
 

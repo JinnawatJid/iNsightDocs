@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const db = require('../db');
 const fs = require('fs-extra');
 const path = require('path');
@@ -40,7 +41,7 @@ exports.getCreditRequestDetail = async (req, res) => {
             try {
                 snapshotData = JSON.parse(snapshotData);
             } catch (e) {
-                console.error('Error parsing snapshot JSON:', e);
+                logger.error('Error parsing snapshot JSON:', e);
                 snapshotData = {};
             }
         }
@@ -68,7 +69,7 @@ exports.getCreditRequestDetail = async (req, res) => {
         res.status(200).json({ data: responseData });
 
     } catch (error) {
-        console.error('Error fetching credit request detail:', error);
+        logger.error('Error fetching credit request detail:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -119,7 +120,7 @@ exports.downloadCreditRequestFile = async (req, res) => {
         fileStream.pipe(res);
 
     } catch (error) {
-        console.error('Error downloading file:', error);
+        logger.error('Error downloading file:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -140,7 +141,7 @@ exports.createCreditRequest = async (req, res) => {
     is_submit
   } = req.body;
 
-  console.log('createCreditRequest Body:', { customer_no, request_amount, term_gs, term_ae, term_yc, request_type, is_submit, status: req.body.status });
+  logger.info('createCreditRequest Body:', { customer_no, request_amount, term_gs, term_ae, term_yc, request_type, is_submit, status: req.body.status });
 
   if (!customer_name || !customer_no) {
     return res.status(400).json({ error: 'Customer name and Customer No (ID) are required' });
@@ -152,7 +153,7 @@ exports.createCreditRequest = async (req, res) => {
     try {
         parsedSnapshot = JSON.parse(parsedSnapshot);
     } catch (e) {
-        console.error('Error parsing snapshot data:', e);
+        logger.error('Error parsing snapshot data:', e);
         parsedSnapshot = {};
     }
   }
@@ -240,7 +241,7 @@ exports.createCreditRequest = async (req, res) => {
             const oldTxId = txId;
             const oldRequestId = requestId;
 
-            console.log(`Finalizing Draft ${oldTxId} to ${newRealTxId}`);
+            logger.info(`Finalizing Draft ${oldTxId} to ${newRealTxId}`);
 
             // 1. Rename Folder
             // Determine old and new directory paths based on customer code
@@ -372,7 +373,7 @@ exports.createCreditRequest = async (req, res) => {
                     file.fieldname = Buffer.from(file.fieldname, 'latin1').toString('utf8');
                 }
             } catch (e) {
-                console.error('Error fixing encoding for fieldname:', file.fieldname, e);
+                logger.error('Error fixing encoding for fieldname:', file.fieldname, e);
             }
 
             // Generate secure contextual file name: [Customer_No]_[Original_Name_Without_Ext]_[YYYYMMDD_HHMMSS]_[Milliseconds].[Ext]
@@ -444,7 +445,7 @@ exports.createCreditRequest = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error processing credit request:', error);
+    logger.error('Error processing credit request:', error);
     if (req.files) {
         req.files.forEach(f => fs.remove(f.path).catch(() => {}));
     }
@@ -491,7 +492,7 @@ exports.getCreditRequests = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching credit requests:', error);
+    logger.error('Error fetching credit requests:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -529,7 +530,7 @@ exports.cancelCreditRequest = async (req, res) => {
     res.status(200).json({ message: 'Credit request canceled successfully' });
 
   } catch (error) {
-    console.error('Error canceling credit request:', error);
+    logger.error('Error canceling credit request:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -541,14 +542,14 @@ exports.getComments = async (req, res) => {
         const { rows } = await db.query(sql, [id]);
         res.status(200).json({ data: rows });
     } catch (error) {
-        console.error('Error fetching comments:', error);
+        logger.error('Error fetching comments:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
 
 exports.reviseRequest = async (req, res) => {
     const id = decodeURIComponent(req.params.id); // tx_id
-    console.log(`Revise Request called for tx_id: ${id}`);
+    logger.info(`Revise Request called for tx_id: ${id}`);
     try {
         // 1. Fetch the existing rejected request
         let requestSql;
@@ -581,7 +582,7 @@ exports.reviseRequest = async (req, res) => {
         }
 
         const newTxId = `${baseId}-R${revisionNumber}`;
-        console.log(`Creating revision: ${newTxId} from ${id}`);
+        logger.info(`Creating revision: ${newTxId} from ${id}`);
 
         // Check if this revision already exists (safety check)
         let checkRevisionSql;
@@ -607,7 +608,7 @@ exports.reviseRequest = async (req, res) => {
                 if (snapshotDataObj.regional_review_comment) snapshotDataObj.regional_review_comment = '';
                 if (snapshotDataObj.sales_review_comment) snapshotDataObj.sales_review_comment = '';
             } catch (e) {
-                console.error('Error parsing old snapshot data for revision', e);
+                logger.error('Error parsing old snapshot data for revision', e);
             }
         }
 
@@ -674,7 +675,7 @@ exports.reviseRequest = async (req, res) => {
 
         if (await fs.pathExists(oldDirPath)) {
              await fs.copy(oldDirPath, newDirPath);
-             console.log(`Copied files from ${oldDirPath} to ${newDirPath}`);
+             logger.info(`Copied files from ${oldDirPath} to ${newDirPath}`);
 
              // After copying physical files, copy the DB attachment records for the new revision
              // with updated relative paths.
@@ -695,7 +696,7 @@ exports.reviseRequest = async (req, res) => {
                  }
              }
         } else {
-             console.log(`No files found to copy at ${oldDirPath}`);
+             logger.info(`No files found to copy at ${oldDirPath}`);
         }
 
         res.status(200).json({
@@ -704,7 +705,7 @@ exports.reviseRequest = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error revising credit request:', error);
+        logger.error('Error revising credit request:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };

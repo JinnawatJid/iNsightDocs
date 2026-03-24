@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const PdfPrinter = require('pdfmake');
 const fs = require('fs');
 const path = require('path');
@@ -82,7 +83,7 @@ const generateCreditRequestPDF = async (req, res) => {
     try {
       snapshot = JSON.parse(data.snapshot_data || '{}');
     } catch (e) {
-      console.error('Error parsing snapshot data', e);
+      logger.error('Error parsing snapshot data', e);
     }
 
     // Merge snapshot data (priority) with DB data (fallback)
@@ -231,7 +232,7 @@ const generateCreditRequestPDF = async (req, res) => {
     // If financial data is empty, try to fetch from DB (Live Data Fallback)
     const hasFinancials = financial.stats || (financial.monthly_history && financial.monthly_history.length > 0);
     if (!hasFinancials) {
-        console.log('PDF: Snapshot missing financials, attempting fallback to Live Data...');
+        logger.info('PDF: Snapshot missing financials, attempting fallback to Live Data...');
         try {
             const accumQuery = `SELECT * FROM AY_ACCUM WHERE custcode = ? LIMIT 1`;
             // Use cleaned customer number for better match
@@ -253,7 +254,7 @@ const generateCreditRequestPDF = async (req, res) => {
                 };
             }
         } catch (e) {
-            console.error('PDF: Live Data Fetch Failed', e);
+            logger.error('PDF: Live Data Fetch Failed', e);
         }
     }
 
@@ -330,7 +331,7 @@ const generateCreditRequestPDF = async (req, res) => {
         maxC2 = sumWeights('c2');
         maxC3 = sumWeights('c3');
     } catch (e) {
-        console.error('Error calculating max scores:', e);
+        logger.error('Error calculating max scores:', e);
     }
 
     // Score Breakdown
@@ -388,7 +389,7 @@ const generateCreditRequestPDF = async (req, res) => {
             const dataBuffer = fs.readFileSync(targetPath);
             const extracted = await extractDBDData(dataBuffer);
 
-            console.log(`[PDF] Extracted DBD Profile Data for ${customerNoClean}:`, JSON.stringify({
+            logger.info(`[PDF] Extracted DBD Profile Data for ${customerNoClean}:`, JSON.stringify({
                 success: extracted.success,
                 registrationDate: extracted.registrationDate,
                 yearsInBusiness: extracted.yearsInBusiness,
@@ -405,10 +406,10 @@ const generateCreditRequestPDF = async (req, res) => {
                 if (extracted.directors && extracted.directors.length > 0) dbdProfileData.directors = extracted.directors;
             }
         } else {
-             console.log(`[PDF] DBD_Profile.pdf not found for customer ${customerNoClean} in latest date folder at base dir:`, activeBaseDir);
+             logger.info(`[PDF] DBD_Profile.pdf not found for customer ${customerNoClean} in latest date folder at base dir:`, activeBaseDir);
         }
     } catch (err) {
-        console.warn(`[PDF] Failed to extract DBD Profile Data for ${customerNoClean}:`, err.message);
+        logger.warn(`[PDF] Failed to extract DBD Profile Data for ${customerNoClean}:`, err.message);
     }
     let dbdTableWidths = [];
 
@@ -627,7 +628,7 @@ const generateCreditRequestPDF = async (req, res) => {
             existingCredits = typeof data.existing_credits === 'string' ? JSON.parse(data.existing_credits) : data.existing_credits;
         }
     } catch (e) {
-        console.error('Error parsing existing credits:', e);
+        logger.error('Error parsing existing credits:', e);
     }
     if (!Array.isArray(existingCredits)) {
         existingCredits = [];
@@ -985,7 +986,7 @@ const generateCreditRequestPDF = async (req, res) => {
     pdfDoc.end();
 
   } catch (error) {
-    console.error('Error generating PDF:', error);
+    logger.error('Error generating PDF:', error);
     res.status(500).send('Error generating PDF: ' + error.message);
   }
 };

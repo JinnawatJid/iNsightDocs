@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const axios = require('axios');
 
 // Configuration
@@ -44,7 +45,7 @@ exports.searchCustomers = async (req, res) => {
         timeout: 10000
       }).then(response => response.data.data || []) // Extract data array or empty
         .catch(err => {
-            console.warn(`Search '${reqData.label}' failed:`, err.message);
+            logger.warn(`Search '${reqData.label}' failed:`, err.message);
             return []; // Ignore failed sub-requests
         })
     );
@@ -106,7 +107,7 @@ exports.searchCustomers = async (req, res) => {
     res.json(mappedResults);
 
   } catch (err) {
-    console.error("Critical Search Error:", err.message);
+    logger.error("Critical Search Error:", err.message);
     res.status(500).json({ error: "Failed to fetch customers from external API" });
   }
 };

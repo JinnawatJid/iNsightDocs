@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const assert = require('assert');
 
 // -----------------------------------------------------------------------------
@@ -39,7 +40,7 @@ function sanitizeInvoices(invoices) {
         // If either condition is met, mark as NOT PAID (Effective Payment Date = null)
         if (isInvalidCleared || isFutureCheck) {
             // Log for debugging (simulated)
-            // console.log(`[Sanitize] Marking Invoice ${sanitized.Invoice_No} as Outstanding (Uncleared/Future Check)`);
+            // logger.info(`[Sanitize] Marking Invoice ${sanitized.Invoice_No} as Outstanding (Uncleared/Future Check)`);
             sanitized.Effective_Payment_Date = null;
             sanitized.Status = 'OUTSTANDING'; // Optional: Update status for clarity
             sanitized.Late_Days = 0; // Not late, just not paid yet
@@ -101,21 +102,21 @@ const testCase3 = [
 // -----------------------------------------------------------------------------
 // Execution & Verification
 // -----------------------------------------------------------------------------
-console.log("Running Sanitize Payment Tests...");
+logger.info("Running Sanitize Payment Tests...");
 
 // Test 1
 const result1 = sanitizeInvoices(testCase1);
 assert.strictEqual(result1[0].Effective_Payment_Date, null, "Test 1 Failed: Invoice with 1753 Cleared Date should be marked outstanding (null Effective Date)");
-console.log("✅ Test 1 Passed: 1753 Cleared Date handled correctly.");
+logger.info("✅ Test 1 Passed: 1753 Cleared Date handled correctly.");
 
 // Test 2
 const result2 = sanitizeInvoices(testCase2);
 assert.strictEqual(result2[0].Effective_Payment_Date, null, "Test 2 Failed: Future Check Date should be marked outstanding (null Effective Date)");
-console.log("✅ Test 2 Passed: Future Check Date handled correctly.");
+logger.info("✅ Test 2 Passed: Future Check Date handled correctly.");
 
 // Test 3
 const result3 = sanitizeInvoices(testCase3);
 assert.notStrictEqual(result3[0].Effective_Payment_Date, null, "Test 3 Failed: Valid Paid Invoice should remain paid.");
-console.log("✅ Test 3 Passed: Valid Invoice remains untouched.");
+logger.info("✅ Test 3 Passed: Valid Invoice remains untouched.");
 
-console.log("All tests passed!");
+logger.info("All tests passed!");

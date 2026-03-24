@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 require('dotenv').config({ path: '../.env' }); // Try root .env
 require('dotenv').config({ path: '.env' }); // Try local .env
 
@@ -12,15 +13,15 @@ const API_KEY = process.env.LATE_PAYMENT_API_KEY || process.env.CUSTOMER_API_KEY
 const CUSTOMER_NO = "08015AY"; // The customer ID mentioned in the error
 
 async function testLatePaymentAPI() {
-    console.log(`Testing Late Payment API: ${API_URL}`);
-    console.log(`Using Customer No: ${CUSTOMER_NO}`);
+    logger.info(`Testing Late Payment API: ${API_URL}`);
+    logger.info(`Using Customer No: ${CUSTOMER_NO}`);
 
     if (!API_KEY || API_KEY === "YOUR_API_KEY_HERE") {
-        console.error("❌ ERROR: LATE_PAYMENT_API_KEY (or CUSTOMER_API_KEY) is not set. Please set it in .env or environment variables.");
+        logger.error("❌ ERROR: LATE_PAYMENT_API_KEY (or CUSTOMER_API_KEY) is not set. Please set it in .env or environment variables.");
         process.exit(1);
     }
 
-    console.log(`Using API Key: ${API_KEY.substring(0, 5)}...${API_KEY.substring(API_KEY.length - 5)}`);
+    logger.info(`Using API Key: ${API_KEY.substring(0, 5)}...${API_KEY.substring(API_KEY.length - 5)}`);
 
     // Test Case 1: Standard 'apikey' header (as per current code)
     await tryRequest('apikey', API_KEY);
@@ -39,7 +40,7 @@ async function testLatePaymentAPI() {
 }
 
 async function tryRequest(headerName, headerValue) {
-    console.log(`\n--- Testing Header: ${headerName} ---`);
+    logger.info(`\n--- Testing Header: ${headerName} ---`);
     try {
         const headers = {
             "Content-Type": "application/json"
@@ -53,15 +54,15 @@ async function tryRequest(headerName, headerValue) {
             timeout: 5000
         });
 
-        console.log(`✅ Success! Status: ${response.status}`);
-        console.log('Data:', JSON.stringify(response.data, null, 2).substring(0, 200) + '...');
+        logger.info(`✅ Success! Status: ${response.status}`);
+        logger.info('Data:', JSON.stringify(response.data, null, 2).substring(0, 200) + '...');
     } catch (error) {
-        console.log(`❌ Failed. Status: ${error.response ? error.response.status : 'Unknown'}`);
+        logger.info(`❌ Failed. Status: ${error.response ? error.response.status : 'Unknown'}`);
         if (error.response) {
-            // console.log('Response Data:', JSON.stringify(error.response.data));
-            console.log('Response Status Text:', error.response.statusText);
+            // logger.info('Response Data:', JSON.stringify(error.response.data));
+            logger.info('Response Status Text:', error.response.statusText);
         } else {
-            console.log('Error Message:', error.message);
+            logger.info('Error Message:', error.message);
         }
     }
 }

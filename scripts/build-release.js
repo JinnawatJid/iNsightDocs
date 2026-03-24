@@ -266,7 +266,8 @@ const downloadFile = async (url, destPath) => {
       'DB_SERVER=localhost',
       'DB_PORT=1433',
       'DB_NAME=CreditRequestDB',
-      'UPLOAD_PATH=../../customers'
+      'UPLOAD_PATH=../../customers',
+      'LOG_DIR=../../logs'
     ].join('\n');
     await fs.writeFile(path.join(RELEASE_DIR, 'backend', '.env'), envContent);
 

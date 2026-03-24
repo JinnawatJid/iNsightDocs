@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -63,13 +64,13 @@ const authMiddleware = (req, res, next) => {
         const isAuthorizedApp = appRoles.some(r => r.app === 'Smart Credit Application');
 
         if (!isAuthorizedApp && appRoles.length > 0) {
-           console.warn('User does not have explicit role for Smart Credit Application:', decoded.username);
+           logger.warn('User does not have explicit role for Smart Credit Application:', decoded.username);
            // Not blocking for now, but logged for monitoring
         }
 
         next();
     } catch (error) {
-        console.error('Authentication Error:', error);
+        logger.error('Authentication Error:', error);
         return res.status(401).json({ error: 'Unauthorized', message: 'Authentication failed' });
     }
 };

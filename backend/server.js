@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const fs = require('fs');
 const cookieParser = require('cookie-parser');
 const db = require('./db');
+const logger = require('./utils/logger');
 const authMiddleware = require('./middleware/authMiddleware');
 const customerRoutes = require('./routes/customerRoutes');
 const creditRequestRoutes = require('./routes/creditRequestRoutes');
@@ -23,16 +24,8 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Ensure logs directory exists
-const logDirectory = path.join(__dirname, 'logs');
-if (!fs.existsSync(logDirectory)) {
-    fs.mkdirSync(logDirectory);
-}
-
-// Setup access logging
-const accessLogStream = fs.createWriteStream(path.join(logDirectory, 'access.log'), { flags: 'a' });
-app.use(morgan('combined', { stream: accessLogStream })); // Log to file
-app.use(morgan('dev')); // Log to console
+// Setup HTTP request logging via Winston
+app.use(morgan('combined', { stream: logger.stream })); // Log to Winston
 
 // Public Authentication Routes
 app.use('/api/auth', authRoutes);
@@ -73,7 +66,7 @@ app.get('/api/health', async (req, res) => {
     await db.query('SELECT 1');
     res.status(200).json({ status: 'ok', database: 'connected' });
   } catch (error) {
-    console.error('Health check failed:', error);
+    logger.error('Health check failed:', error);
     res.status(500).json({ status: 'error', database: 'disconnected', error: error.message });
   }
 });
@@ -89,7 +82,7 @@ app.get('*', (req, res) => {
 const startServer = async () => {
   await db.initialize();
   app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    logger.info(`Server is running on http://localhost:${PORT}`);
   });
 };
 

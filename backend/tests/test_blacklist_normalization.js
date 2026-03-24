@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
@@ -10,7 +11,7 @@ const checkBlacklist = async (taxId) => {
     const normalized = String(taxId).replace(/[^0-9a-zA-Z]/g, '');
     if (!normalized) return { is_blacklisted: false, blacklist_data: null };
 
-    console.log(`Checking normalized Tax ID: '${normalized}' (Original: '${taxId}')`);
+    logger.info(`Checking normalized Tax ID: '${normalized}' (Original: '${taxId}')`);
 
     // Query matching normalized ID
     const sql = `SELECT * FROM CustomerBlacklist WHERE REPLACE(REPLACE("เลขที่บัตรประชาชน", ' ', ''), '-', '') = ? LIMIT 1`;
@@ -18,9 +19,9 @@ const checkBlacklist = async (taxId) => {
     return new Promise((resolve, reject) => {
         db.all(sql, [normalized], (err, rows) => {
             if (err) return reject(err);
-            console.log(`[Blacklist] Checking ${normalized}. Found: ${rows.length}`);
+            logger.info(`[Blacklist] Checking ${normalized}. Found: ${rows.length}`);
             if (rows && rows.length > 0) {
-                console.log(`[Blacklist] MATCH:`, rows[0]);
+                logger.info(`[Blacklist] MATCH:`, rows[0]);
                 resolve({
                     is_blacklisted: true,
                     blacklist_data: {
@@ -48,7 +49,7 @@ const runTest = async () => {
         await checkBlacklist('3 7001 00118 99 1');
 
     } catch (e) {
-        console.error(e);
+        logger.error(e);
     } finally {
         db.close();
     }

@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 /**
  * Test Script for WADL Logic Verification
  * Usage: node backend/scripts/test_wadl_benchmark.js
@@ -46,8 +47,8 @@ mockInvoices.push({
 });
 
 // --- EXECUTE TEST ---
-console.log('--- WADL Calculation Logic Test ---');
-console.log(`Input: 5 invoices @ 2000 (15 days late) + 1 invoice @ 100000 (0 days late)`);
+logger.info('--- WADL Calculation Logic Test ---');
+logger.info(`Input: 5 invoices @ 2000 (15 days late) + 1 invoice @ 100000 (0 days late)`);
 
 // 1. Calculate Traditional (Simple Average) manually for comparison
 // Total Late Days: (5 * 15) + 0 = 75
@@ -56,10 +57,10 @@ const totalLateDays = mockInvoices.reduce((sum, inv) => sum + inv.Late_Days, 0);
 const traditionalScore = totalLateDays / mockInvoices.length;
 const expectedTraditional = 12.50;
 
-console.log(`\n[Traditional Calculation]`);
-console.log(`Total Late Days: ${totalLateDays}`);
-console.log(`Invoice Count: ${mockInvoices.length}`);
-console.log(`Score: ${traditionalScore.toFixed(2)} (Expected: ${expectedTraditional})`);
+logger.info(`\n[Traditional Calculation]`);
+logger.info(`Total Late Days: ${totalLateDays}`);
+logger.info(`Invoice Count: ${mockInvoices.length}`);
+logger.info(`Score: ${traditionalScore.toFixed(2)} (Expected: ${expectedTraditional})`);
 
 // 2. Calculate WADL using the function
 // Total Value: (5 * 2000) + 100000 = 110,000
@@ -69,27 +70,27 @@ const expectedWADL = 1.36;
 
 const result = calculateWADL(mockInvoices);
 
-console.log(`\n[WADL Calculation]`);
-console.log(`Total Value: ${result.total_value}`);
-console.log(`Score: ${result.score} (Expected: ${expectedWADL})`);
-console.log(`Grade: ${result.grade}`);
+logger.info(`\n[WADL Calculation]`);
+logger.info(`Total Value: ${result.total_value}`);
+logger.info(`Score: ${result.score} (Expected: ${expectedWADL})`);
+logger.info(`Grade: ${result.grade}`);
 
 // --- ASSERTIONS ---
 let passed = true;
 
 if (Math.abs(traditionalScore - expectedTraditional) > 0.01) {
-    console.error('❌ Traditional Score Mismatch');
+    logger.error('❌ Traditional Score Mismatch');
     passed = false;
 }
 
 if (Math.abs(result.score - expectedWADL) > 0.01) {
-    console.error('❌ WADL Score Mismatch');
+    logger.error('❌ WADL Score Mismatch');
     passed = false;
 }
 
 if (passed) {
-    console.log('\n✅ TEST PASSED: WADL Logic is correct.');
+    logger.info('\n✅ TEST PASSED: WADL Logic is correct.');
 } else {
-    console.log('\n❌ TEST FAILED');
+    logger.info('\n❌ TEST FAILED');
     process.exit(1);
 }

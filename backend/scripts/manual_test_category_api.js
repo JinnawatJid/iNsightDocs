@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 require('dotenv').config();
 const axios = require('axios');
 
@@ -8,9 +9,9 @@ const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY_HERE";
 
 const customerCode = process.argv[2] || "01013AY";
 
-console.log(`Testing Category API for customer: ${customerCode}`);
-console.log(`URL: ${API_URL}`);
-console.log(`API Key: ${API_KEY ? "Set (Hidden)" : "Not Set"}`);
+logger.info(`Testing Category API for customer: ${customerCode}`);
+logger.info(`URL: ${API_URL}`);
+logger.info(`API Key: ${API_KEY ? "Set (Hidden)" : "Not Set"}`);
 
 async function testApi() {
     try {
@@ -24,11 +25,11 @@ async function testApi() {
             timeout: 10000
         });
 
-        console.log("\n[SUCCESS] API Response received.");
-        console.log("Status:", response.status);
+        logger.info("\n[SUCCESS] API Response received.");
+        logger.info("Status:", response.status);
 
         const rawData = response.data.data || [];
-        console.log(`Raw Data Items: ${rawData.length}`);
+        logger.info(`Raw Data Items: ${rawData.length}`);
 
         // Simulate the transformation logic implemented in the controller
         const by_category = rawData.reduce((acc, item) => {
@@ -38,18 +39,18 @@ async function testApi() {
             return acc;
         }, {});
 
-        console.log("\n[VERIFICATION] Transformed Data (by_category):");
-        console.log(JSON.stringify(by_category, null, 2));
+        logger.info("\n[VERIFICATION] Transformed Data (by_category):");
+        logger.info(JSON.stringify(by_category, null, 2));
 
-        console.log("\nIf you see the data above, the fix is working correctly.");
+        logger.info("\nIf you see the data above, the fix is working correctly.");
 
     } catch (error) {
-        console.error("\n[ERROR] API Request Failed:");
+        logger.error("\n[ERROR] API Request Failed:");
         if (error.response) {
-            console.error(`Status: ${error.response.status}`);
-            console.error("Data:", error.response.data);
+            logger.error(`Status: ${error.response.status}`);
+            logger.error("Data:", error.response.data);
         } else {
-            console.error(error.message);
+            logger.error(error.message);
         }
     }
 }

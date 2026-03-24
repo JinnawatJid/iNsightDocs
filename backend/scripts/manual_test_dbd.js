@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 // Script to manually test DBD PDF Extraction logic
 // Run with: node backend/scripts/manual_test_dbd.js [path/to/pdf]
 
@@ -8,7 +9,7 @@ const { extractAndProcessDBDData } = require('../controllers/externalController'
 
 const main = async () => {
     // 1. Initialize Database (required because extraction updates DB)
-    console.log('Initializing Database...');
+    logger.info('Initializing Database...');
     await db.initialize();
 
     // 2. Determine PDF Path
@@ -16,13 +17,13 @@ const main = async () => {
     if (!pdfPath) {
         // Default to test file if exists
         pdfPath = path.join(__dirname, '../test_dbd.pdf');
-        console.log(`No file argument provided. Using default: ${pdfPath}`);
+        logger.info(`No file argument provided. Using default: ${pdfPath}`);
     } else {
         pdfPath = path.resolve(pdfPath);
     }
 
     // 3. Run Extraction
-    console.log(`\n--- Starting Extraction Test on: ${pdfPath} ---\n`);
+    logger.info(`\n--- Starting Extraction Test on: ${pdfPath} ---\n`);
 
     // Use dummy taxId/companyName just for the function signature
     // The extraction logic relies on the PDF content, but updates DB based on these.
@@ -33,14 +34,14 @@ const main = async () => {
 
     const result = await extractAndProcessDBDData(pdfPath, mockTaxId, mockName);
 
-    console.log('\n--- Extraction Result ---');
-    console.log(result);
+    logger.info('\n--- Extraction Result ---');
+    logger.info(result);
 
-    console.log('\n--- Done ---');
+    logger.info('\n--- Done ---');
     process.exit(0);
 };
 
 main().catch(err => {
-    console.error('Test Failed:', err);
+    logger.error('Test Failed:', err);
     process.exit(1);
 });

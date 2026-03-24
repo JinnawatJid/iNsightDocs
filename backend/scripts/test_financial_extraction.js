@@ -1,7 +1,8 @@
+const logger = require('../utils/logger');
 const xlsx = require('xlsx');
 const { findYearlySeries } = require('../controllers/financialController');
 
-console.log('Running Financial Extraction Verification...');
+logger.info('Running Financial Extraction Verification...');
 
 // 1. Create Mock Data (Array of Arrays)
 const mockData = [
@@ -28,10 +29,10 @@ const mockData = [
 const sheet = xlsx.utils.aoa_to_sheet(mockData);
 
 // 3. Test findYearlySeries
-console.log('Testing findYearlySeries for "รายได้รวม"...');
+logger.info('Testing findYearlySeries for "รายได้รวม"...');
 const result = findYearlySeries(sheet, 'รายได้รวม', 3);
 
-console.log('Result:', JSON.stringify(result, null, 2));
+logger.info('Result:', JSON.stringify(result, null, 2));
 
 // 4. Verification Logic
 const expected = [
@@ -45,22 +46,22 @@ if (result.length !== 3) pass = false;
 expected.forEach((exp, i) => {
     if (!result[i]) {
         pass = false;
-        console.error(`Missing index ${i}`);
+        logger.error(`Missing index ${i}`);
     } else {
         if (result[i].year !== exp.year) {
              pass = false;
-             console.error(`Year mismatch at ${i}: Expected ${exp.year}, Got ${result[i].year}`);
+             logger.error(`Year mismatch at ${i}: Expected ${exp.year}, Got ${result[i].year}`);
         }
         if (result[i].amount !== exp.amount) {
              pass = false;
-             console.error(`Amount mismatch at ${i}: Expected ${exp.amount}, Got ${result[i].amount}`);
+             logger.error(`Amount mismatch at ${i}: Expected ${exp.amount}, Got ${result[i].amount}`);
         }
     }
 });
 
 if (pass) {
-    console.log('✅ TEST PASSED: Successfully extracted last 3 years of revenue.');
+    logger.info('✅ TEST PASSED: Successfully extracted last 3 years of revenue.');
 } else {
-    console.error('❌ TEST FAILED');
+    logger.error('❌ TEST FAILED');
     process.exit(1);
 }
