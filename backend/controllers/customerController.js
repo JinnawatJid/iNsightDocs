@@ -285,7 +285,9 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
     if (taxId) {
         const normalized = String(taxId).replace(/\D/g, '');
         if (normalized) {
-            const sql = `SELECT * FROM CustomerBlacklist WHERE normalized_id = ? LIMIT 1`;
+            const sql = db.dbType === 'mssql'
+                ? `SELECT TOP 1 * FROM CustomerBlacklist WHERE normalized_id = ?`
+                : `SELECT * FROM CustomerBlacklist WHERE normalized_id = ? LIMIT 1`;
             try {
                 const { rows } = await db.query(sql, [normalized]);
                 if (rows && rows.length > 0) {
@@ -312,7 +314,9 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
 
         // 2.1 Full Name Match (High Confidence / Block)
         try {
-            const sql = `SELECT * FROM CustomerBlacklist WHERE normalized_name = ? LIMIT 1`;
+            const sql = db.dbType === 'mssql'
+                ? `SELECT TOP 1 * FROM CustomerBlacklist WHERE normalized_name = ?`
+                : `SELECT * FROM CustomerBlacklist WHERE normalized_name = ? LIMIT 1`;
             const { rows } = await db.query(sql, [normalizedInput]);
             if (rows && rows.length > 0) {
                  logger.info(`[Blacklist] MATCH Full Name:`, rows[0]);
@@ -336,7 +340,9 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
             if (lastName) {
                  try {
                     // Match exact normalized name = Lastname OR ends with " Lastname"
-                    const sql = `SELECT * FROM CustomerBlacklist WHERE normalized_name = ? OR normalized_name LIKE ? LIMIT 1`;
+                    const sql = db.dbType === 'mssql'
+                        ? `SELECT TOP 1 * FROM CustomerBlacklist WHERE normalized_name = ? OR normalized_name LIKE ?`
+                        : `SELECT * FROM CustomerBlacklist WHERE normalized_name = ? OR normalized_name LIKE ? LIMIT 1`;
                     const { rows } = await db.query(sql, [lastName, `% ${lastName}`]);
 
                     if (rows && rows.length > 0) {
@@ -364,7 +370,9 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
         if (!normalizedComp) continue;
 
         try {
-            const sql = `SELECT * FROM CustomerBlacklist WHERE normalized_shop = ? LIMIT 1`;
+            const sql = db.dbType === 'mssql'
+                ? `SELECT TOP 1 * FROM CustomerBlacklist WHERE normalized_shop = ?`
+                : `SELECT * FROM CustomerBlacklist WHERE normalized_shop = ? LIMIT 1`;
             const { rows } = await db.query(sql, [normalizedComp]);
              if (rows && rows.length > 0) {
                  logger.info(`[Blacklist] MATCH Company Name:`, rows[0]);
