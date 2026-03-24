@@ -365,17 +365,35 @@ const chartData = computed(() => {
   });
 
   // Calculate chart boundaries to extend limit line
-  const minTime = exposureData.length > 0 ? exposureData[0].x : 0;
-  const maxTime = exposureData.length > 0 ? exposureData[exposureData.length - 1].x : 0;
+  let minTime = exposureData.length > 0 ? exposureData[0].x : 0;
+  let maxTime = exposureData.length > 0 ? exposureData[exposureData.length - 1].x : 0;
 
-
-  // Add initial zero point to create a vertical jump from 0 at the start of the first phase
+  // Add initial zero point with 5-day padding
   if (exposureData.length > 0) {
       const firstEvent = exposureData[0];
+      const paddedStartDate = new Date(firstEvent.x);
+      paddedStartDate.setDate(paddedStartDate.getDate() - 5);
+      minTime = paddedStartDate.getTime();
+
+      const paddedStartLabelDate = `${paddedStartDate.getDate().toString().padStart(2, '0')}/${(paddedStartDate.getMonth() + 1).toString().padStart(2, '0')}/${paddedStartDate.getFullYear()}`;
+
       exposureData.unshift({
-          x: firstEvent.x,
+          x: minTime,
           y: 0,
-          labels: ['เริ่มต้นโครงการ', 'ยอดหนี้ 0 บาท']
+          labels: [paddedStartLabelDate, 'เริ่มต้นโครงการ', 'ยอดหนี้ 0 บาท']
+      });
+
+      const lastEvent = exposureData[exposureData.length - 1];
+      const paddedEndDate = new Date(lastEvent.x);
+      paddedEndDate.setDate(paddedEndDate.getDate() + 5);
+      maxTime = paddedEndDate.getTime();
+
+      const paddedEndLabelDate = `${paddedEndDate.getDate().toString().padStart(2, '0')}/${(paddedEndDate.getMonth() + 1).toString().padStart(2, '0')}/${paddedEndDate.getFullYear()}`;
+
+      exposureData.push({
+          x: maxTime,
+          y: lastEvent.y,
+          labels: [paddedEndLabelDate, 'สิ้นสุดโครงการ']
       });
   }
 
@@ -399,7 +417,7 @@ const limitData = [];
         borderColor: isBar ? 'transparent' : '#0056FF',
         backgroundColor: isBar ? 'rgba(0, 86, 255, 0.8)' : 'rgba(0, 86, 255, 0.1)',
         borderWidth: isBar ? 0 : 2,
-        stepped: 'after',
+        stepped: 'before',
         fill: true,
         pointBackgroundColor: '#0056FF',
         pointRadius: isBar ? 0 : 4,
