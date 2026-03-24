@@ -144,6 +144,7 @@
         <li
           v-for="(suggestion, index) in suggestions"
           :key="index"
+          :class="getSuggestionClass(suggestion)"
         >
           {{ suggestion }}
         </li>
@@ -209,6 +210,23 @@ export default {
           if (trendString.includes('เพิ่มขึ้น')) return 'up';
           if (trendString.includes('ลดลง')) return 'down';
           return 'neutral';
+      },
+      getSuggestionClass(suggestion) {
+          if (!suggestion) return '';
+          const positiveKeywords = ['ลูกค้าชั้นดี', 'มียอดซื้อสะสมสูง', 'สั่งซื้อต่อเนื่อง', 'เติบโต', 'ตรงเวลา', 'สม่ำเสมอ'];
+          const negativeKeywords = ['ไม่มียอดซื้อ', 'ล่าช้า', 'ลดลง', 'ไม่สามารถ', 'Error'];
+          const warningKeywords = ['ปานกลาง', 'ทั่วไป', 'เว้นช่วง', 'ควรติดต่อ', 'ควรติดตาม'];
+
+          if (positiveKeywords.some(kw => suggestion.includes(kw))) {
+              return 'suggestion-positive';
+          }
+          if (negativeKeywords.some(kw => suggestion.includes(kw))) {
+              return 'suggestion-negative';
+          }
+          if (warningKeywords.some(kw => suggestion.includes(kw))) {
+              return 'suggestion-warning';
+          }
+          return ''; // default black bullet
       },
       toggleMonthlyDetails() {
         this.showMonthlyDetails = !this.showMonthlyDetails;
@@ -505,9 +523,20 @@ h3 {
   font-size: 14px;
 }
 
-.suggestion-positive {
+/* Bullet Point Colors */
+.suggestion-positive::marker {
   color: #28a745; /* Green */
-  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.suggestion-warning::marker {
+  color: #ffc107; /* Amber/Yellow */
+  font-size: 1.2em;
+}
+
+.suggestion-negative::marker {
+  color: #dc3545; /* Red */
+  font-size: 1.2em;
 }
 
 .summary-section {
