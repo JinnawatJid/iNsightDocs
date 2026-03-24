@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
 require('dotenv').config();
+const { normalizeName } = require('./utils/nameNormalizer');
 
 const config = {
     user: process.env.DB_USER,
@@ -37,9 +38,38 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
         fs.createReadStream(csvFilePath)
             .pipe(csv())
             .on('headers', (headerList) => {
-                headers = headerList;
+                headers = headerList.map(h => h.trim());
+                // Add normalized columns for CustomerBlacklist
+                if (tableName === 'CustomerBlacklist') {
+                    headers.push('normalized_id');
+                    headers.push('normalized_name');
+                    headers.push('normalized_shop');
+                }
             })
-            .on('data', (row) => rows.push(row))
+            .on('data', (row) => {
+                // Normalize row keys (trim)
+                const newRow = {};
+                Object.keys(row).forEach(key => {
+                    newRow[key.trim()] = row[key];
+                });
+
+                // Add normalized values for CustomerBlacklist
+                if (tableName === 'CustomerBlacklist') {
+                    // Tax ID
+                    const rawId = newRow['เลขที่บัตรประชาชน'] || '';
+                    newRow['normalized_id'] = rawId.replace(/\D/g, '');
+
+                    // Customer Name (Person)
+                    const rawName = newRow['ชื่อ - ลูกค้า'] || '';
+                    newRow['normalized_name'] = normalizeName(rawName);
+
+                    // Shop Name (Business)
+                    const rawShop = newRow['ชื่อ - ร้าน'] || '';
+                    newRow['normalized_shop'] = normalizeName(rawShop);
+                }
+
+                rows.push(newRow);
+            })
             .on('end', async () => {
                 if (headers.length === 0) {
                      logger.info(`No headers in ${csvFilePath}, skipping table creation for ${tableName}`);
@@ -119,6 +149,12 @@ const initDB = async () => {
 
         // Initialize AY_ACCUM
         await createTableFromCSV('AY_ACCUM', path.resolve(__dirname, 'AY_ACCUM_rows.csv'), 'custcode');
+
+        // Initialize CustomerBlacklist
+        // Drop table first to ensure schema update (adding normalized_id)
+        const dropBlacklistSQL = `IF EXISTS (SELECT * FROM sysobjects WHERE name='CustomerBlacklist' and xtype='U') DROP TABLE CustomerBlacklist`;
+        await pool.request().query(dropBlacklistSQL);
+        await createTableFromCSV('CustomerBlacklist', path.resolve(__dirname, 'CustomerBlacklist_rows.csv'), 'เลขที่บัตรประชาชน');
 
         // Ensure Coordinate and Landmark columns exist in Customers table
         const coordinateColumns = [
