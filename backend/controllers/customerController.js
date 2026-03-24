@@ -568,11 +568,19 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
             // 4. Payment History Check (WADL)
             if (wadlDataResult && wadlDataResult.status === 'fulfilled') {
                 const wadlData = wadlDataResult.value;
-                if (wadlData && wadlData.score === 0) {
-                    suggestions.push("ชำระเงินตรงเวลา (WADL 0 วัน)");
-                } else if (wadlData && wadlData.score > 0) {
-                    const roundedWadl = parseFloat(wadlData.score).toFixed(2);
-                    suggestions.push(`ประวัติจ่ายล่าช้าเฉลี่ย ${roundedWadl} วัน`);
+                if (wadlData && wadlData.score !== undefined) {
+                    const score = parseFloat(wadlData.score);
+                    const roundedWadl = score.toFixed(2);
+
+                    if (score === 0) {
+                        suggestions.push("ชำระเงินตรงเวลา WADL 0 วัน");
+                    } else if (score < 5) {
+                        suggestions.push(`ประวัติชำระเงินเกณฑ์ดี จ่ายล่าช้าเฉลี่ย ${roundedWadl} วัน`);
+                    } else if (score < 10) {
+                        suggestions.push(`ประวัติชำระเงินปานกลาง จ่ายล่าช้าเฉลี่ย ${roundedWadl} วัน`);
+                    } else {
+                        suggestions.push(`ประวัติจ่ายล่าช้าเฉลี่ยสูงถึง ${roundedWadl} วัน`);
+                    }
                 }
             } else {
                 suggestions.push("ไม่สามารถดึงข้อมูลประวัติการชำระเงินได้");

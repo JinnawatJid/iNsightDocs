@@ -199,8 +199,8 @@ export default {
       if (!this.suggestions || this.suggestions.length === 0) return [];
 
       const getWeight = (suggestion) => {
-          const positiveKeywords = ['ลูกค้าชั้นดี', 'มียอดซื้อสะสมสูง', 'สั่งซื้อต่อเนื่อง', 'เติบโต', 'ตรงเวลา', 'สม่ำเสมอ'];
-          const negativeKeywords = ['ไม่มียอดซื้อ', 'ล่าช้า', 'ลดลง', 'ไม่สามารถ', 'Error'];
+          const positiveKeywords = ['ลูกค้าชั้นดี', 'มียอดซื้อสะสมสูง', 'สั่งซื้อต่อเนื่อง', 'เติบโต', 'ตรงเวลา', 'สม่ำเสมอ', 'เกณฑ์ดี'];
+          const negativeKeywords = ['ไม่มียอดซื้อ', 'สูงถึง', 'ลดลง', 'ไม่สามารถ', 'Error'];
           const warningKeywords = ['ปานกลาง', 'ทั่วไป', 'เว้นช่วง', 'ควรติดต่อ', 'ควรติดตาม'];
 
           if (positiveKeywords.some(kw => suggestion.includes(kw))) return 1; // Green
@@ -229,8 +229,8 @@ export default {
       },
       getSuggestionClass(suggestion) {
           if (!suggestion) return '';
-          const positiveKeywords = ['ลูกค้าชั้นดี', 'มียอดซื้อสะสมสูง', 'สั่งซื้อต่อเนื่อง', 'เติบโต', 'ตรงเวลา', 'สม่ำเสมอ'];
-          const negativeKeywords = ['ไม่มียอดซื้อ', 'ล่าช้า', 'ลดลง', 'ไม่สามารถ', 'Error'];
+          const positiveKeywords = ['ลูกค้าชั้นดี', 'มียอดซื้อสะสมสูง', 'สั่งซื้อต่อเนื่อง', 'เติบโต', 'ตรงเวลา', 'สม่ำเสมอ', 'เกณฑ์ดี'];
+          const negativeKeywords = ['ไม่มียอดซื้อ', 'สูงถึง', 'ลดลง', 'ไม่สามารถ', 'Error'];
           const warningKeywords = ['ปานกลาง', 'ทั่วไป', 'เว้นช่วง', 'ควรติดต่อ', 'ควรติดตาม'];
 
           if (positiveKeywords.some(kw => suggestion.includes(kw))) {
