@@ -1,119 +1,73 @@
-# Future Credit Suggestion Logic & Industry Standards
+# Credit Score Suggestion Logic & Standards
 
-This document outlines the proposed logic for enhancing the "Suggestions" (คำแนะนำ) section of the Credit Scoring System. It focuses on handling negative behavioral indicators like Late Payments and Bounced Checks (Cheque Returns), based on industry standards and user feedback.
+This document outlines the implemented logic and industry standards for the "Suggestions" (คำแนะนำ) section of the Credit Scoring System on the `/create-credit-request` dashboard.
 
-## 1. Industry Standards Overview
+## 1. Core Principles
 
-In standard Credit Risk Management systems, customer behavior is categorized not just by volume (Sales) but by **Payment Performance**.
+Based on user feedback and financial industry standards, the suggestion text generation follows these core principles:
+- **Conciseness:** Suggestions must be skimmable. Filler words (e.g., "มีการ", "ลูกค้ามี") and parentheses `()` are strictly avoided.
+- **Data-Driven:** Recommendations dynamically parse real behavioral data (Sales Volume, Consistency, Slope/Trend, and Weighted Average Days Late - WADL).
+- **Graceful Degradation:** If external APIs (like the WADL payment API) fail, the system renders a fallback message ("ไม่สามารถดึงข้อมูลประวัติการชำระเงินได้") instead of crashing the summary.
 
-### A. Days Past Due (DPD)
-Late payments are typically bucketed into timeframes to determine risk severity:
-- **0 Days:** Current / Good Standing.
-- **1-30 Days (Watchlist):** Operational delay or minor liquidity issue. usually triggers a "Warning".
-- **31-60 Days (Substandard):** Serious liquidity issue. usually triggers "Credit Hold".
-- **61-90+ Days (Doubtful/Loss):** Default risk. usually triggers "Legal Action" or "Write-off".
+## 2. Implemented Logic & Text Strings
 
-### B. Cheque Returns (Bounced Checks)
-A bounced check (Nonsufficient Funds - NSF) is a **High Severity** signal. Unlike a late transfer which might be forgetfulness, a bounced check indicates a failure of promised liquidity.
-- **Industry Standard:** "Zero Tolerance" or "Strike System" (e.g., 3 strikes = Account Termination).
-- **Implication:** Even one bounced check often overrides "High Purchase Volume" status.
+The system evaluates four distinct categories of a customer's purchasing behavior to generate the summary text.
 
----
+### A. ยอดซื้อสะสม (Total Purchase Volume)
+*Evaluated based on the sum of purchases over the last 3 completed months.*
 
-## 2. Proposed Suggestion Logic & Texts
+| Condition | Risk Level | Output Text (Thai) |
+| :--- | :--- | :--- |
+| `> 1,000,000` บาท | 🟢 Green | `เป็นลูกค้าชั้นดี มียอดซื้อสะสมสูง` |
+| `> 300,000` บาท | 🟡 Amber | `มียอดซื้อสะสมปานกลาง` |
+| `> 0` บาท | 🟡 Amber | `ยอดซื้อสะสมอยู่ในระดับทั่วไป` |
+| `0` บาท | 🔴 Red | `ไม่มียอดซื้อสะสมในช่วง 3 เดือนล่าสุด` |
 
-We propose replacing/augmenting the current hardcoded messages with dynamic logic based on the following conditions.
+### B. ความต่อเนื่องในการซื้อ (Purchase Consistency)
+*Evaluated by checking how many of the last 3 months had active sales `> 0`.*
 
-### Scenario A: Late Payments
+| Condition | Risk Level | Output Text (Thai) |
+| :--- | :--- | :--- |
+| Active in all 3 months | 🟢 Green | `สั่งซื้อต่อเนื่องทุกเดือนในช่วง 3 เดือนล่าสุด` |
+| Active in 1-2 months | 🟡 Amber | `เว้นช่วงการสั่งซื้อบางเดือน` |
+| **Churn Warning:** `0` in latest month (but `> 0` in previous) | 🔴 Red | `ไม่มียอดซื้อเดือนล่าสุด ควรติดต่อสอบถามสถานะ` |
 
-| Condition (DPD) | Risk Level | Proposed Suggestion Text (Thai) | Actionable Advice |
-| :--- | :--- | :--- | :--- |
-| **Late < 5 Days** | Low | "มีการชำระเงินล่าช้าเล็กน้อย (ไม่เกิน 5 วัน) เป็นบางครั้ง" | "ควรตักเตือนเรื่องกำหนดชำระ" |
-| **Late 5 - 15 Days** | Medium | "มีการชำระเงินล่าช้าเฉลี่ย 5-15 วัน ควรติดตามใกล้ชิด" | "พิจารณาลดระยะเวลาเครดิต (Credit Term)" |
-| **Late > 15 Days** | High | "มีประวัติชำระเงินล่าช้าเกิน 15 วัน สม่ำเสมอ" | "ระงับการเพิ่มวงเงิน หรือขอหลักทรัพย์ค้ำประกัน" |
+### C. แนวโน้มการเติบโต (Trend / Slope Check)
+*Evaluated using the mathematical slope of the last 3 months' purchases.*
 
-### Scenario B: Cheque Returns (Bounced Checks)
+| Condition | Risk Level | Output Text (Thai) |
+| :--- | :--- | :--- |
+| `Slope > 0` | 🟢 Green | `แนวโน้มยอดซื้อเติบโต เฉลี่ยเพิ่มขึ้น [X] บาท/เดือน` |
+| `Slope < 0` | 🔴 Red | `แนวโน้มยอดซื้อลดลง เฉลี่ยลดลง [X] บาท/เดือน ควรติดตามสาเหตุ` |
+| `Slope == 0` (and Sales `> 0`) | 🟢 Green | `ยอดซื้อสม่ำเสมอ` |
 
-| Condition | Risk Level | Proposed Suggestion Text (Thai) | Actionable Advice |
-| :--- | :--- | :--- | :--- |
-| **History of Return** | Critical | "มีประวัติเช็คเด้ง (Cheque Return) ในระบบ" | "งดปล่อยสินเชื่อ หรือรับเฉพาะเงินสด (Cash Only)" |
-| **Return > 3 times** | Blacklist | "เป็นลูกค้ากลุ่ม Blacklist (เช็คเด้งซ้ำซ้อน)" | "ห้ามอนุมัติวงเงินทุกกรณี" |
+### D. ประวัติการชำระเงิน (WADL - Weighted Average Days Late)
+*Evaluated using the dedicated WADL API to determine payment punctuality.*
 
----
-
-## 3. Display Logic & UI Recommendations
-
-To ensure users notice these risks, we recommend a **"Traffic Light"** system and a **Priority Override** logic.
-
-### A. Priority Override
-**Negative Signals > Positive Signals.**
-*Currently, the system might say "Good Customer (High Volume)" AND "Late Payment".*
-**New Logic:** If Risk Level is **High/Critical**, the "High Volume" badge should be deemphasized or accompanied by a Warning.
-
-**Example:**
-> *Before:* "ลูกค้าชั้นดี มียอดซื้อสูง"
-> *After (with Bounced Check):* "ยอดซื้อสูง **แต่มีความเสี่ยงสูง (มีประวัติเช็คเด้ง)**"
-
-### B. Visual Coding (UI)
-The `CreditScoreSummary.vue` component should update its list rendering to support types:
-
-- **Green (Positive):**
-  - "ลูกค้าชั้นดี มียอดซื้อสะสมสูง"
-  - "มีการสั่งซื้อต่อเนื่อง"
-- **Orange (Warning):**
-  - "มีการชำระเงินล่าช้าเฉลี่ย 5-15 วัน"
-  - "ยอดการสั่งซื้อมีแนวโน้มลดลง"
-- **Red (Critical):**
-  - "มีประวัติเช็คเด้ง"
-  - "มีประวัติหนี้เสีย"
+| Condition (WADL Score) | Risk Level | Output Text (Thai) |
+| :--- | :--- | :--- |
+| `0` Days | 🟢 Green | `ชำระเงินตรงเวลา WADL 0 วัน` |
+| `> 0` and `< 5` Days | 🟢 Green | `ประวัติชำระเงินดี จ่ายล่าช้าเฉลี่ย [X] วัน` |
+| `>= 5` and `< 10` Days | 🟡 Amber | `ประวัติชำระเงินปานกลาง จ่ายล่าช้าเฉลี่ย [X] วัน` |
+| `>= 10` Days | 🔴 Red | `ประวัติจ่ายล่าช้าเฉลี่ยสูงถึง [X] วัน` |
+| API Error / Missing | 🔴 Red | `ไม่สามารถดึงข้อมูลประวัติการชำระเงินได้` |
 
 ---
 
-## 4. Data Requirements (Future Implementation)
+## 3. Frontend UI Rendering & Sorting Rules
 
-To implement this, the backend (`customerController.js`) will need access to the following data points (likely in `AY_ACCUM` or a new `CustomerPerformance` table):
+To maximize the readability and immediate risk-assessment capability of the dashboard, the frontend component (`CreditScoreSummary.vue`) applies the following industry-standard visual rules:
 
-1.  **`AvgDaysOverdue` (Integer):** Average number of days payments are late.
-2.  **`MaxDaysOverdue` (Integer):** The worst late payment record.
-3.  **`ChequeReturnCount` (Integer):** Number of bounced checks in the last 12 months.
-4.  **`LastPaymentDate` (Date):** To calculate recency.
+### A. Semantic Color Coding (Traffic Light System)
+Colors are applied *exclusively* to the list item's bullet point (via the CSS `::marker` pseudo-element). This approach instantly communicates sentiment without turning the actual text into a hard-to-read "rainbow."
+- **🟢 Positive (Green `#28a745`):** Good behaviors (e.g., 'ลูกค้าชั้นดี', 'เติบโต', 'ชำระเงินดี').
+- **🟡 Warning (Amber `#ffc107`):** Irregular or average behaviors (e.g., 'ปานกลาง', 'เว้นช่วง').
+- **🔴 Negative (Red `#dc3545`):** Risky behaviors or immediate concerns (e.g., 'ไม่มียอดซื้อ', 'ลดลง', 'สูงถึง', 'Error').
 
-### Example Mock Data Structure
-```json
-{
-  "financial_behavior": {
-    "avg_late_days": 7,
-    "cheque_return_count": 1,
-    "is_blacklist": false
-  }
-}
-```
+### B. Positive-First Sorting
+When the backend returns the array of suggestions, the frontend dynamically sorts them by weight (sentiment) before rendering. The enforced top-to-bottom reading order is:
+1. **🟢 Green (Positive) points**
+2. **🟡 Amber (Warning) points**
+3. **🔴 Red (Negative) points**
 
----
-
-## 5. Alternative Suggestions for 'Trend' (User Preference: Total Purchase)
-
-**Context:** Key users (P'Bee, P'Joy) have indicated that the "Purchase Trend" (Trend) metric is less relevant to their decision-making than "Total Purchase Amount" (Volume). They find the "Trend Down" warning (e.g., "ยอดการสั่งซื้อมีแนวโน้มลดลง") less helpful than knowing the absolute state of sales volume.
-
-We propose replacing or supplementing the generic "Trend Down" warning with one of the following options that focus on **Sales Volume**.
-
-### Option 1: "Period-over-Period Volume" (Comparison of Totals)
-Focuses on the *fact* that the total amount has decreased, rather than a rate/percentage.
-*   **Concept:** Compare `Total Purchase (Current 3 Months)` vs `Total Purchase (Previous 3 Months)`.
-*   **Logic:** `If (CurrentTotal < PreviousTotal)`
-*   **Proposed Text:** **"ยอดซื้อรวมลดลงเมื่อเทียบกับรอบก่อนหน้า"** (Total purchase amount decreased compared to previous round).
-*   **Why:** Directly addresses the "Total Purchase" metric.
-
-### Option 2: "Latest Month vs Average" (Immediate Volume Drop)
-Highlights if the *most recent* month is performing poorly compared to the customer's usual standard.
-*   **Concept:** Detect if the latest month is dragging down the average.
-*   **Logic:** `If (LatestMonthSales < AverageMonthlySales)`
-*   **Proposed Text:** **"ยอดซื้อเดือนล่าสุดต่ำกว่าค่าเฉลี่ยปกติ"** (Latest month purchase is below normal average).
-*   **Why:** Actionable insight; suggests immediate contact is needed.
-
-### Option 3: "High Volume Reassurance" (Ignore the dip)
-If the customer is a "High Value" customer (Tier 1/2), minor trend fluctuations should not generate negative warnings.
-*   **Concept:** Prioritize the "Good Standing" status over minor negative trends.
-*   **Logic:** `If (TotalPurchase > 1,000,000) AND (Trend < 0)`
-*   **Proposed Text:** **"ยอดซื้อรวมยังอยู่ในเกณฑ์ดีเยี่ยม"** (Total purchase remains at an excellent level).
-*   **Why:** Prevents false alarms for VIP customers who might just have a slow month.
+*Note: In the sorting logic, negative traits explicitly override warning traits if a single string contains keywords from both categories.*
