@@ -35,10 +35,13 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
     return new Promise((resolve, reject) => {
         const rows = [];
         let headers = [];
+        const seenKeys = new Set();
         fs.createReadStream(csvFilePath)
             .pipe(csv())
             .on('headers', (headerList) => {
-                headers = headerList.map(h => h.trim());
+                // Filter out empty headers (e.g. from trailing commas in CSV) to prevent MSSQL errors
+                headers = headerList.map(h => h.trim()).filter(h => h.length > 0);
+
                 // Add normalized columns for CustomerBlacklist
                 if (tableName === 'CustomerBlacklist') {
                     headers.push('normalized_id');
@@ -47,10 +50,13 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                 }
             })
             .on('data', (row) => {
-                // Normalize row keys (trim)
+                // Normalize row keys (trim) and only keep keys that correspond to valid headers
                 const newRow = {};
                 Object.keys(row).forEach(key => {
-                    newRow[key.trim()] = row[key];
+                    const trimmedKey = key.trim();
+                    if (trimmedKey.length > 0) {
+                        newRow[trimmedKey] = row[key];
+                    }
                 });
 
                 // Add normalized values for CustomerBlacklist
@@ -66,6 +72,14 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                     // Shop Name (Business)
                     const rawShop = newRow['ชื่อ - ร้าน'] || '';
                     newRow['normalized_shop'] = normalizeName(rawShop);
+                }
+
+                // Deduplicate rows if primaryKey is provided
+                if (primaryKey) {
+                    const pkValue = newRow[primaryKey];
+                    if (!pkValue || pkValue.trim() === '') return; // Skip empty primary keys
+                    if (seenKeys.has(pkValue)) return; // Skip duplicates
+                    seenKeys.add(pkValue);
                 }
 
                 rows.push(newRow);
