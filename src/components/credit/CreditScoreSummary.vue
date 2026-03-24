@@ -142,7 +142,7 @@
       <h3>คำแนะนำ</h3>
       <ul>
         <li
-          v-for="(suggestion, index) in suggestions"
+          v-for="(suggestion, index) in sortedSuggestions"
           :key="index"
           :class="getSuggestionClass(suggestion)"
         >
@@ -194,6 +194,22 @@ export default {
             return this.financial.category_breakdown;
         }
         return this.financial.category_breakdown.slice(0, 3);
+    },
+    sortedSuggestions() {
+      if (!this.suggestions || this.suggestions.length === 0) return [];
+
+      const getWeight = (suggestion) => {
+          const positiveKeywords = ['ลูกค้าชั้นดี', 'มียอดซื้อสะสมสูง', 'สั่งซื้อต่อเนื่อง', 'เติบโต', 'ตรงเวลา', 'สม่ำเสมอ'];
+          const negativeKeywords = ['ไม่มียอดซื้อ', 'ล่าช้า', 'ลดลง', 'ไม่สามารถ', 'Error'];
+          const warningKeywords = ['ปานกลาง', 'ทั่วไป', 'เว้นช่วง', 'ควรติดต่อ', 'ควรติดตาม'];
+
+          if (positiveKeywords.some(kw => suggestion.includes(kw))) return 1; // Green
+          if (negativeKeywords.some(kw => suggestion.includes(kw))) return 3; // Red
+          if (warningKeywords.some(kw => suggestion.includes(kw))) return 2;  // Amber
+          return 4; // Uncategorized fallback to bottom
+      };
+
+      return [...this.suggestions].sort((a, b) => getWeight(a) - getWeight(b));
     }
   },
   setup() {
