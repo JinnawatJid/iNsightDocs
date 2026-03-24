@@ -142,8 +142,9 @@
       <h3>คำแนะนำ</h3>
       <ul>
         <li
-          v-for="(suggestion, index) in suggestions"
+          v-for="(suggestion, index) in sortedSuggestions"
           :key="index"
+          :class="getSuggestionClass(suggestion)"
         >
           {{ suggestion }}
         </li>
@@ -193,6 +194,22 @@ export default {
             return this.financial.category_breakdown;
         }
         return this.financial.category_breakdown.slice(0, 3);
+    },
+    sortedSuggestions() {
+      if (!this.suggestions || this.suggestions.length === 0) return [];
+
+      const getWeight = (suggestion) => {
+          const positiveKeywords = ['ลูกค้าชั้นดี', 'มียอดซื้อสะสมสูง', 'สั่งซื้อต่อเนื่อง', 'เติบโต', 'ตรงเวลา', 'สม่ำเสมอ', 'ชำระเงินดี'];
+          const negativeKeywords = ['ไม่มียอดซื้อ', 'สูงถึง', 'ลดลง', 'ไม่สามารถ', 'Error'];
+          const warningKeywords = ['ปานกลาง', 'ทั่วไป', 'เว้นช่วง', 'ควรติดต่อ', 'ควรติดตาม'];
+
+          if (positiveKeywords.some(kw => suggestion.includes(kw))) return 1; // Green
+          if (negativeKeywords.some(kw => suggestion.includes(kw))) return 3; // Red
+          if (warningKeywords.some(kw => suggestion.includes(kw))) return 2;  // Amber
+          return 4; // Uncategorized fallback to bottom
+      };
+
+      return [...this.suggestions].sort((a, b) => getWeight(a) - getWeight(b));
     }
   },
   setup() {
@@ -209,6 +226,23 @@ export default {
           if (trendString.includes('เพิ่มขึ้น')) return 'up';
           if (trendString.includes('ลดลง')) return 'down';
           return 'neutral';
+      },
+      getSuggestionClass(suggestion) {
+          if (!suggestion) return '';
+          const positiveKeywords = ['ลูกค้าชั้นดี', 'มียอดซื้อสะสมสูง', 'สั่งซื้อต่อเนื่อง', 'เติบโต', 'ตรงเวลา', 'สม่ำเสมอ', 'ชำระเงินดี'];
+          const negativeKeywords = ['ไม่มียอดซื้อ', 'สูงถึง', 'ลดลง', 'ไม่สามารถ', 'Error'];
+          const warningKeywords = ['ปานกลาง', 'ทั่วไป', 'เว้นช่วง', 'ควรติดต่อ', 'ควรติดตาม'];
+
+          if (positiveKeywords.some(kw => suggestion.includes(kw))) {
+              return 'suggestion-positive';
+          }
+          if (negativeKeywords.some(kw => suggestion.includes(kw))) {
+              return 'suggestion-negative';
+          }
+          if (warningKeywords.some(kw => suggestion.includes(kw))) {
+              return 'suggestion-warning';
+          }
+          return ''; // default black bullet
       },
       toggleMonthlyDetails() {
         this.showMonthlyDetails = !this.showMonthlyDetails;
@@ -505,9 +539,20 @@ h3 {
   font-size: 14px;
 }
 
-.suggestion-positive {
+/* Bullet Point Colors */
+.suggestion-positive::marker {
   color: #28a745; /* Green */
-  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.suggestion-warning::marker {
+  color: #ffc107; /* Amber/Yellow */
+  font-size: 1.2em;
+}
+
+.suggestion-negative::marker {
+  color: #dc3545; /* Red */
+  font-size: 1.2em;
 }
 
 .summary-section {
