@@ -41,6 +41,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       draftComment: "",
       bankGuaranteeDetails: {},
       letterGuaranteeDetails: {},
+      cashDepositDetails: {},
     },
 
     requestsList: [],
@@ -248,6 +249,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           draftComment: parsedSnapshot.transaction_data?.draftComment || "",
           bankGuaranteeDetails: parsedSnapshot.transaction_data?.bankGuaranteeDetails || {},
           letterGuaranteeDetails: parsedSnapshot.transaction_data?.letterGuaranteeDetails || {},
+          cashDepositDetails: parsedSnapshot.transaction_data?.cashDepositDetails || {},
         };
 
         this.hasSearched = true;
@@ -511,6 +513,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
                 : false,
               bankGuaranteeDetails: parsedSnapshotTransactionData.bankGuaranteeDetails || {},
               letterGuaranteeDetails: parsedSnapshotTransactionData.letterGuaranteeDetails || {},
+              cashDepositDetails: parsedSnapshotTransactionData.cashDepositDetails || {},
             };
           }
         }
@@ -873,6 +876,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         draftComment: "",
         bankGuaranteeDetails: {},
         letterGuaranteeDetails: {},
+        cashDepositDetails: {},
       };
     },
 
@@ -912,6 +916,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         draftComment: "",
         bankGuaranteeDetails: {},
         letterGuaranteeDetails: {},
+        cashDepositDetails: {},
       };
     },
 

@@ -24,8 +24,8 @@
                             type="text"
                             class="form-control form-control-sm"
                             placeholder="เช่น 1,000,000"
-                            :value="getGuaranteeDetail('bankGuaranteeDetails', file.name, 'amount')"
-                            @input="(e) => updateGuaranteeDetail('bankGuaranteeDetails', file.name, 'amount', e.target.value)"
+                            :value="formatGuaranteeAmount(getGuaranteeDetail('bankGuaranteeDetails', file.name, 'amount'))"
+                            @input="(e) => handleGuaranteeAmountInput('bankGuaranteeDetails', file.name, 'amount', e.target.value)"
                             :disabled="!isEditing"
                         />
                     </div>
@@ -64,8 +64,8 @@
                             type="text"
                             class="form-control form-control-sm"
                             placeholder="เช่น 500,000"
-                            :value="getGuaranteeDetail('letterGuaranteeDetails', file.name, 'amount')"
-                            @input="(e) => updateGuaranteeDetail('letterGuaranteeDetails', file.name, 'amount', e.target.value)"
+                            :value="formatGuaranteeAmount(getGuaranteeDetail('letterGuaranteeDetails', file.name, 'amount'))"
+                            @input="(e) => handleGuaranteeAmountInput('letterGuaranteeDetails', file.name, 'amount', e.target.value)"
                             :disabled="!isEditing"
                         />
                     </div>
@@ -76,6 +76,46 @@
                             class="form-control form-control-sm"
                             :value="getGuaranteeDetail('letterGuaranteeDetails', file.name, 'expiryDate')"
                             @input="(e) => updateGuaranteeDetail('letterGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
+                            :disabled="!isEditing"
+                        />
+                    </div>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        <div class="guarantee-section">
+          <FileUploader
+            label="หลักฐานเงินสดมัดจำ"
+            v-model="files.cashDeposit"
+            :disabled="!isEditing"
+            multiple
+          />
+
+          <div v-if="files.cashDeposit && files.cashDeposit.length > 0" class="guarantee-details mt-2">
+             <div v-for="(file, index) in files.cashDeposit" :key="index" class="guarantee-detail-card mb-2">
+                <div class="guarantee-file-name text-primary text-sm mb-1 font-semibold truncate" :title="file.name">
+                    {{ file.name }}
+                </div>
+                <div class="guarantee-inputs row g-2">
+                    <div class="col-6">
+                        <label class="text-xs text-muted mb-1">จำนวนเงิน</label>
+                        <input
+                            type="text"
+                            class="form-control form-control-sm"
+                            placeholder="เช่น 500,000"
+                            :value="formatGuaranteeAmount(getGuaranteeDetail('cashDepositDetails', file.name, 'amount'))"
+                            @input="(e) => handleGuaranteeAmountInput('cashDepositDetails', file.name, 'amount', e.target.value)"
+                            :disabled="!isEditing"
+                        />
+                    </div>
+                    <div class="col-6">
+                        <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
+                        <input
+                            type="date"
+                            class="form-control form-control-sm"
+                            :value="getGuaranteeDetail('cashDepositDetails', file.name, 'expiryDate')"
+                            @input="(e) => updateGuaranteeDetail('cashDepositDetails', file.name, 'expiryDate', e.target.value)"
                             :disabled="!isEditing"
                         />
                     </div>
@@ -588,6 +628,7 @@ const files = reactive({
   bankStatement: [],
   bankGuarantee: null,
   letterGuarantee: null,
+  cashDeposit: null,
   balanceSheet: null,
   profitLoss: null,
   financialRatios: null,
@@ -598,6 +639,7 @@ const files = reactive({
 watch(() => files.bankStatement, (v) => store.updateFile('bank_statement', v));
 watch(() => files.bankGuarantee, (v) => store.updateFile('bank_guarantee_doc', v));
 watch(() => files.letterGuarantee, (v) => store.updateFile('letter_guarantee_doc', v));
+watch(() => files.cashDeposit, (v) => store.updateFile('cash_deposit_doc', v));
 watch(() => files.balanceSheet, (v) => store.updateFile('balance_sheet_doc', v));
 watch(() => files.profitLoss, (v) => store.updateFile('profit_loss_doc', v));
 watch(() => files.financialRatios, (v) => store.updateFile('financial_ratios_doc', v));
@@ -608,6 +650,25 @@ const getGuaranteeDetail = (storeKey, fileName, field) => {
     if (!store.transactionData[storeKey]) return '';
     if (!store.transactionData[storeKey][fileName]) return '';
     return store.transactionData[storeKey][fileName][field] || '';
+};
+
+const formatGuaranteeAmount = (val) => {
+    if (!val) return '';
+    const parts = String(val).split('.');
+    let formatted = Number(parts[0]).toLocaleString('en-US');
+    if (parts.length > 1) {
+        formatted += '.' + parts[1];
+    }
+    return formatted === 'NaN' ? val : formatted;
+};
+
+const handleGuaranteeAmountInput = (storeKey, fileName, field, rawValue) => {
+    let num = rawValue.replace(/[^0-9.]/g, '');
+    const parts = num.split('.');
+    if (parts.length > 2) {
+        num = parts[0] + '.' + parts.slice(1).join('');
+    }
+    updateGuaranteeDetail(storeKey, fileName, field, num);
 };
 
 const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
@@ -623,6 +684,7 @@ const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
 watch(() => store.files, (newVal) => {
   files.bankGuarantee = newVal?.bank_guarantee_doc || [];
   files.letterGuarantee = newVal?.letter_guarantee_doc || [];
+  files.cashDeposit = newVal?.cash_deposit_doc || [];
   files.balanceSheet = newVal?.balance_sheet_doc || null;
   files.profitLoss = newVal?.profit_loss_doc || null;
   files.financialRatios = newVal?.financial_ratios_doc || null;
