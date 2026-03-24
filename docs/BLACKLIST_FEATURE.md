@@ -20,10 +20,10 @@ Matches on these fields trigger a "Warning" but may not be the same person.
 The blacklist data is sourced from a CSV file maintained by the Credit Department.
 
 *   **Source File:** `backend/CustomerBlacklist_rows.csv`
-*   **Database Table:** `CustomerBlacklist` (SQLite)
+*   **Database Table:** `CustomerBlacklist` (SQLite & MSSQL)
 *   **Import Behavior (at Server Startup):**
     1.  The system reads the CSV file.
-    2.  It creates the `CustomerBlacklist` table if it doesn't exist.
+    2.  It creates the `CustomerBlacklist` table if it doesn't exist (or recreates it to ensure schema sync).
     3.  **Normalization Step:**
         *   **Tax ID:** Strips non-digits -> `normalized_id`.
         *   **Customer Name:** Strips titles (Thai/English) and spaces -> `normalized_name`.
