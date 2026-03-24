@@ -38,7 +38,9 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
         fs.createReadStream(csvFilePath)
             .pipe(csv())
             .on('headers', (headerList) => {
-                headers = headerList.map(h => h.trim());
+                // Filter out empty headers (e.g. from trailing commas in CSV) to prevent MSSQL errors
+                headers = headerList.map(h => h.trim()).filter(h => h.length > 0);
+
                 // Add normalized columns for CustomerBlacklist
                 if (tableName === 'CustomerBlacklist') {
                     headers.push('normalized_id');
@@ -47,10 +49,13 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                 }
             })
             .on('data', (row) => {
-                // Normalize row keys (trim)
+                // Normalize row keys (trim) and only keep keys that correspond to valid headers
                 const newRow = {};
                 Object.keys(row).forEach(key => {
-                    newRow[key.trim()] = row[key];
+                    const trimmedKey = key.trim();
+                    if (trimmedKey.length > 0) {
+                        newRow[trimmedKey] = row[key];
+                    }
                 });
 
                 // Add normalized values for CustomerBlacklist
