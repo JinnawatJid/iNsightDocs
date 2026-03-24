@@ -22,7 +22,7 @@ const MOCK_EXTERNAL_APIS = process.env.MOCK_EXTERNAL_APIS === 'true';
 const MOCK_FINANCIAL_API = process.env.MOCK_FINANCIAL_API === 'true';
 
 const { getMockFinancialData, getMockCategoryData } = require('../utils/mockData');
-
+const { fetchWADLData } = require('./financialController');
 
 // Helper to format currency
 const formatCurrency = (val) => {
@@ -426,11 +426,13 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
     try {
         const results = await Promise.allSettled([
             fetchPurchasingBehavior(customerNo, taxId),
-            fetchCategorySummary(customerNo, categoryMonths, taxId)
+            fetchCategorySummary(customerNo, categoryMonths, taxId),
+            fetchWADLData(customerNo)
         ]);
 
         const apiDataResult = results[0];
         const categoryDataResult = results[1];
+        const wadlDataResult = results[2];
 
         // Process Category Data (Graceful Failure)
         let categoryBreakdown = [];
@@ -542,28 +544,39 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
             // 2. Consistency Check (Check if all last 3 months have sales)
             const activeMonths = last3.filter(m => m.amount > 0).length;
             if (activeMonths === 3) {
-                suggestions.push("มีการสั่งซื้อต่อเนื่องทุกเดือนในช่วง 3 เดือนล่าสุด");
+                suggestions.push("สั่งซื้อต่อเนื่องทุกเดือนในช่วง 3 เดือนล่าสุด");
             } else if (sumLast3 > 0) {
-                suggestions.push("มีการเว้นช่วงการสั่งซื้อในบางเดือน");
+                suggestions.push("เว้นช่วงการสั่งซื้อบางเดือน");
             }
 
             // Churn Warning: No purchase in latest month
             if (last3.length > 0 && last3[last3.length - 1].amount === 0 && sumLast3 > 0) {
-                suggestions.push("ไม่มียอดซื้อในเดือนล่าสุด ควรติดต่อลูกค้าเพื่อสอบถามสถานะ");
+                suggestions.push("ไม่มียอดซื้อเดือนล่าสุด ควรติดต่อสอบถามสถานะ");
             }
 
             // 3. Trend Check (Updated to use Slope)
             if (slope > 0) {
                 const growthAmt = formatCurrency(Math.abs(slope));
-                suggestions.push(`ลูกค้ามีแนวโน้มการเติบโตยอดซื้อที่ดี (เฉลี่ยเพิ่มขึ้น ${growthAmt} บาท/เดือน)`);
+                suggestions.push(`แนวโน้มยอดซื้อเติบโต เฉลี่ยเพิ่มขึ้น ${growthAmt} บาท/เดือน`);
             } else if (slope < 0) {
                 const dropAmt = formatCurrency(Math.abs(slope));
-                suggestions.push(`ยอดซื้อมีแนวโน้มลดลง (เฉลี่ยลดลง ${dropAmt} บาท/เดือน) ควรติดตามสาเหตุ`);
+                suggestions.push(`แนวโน้มยอดซื้อลดลง เฉลี่ยลดลง ${dropAmt} บาท/เดือน ควรติดตามสาเหตุ`);
             } else if (sumLast3 > 0) {
                 suggestions.push("ยอดซื้อสม่ำเสมอ");
             }
 
-            suggestions.push("มีการชำระเงินตรงเวลา");
+            // 4. Payment History Check (WADL)
+            if (wadlDataResult && wadlDataResult.status === 'fulfilled') {
+                const wadlData = wadlDataResult.value;
+                if (wadlData && wadlData.score === 0) {
+                    suggestions.push("ชำระเงินตรงเวลา (WADL 0 วัน)");
+                } else if (wadlData && wadlData.score > 0) {
+                    const roundedWadl = parseFloat(wadlData.score).toFixed(2);
+                    suggestions.push(`ประวัติจ่ายล่าช้าเฉลี่ย ${roundedWadl} วัน`);
+                }
+            } else {
+                suggestions.push("ไม่สามารถดึงข้อมูลประวัติการชำระเงินได้");
+            }
 
         } else {
             // Empty Data
