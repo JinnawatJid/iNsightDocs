@@ -4,9 +4,15 @@ const fs = require('fs-extra');
 const path = require('path');
 const mime = require('mime-types');
 
+let projectRoot = path.resolve(__dirname, '../../../../');
+if (!fs.existsSync(path.join(projectRoot, 'customers'))) {
+    projectRoot = path.resolve(__dirname, '../../');
+}
+const defaultUploadPath = path.join(projectRoot, 'uploads');
+
 const UPLOAD_BASE = process.env.UPLOAD_PATH
     ? path.resolve(process.cwd(), process.env.UPLOAD_PATH)
-    : path.join(__dirname, '../uploads');
+    : defaultUploadPath;
 
 exports.getCreditRequestDetail = async (req, res) => {
     const id = decodeURIComponent(req.params.id); // tx_id
@@ -351,6 +357,34 @@ exports.createCreditRequest = async (req, res) => {
     }
 
     // Handle File Uploads
+    // --- HANDLE NO FINANCIAL DATA MARKER ---
+    const activeCustomerNo = customer_no || existing?.customer_no;
+
+    // Extract date calculation variables to be used by both blocks
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    const ms = String(now.getMilliseconds()).padStart(3, '0');
+
+    if (activeCustomerNo && parsedSnapshot?.transaction_data?.noFinancialData === true) {
+        try {
+            const dateFolder = `${yyyy}${mm}${dd}`;
+
+            const customerDir = path.join(projectRoot, 'customers', activeCustomerNo, dateFolder);
+            await fs.ensureDir(customerDir);
+
+            const markerPath = path.join(customerDir, 'DBD_NoFinancialData.txt');
+            await fs.outputFile(markerPath, 'No financial statements submitted by customer.');
+            logger.info(`[Financial Sync] Created no financial data marker at ${markerPath}`);
+        } catch (markerErr) {
+            logger.error(`[Financial Sync] Error creating no financial data marker:`, markerErr);
+        }
+    }
+
     if (req.files && req.files.length > 0) {
         // Construct relative path components based on customer code and transaction ID
         const activeCustomerNo = customer_no || existing?.customer_no;
@@ -382,14 +416,6 @@ exports.createCreditRequest = async (req, res) => {
             const ext = parsedName.ext;
 
             // Format timestamp (YYYYMMDD_HHMMSS_SSS)
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            const hh = String(now.getHours()).padStart(2, '0');
-            const min = String(now.getMinutes()).padStart(2, '0');
-            const ss = String(now.getSeconds()).padStart(2, '0');
-            const ms = String(now.getMilliseconds()).padStart(3, '0');
             const timestamp = `${yyyy}${mm}${dd}_${hh}${min}${ss}_${ms}`;
 
             // Replace spaces with underscores and remove any problematic characters from the original name (optional but good practice)
@@ -410,6 +436,32 @@ exports.createCreditRequest = async (req, res) => {
                 'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name) VALUES (?, ?, ?, ?)',
                 [txId, file.fieldname, relativeFilePath, file.originalname]
             );
+
+            // --- SYNC TO FINANCIAL CACHE (customers/YYYYMMDD) ---
+            const financialFields = {
+                'company_profile_doc': 'DBD_Profile.pdf',
+                'balance_sheet_doc': 'DBD_BalanceSheet.xlsx',
+                'profit_loss_doc': 'DBD_IncomeStatement.xlsx',
+                'financial_ratios_doc': 'DBD_FinancialRatios.xlsx'
+            };
+
+            if (financialFields[file.fieldname]) {
+                try {
+                    // Determine Date Folder (YYYYMMDD)
+                    const dateFolder = `${yyyy}${mm}${dd}`;
+                    const customerDir = path.join(projectRoot, 'customers', activeCustomerNo, dateFolder);
+                    await fs.ensureDir(customerDir);
+
+                    const cachedFileName = financialFields[file.fieldname];
+                    const cachedFilePath = path.join(customerDir, cachedFileName);
+
+                    // Copy file to financial cache
+                    await fs.copy(finalPath, cachedFilePath, { overwrite: true });
+                    logger.info(`[Financial Sync] Copied ${file.fieldname} to ${cachedFilePath}`);
+                } catch (syncErr) {
+                    logger.error(`[Financial Sync] Error copying ${file.fieldname} to financial cache:`, syncErr);
+                }
+            }
         }
     }
 
