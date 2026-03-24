@@ -29,8 +29,8 @@ The system integrates with two different external endpoints depending on the ava
 *   **Primary API (`CATEGORY_API_TAX_URL`)**
     *   **Method:** `GET`
     *   **Endpoint:** `http://192.192.0.37:8000/api/customer-analytics/category-summary`
-    *   **Parameter:** `?tax_no=<VAT_Registration_No>&months=<months>`
-    *   **Description:** The preferred method for fetching sales broken down by product category, aggregated by Tax ID. It directly returns a `by_category` object in its response.
+    *   **Parameter:** `?tax_no=<VAT_Registration_No>` (The `months` parameter is ignored by this endpoint, as it strictly returns a 6-month aggregate).
+    *   **Description:** The preferred method for fetching sales broken down by product category, aggregated by Tax ID. It directly returns a `by_category` object in its response representing a 6-month total.
 
 *   **Fallback API (`CATEGORY_API_URL`)**
     *   **Method:** `POST`
@@ -38,7 +38,18 @@ The system integrates with two different external endpoints depending on the ava
     *   **Body:** `{ "customer_code": "<Customer_No>", "months": <months> }`
     *   **Description:** The legacy endpoint for fetching category data. Requires mapping an array of items (`.data`) into a consolidated `by_category` object.
 
-## 3. Fallback Logic (`fetchPurchasingBehavior` & `fetchCategorySummary`)
+## 3. Category Data Proportional Allocation
+
+Because the Primary Category API strictly returns a 6-month aggregate (`by_category`), it causes a mismatch when evaluating New Customers (Credit Limit = 0), who require a 3-month purchasing behavior analysis.
+
+To resolve this, the backend (`customerController.js`) employs a **Proportional Allocation** strategy:
+1. It calculates the accurate total purchase sum for the desired timeframe (e.g., `sumLast3` for 3 months) using the granular `FINANCIAL_API_TAX_URL` (Monthly Summary) data.
+2. It calculates the ratio of each product category over the 6-month period using the `CATEGORY_API_TAX_URL` data.
+3. It multiplies the 6-month category ratio by the accurate 3-month total purchase sum to estimate the 3-month category breakdown.
+
+This ensures the UI safely displays a "3 Month Category Breakdown" whose sum perfectly matches the "3 Month Total Purchases" without requiring the external API to support dynamic month filtering.
+
+## 4. Fallback Logic (`fetchPurchasingBehavior` & `fetchCategorySummary`)
 
 The logic is centralized in the `fetchPurchasingBehavior` and `fetchCategorySummary` functions (used in `customerController.js` and `financialController.js`).
 
