@@ -68,6 +68,7 @@ If the user chooses to "Proceed", a yellow warning panel remains visible in the 
 *   **File:** `backend/controllers/customerController.js`
 *   **Function:** `checkBlacklist({ taxId, personNames, companyNames })`
 *   **Utility:** `backend/utils/nameNormalizer.js` handles title stripping and normalization.
+*   **Database Compatibility:** The `checkBlacklist` function uses dynamic SQL queries (`db.dbType === 'mssql'`) to ensure compatibility. For MSSQL (production), it uses `SELECT TOP 1`, and for SQLite (local testing), it falls back to `LIMIT 1` to prevent syntax errors like `Incorrect syntax near 'LIMIT'`.
 
 ### Frontend
 *   **File:** `src/views/CreateCreditRequest.vue`
