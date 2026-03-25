@@ -162,6 +162,7 @@ import {
   CategoryScale,
   LinearScale,
   LineElement,
+  LineController,
   PointElement,
   Filler
 } from 'chart.js';
@@ -175,6 +176,7 @@ ChartJS.register(
   CategoryScale,
   LinearScale,
   LineElement,
+  LineController,
   PointElement,
   Filler
 );
