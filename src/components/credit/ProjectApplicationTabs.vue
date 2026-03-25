@@ -41,7 +41,7 @@ const tabs = computed(() => {
   return [
     { id: 'projectInfo', label: 'ข้อมูลโครงการ' },
     { id: 'projectAddress', label: 'ที่อยู่โครงการ' },
-    { id: 'projectPhasing', label: 'รอบเครดิตและการจ่ายเงิน' },
+    { id: 'projectPhasing', label: 'รอบส่งสินค้า' },
     { id: 'requestInfo', label: 'เงื่อนไขและคำขอ' }
   ];
 });

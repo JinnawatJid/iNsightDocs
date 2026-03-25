@@ -8,6 +8,13 @@
       <div class="form-section">
         <div class="phasing-header">
           <h3>แผนการใช้เครดิตแบบแบ่งงวด</h3>
+          <div style="display: flex; gap: 10px; align-items: center;" v-if="!props.readOnly">
+             <label style="font-size: 14px; color: #555;">รูปแบบการคำนวณวันจบ:</label>
+             <select v-model="paymentCalculationMode" class="table-input" style="width: auto; padding: 4px 8px;">
+               <option value="manual">กำหนดเอง</option>
+               <option value="auto">คำนวณอัตโนมัติ (60 วัน)</option>
+             </select>
+          </div>
         </div>
         <table class="phasing-table">
           <thead>
@@ -15,7 +22,7 @@
               <th width="8%">งวด</th>
               <th width="38%">รายละเอียดงาน</th>
               <th width="15%">วันเบิก</th>
-              <th width="15%">วันจบ</th>
+              <th width="15%">{{ paymentCalculationMode === 'auto' ? 'กำหนดชำระ' : 'วันจบ' }}</th>
               <th width="20%">จำนวนเงิน (บาท)</th>
               <th width="4%" v-if="!props.readOnly"></th>
             </tr>
@@ -37,6 +44,7 @@
                   type="date"
                   v-model="phase.billingDate"
                   :disabled="props.readOnly"
+                  @change="handleBillingDateChange(idx)"
                   class="table-input text-center"
                 />
               </td>
@@ -44,7 +52,7 @@
                 <input
                   type="date"
                   v-model="phase.paymentDate"
-                  :disabled="props.readOnly"
+                  :disabled="props.readOnly || paymentCalculationMode === 'auto'"
                   class="table-input text-center"
                 />
               </td>
@@ -173,6 +181,7 @@ ChartJS.register(
 
 const showAnalysis = ref(false);
 const chartType = ref('stepped');
+const paymentCalculationMode = ref('manual');
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
@@ -204,6 +213,36 @@ const addPhase = () => {
 const removePhase = (index) => {
     store.transactionData.projectPhasing.splice(index, 1);
 };
+
+const calculatePaymentDate = (billingDateStr) => {
+    if (!billingDateStr) return '';
+    const date = new Date(billingDateStr);
+    if (isNaN(date.getTime())) return '';
+    date.setDate(date.getDate() + 60);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+};
+
+const handleBillingDateChange = (index) => {
+    if (paymentCalculationMode.value === 'auto') {
+        const billingDate = store.transactionData.projectPhasing[index].billingDate;
+        if (billingDate) {
+            store.transactionData.projectPhasing[index].paymentDate = calculatePaymentDate(billingDate);
+        }
+    }
+};
+
+watch(paymentCalculationMode, (newMode) => {
+    if (newMode === 'auto' && store.transactionData?.projectPhasing) {
+        store.transactionData.projectPhasing.forEach((phase, index) => {
+            if (phase.billingDate) {
+                store.transactionData.projectPhasing[index].paymentDate = calculatePaymentDate(phase.billingDate);
+            }
+        });
+    }
+});
 
 const handlePhaseAmountInput = (index, event) => {
     let val = event.target.value;
