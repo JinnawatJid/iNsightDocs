@@ -327,30 +327,39 @@ const chartData = computed(() => {
     return 0;
   });
 
-  const labels = [];
-  const exposureData = [];
-  let currentExposure = 0;
+  const formatDateString = (dateObj) => {
+    return `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
+  };
 
   // Group events by exact date to prevent horizontal stretching of the same day
   const groupedEvents = [];
   validEvents.forEach(ev => {
     const dateObj = new Date(ev.time);
-    // Remove time components for exact day comparison
     const dayStart = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()).getTime();
-
-    const labelDate = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
+    const labelDate = formatDateString(dateObj);
     const actionLabel = ev.type === 'add' ? `(เบิกรอบ ${ev.phase})` : `(รับเงินรอบ ${ev.phase})`;
 
     const lastGroup = groupedEvents.length > 0 ? groupedEvents[groupedEvents.length - 1] : null;
     if (lastGroup && lastGroup.time === dayStart) {
-        // Aggregate on the same day
         lastGroup.events.push({ type: ev.type, amount: ev.amount, label: actionLabel });
     } else {
-        // New day
         groupedEvents.push({ time: dayStart, date: labelDate, events: [{ type: ev.type, amount: ev.amount, label: actionLabel }] });
     }
   });
 
+  const labels = [];
+  const exposureData = [];
+  let currentExposure = 0;
+
+  // 1. Initial padding (5 days before first event)
+  if (groupedEvents.length > 0) {
+      const firstEventDate = new Date(groupedEvents[0].time);
+      firstEventDate.setDate(firstEventDate.getDate() - 5);
+      labels.push([formatDateString(firstEventDate), 'เริ่มต้นโครงการ']);
+      exposureData.push(0);
+  }
+
+  // 2. Main data points
   groupedEvents.forEach(group => {
      let dayActionLabels = [];
      group.events.forEach(ev => {
@@ -358,62 +367,47 @@ const chartData = computed(() => {
          if (ev.type === 'sub') currentExposure -= ev.amount;
          dayActionLabels.push(ev.label);
      });
-     // Use the aggregated action labels for the day
-     // For a linear timescale (or scatter/line on numeric axis), we pass data as {x, y}
      labels.push([group.date, ...dayActionLabels]);
-     exposureData.push({ x: group.time, y: Math.max(0, currentExposure), labels: [group.date, ...dayActionLabels] });
+     exposureData.push(Math.max(0, currentExposure));
   });
 
-  // Calculate chart boundaries to extend limit line
-  const minTime = exposureData.length > 0 ? exposureData[0].x : 0;
-  const maxTime = exposureData.length > 0 ? exposureData[exposureData.length - 1].x : 0;
-
-
-  // Add initial zero point to create a vertical jump from 0 at the start of the first phase
-  if (exposureData.length > 0) {
-      const firstEvent = exposureData[0];
-      exposureData.unshift({
-          x: firstEvent.x,
-          y: 0,
-          labels: ['เริ่มต้นโครงการ', 'ยอดหนี้ 0 บาท']
-      });
+  // 3. Final padding (5 days after last event)
+  if (groupedEvents.length > 0) {
+      const lastEventDate = new Date(groupedEvents[groupedEvents.length - 1].time);
+      lastEventDate.setDate(lastEventDate.getDate() + 5);
+      labels.push([formatDateString(lastEventDate), 'สิ้นสุดโครงการ']);
+      exposureData.push(Math.max(0, currentExposure));
   }
 
-const limitData = [];
-  if (exposureData.length > 0) {
-      // Add two points to draw a horizontal line across the entire timeframe
-      limitData.push({ x: minTime, y: currentCreditLimit.value });
-      limitData.push({ x: maxTime, y: currentCreditLimit.value });
-  }
-
+  const limitData = labels.map(() => currentCreditLimit.value);
   const isBar = chartType.value === 'bar';
 
-  // For the 'Histogram' view, we want a solid area without a thick border or points,
-  // making it look like contiguous rectangular blocks (a continuous bar chart / area chart)
   return {
+    labels: labels,
     datasets: [
       {
         type: 'line',
         label: 'ยอดหนี้สะสม (Exposure)',
         data: exposureData,
-        borderColor: isBar ? 'transparent' : '#0056FF',
-        backgroundColor: isBar ? 'rgba(0, 86, 255, 0.8)' : 'rgba(0, 86, 255, 0.1)',
+        borderColor: isBar ? 'transparent' : '#2563eb',
+        backgroundColor: isBar ? 'rgba(37, 99, 235, 0.8)' : 'rgba(37, 99, 235, 0.1)',
         borderWidth: isBar ? 0 : 2,
-        stepped: 'after',
+        stepped: 'before',
         fill: true,
-        pointBackgroundColor: '#0056FF',
-        pointRadius: isBar ? 0 : 4,
+        pointBackgroundColor: '#2563eb',
+        pointRadius: isBar ? 0 : 6,
         order: 2
       },
       {
         type: 'line',
         label: 'วงเงินเครดิตปัจจุบัน',
         data: limitData,
-        borderColor: '#dc3545',
+        borderColor: '#ef4444',
         borderWidth: 2,
         borderDash: [5, 5],
         fill: false,
         pointRadius: 0,
+        stepped: false,
         order: 1
       }
     ]
@@ -426,25 +420,23 @@ const chartOptions = computed(() => {
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'top',
+      display: false
     },
     title: {
       display: true,
       text: 'กราฟแสดงการทับซ้อนของยอดหนี้ (Exposure Over Time)',
       font: {
-        size: 16
+        size: 16,
+        family: 'Kanit'
       }
     },
     tooltip: {
+      mode: 'index',
+      intersect: false,
       callbacks: {
         title: function(context) {
            if (context.length > 0) {
-               const data = context[0].dataset.data[context[0].dataIndex];
-               if (data && data.labels) return data.labels;
-
-               // Fallback format if labels not present
-               const dateObj = new Date(context[0].parsed.x);
-               return `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
+               return context[0].label || '';
            }
            return '';
         },
@@ -464,31 +456,33 @@ const chartOptions = computed(() => {
   scales: {
     y: {
       beginAtZero: true,
+      grid: {
+          color: '#f1f5f9'
+      },
       title: {
         display: true,
-        text: 'จำนวนเงิน (บาท)'
+        text: 'จำนวนเงิน (บาท)',
+        font: { family: 'Kanit' }
       },
       ticks: {
         callback: function(value) {
-          return new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(value);
+          return (value / 1000) + 'K';
         }
       }
     },
     x: {
-      type: 'linear',
-      bounds: 'ticks',
-      offset: false,
+      grid: {
+          display: false
+      },
       title: {
          display: true,
-         text: 'ระยะเวลา (วันที่)'
+         text: 'ระยะเวลา (วันที่)',
+         font: { family: 'Kanit' }
       },
       ticks: {
          maxRotation: 45,
          minRotation: 45,
-         callback: function(value) {
-             const dateObj = new Date(value);
-             return `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
-         }
+         font: { size: 10 }
       }
     }
   }
