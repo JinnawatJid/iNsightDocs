@@ -123,14 +123,6 @@
                         multiple
                     />
                     <FileUploader
-                        label="แผนการรับสินค้า"
-                        required
-                        v-model="files.projectPlan"
-                        :disabled="props.readOnly"
-                        multiple
-                    />
-                    -->
-                    <FileUploader
                         label="ใบเสนอราคาจากตังน้ำ"
                         required
                         v-model="files.quotation"
@@ -170,7 +162,6 @@ const store = useCreditRequestStore();
 const files = reactive({
   quotation: null,
   projectContract: null,
-  projectPlan: null,
   projectSecurity: null
 });
 
@@ -183,10 +174,6 @@ watch(() => files.projectContract, (newVal) => {
   store.updateFile('project_contract_doc', newVal);
 });
 
-watch(() => files.projectPlan, (newVal) => {
-  store.updateFile('project_plan_doc', newVal);
-});
-
 watch(() => files.projectSecurity, (newVal) => {
   store.updateFile('project_security_doc', newVal);
 });
@@ -195,7 +182,6 @@ watch(() => files.projectSecurity, (newVal) => {
 watch(() => store.files, (newVal) => {
   files.quotation = newVal?.quotation_doc || null;
   files.projectContract = newVal?.project_contract_doc || null;
-  files.projectPlan = newVal?.project_plan_doc || null;
   files.projectSecurity = newVal?.project_security_doc || null;
 }, { immediate: true, deep: true });
 
