@@ -1137,6 +1137,7 @@ exports.searchCustomers = async (req, res) => {
           billing_department: row["billing_department"] || "",
           billing_phone: row["billing_phone"] || "",
           billing_mobile: row["billing_mobile"] || "",
+          current_credit_limit: currentCreditLimit,
           billing_email: row["billing_email"] || ""
         },
         history: enriched.history,
