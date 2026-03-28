@@ -96,16 +96,16 @@
                          <button v-if="!props.readOnly" @click="addProduct" class="btn-text-add">+ เพิ่มสินค้า</button>
                      </div>
                      <div v-if="transactionData.adjustedProductList && transactionData.adjustedProductList.length > 0" class="product-list" style="gap: 15px;">
-                         <div v-for="(prod, idx) in transactionData.adjustedProductList" :key="idx" class="product-item" style="gap: 20px;">
+                         <div v-for="(prod, idx) in transactionData.adjustedProductList" :key="idx" class="product-item" style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; align-items: center;">
                              <input
                                  type="text"
                                 v-model="transactionData.adjustedProductList[idx].name"
                                  :disabled="props.readOnly"
                                  class="summary-input"
                                  placeholder="ชื่อสินค้า..."
-                                style="flex: 2;"
+                                style="width: 100%;"
                             />
-                            <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
                                 <input
                                     type="text"
                                     :value="transactionData.adjustedProductList[idx].price"
@@ -114,11 +114,11 @@
                                     :disabled="props.readOnly"
                                     class="summary-input text-right"
                                     placeholder="0.00"
-                                    style="width: 100%;"
+                                    style="flex: 1; min-width: 0;"
                                 />
                                 <span class="text-muted" style="font-size: 13px; white-space: nowrap;">บาท/หน่วย</span>
+                                <button v-if="!props.readOnly" class="btn-icon-delete-small" @click="removeProduct(idx)" style="padding: 8px; margin-left: auto;">✕</button>
                             </div>
-                             <button v-if="!props.readOnly" class="btn-icon-delete-small" @click="removeProduct(idx)" style="padding: 8px;">✕</button>
                          </div>
                      </div>
                      <div v-else class="text-muted" style="font-size: 14px; margin-top: 5px;">
