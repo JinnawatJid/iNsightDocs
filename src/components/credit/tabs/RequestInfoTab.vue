@@ -519,20 +519,20 @@ const isUploadsVisible = computed(() => {
 
 const isContactInfoVisible = computed(() => {
     if (showAll.value) return true;
-    if (isNewRequest.value) return true;
+    if (isNewRequest.value || isProjectCredit.value) return true;
     return false;
 });
 
 const isBillingVisible = computed(() => {
     if (showAll.value) return true;
-    if (isNewRequest.value) return true;
+    if (isNewRequest.value || isProjectCredit.value) return true;
     if (isChangePayment.value) return true;
     return false;
 });
 
 // Field Visibility / Editability Logic
-const canEditAmount = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isNewRequest.value));
-const canEditTerms = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isChangeTerm.value || isNewRequest.value));
+const canEditAmount = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isNewRequest.value || isProjectCredit.value));
+const canEditTerms = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isChangeTerm.value || isNewRequest.value || isProjectCredit.value));
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
