@@ -90,7 +90,7 @@
                          placeholder="ระบุมูลค่าโครงการ"
                      />
                  </div>
-                <div class="summary-item" style="max-width: 100%;">
+                <div class="summary-item" style="max-width: 100%; grid-column: 1 / -1;">
                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
                          <span class="summary-label">รายการสินค้าหลัก:</span>
                          <button v-if="!props.readOnly" @click="addProduct" class="btn-text-add">+ เพิ่มสินค้า</button>
