@@ -48,7 +48,8 @@ const tabs = computed(() => {
 
 const handleTabClick = (tabId) => {
   currentTab.value = tabId;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Disabled scrolling to top when clicking tabs in project application
+  // window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 const currentTabComponent = computed(() => {

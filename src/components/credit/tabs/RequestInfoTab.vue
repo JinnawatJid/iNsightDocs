@@ -26,7 +26,7 @@
 
     <!-- Contact Info Section -->
     <transition name="slide-fade">
-        <div class="personal-info-section" v-if="isContactInfoVisible && !isProjectCredit">
+        <div class="personal-info-section" v-if="isContactInfoVisible">
         <div class="section-header">
             <h3>ตรวจสอบข้อมูลผู้ติดต่อ</h3>
         </div>
@@ -130,7 +130,7 @@
             </div>
 
             <!-- New Split Terms for Draft Mode -->
-            <template v-if="isDraftMode && !isProjectCredit">
+            <template v-if="isDraftMode">
               <div class="form-group">
                 <label>
                     ระยะเวลาเครดิต (กระจก, กาว)
@@ -204,7 +204,7 @@
 
       <!-- Billing Information Section -->
       <transition name="slide-fade">
-      <div class="billing-info-section" v-if="isBillingVisible && !isProjectCredit">
+      <div class="billing-info-section" v-if="isBillingVisible">
 
         <!-- New 3-Column Grid for Requirement, Method, and Schedule -->
         <div class="form-grid-three-columns">
