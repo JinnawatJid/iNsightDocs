@@ -533,7 +533,7 @@ const mockFetchProjects = async (query) => {
     padding: 20px 25px;
     margin-bottom: 25px;
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 260px));
     row-gap: 25px;
     column-gap: 30px;
 }
