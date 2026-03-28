@@ -90,22 +90,22 @@
                          placeholder="ระบุมูลค่าโครงการ"
                      />
                  </div>
-                <div class="summary-item" style="max-width: 100%; grid-column: 1 / -1;">
-                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
-                         <span class="summary-label">รายการสินค้าหลัก:</span>
+                <div class="summary-item" style="grid-column: 1 / -1; border-top: 1px solid #ddd; padding-top: 25px; margin-top: 5px;">
+                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; height: 21px;">
+                         <span class="summary-label" style="font-weight: 500; font-size: 14px; color: #444;">รายการสินค้าหลัก:</span>
                          <button v-if="!props.readOnly" @click="addProduct" class="btn-text-add">+ เพิ่มสินค้า</button>
                      </div>
-                     <div v-if="transactionData.adjustedProductList && transactionData.adjustedProductList.length > 0" class="product-list">
-                         <div v-for="(prod, idx) in transactionData.adjustedProductList" :key="idx" class="product-item">
+                     <div v-if="transactionData.adjustedProductList && transactionData.adjustedProductList.length > 0" class="product-list" style="gap: 15px;">
+                         <div v-for="(prod, idx) in transactionData.adjustedProductList" :key="idx" class="product-item" style="gap: 20px;">
                              <input
                                  type="text"
                                 v-model="transactionData.adjustedProductList[idx].name"
                                  :disabled="props.readOnly"
                                  class="summary-input"
                                  placeholder="ชื่อสินค้า..."
-                                style="flex: 1;"
+                                style="flex: 2;"
                             />
-                            <div style="display: flex; align-items: center; gap: 5px;">
+                            <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
                                 <input
                                     type="text"
                                     :value="transactionData.adjustedProductList[idx].price"
@@ -114,11 +114,11 @@
                                     :disabled="props.readOnly"
                                     class="summary-input text-right"
                                     placeholder="0.00"
-                                    style="width: 120px;"
+                                    style="width: 100%;"
                                 />
-                                <span class="text-muted" style="font-size: 13px;">บาท/หน่วย</span>
+                                <span class="text-muted" style="font-size: 13px; white-space: nowrap;">บาท/หน่วย</span>
                             </div>
-                             <button v-if="!props.readOnly" class="btn-icon-delete-small" @click="removeProduct(idx)">✕</button>
+                             <button v-if="!props.readOnly" class="btn-icon-delete-small" @click="removeProduct(idx)" style="padding: 8px;">✕</button>
                          </div>
                      </div>
                      <div v-else class="text-muted" style="font-size: 14px; margin-top: 5px;">
@@ -542,7 +542,6 @@ const mockFetchProjects = async (query) => {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    max-width: 250px;
     width: 100%;
 }
 
