@@ -90,7 +90,7 @@
                          placeholder="ระบุมูลค่าโครงการ"
                      />
                  </div>
-                 <div class="summary-item">
+                <div class="summary-item" style="max-width: 100%;">
                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
                          <span class="summary-label">รายการสินค้าหลัก:</span>
                          <button v-if="!props.readOnly" @click="addProduct" class="btn-text-add">+ เพิ่มสินค้า</button>
@@ -99,11 +99,25 @@
                          <div v-for="(prod, idx) in transactionData.adjustedProductList" :key="idx" class="product-item">
                              <input
                                  type="text"
-                                 v-model="transactionData.adjustedProductList[idx]"
+                                v-model="transactionData.adjustedProductList[idx].name"
                                  :disabled="props.readOnly"
                                  class="summary-input"
                                  placeholder="ชื่อสินค้า..."
-                             />
+                                style="flex: 1;"
+                            />
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <input
+                                    type="text"
+                                    :value="transactionData.adjustedProductList[idx].price"
+                                    @input="handleProductPriceInput($event, idx)"
+                                    @blur="formatProductPrice(idx)"
+                                    :disabled="props.readOnly"
+                                    class="summary-input text-right"
+                                    placeholder="0.00"
+                                    style="width: 120px;"
+                                />
+                                <span class="text-muted" style="font-size: 13px;">บาท/หน่วย</span>
+                            </div>
                              <button v-if="!props.readOnly" class="btn-icon-delete-small" @click="removeProduct(idx)">✕</button>
                          </div>
                      </div>
@@ -215,12 +229,27 @@ const formatAdjustedValue = () => {
     }
 };
 
+const handleProductPriceInput = (event, idx) => {
+    let val = event.target.value;
+    val = val.replace(/[^0-9.]/g, ''); // Allow decimals
+    store.transactionData.adjustedProductList[idx].price = val;
+};
+
+const formatProductPrice = (idx) => {
+    const raw = store.transactionData.adjustedProductList[idx].price;
+    if (!raw) return;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        store.transactionData.adjustedProductList[idx].price = formatNumber(num);
+    }
+};
+
 const addProduct = () => {
     if (!store.transactionData) store.transactionData = {};
     if (!store.transactionData.adjustedProductList) {
         store.transactionData.adjustedProductList = [];
     }
-    store.transactionData.adjustedProductList.push('');
+    store.transactionData.adjustedProductList.push({ name: '', price: '' });
 };
 
 const removeProduct = (idx) => {
@@ -256,7 +285,9 @@ const selectProject = (proj) => {
 
     // Initialize Editable Values
     store.transactionData.adjustedProjectValue = formatNumber(proj.value);
-    store.transactionData.adjustedProductList = proj.productList ? [...proj.productList] : [];
+    store.transactionData.adjustedProductList = proj.productList
+        ? proj.productList.map(p => typeof p === 'string' ? { name: p, price: '' } : { ...p })
+        : [];
     store.transactionData.adjustedStartDate = proj.startDate || '';
     store.transactionData.adjustedExpectedEndDate = proj.expectedEndDate || '';
 
@@ -294,7 +325,10 @@ const mockFetchProjects = async (query) => {
                     projectManager: 'นายสมชาย ขายเก่ง',
                     startDate: '01/06/2023',
                     expectedEndDate: '31/12/2024',
-                    productList: ['กระจกใส 6 มม.', 'กระจกเงา'],
+                    productList: [
+                        { name: 'กระจกใส 6 มม.', price: '5,000,000' },
+                        { name: 'กระจกเงา', price: '2,000,000' }
+                    ],
                     value: 15000000,
                     status: 'Active'
                 },
@@ -307,7 +341,9 @@ const mockFetchProjects = async (query) => {
                     projectManager: 'นางสาวสุดสวย ปิดยอดไว',
                     startDate: '15/08/2023',
                     expectedEndDate: '15/05/2024',
-                    productList: ['อลูมิเนียมเส้น'],
+                    productList: [
+                        { name: 'อลูมิเนียมเส้น', price: '3,500,000' }
+                    ],
                     value: 8500000,
                     status: 'Active'
                 },
@@ -320,7 +356,10 @@ const mockFetchProjects = async (query) => {
                     projectManager: 'นายยอดเยี่ยม ทะลุเป้า',
                     startDate: '10/01/2024',
                     expectedEndDate: '30/11/2025',
-                    productList: ['ซิลิโคน', 'อุปกรณ์ฟิตติ้ง'],
+                    productList: [
+                        { name: 'ซิลิโคน', price: '500,000' },
+                        { name: 'อุปกรณ์ฟิตติ้ง', price: '1,200,000' }
+                    ],
                     value: 25000000,
                     status: 'Planning'
                 }
