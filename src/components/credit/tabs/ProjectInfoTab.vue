@@ -52,7 +52,7 @@
              </div>
 
              <div class="form-group full-width project-summary-card">
-                 <div class="summary-item" style="max-width: 260px;">
+                 <div class="summary-item" style="max-width: 180px;">
                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
                          <span class="summary-label">วันเริ่มโครงการ:</span>
                      </div>
@@ -64,7 +64,7 @@
                          placeholder="DD/MM/YYYY"
                      />
                  </div>
-                 <div class="summary-item" style="max-width: 260px;">
+                 <div class="summary-item" style="max-width: 180px;">
                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
                          <span class="summary-label">วันที่คาดว่าจะแล้วเสร็จ:</span>
                      </div>
@@ -76,7 +76,7 @@
                          placeholder="DD/MM/YYYY"
                      />
                  </div>
-                 <div class="summary-item" style="max-width: 260px;">
+                 <div class="summary-item" style="max-width: 180px;">
                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
                          <span class="summary-label">มูลค่าโครงการรวม (บาท):</span>
                      </div>
