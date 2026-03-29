@@ -42,6 +42,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       bankGuaranteeDetails: {},
       letterGuaranteeDetails: {},
       cashDepositDetails: {},
+        mainContractorName: "",
+        mainContractorVat: "",
+        customerTeam: "",
     },
 
     requestsList: [],
@@ -250,6 +253,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           bankGuaranteeDetails: parsedSnapshot.transaction_data?.bankGuaranteeDetails || {},
           letterGuaranteeDetails: parsedSnapshot.transaction_data?.letterGuaranteeDetails || {},
           cashDepositDetails: parsedSnapshot.transaction_data?.cashDepositDetails || {},
+          mainContractorName: parsedSnapshot.transaction_data?.mainContractorName || "",
+          mainContractorVat: parsedSnapshot.transaction_data?.mainContractorVat || "",
+          customerTeam: parsedSnapshot.transaction_data?.customerTeam || "",
         };
 
         this.hasSearched = true;
@@ -514,6 +520,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               bankGuaranteeDetails: parsedSnapshotTransactionData.bankGuaranteeDetails || {},
               letterGuaranteeDetails: parsedSnapshotTransactionData.letterGuaranteeDetails || {},
               cashDepositDetails: parsedSnapshotTransactionData.cashDepositDetails || {},
+              mainContractorName: parsedSnapshotTransactionData.mainContractorName || "",
+              mainContractorVat: parsedSnapshotTransactionData.mainContractorVat || "",
+              customerTeam: parsedSnapshotTransactionData.customerTeam || "",
             };
           }
         }
@@ -877,6 +886,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         bankGuaranteeDetails: {},
         letterGuaranteeDetails: {},
         cashDepositDetails: {},
+        mainContractorName: "",
+        mainContractorVat: "",
+        customerTeam: "",
       };
     },
 
@@ -917,6 +929,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         bankGuaranteeDetails: {},
         letterGuaranteeDetails: {},
         cashDepositDetails: {},
+        mainContractorName: "",
+        mainContractorVat: "",
+        customerTeam: "",
       };
     },
 
