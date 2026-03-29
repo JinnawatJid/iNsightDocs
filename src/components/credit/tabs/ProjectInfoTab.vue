@@ -91,8 +91,8 @@
                      />
                  </div>
 
-                 <div style="grid-column: 1 / -1; display: grid; grid-template-columns: 38fr 38fr 24fr; gap: 30px; margin-top: 5px;">
-                     <!-- 38% Main Contractor Name -->
+                 <div style="grid-column: 1 / -1; display: grid; grid-template-columns: 36fr 36fr 28fr; gap: 30px; margin-top: 5px;">
+                     <!-- 36% Main Contractor Name -->
                      <div class="summary-item">
                          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
                              <span class="summary-label">ชื่อผู้รับเหมาหลัก:</span>
@@ -106,7 +106,7 @@
                          />
                      </div>
 
-                     <!-- 38% VAT Number -->
+                     <!-- 36% VAT Number -->
                      <div class="summary-item">
                          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
                              <span class="summary-label">เลขประจำตัวผู้เสียภาษี (VAT Number):</span>
@@ -120,7 +120,7 @@
                          />
                      </div>
 
-                     <!-- 24% Customer Team -->
+                     <!-- 28% Customer Team -->
                      <div class="summary-item">
                          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
                              <span class="summary-label">ทีมของลูกค้า:</span>
