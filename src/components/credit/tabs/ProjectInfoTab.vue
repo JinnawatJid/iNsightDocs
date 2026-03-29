@@ -91,54 +91,53 @@
                      />
                  </div>
 
-                 <div class="summary-item" style="grid-column: 1 / -1; margin-top: 10px;">
-                     <div style="display: flex; gap: 20px; align-items: flex-start; width: 100%;">
-                         <!-- 40% Main Contractor Name -->
-                         <div style="flex: 0 0 40%;">
-                             <div style="margin-bottom: 5px;">
-                                 <span class="summary-label">ชื่อผู้รับเหมาหลัก</span>
-                             </div>
-                             <input
-                                 type="text"
-                                 v-model="transactionData.mainContractorName"
-                                 :disabled="props.readOnly"
-                                 class="summary-input"
-                                 placeholder="ระบุชื่อผู้รับเหมาหลัก"
-                             />
+                 <div style="grid-column: 1 / -1; display: grid; grid-template-columns: 2fr 2fr 1fr; gap: 30px; margin-top: 5px;">
+                     <!-- 40% Main Contractor Name -->
+                     <div class="summary-item">
+                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
+                             <span class="summary-label">ชื่อผู้รับเหมาหลัก:</span>
                          </div>
+                         <input
+                             type="text"
+                             v-model="transactionData.mainContractorName"
+                             :disabled="props.readOnly"
+                             class="summary-input"
+                             placeholder="ระบุชื่อผู้รับเหมาหลัก"
+                         />
+                     </div>
 
-                         <!-- 40% VAT Number -->
-                         <div style="flex: 0 0 40%;">
-                             <div style="margin-bottom: 5px;">
-                                 <span class="summary-label">เลขประจำตัวผู้เสียภาษี (VAT Number)</span>
-                             </div>
-                             <input
-                                 type="text"
-                                 v-model="transactionData.mainContractorVat"
-                                 :disabled="props.readOnly"
-                                 class="summary-input"
-                                 placeholder="ระบุเลขประจำตัวผู้เสียภาษี 13 หลัก"
-                             />
+                     <!-- 40% VAT Number -->
+                     <div class="summary-item">
+                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
+                             <span class="summary-label">เลขประจำตัวผู้เสียภาษี (VAT Number):</span>
                          </div>
+                         <input
+                             type="text"
+                             v-model="transactionData.mainContractorVat"
+                             :disabled="props.readOnly"
+                             class="summary-input"
+                             placeholder="ระบุเลขประจำตัวผู้เสียภาษี 13 หลัก"
+                         />
+                     </div>
 
-                         <!-- 20% Customer Team -->
-                         <div style="flex: 1;">
-                             <div style="margin-bottom: 5px;">
-                                 <span class="summary-label">ทีมของลูกค้า</span>
-                             </div>
-                             <select
-                                 v-model="transactionData.customerTeam"
-                                 :disabled="props.readOnly"
-                                 class="summary-input"
-                             >
-                                 <option value="" disabled selected>เลือกจำนวนคน</option>
-                                 <option value="1-10 คน">1-10 คน</option>
-                                 <option value="11-20 คน">11-20 คน</option>
-                                 <option value="21-50 คน">21-50 คน</option>
-                                 <option value="51-100 คน">51-100 คน</option>
-                                 <option value="มากกว่า 100 คน">มากกว่า 100 คน</option>
-                             </select>
+                     <!-- 20% Customer Team -->
+                     <div class="summary-item">
+                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
+                             <span class="summary-label">ทีมของลูกค้า:</span>
                          </div>
+                         <select
+                             v-model="transactionData.customerTeam"
+                             :disabled="props.readOnly"
+                             class="summary-input"
+                             style="cursor: pointer; appearance: auto;"
+                         >
+                             <option value="" disabled selected>เลือกจำนวน</option>
+                             <option value="1-10 คน">1-10 คน</option>
+                             <option value="11-20 คน">11-20 คน</option>
+                             <option value="21-50 คน">21-50 คน</option>
+                             <option value="51-100 คน">51-100 คน</option>
+                             <option value="มากกว่า 100 คน">มากกว่า 100 คน</option>
+                         </select>
                      </div>
                  </div>
 
