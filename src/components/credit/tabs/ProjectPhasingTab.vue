@@ -59,7 +59,7 @@
               <td>
                 <input
                   type="text"
-                  v-model="phase.amount"
+                  :value="phase.amount"
                   :disabled="props.readOnly"
                   @blur="formatPhaseAmount(idx)"
                   @input="handlePhaseAmountInput(idx, $event)"
@@ -248,7 +248,7 @@ watch(paymentCalculationMode, (newMode) => {
 
 const handlePhaseAmountInput = (index, event) => {
     let val = event.target.value;
-    val = val.replace(/[^0-9]/g, '');
+    val = val.replace(/[^0-9.]/g, ''); // Allow decimals
     store.transactionData.projectPhasing[index].amount = val;
 };
 
