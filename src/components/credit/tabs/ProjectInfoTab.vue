@@ -90,6 +90,88 @@
                          placeholder="ระบุมูลค่าโครงการ"
                      />
                  </div>
+
+                 <div class="summary-item" style="grid-column: 1 / -1; margin-top: 10px;">
+                     <div style="display: flex; gap: 20px; align-items: flex-start; width: 100%;">
+                         <!-- 40% Main Contractor Name -->
+                         <div style="flex: 0 0 40%;">
+                             <div style="margin-bottom: 5px;">
+                                 <span class="summary-label">ชื่อผู้รับเหมาหลัก</span>
+                             </div>
+                             <input
+                                 type="text"
+                                 v-model="transactionData.mainContractorName"
+                                 :disabled="props.readOnly"
+                                 class="summary-input"
+                                 placeholder="ระบุชื่อผู้รับเหมาหลัก"
+                             />
+                         </div>
+
+                         <!-- 40% VAT Number -->
+                         <div style="flex: 0 0 40%;">
+                             <div style="margin-bottom: 5px;">
+                                 <span class="summary-label">เลขประจำตัวผู้เสียภาษี (VAT Number)</span>
+                             </div>
+                             <input
+                                 type="text"
+                                 v-model="transactionData.mainContractorVat"
+                                 :disabled="props.readOnly"
+                                 class="summary-input"
+                                 placeholder="ระบุเลขประจำตัวผู้เสียภาษี 13 หลัก"
+                             />
+                         </div>
+
+                         <!-- 20% Customer Team -->
+                         <div style="flex: 1;">
+                             <div style="margin-bottom: 5px;">
+                                 <span class="summary-label">ทีมของลูกค้า</span>
+                             </div>
+                             <select
+                                 v-model="transactionData.customerTeam"
+                                 :disabled="props.readOnly"
+                                 class="summary-input"
+                             >
+                                 <option value="" disabled selected>เลือกจำนวนคน</option>
+                                 <option value="1-10 คน">1-10 คน</option>
+                                 <option value="11-20 คน">11-20 คน</option>
+                                 <option value="21-50 คน">21-50 คน</option>
+                                 <option value="51-100 คน">51-100 คน</option>
+                                 <option value="มากกว่า 100 คน">มากกว่า 100 คน</option>
+                             </select>
+                         </div>
+                     </div>
+                 </div>
+
+                 <!-- Contractor DBD Uploaders -->
+                 <div class="summary-item" style="grid-column: 1 / -1; margin-top: 15px;">
+                     <div class="upload-grid-small">
+                        <FileUploader
+                          label="ข้อมูลบริษัท (Company Profile)"
+                          v-model="files.contractorCompanyProfile"
+                          :disabled="props.readOnly"
+                          accept=".pdf"
+                        />
+                        <FileUploader
+                          label="งบแสดงฐานะการเงิน (Balance Sheet)"
+                          v-model="files.contractorBalanceSheet"
+                          :disabled="props.readOnly"
+                          accept=".xlsx, .xls"
+                        />
+                        <FileUploader
+                          label="งบกำไรขาดทุน (Profit & Loss)"
+                          v-model="files.contractorProfitLoss"
+                          :disabled="props.readOnly"
+                          accept=".xlsx, .xls"
+                        />
+                        <FileUploader
+                          label="งบอัตราส่วนทางการเงิน (Ratios)"
+                          v-model="files.contractorFinancialRatios"
+                          :disabled="props.readOnly"
+                          accept=".xlsx, .xls"
+                        />
+                      </div>
+                 </div>
+
                 <div class="summary-item" style="grid-column: 1 / -1; border-top: 1px solid #ddd; padding-top: 25px; margin-top: 5px;">
                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; height: 21px;">
                          <span class="summary-label" style="font-weight: 500; font-size: 14px; color: #444;">รายการสินค้าหลัก:</span>
@@ -176,7 +258,11 @@ const store = useCreditRequestStore();
 const files = reactive({
   quotation: null,
   projectContract: null,
-  projectSecurity: null
+  projectSecurity: null,
+  contractorCompanyProfile: null,
+  contractorBalanceSheet: null,
+  contractorProfitLoss: null,
+  contractorFinancialRatios: null,
 });
 
 // Watch for file changes to update store
@@ -192,11 +278,32 @@ watch(() => files.projectSecurity, (newVal) => {
   store.updateFile('project_security_doc', newVal);
 });
 
+watch(() => files.contractorCompanyProfile, (newVal) => {
+  store.updateFile('contractor_company_profile_doc', newVal);
+});
+
+watch(() => files.contractorBalanceSheet, (newVal) => {
+  store.updateFile('contractor_balance_sheet_doc', newVal);
+});
+
+watch(() => files.contractorProfitLoss, (newVal) => {
+  store.updateFile('contractor_profit_loss_doc', newVal);
+});
+
+watch(() => files.contractorFinancialRatios, (newVal) => {
+  store.updateFile('contractor_financial_ratios_doc', newVal);
+});
+
+
 // Initialize files from store (to support Edit mode or tab switching)
 watch(() => store.files, (newVal) => {
   files.quotation = newVal?.quotation_doc || null;
   files.projectContract = newVal?.project_contract_doc || null;
   files.projectSecurity = newVal?.project_security_doc || null;
+  files.contractorCompanyProfile = newVal?.contractor_company_profile_doc || null;
+  files.contractorBalanceSheet = newVal?.contractor_balance_sheet_doc || null;
+  files.contractorProfitLoss = newVal?.contractor_profit_loss_doc || null;
+  files.contractorFinancialRatios = newVal?.contractor_financial_ratios_doc || null;
 }, { immediate: true, deep: true });
 
 // Local State for Project Search
@@ -391,6 +498,12 @@ const mockFetchProjects = async (query) => {
   align-items: center;
   gap: 20px;
   margin-bottom: 20px;
+}
+
+.upload-grid-small {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
 }
 
 .section-header h3 {
