@@ -91,7 +91,7 @@
                      />
                  </div>
 
-                 <div style="grid-column: 1 / -1; display: grid; grid-template-columns: 36fr 36fr 28fr; gap: 30px; margin-top: 5px;">
+                 <div style="grid-column: 1 / -1; display: grid; grid-template-columns: 36fr 36fr 28fr; gap: 35px; margin-top: 5px;">
                      <!-- 36% Main Contractor Name -->
                      <div class="summary-item">
                          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
