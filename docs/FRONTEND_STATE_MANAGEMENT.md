@@ -57,3 +57,15 @@ This approach provides a seamless experience:
 Hard page reloads should be avoided during active data entry. They are generally only acceptable in the following scenarios:
 *   **Final Form Submission:** When a user officially submits a Credit Request (moving it from `Draft` to `Opened`), they are finished with that task. Reloading the page clears out all Pinia store state and returns them to a clean "Search" screen, preventing accidental duplicate submissions.
 *   **Authentication Expiration:** If the `HttpOnly` cookie expires or the user logs out.
+
+## 4. Concurrency Control (Optimistic Locking)
+
+To prevent multiple users from accidentally overwriting or duplicating a credit request when working on the same customer simultaneously, the application utilizes an Optimistic Locking pattern based on the `tx_id`.
+
+### The Backend Check
+When the frontend submits a request (either to save a draft or submit for approval), it must append the current `tx_id` (from `store.requestId`) to the `FormData` payload.
+
+The backend `createCreditRequest` endpoint will intercept this and compare it against the active database record for that customer. If the `tx_id` does not match, or if a user attempts to submit a Draft but the database shows the request has already been transitioned to `Opened` (or beyond) by someone else, the backend will reject the request and return an HTTP `409 Conflict`.
+
+### The Frontend Handling
+The frontend (`CreditRequestForm.vue`) explicitly catches this `409` status code. Instead of showing a generic "Error Submitting Request" message, it parses the custom error message returned by the backend (e.g., "มีคำขอเครดิตที่กำลังดำเนินการอยู่สำหรับลูกค้ารายนี้ โปรดรีเฟรชหน้าจอ") and displays it to the user via a SweetAlert popup. This strictly informs the user that their current screen state is stale and they must refresh to see the latest progress made by their colleague.
