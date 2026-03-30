@@ -133,7 +133,7 @@
             <template v-if="isDraftMode">
               <div class="form-group">
                 <label>
-                    ระยะเวลาเครดิต (กระจก, กาว)
+                    ระยะเวลาเครดิต (กระจก, กาว) <span class="required">*</span>
                     <!-- Show current if special mode -->
                     <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
                         (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
@@ -142,7 +142,7 @@
                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'disabled': !canEditTerms }"
+                  :class="{ 'disabled': !canEditTerms, 'border-red-500': showValidation && !store.transactionData.termGS }"
                   :disabled="!canEditTerms"
                   placeholder="ระบุระยะเวลาเครดิต (กระจก, กาว)"
                   v-model="store.transactionData.termGS" :data-empty="!store.transactionData.termGS"
@@ -151,7 +151,7 @@
               </div>
               <div class="form-group">
                 <label>
-                    ระยะเวลาเครดิต (อลูมิเนียม, Acc)
+                    ระยะเวลาเครดิต (อลูมิเนียม, Acc) <span class="required">*</span>
                     <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
                         (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
@@ -159,7 +159,7 @@
                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'disabled': !canEditTerms }"
+                  :class="{ 'disabled': !canEditTerms, 'border-red-500': showValidation && !store.transactionData.termAE }"
                   :disabled="!canEditTerms"
                   placeholder="ระบุระยะเวลาเครดิต (อลูมิเนียม, Acc)"
                   v-model="store.transactionData.termAE" :data-empty="!store.transactionData.termAE"
@@ -168,7 +168,7 @@
               </div>
               <div class="form-group">
                 <label>
-                    ระยะเวลาเครดิต (ยิปซั่ม, ซีลาย)
+                    ระยะเวลาเครดิต (ยิปซั่ม, ซีลาย) <span class="required">*</span>
                     <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
                         (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
@@ -176,7 +176,7 @@
                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'disabled': !canEditTerms }"
+                  :class="{ 'disabled': !canEditTerms, 'border-red-500': showValidation && !store.transactionData.termYC }"
                   :disabled="!canEditTerms"
                   placeholder="ระบุระยะเวลาเครดิต (ยิปซั่ม, ซีลาย)"
                   v-model="store.transactionData.termYC" :data-empty="!store.transactionData.termYC"

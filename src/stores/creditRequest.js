@@ -698,7 +698,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
       fieldsToCheck.forEach((key) => {
         let val;
-        if (["amount", "reason"].includes(key)) {
+        if (["amount", "reason", "termGS", "termAE", "termYC"].includes(key)) {
           val = this.transactionData[key];
         } else {
           val = this.customer[key];
