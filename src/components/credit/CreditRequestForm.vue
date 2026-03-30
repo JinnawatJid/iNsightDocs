@@ -124,8 +124,11 @@ import { workflowConfig, roleLabels } from '@/config/workflow';
 import Swal from 'sweetalert2';
 import axios from '../../utils/axios.js';
 import { computed, ref, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 
 const store = useCreditRequestStore();
+const router = useRouter();
+const route = useRoute();
 
 // Local State for View Mode
 const showAllDetails = ref(false);
@@ -495,7 +498,7 @@ const submitTransaction = async (btn) => {
             }
         }
 
-        await axios.post('/api/credit-requests', formData, {
+        const response = await axios.post('/api/credit-requests', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
 
@@ -505,7 +508,20 @@ const submitTransaction = async (btn) => {
             icon: 'success'
         });
 
-        window.location.reload();
+        if (btn.action === 'saveDraft') {
+            const newTxId = response.data?.data?.tx_id || store.requestId;
+            if (newTxId && newTxId !== route.query.txId) {
+                router.replace({
+                    query: {
+                        ...route.query,
+                        txId: newTxId
+                    }
+                });
+                store.requestId = newTxId;
+            }
+        } else {
+            window.location.reload();
+        }
 
     } catch (error) {
         console.error(error);
