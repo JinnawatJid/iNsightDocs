@@ -25,7 +25,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Setup HTTP request logging via Winston
-app.use(morgan('combined', { stream: logger.stream })); // Log to Winston
+// Using a concise format: Method URL Status - ResponseTime ms
+app.use(morgan(':method :url :status - :response-time ms', { stream: logger.stream })); // Log to Winston
 
 // Public Authentication Routes
 app.use('/api/auth', authRoutes);
