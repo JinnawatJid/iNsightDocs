@@ -448,6 +448,9 @@ const submitTransaction = async (btn) => {
         const formData = new FormData();
         formData.append('customer_no', store.customer.id);
         formData.append('customer_name', store.customer.name);
+        if (store.requestId) {
+            formData.append('tx_id', store.requestId);
+        }
         formData.append('request_amount', store.transactionData.amount || '');
         formData.append('request_reason', store.transactionData.reason || '');
         formData.append('request_type', store.transactionData.requestType || 'เครดิตใหม่');
@@ -525,11 +528,19 @@ const submitTransaction = async (btn) => {
 
     } catch (error) {
         console.error(error);
-         Swal.fire({
-            title: 'เกิดข้อผิดพลาด',
-            text: 'เกิดข้อผิดพลาดในการส่งคำขอ',
-            icon: 'error'
-        });
+        if (error.response && error.response.status === 409) {
+            Swal.fire({
+                title: 'เกิดข้อผิดพลาด',
+                text: error.response.data.error || 'มีคำขอเครดิตที่กำลังดำเนินการอยู่สำหรับลูกค้ารายนี้ โปรดรีเฟรชหน้าจอ',
+                icon: 'error'
+            });
+        } else {
+            Swal.fire({
+                title: 'เกิดข้อผิดพลาด',
+                text: 'เกิดข้อผิดพลาดในการส่งคำขอ',
+                icon: 'error'
+            });
+        }
         error.isSubmitTransactionError = true;
         throw error; // Rethrow to let caller (handleAction) know it failed
     }

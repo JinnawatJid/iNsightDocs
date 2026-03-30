@@ -10,6 +10,9 @@ export const mandatoryStoreKeys = {
         'billing_requirement',
         'payment_method',
         'has_other_credit',
+        'termGS',
+        'termAE',
+        'termYC',
 
         // General Info
         'name', // Company Name

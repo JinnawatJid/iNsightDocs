@@ -134,6 +134,7 @@ exports.downloadCreditRequestFile = async (req, res) => {
 exports.createCreditRequest = async (req, res) => {
   // When using multer, text fields are in req.body and files in req.files
   const {
+    tx_id,
     customer_no,
     customer_name,
     request_amount,
@@ -147,7 +148,7 @@ exports.createCreditRequest = async (req, res) => {
     is_submit
   } = req.body;
 
-  logger.info('createCreditRequest Body:', { customer_no, request_amount, term_gs, term_ae, term_yc, request_type, is_submit, status: req.body.status });
+  logger.info('createCreditRequest Body:', { tx_id, customer_no, request_amount, term_gs, term_ae, term_yc, request_type, is_submit, status: req.body.status });
 
   if (!customer_name || !customer_no) {
     return res.status(400).json({ error: 'Customer name and Customer No (ID) are required' });
@@ -200,6 +201,25 @@ exports.createCreditRequest = async (req, res) => {
 
     if (rows && rows.length > 0) {
       const existing = rows[0];
+
+      // CONCURRENCY CHECK
+      // If the client provided a tx_id (meaning they think they are updating a specific request)
+      // and it does not match the active request's tx_id (e.g. they submitted a Draft that is now Opened with a real ID),
+      // or if they are trying to create/submit without a tx_id but an active non-Draft request already exists.
+      const clientTxIdMismatch = tx_id && tx_id !== existing.tx_id;
+      const existingNotDraft = existing.status !== 'Draft';
+
+      // If client submits a request, but the existing request in DB is no longer a Draft,
+      // AND it's a new submission attempt (either no tx_id, or they are trying to transition it),
+      // it means someone else already submitted it.
+      // We check if the client is trying to transition to 'Opened' (which indicates initial submission)
+      // or if they are simply doing a saveDraft (which will have no req.body.status but is_submit will be false).
+      const isSubmittingNewRequest = is_submit === 'true' && (!req.body.status || req.body.status === 'Opened');
+
+      if (clientTxIdMismatch || (isSubmittingNewRequest && existingNotDraft)) {
+          logger.warn(`Concurrency conflict detected for customer ${customer_no}. Client tx_id: ${tx_id}, Active tx_id: ${existing.tx_id}, Active status: ${existing.status}`);
+          return res.status(409).json({ error: 'มีคำขอเครดิตที่กำลังดำเนินการอยู่สำหรับลูกค้ารายนี้ โปรดรีเฟรชหน้าจอ' });
+      }
 
       // EXISTING REQUEST FOUND
       txId = existing.tx_id;

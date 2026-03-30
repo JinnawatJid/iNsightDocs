@@ -348,7 +348,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
             );
           }
           if (this.customer.payment_terms_code) {
-            const code = String(this.customer.payment_terms_code);
+            const rawCode = String(this.customer.payment_terms_code);
+            // Default to empty if the code is not a valid number (e.g., 'CASH')
+            const code = isNaN(Number(rawCode)) || rawCode.trim() === '' ? "" : rawCode;
             this.transactionData.creditTerm = code;
             this.transactionData.termGS = code;
             this.transactionData.termAE = code;
@@ -415,10 +417,16 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
     async createCreditRequest(customerNo, customerName) {
       try {
-        const result = await CreditRequestService.createCreditRequest({
+        const payload = {
           customer_no: customerNo,
           customer_name: customerName,
-        });
+        };
+        // Provide the txId if we have one so backend can verify concurrency
+        if (this.requestId) {
+          payload.tx_id = this.requestId;
+        }
+
+        const result = await CreditRequestService.createCreditRequest(payload);
         if (result && result.data && result.data.data) {
           const resData = result.data.data;
           this.requestId = resData.txId;
@@ -627,6 +635,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
         formData.append("is_submit", "true");
 
+        if (this.requestId) {
+          formData.append("tx_id", this.requestId);
+        }
+
         await CreditRequestService.createCreditRequest(formData);
       } catch (e) {
         console.error("Failed to save transaction data", e);
@@ -686,7 +698,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
       fieldsToCheck.forEach((key) => {
         let val;
-        if (["amount", "reason"].includes(key)) {
+        if (["amount", "reason", "termGS", "termAE", "termYC"].includes(key)) {
           val = this.transactionData[key];
         } else {
           val = this.customer[key];
@@ -980,6 +992,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         formData.append("status", newStatus);
         formData.append("comment", comment);
         formData.append("actor_role", this.userRole);
+
+        if (this.requestId) {
+          formData.append("tx_id", this.requestId);
+        }
 
         const result = await CreditRequestService.createCreditRequest(formData);
 
