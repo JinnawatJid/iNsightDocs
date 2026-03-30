@@ -903,7 +903,10 @@ exports.searchCustomers = async (req, res) => {
 
               // Fetch additional local data for comprehensive check (Authorized Persons, Local Tax ID)
               try {
-                  const localRes = await db.query(`SELECT "VAT Registration No_", "authorized_person", "authorized_person_2", "Contact", "Name" FROM Customers WHERE "No_" = ? LIMIT 1`, [row["No_"]]);
+                  const localQuery = db.dbType === 'mssql'
+                      ? `SELECT TOP 1 "VAT Registration No_", "authorized_person", "authorized_person_2", "Contact", "Name" FROM Customers WHERE "No_" = ?`
+                      : `SELECT "VAT Registration No_", "authorized_person", "authorized_person_2", "Contact", "Name" FROM Customers WHERE "No_" = ? LIMIT 1`;
+                  const localRes = await db.query(localQuery, [row["No_"]]);
                   if (localRes && localRes.rows && localRes.rows.length > 0) {
                       const localData = localRes.rows[0];
 
