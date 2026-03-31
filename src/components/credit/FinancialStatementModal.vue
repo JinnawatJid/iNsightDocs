@@ -378,9 +378,10 @@ const getPercentClass = (num) => {
 /* Table Styles */
 .table-wrapper {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
     border-radius: 6px;
     border: 1px solid #e0e0e0;
-    height: 100%;
 }
 
 .table-wrapper.pdf-wrapper {
@@ -412,10 +413,20 @@ const getPercentClass = (num) => {
 .financial-table thead {
     background-color: #233e60;
     color: white;
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
+.financial-table thead tr:nth-child(2) th {
+    position: sticky;
+    top: 40px; /* Adjust based on the height of the first header row */
+    z-index: 2;
+}
+
+
 .financial-table th, .financial-table td {
-    padding: 12px 10px;
+    padding: 8px 6px;
     border: 1px solid rgba(255,255,255,0.1); /* subtle border in header */
 }
 
@@ -426,26 +437,26 @@ const getPercentClass = (num) => {
 .metric-col {
     text-align: left;
     font-weight: normal;
-    font-size: 14px;
+    font-size: 13px;
     width: 20%;
 }
 
 .year-col {
     text-align: center;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 13px;
     border-left: 1px solid rgba(255,255,255,0.2) !important;
 }
 
 .sub-col {
     text-align: right;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: normal;
     background-color: #2a4970; /* Slightly lighter blue for sub-header */
 }
 
 .sub-col.percent-col {
-    width: 80px;
+    width: 70px;
 }
 
 /* Body Styles */
@@ -460,15 +471,15 @@ const getPercentClass = (num) => {
 .metric-cell {
     font-weight: bold;
     color: #233e60; /* Dark blue text for row labels */
-    font-size: 14px;
-    padding: 12px 10px;
+    font-size: 13px;
+    padding: 8px 6px;
 }
 
 .val-cell {
     text-align: right;
     font-family: 'SF Pro Display', -apple-system, sans-serif;
-    font-size: 13px;
-    padding: 12px 10px;
+    font-size: 12px;
+    padding: 8px 6px;
     color: #333;
 }
 
