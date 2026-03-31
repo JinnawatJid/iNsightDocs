@@ -88,7 +88,8 @@ const generateCreditRequestPDF = async (req, res) => {
 
     // Merge snapshot data (priority) with DB data (fallback)
     // The snapshot.customer usually has keys like: company_name, authorized_person, etc.
-    const snapCust = snapshot.customer || {};
+    // If snapshot.customer is undefined, the data is likely at the root of the snapshot.
+    const snapCust = snapshot.customer || snapshot || {};
 
     const customerName = snapCust.company_name || snapCust.name || data.db_customer_name || '-';
     const customerNo = snapCust.id || data.db_customer_no || '-';
