@@ -19,7 +19,7 @@
         <div class="notification-badge">1</div>
       </div>
       <div class="user-info">
-        <span class="user-name">{{ authStore.user?.branchCode || 'N/A' }} : {{ authStore.user?.username || 'User' }}</span>
+        <span class="user-name">{{ authStore.user?.branchCode || 'N/A' }} : {{ authStore.user?.username || 'User' }}{{ authStore.user?.empname ? ' - ' + authStore.user.empname : '' }}</span>
       </div>
       <button class="logout-btn" @click="handleLogout">ออกจากระบบ</button>
     </div>

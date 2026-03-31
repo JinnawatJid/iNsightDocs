@@ -283,9 +283,26 @@ const initDB = async () => {
             file_type TEXT,
             file_path TEXT,
             original_name TEXT,
+            uploaded_by TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
         )`);
+
+        // Ensure new columns exist in CreditRequestAttachments table (for existing DBs)
+        const attachmentColumns = [
+            { name: 'uploaded_by', type: 'TEXT' }
+        ];
+
+        for (const col of attachmentColumns) {
+            try {
+                await db.runAsync(`ALTER TABLE CreditRequestAttachments ADD COLUMN ${col.name} ${col.type}`);
+                logger.info(`Added column ${col.name} to CreditRequestAttachments`);
+            } catch (err) {
+                 if (!err.message.includes('duplicate column name')) {
+                     logger.error(`Error adding column ${col.name} to CreditRequestAttachments:`, err);
+                }
+            }
+        }
 
         // Create RequestComments table
         await db.runAsync(`CREATE TABLE IF NOT EXISTS RequestComments (
