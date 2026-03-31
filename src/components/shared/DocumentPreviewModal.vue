@@ -2,7 +2,15 @@
   <div v-if="isOpen" class="modal-overlay" @click.self="close">
     <div class="modal-container">
       <div class="modal-header">
-        <h3 class="modal-title" :title="file?.name">{{ file?.name || 'Document Preview' }}</h3>
+        <div class="modal-title-group">
+          <h3 class="modal-title" :title="file?.name">{{ file?.name || 'Document Preview' }}</h3>
+          <p class="modal-subtitle" v-if="file?.uploadedBy && file?.createdAt">
+            อัปโหลดโดย: {{ file.uploadedBy }} เมื่อ {{ formatThaiDateTime(file.createdAt) }}
+          </p>
+          <p class="modal-subtitle" v-else-if="file?.uploadedBy">
+            อัปโหลดโดย: {{ file.uploadedBy }}
+          </p>
+        </div>
         <div class="modal-actions">
           <button class="btn-action download" @click="downloadFile" title="Download">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -48,6 +56,26 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue';
+
+const formatThaiDateTime = (dateString) => {
+    if (!dateString) return '';
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+
+        const formatter = new Intl.DateTimeFormat('th-TH', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+
+        return `${formatter.format(date)} น.`;
+    } catch (e) {
+        return dateString;
+    }
+};
 
 const props = defineProps({
   isOpen: {
@@ -162,6 +190,13 @@ onUnmounted(() => {
   background-color: #f8f9fa;
 }
 
+.modal-title-group {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 70%;
+}
+
 .modal-title {
   margin: 0;
   font-size: 16px;
@@ -170,7 +205,15 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 70%;
+}
+
+.modal-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .modal-actions {
