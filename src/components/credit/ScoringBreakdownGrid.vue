@@ -23,10 +23,10 @@
           <div class="cell value white-bg" :style="{ gridColumn: index + 2, gridRow: 3 }">
             {{ item.displayValue }}
           </div>
-          <div class="cell weight yellow-bg" :style="{ gridColumn: index + 2, gridRow: 4 }">
+          <div class="cell weight white-bg" :style="{ gridColumn: index + 2, gridRow: 4 }">
             {{ formatNum(item.weight) }}
           </div>
-          <div class="cell score white-bg" :style="{ gridColumn: index + 2, gridRow: 5 }">
+          <div class="cell score yellow-bg" :style="{ gridColumn: index + 2, gridRow: 5 }">
             {{ formatNum(item.score) }}
           </div>
       </template>
@@ -42,10 +42,10 @@
           <div class="cell value white-bg" :style="{ gridColumn: index + 6, gridRow: 3 }">
             {{ item.displayValue }}
           </div>
-          <div class="cell weight yellow-bg" :style="{ gridColumn: index + 6, gridRow: 4 }">
+          <div class="cell weight white-bg" :style="{ gridColumn: index + 6, gridRow: 4 }">
             {{ formatNum(item.weight) }}
           </div>
-          <div class="cell score white-bg" :style="{ gridColumn: index + 6, gridRow: 5 }">
+          <div class="cell score yellow-bg" :style="{ gridColumn: index + 6, gridRow: 5 }">
              {{ formatNum(item.score) }}
           </div>
       </template>
@@ -83,10 +83,10 @@
           <div class="cell value white-bg" :style="{ gridColumn: index + 2, gridRow: 3 }">
              {{ item.displayValue }}
           </div>
-          <div class="cell weight yellow-bg" :style="{ gridColumn: index + 2, gridRow: 4 }">
+          <div class="cell weight white-bg" :style="{ gridColumn: index + 2, gridRow: 4 }">
              {{ formatNum(item.weight) }}
           </div>
-          <div class="cell score white-bg" :style="{ gridColumn: index + 2, gridRow: 5 }">
+          <div class="cell score yellow-bg" :style="{ gridColumn: index + 2, gridRow: 5 }">
              {{ formatNum(item.score) }}
           </div>
       </template>
