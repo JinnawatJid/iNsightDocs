@@ -71,3 +71,15 @@ When the backend returns the array of suggestions, the frontend dynamically sort
 3. **🔴 Red (Negative) points**
 
 *Note: In the sorting logic, negative traits explicitly override warning traits if a single string contains keywords from both categories.*
+
+### C. Scoring Breakdown Grid Visual Standards
+When displaying detailed scorecards (e.g., in `ScoringBreakdownGrid.vue`), the grid must adhere to the following industry-standard visual hierarchies to ensure readability and quick data scannability:
+1. **Top-Down Logical Flow:** Data rows must follow the order of reading comprehension:
+   - Row 1: **หัวข้อการประเมิน** (Evaluation Criteria / Factor)
+   - Row 2: **ข้อมูลจริง** (Actual Raw Data)
+   - Row 3: **คะแนนเต็ม** (Maximum Possible Score / Weight)
+   - Row 4: **คะแนนที่ได้** (Obtained Score)
+2. **Row Headers (Legend):** A dedicated, fixed-width column (e.g., 140px) must be placed on the leftmost side of the grid to explicitly label what each row represents, preventing "floating numbers" without context.
+3. **Performance Metric Highlighting:**
+   - The **"คะแนนที่ได้" (Obtained Score)** is the primary performance metric and must be visually highlighted (e.g., using a `.yellow-bg` background).
+   - The **"คะแนนเต็ม" (Max Score)** is secondary reference data and must visually recede using a neutral color (e.g., `.white-bg` or light gray). Highlighting the max score creates a false focal point and should be avoided.
