@@ -43,4 +43,8 @@ export default {
   async getCreditRequestDetail(txId) {
     return axios.get(`${API_URL}/${encodeURIComponent(txId)}/detail`);
   },
+
+  async deleteFile(txId, fileId, userRole) {
+    return axios.delete(`${API_URL}/${encodeURIComponent(txId)}/files/${encodeURIComponent(fileId)}?actor_role=${encodeURIComponent(userRole)}`);
+  },
 };

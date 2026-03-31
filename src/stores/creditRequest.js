@@ -221,6 +221,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               id: att.id,
               txId: att.tx_id,
               isRemote: true,
+              uploaded_by: att.uploaded_by,
             };
 
             if (this.files[att.file_type]) {
@@ -480,6 +481,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
                 id: att.id,
                 txId: att.tx_id,
                 isRemote: true,
+                uploaded_by: att.uploaded_by,
               };
 
               if (this.files[att.file_type]) {
@@ -576,8 +578,26 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       }
     },
 
-    removeFileKey(key) {
+    async removeFileKey(key) {
       if (this.files[key]) {
+        if (Array.isArray(this.files[key])) {
+          // Check if any of these are remote files and need actual backend deletion
+          for (const fileObj of this.files[key]) {
+            if (fileObj.isRemote && fileObj.id && this.requestId) {
+              try {
+                 await CreditRequestService.deleteFile(this.requestId, fileObj.id, this.userRole);
+              } catch (e) {
+                 console.error("Failed to delete remote file:", fileObj.name, e);
+              }
+            }
+          }
+        } else if (this.files[key].isRemote && this.files[key].id && this.requestId) {
+            try {
+               await CreditRequestService.deleteFile(this.requestId, this.files[key].id, this.userRole);
+            } catch (e) {
+               console.error("Failed to delete remote file:", this.files[key].name, e);
+            }
+        }
         delete this.files[key];
       }
       if (this.uploadedDocuments[key]) {
@@ -996,6 +1016,22 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         if (this.requestId) {
           formData.append("tx_id", this.requestId);
         }
+
+        // Append reviewer documents
+        Object.keys(this.files).forEach((key) => {
+          if (key.startsWith('reviewer_doc:')) {
+            const files = this.files[key];
+            if (Array.isArray(files)) {
+              files.forEach((file) => {
+                if (file instanceof File) {
+                  formData.append(key, file);
+                }
+              });
+            } else if (files instanceof File) {
+              formData.append(key, files);
+            }
+          }
+        });
 
         const result = await CreditRequestService.createCreditRequest(formData);
 

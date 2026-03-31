@@ -452,9 +452,11 @@ exports.createCreditRequest = async (req, res) => {
             // and normalize slashes to forward slashes for cross-platform compatibility
             const relativeFilePath = path.relative(UPLOAD_BASE, finalPath).split(path.sep).join('/');
 
+            const uploadedBy = req.body.actor_role || req.body.username || 'unknown';
+
             await db.runAsync(
-                'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name) VALUES (?, ?, ?, ?)',
-                [txId, file.fieldname, relativeFilePath, file.originalname]
+                'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)',
+                [txId, file.fieldname, relativeFilePath, file.originalname, uploadedBy]
             );
 
             // --- SYNC TO FINANCIAL CACHE (customers/YYYYMMDD) ---
@@ -762,8 +764,8 @@ exports.reviseRequest = async (req, res) => {
                      const newRelativePath = att.file_path.replace(oldPathSegment, newPathSegment);
 
                      await db.runAsync(
-                         'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name) VALUES (?, ?, ?, ?)',
-                         [newTxId, att.file_type, newRelativePath, att.original_name]
+                         'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)',
+                         [newTxId, att.file_type, newRelativePath, att.original_name, att.uploaded_by || 'unknown']
                      );
                  }
              }
@@ -778,6 +780,58 @@ exports.reviseRequest = async (req, res) => {
 
     } catch (error) {
         logger.error('Error revising credit request:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+exports.deleteCreditRequestFile = async (req, res) => {
+    const id = decodeURIComponent(req.params.id); // tx_id
+    const { fileId } = req.params; // attachment ID
+
+    // Extract the primary role securely from the verified JWT payload (`req.user`)
+    // rather than trusting client-provided body or query parameters
+    let userRole = 'unknown';
+    if (req.user && req.user.roles && req.user.roles.length > 0) {
+        userRole = req.user.roles[0].role;
+    }
+
+    try {
+        let sql;
+        if (db.dbType === 'mssql') {
+            sql = 'SELECT TOP 1 * FROM CreditRequestAttachments WHERE id = ? AND tx_id = ?';
+        } else {
+            sql = 'SELECT * FROM CreditRequestAttachments WHERE id = ? AND tx_id = ? LIMIT 1';
+        }
+
+        const { rows } = await db.query(sql, [fileId, id]);
+
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+
+        const fileRecord = rows[0];
+
+        // Security check: Only the person who uploaded the reviewer doc can delete it
+        if (fileRecord.file_type.startsWith('reviewer_doc:')) {
+            if (fileRecord.uploaded_by && fileRecord.uploaded_by !== 'unknown' && fileRecord.uploaded_by !== userRole) {
+                return res.status(403).json({ error: 'Unauthorized: You can only delete documents you uploaded.' });
+            }
+        }
+
+        let filePath = fileRecord.file_path;
+        if (filePath) {
+            const absolutePath = path.join(UPLOAD_BASE, filePath);
+            if (await fs.pathExists(absolutePath)) {
+                await fs.remove(absolutePath);
+                logger.info(`Deleted physical file: ${absolutePath}`);
+            }
+        }
+
+        await db.runAsync('DELETE FROM CreditRequestAttachments WHERE id = ?', [fileId]);
+
+        res.status(200).json({ message: 'File deleted successfully' });
+    } catch (error) {
+        logger.error('Error deleting file:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };

@@ -135,6 +135,11 @@
         />
 
 
+    <!-- Section 2.75: Reviewer Additional Documents -->
+    <div class="dashboard-card reviewer-docs-wrapper">
+        <ReviewerDocumentsSection />
+    </div>
+
     <!-- Section 3: Full Details Toggle -->
     <!-- All Documents Modal -->
     <AllDocumentsModal
@@ -164,6 +169,7 @@ import { getMandatoryKeys } from '@/config/mandatoryFields';
 import ApplicationTabs from './ApplicationTabs.vue';
 import FinancialStatementModal from './FinancialStatementModal.vue';
 import AllDocumentsModal from './AllDocumentsModal.vue';
+import ReviewerDocumentsSection from './ReviewerDocumentsSection.vue';
 import axios from '../../utils/axios.js';
 
 const store = useCreditRequestStore();

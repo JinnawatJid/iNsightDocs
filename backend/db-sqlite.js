@@ -283,9 +283,18 @@ const initDB = async () => {
             file_type TEXT,
             file_path TEXT,
             original_name TEXT,
+            uploaded_by TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
         )`);
+
+        // Migration for existing CreditRequestAttachments (SQLite)
+        try {
+            await db.runAsync(`ALTER TABLE CreditRequestAttachments ADD COLUMN uploaded_by TEXT`);
+            logger.info('Added uploaded_by column to CreditRequestAttachments (SQLite).');
+        } catch (err) {
+            // Ignore error if column already exists
+        }
 
         // Create RequestComments table
         await db.runAsync(`CREATE TABLE IF NOT EXISTS RequestComments (

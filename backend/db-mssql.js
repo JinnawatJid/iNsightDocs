@@ -363,11 +363,21 @@ const initDB = async () => {
                 file_type NVARCHAR(255),
                 file_path NVARCHAR(MAX),
                 original_name NVARCHAR(255),
+                uploaded_by NVARCHAR(255),
                 created_at DATETIME DEFAULT GETDATE(),
                 FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
             )
         `;
         await pool.request().query(createCreditRequestAttachmentsSQL);
+
+        // Migration for existing CreditRequestAttachments (MSSQL)
+        const alterCreditRequestAttachmentsSQL = `
+            IF COL_LENGTH('CreditRequestAttachments', 'uploaded_by') IS NULL
+            BEGIN
+                ALTER TABLE CreditRequestAttachments ADD uploaded_by NVARCHAR(255);
+            END
+        `;
+        await pool.request().query(alterCreditRequestAttachmentsSQL);
 
         // Create RequestComments table
         const createRequestCommentsSQL = `
