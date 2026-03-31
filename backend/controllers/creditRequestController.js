@@ -154,6 +154,16 @@ exports.createCreditRequest = async (req, res) => {
     return res.status(400).json({ error: 'Customer name and Customer No (ID) are required' });
   }
 
+  // Determine who uploaded the file
+  let uploadedBy = null;
+  if (req.user && req.user.empname) {
+      uploadedBy = req.user.empname;
+  } else if (req.user && req.user.username) {
+      uploadedBy = req.user.username;
+  } else if (req.body.actor_role) {
+      uploadedBy = req.body.actor_role;
+  }
+
   // Parse snapshot_data if it's a string
   let parsedSnapshot = snapshot_data;
   if (typeof parsedSnapshot === 'string') {
@@ -453,8 +463,8 @@ exports.createCreditRequest = async (req, res) => {
             const relativeFilePath = path.relative(UPLOAD_BASE, finalPath).split(path.sep).join('/');
 
             await db.runAsync(
-                'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name) VALUES (?, ?, ?, ?)',
-                [txId, file.fieldname, relativeFilePath, file.originalname]
+                'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)',
+                [txId, file.fieldname, relativeFilePath, file.originalname, uploadedBy]
             );
 
             // --- SYNC TO FINANCIAL CACHE (customers/YYYYMMDD) ---
@@ -762,8 +772,8 @@ exports.reviseRequest = async (req, res) => {
                      const newRelativePath = att.file_path.replace(oldPathSegment, newPathSegment);
 
                      await db.runAsync(
-                         'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name) VALUES (?, ?, ?, ?)',
-                         [newTxId, att.file_type, newRelativePath, att.original_name]
+                         'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)',
+                         [newTxId, att.file_type, newRelativePath, att.original_name, att.uploaded_by || null]
                      );
                  }
              }

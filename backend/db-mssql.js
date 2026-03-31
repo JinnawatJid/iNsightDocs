@@ -363,11 +363,35 @@ const initDB = async () => {
                 file_type NVARCHAR(255),
                 file_path NVARCHAR(MAX),
                 original_name NVARCHAR(255),
+                uploaded_by NVARCHAR(255),
                 created_at DATETIME DEFAULT GETDATE(),
                 FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
             )
         `;
         await pool.request().query(createCreditRequestAttachmentsSQL);
+
+        // Ensure new columns exist in CreditRequestAttachments table (for existing DBs)
+        const attachmentColumns = [
+            { name: 'uploaded_by', type: 'NVARCHAR(255)' }
+        ];
+
+        for (const col of attachmentColumns) {
+            try {
+                 const checkSql = `
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns
+                        WHERE Name = '${col.name}' AND Object_ID = Object_ID('CreditRequestAttachments')
+                    )
+                    BEGIN
+                        ALTER TABLE CreditRequestAttachments ADD ${col.name} ${col.type}
+                    END
+                `;
+                await pool.request().query(checkSql);
+                logger.info(`Added column ${col.name} to CreditRequestAttachments`);
+            } catch (err) {
+                 logger.error(`Error adding column ${col.name} to CreditRequestAttachments:`, err);
+            }
+        }
 
         // Create RequestComments table
         const createRequestCommentsSQL = `
