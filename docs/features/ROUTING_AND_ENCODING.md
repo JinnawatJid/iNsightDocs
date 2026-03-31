@@ -46,6 +46,7 @@ To ensure the system remains resilient and can still generate PDFs or display hi
 
 1. **Use `LEFT JOIN`:** SQL queries fetching a credit request alongside its customer data **must** use a `LEFT JOIN` on the `Customers` table, never an `INNER JOIN`.
 2. **Prioritize Snapshot Data:** Application logic (such as in `pdfController.js`) must be designed to safely fall back to reading from `snapshot_data` if the live joined columns (e.g., `c.db_customer_name`) return `null`.
+3. **Parse Snapshot Properly:** The frontend constructs the `snapshot_data` object by spreading the core customer fields directly onto the root object. When extracting this data in the backend (e.g., `pdfController.js`), always use the root `snapshot` object to read customer fields (e.g., `snapshot.name`, `snapshot.id`) instead of incorrectly assuming the data resides within a nested `snapshot.customer` property.
 
 ### Implementation Standard
 ```sql

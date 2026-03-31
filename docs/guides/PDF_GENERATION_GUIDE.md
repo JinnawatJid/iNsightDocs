@@ -13,7 +13,7 @@ The PDF generation is handled **server-side** using the [pdfmake](http://pdfmake
 ## How it Works
 
 1.  **Data Fetching:** The controller executes a SQL query to fetch the Credit Request details joined with the Customer table.
-2.  **Snapshot Merging:** It merges this data with the JSON `snapshot_data` stored at the time of submission to ensure the PDF reflects the exact state of the request.
+2.  **Snapshot Merging:** It merges this data with the JSON `snapshot_data` stored at the time of submission to ensure the PDF reflects the exact state of the request. **Note:** The frontend saves customer fields directly at the root of the `snapshot_data` object (not inside a nested `customer` property). When extracting data for the PDF, the code correctly falls back to reading the root `snapshot` object.
 3.  **Layout Definition:** A `docDefinition` object is constructed. This object describes the PDF structure (text, columns, tables) using `pdfmake` syntax.
 4.  **Generation:** The `pdfmake` printer generates the binary PDF stream and pipes it to the HTTP response.
 
