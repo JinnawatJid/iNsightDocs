@@ -2,7 +2,12 @@
   <div v-if="isOpen" class="modal-overlay" @click.self="close">
     <div class="modal-container">
       <div class="modal-header">
-        <h3 class="modal-title" :title="file?.name">{{ file?.name || 'Document Preview' }}</h3>
+        <div class="modal-title-group">
+          <h3 class="modal-title" :title="file?.name">{{ file?.name || 'Document Preview' }}</h3>
+          <div v-if="formattedUploadInfo" class="upload-info">
+            {{ formattedUploadInfo }}
+          </div>
+        </div>
         <div class="modal-actions">
           <button class="btn-action download" @click="downloadFile" title="Download">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -61,6 +66,34 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+
+const formattedUploadInfo = computed(() => {
+    if (!props.file || !props.file.uploadedBy) return '';
+
+    let text = `อัปโหลดโดย ${props.file.uploadedBy}`;
+
+    if (props.file.createdAt) {
+        try {
+            const dateObj = new Date(props.file.createdAt);
+            if (!isNaN(dateObj.getTime())) {
+                const formatter = new Intl.DateTimeFormat('th-TH', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                const formattedDate = formatter.format(dateObj).replace(',', '');
+                text += ` เมื่อ ${formattedDate} น.`;
+            }
+        } catch (e) {
+            console.error('Error formatting date', e);
+        }
+    }
+
+    return text;
+});
 
 const fileUrl = computed(() => {
     if (!props.file) return '';
@@ -162,6 +195,12 @@ onUnmounted(() => {
   background-color: #f8f9fa;
 }
 
+.modal-title-group {
+  display: flex;
+  flex-direction: column;
+  max-width: 70%;
+}
+
 .modal-title {
   margin: 0;
   font-size: 16px;
@@ -170,7 +209,12 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 70%;
+}
+
+.upload-info {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
 }
 
 .modal-actions {

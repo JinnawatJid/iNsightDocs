@@ -221,6 +221,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               id: att.id,
               txId: att.tx_id,
               isRemote: true,
+              uploadedBy: att.uploaded_by,
+              createdAt: att.created_at,
             };
 
             if (this.files[att.file_type]) {
@@ -480,6 +482,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
                 id: att.id,
                 txId: att.tx_id,
                 isRemote: true,
+                uploadedBy: att.uploaded_by,
+                createdAt: att.created_at,
               };
 
               if (this.files[att.file_type]) {

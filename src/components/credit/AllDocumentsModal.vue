@@ -42,7 +42,12 @@
         <div class="viewer-pane">
           <template v-if="selectedFile">
             <div class="viewer-header">
-              <h4>{{ selectedFile.displayName }}</h4>
+              <div class="viewer-title-group">
+                <h4>{{ selectedFile.displayName }}</h4>
+                <div v-if="formattedUploadInfo" class="upload-info">
+                  {{ formattedUploadInfo }}
+                </div>
+              </div>
               <button v-if="selectedFile.hasFile" class="btn-action download" @click="downloadFile(selectedFile)" title="ดาวน์โหลด">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -301,6 +306,41 @@ const currentFileUrl = ref('');
 const currentFileType = ref('');
 const isLoadingFile = ref(false);
 let activeObjectURL = null;
+
+const formattedUploadInfo = computed(() => {
+    if (!selectedFile.value) return '';
+    const file = getActualFile(selectedFile.value);
+
+    // Check if uploadedBy info is available either directly on the file object or inside remoteMetadata
+    const uploadedBy = file?.uploadedBy || selectedFile.value.remoteMetadata?.uploadedBy;
+    const createdAt = file?.createdAt || selectedFile.value.remoteMetadata?.createdAt;
+
+    if (!uploadedBy) return '';
+
+    let text = `อัปโหลดโดย ${uploadedBy}`;
+
+    if (createdAt) {
+        try {
+            const dateObj = new Date(createdAt);
+            if (!isNaN(dateObj.getTime())) {
+                const formatter = new Intl.DateTimeFormat('th-TH', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                const formattedDate = formatter.format(dateObj).replace(',', '');
+                text += ` เมื่อ ${formattedDate} น.`;
+            }
+        } catch (e) {
+            console.error('Error formatting date', e);
+        }
+    }
+
+    return text;
+});
 
 const updateFileUrl = async (doc) => {
     if (activeObjectURL) {
@@ -633,10 +673,21 @@ const downloadFile = async (doc) => {
   align-items: center;
 }
 
+.viewer-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
 .viewer-header h4 {
   margin: 0;
   font-size: 1rem;
   color: #333;
+}
+
+.upload-info {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
 }
 
 .btn-action {
