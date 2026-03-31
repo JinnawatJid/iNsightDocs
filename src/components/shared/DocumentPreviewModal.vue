@@ -2,7 +2,12 @@
   <div v-if="isOpen" class="modal-overlay" @click.self="close">
     <div class="modal-container">
       <div class="modal-header">
-        <h3 class="modal-title" :title="file?.name">{{ file?.name || 'Document Preview' }}</h3>
+        <div class="modal-title-group">
+            <h3 class="modal-title" :title="file?.name">{{ file?.name || 'Document Preview' }}</h3>
+            <span v-if="file?.uploadedBy" class="modal-subtitle">
+                อัปโหลดโดย {{ file.uploadedBy }} <template v-if="formattedUploadDate">เมื่อ {{ formattedUploadDate }} น.</template>
+            </span>
+        </div>
         <div class="modal-actions">
           <button class="btn-action download" @click="downloadFile" title="Download">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -81,6 +86,26 @@ const fileType = computed(() => {
     if (!props.file || !props.file.name) return '';
     const parts = props.file.name.split('.');
     return parts.length > 1 ? parts.pop().toLowerCase() : '';
+});
+
+const formattedUploadDate = computed(() => {
+    if (!props.file || !props.file.createdAt) return '';
+    try {
+        const dateObj = new Date(props.file.createdAt);
+        // Check if date is valid
+        if (isNaN(dateObj.getTime())) return '';
+
+        // Format to Thai locale: e.g., 24/10/2023 10:30
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const year = dateObj.getFullYear();
+        const hours = String(dateObj.getHours()).padStart(2, '0');
+        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+    } catch (e) {
+        return '';
+    }
 });
 
 const close = () => {
@@ -162,6 +187,12 @@ onUnmounted(() => {
   background-color: #f8f9fa;
 }
 
+.modal-title-group {
+  display: flex;
+  flex-direction: column;
+  max-width: 70%;
+}
+
 .modal-title {
   margin: 0;
   font-size: 16px;
@@ -170,7 +201,12 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 70%;
+}
+
+.modal-subtitle {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
 }
 
 .modal-actions {
