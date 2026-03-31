@@ -36,6 +36,7 @@ A dedicated `ReviewerDocumentsSection.vue` component handles the display, upload
 
 **Key Responsibilities:**
 -   **Display:** Renders a list of attached reviewer documents, prominently displaying the `uploaded_by` name next to each file.
+-   **Preview:** When viewing any document (reviewer or standard) via the `DocumentPreviewModal.vue`, the system displays the `uploaded_by` name and `created_at` timestamp directly within the modal header, providing clear visibility of file origin during reviews.
 -   **Categorization:** Typically uses a specific prefix (e.g., `reviewer_doc:`) for the `file_type` to distinguish these files from standard application documents (like DBD financials or application forms).
 -   **Access Control:** Computes a `canRemove` boolean for each file. A user is only permitted to delete a file if the current authenticated user matches the `uploaded_by` value of that file (or if they possess overriding administrative privileges).
 
