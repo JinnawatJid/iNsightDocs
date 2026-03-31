@@ -292,7 +292,7 @@ const handleAction = async (btn) => {
     }
 
     // 2. Confirmation (Initial)
-    if (btn.confirmMessage && btn.action !== 'saveDraft') {
+    if (btn.confirmMessage) {
         const confirm = await Swal.fire({
             title: 'ยืนยันการทำรายการ?',
             text: btn.confirmText ? `คุณต้องการ "${btn.confirmText}" ใช่หรือไม่?` : 'ยืนยันการทำรายการ',
