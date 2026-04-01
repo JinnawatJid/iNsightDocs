@@ -16,7 +16,7 @@ This document outlines the architecture for token ingestion, local state managem
    - Because the SSO provider sets the `token` cookie as `HttpOnly` for enhanced security (mitigating XSS risks), the Vue frontend cannot directly read it using JavaScript (`js-cookie`).
    - Instead, during initialization (`authStore.initAuth()`), the frontend makes a `GET` request to the local backend's `/api/auth/me` endpoint.
    - The browser automatically includes the `HttpOnly` cookie in this request.
-   - The backend `authMiddleware` reads the cookie, decodes the token, and returns the user data (`userId`, `username`, `roles`, `branchCode`) to the frontend.
+   - The backend `authMiddleware` reads the cookie, decodes the token, and returns the user data (`userId`, `username`, `empname`, `roles`, `branchCode`) to the frontend.
    - This data is stored in the global Pinia `authStore` to govern UI state (e.g., displaying the user's name in the `Navbar.vue` and managing Role-Based UI visibility).
 
 ## 2. Protected Routes

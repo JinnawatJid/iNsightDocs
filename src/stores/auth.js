@@ -87,6 +87,7 @@ export const useAuthStore = defineStore('auth', {
           this.user = {
             userId: data.user.userId,
             username: data.user.username,
+            empname: data.user.empname,
             roles: data.user.roles,
             branchCode: data.user.branchCode
           };
