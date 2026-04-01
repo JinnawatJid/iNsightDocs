@@ -42,14 +42,14 @@ File icons should be used to help users quickly identify file types and attachme
 
 ### 4.1 Disabled and Read-Only Fields
 
-To improve readability and reduce cognitive load for users reviewing submitted applications, disabled (`:disabled`) and read-only (`.readonly`) form fields must adhere to the following styling rules:
+To improve readability and reduce cognitive load for users reviewing submitted applications, disabled (`:disabled`) and read-only (`.readonly`) form fields must adhere to the following styling rules across all tabs:
 
 *   **Filled Fields (Contains Data):**
     Must maintain a "normal" appearance to ensure the data stands out.
-    *   **Background:** Very light grey/white (e.g., `#f9f9f9`)
+    *   **Background:** Very light grey/white (`#f9f9f9`)
     *   **Text:** High contrast black (`#000000`)
 *   **Empty Fields (No Data):**
-    Must be visually subdued to allow users to focus easily on the provided data.
+    Empty disabled fields shouldn't be entirely greyed out like normal web defaults. They must maintain readability.
     *   **Background:** Standard grey (`#f5f5f5`)
     *   **Text (Placeholder):** Muted grey (`#999`)
 *   **Select Elements:** Disabled dropdowns must hide their dropdown arrows to resemble standard text fields.

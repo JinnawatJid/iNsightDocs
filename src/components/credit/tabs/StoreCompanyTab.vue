@@ -685,9 +685,4 @@ watch(() => store.showValidationErrors, (val) => {
   display: block;
 }
 
-.form-control.disabled {
-  background-color: #f5f5f5;
-  color: #999;
-  cursor: not-allowed;
-}
 </style>
