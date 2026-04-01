@@ -67,3 +67,7 @@ Restart the backend server. The frontend will dynamically detect this configurat
 ## IDE Support
 
 Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+
+## Documentation
+
+For detailed information regarding the application's architecture, features, workflows, and developer guides, please refer to the dedicated **[Documentation Index](docs/README.md)**.
