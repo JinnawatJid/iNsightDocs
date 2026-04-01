@@ -36,18 +36,36 @@
         </div>
 
         <template v-if="transactionData.projectData">
-             <div class="form-group full-width selected-project-card">
-                 <div class="card-header">
-                     <h4>ข้อมูลโครงการที่เลือก</h4>
-                     <button v-if="!props.readOnly" class="btn-clear" @click="clearProject">เปลี่ยนโครงการ</button>
+             <div class="form-group full-width" style="margin-top: 20px;">
+                 <div class="section-header">
+                     <h3>ข้อมูลโครงการที่เลือก</h3>
+                     <button v-if="!props.readOnly" class="btn-clear" @click="clearProject" style="margin-left: auto;">เปลี่ยนโครงการ</button>
                  </div>
-                 <div class="project-details-grid">
-                     <div class="detail-item"><span>รหัสโครงการ:</span> {{ transactionData.projectData.id }}</div>
-                     <div class="detail-item"><span>ชื่อโครงการ:</span> {{ transactionData.projectData.name }}</div>
-                     <div class="detail-item"><span>รหัสลูกค้า:</span> {{ transactionData.projectData.customerCode }}</div>
-                     <div class="detail-item"><span>ชื่อลูกค้า:</span> {{ transactionData.projectData.customerName }}</div>
-                     <div class="detail-item"><span>สาขา:</span> {{ transactionData.projectData.branch }}</div>
-                     <div class="detail-item"><span>ผู้รับผิดชอบโครงการ:</span> {{ transactionData.projectData.projectManager }}</div>
+                 <div class="form-grid-three-columns">
+                     <div class="form-group">
+                         <label>รหัสโครงการ</label>
+                         <input type="text" class="form-control" disabled :value="transactionData.projectData.id" />
+                     </div>
+                     <div class="form-group">
+                         <label>ชื่อโครงการ</label>
+                         <input type="text" class="form-control" disabled :value="transactionData.projectData.name" />
+                     </div>
+                     <div class="form-group">
+                         <label>รหัสลูกค้า</label>
+                         <input type="text" class="form-control" disabled :value="transactionData.projectData.customerCode" />
+                     </div>
+                     <div class="form-group">
+                         <label>ชื่อลูกค้า</label>
+                         <input type="text" class="form-control" disabled :value="transactionData.projectData.customerName" />
+                     </div>
+                     <div class="form-group">
+                         <label>สาขา</label>
+                         <input type="text" class="form-control" disabled :value="transactionData.projectData.branch" />
+                     </div>
+                     <div class="form-group">
+                         <label>ผู้รับผิดชอบโครงการ</label>
+                         <input type="text" class="form-control" disabled :value="transactionData.projectData.projectManager" />
+                     </div>
                  </div>
              </div>
 
@@ -592,27 +610,6 @@ const mockFetchProjects = async (query) => {
     color: red;
 }
 
-.selected-project-card {
-    background-color: #f8f9fa;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    padding: 15px;
-}
-
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #ddd;
-}
-
-.card-header h4 {
-    margin: 0;
-    color: #333;
-}
-
 .btn-clear {
     background: none;
     border: 1px solid #dc3545;
@@ -621,17 +618,6 @@ const mockFetchProjects = async (query) => {
     border-radius: 4px;
     font-size: 12px;
     cursor: pointer;
-}
-
-.project-details-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-
-.detail-item span {
-    font-weight: 500;
-    color: #555;
 }
 
 .required::after {
