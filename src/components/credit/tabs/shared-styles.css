@@ -165,20 +165,20 @@ label {
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  background-color: #f9f9f9;
+  background-color: #ffffff;
   font-size: 14px;
   font-family: inherit;
   box-sizing: border-box;
   width: 100%;
-  color: #000000; /* Ensure text is black */
+  color: #000000;
 }
 
 .form-input.disabled,
 .form-control.readonly,
 .form-input:disabled,
 .form-control:disabled {
-  background-color: #f9f9f9;
-  color: #000000;
+  background-color: #f9f9f9 !important;
+  color: #000000 !important;
   cursor: not-allowed;
 }
 
@@ -200,14 +200,14 @@ select.form-control {
     background-repeat: no-repeat;
     background-position: right .7em top 50%;
     background-size: .65em auto;
-    color: #000000; /* Ensure text is black */
+    color: #000000;
 }
 
 select.form-input:disabled,
 select.form-control:disabled {
     background-image: none; /* Hide dropdown arrow for disabled select */
-    background-color: #f9f9f9;
-    color: #000000;
+    background-color: #f9f9f9 !important;
+    color: #000000 !important;
 }
 
 /* Style for select elements that are disabled AND empty.

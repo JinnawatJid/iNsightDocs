@@ -1344,11 +1344,6 @@ const shouldShowFinancialAnalysis = computed(() => {
     color: #adb5bd;
 }
 
-.disabled-input {
-    background-color: #e9ecef !important;
-    border-color: #ced4da !important;
-    color: #6c757d !important;
-}
 
 .btn-dbd-disabled {
     background-color: #e9ecef !important;
