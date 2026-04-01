@@ -15,6 +15,7 @@ const authMiddleware = (req, res, next) => {
         req.user = {
             userId: 99999,
             username: "DEV_MODE_USER",
+            empname: "Dev User Name",
             roles: [
                 {
                     app: "Smart Credit Application",
