@@ -87,7 +87,7 @@ node backend/scripts/debug_late_payment.js
 
 ## 4. นิยามตรรกะทางธุรกิจ (Business Logic Definitions)
 
-### 3.1 กฎวันที่มีผลชำระเงิน (Effective Payment Date Rule)
+### 4.1 กฎวันที่มีผลชำระเงิน (Effective Payment Date Rule)
 "วันที่ถือว่าชำระเงินจริง" จะคำนวณตามประเภทการจ่ายเงิน ดังนี้:
 
 1.  **เงินสด / โอน (Cash / Transfer):**
@@ -97,7 +97,7 @@ node backend/scripts/debug_late_payment.js
     *   ถ้าไม่มี `Cleared Date` ให้ใช้ `Check Date` เป็นวันที่มีผลชำระเงิน
 
 
-### 3.1.1 กฎการตรวจสอบข้อมูล (Sanitization Rules)
+### 4.1.1 กฎการตรวจสอบข้อมูล (Sanitization Rules)
 เพื่อความถูกต้องของคะแนนเครดิต ระบบจะตรวจสอบความสมบูรณ์ของวันที่ก่อนกำหนดวันที่มีผลชำระเงิน หากรายการใดเข้าข่าย **"ยังไม่เกิดการจ่ายจริง" (Not Yet Realized)** จะถูกกำหนดให้ `Effective Payment Date` เป็น `null` (สถานะ Outstanding)
 
 1.  **วันที่เช็คผ่านไม่ถูกต้อง (Invalid Cleared Date):**
@@ -106,7 +106,7 @@ node backend/scripts/debug_late_payment.js
     *   หาก `Check Date` เป็นวันที่ในอนาคต (เมื่อเทียบกับวันที่ปัจจุบันของ Server) ให้ถือว่าเป็น **หนี้คงค้าง (Outstanding)**
     *   *เหตุผล:* เช็คล่วงหน้ายังไม่สามารถนำไปขึ้นเงินได้ จึงไม่ควรนับเป็น "บิลที่จ่ายแล้ว" ในการคำนวณเครดิต
 
-### 3.2 นิยามการจ่ายล่าช้า (Late Payment Definition)
+### 4.2 นิยามการจ่ายล่าช้า (Late Payment Definition)
 การชำระเงินจะถือว่า **ล่าช้า (Late)** เมื่อ:
 `Effective Payment Date` > `Due Date` (จากตาราง Cust. Ledger Entry)
 
