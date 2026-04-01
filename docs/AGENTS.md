@@ -1,7 +1,7 @@
 # Repository Guidelines for Agents
 
 ## Create Credit Request Flow
-When working on `/create-credit-request`, you must strictly adhere to the "Search First" pattern documented in `docs/architecture/CREATE_CREDIT_REQUEST_FLOW.md`.
+When working on `/create-credit-request`, you must strictly adhere to the "Search First" pattern documented in `docs/features/CREATE_CREDIT_REQUEST_FLOW.md`.
 
 * **Never delete** `CustomerProfileDashboard.vue`. It is an essential intermediate screen.
 * **Never jump straight** to `CreditRequestForm.vue` immediately after a search. The user must explicitly start a request from the dashboard via the "Start Request" button in `CreditRequestHeader.vue`.
