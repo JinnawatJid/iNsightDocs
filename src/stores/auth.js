@@ -62,7 +62,6 @@ export const useAuthStore = defineStore('auth', {
         this.user = {
           userId: 99999,
           username: "DEV_MODE_USER",
-          empname: "Dev User Name",
           roles: [
             {
               app: "Smart Credit Application",
