@@ -55,6 +55,10 @@
          </div>
          <AddProjectTab />
       </div>
+
+      <!-- Global Phasing Analysis (Cross-Project Cash Flow) -->
+      <GlobalPhasingAnalysis v-if="store.transactionData.projects && store.transactionData.projects.length > 0" />
+
     </template>
 
       <div class="form-footer">
@@ -134,6 +138,7 @@
 import ApplicationTabs from './ApplicationTabs.vue';
 import ProjectApplicationTabs from './ProjectApplicationTabs.vue';
 import AddProjectTab from './tabs/project-workspace/AddProjectTab.vue';
+import GlobalPhasingAnalysis from './GlobalPhasingAnalysis.vue';
 import CreditReviewSection from './CreditReviewSection.vue';
 import ChangeSummaryModal from './ChangeSummaryModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
