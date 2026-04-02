@@ -66,88 +66,66 @@
                          <label>ผู้รับผิดชอบโครงการ</label>
                          <input type="text" class="form-control" disabled :value="transactionData.projectData.projectManager" />
                      </div>
+                     <div class="form-group">
+                         <label>วันเริ่มโครงการ</label>
+                         <input
+                             type="text"
+                             v-model="transactionData.adjustedStartDate"
+                             :disabled="props.readOnly"
+                             class="form-control"
+                             placeholder="DD/MM/YYYY"
+                         />
+                     </div>
+                     <div class="form-group">
+                         <label>วันที่คาดว่าจะแล้วเสร็จ</label>
+                         <input
+                             type="text"
+                             v-model="transactionData.adjustedExpectedEndDate"
+                             :disabled="props.readOnly"
+                             class="form-control"
+                             placeholder="DD/MM/YYYY"
+                         />
+                     </div>
+                     <div class="form-group">
+                         <label>มูลค่าโครงการรวม (บาท)</label>
+                         <input
+                             type="text"
+                             v-model="transactionData.adjustedProjectValue"
+                             :disabled="props.readOnly"
+                             @blur="formatAdjustedValue"
+                             @input="handleAdjustedValueInput"
+                             class="form-control text-primary font-bold"
+                             placeholder="ระบุมูลค่าโครงการ"
+                         />
+                     </div>
                  </div>
              </div>
 
-             <div class="form-group full-width project-summary-card">
-                 <div class="summary-item" style="max-width: 180px;">
-                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
-                         <span class="summary-label">วันเริ่มโครงการ:</span>
-                     </div>
-                     <input
-                         type="text"
-                         v-model="transactionData.adjustedStartDate"
-                         :disabled="props.readOnly"
-                         class="summary-input"
-                         placeholder="DD/MM/YYYY"
-                     />
+             <div class="form-group full-width" style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+                 <div class="section-header" style="margin-bottom: 15px;">
+                     <h3>ข้อมูลเพิ่มเติม</h3>
                  </div>
-                 <div class="summary-item" style="max-width: 180px;">
-                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
-                         <span class="summary-label">วันที่คาดว่าจะแล้วเสร็จ:</span>
-                     </div>
-                     <input
-                         type="text"
-                         v-model="transactionData.adjustedExpectedEndDate"
-                         :disabled="props.readOnly"
-                         class="summary-input"
-                         placeholder="DD/MM/YYYY"
-                     />
-                 </div>
-                 <div class="summary-item" style="max-width: 180px;">
-                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
-                         <span class="summary-label">มูลค่าโครงการรวม (บาท):</span>
-                     </div>
-                     <input
-                         type="text"
-                         v-model="transactionData.adjustedProjectValue"
-                         :disabled="props.readOnly"
-                         @blur="formatAdjustedValue"
-                         @input="handleAdjustedValueInput"
-                         class="summary-input text-primary font-bold"
-                         placeholder="ระบุมูลค่าโครงการ"
-                     />
-                 </div>
-
-                 <div style="grid-column: 1 / -1; display: grid; grid-template-columns: 36fr 36fr 28fr; gap: 35px; margin-top: 5px;">
-                     <!-- 36% Main Contractor Name -->
-                     <div class="summary-item">
-                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
-                             <span class="summary-label">ชื่อผู้รับเหมาหลัก:</span>
-                         </div>
-                         <input
-                             type="text"
-                             v-model="transactionData.mainContractorName"
+                 <div class="form-grid-three-columns">
+                     <div class="form-group">
+                         <label>ประเภทการรับเหมา</label>
+                         <select
+                             v-model="transactionData.contractorType"
                              :disabled="props.readOnly"
-                             class="summary-input"
-                             placeholder="ระบุชื่อผู้รับเหมาหลัก"
-                         />
+                             class="form-control"
+                             :class="{ 'is-empty': !transactionData.contractorType }"
+                         >
+                             <option value="" disabled selected>เลือกประเภทการรับเหมา</option>
+                             <option value="Main-Contractor">ผู้รับเหมาหลัก (Main-Contractor)</option>
+                             <option value="Sub-Contractor">ผู้รับเหมาช่วง (Sub-Contractor)</option>
+                         </select>
                      </div>
-
-                     <!-- 36% VAT Number -->
-                     <div class="summary-item">
-                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
-                             <span class="summary-label">เลขประจำตัวผู้เสียภาษี (VAT Number):</span>
-                         </div>
-                         <input
-                             type="text"
-                             v-model="transactionData.mainContractorVat"
-                             :disabled="props.readOnly"
-                             class="summary-input"
-                             placeholder="ระบุเลขประจำตัวผู้เสียภาษี 13 หลัก"
-                         />
-                     </div>
-
-                     <!-- 28% Customer Team -->
-                     <div class="summary-item">
-                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; height: 21px;">
-                             <span class="summary-label">ทีมของลูกค้า:</span>
-                         </div>
+                     <div class="form-group">
+                         <label>ทีมของลูกค้า</label>
                          <select
                              v-model="transactionData.customerTeam"
                              :disabled="props.readOnly"
-                             class="summary-input"
-                             style="cursor: pointer; appearance: auto;"
+                             class="form-control"
+                             :class="{ 'is-empty': !transactionData.customerTeam }"
                          >
                              <option value="" disabled selected>เลือกจำนวน</option>
                              <option value="1-10 คน">1-10 คน</option>
@@ -158,9 +136,34 @@
                          </select>
                      </div>
                  </div>
+             </div>
+
+             <div v-if="transactionData.contractorType === 'Sub-Contractor'" class="form-group full-width" style="margin-top: 10px;">
+                 <div class="form-grid-two-columns">
+                     <div class="form-group">
+                         <label>ชื่อผู้รับเหมาหลัก</label>
+                         <input
+                             type="text"
+                             v-model="transactionData.mainContractorName"
+                             :disabled="props.readOnly"
+                             class="form-control"
+                             placeholder="ระบุชื่อผู้รับเหมาหลัก"
+                         />
+                     </div>
+                     <div class="form-group">
+                         <label>เลขประจำตัวผู้เสียภาษี (VAT Number)</label>
+                         <input
+                             type="text"
+                             v-model="transactionData.mainContractorVat"
+                             :disabled="props.readOnly"
+                             class="form-control"
+                             placeholder="ระบุเลขประจำตัวผู้เสียภาษี 13 หลัก"
+                         />
+                     </div>
+                 </div>
 
                  <!-- Contractor DBD Uploaders -->
-                 <div class="summary-item" style="grid-column: 1 / -1; margin-top: 15px;">
+                 <div style="margin-top: 15px;">
                      <div class="upload-grid-small">
                         <FileUploader
                           label="ข้อมูลบริษัท (Company Profile)"
@@ -188,21 +191,21 @@
                         />
                       </div>
                  </div>
+             </div>
 
-                <div class="summary-item" style="grid-column: 1 / -1; border-top: 1px solid #ddd; padding-top: 25px; margin-top: 5px;">
-                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; height: 21px;">
-                         <span class="summary-label" style="font-weight: 500; font-size: 14px; color: #444;">รายการสินค้าหลัก:</span>
+             <div class="form-group full-width" style="border-top: 1px solid #ddd; padding-top: 25px; margin-top: 25px;">
+                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                         <label style="margin: 0;">รายการสินค้าหลัก:</label>
                          <button v-if="!props.readOnly" @click="addProduct" class="btn-text-add">+ เพิ่มสินค้า</button>
                      </div>
                      <div v-if="transactionData.adjustedProductList && transactionData.adjustedProductList.length > 0" class="product-list" style="gap: 15px;">
                          <div v-for="(prod, idx) in transactionData.adjustedProductList" :key="idx" class="product-item" style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; align-items: center;">
                              <input
                                  type="text"
-                                v-model="transactionData.adjustedProductList[idx].name"
+                                 v-model="transactionData.adjustedProductList[idx].name"
                                  :disabled="props.readOnly"
-                                 class="summary-input"
+                                 class="form-control"
                                  placeholder="ชื่อสินค้า..."
-                                style="width: 100%;"
                             />
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <input
@@ -211,7 +214,7 @@
                                     @input="handleProductPriceInput($event, idx)"
                                     @blur="formatProductPrice(idx)"
                                     :disabled="props.readOnly"
-                                    class="summary-input text-right"
+                                    class="form-control text-right"
                                     placeholder="0.00"
                                     style="flex: 1; min-width: 0;"
                                 />
@@ -224,7 +227,6 @@
                          (ไม่มีรายการสินค้าหลัก)
                      </div>
                  </div>
-             </div>
 
              <div class="form-group full-width" style="margin-top: 20px;">
                 <div class="upload-grid">
@@ -414,6 +416,14 @@ const selectProject = (proj) => {
         : [];
     store.transactionData.adjustedStartDate = proj.startDate || '';
     store.transactionData.adjustedExpectedEndDate = proj.expectedEndDate || '';
+
+    // Initialize dropdowns to empty strings so placeholders show
+    if (!store.transactionData.contractorType) {
+        store.transactionData.contractorType = '';
+    }
+    if (!store.transactionData.customerTeam) {
+        store.transactionData.customerTeam = '';
+    }
 
     // Auto-fill amount based on project value initially (can be changed by user)
     store.transactionData.amount = String(proj.value);
@@ -623,56 +633,6 @@ const mockFetchProjects = async (query) => {
 .required::after {
     content: " *";
     color: red;
-}
-
-.project-summary-card {
-    background-color: #f4f5f7;
-    border-radius: 8px;
-    padding: 20px 25px;
-    margin-bottom: 25px;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 260px));
-    row-gap: 25px;
-    column-gap: 30px;
-}
-
-.summary-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 100%;
-}
-
-.summary-label {
-    font-size: 13px;
-    color: #666;
-}
-
-.summary-value {
-    font-size: 16px;
-    color: #333;
-}
-
-.summary-input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 16px;
-    transition: border-color 0.2s;
-    background-color: white;
-}
-
-.summary-input:focus {
-    outline: none;
-    border-color: #0056FF;
-}
-
-.summary-input:disabled {
-    background-color: transparent;
-    border-color: transparent;
-    padding-left: 0;
-    color: #333;
 }
 
 .text-primary {
