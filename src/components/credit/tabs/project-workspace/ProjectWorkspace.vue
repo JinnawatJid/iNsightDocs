@@ -75,7 +75,7 @@ const removeProjectCard = () => {
 </script>
 
 <style scoped>
-@import '../tabs/shared-styles.css';
+@import '../shared-styles.css';
 
 .project-workspace {
   padding: 10px 0;

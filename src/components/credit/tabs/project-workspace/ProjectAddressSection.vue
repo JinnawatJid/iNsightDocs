@@ -154,7 +154,7 @@ watch(() => addressData.value.postCode, (newZip) => {
 </script>
 
 <style scoped>
-@import '../../tabs/shared-styles.css';
+@import '../shared-styles.css';
 
 .project-address-section {
   padding: 0;

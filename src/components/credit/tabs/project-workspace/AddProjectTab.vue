@@ -194,7 +194,7 @@ const mockFetchProjects = async (query) => {
 </script>
 
 <style scoped>
-@import '../tabs/shared-styles.css';
+@import '../shared-styles.css';
 
 .add-project-tab {
     padding: 20px;

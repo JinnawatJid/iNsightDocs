@@ -504,7 +504,7 @@ const chartOptions = computed(() => {
 </script>
 
 <style scoped>
-@import '../../tabs/shared-styles.css';
+@import '../shared-styles.css';
 
 .project-phasing-section {
     padding: 0;

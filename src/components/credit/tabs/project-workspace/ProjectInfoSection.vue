@@ -426,7 +426,7 @@ const removeProductItem = (idx) => {
 </script>
 
 <style scoped>
-@import '../../tabs/shared-styles.css';
+@import '../shared-styles.css';
 
 .project-info-section {
     padding: 0;
