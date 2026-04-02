@@ -35,14 +35,17 @@
 
     <!-- Project Tabs (Project Info) -->
     <template v-if="isProjectCredit">
-      <div v-for="(project, index) in store.transactionData.projects" :key="index" class="unified-card project-card">
-        <div class="card-header" style="padding-bottom: 20px; border-bottom: 1px solid #eee;">
+      <div v-for="(project, index) in store.transactionData.projects" :key="index" class="unified-card project-card" :class="{ 'collapsed-card': collapsedProjects[index] }">
+        <div class="card-header" :style="collapsedProjects[index] ? 'padding-bottom: 20px;' : 'padding-bottom: 20px; border-bottom: 1px solid #eee;'">
           <h3>ข้อมูลและเงื่อนไขโครงการ: <span style="font-weight: normal; color: #555;">{{ project.projectData.name }}</span></h3>
           <div class="header-actions">
+             <button class="toggle-details-btn" @click="toggleProjectCollapse(index)">
+                 {{ collapsedProjects[index] ? 'แสดงข้อมูลโครงการ' : 'พับข้อมูลโครงการ' }}
+             </button>
              <button v-if="!isReadOnly" class="btn-clear" @click="removeProjectCard(index)">ลบโครงการนี้</button>
           </div>
         </div>
-        <ProjectApplicationTabs :projectIndex="index" :readOnly="isReadOnly" />
+        <ProjectApplicationTabs v-show="!collapsedProjects[index]" :projectIndex="index" :readOnly="isReadOnly" />
       </div>
 
       <!-- Add New Project Section -->
@@ -147,6 +150,11 @@ const route = useRoute();
 // Local State for View Mode
 const showAllDetails = ref(false);
 const showChangeSummary = ref(false);
+const collapsedProjects = ref({});
+
+const toggleProjectCollapse = (index) => {
+    collapsedProjects.value[index] = !collapsedProjects.value[index];
+};
 
 const removeProjectCard = (index) => {
     const project = store.transactionData.projects[index];
@@ -644,6 +652,23 @@ const submitTransaction = async (btn) => {
 .collapsed-card .card-header {
   margin-bottom: 0; /* Remove bottom margin when collapsed */
   padding-bottom: 20px;
+}
+
+/* Explicitly style the delete project button to be red */
+.btn-clear {
+  background-color: #dc3545 !important;
+  color: white !important;
+  border: none !important;
+  padding: 6px 15px !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s !important;
+}
+
+.btn-clear:hover {
+  background-color: #c82333 !important;
 }
 
 .project-card {
