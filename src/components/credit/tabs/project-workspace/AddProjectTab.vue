@@ -239,6 +239,7 @@ const mockFetchProjects = async (query) => {
     color: #666;
     margin-top: 5px;
     margin-bottom: 5px;
+    text-align: left;
 }
 
 .btn-search-project {
@@ -266,6 +267,7 @@ const mockFetchProjects = async (query) => {
     padding: 10px;
     border-bottom: 1px solid #eee;
     cursor: pointer;
+    text-align: left;
 }
 
 .project-item:hover {
