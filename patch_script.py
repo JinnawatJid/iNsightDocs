@@ -1,4 +1,12 @@
-<template>
+import re
+
+with open('src/components/credit/tabs/ProjectInfoTab.vue', 'r') as f:
+    content = f.read()
+
+# Replace <template> content to use a loop over projects
+# The layout should have a search bar at top, and then a list of cards for each added project.
+
+template_content = """<template>
   <div class="project-info-tab">
     <div class="form-section">
       <div class="section-header">
@@ -170,29 +178,29 @@
                      <div class="upload-grid-small">
                         <FileUploader
                           label="ข้อมูลบริษัท (Company Profile)"
-                          :modelValue="getFileList('contractor_company_profile_doc_' + project.projectId)"
-                          @update:modelValue="(newVal) => updateFileList('contractor_company_profile_doc_' + project.projectId, newVal)"
+                          :modelValue="getFileList('contractor_company_profile_doc_' + projectIndex)"
+                          @update:modelValue="(newVal) => updateFileList('contractor_company_profile_doc_' + projectIndex, newVal)"
                           :disabled="props.readOnly"
                           accept=".pdf"
                         />
                         <FileUploader
                           label="งบแสดงฐานะการเงิน (Balance Sheet)"
-                          :modelValue="getFileList('contractor_balance_sheet_doc_' + project.projectId)"
-                          @update:modelValue="(newVal) => updateFileList('contractor_balance_sheet_doc_' + project.projectId, newVal)"
+                          :modelValue="getFileList('contractor_balance_sheet_doc_' + projectIndex)"
+                          @update:modelValue="(newVal) => updateFileList('contractor_balance_sheet_doc_' + projectIndex, newVal)"
                           :disabled="props.readOnly"
                           accept=".xlsx, .xls"
                         />
                         <FileUploader
                           label="งบกำไรขาดทุน (Profit & Loss)"
-                          :modelValue="getFileList('contractor_profit_loss_doc_' + project.projectId)"
-                          @update:modelValue="(newVal) => updateFileList('contractor_profit_loss_doc_' + project.projectId, newVal)"
+                          :modelValue="getFileList('contractor_profit_loss_doc_' + projectIndex)"
+                          @update:modelValue="(newVal) => updateFileList('contractor_profit_loss_doc_' + projectIndex, newVal)"
                           :disabled="props.readOnly"
                           accept=".xlsx, .xls"
                         />
                         <FileUploader
                           label="งบอัตราส่วนทางการเงิน (Ratios)"
-                          :modelValue="getFileList('contractor_financial_ratios_doc_' + project.projectId)"
-                          @update:modelValue="(newVal) => updateFileList('contractor_financial_ratios_doc_' + project.projectId, newVal)"
+                          :modelValue="getFileList('contractor_financial_ratios_doc_' + projectIndex)"
+                          @update:modelValue="(newVal) => updateFileList('contractor_financial_ratios_doc_' + projectIndex, newVal)"
                           :disabled="props.readOnly"
                           accept=".xlsx, .xls"
                         />
@@ -240,16 +248,16 @@
                     <FileUploader
                         label="สัญญาโปรเจค/ป้ายหน้า Site งาน"
                         required
-                        :modelValue="getFileList('project_contract_doc_' + project.projectId)"
-                        @update:modelValue="(newVal) => updateFileList('project_contract_doc_' + project.projectId, newVal)"
+                        :modelValue="getFileList('project_contract_doc_' + projectIndex)"
+                        @update:modelValue="(newVal) => updateFileList('project_contract_doc_' + projectIndex, newVal)"
                         :disabled="props.readOnly"
                         multiple
                     />
                     <FileUploader
                         label="ใบเสนอราคาจากตังน้ำ"
                         required
-                        :modelValue="getFileList('quotation_doc_' + project.projectId)"
-                        @update:modelValue="(newVal) => updateFileList('quotation_doc_' + project.projectId, newVal)"
+                        :modelValue="getFileList('quotation_doc_' + projectIndex)"
+                        @update:modelValue="(newVal) => updateFileList('quotation_doc_' + projectIndex, newVal)"
                         :disabled="props.readOnly"
                         multiple
                     />
@@ -259,13 +267,13 @@
                     <div class="guarantee-section">
                         <FileUploader
                             label="Bank Guarantee"
-                            :modelValue="getFileList('project_security_doc_' + project.projectId)"
-                            @update:modelValue="(newVal) => updateFileList('project_security_doc_' + project.projectId, newVal)"
+                            :modelValue="getFileList('project_security_doc_' + projectIndex)"
+                            @update:modelValue="(newVal) => updateFileList('project_security_doc_' + projectIndex, newVal)"
                             :disabled="props.readOnly"
                             multiple
                         />
-                        <div v-if="getFileList('project_security_doc_' + project.projectId) && getFileList('project_security_doc_' + project.projectId).length > 0" class="guarantee-details mt-2">
-                            <div v-for="(file, fileIndex) in getFileList('project_security_doc_' + project.projectId)" :key="fileIndex" class="guarantee-detail-card mb-2">
+                        <div v-if="getFileList('project_security_doc_' + projectIndex) && getFileList('project_security_doc_' + projectIndex).length > 0" class="guarantee-details mt-2">
+                            <div v-for="(file, fileIndex) in getFileList('project_security_doc_' + projectIndex)" :key="fileIndex" class="guarantee-detail-card mb-2">
                                 <div class="guarantee-file-name text-primary text-sm mb-1 font-semibold truncate" :title="file.name">
                                     {{ file.name }}
                                 </div>
@@ -299,13 +307,13 @@
                     <div class="guarantee-section">
                         <FileUploader
                             label="หลักฐานเงินสดมัดจำ"
-                            :modelValue="getFileList('project_cash_deposit_doc_' + project.projectId)"
-                            @update:modelValue="(newVal) => updateFileList('project_cash_deposit_doc_' + project.projectId, newVal)"
+                            :modelValue="getFileList('project_cash_deposit_doc_' + projectIndex)"
+                            @update:modelValue="(newVal) => updateFileList('project_cash_deposit_doc_' + projectIndex, newVal)"
                             :disabled="props.readOnly"
                             multiple
                         />
-                        <div v-if="getFileList('project_cash_deposit_doc_' + project.projectId) && getFileList('project_cash_deposit_doc_' + project.projectId).length > 0" class="guarantee-details mt-2">
-                            <div v-for="(file, fileIndex) in getFileList('project_cash_deposit_doc_' + project.projectId)" :key="fileIndex" class="guarantee-detail-card mb-2">
+                        <div v-if="getFileList('project_cash_deposit_doc_' + projectIndex) && getFileList('project_cash_deposit_doc_' + projectIndex).length > 0" class="guarantee-details mt-2">
+                            <div v-for="(file, fileIndex) in getFileList('project_cash_deposit_doc_' + projectIndex)" :key="fileIndex" class="guarantee-detail-card mb-2">
                                 <div class="guarantee-file-name text-primary text-sm mb-1 font-semibold truncate" :title="file.name">
                                     {{ file.name }}
                                 </div>
@@ -348,454 +356,13 @@
       />
     </div>
   </div>
-</template>
+</template>"""
 
-<script setup>
-import { ref, computed, reactive, watch, onMounted } from 'vue';
-import { useCreditRequestStore } from '@/stores/creditRequest';
-import OtherDocumentsSection from '../OtherDocumentsSection.vue';
-import FileUploader from '@/components/shared/FileUploader.vue';
+import re
+import sys
 
-const props = defineProps(['readOnly']);
-const store = useCreditRequestStore();
+# Perform the replacement of <template> ... </template>
+new_content = re.sub(r'<template>.*?</template>', template_content, content, flags=re.DOTALL)
 
-// Local State for Project Search
-const projectSearchQuery = ref('');
-const isSearchingProject = ref(false);
-const projectSearchResults = ref([]);
-const projectSearchMsg = ref('');
-
-const transactionData = computed({
-  get: () => store.transactionData,
-  set: (val) => { store.transactionData = val; }
-});
-
-// Initialize projects array if it doesn't exist
-onMounted(() => {
-    if (!store.transactionData.projects) {
-        store.transactionData.projects = [];
-    }
-});
-
-const getFileList = (fileKey) => {
-    return store.files[fileKey] || null;
-};
-
-const updateFileList = (fileKey, newVal) => {
-    store.updateFile(fileKey, newVal);
-};
-
-const formatNumber = (num) => {
-    if (!num) return '0';
-    return Number(num).toLocaleString('en-US');
-};
-
-const handleAdjustedValueInput = (event, projectIndex) => {
-    let val = event.target.value;
-    val = val.replace(/[^0-9]/g, '');
-    store.transactionData.projects[projectIndex].adjustedProjectValue = val;
-};
-
-const formatAdjustedValue = (projectIndex) => {
-    const raw = store.transactionData.projects[projectIndex].adjustedProjectValue;
-    const num = parseFloat(String(raw).replace(/,/g, ''));
-    if (!isNaN(num)) {
-        store.transactionData.projects[projectIndex].adjustedProjectValue = formatNumber(num);
-    }
-};
-
-const handleProductPriceInput = (event, projectIndex, idx) => {
-    let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, ''); // Allow decimals
-    store.transactionData.projects[projectIndex].adjustedProductList[idx].price = val;
-};
-
-const formatProductPrice = (projectIndex, idx) => {
-    const raw = store.transactionData.projects[projectIndex].adjustedProductList[idx].price;
-    if (!raw) return;
-    const num = parseFloat(String(raw).replace(/,/g, ''));
-    if (!isNaN(num)) {
-        store.transactionData.projects[projectIndex].adjustedProductList[idx].price = formatNumber(num);
-    }
-};
-
-// Guarantee Details Handlers
-const getGuaranteeDetail = (projectIndex, storeKey, fileName, field) => {
-    const proj = store.transactionData.projects[projectIndex];
-    if (!proj[storeKey]) return '';
-    if (!proj[storeKey][fileName]) return '';
-    return proj[storeKey][fileName][field] || '';
-};
-
-const formatGuaranteeAmount = (val) => {
-    if (!val) return '';
-    const parts = String(val).split('.');
-    let formatted = Number(parts[0]).toLocaleString('en-US');
-    if (parts.length > 1) {
-        formatted += '.' + parts[1];
-    }
-    return formatted === 'NaN' ? val : formatted;
-};
-
-const handleGuaranteeAmountInput = (projectIndex, storeKey, fileName, field, rawValue) => {
-    let num = rawValue.replace(/[^0-9.]/g, '');
-    const parts = num.split('.');
-    if (parts.length > 2) {
-        num = parts[0] + '.' + parts.slice(1).join('');
-    }
-    updateGuaranteeDetail(projectIndex, storeKey, fileName, field, num);
-};
-
-const updateGuaranteeDetail = (projectIndex, storeKey, fileName, field, value) => {
-    const proj = store.transactionData.projects[projectIndex];
-    if (!proj[storeKey]) {
-        proj[storeKey] = {};
-    }
-    if (!proj[storeKey][fileName]) {
-        proj[storeKey][fileName] = {};
-    }
-    proj[storeKey][fileName][field] = value;
-};
-
-const addProductItem = (projectIndex) => {
-    const proj = store.transactionData.projects[projectIndex];
-    if (!proj.adjustedProductList) {
-        proj.adjustedProductList = [];
-    }
-    proj.adjustedProductList.push({ name: '', price: '' });
-};
-
-const removeProductItem = (projectIndex, idx) => {
-    store.transactionData.projects[projectIndex].adjustedProductList.splice(idx, 1);
-};
-
-// Project Actions
-const handleProjectSearch = async () => {
-    isSearchingProject.value = true;
-    projectSearchResults.value = [];
-    projectSearchMsg.value = '';
-
-    try {
-        // Mock external API call
-        const results = await mockFetchProjects(projectSearchQuery.value);
-        if (results.length > 0) {
-            projectSearchResults.value = results;
-        } else {
-            projectSearchMsg.value = 'ไม่พบโครงการที่ค้นหา';
-        }
-    } catch (e) {
-        projectSearchMsg.value = 'เกิดข้อผิดพลาดในการค้นหา';
-    } finally {
-        isSearchingProject.value = false;
-    }
-};
-
-const addProject = (proj) => {
-    if (!store.transactionData.projects) {
-        store.transactionData.projects = [];
-    }
-
-    // Check if project is already added
-    if (store.transactionData.projects.some(p => p.projectData.id === proj.id)) {
-        projectSearchMsg.value = 'โครงการนี้ถูกเพิ่มแล้ว';
-        return;
-    }
-
-    const newProject = {
-        projectId: proj.id,
-        projectData: proj,
-        adjustedProjectValue: formatNumber(proj.value),
-        adjustedProductList: proj.productList
-            ? proj.productList.map(p => typeof p === 'string' ? { name: p, price: '' } : { ...p })
-            : [],
-        adjustedStartDate: proj.startDate || '',
-        adjustedExpectedEndDate: proj.expectedEndDate || '',
-        contractorType: '',
-        customerTeam: '',
-        mainContractorName: '',
-        mainContractorVat: '',
-        projectPhasing: []
-    };
-
-    store.transactionData.projects.push(newProject);
-    projectSearchResults.value = [];
-    projectSearchQuery.value = '';
-    projectSearchMsg.value = '';
-};
-
-const removeProjectCard = (projectIndex) => {
-    const projectId = store.transactionData.projects[projectIndex].projectId;
-    store.transactionData.projects.splice(projectIndex, 1);
-
-    // Also cleanup files associated with this project ID
-    store.updateFile('project_contract_doc_' + projectId, null);
-    store.updateFile('quotation_doc_' + projectId, null);
-    store.updateFile('project_security_doc_' + projectId, null);
-    store.updateFile('project_cash_deposit_doc_' + projectId, null);
-    store.updateFile('contractor_company_profile_doc_' + projectId, null);
-    store.updateFile('contractor_balance_sheet_doc_' + projectId, null);
-    store.updateFile('contractor_profit_loss_doc_' + projectId, null);
-    store.updateFile('contractor_financial_ratios_doc_' + projectId, null);
-};
-
-// Mock API for external Sales System
-const mockFetchProjects = async (query) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const db = [
-                {
-                    id: 'PRJ-2023-001',
-                    name: 'ก่อสร้างคอนโดหรู ใจกลางเมือง',
-                    customerCode: 'CUST-001',
-                    customerName: 'บริษัท แสนสิริ จำกัด (มหาชน)',
-                    branch: 'สาขาสำนักงานใหญ่',
-                    projectManager: 'นายสมชาย ขายเก่ง',
-                    startDate: '01/06/2023',
-                    expectedEndDate: '31/12/2024',
-                    productList: [
-                        { name: 'กระจกใส 6 มม.', price: '5,000,000' },
-                        { name: 'กระจกเงา', price: '2,000,000' }
-                    ],
-                    value: 15000000,
-                    status: 'Active'
-                },
-                {
-                    id: 'PRJ-2023-002',
-                    name: 'ปรับปรุงอาคารสำนักงาน กฟผ.',
-                    customerCode: 'CUST-002',
-                    customerName: 'การไฟฟ้าฝ่ายผลิตแห่งประเทศไทย',
-                    branch: 'สาขานนทบุรี',
-                    projectManager: 'นางสาวสุดสวย ปิดยอดไว',
-                    startDate: '15/08/2023',
-                    expectedEndDate: '15/05/2024',
-                    productList: [
-                        { name: 'อลูมิเนียมเส้น', price: '3,500,000' }
-                    ],
-                    value: 8500000,
-                    status: 'Active'
-                },
-                {
-                    id: 'PRJ-2024-003',
-                    name: 'หมู่บ้านจัดสรร เฟส 3',
-                    customerCode: 'CUST-003',
-                    customerName: 'บริษัท แลนด์แอนด์เฮ้าส์ จำกัด',
-                    branch: 'สาขารังสิต',
-                    projectManager: 'นายยอดเยี่ยม ทะลุเป้า',
-                    startDate: '10/01/2024',
-                    expectedEndDate: '30/11/2025',
-                    productList: [
-                        { name: 'ซิลิโคน', price: '500,000' },
-                        { name: 'อุปกรณ์ฟิตติ้ง', price: '1,200,000' }
-                    ],
-                    value: 25000000,
-                    status: 'Planning'
-                }
-            ];
-            if (!query.trim()) {
-                 resolve(db);
-                 return;
-            }
-            const q = query.toLowerCase();
-            resolve(db.filter(p => p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)));
-        }, 500);
-    });
-};
-</script>
-
-<style scoped>
-@import './shared-styles.css';
-
-.project-info-tab {
-    padding: 20px;
-}
-
-.form-section {
-    margin-bottom: 25px;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.upload-grid-small {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.guarantee-section {
-    display: flex;
-    flex-direction: column;
-}
-
-.guarantee-detail-card {
-    background-color: #f8f9fa;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    padding: 10px;
-}
-
-.truncate {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.section-header h3 {
-  margin: 0;
-}
-
-.form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-.upload-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.form-group.full-width {
-    grid-column: 1 / -1;
-}
-
-.search-wrapper {
-    display: flex;
-    gap: 10px;
-}
-
-.search-wrapper input {
-    flex: 1;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-.search-hint {
-    font-size: 12px;
-    color: #666;
-    margin-top: 5px;
-    margin-bottom: 5px;
-}
-
-.btn-search-project {
-    padding: 8px 16px;
-    background-color: #333;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.btn-search-project:disabled {
-    background-color: #ccc;
-}
-
-.project-results {
-    margin-top: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.project-item {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-}
-
-.project-item:hover {
-    background-color: #f5f5f5;
-}
-
-.proj-title {
-    font-weight: bold;
-    color: #0056FF;
-}
-
-.proj-desc {
-    font-size: 12px;
-    color: #666;
-}
-
-.project-search-msg {
-    margin-top: 5px;
-    font-size: 12px;
-    color: red;
-}
-
-.btn-clear {
-    background: none;
-    border: 1px solid #dc3545;
-    color: #dc3545;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-}
-
-.required::after {
-    content: " *";
-    color: red;
-}
-
-.text-primary {
-    color: #0056FF;
-}
-
-.btn-text-add {
-    background: none;
-    border: none;
-    color: #0056FF;
-    font-size: 13px;
-    cursor: pointer;
-    font-weight: 500;
-    padding: 0;
-    line-height: 1;
-}
-
-.btn-text-add:hover {
-    text-decoration: underline;
-}
-
-.product-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.product-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.btn-icon-delete-small {
-    background: none;
-    border: none;
-    color: #999;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 50%;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-icon-delete-small:hover {
-    color: #dc3545;
-    background-color: #fee2e2;
-}
-
-.text-muted {
-    color: #888;
-}
-</style>
+with open('src/components/credit/tabs/ProjectInfoTab.vue', 'w') as f:
+    f.write(new_content)
