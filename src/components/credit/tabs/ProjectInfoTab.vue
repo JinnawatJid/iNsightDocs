@@ -102,6 +102,41 @@
              </div>
 
              <div class="form-group full-width" style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+                 <div class="section-header" style="margin-bottom: 15px;">
+                     <h3>ข้อมูลเพิ่มเติม</h3>
+                 </div>
+                 <div class="form-grid-three-columns">
+                     <div class="form-group">
+                         <label>ประเภทการรับเหมา</label>
+                         <select
+                             v-model="transactionData.contractorType"
+                             :disabled="props.readOnly"
+                             class="form-control"
+                         >
+                             <option value="" disabled selected>เลือกประเภทการรับเหมา</option>
+                             <option value="Main-Contractor">ผู้รับเหมาหลัก (Main-Contractor)</option>
+                             <option value="Sub-Contractor">ผู้รับเหมาช่วง (Sub-Contractor)</option>
+                         </select>
+                     </div>
+                     <div class="form-group">
+                         <label>ทีมของลูกค้า</label>
+                         <select
+                             v-model="transactionData.customerTeam"
+                             :disabled="props.readOnly"
+                             class="form-control"
+                         >
+                             <option value="" disabled selected>เลือกจำนวน</option>
+                             <option value="1-10 คน">1-10 คน</option>
+                             <option value="11-20 คน">11-20 คน</option>
+                             <option value="21-50 คน">21-50 คน</option>
+                             <option value="51-100 คน">51-100 คน</option>
+                             <option value="มากกว่า 100 คน">มากกว่า 100 คน</option>
+                         </select>
+                     </div>
+                 </div>
+             </div>
+
+             <div v-if="transactionData.contractorType === 'Sub-Contractor'" class="form-group full-width" style="margin-top: 10px;">
                  <div class="form-grid-three-columns">
                      <div class="form-group">
                          <label>ชื่อผู้รับเหมาหลัก</label>
@@ -122,21 +157,6 @@
                              class="form-control"
                              placeholder="ระบุเลขประจำตัวผู้เสียภาษี 13 หลัก"
                          />
-                     </div>
-                     <div class="form-group">
-                         <label>ทีมของลูกค้า</label>
-                         <select
-                             v-model="transactionData.customerTeam"
-                             :disabled="props.readOnly"
-                             class="form-control"
-                         >
-                             <option value="" disabled selected>เลือกจำนวน</option>
-                             <option value="1-10 คน">1-10 คน</option>
-                             <option value="11-20 คน">11-20 คน</option>
-                             <option value="21-50 คน">21-50 คน</option>
-                             <option value="51-100 คน">51-100 คน</option>
-                             <option value="มากกว่า 100 คน">มากกว่า 100 คน</option>
-                         </select>
                      </div>
                  </div>
 
@@ -169,8 +189,9 @@
                         />
                       </div>
                  </div>
+             </div>
 
-                 <div style="border-top: 1px solid #ddd; padding-top: 25px; margin-top: 25px;">
+             <div class="form-group full-width" style="border-top: 1px solid #ddd; padding-top: 25px; margin-top: 25px;">
                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                          <label style="margin: 0;">รายการสินค้าหลัก:</label>
                          <button v-if="!props.readOnly" @click="addProduct" class="btn-text-add">+ เพิ่มสินค้า</button>
@@ -204,7 +225,6 @@
                          (ไม่มีรายการสินค้าหลัก)
                      </div>
                  </div>
-             </div>
 
              <div class="form-group full-width" style="margin-top: 20px;">
                 <div class="upload-grid">
