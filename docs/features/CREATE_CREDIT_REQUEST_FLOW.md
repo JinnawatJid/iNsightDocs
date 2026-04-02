@@ -13,7 +13,7 @@ The `CreateCreditRequest` feature STRICTLY enforces a **"Search First"** pattern
    - Triggered when `store.hasSearched = true` AND `!isRequestStarted`.
    - The `CustomerProfileDashboard` is displayed, giving the user context about the customer's current limits, terms, and history.
    - The Action area transforms into a `+ เพิ่มคำขอเครดิตใหม่` (Start New Request) button. Clicking this opens a popover menu to select the specific request type (New, Increase, Change Terms, etc.).
-   - Options in the popover are dynamically disabled based on the customer's current credit limit (e.g., cannot request "New Credit" if they already have an existing limit).
+   - Options in the popover are dynamically disabled based on the customer's current credit limit (e.g., cannot request "New Credit" if they already have an existing limit). However, "Project Credit" requests bypass this rule and can be initiated regardless of whether the customer has an existing credit limit, provided the global Project Credit feature flag is enabled.
    - **Important:** At this stage, a temporary Draft Request ID (`store.requestId`) has **not** been generated yet. It is explicitly deferred until the user makes a selection.
 
 3. **Form Mode (Action State)**:
