@@ -137,7 +137,7 @@
              </div>
 
              <div v-if="transactionData.contractorType === 'Sub-Contractor'" class="form-group full-width" style="margin-top: 10px;">
-                 <div class="form-grid-three-columns">
+                 <div class="form-grid-two-columns">
                      <div class="form-group">
                          <label>ชื่อผู้รับเหมาหลัก</label>
                          <input
