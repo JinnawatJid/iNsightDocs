@@ -3,8 +3,8 @@
     <div class="tabs-container">
       <div class="tabs-header">
         <div
-          v-for="(tab, index) in tabs"
-          :key="index"
+          v-for="tab in tabs"
+          :key="tab.id"
           :class="['tab-item', { active: currentTab === tab.id }]"
           @click="handleTabClick(tab.id)"
         >
@@ -15,55 +15,56 @@
 
     <div class="tab-content">
       <keep-alive>
-        <component :is="currentTabComponent" :readOnly="readOnly" :isProjectAddress="currentTab === 'projectAddress'" />
+        <component
+          :is="currentTabComponent"
+          :readOnly="readOnly"
+          :projectIndex="projectIndex"
+        />
       </keep-alive>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import ProjectInfoTab from './tabs/ProjectInfoTab.vue';
-import StoreCompanyTab from './tabs/StoreCompanyTab.vue';
-import ProjectPhasingTab from './tabs/ProjectPhasingTab.vue';
-import RequestInfoTab from './tabs/RequestInfoTab.vue';
-import { useCreditRequestStore } from '@/stores/creditRequest';
+import { ref, computed } from 'vue';
+import ProjectInfoSection from './tabs/project-workspace/ProjectInfoSection.vue';
+import ProjectAddressSection from './tabs/project-workspace/ProjectAddressSection.vue';
+import ProjectPhasingSection from './tabs/project-workspace/ProjectPhasingSection.vue';
 
-const props = defineProps(['readOnly']);
-const store = useCreditRequestStore();
-
-const currentTab = computed({
-  get: () => store.activeProjectTab,
-  set: (val) => store.setActiveProjectTab(val)
+const props = defineProps({
+  projectIndex: {
+    type: Number,
+    required: true
+  },
+  readOnly: {
+    type: Boolean,
+    default: false
+  }
 });
 
-const tabs = computed(() => {
-  return [
-    { id: 'projectInfo', label: 'ข้อมูลโครงการ' },
-    { id: 'projectAddress', label: 'ที่อยู่โครงการ' },
-    { id: 'projectPhasing', label: 'รอบส่งสินค้า' },
-    { id: 'requestInfo', label: 'เงื่อนไขและคำขอ' }
-  ];
-});
+// Use local state for inner tabs so each project box can switch independently
+const currentTab = ref('projectInfo');
+
+const tabs = [
+  { id: 'projectInfo', label: 'ข้อมูลโครงการ' },
+  { id: 'projectAddress', label: 'ที่อยู่โครงการ' },
+  { id: 'projectPhasing', label: 'รอบส่งสินค้า' }
+];
 
 const handleTabClick = (tabId) => {
   currentTab.value = tabId;
-  // Disabled scrolling to top when clicking tabs in project application
-  // window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 const currentTabComponent = computed(() => {
   switch (currentTab.value) {
     case 'projectInfo':
-      return ProjectInfoTab;
+      return ProjectInfoSection;
     case 'projectAddress':
-      return StoreCompanyTab;
+      return ProjectAddressSection;
     case 'projectPhasing':
-      return ProjectPhasingTab;
-    case 'requestInfo':
-      return RequestInfoTab;
+      return ProjectPhasingSection;
     default:
-      return ProjectInfoTab;
+      return ProjectInfoSection;
   }
 });
 </script>
@@ -75,7 +76,7 @@ const currentTabComponent = computed(() => {
 }
 
 .tabs-container {
-  padding: 0 20px 20px 20px;
+  padding: 20px;
 }
 
 .tabs-header {

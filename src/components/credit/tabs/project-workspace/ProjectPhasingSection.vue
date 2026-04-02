@@ -1,14 +1,9 @@
 <template>
-  <div class="project-phasing-tab">
-    <div v-if="!transactionData.projectData" class="empty-state">
-      <p>กรุณาเลือกโครงการในแท็บ "ข้อมูลและเอกสารโครงการ" ก่อน</p>
-    </div>
-
-    <template v-else>
-      <div class="form-section">
+  <div class="project-phasing-section">
+    <div v-if="project" class="form-section">
         <div class="phasing-header">
-          <h3>แผนการใช้เครดิตแบบแบ่งงวด</h3>
-          <div style="display: flex; gap: 10px; align-items: center;" v-if="!props.readOnly">
+          <h3>แผนการใช้เครดิตแบบแบ่งงวด (รอบส่งสินค้า)</h3>
+          <div style="display: flex; gap: 10px; align-items: center;" v-if="!readOnly">
              <label style="font-size: 14px; color: #555;">รูปแบบการคำนวณวันจบ:</label>
              <select v-model="paymentCalculationMode" class="table-input" style="width: auto; padding: 4px 8px;">
                <option value="manual">กำหนดเอง</option>
@@ -24,17 +19,17 @@
               <th width="15%">วันเบิก</th>
               <th width="15%">{{ paymentCalculationMode === 'auto' ? 'กำหนดชำระ' : 'วันจบ' }}</th>
               <th width="20%">จำนวนเงิน (บาท)</th>
-              <th width="4%" v-if="!props.readOnly"></th>
+              <th width="4%" v-if="!readOnly"></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(phase, idx) in transactionData.projectPhasing" :key="idx" class="phase-row">
+            <tr v-for="(phase, idx) in projectPhasing" :key="idx" class="phase-row">
               <td class="text-center font-bold" style="font-size: 16px;">{{ idx + 1 }}</td>
               <td>
                 <input
                   type="text"
                   v-model="phase.description"
-                  :disabled="props.readOnly"
+                  :disabled="readOnly"
                   class="table-input"
                   placeholder="เช่น เทพื้นชั้น 1-3"
                 />
@@ -43,7 +38,7 @@
                 <input
                   type="date"
                   v-model="phase.billingDate"
-                  :disabled="props.readOnly"
+                  :disabled="readOnly"
                   @change="handleBillingDateChange(idx)"
                   class="table-input text-center"
                 />
@@ -52,7 +47,7 @@
                 <input
                   type="date"
                   v-model="phase.paymentDate"
-                  :disabled="props.readOnly || paymentCalculationMode === 'auto'"
+                  :disabled="readOnly || paymentCalculationMode === 'auto'"
                   class="table-input text-center"
                 />
               </td>
@@ -60,20 +55,20 @@
                 <input
                   type="text"
                   :value="phase.amount"
-                  :disabled="props.readOnly"
+                  :disabled="readOnly"
                   @blur="formatPhaseAmount(idx)"
                   @input="handlePhaseAmountInput(idx, $event)"
                   class="table-input text-right"
                   placeholder="0.00"
                 />
               </td>
-              <td v-if="!props.readOnly" class="text-center action-col">
+              <td v-if="!readOnly" class="text-center action-col">
                 <button class="btn-icon-delete" @click="removePhase(idx)" title="ลบงวดนี้">
                   ✕
                 </button>
               </td>
             </tr>
-            <tr v-if="transactionData.projectPhasing.length === 0 && props.readOnly">
+            <tr v-if="projectPhasing.length === 0 && readOnly">
               <td colspan="5" class="text-center empty-row">
                 ไม่มีข้อมูลตารางแบ่งงวด
               </td>
@@ -82,11 +77,11 @@
         </table>
 
         <!-- Add Phase Button below the table to match design -->
-        <button v-if="!props.readOnly" class="btn-add-phase-dashed" @click="addPhase">
+        <button v-if="!readOnly" class="btn-add-phase-dashed" @click="addPhase">
           + เพิ่มงวดใหม่
         </button>
 
-        <div class="analyze-section" v-if="transactionData?.projectPhasing?.length > 0 && !showAnalysis">
+        <div class="analyze-section" v-if="projectPhasing.length > 0 && !showAnalysis">
            <button class="btn-primary" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px; border-radius: 8px; color: white;" @click="showAnalysis = true">
                วิเคราะห์และคำนวณรอบส่ง
            </button>
@@ -98,7 +93,7 @@
       <!-- Credit Calculation Section -->
       <div v-if="showAnalysis" class="credit-calc-card" style="margin-top: 30px;">
         <div class="calc-header" style="display: flex; justify-content: space-between; align-items: center;">
-          <h3>การวิเคราะห์วงเงินเครดิตโครงการ</h3>
+          <h3>การวิเคราะห์วงเงินเครดิตสำหรับโครงการนี้</h3>
           <div class="text-right" style="font-size: 14px;">
             <span class="text-muted">รวมมูลค่าตามงวด:</span>
             <span class="font-bold ml-2" style="font-size: 16px;">{{ formatNumber(totalPhaseAmount) }} บาท</span>
@@ -109,22 +104,12 @@
         </div>
         <div class="calc-body">
           <div class="calc-item">
-            <span class="calc-label">วงเงินเครดิตปัจจุบัน</span>
-            <span class="calc-value text-muted">{{ formatNumber(currentCreditLimit) }} บาท</span>
-          </div>
-          <div class="calc-operator">-</div>
-          <div class="calc-item">
             <span class="calc-label">ยอดหนี้สะสมสูงสุด (Peak Exposure)</span>
-            <span class="calc-value font-bold" :class="{'text-error': peakExposure > currentCreditLimit}">{{ formatNumber(peakExposure) }} บาท</span>
-          </div>
-          <div class="calc-operator">=</div>
-          <div class="calc-item highlight">
-            <span class="calc-label">ยอดขอเครดิตโครงการ</span>
-            <span class="calc-value text-primary font-bold">{{ formatNumber(requestedCreditAmount) }} บาท</span>
+            <span class="calc-value font-bold text-primary">{{ formatNumber(peakExposure) }} บาท</span>
           </div>
         </div>
-        <div v-if="requestedCreditAmount > 0" class="alert-banner">
-          ⚠️ วงเงินไม่เพียงพอสำหรับรอบการส่งมอบที่ซ้อนทับกัน ระบบได้คำนวณยอดขออนุมัติเพิ่มให้โดยอัตโนมัติ
+        <div class="alert-banner" style="background-color: #e6f7ff; color: #0056FF; border-top-color: #91d5ff;">
+          ℹ️ หมายเหตุ: ยอดหนี้สะสมสูงสุด (Peak Exposure) คือจำนวนเงินทุนที่ต้องใช้ในโครงการนี้ ณ ช่วงเวลาที่มีการเบิกจ่ายทับซ้อนกันมากที่สุด
         </div>
         <!-- Chart Control Section -->
         <div class="chart-controls" v-if="chartData" style="display: flex; justify-content: flex-end; padding: 15px 20px 0; border-top: 1px solid #eee;">
@@ -144,7 +129,6 @@
             </div>
         </div>
       </div>
-    </template>
   </div>
 </template>
 
@@ -181,16 +165,28 @@ ChartJS.register(
   Filler
 );
 
+const props = defineProps({
+  projectIndex: {
+    type: Number,
+    required: true
+  },
+  readOnly: {
+    type: Boolean,
+    default: false
+  }
+});
+
+const store = useCreditRequestStore();
 const showAnalysis = ref(false);
 const chartType = ref('stepped');
 const paymentCalculationMode = ref('manual');
 
-const props = defineProps(['readOnly']);
-const store = useCreditRequestStore();
+const project = computed(() => {
+  return store.transactionData.projects?.[props.projectIndex] || null;
+});
 
-const transactionData = computed({
-  get: () => store.transactionData,
-  set: (val) => { store.transactionData = val; }
+const projectPhasing = computed(() => {
+  return project.value?.projectPhasing || [];
 });
 
 function formatNumber(num) {
@@ -200,11 +196,11 @@ function formatNumber(num) {
 
 // Phasing Array Actions
 const addPhase = () => {
-    if (!store.transactionData) store.transactionData = {};
-    if (!store.transactionData.projectPhasing) {
-        store.transactionData.projectPhasing = [];
+    if (!project.value) return;
+    if (!project.value.projectPhasing) {
+        project.value.projectPhasing = [];
     }
-    store.transactionData.projectPhasing.push({
+    project.value.projectPhasing.push({
         description: '',
         billingDate: '',
         paymentDate: '',
@@ -213,7 +209,8 @@ const addPhase = () => {
 };
 
 const removePhase = (index) => {
-    store.transactionData.projectPhasing.splice(index, 1);
+    if (!project.value) return;
+    project.value.projectPhasing.splice(index, 1);
 };
 
 const calculatePaymentDate = (billingDateStr) => {
@@ -228,61 +225,55 @@ const calculatePaymentDate = (billingDateStr) => {
 };
 
 const handleBillingDateChange = (index) => {
-    if (paymentCalculationMode.value === 'auto') {
-        const billingDate = store.transactionData.projectPhasing[index].billingDate;
+    if (paymentCalculationMode.value === 'auto' && project.value) {
+        const billingDate = project.value.projectPhasing[index].billingDate;
         if (billingDate) {
-            store.transactionData.projectPhasing[index].paymentDate = calculatePaymentDate(billingDate);
+            project.value.projectPhasing[index].paymentDate = calculatePaymentDate(billingDate);
         }
     }
 };
 
 watch(paymentCalculationMode, (newMode) => {
-    if (newMode === 'auto' && store.transactionData?.projectPhasing) {
-        store.transactionData.projectPhasing.forEach((phase, index) => {
+    if (newMode === 'auto' && project.value?.projectPhasing) {
+        project.value.projectPhasing.forEach((phase, index) => {
             if (phase.billingDate) {
-                store.transactionData.projectPhasing[index].paymentDate = calculatePaymentDate(phase.billingDate);
+                project.value.projectPhasing[index].paymentDate = calculatePaymentDate(phase.billingDate);
             }
         });
     }
 });
 
 const handlePhaseAmountInput = (index, event) => {
+    if (!project.value) return;
     let val = event.target.value;
     val = val.replace(/[^0-9.]/g, ''); // Allow decimals
-    store.transactionData.projectPhasing[index].amount = val;
+    project.value.projectPhasing[index].amount = val;
 };
 
 const formatPhaseAmount = (index) => {
-    const raw = store.transactionData.projectPhasing[index].amount;
+    if (!project.value) return;
+    const raw = project.value.projectPhasing[index].amount;
     const num = parseFloat(String(raw).replace(/,/g, ''));
     if (!isNaN(num)) {
-        store.transactionData.projectPhasing[index].amount = formatNumber(num);
+        project.value.projectPhasing[index].amount = formatNumber(num);
     }
 };
 
 const totalPhaseAmount = computed(() => {
-    if (!store.transactionData?.projectPhasing) return 0;
-    return store.transactionData.projectPhasing.reduce((sum, phase) => {
+    if (!projectPhasing.value) return 0;
+    return projectPhasing.value.reduce((sum, phase) => {
         const amt = parseFloat(String(phase.amount).replace(/,/g, '')) || 0;
         return sum + amt;
     }, 0);
 });
 
 const currentProjectValueLimit = computed(() => {
-    if (!store.transactionData) return 0;
-
-    // Prefer adjusted value if set, fallback to original project data value
-    const adjusted = store.transactionData?.adjustedProjectValue;
+    if (!project.value) return 0;
+    const adjusted = project.value.adjustedProjectValue;
     if (adjusted) {
          return parseFloat(String(adjusted).replace(/,/g, '')) || 0;
     }
-    return store.transactionData?.projectData?.value || 0;
-});
-
-// Credit Calculation Logic
-const currentCreditLimit = computed(() => {
-  // Use mock for now, can be updated later when API is ready
-  return Number(store.customer?.current_credit_limit) || 300000;
+    return project.value.projectData?.value || 0;
 });
 
 // Helper to parse dates securely
@@ -294,10 +285,10 @@ const parseDate = (dateString) => {
 };
 
 const peakExposure = computed(() => {
-  if (!store.transactionData?.projectPhasing || store.transactionData.projectPhasing.length === 0) return 0;
+  if (!projectPhasing.value || projectPhasing.value.length === 0) return 0;
 
   const events = [];
-  store.transactionData.projectPhasing.forEach((p) => {
+  projectPhasing.value.forEach((p) => {
     const amt = parseFloat(String(p.amount || '0').replace(/,/g, '')) || 0;
     if (amt > 0) {
       if (p.billingDate) {
@@ -328,26 +319,20 @@ const peakExposure = computed(() => {
     }
   }
 
-  // If no dates are set at all, we can't calculate a timeline.
-  // We could return sum or 0. Returning 0 is safer until dates are set.
   if (maxExp === 0 && totalPhaseAmount.value > 0 && events.filter(e => e.time !== null).length === 0) {
-     return 0; // Wait for dates to be set
+     return 0;
   }
 
   return Math.max(0, maxExp);
 });
 
-const requestedCreditAmount = computed(() => {
-  const diff = peakExposure.value - currentCreditLimit.value;
-  return Math.max(0, diff);
-});
 
 // Chart.js Data Configuration
 const chartData = computed(() => {
-  if (!store.transactionData?.projectPhasing || store.transactionData.projectPhasing.length === 0) return null;
+  if (!projectPhasing.value || projectPhasing.value.length === 0) return null;
 
   const events = [];
-  store.transactionData.projectPhasing.forEach((p, i) => {
+  projectPhasing.value.forEach((p, i) => {
     const amt = parseFloat(String(p.amount || '0').replace(/,/g, '')) || 0;
     if (amt > 0) {
       if (p.billingDate) {
@@ -372,7 +357,7 @@ const chartData = computed(() => {
     return `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
   };
 
-  // Group events by exact date to prevent horizontal stretching of the same day
+  // Group events by exact date
   const groupedEvents = [];
   validEvents.forEach(ev => {
     const dateObj = new Date(ev.time);
@@ -420,7 +405,6 @@ const chartData = computed(() => {
       exposureData.push(Math.max(0, currentExposure));
   }
 
-  const limitData = labels.map(() => currentCreditLimit.value);
   const isBar = chartType.value === 'bar';
 
   return {
@@ -437,18 +421,6 @@ const chartData = computed(() => {
         fill: true,
         pointBackgroundColor: '#2563eb',
         pointRadius: isBar ? 0 : 6,
-        order: 2
-      },
-      {
-        type: 'line',
-        label: 'วงเงินเครดิตปัจจุบัน',
-        data: limitData,
-        borderColor: '#ef4444',
-        borderWidth: 2,
-        borderDash: [5, 5],
-        fill: false,
-        pointRadius: 0,
-        stepped: false,
         order: 1
       }
     ]
@@ -529,28 +501,13 @@ const chartOptions = computed(() => {
   }
   };
 });
-
-watch(requestedCreditAmount, (newVal) => {
-  if (!props.readOnly && newVal > 0) {
-    store.transactionData.amount = formatNumber(newVal);
-  }
-}, { immediate: true });
 </script>
 
 <style scoped>
-@import './shared-styles.css';
+@import '../shared-styles.css';
 
-.project-phasing-tab {
-    padding: 20px;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 40px;
-    background-color: #f9f9f9;
-    border: 1px dashed #ccc;
-    border-radius: 8px;
-    color: #666;
+.project-phasing-section {
+    padding: 0;
 }
 
 .text-muted {
@@ -641,26 +598,6 @@ watch(requestedCreditAmount, (newVal) => {
     background-color: #fee2e2;
 }
 
-.phasing-footer {
-    display: flex;
-    justify-content: flex-end;
-    align-items: flex-start;
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid #eee;
-    gap: 20px;
-}
-
-.total-label {
-    font-size: 16px;
-    color: #333;
-}
-
-.total-amount {
-    font-size: 16px;
-    text-align: right;
-}
-
 .table-input {
     width: 100%;
     padding: 8px;
@@ -725,34 +662,16 @@ watch(requestedCreditAmount, (newVal) => {
 .calc-body {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center; /* Centered since we only have one item now */
   padding: 20px 30px;
   gap: 10px;
-}
-
-@media (max-width: 768px) {
-  .calc-body {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .calc-operator {
-    text-align: center;
-    transform: rotate(90deg);
-  }
 }
 
 .calc-item {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  flex: 1;
-}
-
-.calc-item.highlight {
-  background-color: #f0f5ff;
-  padding: 15px;
-  border-radius: 8px;
-  border: 1px dashed #0056FF;
+  align-items: center; /* Center content */
 }
 
 .calc-label {
@@ -761,14 +680,7 @@ watch(requestedCreditAmount, (newVal) => {
 }
 
 .calc-value {
-  font-size: 20px;
-}
-
-.calc-operator {
-  font-size: 24px;
-  font-weight: bold;
-  color: #ccc;
-  padding: 0 10px;
+  font-size: 24px; /* Larger font size */
 }
 
 .alert-banner {
