@@ -124,9 +124,6 @@ const addProject = (proj) => {
     projectSearchResults.value = [];
     projectSearchQuery.value = '';
     projectSearchMsg.value = '';
-
-    // Switch to the newly added project tab
-    store.setActiveProjectTab(store.transactionData.projects.length - 1);
 };
 
 // Mock API for external Sales System

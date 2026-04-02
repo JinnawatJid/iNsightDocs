@@ -1,115 +1,72 @@
 <template>
-  <div class="project-application-tabs" :class="{ 'vertical-layout': displayMode === 'vertical' }">
-    <!-- Horizontal Layout -->
-    <template v-if="displayMode === 'horizontal'">
-      <div class="tabs-container">
-        <div class="tabs-header">
-          <div
-            v-if="!readOnly"
-            :class="['tab-item', { active: currentTab === 'add' }]"
-            @click="handleTabClick('add')"
-          >
-            + เพิ่มโครงการ
-          </div>
-          <div
-            v-for="(project, index) in projects"
-            :key="index"
-            :class="['tab-item', { active: currentTab === index }]"
-            @click="handleTabClick(index)"
-          >
-            {{ `โครงการที่ ${index + 1}` }}
-          </div>
+  <div class="project-application-tabs">
+    <div class="tabs-container">
+      <div class="tabs-header">
+        <div
+          v-for="tab in tabs"
+          :key="tab.id"
+          :class="['tab-item', { active: currentTab === tab.id }]"
+          @click="handleTabClick(tab.id)"
+        >
+          {{ tab.label }}
         </div>
       </div>
+    </div>
 
-      <div class="tab-content">
-        <keep-alive>
-          <AddProjectTab v-if="currentTab === 'add' && !readOnly" />
-          <ProjectWorkspace v-else-if="typeof currentTab === 'number' && currentTab >= 0" :projectIndex="currentTab" :readOnly="readOnly" />
-        </keep-alive>
-      </div>
-    </template>
-
-    <!-- Vertical Layout -->
-    <template v-else>
-       <div class="sidebar-container">
-          <div class="sidebar-menu">
-             <div
-                v-if="!readOnly"
-                :class="['sidebar-item', 'sidebar-add', { active: currentTab === 'add' }]"
-                @click="handleTabClick('add')"
-              >
-                <span class="icon">+</span> เพิ่มโครงการใหม่
-              </div>
-              <div
-                v-for="(project, index) in projects"
-                :key="index"
-                :class="['sidebar-item', { active: currentTab === index }]"
-                @click="handleTabClick(index)"
-              >
-                <div class="sidebar-item-content">
-                  <span class="project-title">{{ `โครงการที่ ${index + 1}` }}</span>
-                  <span class="project-subtitle text-xs text-muted truncate" :title="project.projectData.name">{{ project.projectData.name }}</span>
-                </div>
-              </div>
-          </div>
-       </div>
-       <div class="main-content">
-          <div class="tab-content">
-            <keep-alive>
-              <AddProjectTab v-if="currentTab === 'add' && !readOnly" />
-              <ProjectWorkspace v-else-if="typeof currentTab === 'number' && currentTab >= 0" :projectIndex="currentTab" :readOnly="readOnly" />
-            </keep-alive>
-          </div>
-       </div>
-    </template>
-
+    <div class="tab-content">
+      <keep-alive>
+        <component
+          :is="currentTabComponent"
+          :readOnly="readOnly"
+          :projectIndex="projectIndex"
+        />
+      </keep-alive>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, watch, onMounted } from 'vue';
-import { useCreditRequestStore } from '@/stores/creditRequest';
-import AddProjectTab from './tabs/project-workspace/AddProjectTab.vue';
-import ProjectWorkspace from './tabs/project-workspace/ProjectWorkspace.vue';
+import { ref, computed } from 'vue';
+import ProjectInfoSection from './tabs/project-workspace/ProjectInfoSection.vue';
+import ProjectAddressSection from './tabs/project-workspace/ProjectAddressSection.vue';
+import ProjectPhasingSection from './tabs/project-workspace/ProjectPhasingSection.vue';
 
-const props = defineProps(['readOnly']);
-const store = useCreditRequestStore();
-
-// Default to 'add' if not readOnly and no projects, else 0
-onMounted(() => {
-  if (!store.transactionData.projects) {
-    store.transactionData.projects = [];
-  }
-  if (store.activeProjectTab === 'projectInfo' || store.activeProjectTab === 'requestInfo' || store.activeProjectTab === 'projectAddress' || store.activeProjectTab === 'projectPhasing') {
-    if (store.transactionData.projects.length > 0) {
-      store.setActiveProjectTab(0);
-    } else {
-      store.setActiveProjectTab('add');
-    }
+const props = defineProps({
+  projectIndex: {
+    type: Number,
+    required: true
+  },
+  readOnly: {
+    type: Boolean,
+    default: false
   }
 });
 
-const currentTab = computed({
-  get: () => store.activeProjectTab,
-  set: (val) => store.setActiveProjectTab(val)
-});
+// Use local state for inner tabs so each project box can switch independently
+const currentTab = ref('projectInfo');
 
-const displayMode = computed(() => store.projectDisplayMode);
-
-const projects = computed(() => {
-  return store.transactionData.projects || [];
-});
-
-watch(projects, (newProjects) => {
-  if (newProjects.length === 0 && !props.readOnly) {
-    currentTab.value = 'add';
-  }
-}, { deep: true });
+const tabs = [
+  { id: 'projectInfo', label: 'ข้อมูลโครงการ' },
+  { id: 'projectAddress', label: 'ที่อยู่โครงการ' },
+  { id: 'projectPhasing', label: 'รอบส่งสินค้า' }
+];
 
 const handleTabClick = (tabId) => {
   currentTab.value = tabId;
 };
+
+const currentTabComponent = computed(() => {
+  switch (currentTab.value) {
+    case 'projectInfo':
+      return ProjectInfoSection;
+    case 'projectAddress':
+      return ProjectAddressSection;
+    case 'projectPhasing':
+      return ProjectPhasingSection;
+    default:
+      return ProjectInfoSection;
+  }
+});
 </script>
 
 <style scoped>
@@ -119,7 +76,7 @@ const handleTabClick = (tabId) => {
 }
 
 .tabs-container {
-  padding: 0 20px 20px 20px;
+  padding: 20px;
 }
 
 .tabs-header {
@@ -159,96 +116,5 @@ const handleTabClick = (tabId) => {
 .tab-content {
   padding: 0 20px 20px 20px;
   text-align: left;
-}
-
-/* Vertical Layout Styles */
-.vertical-layout {
-  display: flex;
-  gap: 20px;
-  padding: 20px;
-}
-
-.sidebar-container {
-  width: 250px;
-  flex-shrink: 0;
-  border-right: 1px solid #eee;
-  padding-right: 15px;
-}
-
-.main-content {
-  flex: 1;
-  min-width: 0; /* Prevents overflow */
-}
-
-.sidebar-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sidebar-item {
-  padding: 12px 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-  display: flex;
-  align-items: center;
-}
-
-.sidebar-item:hover {
-  background-color: #f8f9fa;
-  border-color: #e0e0e0;
-}
-
-.sidebar-item.active {
-  background-color: #f0f5ff;
-  border-color: #0056FF;
-  box-shadow: 0 2px 4px rgba(0, 86, 255, 0.1);
-}
-
-.sidebar-add {
-  color: #0056FF;
-  font-weight: 500;
-  justify-content: center;
-  border: 1px dashed #0056FF;
-  background-color: #f8fbff;
-}
-
-.sidebar-add:hover {
-  background-color: #e6f0ff;
-}
-
-.sidebar-add .icon {
-  margin-right: 8px;
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.sidebar-item-content {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  overflow: hidden;
-}
-
-.project-title {
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.sidebar-item.active .project-title {
-  color: #0056FF;
-}
-
-.text-muted {
-  color: #888;
-}
-
-.truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 </style>

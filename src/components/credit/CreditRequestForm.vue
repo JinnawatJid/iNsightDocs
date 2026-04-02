@@ -34,17 +34,25 @@
     </div>
 
     <!-- Project Tabs (Project Info) -->
-    <div v-if="isProjectCredit" class="unified-card project-card">
-      <div class="card-header">
-        <h3>ข้อมูลและเงื่อนไขโครงการ</h3>
-        <div class="header-actions">
-           <button class="toggle-details-btn" @click="store.toggleProjectDisplayMode()" title="สลับรูปแบบการแสดงผล (แนวนอน / แนวตั้ง)">
-              สลับมุมมอง ({{ store.projectDisplayMode === 'horizontal' ? 'แนวนอน' : 'แนวตั้ง' }})
-           </button>
+    <template v-if="isProjectCredit">
+      <div v-for="(project, index) in store.transactionData.projects" :key="index" class="unified-card project-card">
+        <div class="card-header" style="padding-bottom: 20px; border-bottom: 1px solid #eee;">
+          <h3>ข้อมูลและเงื่อนไขโครงการ: <span style="font-weight: normal; color: #555;">{{ project.projectData.name }}</span></h3>
+          <div class="header-actions">
+             <button v-if="!isReadOnly" class="btn-clear" @click="removeProjectCard(index)">ลบโครงการนี้</button>
+          </div>
         </div>
+        <ProjectApplicationTabs :projectIndex="index" :readOnly="isReadOnly" />
       </div>
-      <ProjectApplicationTabs :readOnly="isReadOnly" />
-    </div>
+
+      <!-- Add New Project Section -->
+      <div v-if="!isReadOnly" class="unified-card project-card add-project-card">
+         <div class="card-header" style="padding-bottom: 20px; border-bottom: 1px solid #eee;">
+            <h3>+ เพิ่มโครงการใหม่</h3>
+         </div>
+         <AddProjectTab />
+      </div>
+    </template>
 
       <div class="form-footer">
         <!-- Unified Review Section (Terms + Comments) -->
@@ -122,6 +130,7 @@
 <script setup>
 import ApplicationTabs from './ApplicationTabs.vue';
 import ProjectApplicationTabs from './ProjectApplicationTabs.vue';
+import AddProjectTab from './tabs/project-workspace/AddProjectTab.vue';
 import CreditReviewSection from './CreditReviewSection.vue';
 import ChangeSummaryModal from './ChangeSummaryModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
@@ -138,6 +147,23 @@ const route = useRoute();
 // Local State for View Mode
 const showAllDetails = ref(false);
 const showChangeSummary = ref(false);
+
+const removeProjectCard = (index) => {
+    const project = store.transactionData.projects[index];
+    if (!project) return;
+    const projectId = project.projectId;
+    store.transactionData.projects.splice(index, 1);
+
+    // Cleanup files associated with this project ID
+    store.updateFile('project_contract_doc_' + projectId, null);
+    store.updateFile('quotation_doc_' + projectId, null);
+    store.updateFile('project_security_doc_' + projectId, null);
+    store.updateFile('project_cash_deposit_doc_' + projectId, null);
+    store.updateFile('contractor_company_profile_doc_' + projectId, null);
+    store.updateFile('contractor_balance_sheet_doc_' + projectId, null);
+    store.updateFile('contractor_profit_loss_doc_' + projectId, null);
+    store.updateFile('contractor_financial_ratios_doc_' + projectId, null);
+};
 const changesToConfirm = ref([]);
 const pendingActionBtn = ref(null);
 const isCustomerInfoExpanded = ref(true); // Control visibility of top section for Project Credits
@@ -221,19 +247,7 @@ const primaryActions = computed(() => {
 // Tab navigation logic
 const activeTabsList = computed(() => {
     if (isProjectCredit.value) {
-        const tabs = [];
-        const projectCount = store.transactionData.projects ? store.transactionData.projects.length : 0;
-        if (projectCount === 0) {
-            tabs.push('add');
-        } else {
-            for (let i = 0; i < projectCount; i++) {
-                tabs.push(i);
-            }
-            if (!isReadOnly.value) {
-                tabs.push('add');
-            }
-        }
-        return tabs;
+        return ['projectCards']; // Reverting to single step representation since layout is vertical scroll
     }
     if (viewMode.value === 'focus') {
         return ['requestInfo'];
@@ -245,18 +259,15 @@ const activeTabsList = computed(() => {
 const isLastTab = computed(() => {
     if (activeTabsList.value.length === 0) return true;
     if (isProjectCredit.value) {
-        return store.activeProjectTab === activeTabsList.value[activeTabsList.value.length - 1];
+        return true; // With vertical stacked cards, we don't have linear 'next' steps.
     }
     return store.activeTab === activeTabsList.value[activeTabsList.value.length - 1];
 });
 
 const handleNextTab = () => {
     if (isProjectCredit.value) {
-        const currentIndex = activeTabsList.value.indexOf(store.activeProjectTab);
-        if (currentIndex >= 0 && currentIndex < activeTabsList.value.length - 1) {
-            store.setActiveProjectTab(activeTabsList.value[currentIndex + 1]);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        // No action needed for project credit as it's a single vertical scrolling page now
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     } else {
         const currentIndex = activeTabsList.value.indexOf(store.activeTab);
         if (currentIndex >= 0 && currentIndex < activeTabsList.value.length - 1) {
