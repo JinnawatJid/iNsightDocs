@@ -44,7 +44,7 @@
       <div class="form-footer">
         <!-- Unified Review Section (Terms + Comments) -->
         <CreditReviewSection
-          v-if="( (isProjectCredit && store.activeProjectTab === 'requestInfo') || (!isProjectCredit && store.activeTab === 'financial') || viewMode === 'focus')"
+          v-if="( (isProjectCredit && isLastTab) || (!isProjectCredit && store.activeTab === 'financial') || viewMode === 'focus')"
           :readOnly="isReadOnly"
           :showTerms="showTerms"
           :comments="comments"
@@ -216,7 +216,19 @@ const primaryActions = computed(() => {
 // Tab navigation logic
 const activeTabsList = computed(() => {
     if (isProjectCredit.value) {
-        return ['projectInfo', 'projectPhasing', 'requestInfo'];
+        const tabs = [];
+        const projectCount = store.transactionData.projects ? store.transactionData.projects.length : 0;
+        if (projectCount === 0) {
+            tabs.push('add');
+        } else {
+            for (let i = 0; i < projectCount; i++) {
+                tabs.push(i);
+            }
+            if (!isReadOnly.value) {
+                tabs.push('add');
+            }
+        }
+        return tabs;
     }
     if (viewMode.value === 'focus') {
         return ['requestInfo'];

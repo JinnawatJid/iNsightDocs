@@ -3,69 +3,73 @@
     <div class="tabs-container">
       <div class="tabs-header">
         <div
-          v-for="(tab, index) in tabs"
-          :key="index"
-          :class="['tab-item', { active: currentTab === tab.id }]"
-          @click="handleTabClick(tab.id)"
+          v-if="!readOnly"
+          :class="['tab-item', { active: currentTab === 'add' }]"
+          @click="handleTabClick('add')"
         >
-          {{ tab.label }}
+          + เพิ่มโครงการ
+        </div>
+        <div
+          v-for="(project, index) in projects"
+          :key="index"
+          :class="['tab-item', { active: currentTab === index }]"
+          @click="handleTabClick(index)"
+        >
+          {{ `โครงการที่ ${index + 1}` }}
         </div>
       </div>
     </div>
 
     <div class="tab-content">
       <keep-alive>
-        <component :is="currentTabComponent" :readOnly="readOnly" :isProjectAddress="currentTab === 'projectAddress'" />
+        <AddProjectTab v-if="currentTab === 'add' && !readOnly" />
+        <ProjectWorkspace v-else-if="typeof currentTab === 'number' && currentTab >= 0" :projectIndex="currentTab" :readOnly="readOnly" />
       </keep-alive>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import ProjectInfoTab from './tabs/ProjectInfoTab.vue';
-import StoreCompanyTab from './tabs/StoreCompanyTab.vue';
-import ProjectPhasingTab from './tabs/ProjectPhasingTab.vue';
-import RequestInfoTab from './tabs/RequestInfoTab.vue';
+import { computed, watch, onMounted } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import AddProjectTab from './tabs/project-workspace/AddProjectTab.vue';
+import ProjectWorkspace from './tabs/project-workspace/ProjectWorkspace.vue';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
+
+// Default to 'add' if not readOnly and no projects, else 0
+onMounted(() => {
+  if (!store.transactionData.projects) {
+    store.transactionData.projects = [];
+  }
+  if (store.activeProjectTab === 'projectInfo' || store.activeProjectTab === 'requestInfo' || store.activeProjectTab === 'projectAddress' || store.activeProjectTab === 'projectPhasing') {
+    if (store.transactionData.projects.length > 0) {
+      store.setActiveProjectTab(0);
+    } else {
+      store.setActiveProjectTab('add');
+    }
+  }
+});
 
 const currentTab = computed({
   get: () => store.activeProjectTab,
   set: (val) => store.setActiveProjectTab(val)
 });
 
-const tabs = computed(() => {
-  return [
-    { id: 'projectInfo', label: 'ข้อมูลโครงการ' },
-    { id: 'projectAddress', label: 'ที่อยู่โครงการ' },
-    { id: 'projectPhasing', label: 'รอบส่งสินค้า' },
-    { id: 'requestInfo', label: 'เงื่อนไขและคำขอ' }
-  ];
+const projects = computed(() => {
+  return store.transactionData.projects || [];
 });
+
+watch(projects, (newProjects) => {
+  if (newProjects.length === 0 && !props.readOnly) {
+    currentTab.value = 'add';
+  }
+}, { deep: true });
 
 const handleTabClick = (tabId) => {
   currentTab.value = tabId;
-  // Disabled scrolling to top when clicking tabs in project application
-  // window.scrollTo({ top: 0, behavior: 'smooth' });
 };
-
-const currentTabComponent = computed(() => {
-  switch (currentTab.value) {
-    case 'projectInfo':
-      return ProjectInfoTab;
-    case 'projectAddress':
-      return StoreCompanyTab;
-    case 'projectPhasing':
-      return ProjectPhasingTab;
-    case 'requestInfo':
-      return RequestInfoTab;
-    default:
-      return ProjectInfoTab;
-  }
-});
 </script>
 
 <style scoped>

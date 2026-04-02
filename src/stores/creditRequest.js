@@ -56,7 +56,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
     blacklistAlert: null,
 
     activeTab: "requestInfo",
-    activeProjectTab: "projectInfo",
+    activeProjectTab: "add",
   }),
 
   getters: {
