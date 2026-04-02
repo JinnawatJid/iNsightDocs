@@ -93,7 +93,7 @@
             <div class="menu-divider"></div>
             <div
                class="menu-item"
-               :class="{ disabled: !canRequestExisting || !projectCreditEnabled }"
+               :class="{ disabled: !projectCreditEnabled }"
                @click="handleMenuSelect('เครดิตโครงการ')"
             >
                เครดิตโครงการ
@@ -163,8 +163,8 @@ export default {
     const handleMenuSelect = (type) => {
         // Validate selection against logic
         if (type === 'เครดิตใหม่' && !canRequestNew.value) return;
-        if (type === 'เครดิตโครงการ' && (!canRequestExisting.value || !projectCreditEnabled.value)) return;
-        if (type !== 'เครดิตใหม่' && !canRequestExisting.value) return;
+        if (type === 'เครดิตโครงการ' && !projectCreditEnabled.value) return;
+        if (type !== 'เครดิตใหม่' && type !== 'เครดิตโครงการ' && !canRequestExisting.value) return;
 
         emit('start-request', type);
         showMenu.value = false;
@@ -255,7 +255,7 @@ export default {
   },
   methods: {
     isOptionDisabled(option) {
-      if (option.value === 'เครดิตโครงการ' && (!this.canRequestExisting || !this.projectCreditEnabled)) return true;
+      if (option.value === 'เครดิตโครงการ' && !this.projectCreditEnabled) return true;
       if (option.value === 'เครดิตใหม่' && !this.canRequestNew) return true;
       if (option.value !== 'เครดิตใหม่' && option.value !== 'เครดิตโครงการ' && !this.canRequestExisting) return true;
       return false;
