@@ -57,6 +57,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
     activeTab: "requestInfo",
     activeProjectTab: "add",
+    projectDisplayMode: "horizontal", // 'horizontal' or 'vertical'
   }),
 
   getters: {
@@ -965,6 +966,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
     setActiveProjectTab(tabId) {
       this.activeProjectTab = tabId;
+    },
+
+    toggleProjectDisplayMode() {
+      this.projectDisplayMode = this.projectDisplayMode === "horizontal" ? "vertical" : "horizontal";
     },
 
     async updateStatus(newStatus, comment = "") {

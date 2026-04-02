@@ -37,6 +37,11 @@
     <div v-if="isProjectCredit" class="unified-card project-card">
       <div class="card-header">
         <h3>ข้อมูลและเงื่อนไขโครงการ</h3>
+        <div class="header-actions">
+           <button class="toggle-details-btn" @click="store.toggleProjectDisplayMode()" title="สลับรูปแบบการแสดงผล (แนวนอน / แนวตั้ง)">
+              สลับมุมมอง ({{ store.projectDisplayMode === 'horizontal' ? 'แนวนอน' : 'แนวตั้ง' }})
+           </button>
+        </div>
       </div>
       <ProjectApplicationTabs :readOnly="isReadOnly" />
     </div>
