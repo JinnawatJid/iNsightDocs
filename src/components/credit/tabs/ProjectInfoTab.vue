@@ -66,11 +66,6 @@
                          <label>ผู้รับผิดชอบโครงการ</label>
                          <input type="text" class="form-control" disabled :value="transactionData.projectData.projectManager" />
                      </div>
-                 </div>
-             </div>
-
-             <div class="form-group full-width" style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
-                 <div class="form-grid-three-columns">
                      <div class="form-group">
                          <label>วันเริ่มโครงการ</label>
                          <input
@@ -103,7 +98,11 @@
                              placeholder="ระบุมูลค่าโครงการ"
                          />
                      </div>
+                 </div>
+             </div>
 
+             <div class="form-group full-width" style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+                 <div class="form-grid-three-columns">
                      <div class="form-group">
                          <label>ชื่อผู้รับเหมาหลัก</label>
                          <input
