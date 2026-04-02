@@ -591,7 +591,8 @@ const files = reactive({
   quotation: null,
   projectContract: null,
   projectPlan: null,
-  projectSecurity: null
+  projectSecurity: null,
+  projectCashDeposit: null
 });
 
 watch(() => store.customer.has_other_credit, (newVal) => {
@@ -626,6 +627,10 @@ watch(() => files.projectSecurity, (newVal) => {
   store.updateFile('project_security_doc', newVal);
 });
 
+watch(() => files.projectCashDeposit, (newVal) => {
+  store.updateFile('project_cash_deposit_doc', newVal);
+});
+
 // Initialize files from store (to support Edit mode or tab switching)
 watch(() => store.files, (newVal) => {
   files.creditApp = newVal?.credit_application_doc || null;
@@ -633,6 +638,7 @@ watch(() => store.files, (newVal) => {
   files.projectContract = newVal?.project_contract_doc || null;
   files.projectPlan = newVal?.project_plan_doc || null;
   files.projectSecurity = newVal?.project_security_doc || null;
+  files.projectCashDeposit = newVal?.project_cash_deposit_doc || null;
 }, { immediate: true, deep: true });
 
 const reasonOptions = computed(() => {

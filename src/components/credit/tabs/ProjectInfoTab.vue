@@ -244,12 +244,86 @@
                         :disabled="props.readOnly"
                         multiple
                     />
-                    <FileUploader
-                        label="สำเนา Bank Guarantee / หลักฐานเงินมัดจำ"
-                        v-model="files.projectSecurity"
-                        :disabled="props.readOnly"
-                        multiple
-                    />
+                </div>
+
+                <div class="upload-grid-small" style="margin-top: 20px;">
+                    <div class="guarantee-section">
+                        <FileUploader
+                            label="Bank Guarantee"
+                            v-model="files.projectSecurity"
+                            :disabled="props.readOnly"
+                            multiple
+                        />
+                        <div v-if="files.projectSecurity && files.projectSecurity.length > 0" class="guarantee-details mt-2">
+                            <div v-for="(file, index) in files.projectSecurity" :key="index" class="guarantee-detail-card mb-2">
+                                <div class="guarantee-file-name text-primary text-sm mb-1 font-semibold truncate" :title="file.name">
+                                    {{ file.name }}
+                                </div>
+                                <div class="guarantee-inputs row g-2">
+                                    <div class="col-6">
+                                        <label class="text-xs text-muted mb-1">จำนวนเงิน</label>
+                                        <input
+                                            type="text"
+                                            class="form-control form-control-sm"
+                                            placeholder="เช่น 1,000,000"
+                                            :value="formatGuaranteeAmount(getGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'amount'))"
+                                            @input="(e) => handleGuaranteeAmountInput('projectBankGuaranteeDetails', file.name, 'amount', e.target.value)"
+                                            :disabled="props.readOnly"
+                                        />
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
+                                        <input
+                                            type="date"
+                                            class="form-control form-control-sm"
+                                            :value="getGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate')"
+                                            @input="(e) => updateGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
+                                            :disabled="props.readOnly"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="guarantee-section">
+                        <FileUploader
+                            label="หลักฐานเงินสดมัดจำ"
+                            v-model="files.projectCashDeposit"
+                            :disabled="props.readOnly"
+                            multiple
+                        />
+                        <div v-if="files.projectCashDeposit && files.projectCashDeposit.length > 0" class="guarantee-details mt-2">
+                            <div v-for="(file, index) in files.projectCashDeposit" :key="index" class="guarantee-detail-card mb-2">
+                                <div class="guarantee-file-name text-primary text-sm mb-1 font-semibold truncate" :title="file.name">
+                                    {{ file.name }}
+                                </div>
+                                <div class="guarantee-inputs row g-2">
+                                    <div class="col-6">
+                                        <label class="text-xs text-muted mb-1">จำนวนเงิน</label>
+                                        <input
+                                            type="text"
+                                            class="form-control form-control-sm"
+                                            placeholder="เช่น 500,000"
+                                            :value="formatGuaranteeAmount(getGuaranteeDetail('projectCashDepositDetails', file.name, 'amount'))"
+                                            @input="(e) => handleGuaranteeAmountInput('projectCashDepositDetails', file.name, 'amount', e.target.value)"
+                                            :disabled="props.readOnly"
+                                        />
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
+                                        <input
+                                            type="date"
+                                            class="form-control form-control-sm"
+                                            :value="getGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate')"
+                                            @input="(e) => updateGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate', e.target.value)"
+                                            :disabled="props.readOnly"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
              </div>
 
@@ -278,6 +352,7 @@ const files = reactive({
   quotation: null,
   projectContract: null,
   projectSecurity: null,
+  projectCashDeposit: null,
   contractorCompanyProfile: null,
   contractorBalanceSheet: null,
   contractorProfitLoss: null,
@@ -295,6 +370,10 @@ watch(() => files.projectContract, (newVal) => {
 
 watch(() => files.projectSecurity, (newVal) => {
   store.updateFile('project_security_doc', newVal);
+});
+
+watch(() => files.projectCashDeposit, (newVal) => {
+  store.updateFile('project_cash_deposit_doc', newVal);
 });
 
 watch(() => files.contractorCompanyProfile, (newVal) => {
@@ -319,6 +398,7 @@ watch(() => store.files, (newVal) => {
   files.quotation = newVal?.quotation_doc || null;
   files.projectContract = newVal?.project_contract_doc || null;
   files.projectSecurity = newVal?.project_security_doc || null;
+  files.projectCashDeposit = newVal?.project_cash_deposit_doc || null;
   files.contractorCompanyProfile = newVal?.contractor_company_profile_doc || null;
   files.contractorBalanceSheet = newVal?.contractor_balance_sheet_doc || null;
   files.contractorProfitLoss = newVal?.contractor_profit_loss_doc || null;
@@ -368,6 +448,42 @@ const formatProductPrice = (idx) => {
     if (!isNaN(num)) {
         store.transactionData.adjustedProductList[idx].price = formatNumber(num);
     }
+};
+
+// Guarantee Details Handlers
+const getGuaranteeDetail = (storeKey, fileName, field) => {
+    if (!store.transactionData[storeKey]) return '';
+    if (!store.transactionData[storeKey][fileName]) return '';
+    return store.transactionData[storeKey][fileName][field] || '';
+};
+
+const formatGuaranteeAmount = (val) => {
+    if (!val) return '';
+    const parts = String(val).split('.');
+    let formatted = Number(parts[0]).toLocaleString('en-US');
+    if (parts.length > 1) {
+        formatted += '.' + parts[1];
+    }
+    return formatted === 'NaN' ? val : formatted;
+};
+
+const handleGuaranteeAmountInput = (storeKey, fileName, field, rawValue) => {
+    let num = rawValue.replace(/[^0-9.]/g, '');
+    const parts = num.split('.');
+    if (parts.length > 2) {
+        num = parts[0] + '.' + parts.slice(1).join('');
+    }
+    updateGuaranteeDetail(storeKey, fileName, field, num);
+};
+
+const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
+    if (!store.transactionData[storeKey]) {
+        store.transactionData[storeKey] = {};
+    }
+    if (!store.transactionData[storeKey][fileName]) {
+        store.transactionData[storeKey][fileName] = {};
+    }
+    store.transactionData[storeKey][fileName][field] = value;
 };
 
 const addProduct = () => {
@@ -531,6 +647,24 @@ const mockFetchProjects = async (query) => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+}
+
+.guarantee-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.guarantee-detail-card {
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 10px;
+}
+
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .section-header h3 {
