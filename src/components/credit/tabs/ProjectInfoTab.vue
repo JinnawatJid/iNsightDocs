@@ -35,7 +35,7 @@
           <div v-if="projectSearchMsg" class="project-search-msg">{{ projectSearchMsg }}</div>
         </div>
 
-        <template v-if="transactionData.projectData">
+        <template v-if="project.projectData">
              <div class="form-group full-width" style="margin-top: 20px;">
                  <div class="section-header">
                      <h3>ข้อมูลโครงการที่เลือก</h3>
@@ -44,33 +44,33 @@
                  <div class="form-grid-three-columns">
                      <div class="form-group">
                          <label>รหัสโครงการ</label>
-                         <input type="text" class="form-control" disabled :value="transactionData.projectData.id" />
+                         <input type="text" class="form-control" disabled :value="project.projectData.id" />
                      </div>
                      <div class="form-group">
                          <label>ชื่อโครงการ</label>
-                         <input type="text" class="form-control" disabled :value="transactionData.projectData.name" />
+                         <input type="text" class="form-control" disabled :value="project.projectData.name" />
                      </div>
                      <div class="form-group">
                          <label>รหัสลูกค้า</label>
-                         <input type="text" class="form-control" disabled :value="transactionData.projectData.customerCode" />
+                         <input type="text" class="form-control" disabled :value="project.projectData.customerCode" />
                      </div>
                      <div class="form-group">
                          <label>ชื่อลูกค้า</label>
-                         <input type="text" class="form-control" disabled :value="transactionData.projectData.customerName" />
+                         <input type="text" class="form-control" disabled :value="project.projectData.customerName" />
                      </div>
                      <div class="form-group">
                          <label>สาขา</label>
-                         <input type="text" class="form-control" disabled :value="transactionData.projectData.branch" />
+                         <input type="text" class="form-control" disabled :value="project.projectData.branch" />
                      </div>
                      <div class="form-group">
                          <label>ผู้รับผิดชอบโครงการ</label>
-                         <input type="text" class="form-control" disabled :value="transactionData.projectData.projectManager" />
+                         <input type="text" class="form-control" disabled :value="project.projectData.projectManager" />
                      </div>
                      <div class="form-group">
                          <label>วันเริ่มโครงการ</label>
                          <input
                              type="text"
-                             v-model="transactionData.adjustedStartDate"
+                             v-model="project.adjustedStartDate"
                              :disabled="props.readOnly"
                              class="form-control"
                              placeholder="DD/MM/YYYY"
@@ -80,7 +80,7 @@
                          <label>วันที่คาดว่าจะแล้วเสร็จ</label>
                          <input
                              type="text"
-                             v-model="transactionData.adjustedExpectedEndDate"
+                             v-model="project.adjustedExpectedEndDate"
                              :disabled="props.readOnly"
                              class="form-control"
                              placeholder="DD/MM/YYYY"
@@ -90,10 +90,10 @@
                          <label>มูลค่าโครงการรวม (บาท)</label>
                          <input
                              type="text"
-                             v-model="transactionData.adjustedProjectValue"
+                             v-model="project.adjustedProjectValue"
                              :disabled="props.readOnly"
-                             @blur="formatAdjustedValue"
-                             @input="handleAdjustedValueInput"
+                             @blur="formatAdjustedValue(projectIndex)"
+                             @input="handleAdjustedValueInput($event, projectIndex)"
                              class="form-control text-primary font-bold"
                              placeholder="ระบุมูลค่าโครงการ"
                          />
@@ -109,10 +109,10 @@
                      <div class="form-group">
                          <label>ประเภทการรับเหมา</label>
                          <select
-                             v-model="transactionData.contractorType"
+                             v-model="project.contractorType"
                              :disabled="props.readOnly"
                              class="form-control"
-                             :class="{ 'is-empty': !transactionData.contractorType }"
+                             :class="{ 'is-empty': !project.contractorType }"
                          >
                              <option value="" disabled selected>เลือกประเภทการรับเหมา</option>
                              <option value="Main-Contractor">ผู้รับเหมาหลัก (Main-Contractor)</option>
@@ -122,10 +122,10 @@
                      <div class="form-group">
                          <label>ทีมของลูกค้า</label>
                          <select
-                             v-model="transactionData.customerTeam"
+                             v-model="project.customerTeam"
                              :disabled="props.readOnly"
                              class="form-control"
-                             :class="{ 'is-empty': !transactionData.customerTeam }"
+                             :class="{ 'is-empty': !project.customerTeam }"
                          >
                              <option value="" disabled selected>เลือกจำนวน</option>
                              <option value="1-10 คน">1-10 คน</option>
@@ -138,13 +138,13 @@
                  </div>
              </div>
 
-             <div v-if="transactionData.contractorType === 'Sub-Contractor'" class="form-group full-width" style="margin-top: 10px;">
+             <div v-if="project.contractorType === 'Sub-Contractor'" class="form-group full-width" style="margin-top: 10px;">
                  <div class="form-grid-two-columns">
                      <div class="form-group">
                          <label>ชื่อผู้รับเหมาหลัก</label>
                          <input
                              type="text"
-                             v-model="transactionData.mainContractorName"
+                             v-model="project.mainContractorName"
                              :disabled="props.readOnly"
                              class="form-control"
                              placeholder="ระบุชื่อผู้รับเหมาหลัก"
@@ -154,7 +154,7 @@
                          <label>เลขประจำตัวผู้เสียภาษี (VAT Number)</label>
                          <input
                              type="text"
-                             v-model="transactionData.mainContractorVat"
+                             v-model="project.mainContractorVat"
                              :disabled="props.readOnly"
                              class="form-control"
                              placeholder="ระบุเลขประจำตัวผู้เสียภาษี 13 หลัก"
@@ -196,13 +196,13 @@
              <div class="form-group full-width" style="border-top: 1px solid #ddd; padding-top: 25px; margin-top: 25px;">
                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                          <label style="margin: 0;">รายการสินค้าหลัก:</label>
-                         <button v-if="!props.readOnly" @click="addProduct" class="btn-text-add">+ เพิ่มสินค้า</button>
+                         <button v-if="!props.readOnly" @click="addProduct(projectIndex)" class="btn-text-add">+ เพิ่มสินค้า</button>
                      </div>
-                     <div v-if="transactionData.adjustedProductList && transactionData.adjustedProductList.length > 0" class="product-list" style="gap: 15px;">
-                         <div v-for="(prod, idx) in transactionData.adjustedProductList" :key="idx" class="product-item" style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; align-items: center;">
+                     <div v-if="project.adjustedProductList && project.adjustedProductList.length > 0" class="product-list" style="gap: 15px;">
+                         <div v-for="(prod, idx) in project.adjustedProductList" :key="idx" class="product-item" style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; align-items: center;">
                              <input
                                  type="text"
-                                 v-model="transactionData.adjustedProductList[idx].name"
+                                 v-model="project.adjustedProductList[idx].name"
                                  :disabled="props.readOnly"
                                  class="form-control"
                                  placeholder="ชื่อสินค้า..."
@@ -210,16 +210,16 @@
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <input
                                     type="text"
-                                    :value="transactionData.adjustedProductList[idx].price"
-                                    @input="handleProductPriceInput($event, idx)"
-                                    @blur="formatProductPrice(idx)"
+                                    :value="project.adjustedProductList[idx].price"
+                                    @input="handleProductPriceInput($event, projectIndex, idx)"
+                                    @blur="formatProductPrice(projectIndex, idx)"
                                     :disabled="props.readOnly"
                                     class="form-control text-right"
                                     placeholder="0.00"
                                     style="flex: 1; min-width: 0;"
                                 />
                                 <span class="text-muted" style="font-size: 13px; white-space: nowrap;">บาท/หน่วย</span>
-                                <button v-if="!props.readOnly" class="btn-icon-delete-small" @click="removeProduct(idx)" style="padding: 8px; margin-left: auto;">✕</button>
+                                <button v-if="!props.readOnly" class="btn-icon-delete-small" @click="removeProduct(projectIndex, idx)" style="padding: 8px; margin-left: auto;">✕</button>
                             </div>
                          </div>
                      </div>
@@ -266,8 +266,8 @@
                                             type="text"
                                             class="form-control form-control-sm"
                                             placeholder="เช่น 1,000,000"
-                                            :value="formatGuaranteeAmount(getGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'amount'))"
-                                            @input="(e) => handleGuaranteeAmountInput('projectBankGuaranteeDetails', file.name, 'amount', e.target.value)"
+                                            :value="formatGuaranteeAmount(getGuaranteeDetail(projectIndex, 'projectBankGuaranteeDetails', file.name, 'amount'))"
+                                            @input="(e) => handleGuaranteeAmountInput(projectIndex, 'projectBankGuaranteeDetails', file.name, 'amount', e.target.value)"
                                             :disabled="props.readOnly"
                                         />
                                     </div>
@@ -276,8 +276,8 @@
                                         <input
                                             type="date"
                                             class="form-control form-control-sm"
-                                            :value="getGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate')"
-                                            @input="(e) => updateGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
+                                            :value="getGuaranteeDetail(projectIndex, 'projectBankGuaranteeDetails', file.name, 'expiryDate')"
+                                            @input="(e) => updateGuaranteeDetail(projectIndex, 'projectBankGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
                                             :disabled="props.readOnly"
                                         />
                                     </div>
@@ -305,8 +305,8 @@
                                             type="text"
                                             class="form-control form-control-sm"
                                             placeholder="เช่น 500,000"
-                                            :value="formatGuaranteeAmount(getGuaranteeDetail('projectCashDepositDetails', file.name, 'amount'))"
-                                            @input="(e) => handleGuaranteeAmountInput('projectCashDepositDetails', file.name, 'amount', e.target.value)"
+                                            :value="formatGuaranteeAmount(getGuaranteeDetail(projectIndex, 'projectCashDepositDetails', file.name, 'amount'))"
+                                            @input="(e) => handleGuaranteeAmountInput(projectIndex, 'projectCashDepositDetails', file.name, 'amount', e.target.value)"
                                             :disabled="props.readOnly"
                                         />
                                     </div>
@@ -315,8 +315,8 @@
                                         <input
                                             type="date"
                                             class="form-control form-control-sm"
-                                            :value="getGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate')"
-                                            @input="(e) => updateGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate', e.target.value)"
+                                            :value="getGuaranteeDetail(projectIndex, 'projectCashDepositDetails', file.name, 'expiryDate')"
+                                            @input="(e) => updateGuaranteeDetail(projectIndex, 'projectCashDepositDetails', file.name, 'expiryDate', e.target.value)"
                                             :disabled="props.readOnly"
                                         />
                                     </div>
@@ -328,7 +328,7 @@
              </div>
 
              <OtherDocumentsSection
-                  v-if="transactionData.projectData"
+                  v-if="project.projectData"
                   tabName="projectInfo"
                   :readOnly="props.readOnly"
                   title="เอกสารอื่นๆ (Other Project Documents)"
@@ -424,29 +424,29 @@ const formatNumber = (num) => {
 const handleAdjustedValueInput = (event) => {
     let val = event.target.value;
     val = val.replace(/[^0-9]/g, '');
-    store.transactionData.adjustedProjectValue = val;
+    store.project.adjustedProjectValue = val;
 };
 
 const formatAdjustedValue = () => {
-    const raw = store.transactionData.adjustedProjectValue;
+    const raw = store.project.adjustedProjectValue;
     const num = parseFloat(String(raw).replace(/,/g, ''));
     if (!isNaN(num)) {
-        store.transactionData.adjustedProjectValue = formatNumber(num);
+        store.project.adjustedProjectValue = formatNumber(num);
     }
 };
 
 const handleProductPriceInput = (event, idx) => {
     let val = event.target.value;
     val = val.replace(/[^0-9.]/g, ''); // Allow decimals
-    store.transactionData.adjustedProductList[idx].price = val;
+    store.project.adjustedProductList[idx].price = val;
 };
 
 const formatProductPrice = (idx) => {
-    const raw = store.transactionData.adjustedProductList[idx].price;
+    const raw = store.project.adjustedProductList[idx].price;
     if (!raw) return;
     const num = parseFloat(String(raw).replace(/,/g, ''));
     if (!isNaN(num)) {
-        store.transactionData.adjustedProductList[idx].price = formatNumber(num);
+        store.project.adjustedProductList[idx].price = formatNumber(num);
     }
 };
 
@@ -488,14 +488,14 @@ const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
 
 const addProduct = () => {
     if (!store.transactionData) store.transactionData = {};
-    if (!store.transactionData.adjustedProductList) {
-        store.transactionData.adjustedProductList = [];
+    if (!store.project.adjustedProductList) {
+        store.project.adjustedProductList = [];
     }
-    store.transactionData.adjustedProductList.push({ name: '', price: '' });
+    store.project.adjustedProductList.push({ name: '', price: '' });
 };
 
 const removeProduct = (idx) => {
-    store.transactionData.adjustedProductList.splice(idx, 1);
+    store.project.adjustedProductList.splice(idx, 1);
 };
 
 // Project Actions
@@ -521,24 +521,24 @@ const handleProjectSearch = async () => {
 
 const selectProject = (proj) => {
     store.transactionData.projectId = proj.id;
-    store.transactionData.projectData = proj;
+    store.project.projectData = proj;
     projectSearchResults.value = [];
     projectSearchQuery.value = '';
 
     // Initialize Editable Values
-    store.transactionData.adjustedProjectValue = formatNumber(proj.value);
-    store.transactionData.adjustedProductList = proj.productList
+    store.project.adjustedProjectValue = formatNumber(proj.value);
+    store.project.adjustedProductList = proj.productList
         ? proj.productList.map(p => typeof p === 'string' ? { name: p, price: '' } : { ...p })
         : [];
-    store.transactionData.adjustedStartDate = proj.startDate || '';
-    store.transactionData.adjustedExpectedEndDate = proj.expectedEndDate || '';
+    store.project.adjustedStartDate = proj.startDate || '';
+    store.project.adjustedExpectedEndDate = proj.expectedEndDate || '';
 
     // Initialize dropdowns to empty strings so placeholders show
-    if (!store.transactionData.contractorType) {
-        store.transactionData.contractorType = '';
+    if (!store.project.contractorType) {
+        store.project.contractorType = '';
     }
-    if (!store.transactionData.customerTeam) {
-        store.transactionData.customerTeam = '';
+    if (!store.project.customerTeam) {
+        store.project.customerTeam = '';
     }
 
     // Auto-fill amount based on project value initially (can be changed by user)
@@ -552,11 +552,11 @@ const selectProject = (proj) => {
 
 const clearProject = () => {
     store.transactionData.projectId = '';
-    store.transactionData.projectData = null;
-    store.transactionData.adjustedProjectValue = '';
-    store.transactionData.adjustedProductList = [];
-    store.transactionData.adjustedStartDate = '';
-    store.transactionData.adjustedExpectedEndDate = '';
+    store.project.projectData = null;
+    store.project.adjustedProjectValue = '';
+    store.project.adjustedProductList = [];
+    store.project.adjustedStartDate = '';
+    store.project.adjustedExpectedEndDate = '';
     store.transactionData.projectPhasing = [];
     store.transactionData.amount = '';
 };
