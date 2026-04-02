@@ -112,6 +112,7 @@
                              v-model="transactionData.contractorType"
                              :disabled="props.readOnly"
                              class="form-control"
+                             :class="{ 'is-empty': !transactionData.contractorType }"
                          >
                              <option value="" disabled selected>เลือกประเภทการรับเหมา</option>
                              <option value="Main-Contractor">ผู้รับเหมาหลัก (Main-Contractor)</option>
@@ -124,6 +125,7 @@
                              v-model="transactionData.customerTeam"
                              :disabled="props.readOnly"
                              class="form-control"
+                             :class="{ 'is-empty': !transactionData.customerTeam }"
                          >
                              <option value="" disabled selected>เลือกจำนวน</option>
                              <option value="1-10 คน">1-10 คน</option>
@@ -414,6 +416,14 @@ const selectProject = (proj) => {
         : [];
     store.transactionData.adjustedStartDate = proj.startDate || '';
     store.transactionData.adjustedExpectedEndDate = proj.expectedEndDate || '';
+
+    // Initialize dropdowns to empty strings so placeholders show
+    if (!store.transactionData.contractorType) {
+        store.transactionData.contractorType = '';
+    }
+    if (!store.transactionData.customerTeam) {
+        store.transactionData.customerTeam = '';
+    }
 
     // Auto-fill amount based on project value initially (can be changed by user)
     store.transactionData.amount = String(proj.value);
