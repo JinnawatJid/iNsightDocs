@@ -1,0 +1,26 @@
+--- src/components/credit/dashboard/ReviewDashboard.vue
++++ src/components/credit/dashboard/ReviewDashboard.vue
+@@ -253,7 +253,7 @@
+             if (response.data.isNoFinancialData) {
+                 // If the customer has been flagged as having no financial data explicitly
+                 dbdStatus.value = {
+-                    profile: !!(response.data.files && response.data.files.profile),
++                    profile: !!(response.data.files && response.data.files.profile) || !!store.uploadedDocuments['company_profile_doc'],
+                     position: false,
+                     income: false,
+                     ratios: false,
+@@ -262,10 +262,10 @@
+             } else {
+                 const files = response.data.files || {};
+                 dbdStatus.value = {
+-                    profile: !!files.profile,
+-                    position: !!files.balanceSheet,
+-                    income: !!files.incomeStatement,
+-                    ratios: !!files.financialRatios,
++                    profile: !!files.profile || !!store.uploadedDocuments['company_profile_doc'],
++                    position: !!files.balanceSheet || !!store.uploadedDocuments['balance_sheet_doc'],
++                    income: !!files.incomeStatement || !!store.uploadedDocuments['profit_loss_doc'],
++                    ratios: !!files.financialRatios || !!store.uploadedDocuments['financial_ratios_doc'],
+                     isNoDataFlag: false
+                 };
+             }
