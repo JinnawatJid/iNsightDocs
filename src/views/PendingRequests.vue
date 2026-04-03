@@ -59,12 +59,12 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import Navbar from '@/components/shared/Navbar.vue';
-import RequestSidebar from '@/components/credit/RequestSidebar.vue';
-import CustomerTitleCard from '@/components/credit/CustomerTitleCard.vue';
-import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
-import WorkflowActionBar from '@/components/credit/WorkflowActionBar.vue';
-import CreditReviewSection from '@/components/credit/CreditReviewSection.vue';
-import ReviewDashboard from '@/components/credit/ReviewDashboard.vue';
+import RequestSidebar from '@/components/credit/dashboard/RequestSidebar.vue';
+import CustomerTitleCard from '@/components/credit/dashboard/CustomerTitleCard.vue';
+import CreditScoreSummary from '@/components/credit/scoring/CreditScoreSummary.vue';
+import WorkflowActionBar from '@/components/credit/dashboard/WorkflowActionBar.vue';
+import CreditReviewSection from '@/components/credit/workflow/CreditReviewSection.vue';
+import ReviewDashboard from '@/components/credit/dashboard/ReviewDashboard.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
 

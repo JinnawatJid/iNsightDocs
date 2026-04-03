@@ -342,7 +342,7 @@
 <script setup>
 import { ref, computed, reactive, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
-import OtherDocumentsSection from '../OtherDocumentsSection.vue';
+import OtherDocumentsSection from '../forms/OtherDocumentsSection.vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
 
 const props = defineProps(['readOnly']);

@@ -2,7 +2,7 @@
 
 ## Overview
 The **DBD Data Extraction Feature** enables the Credit Management System to read, parse, and display structural data from downloaded Department of Business Development (DBD) files. This includes:
-1. **Financial Excel Parsing**: Extracting Balance Sheets, Income Statements, and Financial Ratios directly from downloaded `.xlsx` files. This is primarily used by approvers on the `/pending-requests` dashboard (specifically within the `ReviewDashboard.vue` component) to view a company's financial health via a UI modal.
+1. **Financial Excel Parsing**: Extracting Balance Sheets, Income Statements, and Financial Ratios directly from downloaded `.xlsx` files. This is primarily used by approvers on the `/pending-requests` dashboard (specifically within the `ReviewDashboard.vue` component in `src/components/credit/dashboard/`) to view a company's financial health via a UI modal.
 2. **Profile PDF Parsing**: Extracting basic company info (Registration Date, Registered Capital, Company Name, and Directors) from the `DBD_Profile.pdf` file. This data is utilized for populating frontend state and generating the "ข้อมูลนิติบุคคล (DBD Profile)" section in the exported Credit Request PDFs.
 
 ---
@@ -12,7 +12,7 @@ The **DBD Data Extraction Feature** enables the Credit Management System to read
 ### 1. Data Flow (Excel & PDF Parsing)
 1. **Trigger:** A user (Approver) opens a pending credit request for a corporate customer.
 2. **Status Check:** The UI (`ReviewDashboard.vue`) calls `GET /api/financials/check-local/:customer_no` to determine if the local server has the required DBD documents stored in `/customers/{customer_no}/[DATE]/`.
-3. **Data Request (Financial Data):** When the user clicks "ดูรายละเอียดงบการเงิน" (View Financial Details), the UI opens the `FinancialStatementModal.vue` and defaults to the "ข้อมูลนิติบุคคล" (Company Profile) tab. For other tabs (Balance Sheet, Income Statement, Ratios), the UI calls `GET /api/financials/:customer_no/dbd-data`.
+3. **Data Request (Financial Data):** When the user clicks "ดูรายละเอียดงบการเงิน" (View Financial Details), the UI opens the `FinancialStatementModal.vue` (in `src/components/credit/modals/`) and defaults to the "ข้อมูลนิติบุคคล" (Company Profile) tab. For other tabs (Balance Sheet, Income Statement, Ratios), the UI calls `GET /api/financials/:customer_no/dbd-data`.
 4. **Backend Parsing (Financial Data):** The `financialController.js` delegates the file reading to `backend/utils/dbdExcelParser.js`. The parser reads the `.xlsx` files into memory buffers and extracts the structured tabular data.
 5. **Data Request (Profile PDF):** For the "ข้อมูลนิติบุคคล" tab, the UI calls `GET /api/financials/download-local/:customer_no/profile` to fetch the `DBD_Profile.pdf` file as a blob.
 6. **UI Rendering:** The structured JSON for financial data is rendered in `FinancialStatementModal.vue` using dynamic tabs, color-coded percentage changes, and formatted currency values. The Profile PDF is rendered securely using an object URL in an `iframe` within the same modal.
@@ -83,5 +83,5 @@ During the development of this feature, several critical edge cases and bugs wer
   * `backend/controllers/financialController.js` (`getDBDData`, `checkLocalFiles`)
   * `backend/controllers/pdfController.js` (Export PDF logic, Profile info injection)
 * **Frontend UI Components:**
-  * `src/components/credit/ReviewDashboard.vue`
-  * `src/components/credit/FinancialStatementModal.vue`
+  * `src/components/credit/dashboard/ReviewDashboard.vue`
+  * `src/components/credit/modals/FinancialStatementModal.vue`

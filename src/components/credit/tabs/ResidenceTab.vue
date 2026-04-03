@@ -243,7 +243,7 @@
 import { reactive, watch, ref, computed } from 'vue';
 import { searchAddressByZipcode } from 'thai-address-database';
 import FileUploader from '@/components/shared/FileUploader.vue';
-import OtherDocumentsSection from '../OtherDocumentsSection.vue';
+import OtherDocumentsSection from '../forms/OtherDocumentsSection.vue';
 import CoordinateMap from '@/components/shared/CoordinateMap.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';

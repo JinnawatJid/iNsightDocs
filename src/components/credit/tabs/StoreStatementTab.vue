@@ -463,10 +463,10 @@
 import { reactive, ref, watch, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import FileUploader from '@/components/shared/FileUploader.vue';
-import OtherDocumentsSection from '../OtherDocumentsSection.vue';
+import OtherDocumentsSection from '../forms/OtherDocumentsSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
-import CreditScoreSheet from '../CreditScoreSheet.vue';
+import CreditScoreSheet from '../scoring/CreditScoreSheet.vue';
 import axios from '../../../utils/axios.js';
 import Swal from 'sweetalert2';
 import { useFormValidation } from '@/composables/useFormValidation';

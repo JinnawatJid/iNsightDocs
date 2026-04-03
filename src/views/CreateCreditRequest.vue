@@ -85,14 +85,14 @@
 
 <script setup>
 import Navbar from '@/components/shared/Navbar.vue';
-import CreditRequestHeader from '@/components/credit/CreditRequestHeader.vue';
-import CreditHistorySidebar from '@/components/credit/CreditHistorySidebar.vue';
-import RequestStatus from '@/components/credit/RequestStatus.vue';
-import CreditRequestForm from '@/components/credit/CreditRequestForm.vue';
-import CustomerProfileDashboard from '@/components/credit/CustomerProfileDashboard.vue';
-import CreditScoreSummary from '@/components/credit/CreditScoreSummary.vue';
-import DocumentChecklist from '@/components/credit/DocumentChecklist.vue';
-import SmartImportModal from '@/components/credit/SmartImportModal.vue';
+import CreditRequestHeader from '@/components/credit/dashboard/CreditRequestHeader.vue';
+import CreditHistorySidebar from '@/components/credit/dashboard/CreditHistorySidebar.vue';
+import RequestStatus from '@/components/credit/workflow/RequestStatus.vue';
+import CreditRequestForm from '@/components/credit/forms/CreditRequestForm.vue';
+import CustomerProfileDashboard from '@/components/credit/dashboard/CustomerProfileDashboard.vue';
+import CreditScoreSummary from '@/components/credit/scoring/CreditScoreSummary.vue';
+import DocumentChecklist from '@/components/credit/workflow/DocumentChecklist.vue';
+import SmartImportModal from '@/components/credit/modals/SmartImportModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFeatureFlag } from '@/composables/useFeatureFlag';
 import { useAuthStore } from '@/stores/auth';

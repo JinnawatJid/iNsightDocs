@@ -23,10 +23,10 @@
 
 <script setup>
 import { computed } from 'vue';
-import ProjectInfoTab from './tabs/ProjectInfoTab.vue';
-import StoreCompanyTab from './tabs/StoreCompanyTab.vue';
-import ProjectPhasingTab from './tabs/ProjectPhasingTab.vue';
-import RequestInfoTab from './tabs/RequestInfoTab.vue';
+import ProjectInfoTab from '../tabs/ProjectInfoTab.vue';
+import StoreCompanyTab from '../tabs/StoreCompanyTab.vue';
+import ProjectPhasingTab from '../tabs/ProjectPhasingTab.vue';
+import RequestInfoTab from '../tabs/RequestInfoTab.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const props = defineProps(['readOnly']);

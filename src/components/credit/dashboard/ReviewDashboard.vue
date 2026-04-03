@@ -161,10 +161,10 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { getMandatoryKeys } from '@/config/mandatoryFields';
-import ApplicationTabs from './ApplicationTabs.vue';
-import FinancialStatementModal from './FinancialStatementModal.vue';
-import AllDocumentsModal from './AllDocumentsModal.vue';
-import axios from '../../utils/axios.js';
+import ApplicationTabs from '../forms/ApplicationTabs.vue';
+import FinancialStatementModal from '../modals/FinancialStatementModal.vue';
+import AllDocumentsModal from '../modals/AllDocumentsModal.vue';
+import axios from '../../../utils/axios.js';
 
 const store = useCreditRequestStore();
 const showFullDetails = ref(false);

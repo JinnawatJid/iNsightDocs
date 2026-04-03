@@ -286,7 +286,7 @@
 import { reactive, watch, ref, computed, onMounted, onUnmounted } from 'vue';
 import debounce from 'lodash/debounce';
 import FileUploader from '@/components/shared/FileUploader.vue';
-import OtherDocumentsSection from '../OtherDocumentsSection.vue';
+import OtherDocumentsSection from '../forms/OtherDocumentsSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
