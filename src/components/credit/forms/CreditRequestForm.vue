@@ -117,12 +117,12 @@
 <script setup>
 import ApplicationTabs from './ApplicationTabs.vue';
 import ProjectApplicationTabs from './ProjectApplicationTabs.vue';
-import CreditReviewSection from './CreditReviewSection.vue';
-import ChangeSummaryModal from './ChangeSummaryModal.vue';
+import CreditReviewSection from '../workflow/CreditReviewSection.vue';
+import ChangeSummaryModal from '../modals/ChangeSummaryModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { workflowConfig, roleLabels } from '@/config/workflow';
 import Swal from 'sweetalert2';
-import axios from '../../utils/axios.js';
+import axios from '../../../utils/axios.js';
 import { computed, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 

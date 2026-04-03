@@ -23,11 +23,11 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import ResidenceTab from './tabs/ResidenceTab.vue';
-import GeneralInfoTab from './tabs/GeneralInfoTab.vue';
-import StoreCompanyTab from './tabs/StoreCompanyTab.vue';
-import StoreStatementTab from './tabs/StoreStatementTab.vue';
-import RequestInfoTab from './tabs/RequestInfoTab.vue';
+import ResidenceTab from '../tabs/ResidenceTab.vue';
+import GeneralInfoTab from '../tabs/GeneralInfoTab.vue';
+import StoreCompanyTab from '../tabs/StoreCompanyTab.vue';
+import StoreStatementTab from '../tabs/StoreStatementTab.vue';
+import RequestInfoTab from '../tabs/RequestInfoTab.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const props = defineProps(['readOnly', 'viewMode']);

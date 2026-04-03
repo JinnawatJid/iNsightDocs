@@ -484,7 +484,7 @@
 <script setup>
 import { reactive, watch, ref, computed } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
-import OtherDocumentsSection from '../OtherDocumentsSection.vue';
+import OtherDocumentsSection from '../forms/OtherDocumentsSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 

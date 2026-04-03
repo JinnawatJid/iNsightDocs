@@ -215,7 +215,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import CreditScoreSheet from '@/components/credit/CreditScoreSheet.vue';
+import CreditScoreSheet from '@/components/credit/scoring/CreditScoreSheet.vue';
 
 const loading = ref(true);
 const data = ref(null);
