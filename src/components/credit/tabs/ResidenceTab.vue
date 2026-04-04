@@ -229,6 +229,7 @@
       <div class="map-container">
         <CoordinateMap
           :mapCode="formData.mapCode"
+          :province="formData.city"
           :landmark="formData.landmark"
           :note="formData.note"
           :disabled="!isEditing"

@@ -74,6 +74,7 @@ const props = defineProps({
   mapCode: { type: String, default: '' },
   landmark: { type: String, default: '' },
   note: { type: String, default: '' },
+  province: { type: String, default: '' },
   disabled: { type: Boolean, default: false }
 });
 
@@ -101,7 +102,7 @@ watch(() => props.landmark, (v) => internalLandmark.value = v);
 watch(() => props.note, (v) => internalNote.value = v);
 
 // Watch internal for updates
-watch([internalMapCode, internalLandmark], async () => {
+watch([internalMapCode, internalLandmark, () => props.province], async () => {
   await generateNavigateQr();
 });
 
@@ -133,8 +134,23 @@ const generateNavigateQr = async () => {
     let url = '';
 
     if (hasMapCode.value) {
+      let searchQuery = internalMapCode.value.trim();
+
+      // Logic to auto-append province for short Plus Codes
+      const isCoordinate = /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(searchQuery);
+
+      if (!isCoordinate && searchQuery.includes('+')) {
+        const parts = searchQuery.split(/\s+/);
+        // Short plus code is typically a single word < 10 chars
+        if (parts.length === 1 && searchQuery.length < 10) {
+          if (props.province) {
+            searchQuery = `${searchQuery} ${props.province}`;
+          }
+        }
+      }
+
       // Search for the code or coordinates
-      const query = encodeURIComponent(internalMapCode.value);
+      const query = encodeURIComponent(searchQuery);
       url = `https://www.google.com/maps/search/?api=1&query=${query}`;
     } else {
       return;
