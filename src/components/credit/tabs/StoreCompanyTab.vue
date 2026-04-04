@@ -561,7 +561,7 @@ async function onSaveMapOverride(mapData) {
     const auditComment = `พิกัดแผนที่ (ข้อมูลร้านค้า/บริษัท) ถูกแก้ไขโดย ${username} (${actorRole})`;
 
         if (store.requestId) {
-        await axios.post(`/api/credit-requests/${store.requestId}/comments`, {
+        await axios.post(`/api/credit-requests/${encodeURIComponent(store.requestId)}/comments`, {
             comment: auditComment,
             actor_role: actorRole
         });
