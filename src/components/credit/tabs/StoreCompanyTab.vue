@@ -259,6 +259,8 @@
           :landmark="formData.landmark"
           :note="formData.note"
           :disabled="!isEditing"
+          :allowOverride="canOverrideMap"
+          @save-override="onSaveMapOverride"
           @change="onCoordinatesChange"
         />
       </div>
@@ -268,10 +270,13 @@
 
 <script setup>
 import { reactive, computed, watch, ref } from 'vue';
+import Swal from 'sweetalert2';
 import { searchAddressByZipcode } from 'thai-address-database';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import OtherDocumentsSection from '../forms/OtherDocumentsSection.vue';
 import CoordinateMap from '@/components/shared/CoordinateMap.vue';
+import { useAuthStore } from '@/stores/auth';
+import axios from '@/utils/axios.js';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
@@ -282,9 +287,11 @@ const props = defineProps({
   isProjectAddress: { type: Boolean, default: false }
 });
 const store = useCreditRequestStore();
+const authStore = useAuthStore();
 const { errors, validateField } = useFormValidation();
 
 const isEditing = ref(!props.readOnly);
+const canOverrideMap = computed(() => props.readOnly && authStore.isFinanceOfficer);
 watch(() => props.readOnly, (val) => {
   isEditing.value = !val;
 });
@@ -529,6 +536,50 @@ watch(formData, (newVal) => {
     store.updateCustomerData(updates);
   }
 }, { deep: true });
+
+
+async function onSaveMapOverride(mapData) {
+  try {
+    Swal.fire({
+      title: 'กำลังบันทึกข้อมูล...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // 1. Save directly to DB via customer service API + Pinia state
+    await store.saveCustomerCoordinates({
+      store_map_code: mapData.mapCode,
+      store_landmark: mapData.landmark,
+      store_note: mapData.note
+    });
+
+    // 2. Add an audit trail comment
+    const actorRole = authStore.userRoles?.length > 0 ? authStore.userRoles[0].role : 'ผู้ตรวจสอบเอกสาร';
+    const username = authStore.user?.empname || authStore.user?.username || 'System';
+    const auditComment = `พิกัดแผนที่ (ข้อมูลร้านค้า/บริษัท) ถูกแก้ไขโดย ${username} (${actorRole})`;
+
+        if (store.requestId) {
+        await axios.post(`/api/credit-requests/${store.requestId}/comments`, {
+            comment: auditComment,
+            actor_role: actorRole
+        });
+        await store.fetchComments();
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: 'บันทึกสำเร็จ',
+      text: 'แก้ไขพิกัดแผนที่เรียบร้อยแล้ว',
+      timer: 1500,
+      showConfirmButton: false
+    });
+  } catch (error) {
+    console.error('Failed to override map:', error);
+    Swal.fire('Error', 'ไม่สามารถบันทึกข้อมูลได้', 'error');
+  }
+}
 
 function onCoordinatesChange({ mapCode, landmark, note }) {
   store.saveCustomerCoordinates({
