@@ -32,3 +32,16 @@ This auto-append logic is actively utilized in the following address-related tab
 *   **ข้อมูลร้านค้า (Store/Company Tab):** `src/components/credit/tabs/StoreCompanyTab.vue`
 
 Both components pass their active `formData.city` state down into the `<CoordinateMap>` component via the `:province` prop.
+## Reviewer Overrides and Audit Trail
+
+To accommodate human error during the initial application process (such as a Branch Manager entering an incorrect Plus Code), the system allows specific roles (e.g., Financial Officers / ผู้ตรวจสอบเอกสาร) to correct map data even when a credit request is in a submitted, read-only state.
+
+### How it works
+
+The `<CoordinateMap>` component accepts an `allowOverride` boolean prop. When the form is disabled (`readOnly` is true) and `allowOverride` is true, the component renders an "Edit Map" (แก้ไขข้อมูลแผนที่) button.
+
+1. **Suppressed Auto-Save:** During normal drafting, map inputs trigger an auto-save on the `@change` event. To prevent premature or accidental saves during a reviewer override, this auto-save is explicitly blocked while the map is in edit mode.
+2. **Explicit Save & Audit:** The reviewer must click the explicit "Save Map" (บันทึกแผนที่) button. This triggers a `@save-override` event containing the updated data.
+3. **Database & Audit Log:** The parent component handles the event by permanently updating the customer's coordinates in the database (via `store.saveCustomerCoordinates`) and simultaneously `POST`ing a system-generated comment to the `/api/credit-requests/:txId/comments` endpoint.
+
+This ensures that any alterations to the originally submitted data are permanently recorded with a clear audit trail (e.g., "พิกัดแผนที่...ถูกแก้ไขโดย [User] ([Role])").

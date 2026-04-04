@@ -791,3 +791,30 @@ exports.reviseRequest = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+
+exports.addComment = async (req, res) => {
+    const id = decodeURIComponent(req.params.id); // tx_id
+    const { comment, actor_role } = req.body;
+
+    // Resolve user identity
+    const username = req.user ? (req.user.empname || req.user.username) : 'System';
+
+    try {
+        let sql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, datetime('now', 'localtime'))`;
+        let params = [id, actor_role || 'System', comment];
+
+        if (db.dbType === 'mssql') {
+             sql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETDATE())`;
+        }
+
+        await db.query(sql, params);
+
+        logger.info(`Added system comment to ${id}: ${comment}`);
+
+        res.status(201).json({ message: 'Comment added successfully' });
+    } catch (error) {
+        logger.error('Error adding comment:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};

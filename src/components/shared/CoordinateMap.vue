@@ -1,6 +1,15 @@
 <template>
   <div class="coordinate-map">
     <div class="map-container">
+      <div v-if="disabled && allowOverride" class="override-actions">
+        <button v-if="!isOverriding" @click="toggleOverride" class="btn-edit-map" type="button">
+           ✏️ แก้ไขข้อมูลแผนที่
+        </button>
+        <button v-else @click="saveOverride" class="btn-save-map" type="button">
+           💾 บันทึกแผนที่
+        </button>
+      </div>
+
       <div class="coordinate-form-grid">
 
         <!-- Row 1: Map Code -->
@@ -12,7 +21,7 @@
              v-model="internalMapCode"
              placeholder="ตัวอย่าง: RGFF+F74 Bangkok หรือ 13.75, 100.50"
              @change="emitUpdate"
-             :disabled="disabled"
+             :disabled="disabled && !isOverriding"
            />
            <p class="helper-text" v-if="!hasMapCode">
              ระบุ Plus Code หรือพิกัด เพื่อสร้าง QR Code นำทาง
@@ -28,7 +37,7 @@
              v-model="internalLandmark"
              placeholder="ระบุสถานที่ใกล้เคียง (เช่น Siam Paragon)"
              @change="emitUpdate"
-             :disabled="disabled"
+             :disabled="disabled && !isOverriding"
            />
         </div>
 
@@ -41,7 +50,7 @@
              v-model="internalNote"
              placeholder="รายละเอียดเพิ่มเติม (เช่น บ้านสีเหลือง)"
              @change="emitUpdate"
-             :disabled="disabled"
+             :disabled="disabled && !isOverriding"
            />
         </div>
 
@@ -75,14 +84,16 @@ const props = defineProps({
   landmark: { type: String, default: '' },
   note: { type: String, default: '' },
   province: { type: String, default: '' },
-  disabled: { type: Boolean, default: false }
+  disabled: { type: Boolean, default: false },
+  allowOverride: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['update:mapCode', 'update:landmark', 'update:note', 'change']);
+const emit = defineEmits(['update:mapCode', 'update:landmark', 'update:note', 'change', 'save-override']);
 
 const internalMapCode = ref(props.mapCode);
 const internalLandmark = ref(props.landmark);
 const internalNote = ref(props.note);
+const isOverriding = ref(false);
 
 const findMeQr = ref('');
 const navigateQr = ref('');
@@ -106,7 +117,24 @@ watch([internalMapCode, internalLandmark, () => props.province], async () => {
   await generateNavigateQr();
 });
 
+const toggleOverride = () => {
+  isOverriding.value = true;
+};
+
+const saveOverride = () => {
+  isOverriding.value = false;
+  emit('update:mapCode', internalMapCode.value);
+  emit('update:landmark', internalLandmark.value);
+  emit('update:note', internalNote.value);
+  emit('save-override', {
+    mapCode: internalMapCode.value,
+    landmark: internalLandmark.value,
+    note: internalNote.value
+  });
+};
+
 const emitUpdate = () => {
+  if (isOverriding.value) return; // Prevent auto-save while in override mode
   emit('update:mapCode', internalMapCode.value);
   emit('update:landmark', internalLandmark.value);
   emit('update:note', internalNote.value);
@@ -288,4 +316,40 @@ onMounted(() => {
   color: #666;
   line-height: 1.4;
 }
+
+.btn-edit-map, .btn-save-map {
+  background: white;
+  border: 1px solid #ccc;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+}
+
+.btn-edit-map:hover {
+  background: #f8f9fa;
+  border-color: #bbb;
+}
+
+.btn-save-map {
+  background: #e6f4ea;
+  border-color: #ceead6;
+  color: #137333;
+}
+
+.btn-save-map:hover {
+  background: #ceead6;
+}
+
+
+.override-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
 </style>
