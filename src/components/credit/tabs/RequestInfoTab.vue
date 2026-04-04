@@ -130,10 +130,10 @@
             </div>
 
             <!-- New Split Terms for Draft Mode -->
-            <template v-if="isDraftMode">
+            <template v-if="isDraftMode && isTermsVisible">
               <div class="form-group">
                 <label>
-                    ระยะเวลาเครดิต (กระจก, กาว) <span class="required">*</span>
+                    ระยะเวลาเครดิต (กระจก, กาว) <span class="text-red-500">*</span>
                     <!-- Show current if special mode -->
                     <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
                         (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
@@ -142,7 +142,7 @@
                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'disabled': !canEditTerms, 'border-red-500': showValidation && !store.transactionData.termGS }"
+                  :class="{ 'disabled': !canEditTerms, 'border-red-500': store.showValidationErrors && !store.transactionData.termGS }"
                   :disabled="!canEditTerms"
                   placeholder="ระบุระยะเวลาเครดิต (กระจก, กาว)"
                   v-model="store.transactionData.termGS" :data-empty="!store.transactionData.termGS"
@@ -151,7 +151,7 @@
               </div>
               <div class="form-group">
                 <label>
-                    ระยะเวลาเครดิต (อลูมิเนียม, Acc) <span class="required">*</span>
+                    ระยะเวลาเครดิต (อลูมิเนียม, Acc) <span class="text-red-500">*</span>
                     <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
                         (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
@@ -159,7 +159,7 @@
                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'disabled': !canEditTerms, 'border-red-500': showValidation && !store.transactionData.termAE }"
+                  :class="{ 'disabled': !canEditTerms, 'border-red-500': store.showValidationErrors && !store.transactionData.termAE }"
                   :disabled="!canEditTerms"
                   placeholder="ระบุระยะเวลาเครดิต (อลูมิเนียม, Acc)"
                   v-model="store.transactionData.termAE" :data-empty="!store.transactionData.termAE"
@@ -168,7 +168,7 @@
               </div>
               <div class="form-group">
                 <label>
-                    ระยะเวลาเครดิต (ยิปซั่ม, ซีลาย) <span class="required">*</span>
+                    ระยะเวลาเครดิต (ยิปซั่ม, ซีลาย) <span class="text-red-500">*</span>
                     <span v-if="isChangeTerm && store.originalCustomer.credit_term" class="text-sm text-gray-500 block">
                         (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
@@ -176,7 +176,7 @@
                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'disabled': !canEditTerms, 'border-red-500': showValidation && !store.transactionData.termYC }"
+                  :class="{ 'disabled': !canEditTerms, 'border-red-500': store.showValidationErrors && !store.transactionData.termYC }"
                   :disabled="!canEditTerms"
                   placeholder="ระบุระยะเวลาเครดิต (ยิปซั่ม, ซีลาย)"
                   v-model="store.transactionData.termYC" :data-empty="!store.transactionData.termYC"
@@ -530,9 +530,16 @@ const isBillingVisible = computed(() => {
     return false;
 });
 
+const isTermsVisible = computed(() => {
+    if (showAll.value) return true;
+    if (isNewRequest.value || isProjectCredit.value) return true;
+    if (isChangeTerm.value) return true;
+    return false;
+});
+
 // Field Visibility / Editability Logic
 const canEditAmount = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isNewRequest.value || isProjectCredit.value));
-const canEditTerms = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isChangeTerm.value || isNewRequest.value || isProjectCredit.value));
+const canEditTerms = computed(() => isEditing.value && isDraftMode.value && (isChangeTerm.value || isNewRequest.value || isProjectCredit.value));
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);
