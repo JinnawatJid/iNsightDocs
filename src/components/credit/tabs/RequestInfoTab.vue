@@ -514,6 +514,8 @@ const isUploadsVisible = computed(() => {
     if (showAll.value) return true;
     if (isNewRequest.value) return true;
     if (isRequestIncrease.value) return true;
+    if (isChangeTerm.value) return true;
+    if (isChangePayment.value) return true;
     return false;
 });
 
