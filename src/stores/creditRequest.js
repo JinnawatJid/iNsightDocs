@@ -701,6 +701,12 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       }
 
       fieldsToCheck.forEach((key) => {
+        // Skip specific validations based on requestType context
+        const isRequestIncrease = this.transactionData.requestType?.includes("เครดิตเพิ่ม");
+        if (isRequestIncrease && ["termGS", "termAE", "termYC"].includes(key)) {
+            return; // Skip term validation if credit increase
+        }
+
         let val;
         if (["amount", "reason", "termGS", "termAE", "termYC"].includes(key)) {
           val = this.transactionData[key];
