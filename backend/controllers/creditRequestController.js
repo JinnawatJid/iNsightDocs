@@ -801,11 +801,11 @@ exports.addComment = async (req, res) => {
     const username = req.user ? (req.user.empname || req.user.username) : 'System';
 
     try {
-        let sql = `INSERT INTO RequestComments (tx_id, actor_role, action, comment, created_at, created_by) VALUES (?, ?, 'SYSTEM_UPDATE', ?, datetime('now', 'localtime'), ?)`;
-        let params = [id, actor_role || 'System', comment, username];
+        let sql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, datetime('now', 'localtime'))`;
+        let params = [id, actor_role || 'System', comment];
 
         if (db.dbType === 'mssql') {
-             sql = `INSERT INTO RequestComments (tx_id, actor_role, action, comment, created_at, created_by) VALUES (?, ?, 'SYSTEM_UPDATE', ?, GETDATE(), ?)`;
+             sql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETDATE())`;
         }
 
         await db.query(sql, params);
