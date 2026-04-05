@@ -79,7 +79,7 @@
               <td>
                 <div class="file-name-cell" @click="previewDocument(doc)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                  <span class="file-name">{{ doc.original_name }}</span>
+                  <span class="file-name">{{ doc.name || doc.original_name || 'เอกสารไร้ชื่อ' }}</span>
                 </div>
                 <div v-if="doc.created_at" class="file-date">
                    {{ formatDate(doc.created_at) }}
@@ -87,7 +87,7 @@
               </td>
               <td>
                 <span class="doc-type-badge">
-                  {{ formatDocType(doc.file_type) }}
+                  {{ formatDocType(doc.file_type || doc.type) }}
                 </span>
               </td>
               <td>
@@ -145,10 +145,14 @@ const additionalDocuments = computed(() => {
     // Check if the file type indicates it's an additional document
     if (key.startsWith('additional_doc')) {
       const fileEntry = store.files[key];
+
+      // Inject the file_type from the key if it's missing in the fileObj
+      const injectKey = (obj) => ({ ...obj, file_type: obj.file_type || key });
+
       if (Array.isArray(fileEntry)) {
-        docs.push(...fileEntry);
+        docs.push(...fileEntry.map(injectKey));
       } else if (fileEntry) {
-        docs.push(fileEntry);
+        docs.push(injectKey(fileEntry));
       }
     }
   });
