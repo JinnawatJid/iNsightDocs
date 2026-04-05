@@ -30,7 +30,10 @@
             </div>
             <div class="doc-details">
               <div class="file-name-cell" @click="previewDocument(doc)">
-                <span class="file-name" :title="doc.name || doc.original_name">{{ doc.name || doc.original_name || 'เอกสารไร้ชื่อ' }}</span>
+                <span class="file-name" :title="doc.name || doc.original_name">{{ doc.name || 'เอกสารไร้ชื่อ' }}</span>
+              </div>
+              <div class="file-original-name" :title="doc.original_name">
+                 {{ doc.original_name }}
               </div>
               <div v-if="doc.created_at" class="file-date">
                  {{ formatDate(doc.created_at) }}
@@ -39,9 +42,6 @@
           </div>
 
           <div class="doc-card-meta">
-            <span class="doc-type-badge">
-              {{ formatDocType(doc.file_type || doc.type) }}
-            </span>
             <div class="uploader-info">
               <div class="uploader-avatar">
                 {{ getInitials(doc.uploaded_by) }}
@@ -103,18 +103,8 @@ const openUploadModal = () => {
     html: `
       <div class="swal-upload-form" style="text-align: left;">
         <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">ประเภทเอกสาร <span style="color: #e53e3e;">*</span></label>
-          <select id="swal-doc-type" class="swal2-input" style="width: 100%; margin: 0; padding: 8px 12px; font-size: 14px; border: 1px solid #d9d9d9; border-radius: 6px;">
-            <option value="" disabled selected>เลือกประเภทเอกสาร</option>
-            <option value="Bank Statement Update">อัปเดต Bank Statement</option>
-            <option value="Clarification Letter">หนังสือชี้แจง</option>
-            <option value="Financial Document">เอกสารทางการเงิน</option>
-            <option value="Other">อื่นๆ</option>
-          </select>
-        </div>
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">รายละเอียด (ระบุถ้ามี)</label>
-          <input type="text" id="swal-doc-desc" class="swal2-input" placeholder="เช่น คำอธิบายเพิ่มเติม" style="width: 100%; margin: 0; padding: 8px 12px; font-size: 14px; border: 1px solid #d9d9d9; border-radius: 6px; box-sizing: border-box;">
+          <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">ชื่อเอกสาร <span style="color: #e53e3e;">*</span></label>
+          <input type="text" id="swal-doc-name" class="swal2-input" placeholder="กรุณาระบุชื่อเอกสารที่ต้องการให้แสดง" style="width: 100%; margin: 0; padding: 8px 12px; font-size: 14px; border: 1px solid #d9d9d9; border-radius: 6px; box-sizing: border-box;">
         </div>
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500;">ไฟล์เอกสาร <span style="color: #e53e3e;">*</span></label>
@@ -127,20 +117,19 @@ const openUploadModal = () => {
     cancelButtonText: 'ยกเลิก',
     confirmButtonColor: '#0d6efd',
     preConfirm: () => {
-      const type = document.getElementById('swal-doc-type').value;
-      const desc = document.getElementById('swal-doc-desc').value;
+      const docName = document.getElementById('swal-doc-name').value;
       const fileInput = document.getElementById('swal-doc-file');
       const file = fileInput.files.length > 0 ? fileInput.files[0] : null;
 
-      if (!type) {
-        Swal.showValidationMessage('กรุณาเลือกประเภทเอกสาร');
+      if (!docName || docName.trim() === '') {
+        Swal.showValidationMessage('กรุณาระบุชื่อเอกสาร');
         return false;
       }
       if (!file) {
         Swal.showValidationMessage('กรุณาเลือกไฟล์เอกสาร');
         return false;
       }
-      return { type, desc, file };
+      return { docName: docName.trim(), file };
     }
   }).then(async (result) => {
     if (result.isConfirmed) {
@@ -193,11 +182,12 @@ const handleUpload = async (uploadData) => {
   try {
     const formData = new FormData();
     formData.append('file', uploadData.file);
-    formData.append('documentType', uploadData.type);
 
-    if (uploadData.desc) {
-      formData.append('documentDescription', uploadData.desc);
-    }
+    // We send 'Additional Document' as the generic type since we removed the type selector
+    formData.append('documentType', 'Additional Document');
+
+    // The user's input docName acts as the description/name for the document
+    formData.append('documentDescription', uploadData.docName);
 
     if (store.targetRole) {
        formData.append('actor_role', store.targetRole);
@@ -279,14 +269,6 @@ const previewDocument = (doc) => {
      // Fallback if inject fails
      window.open(`/api/credit-requests/${store.requestId}/files/${doc.id}`, '_blank');
   }
-};
-
-const formatDocType = (type) => {
-  if (!type) return 'เอกสารทั่วไป';
-  if (type.startsWith('additional_doc:')) {
-    return type.substring('additional_doc:'.length);
-  }
-  return 'เอกสารเพิ่มเติม';
 };
 
 const formatDate = (dateString) => {
@@ -452,6 +434,15 @@ const getInitials = (name) => {
   text-decoration: underline;
 }
 
+.file-original-name {
+  font-size: 12px;
+  color: #a0aec0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
 .file-date {
   font-size: 13px;
   color: #718096;
@@ -460,20 +451,10 @@ const getInitials = (name) => {
 .doc-card-meta {
   display: flex;
   align-items: center;
-  gap: 32px;
-  flex: 1.5;
-}
-
-.doc-type-badge {
-  display: inline-flex;
-  background: #f1f5f9;
-  color: #4a5568;
-  padding: 6px 12px;
-  border-radius: 100px;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  border: 1px solid #e2e8f0;
+  gap: 16px;
+  flex: 1;
+  justify-content: flex-end;
+  padding-right: 24px;
 }
 
 .uploader-info {
