@@ -8,6 +8,7 @@ export const useAuthStore = defineStore('auth', {
     isAuthenticated: false,
     authRequired: true,
     projectCreditEnabled: false,
+    additionalDocumentsEnabled: false,
   }),
 
   getters: {
@@ -50,6 +51,7 @@ export const useAuthStore = defineStore('auth', {
           const data = await response.json();
           this.authRequired = data.authRequired;
           this.projectCreditEnabled = data.projectCreditEnabled;
+          this.additionalDocumentsEnabled = data.additionalDocumentsEnabled;
         }
       } catch (error) {
         console.error('Failed to fetch auth config:', error);
