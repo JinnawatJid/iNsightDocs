@@ -84,9 +84,15 @@ const fileUrl = computed(() => {
 });
 
 const fileType = computed(() => {
-    if (!props.file || !props.file.name) return '';
+    console.log('[DEBUG] DocumentPreviewModal computing fileType for file:', props.file);
+    if (!props.file || !props.file.name) {
+        console.log('[DEBUG] No file or file.name in DocumentPreviewModal');
+        return '';
+    }
     const parts = props.file.name.split('.');
-    return parts.length > 1 ? parts.pop().toLowerCase() : '';
+    const ext = parts.length > 1 ? parts.pop().toLowerCase() : '';
+    console.log('[DEBUG] DocumentPreviewModal computed fileType:', ext);
+    return ext;
 });
 
 const formatDateTime = (dateString) => {

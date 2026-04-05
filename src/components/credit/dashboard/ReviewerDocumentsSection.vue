@@ -266,7 +266,8 @@ const handleDelete = (doc) => {
 };
 
 const previewDocument = (doc) => {
-  let nameWithExt = doc.original_name;
+  console.log('[DEBUG] previewDocument input doc:', doc);
+  let nameWithExt = doc.original_name || doc.name;
 
   // Extract extension from file_path just in case
   let ext = '';
@@ -276,21 +277,27 @@ const previewDocument = (doc) => {
           ext = parts.pop().toLowerCase();
       }
   }
+  console.log('[DEBUG] previewDocument extracted ext:', ext);
 
   if (nameWithExt && ext) {
       // Check if it already ends with the extension (e.g. MyDoc.pdf)
       if (!nameWithExt.toLowerCase().endsWith('.' + ext)) {
           nameWithExt += '.' + ext;
       }
+  } else if (!nameWithExt && ext) {
+      nameWithExt = 'document.' + ext;
   }
+  console.log('[DEBUG] previewDocument nameWithExt resolved to:', nameWithExt);
 
   const fileForPreview = {
     ...doc,
     name: nameWithExt, // DocumentPreviewModal uses 'name' to extract file extension
     displayName: doc.name || doc.original_name, // For display purposes if supported
     txId: store.requestId, // DocumentPreviewModal uses this to build the backend URL
-    url: `/api/credit-requests/${store.requestId}/files/${doc.id}`
+    url: `/api/credit-requests/${encodeURIComponent(store.requestId)}/files/${doc.id}`
   };
+
+  console.log('[DEBUG] previewDocument final fileForPreview:', fileForPreview);
 
   // If a global modal inject exists, use it
   if (openPreviewModal && typeof openPreviewModal === 'function') {

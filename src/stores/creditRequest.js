@@ -259,6 +259,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           data.attachments.forEach((att) => {
             const fileObj = {
               name: att.original_name,
+              original_name: att.original_name, // Map original_name for components that expect it
+              file_path: att.file_path, // Expose file_path for extension extraction fallback
               id: att.id,
               txId: att.tx_id,
               isRemote: true,
@@ -520,6 +522,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
             resData.attachments.forEach((att) => {
               const fileObj = {
                 name: att.original_name,
+                original_name: att.original_name,
+                file_path: att.file_path,
                 id: att.id,
                 txId: att.tx_id,
                 isRemote: true,
