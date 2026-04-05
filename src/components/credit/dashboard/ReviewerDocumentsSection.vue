@@ -312,6 +312,53 @@ const getInitials = (name) => {
   padding: 24px;
 }
 
+.form-grid-three-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-color, #0d6efd);
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+}
+
+.form-control.error {
+  border-color: #e53e3e;
+}
+
+.error-msg {
+  color: #e53e3e;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
 .upload-actions {
   margin-top: 20px;
   display: flex;
@@ -347,7 +394,7 @@ const getInitials = (name) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px;
+  padding: 32px 24px;
   color: #718096;
   background: #f8fafc;
   border-radius: 8px;
@@ -356,7 +403,7 @@ const getInitials = (name) => {
 }
 
 .empty-icon {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: #a0aec0;
 }
 
