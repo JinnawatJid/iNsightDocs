@@ -450,11 +450,16 @@ const getInitials = (name) => {
 
 .file-name-cell {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   color: var(--primary-color, #0d6efd);
   cursor: pointer;
   font-weight: 500;
+}
+
+.file-name-cell svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .file-name-cell:hover {
@@ -462,7 +467,8 @@ const getInitials = (name) => {
 }
 
 .file-name {
-  word-break: break-all;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .file-date {
@@ -473,12 +479,14 @@ const getInitials = (name) => {
 }
 
 .doc-type-badge {
+  display: inline-block;
   background: #e2e8f0;
   color: #4a5568;
   padding: 4px 10px;
   border-radius: 100px;
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .uploader-info {
