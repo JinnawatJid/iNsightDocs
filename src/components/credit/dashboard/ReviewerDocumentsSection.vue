@@ -52,10 +52,12 @@
 
           <div class="doc-card-actions">
             <button class="btn-action view" @click="previewDocument(doc)" title="ดูเอกสาร">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <svg style="display:block; width:16px; height:16px; stroke:currentColor; stroke-width:2px; fill:none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <span>ดู</span>
             </button>
             <button v-if="canDelete(doc)" class="btn-action delete" @click="handleDelete(doc)" title="ลบเอกสาร">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              <svg style="display:block; width:16px; height:16px; stroke:currentColor; stroke-width:2px; fill:none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              <span>ลบ</span>
             </button>
           </div>
         </div>
@@ -509,13 +511,17 @@ const getInitials = (name) => {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
-  width: 36px;
+  min-width: 36px;
   height: 36px;
+  padding: 0 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   cursor: pointer;
   color: #4a5568 !important;
+  font-size: 13px;
+  font-weight: 500;
   transition: all 0.2s;
 }
 
@@ -524,9 +530,15 @@ const getInitials = (name) => {
   stroke: #4a5568 !important;
 }
 
+.btn-action span {
+  display: none; /* Hide text by default on small screens, show on hover or larger screens if desired, but for now we just show text explicitly */
+  display: inline-block;
+}
+
 .btn-action:hover {
   background: #f8fafc;
   border-color: var(--primary-color, #0d6efd);
+  color: var(--primary-color, #0d6efd) !important;
 }
 
 .btn-action:hover svg {
@@ -537,6 +549,7 @@ const getInitials = (name) => {
 .btn-action.delete:hover {
   border-color: #e53e3e;
   background: #fff5f5;
+  color: #e53e3e !important;
 }
 
 .btn-action.delete:hover svg {
