@@ -101,7 +101,14 @@ exports.deleteAdditionalDocument = async (req, res) => {
             return res.status(403).json({ error: 'Permission denied. You can only delete your own documents.' });
         }
 
-        const fullPath = path.resolve(__dirname, '..', file.file_path);
+        let fullPath = file.file_path;
+        if (!path.isAbsolute(fullPath)) {
+            // Backward compatibility check for corrupted paths
+            if (fullPath.startsWith('customers/')) {
+                fullPath = fullPath.replace('customers/', '');
+            }
+            fullPath = path.join(UPLOAD_BASE, fullPath);
+        }
 
         // Soft Delete from database
         const deleteSql = `UPDATE CreditRequestAttachments SET is_deleted = 1 WHERE id = ?`;

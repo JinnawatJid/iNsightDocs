@@ -1,44 +1,50 @@
-# Reviewer Documents Architecture
+# Reviewer & Additional Documents Architecture
 
 ## 1. Context and Purpose
-The "Reviewer Documents" feature allows approvers (e.g., Regional Managers, Sales Managers, Finance Officers, Credit Committee) to attach supplementary documents to a credit request *after* it has been submitted by the original creator.
+The "Additional Documents" (formerly Reviewer Documents) feature allows Initiators and Approvers (e.g., Regional Managers, Sales Managers, Finance Officers, Credit Committee) to attach supplementary documents to a credit request *after* it has been submitted (in statuses beyond Draft).
 
-To support this safely and transparently, the system tracks exactly **who** uploaded each document. This ensures that reviewers can only delete their own documents and that the history of attachments is clearly attributed to the correct actor in the workflow.
+To support this safely and transparently, the system tracks exactly **who** uploaded each document. It implements an append-only audit trail methodology where files can be "soft-deleted" but never truly erased from the database history.
 
-## 2. Backend Implementation (Data Tracking)
+## 2. Feature Toggle (Environment Flag)
+The visibility of this feature is controlled globally via an environment variable.
+- **Backend:** `ENABLE_ADDITIONAL_DOCUMENTS=true` in the `.env` file.
+- **API Exposure:** The backend exposes this flag via the `/api/config/auth` endpoint.
+- **Frontend State:** The `authStore` fetches and stores this flag as `additionalDocumentsEnabled`. The `ReviewerDocumentsSection.vue` component will only render if this flag is true.
+
+## 3. Backend Implementation
 
 ### Database Schema
-The `CreditRequestAttachments` table (in both SQLite and MSSQL) includes an `uploaded_by` column.
+The `CreditRequestAttachments` table includes:
+- **`uploaded_by`**: `TEXT` (SQLite) / `NVARCHAR(255)` (MSSQL) - Tracks the user who uploaded the file.
+- **`is_deleted`**: `INTEGER` (SQLite) / `BIT` (MSSQL) - A flag used for soft-deleting files. Defaults to 0/NULL.
 
-- **Data Type:** `TEXT` (SQLite) / `NVARCHAR(255)` (MSSQL)
-- **Constraint:** Nullable (`NULL` allowed) to maintain backward compatibility with documents uploaded before this feature existed.
+### Soft-Delete & Audit Trail
+When a user "deletes" an additional document:
+1.  **Verification:** The backend endpoint (`DELETE /api/credit-requests/:id/additional-documents/:fileId`) checks if the user deleting the file is the original uploader (via `req.user.empname` or `req.user.username`), or if they possess a high-level role (e.g., "กรรมการเครดิต").
+2.  **Soft Delete:** The database record is updated to `is_deleted = 1` rather than being dropped. Main queries exclude records where `is_deleted = 1`.
+3.  **Audit Log:** An automated system comment is inserted into the `RequestComments` table (e.g., "เอกสาร [Filename] ถูกลบโดย [Username]").
+4.  **Physical Deletion:** A best-effort `fs.unlinkSync` removes the physical file from the disk to save space. If physical deletion fails, the soft-delete still applies.
 
-### User Attribution Logic
-When a file is uploaded to the `/api/credit-requests` endpoint (e.g., during creation, status updates, or revisions), the backend determines the identity of the uploader.
+### File Naming & Extension Fallbacks
+Users can provide custom "Document Names" (descriptions) for uploaded files. To ensure document previews (`DocumentPreviewModal.vue`) function correctly:
+-   **Upload Phase:** The backend checks if the custom name provided by the user includes an extension. If it does not, it securely extracts the extension using `path.extname` and appends it to the `original_name` before saving to the database.
+-   **Preview Fallback:** For legacy documents saved without extensions, the frontend `ReviewerDocumentsSection.vue` maps the `file_path` from the store. When previewing, it falls back to parsing the extension from `file_path` if the `original_name` is missing one.
 
-The `creditRequestController.createCreditRequest` method resolves the user's identity in the following strict priority order:
-1.  **`req.user.empname`**: The actual employee name extracted from the authenticated user's JWT payload (e.g., "Test SmartCredit"). This is the preferred identifier as it provides human-readable attribution.
-2.  **`req.user.username`**: The employee ID or username from the JWT payload (e.g., "68201"). Used if the `empname` is missing.
-3.  **`req.body.actor_role`**: The functional role passed from the frontend form payload (e.g., "ผู้จัดการภาค"). Used as a final fallback if token information is unavailable (e.g., in legacy development modes).
+### File Storage Paths
+When storing file paths in `CreditRequestAttachments`, the `file_path` is normalized relative to the base upload directory.
+-   **Format:** `[Customer_No]/[YYYYMMDD]/[secure_filename.ext]`
+-   **Crucial Rule:** The path *must not* be manually prepended with a `customers/` string in the DB, as the download API (`downloadCreditRequestFile`) already targets the correct root. Prefixing it causes 404 errors during downloads. (A backward-compatibility check exists in the download API to strip `customers/` if encountered).
 
-This resolved value is then inserted directly into the `uploaded_by` column of the database.
-
-### Request Revision Handling
-When a rejected request is revised (generating a new `-R` transaction ID), the `reviseRequest` endpoint meticulously copies all existing attachment records. During this duplication, the `uploaded_by` field is carried over to the new records, preserving the historical attribution of previously attached documents.
-
-## 3. Frontend Integration (Planned)
+## 4. Frontend Integration
 
 ### State Management
-When fetching a request's details (`/api/credit-requests/:id/detail`), the backend naturally returns the `uploaded_by` field within the `attachments` array. The frontend Pinia store (`useCreditRequestStore`) maps this field into the local `files` state.
+When fetching a request's details (`/api/credit-requests/:id/detail`), the backend returns the `uploaded_by`, `created_at`, `file_path`, and `original_name` fields within the `attachments` array. The frontend Pinia store (`useCreditRequestStore`) explicitly maps these fields into the local `files` state.
 
 ### Component Architecture
-A dedicated `ReviewerDocumentsSection.vue` component handles the display, upload, and deletion of these supplementary documents.
+The dedicated `ReviewerDocumentsSection.vue` component handles the display, upload, and deletion of these supplementary documents.
 
 **Key Responsibilities:**
--   **Display:** Renders a list of attached reviewer documents, prominently displaying the `uploaded_by` name next to each file.
--   **Preview:** When viewing any document (reviewer or standard) via the `DocumentPreviewModal.vue`, the system displays the `uploaded_by` name and `created_at` timestamp directly within the modal header, providing clear visibility of file origin during reviews.
--   **Categorization:** Typically uses a specific prefix (e.g., `reviewer_doc:`) for the `file_type` to distinguish these files from standard application documents (like DBD financials or application forms).
--   **Access Control:** Computes a `canRemove` boolean for each file. A user is only permitted to delete a file if the current authenticated user matches the `uploaded_by` value of that file (or if they possess overriding administrative privileges).
-
-### Submission Flow
-When a reviewer clicks "Approve" or "Submit", the `ReviewerDocumentsSection` appends any newly added files to the main form payload. The backend processes these identically to standard uploads, automatically tagging them with the reviewer's identity.
+-   **Upload Flow:** Utilizes a `SweetAlert2` modal prompting for a mandatory "Document Name" and file selection.
+-   **Display:** Renders a list of attached documents using a left-aligned card layout. Displays the custom name, original physical filename, upload date, and the uploader's initials/name.
+-   **Preview:** Triggers the native `DocumentPreviewModal.vue` inline using the injected `openPreviewModal` function, ensuring URLs are safely URI encoded (`encodeURIComponent(txId)`).
+-   **Access Control:** Computes a `canDelete` boolean. A user is only permitted to delete a file if they are the uploader or a Credit Committee member. Initiators and approvers can both upload, provided the request is not in a 'Draft' state.
