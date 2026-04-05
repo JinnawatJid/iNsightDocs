@@ -33,8 +33,8 @@ exports.getCreditRequestDetail = async (req, res) => {
 
         const request = rows[0];
 
-        // Fetch Attachments
-        const attachmentsSql = 'SELECT * FROM CreditRequestAttachments WHERE tx_id = ?';
+        // Fetch Attachments (excluding soft-deleted)
+        const attachmentsSql = 'SELECT * FROM CreditRequestAttachments WHERE tx_id = ? AND (is_deleted IS NULL OR is_deleted = 0)';
         const { rows: attachments } = await db.query(attachmentsSql, [id]);
 
         // Fetch Comments
@@ -80,6 +80,70 @@ exports.getCreditRequestDetail = async (req, res) => {
     }
 };
 
+exports.deleteAdditionalDocument = async (req, res) => {
+    const { id, fileId } = req.params;
+    const actor_role = req.body.actor_role;
+    const username = req.user ? (req.user.empname || req.user.username) : 'System';
+
+    try {
+        // Get file details to delete it physically and add to audit log
+        const fileSql = `SELECT file_path, original_name, file_type, uploaded_by FROM CreditRequestAttachments WHERE id = ? AND tx_id = ?`;
+        const { rows: files } = await db.query(fileSql, [fileId, id]);
+
+        if (!files || files.length === 0) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+
+        const file = files[0];
+
+        // Check permissions: only the original uploader or someone bypassing it (e.g., higher role like credit committee)
+        if (file.uploaded_by !== username && actor_role !== 'กรรมการเครดิต') {
+            return res.status(403).json({ error: 'Permission denied. You can only delete your own documents.' });
+        }
+
+        let fullPath = file.file_path;
+        if (!path.isAbsolute(fullPath)) {
+            // Backward compatibility check for corrupted paths
+            if (fullPath.startsWith('customers/')) {
+                fullPath = fullPath.replace('customers/', '');
+            }
+            fullPath = path.join(UPLOAD_BASE, fullPath);
+        }
+
+        // Soft Delete from database
+        const deleteSql = `UPDATE CreditRequestAttachments SET is_deleted = 1 WHERE id = ?`;
+        await db.runAsync(deleteSql, [fileId]);
+
+        // Try to delete physically
+        try {
+            if (fs.existsSync(fullPath)) {
+                fs.unlinkSync(fullPath);
+            }
+        } catch (fsError) {
+            logger.error(`Failed to delete file physically: ${fullPath}`, fsError);
+            // We continue even if physical delete fails, database is primary source of truth
+        }
+
+        // Add audit comment
+        const comment = `เอกสาร ${file.original_name} (${file.file_type || 'เอกสารเพิ่มเติม'}) ถูกลบโดย ${username}`;
+        let commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, datetime('now', 'localtime'))`;
+        let commentParams = [id, actor_role || 'System', comment];
+
+        if (db.dbType === 'mssql') {
+             commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETDATE())`;
+        }
+
+        await db.runAsync(commentSql, commentParams);
+
+        logger.info(`Deleted file ${fileId} from request ${id}`);
+
+        res.status(200).json({ message: 'File deleted successfully' });
+    } catch (error) {
+        logger.error('Error deleting file:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 exports.downloadCreditRequestFile = async (req, res) => {
     const id = decodeURIComponent(req.params.id); // tx_id
     const { fileId } = req.params; // attachment ID
@@ -107,7 +171,19 @@ exports.downloadCreditRequestFile = async (req, res) => {
         }
 
         if (!await fs.pathExists(filePath)) {
-            return res.status(404).json({ error: 'File not found on server' });
+            // Backward compatibility fix: If the path in the DB has "customers/" prefix due to a bug,
+            // strip it and try looking in the correct path.
+            if (fileRecord.file_path && fileRecord.file_path.startsWith('customers/')) {
+                const correctedRelativePath = fileRecord.file_path.replace('customers/', '');
+                const correctedPath = path.join(UPLOAD_BASE, correctedRelativePath);
+                if (await fs.pathExists(correctedPath)) {
+                    filePath = correctedPath;
+                } else {
+                    return res.status(404).json({ error: 'File not found on server' });
+                }
+            } else {
+                return res.status(404).json({ error: 'File not found on server' });
+            }
         }
 
         const mimeType = mime.lookup(filePath) || 'application/octet-stream';
@@ -792,6 +868,127 @@ exports.reviseRequest = async (req, res) => {
     }
 };
 
+
+exports.uploadAdditionalDocument = async (req, res) => {
+    const txId = decodeURIComponent(req.params.id);
+    const { documentType, documentDescription } = req.body;
+
+    logger.info(`Uploading additional document for TX ID: ${txId}`, { documentType, documentDescription });
+
+    if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ error: 'No file provided.' });
+    }
+
+    const file = req.files[0];
+
+    // Resolve user identity
+    let uploadedBy = null;
+    if (req.user) {
+        uploadedBy = req.user.empname || req.user.username;
+    } else if (req.body.actor_role) {
+        uploadedBy = req.body.actor_role;
+    }
+
+    try {
+        // Fetch the request to verify it exists and get customer info for folder structure
+        let reqSql = `SELECT customer_no, created_at FROM CreditRequests WHERE tx_id = ?`;
+        const { rows: reqResult } = await db.query(reqSql, [txId]);
+
+        if (!reqResult || reqResult.length === 0) {
+            return res.status(404).json({ error: 'Credit request not found.' });
+        }
+
+        const requestData = reqResult[0];
+        const customerNo = requestData.customer_no;
+
+        // Create the physical folder structure matching existing uploads
+        const creationDate = new Date(requestData.created_at);
+        const yyyymmdd = `${creationDate.getFullYear()}${String(creationDate.getMonth() + 1).padStart(2, '0')}${String(creationDate.getDate()).padStart(2, '0')}`;
+
+        const customerDir = path.join(defaultUploadPath, customerNo, yyyymmdd);
+        if (!fs.existsSync(customerDir)) {
+            fs.mkdirSync(customerDir, { recursive: true });
+        }
+
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}_${String(now.getMilliseconds()).padStart(3, '0')}`;
+
+        const ext = path.extname(file.originalname).toLowerCase();
+
+        // Allowed extensions map (similar to the frontend restriction)
+        const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.xlsx', '.xls'];
+        if (!allowedExtensions.includes(ext)) {
+             return res.status(400).json({ error: 'Invalid file type.' });
+        }
+
+        const safeOriginalName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9ก-๙]/g, '_');
+        const physicalFileName = `${customerNo}_${safeOriginalName}_${dateStr}${ext}`;
+        const newPhysicalPath = path.join(customerDir, physicalFileName);
+
+        // Move the file from temp storage to final destination
+        fs.renameSync(file.path, newPhysicalPath);
+
+        // Prepare the logical path to store in DB (relative to base dir)
+        const relativeFilePath = path.join(customerNo, yyyymmdd, physicalFileName).replace(/\\/g, '/');
+
+        // Define file type as additional document, include document type if available
+        let fileType = 'additional_doc';
+        if (documentType) {
+             fileType = `additional_doc:${documentType}`;
+        }
+
+        // Use the user's provided document name (passed via documentDescription) if available,
+        // otherwise fall back to the original physical file name.
+        let displayName = file.originalname;
+        if (documentDescription && documentDescription.trim() !== '') {
+            let cleanDesc = documentDescription.trim();
+            // Ensure the extension is preserved so frontend preview logic works
+            if (!cleanDesc.toLowerCase().endsWith(ext.toLowerCase())) {
+                cleanDesc += ext;
+            }
+            displayName = cleanDesc;
+        }
+
+        const insertSql = 'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)';
+        const insertParams = [txId, fileType, relativeFilePath, displayName, uploadedBy];
+
+        const result = await db.runAsync(insertSql, insertParams);
+
+        let newId = result.insertId;
+        if (db.dbType === 'mssql') {
+            // Retrieve identity from last insert
+            const { rows: identQuery } = await db.query('SELECT @@IDENTITY AS insertId');
+            if (identQuery && identQuery.length > 0) {
+               newId = identQuery[0].insertId;
+            }
+        }
+
+        // Also log the description if provided
+        if (documentDescription) {
+            let commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, datetime('now', 'localtime'))`;
+            if (db.dbType === 'mssql') {
+                 commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETDATE())`;
+            }
+            await db.runAsync(commentSql, [txId, 'System', `Additional Document Uploaded (${file.originalname}): ${documentDescription}`]);
+        }
+
+        logger.info(`Successfully uploaded additional document for ${txId}. File ID: ${newId}`);
+
+        res.status(200).json({
+            message: 'Additional document uploaded successfully',
+            file: {
+                id: newId,
+                file_type: fileType,
+                original_name: file.originalname,
+                uploaded_by: uploadedBy
+            }
+        });
+
+    } catch (error) {
+        logger.error(`Error uploading additional document for TX ID: ${txId}`, error);
+        res.status(500).json({ error: 'Internal server error while uploading document.' });
+    }
+};
 
 exports.addComment = async (req, res) => {
     const id = decodeURIComponent(req.params.id); // tx_id

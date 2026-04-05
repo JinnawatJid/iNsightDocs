@@ -290,7 +290,8 @@ const initDB = async () => {
 
         // Ensure new columns exist in CreditRequestAttachments table (for existing DBs)
         const attachmentColumns = [
-            { name: 'uploaded_by', type: 'TEXT' }
+            { name: 'uploaded_by', type: 'TEXT' },
+            { name: 'is_deleted', type: 'INTEGER DEFAULT 0' }
         ];
 
         for (const col of attachmentColumns) {

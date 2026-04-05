@@ -154,12 +154,18 @@
     <div v-if="showFullDetails" class="full-details-wrapper">
         <ApplicationTabs :readOnly="true" viewMode="full" />
     </div>
+
+    <!-- Section 5: Additional/Reviewer Documents -->
+    <ReviewerDocumentsSection v-if="authStore.additionalDocumentsEnabled && store.requestStatus !== 'Draft'" />
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
+import ReviewerDocumentsSection from './ReviewerDocumentsSection.vue';
 import { getMandatoryKeys } from '@/config/mandatoryFields';
 import ApplicationTabs from '../forms/ApplicationTabs.vue';
 import FinancialStatementModal from '../modals/FinancialStatementModal.vue';
@@ -167,6 +173,7 @@ import AllDocumentsModal from '../modals/AllDocumentsModal.vue';
 import axios from '../../../utils/axios.js';
 
 const store = useCreditRequestStore();
+const authStore = useAuthStore();
 const showFullDetails = ref(false);
 
 const formatNumber = (num) => {

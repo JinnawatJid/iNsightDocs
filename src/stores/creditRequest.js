@@ -136,6 +136,47 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       }
     },
 
+    async uploadAdditionalDocument(txId, formData) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const response = await CreditRequestService.uploadAdditionalDocument(txId, formData);
+
+        // Refresh the detail view to get the updated files list
+        await this.loadRequestDetail(txId);
+
+        return response.data;
+      } catch (err) {
+        console.error("Failed to upload additional document", err);
+        this.error = err.response?.data?.error || "Failed to upload document";
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async deleteAdditionalDocument(txId, fileId) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const response = await CreditRequestService.deleteAdditionalDocument(txId, fileId, {
+          actor_role: this.targetRole
+        });
+
+        // Refresh the detail view to get the updated files list
+        await this.loadRequestDetail(txId);
+        await this.fetchComments();
+
+        return response.data;
+      } catch (err) {
+        console.error("Failed to delete additional document", err);
+        this.error = err.response?.data?.error || "Failed to delete document";
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async loadRequestDetail(txId) {
       this.loading = true;
       this.error = null;
@@ -218,6 +259,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           data.attachments.forEach((att) => {
             const fileObj = {
               name: att.original_name,
+              original_name: att.original_name, // Map original_name for components that expect it
+              file_path: att.file_path, // Expose file_path for extension extraction fallback
               id: att.id,
               txId: att.tx_id,
               isRemote: true,
@@ -479,6 +522,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
             resData.attachments.forEach((att) => {
               const fileObj = {
                 name: att.original_name,
+                original_name: att.original_name,
+                file_path: att.file_path,
                 id: att.id,
                 txId: att.tx_id,
                 isRemote: true,

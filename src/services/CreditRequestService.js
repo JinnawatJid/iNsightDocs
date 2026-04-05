@@ -43,4 +43,14 @@ export default {
   async getCreditRequestDetail(txId) {
     return axios.get(`${API_URL}/${encodeURIComponent(txId)}/detail`);
   },
+
+  async uploadAdditionalDocument(txId, formData) {
+    return axios.post(`${API_URL}/${encodeURIComponent(txId)}/additional-documents`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  async deleteAdditionalDocument(txId, fileId, data) {
+    return axios.delete(`${API_URL}/${encodeURIComponent(txId)}/files/${fileId}`, { data });
+  },
 };

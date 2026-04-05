@@ -52,10 +52,12 @@ app.get('/api/config/auth', (req, res) => {
     // Default to true for safety if the variable is not explicitly set to 'false'
     const isAuthEnabled = process.env.ENABLE_AUTH !== 'false';
     const projectCreditEnabled = process.env.ENABLE_PROJECT_CREDIT === 'true';
+    const additionalDocumentsEnabled = process.env.ENABLE_ADDITIONAL_DOCUMENTS === 'true';
 
     res.status(200).json({
       authRequired: isAuthEnabled,
-      projectCreditEnabled: projectCreditEnabled
+      projectCreditEnabled: projectCreditEnabled,
+      additionalDocumentsEnabled: additionalDocumentsEnabled
     });
 });
 
