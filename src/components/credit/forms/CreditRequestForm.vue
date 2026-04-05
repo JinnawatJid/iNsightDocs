@@ -34,17 +34,37 @@
     </div>
 
     <!-- Project Tabs (Project Info) -->
-    <div v-if="isProjectCredit" class="unified-card project-card">
-      <div class="card-header">
-        <h3>ข้อมูลและเงื่อนไขโครงการ</h3>
+    <template v-if="isProjectCredit">
+      <div v-for="(project, index) in store.transactionData.projects" :key="index" class="unified-card project-card" :class="{ 'collapsed-card': collapsedProjects[index] }">
+        <div class="card-header" :style="collapsedProjects[index] ? 'padding-bottom: 20px;' : 'padding-bottom: 20px; border-bottom: 1px solid #eee;'">
+          <h3>ข้อมูลและเงื่อนไขโครงการ: <span style="font-weight: normal; color: #555;">{{ project.projectData.name }}</span></h3>
+          <div class="header-actions">
+             <button class="toggle-details-btn" @click="toggleProjectCollapse(index)">
+                 {{ collapsedProjects[index] ? 'แสดงข้อมูลโครงการ' : 'พับข้อมูลโครงการ' }}
+             </button>
+             <button v-if="!isReadOnly" class="btn-clear" @click="removeProjectCard(index)">ลบโครงการนี้</button>
+          </div>
+        </div>
+        <ProjectApplicationTabs v-show="!collapsedProjects[index]" :projectIndex="index" :readOnly="isReadOnly" />
       </div>
-      <ProjectApplicationTabs :readOnly="isReadOnly" />
-    </div>
+
+      <!-- Add New Project Section -->
+      <div v-if="!isReadOnly" class="unified-card project-card add-project-card">
+         <div class="card-header" style="padding-bottom: 20px; border-bottom: 1px solid #eee;">
+            <h3>+ เพิ่มโครงการใหม่</h3>
+         </div>
+         <AddProjectTab />
+      </div>
+
+      <!-- Global Phasing Analysis (Cross-Project Cash Flow) -->
+      <GlobalPhasingAnalysis v-if="store.transactionData.projects && store.transactionData.projects.length > 0" />
+
+    </template>
 
       <div class="form-footer">
         <!-- Unified Review Section (Terms + Comments) -->
         <CreditReviewSection
-          v-if="( (isProjectCredit && store.activeProjectTab === 'requestInfo') || (!isProjectCredit && store.activeTab === 'financial') || viewMode === 'focus')"
+          v-if="( (isProjectCredit && isLastTab) || (!isProjectCredit && store.activeTab === 'financial') || viewMode === 'focus')"
           :readOnly="isReadOnly"
           :showTerms="showTerms"
           :comments="comments"
@@ -117,12 +137,14 @@
 <script setup>
 import ApplicationTabs from './ApplicationTabs.vue';
 import ProjectApplicationTabs from './ProjectApplicationTabs.vue';
+import AddProjectTab from '../tabs/project-workspace/AddProjectTab.vue';
+import GlobalPhasingAnalysis from '../GlobalPhasingAnalysis.vue';
 import CreditReviewSection from '../workflow/CreditReviewSection.vue';
 import ChangeSummaryModal from '../modals/ChangeSummaryModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { workflowConfig, roleLabels } from '@/config/workflow';
 import Swal from 'sweetalert2';
-import axios from '../../../utils/axios.js';
+import axios from '@/utils/axios';
 import { computed, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
@@ -133,6 +155,28 @@ const route = useRoute();
 // Local State for View Mode
 const showAllDetails = ref(false);
 const showChangeSummary = ref(false);
+const collapsedProjects = ref({});
+
+const toggleProjectCollapse = (index) => {
+    collapsedProjects.value[index] = !collapsedProjects.value[index];
+};
+
+const removeProjectCard = (index) => {
+    const project = store.transactionData.projects[index];
+    if (!project) return;
+    const projectId = project.projectId;
+    store.transactionData.projects.splice(index, 1);
+
+    // Cleanup files associated with this project ID
+    store.updateFile('project_contract_doc_' + projectId, null);
+    store.updateFile('quotation_doc_' + projectId, null);
+    store.updateFile('project_security_doc_' + projectId, null);
+    store.updateFile('project_cash_deposit_doc_' + projectId, null);
+    store.updateFile('contractor_company_profile_doc_' + projectId, null);
+    store.updateFile('contractor_balance_sheet_doc_' + projectId, null);
+    store.updateFile('contractor_profit_loss_doc_' + projectId, null);
+    store.updateFile('contractor_financial_ratios_doc_' + projectId, null);
+};
 const changesToConfirm = ref([]);
 const pendingActionBtn = ref(null);
 const isCustomerInfoExpanded = ref(true); // Control visibility of top section for Project Credits
@@ -216,7 +260,7 @@ const primaryActions = computed(() => {
 // Tab navigation logic
 const activeTabsList = computed(() => {
     if (isProjectCredit.value) {
-        return ['projectInfo', 'projectPhasing', 'requestInfo'];
+        return ['projectCards']; // Reverting to single step representation since layout is vertical scroll
     }
     if (viewMode.value === 'focus') {
         return ['requestInfo'];
@@ -228,18 +272,15 @@ const activeTabsList = computed(() => {
 const isLastTab = computed(() => {
     if (activeTabsList.value.length === 0) return true;
     if (isProjectCredit.value) {
-        return store.activeProjectTab === activeTabsList.value[activeTabsList.value.length - 1];
+        return true; // With vertical stacked cards, we don't have linear 'next' steps.
     }
     return store.activeTab === activeTabsList.value[activeTabsList.value.length - 1];
 });
 
 const handleNextTab = () => {
     if (isProjectCredit.value) {
-        const currentIndex = activeTabsList.value.indexOf(store.activeProjectTab);
-        if (currentIndex >= 0 && currentIndex < activeTabsList.value.length - 1) {
-            store.setActiveProjectTab(activeTabsList.value[currentIndex + 1]);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        // No action needed for project credit as it's a single vertical scrolling page now
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     } else {
         const currentIndex = activeTabsList.value.indexOf(store.activeTab);
         if (currentIndex >= 0 && currentIndex < activeTabsList.value.length - 1) {
@@ -616,6 +657,23 @@ const submitTransaction = async (btn) => {
 .collapsed-card .card-header {
   margin-bottom: 0; /* Remove bottom margin when collapsed */
   padding-bottom: 20px;
+}
+
+/* Explicitly style the delete project button to be red */
+.btn-clear {
+  background-color: #dc3545 !important;
+  color: white !important;
+  border: none !important;
+  padding: 6px 15px !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s !important;
+}
+
+.btn-clear:hover {
+  background-color: #c82333 !important;
 }
 
 .project-card {
