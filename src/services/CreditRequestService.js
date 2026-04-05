@@ -49,4 +49,8 @@ export default {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  async deleteAdditionalDocument(txId, fileId, data) {
+    return axios.delete(`${API_URL}/${encodeURIComponent(txId)}/files/${fileId}`, { data });
+  },
 };

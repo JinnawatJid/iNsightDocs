@@ -54,6 +54,9 @@
             <button class="btn-action view" @click="previewDocument(doc)" title="ดูเอกสาร">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             </button>
+            <button v-if="canUpload" class="btn-action delete" @click="handleDelete(doc)" title="ลบเอกสาร">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -207,6 +210,47 @@ const handleUpload = async (uploadData) => {
       confirmButtonColor: '#d33',
     });
   }
+};
+
+const handleDelete = (doc) => {
+  Swal.fire({
+    title: 'ยืนยันการลบเอกสาร',
+    text: `คุณต้องการลบเอกสาร "${doc.name || doc.original_name}" ใช่หรือไม่?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'ใช่, ลบเอกสาร',
+    cancelButtonText: 'ยกเลิก'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      Swal.fire({
+        title: 'กำลังลบ...',
+        text: 'กรุณารอสักครู่',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      try {
+        await store.deleteAdditionalDocument(store.requestId, doc.id);
+        Swal.fire({
+          icon: 'success',
+          title: 'ลบเอกสารสำเร็จ',
+          text: 'ลบเอกสารออกจากระบบเรียบร้อยแล้ว',
+          confirmButtonColor: '#3085d6',
+        });
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: error.response?.data?.error || 'ไม่สามารถลบเอกสารได้',
+          confirmButtonColor: '#d33',
+        });
+      }
+    }
+  });
 };
 
 const previewDocument = (doc) => {
@@ -449,6 +493,7 @@ const getInitials = (name) => {
 .doc-card-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   flex: 0.5;
 }
 
@@ -477,5 +522,14 @@ const getInitials = (name) => {
 
 .btn-action:hover svg {
   color: var(--primary-color, #0d6efd);
+}
+
+.btn-action.delete:hover {
+  border-color: #e53e3e;
+  background: #fff5f5;
+}
+
+.btn-action.delete:hover svg {
+  color: #e53e3e;
 }
 </style>

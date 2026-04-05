@@ -155,6 +155,28 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       }
     },
 
+    async deleteAdditionalDocument(txId, fileId) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const response = await CreditRequestService.deleteAdditionalDocument(txId, fileId, {
+          actor_role: this.targetRole
+        });
+
+        // Refresh the detail view to get the updated files list
+        await this.loadRequestDetail(txId);
+        await this.fetchComments();
+
+        return response.data;
+      } catch (err) {
+        console.error("Failed to delete additional document", err);
+        this.error = err.response?.data?.error || "Failed to delete document";
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async loadRequestDetail(txId) {
       this.loading = true;
       this.error = null;

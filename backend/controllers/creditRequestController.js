@@ -80,6 +80,57 @@ exports.getCreditRequestDetail = async (req, res) => {
     }
 };
 
+exports.deleteAdditionalDocument = async (req, res) => {
+    const { id, fileId } = req.params;
+    const actor_role = req.body.actor_role;
+    const username = req.user ? (req.user.empname || req.user.username) : 'System';
+
+    try {
+        // Get file details to delete it physically and add to audit log
+        const fileSql = `SELECT file_path, original_name, file_type FROM CreditRequestAttachments WHERE id = ? AND tx_id = ?`;
+        const { rows: files } = await db.query(fileSql, [fileId, id]);
+
+        if (!files || files.length === 0) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+
+        const file = files[0];
+        const fullPath = path.resolve(__dirname, '..', file.file_path);
+
+        // Delete from database
+        const deleteSql = `DELETE FROM CreditRequestAttachments WHERE id = ?`;
+        await db.runAsync(deleteSql, [fileId]);
+
+        // Try to delete physically
+        try {
+            if (fs.existsSync(fullPath)) {
+                fs.unlinkSync(fullPath);
+            }
+        } catch (fsError) {
+            logger.error(`Failed to delete file physically: ${fullPath}`, fsError);
+            // We continue even if physical delete fails, database is primary source of truth
+        }
+
+        // Add audit comment
+        const comment = `เอกสาร ${file.original_name} (${file.file_type || 'เอกสารเพิ่มเติม'}) ถูกลบโดย ${username}`;
+        let commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, datetime('now', 'localtime'))`;
+        let commentParams = [id, actor_role || 'System', comment];
+
+        if (db.dbType === 'mssql') {
+             commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETDATE())`;
+        }
+
+        await db.runAsync(commentSql, commentParams);
+
+        logger.info(`Deleted file ${fileId} from request ${id}`);
+
+        res.status(200).json({ message: 'File deleted successfully' });
+    } catch (error) {
+        logger.error('Error deleting file:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 exports.downloadCreditRequestFile = async (req, res) => {
     const id = decodeURIComponent(req.params.id); // tx_id
     const { fileId } = req.params; // attachment ID
@@ -837,11 +888,16 @@ exports.uploadAdditionalDocument = async (req, res) => {
         const now = new Date();
         const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}_${String(now.getMilliseconds()).padStart(3, '0')}`;
 
-        const originalNameParts = file.originalname.split('.');
-        const ext = originalNameParts.pop();
-        const safeOriginalName = originalNameParts.join('_').replace(/[^a-zA-Z0-9ก-๙]/g, '_');
+        const ext = path.extname(file.originalname).toLowerCase();
 
-        const physicalFileName = `${customerNo}_${safeOriginalName}_${dateStr}.${ext}`;
+        // Allowed extensions map (similar to the frontend restriction)
+        const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.xlsx', '.xls'];
+        if (!allowedExtensions.includes(ext)) {
+             return res.status(400).json({ error: 'Invalid file type.' });
+        }
+
+        const safeOriginalName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9ก-๙]/g, '_');
+        const physicalFileName = `${customerNo}_${safeOriginalName}_${dateStr}${ext}`;
         const newPhysicalPath = path.join(customerDir, physicalFileName);
 
         // Move the file from temp storage to final destination
