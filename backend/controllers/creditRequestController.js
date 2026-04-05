@@ -793,6 +793,110 @@ exports.reviseRequest = async (req, res) => {
 };
 
 
+exports.uploadAdditionalDocument = async (req, res) => {
+    const txId = decodeURIComponent(req.params.id);
+    const { documentType, documentDescription } = req.body;
+
+    logger.info(`Uploading additional document for TX ID: ${txId}`, { documentType, documentDescription });
+
+    if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ error: 'No file provided.' });
+    }
+
+    const file = req.files[0];
+
+    // Resolve user identity
+    let uploadedBy = null;
+    if (req.user) {
+        uploadedBy = req.user.empname || req.user.username;
+    } else if (req.body.actor_role) {
+        uploadedBy = req.body.actor_role;
+    }
+
+    try {
+        // Fetch the request to verify it exists and get customer info for folder structure
+        let reqSql = `SELECT customer_no, created_at FROM CreditRequests WHERE tx_id = ?`;
+        const reqResult = await db.query(reqSql, [txId]);
+
+        if (!reqResult || reqResult.length === 0) {
+            return res.status(404).json({ error: 'Credit request not found.' });
+        }
+
+        const requestData = reqResult[0];
+        const customerNo = requestData.customer_no;
+
+        // Create the physical folder structure matching existing uploads
+        const creationDate = new Date(requestData.created_at);
+        const yyyymmdd = `${creationDate.getFullYear()}${String(creationDate.getMonth() + 1).padStart(2, '0')}${String(creationDate.getDate()).padStart(2, '0')}`;
+
+        const customerDir = path.join(defaultUploadPath, customerNo, yyyymmdd);
+        if (!fs.existsSync(customerDir)) {
+            fs.mkdirSync(customerDir, { recursive: true });
+        }
+
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}_${String(now.getMilliseconds()).padStart(3, '0')}`;
+
+        const originalNameParts = file.originalname.split('.');
+        const ext = originalNameParts.pop();
+        const safeOriginalName = originalNameParts.join('_').replace(/[^a-zA-Z0-9ก-๙]/g, '_');
+
+        const physicalFileName = `${customerNo}_${safeOriginalName}_${dateStr}.${ext}`;
+        const newPhysicalPath = path.join(customerDir, physicalFileName);
+
+        // Move the file from temp storage to final destination
+        fs.renameSync(file.path, newPhysicalPath);
+
+        // Prepare the logical path to store in DB (relative to base dir)
+        const relativeFilePath = path.join('customers', customerNo, yyyymmdd, physicalFileName).replace(/\\/g, '/');
+
+        // Define file type as additional document, include document type if available
+        let fileType = 'additional_doc';
+        if (documentType) {
+             fileType = `additional_doc:${documentType}`;
+        }
+
+        const insertSql = 'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)';
+        const insertParams = [txId, fileType, relativeFilePath, file.originalname, uploadedBy];
+
+        const result = await db.query(insertSql, insertParams);
+
+        let newId = result.insertId;
+        if (db.dbType === 'mssql') {
+            // Retrieve identity from last insert
+            const identQuery = await db.query('SELECT @@IDENTITY AS insertId');
+            if (identQuery && identQuery.length > 0) {
+               newId = identQuery[0].insertId;
+            }
+        }
+
+        // Also log the description if provided
+        if (documentDescription) {
+            let commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, datetime('now', 'localtime'))`;
+            if (db.dbType === 'mssql') {
+                 commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETDATE())`;
+            }
+            await db.query(commentSql, [txId, 'System', `Additional Document Uploaded (${file.originalname}): ${documentDescription}`]);
+        }
+
+        logger.info(`Successfully uploaded additional document for ${txId}. File ID: ${newId}`);
+
+        res.status(200).json({
+            message: 'Additional document uploaded successfully',
+            file: {
+                id: newId,
+                file_type: fileType,
+                original_name: file.originalname,
+                uploaded_by: uploadedBy
+            }
+        });
+
+    } catch (error) {
+        logger.error(`Error uploading additional document for TX ID: ${txId}`, error);
+        res.status(500).json({ error: 'Internal server error while uploading document.' });
+    }
+};
+
 exports.addComment = async (req, res) => {
     const id = decodeURIComponent(req.params.id); // tx_id
     const { comment, actor_role } = req.body;

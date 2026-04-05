@@ -14,5 +14,6 @@ router.patch('/:id/cancel', creditRequestController.cancelCreditRequest);
 router.get('/:id/comments', creditRequestController.getComments);
 router.post('/:id/comments', creditRequestController.addComment);
 router.post('/:id/revise', creditRequestController.reviseRequest);
+router.post('/:id/additional-documents', upload.any(), creditRequestController.uploadAdditionalDocument);
 
 module.exports = router;

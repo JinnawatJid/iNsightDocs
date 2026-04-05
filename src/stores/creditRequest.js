@@ -136,6 +136,25 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       }
     },
 
+    async uploadAdditionalDocument(txId, formData) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const response = await CreditRequestService.uploadAdditionalDocument(txId, formData);
+
+        // Refresh the detail view to get the updated files list
+        await this.loadRequestDetail(txId);
+
+        return response.data;
+      } catch (err) {
+        console.error("Failed to upload additional document", err);
+        this.error = err.response?.data?.error || "Failed to upload document";
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async loadRequestDetail(txId) {
       this.loading = true;
       this.error = null;
