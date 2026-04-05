@@ -816,7 +816,7 @@ exports.uploadAdditionalDocument = async (req, res) => {
     try {
         // Fetch the request to verify it exists and get customer info for folder structure
         let reqSql = `SELECT customer_no, created_at FROM CreditRequests WHERE tx_id = ?`;
-        const reqResult = await db.query(reqSql, [txId]);
+        const { rows: reqResult } = await db.query(reqSql, [txId]);
 
         if (!reqResult || reqResult.length === 0) {
             return res.status(404).json({ error: 'Credit request not found.' });
@@ -859,12 +859,12 @@ exports.uploadAdditionalDocument = async (req, res) => {
         const insertSql = 'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)';
         const insertParams = [txId, fileType, relativeFilePath, file.originalname, uploadedBy];
 
-        const result = await db.query(insertSql, insertParams);
+        const result = await db.runAsync(insertSql, insertParams);
 
         let newId = result.insertId;
         if (db.dbType === 'mssql') {
             // Retrieve identity from last insert
-            const identQuery = await db.query('SELECT @@IDENTITY AS insertId');
+            const { rows: identQuery } = await db.query('SELECT @@IDENTITY AS insertId');
             if (identQuery && identQuery.length > 0) {
                newId = identQuery[0].insertId;
             }
@@ -876,7 +876,7 @@ exports.uploadAdditionalDocument = async (req, res) => {
             if (db.dbType === 'mssql') {
                  commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETDATE())`;
             }
-            await db.query(commentSql, [txId, 'System', `Additional Document Uploaded (${file.originalname}): ${documentDescription}`]);
+            await db.runAsync(commentSql, [txId, 'System', `Additional Document Uploaded (${file.originalname}): ${documentDescription}`]);
         }
 
         logger.info(`Successfully uploaded additional document for ${txId}. File ID: ${newId}`);
