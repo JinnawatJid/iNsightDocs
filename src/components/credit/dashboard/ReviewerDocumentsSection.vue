@@ -1,5 +1,12 @@
 <template>
   <div class="dashboard-card reviewer-documents-section">
+    <DocumentPreviewModal
+      v-if="isPreviewOpen"
+      :isOpen="isPreviewOpen"
+      :documentType="previewDocType"
+      :file="previewFile"
+      @close="closePreviewModal"
+    />
     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
       <h3>เอกสารเพิ่มเติม</h3>
       <button
@@ -67,14 +74,19 @@
 </template>
 
 <script setup>
-import { computed, inject } from 'vue';
+import { ref, computed, inject } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
 import Swal from 'sweetalert2';
+import DocumentPreviewModal from '@/components/shared/DocumentPreviewModal.vue';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
-const openPreviewModal = inject('openPreviewModal');
+const openPreviewModal = inject('openPreviewModal', null);
+
+const isPreviewOpen = ref(false);
+const previewDocType = ref('');
+const previewFile = ref(null);
 
 const canUpload = computed(() => {
   if (store.requestStatus === 'Draft') return false;
@@ -254,21 +266,25 @@ const handleDelete = (doc) => {
 };
 
 const previewDocument = (doc) => {
-  if (openPreviewModal && typeof openPreviewModal === 'function') {
-    // We pass the document to the global preview modal
-    // Constructing an object that the DocumentPreviewModal expects
-    const fileForPreview = {
-      ...doc,
-      // The modal might expect file to be directly accessible or use url
-      url: `/api/credit-requests/${store.requestId}/files/${doc.id}`
-    };
+  const fileForPreview = {
+    ...doc,
+    url: `/api/credit-requests/${store.requestId}/files/${doc.id}`
+  };
 
-    // We pass the key it was stored under as well
-    openPreviewModal(doc.file_type, fileForPreview, doc.file_type);
+  // If a global modal inject exists, use it
+  if (openPreviewModal && typeof openPreviewModal === 'function') {
+    openPreviewModal(doc.file_type || 'เอกสารเพิ่มเติม', fileForPreview, doc.file_type);
   } else {
-     // Fallback if inject fails
-     window.open(`/api/credit-requests/${store.requestId}/files/${doc.id}`, '_blank');
+    // Otherwise use our local instance of the modal
+    previewDocType.value = doc.file_type || 'เอกสารเพิ่มเติม';
+    previewFile.value = fileForPreview;
+    isPreviewOpen.value = true;
   }
+};
+
+const closePreviewModal = () => {
+  isPreviewOpen.value = false;
+  previewFile.value = null;
 };
 
 const formatDate = (dateString) => {
@@ -410,6 +426,8 @@ const getInitials = (name) => {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  text-align: left;
+  align-items: flex-start;
 }
 
 .file-name-cell {
