@@ -33,8 +33,8 @@ exports.getCreditRequestDetail = async (req, res) => {
 
         const request = rows[0];
 
-        // Fetch Attachments
-        const attachmentsSql = 'SELECT * FROM CreditRequestAttachments WHERE tx_id = ?';
+        // Fetch Attachments (excluding soft-deleted)
+        const attachmentsSql = 'SELECT * FROM CreditRequestAttachments WHERE tx_id = ? AND (is_deleted IS NULL OR is_deleted = 0)';
         const { rows: attachments } = await db.query(attachmentsSql, [id]);
 
         // Fetch Comments
@@ -87,7 +87,7 @@ exports.deleteAdditionalDocument = async (req, res) => {
 
     try {
         // Get file details to delete it physically and add to audit log
-        const fileSql = `SELECT file_path, original_name, file_type FROM CreditRequestAttachments WHERE id = ? AND tx_id = ?`;
+        const fileSql = `SELECT file_path, original_name, file_type, uploaded_by FROM CreditRequestAttachments WHERE id = ? AND tx_id = ?`;
         const { rows: files } = await db.query(fileSql, [fileId, id]);
 
         if (!files || files.length === 0) {
@@ -95,10 +95,16 @@ exports.deleteAdditionalDocument = async (req, res) => {
         }
 
         const file = files[0];
+
+        // Check permissions: only the original uploader or someone bypassing it (e.g., higher role like credit committee)
+        if (file.uploaded_by !== username && actor_role !== 'กรรมการเครดิต') {
+            return res.status(403).json({ error: 'Permission denied. You can only delete your own documents.' });
+        }
+
         const fullPath = path.resolve(__dirname, '..', file.file_path);
 
-        // Delete from database
-        const deleteSql = `DELETE FROM CreditRequestAttachments WHERE id = ?`;
+        // Soft Delete from database
+        const deleteSql = `UPDATE CreditRequestAttachments SET is_deleted = 1 WHERE id = ?`;
         await db.runAsync(deleteSql, [fileId]);
 
         // Try to delete physically
