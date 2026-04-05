@@ -164,7 +164,19 @@ exports.downloadCreditRequestFile = async (req, res) => {
         }
 
         if (!await fs.pathExists(filePath)) {
-            return res.status(404).json({ error: 'File not found on server' });
+            // Backward compatibility fix: If the path in the DB has "customers/" prefix due to a bug,
+            // strip it and try looking in the correct path.
+            if (fileRecord.file_path && fileRecord.file_path.startsWith('customers/')) {
+                const correctedRelativePath = fileRecord.file_path.replace('customers/', '');
+                const correctedPath = path.join(UPLOAD_BASE, correctedRelativePath);
+                if (await fs.pathExists(correctedPath)) {
+                    filePath = correctedPath;
+                } else {
+                    return res.status(404).json({ error: 'File not found on server' });
+                }
+            } else {
+                return res.status(404).json({ error: 'File not found on server' });
+            }
         }
 
         const mimeType = mime.lookup(filePath) || 'application/octet-stream';
@@ -910,7 +922,7 @@ exports.uploadAdditionalDocument = async (req, res) => {
         fs.renameSync(file.path, newPhysicalPath);
 
         // Prepare the logical path to store in DB (relative to base dir)
-        const relativeFilePath = path.join('customers', customerNo, yyyymmdd, physicalFileName).replace(/\\/g, '/');
+        const relativeFilePath = path.join(customerNo, yyyymmdd, physicalFileName).replace(/\\/g, '/');
 
         // Define file type as additional document, include document type if available
         let fileType = 'additional_doc';
