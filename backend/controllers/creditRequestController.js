@@ -920,9 +920,15 @@ exports.uploadAdditionalDocument = async (req, res) => {
 
         // Use the user's provided document name (passed via documentDescription) if available,
         // otherwise fall back to the original physical file name.
-        const displayName = documentDescription && documentDescription.trim() !== ''
-            ? documentDescription.trim()
-            : file.originalname;
+        let displayName = file.originalname;
+        if (documentDescription && documentDescription.trim() !== '') {
+            let cleanDesc = documentDescription.trim();
+            // Ensure the extension is preserved so frontend preview logic works
+            if (!cleanDesc.toLowerCase().endsWith(ext.toLowerCase())) {
+                cleanDesc += ext;
+            }
+            displayName = cleanDesc;
+        }
 
         const insertSql = 'INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)';
         const insertParams = [txId, fileType, relativeFilePath, displayName, uploadedBy];

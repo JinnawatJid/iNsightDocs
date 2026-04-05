@@ -266,9 +266,27 @@ const handleDelete = (doc) => {
 };
 
 const previewDocument = (doc) => {
+  let nameWithExt = doc.original_name;
+
+  // Extract extension from file_path just in case
+  let ext = '';
+  if (doc.file_path) {
+      const parts = doc.file_path.split('.');
+      if (parts.length > 1) {
+          ext = parts.pop().toLowerCase();
+      }
+  }
+
+  if (nameWithExt && ext) {
+      // Check if it already ends with the extension (e.g. MyDoc.pdf)
+      if (!nameWithExt.toLowerCase().endsWith('.' + ext)) {
+          nameWithExt += '.' + ext;
+      }
+  }
+
   const fileForPreview = {
     ...doc,
-    name: doc.original_name, // DocumentPreviewModal uses 'name' to extract file extension
+    name: nameWithExt, // DocumentPreviewModal uses 'name' to extract file extension
     displayName: doc.name || doc.original_name, // For display purposes if supported
     txId: store.requestId, // DocumentPreviewModal uses this to build the backend URL
     url: `/api/credit-requests/${store.requestId}/files/${doc.id}`
