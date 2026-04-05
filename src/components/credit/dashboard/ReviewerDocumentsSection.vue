@@ -268,6 +268,9 @@ const handleDelete = (doc) => {
 const previewDocument = (doc) => {
   const fileForPreview = {
     ...doc,
+    name: doc.original_name, // DocumentPreviewModal uses 'name' to extract file extension
+    displayName: doc.name || doc.original_name, // For display purposes if supported
+    txId: store.requestId, // DocumentPreviewModal uses this to build the backend URL
     url: `/api/credit-requests/${store.requestId}/files/${doc.id}`
   };
 
