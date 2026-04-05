@@ -1,0 +1,598 @@
+<template>
+  <div class="project-info-section">
+    <div v-if="project" class="form-section">
+      <div class="form-grid-three-columns">
+          <div class="form-group">
+              <label>รหัสโครงการ</label>
+              <input type="text" class="form-control" disabled :value="project.projectData.id" />
+          </div>
+          <div class="form-group">
+              <label>ชื่อโครงการ</label>
+              <input type="text" class="form-control" disabled :value="project.projectData.name" />
+          </div>
+          <div class="form-group">
+              <label>รหัสลูกค้า</label>
+              <input type="text" class="form-control" disabled :value="project.projectData.customerCode" />
+          </div>
+          <div class="form-group">
+              <label>ชื่อลูกค้า</label>
+              <input type="text" class="form-control" disabled :value="project.projectData.customerName" />
+          </div>
+          <div class="form-group">
+              <label>สาขา</label>
+              <input type="text" class="form-control" disabled :value="project.projectData.branch" />
+          </div>
+          <div class="form-group">
+              <label>ผู้รับผิดชอบโครงการ</label>
+              <input type="text" class="form-control" disabled :value="project.projectData.projectManager" />
+          </div>
+          <div class="form-group">
+              <label>วันเริ่มโครงการ</label>
+              <input
+                  type="text"
+                  v-model="project.adjustedStartDate"
+                  :disabled="props.readOnly"
+                  class="form-control"
+                  placeholder="DD/MM/YYYY"
+              />
+          </div>
+          <div class="form-group">
+              <label>วันที่คาดว่าจะแล้วเสร็จ</label>
+              <input
+                  type="text"
+                  v-model="project.adjustedExpectedEndDate"
+                  :disabled="props.readOnly"
+                  class="form-control"
+                  placeholder="DD/MM/YYYY"
+              />
+          </div>
+          <div class="form-group">
+              <label>มูลค่าโครงการรวม (บาท)</label>
+              <input
+                  type="text"
+                  v-model="project.adjustedProjectValue"
+                  :disabled="props.readOnly"
+                  @blur="formatAdjustedValue"
+                  @input="handleAdjustedValueInput"
+                  class="form-control text-primary font-bold"
+                  placeholder="ระบุมูลค่าโครงการ"
+              />
+          </div>
+      </div>
+
+      <div class="form-group full-width" style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+          <div class="section-header" style="margin-bottom: 15px;">
+              <h3>ข้อมูลเพิ่มเติม</h3>
+          </div>
+          <div class="form-grid-three-columns">
+              <div class="form-group">
+                  <label>ประเภทการรับเหมา</label>
+                  <select
+                      v-model="project.contractorType"
+                      :disabled="props.readOnly"
+                      class="form-control"
+                      :class="{ 'is-empty': !project.contractorType }"
+                  >
+                      <option value="" disabled selected>เลือกประเภทการรับเหมา</option>
+                      <option value="Main-Contractor">ผู้รับเหมาหลัก (Main-Contractor)</option>
+                      <option value="Sub-Contractor">ผู้รับเหมาช่วง (Sub-Contractor)</option>
+                  </select>
+              </div>
+              <div class="form-group">
+                  <label>ทีมของลูกค้า</label>
+                  <select
+                      v-model="project.customerTeam"
+                      :disabled="props.readOnly"
+                      class="form-control"
+                      :class="{ 'is-empty': !project.customerTeam }"
+                  >
+                      <option value="" disabled selected>เลือกจำนวน</option>
+                      <option value="1-10 คน">1-10 คน</option>
+                      <option value="11-20 คน">11-20 คน</option>
+                      <option value="21-50 คน">21-50 คน</option>
+                      <option value="51-100 คน">51-100 คน</option>
+                      <option value="มากกว่า 100 คน">มากกว่า 100 คน</option>
+                  </select>
+              </div>
+          </div>
+      </div>
+
+      <div v-if="project.contractorType === 'Sub-Contractor'" class="form-group full-width" style="margin-top: 10px;">
+          <div class="form-grid-two-columns">
+              <div class="form-group">
+                  <label>ชื่อผู้รับเหมาหลัก</label>
+                  <input
+                      type="text"
+                      v-model="project.mainContractorName"
+                      :disabled="props.readOnly"
+                      class="form-control"
+                      placeholder="ระบุชื่อผู้รับเหมาหลัก"
+                  />
+              </div>
+              <div class="form-group">
+                  <label>เลขประจำตัวผู้เสียภาษี (VAT Number)</label>
+                  <input
+                      type="text"
+                      v-model="project.mainContractorVat"
+                      :disabled="props.readOnly"
+                      class="form-control"
+                      placeholder="ระบุเลขประจำตัวผู้เสียภาษี 13 หลัก"
+                  />
+              </div>
+          </div>
+
+          <!-- Contractor DBD Uploaders -->
+          <div style="margin-top: 15px;">
+              <div class="upload-grid-small">
+                <FileUploader
+                  label="ข้อมูลบริษัท (Company Profile)"
+                  :modelValue="getFileList('contractor_company_profile_doc_' + project.projectId)"
+                  @update:modelValue="(newVal) => updateFileList('contractor_company_profile_doc_' + project.projectId, newVal)"
+                  :disabled="props.readOnly"
+                  accept=".pdf"
+                />
+                <FileUploader
+                  label="งบแสดงฐานะการเงิน (Balance Sheet)"
+                  :modelValue="getFileList('contractor_balance_sheet_doc_' + project.projectId)"
+                  @update:modelValue="(newVal) => updateFileList('contractor_balance_sheet_doc_' + project.projectId, newVal)"
+                  :disabled="props.readOnly"
+                  accept=".xlsx, .xls"
+                />
+                <FileUploader
+                  label="งบกำไรขาดทุน (Profit & Loss)"
+                  :modelValue="getFileList('contractor_profit_loss_doc_' + project.projectId)"
+                  @update:modelValue="(newVal) => updateFileList('contractor_profit_loss_doc_' + project.projectId, newVal)"
+                  :disabled="props.readOnly"
+                  accept=".xlsx, .xls"
+                />
+                <FileUploader
+                  label="งบอัตราส่วนทางการเงิน (Ratios)"
+                  :modelValue="getFileList('contractor_financial_ratios_doc_' + project.projectId)"
+                  @update:modelValue="(newVal) => updateFileList('contractor_financial_ratios_doc_' + project.projectId, newVal)"
+                  :disabled="props.readOnly"
+                  accept=".xlsx, .xls"
+                />
+              </div>
+          </div>
+      </div>
+
+      <div class="form-group full-width" style="border-top: 1px solid #ddd; padding-top: 25px; margin-top: 25px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <label style="margin: 0;">รายการสินค้าหลัก:</label>
+              <button v-if="!props.readOnly" @click="addProductItem" class="btn-text-add">+ เพิ่มสินค้า</button>
+          </div>
+          <div v-if="project.adjustedProductList && project.adjustedProductList.length > 0" class="product-list" style="gap: 15px;">
+              <div v-for="(prod, idx) in project.adjustedProductList" :key="idx" class="product-item" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 15px; align-items: center; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                  <div class="field-item">
+                      <label style="font-size: 11px; color: #64748b; margin-bottom: 6px; display: block;">ชื่อสินค้า</label>
+                      <input
+                          type="text"
+                          v-model="project.adjustedProductList[idx].name"
+                          :disabled="props.readOnly"
+                          class="form-control"
+                          placeholder="ชื่อสินค้า..."
+                      />
+                  </div>
+                  <div class="field-item">
+                      <label style="font-size: 11px; color: #64748b; margin-bottom: 6px; display: block;">ต้นทุน (บาท)</label>
+                      <input
+                          type="text"
+                          :value="project.adjustedProductList[idx].cost"
+                          @input="handleProductCostInput($event, idx)"
+                          @blur="formatProductCost(idx)"
+                          :disabled="props.readOnly"
+                          class="form-control text-right"
+                          placeholder="0.00"
+                      />
+                  </div>
+                  <div class="field-item">
+                      <label style="font-size: 11px; color: #64748b; margin-bottom: 6px; display: block;">ราคาขาย (บาท)</label>
+                      <input
+                          type="text"
+                          :value="project.adjustedProductList[idx].price"
+                          @input="handleProductPriceInput($event, idx)"
+                          @blur="formatProductPrice(idx)"
+                          :disabled="props.readOnly"
+                          class="form-control text-right"
+                          placeholder="0.00"
+                      />
+                  </div>
+                  <div class="field-item">
+                      <label style="font-size: 11px; color: #64748b; margin-bottom: 6px; display: block;">กำไร (บาท)</label>
+                      <input
+                          type="text"
+                          :value="calculateProfit(idx)"
+                          disabled
+                          class="form-control text-right"
+                          style="background-color: #f1f5f9; color: #10b981; font-weight: 600;"
+                          placeholder="0.00"
+                      />
+                  </div>
+                  <button v-if="!props.readOnly" class="btn-icon-delete-small" @click="removeProductItem(idx)" style="padding: 6px; margin-top: 22px;">✕</button>
+              </div>
+          </div>
+          <div v-else class="text-muted" style="font-size: 14px; margin-top: 5px;">
+              (ไม่มีรายการสินค้าหลัก)
+          </div>
+      </div>
+
+      <div class="form-group full-width" style="margin-top: 20px;">
+        <div class="upload-grid">
+            <FileUploader
+                label="สัญญาโปรเจค/ป้ายหน้า Site งาน"
+                required
+                :modelValue="getFileList('project_contract_doc_' + project.projectId)"
+                @update:modelValue="(newVal) => updateFileList('project_contract_doc_' + project.projectId, newVal)"
+                :disabled="props.readOnly"
+                multiple
+            />
+            <FileUploader
+                label="ใบเสนอราคาจากตังน้ำ"
+                required
+                :modelValue="getFileList('quotation_doc_' + project.projectId)"
+                @update:modelValue="(newVal) => updateFileList('quotation_doc_' + project.projectId, newVal)"
+                :disabled="props.readOnly"
+                multiple
+            />
+        </div>
+
+        <div class="upload-grid-small" style="margin-top: 20px;">
+            <div class="guarantee-section">
+                <FileUploader
+                    label="Bank Guarantee"
+                    :modelValue="getFileList('project_security_doc_' + project.projectId)"
+                    @update:modelValue="(newVal) => updateFileList('project_security_doc_' + project.projectId, newVal)"
+                    :disabled="props.readOnly"
+                    multiple
+                />
+                <div v-if="getFileList('project_security_doc_' + project.projectId) && getFileList('project_security_doc_' + project.projectId).length > 0" class="guarantee-details mt-2">
+                    <div v-for="(file, fileIndex) in getFileList('project_security_doc_' + project.projectId)" :key="fileIndex" class="guarantee-detail-card mb-2">
+                        <div class="guarantee-file-name text-primary text-sm mb-1 font-semibold truncate" :title="file.name">
+                            {{ file.name }}
+                        </div>
+                        <div class="guarantee-inputs row g-2">
+                            <div class="col-6">
+                                <label class="text-xs text-muted mb-1">จำนวนเงิน</label>
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm"
+                                    placeholder="เช่น 1,000,000"
+                                    :value="formatGuaranteeAmount(getGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'amount'))"
+                                    @input="(e) => handleGuaranteeAmountInput('projectBankGuaranteeDetails', file.name, 'amount', e.target.value)"
+                                    :disabled="props.readOnly"
+                                />
+                            </div>
+                            <div class="col-6">
+                                <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
+                                <input
+                                    type="date"
+                                    class="form-control form-control-sm"
+                                    :value="getGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate')"
+                                    @input="(e) => updateGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
+                                    :disabled="props.readOnly"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="guarantee-section">
+                <FileUploader
+                    label="หลักฐานเงินสดมัดจำ"
+                    :modelValue="getFileList('project_cash_deposit_doc_' + project.projectId)"
+                    @update:modelValue="(newVal) => updateFileList('project_cash_deposit_doc_' + project.projectId, newVal)"
+                    :disabled="props.readOnly"
+                    multiple
+                />
+                <div v-if="getFileList('project_cash_deposit_doc_' + project.projectId) && getFileList('project_cash_deposit_doc_' + project.projectId).length > 0" class="guarantee-details mt-2">
+                    <div v-for="(file, fileIndex) in getFileList('project_cash_deposit_doc_' + project.projectId)" :key="fileIndex" class="guarantee-detail-card mb-2">
+                        <div class="guarantee-file-name text-primary text-sm mb-1 font-semibold truncate" :title="file.name">
+                            {{ file.name }}
+                        </div>
+                        <div class="guarantee-inputs row g-2">
+                            <div class="col-6">
+                                <label class="text-xs text-muted mb-1">จำนวนเงิน</label>
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm"
+                                    placeholder="เช่น 500,000"
+                                    :value="formatGuaranteeAmount(getGuaranteeDetail('projectCashDepositDetails', file.name, 'amount'))"
+                                    @input="(e) => handleGuaranteeAmountInput('projectCashDepositDetails', file.name, 'amount', e.target.value)"
+                                    :disabled="props.readOnly"
+                                />
+                            </div>
+                            <div class="col-6">
+                                <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
+                                <input
+                                    type="date"
+                                    class="form-control form-control-sm"
+                                    :value="getGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate')"
+                                    @input="(e) => updateGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate', e.target.value)"
+                                    :disabled="props.readOnly"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+
+      <!-- Pass a unique tabName per project to isolate other documents -->
+      <OtherDocumentsSection
+          :tabName="'projectInfo_' + project.projectId"
+          :readOnly="props.readOnly"
+          title="เอกสารอื่นๆ (Other Project Documents)"
+          style="margin-top: 20px;"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+import { useCreditRequestStore } from '@/stores/creditRequest';
+import OtherDocumentsSection from '../../forms/OtherDocumentsSection.vue';
+import FileUploader from '@/components/shared/FileUploader.vue';
+
+const props = defineProps({
+  projectIndex: {
+    type: Number,
+    required: true
+  },
+  readOnly: {
+    type: Boolean,
+    default: false
+  }
+});
+
+const store = useCreditRequestStore();
+
+const project = computed(() => {
+  return store.transactionData.projects?.[props.projectIndex] || null;
+});
+
+const getFileList = (fileKey) => {
+    return store.files[fileKey] || null;
+};
+
+const updateFileList = (fileKey, newVal) => {
+    store.updateFile(fileKey, newVal);
+};
+
+const formatNumber = (num) => {
+    if (!num) return '0';
+    return Number(num).toLocaleString('en-US');
+};
+
+const handleAdjustedValueInput = (event) => {
+    if (!project.value) return;
+    let val = event.target.value;
+    val = val.replace(/[^0-9]/g, '');
+    project.value.adjustedProjectValue = val;
+};
+
+const formatAdjustedValue = () => {
+    if (!project.value) return;
+    const raw = project.value.adjustedProjectValue;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        project.value.adjustedProjectValue = formatNumber(num);
+    }
+};
+
+const handleProductPriceInput = (event, idx) => {
+    if (!project.value) return;
+    let val = event.target.value;
+    val = val.replace(/[^0-9.]/g, ''); // Allow decimals
+    project.value.adjustedProductList[idx].price = val;
+};
+
+const formatProductPrice = (idx) => {
+    if (!project.value) return;
+    const raw = project.value.adjustedProductList[idx].price;
+    if (!raw) return;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        project.value.adjustedProductList[idx].price = formatNumber(num);
+    }
+};
+
+const handleProductCostInput = (event, idx) => {
+    if (!project.value) return;
+    let val = event.target.value;
+    val = val.replace(/[^0-9.]/g, ''); // Allow decimals
+    project.value.adjustedProductList[idx].cost = val;
+};
+
+const formatProductCost = (idx) => {
+    if (!project.value) return;
+    const raw = project.value.adjustedProductList[idx].cost;
+    if (!raw) return;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        project.value.adjustedProductList[idx].cost = formatNumber(num);
+    }
+};
+
+const calculateProfit = (idx) => {
+    if (!project.value) return '0.00';
+    const rawPrice = project.value.adjustedProductList[idx].price;
+    const rawCost = project.value.adjustedProductList[idx].cost;
+
+    const priceNum = parseFloat(String(rawPrice || '0').replace(/,/g, '')) || 0;
+    const costNum = parseFloat(String(rawCost || '0').replace(/,/g, '')) || 0;
+
+    // Calculate profit
+    const profit = priceNum - costNum;
+
+    // Keep 2 decimals if there's fractional parts, else return grouped integer
+    if (profit % 1 !== 0) {
+        return formatNumber(profit.toFixed(2));
+    }
+    return formatNumber(profit);
+};
+
+// Guarantee Details Handlers
+const getGuaranteeDetail = (storeKey, fileName, field) => {
+    if (!project.value || !project.value[storeKey]) return '';
+    if (!project.value[storeKey][fileName]) return '';
+    return project.value[storeKey][fileName][field] || '';
+};
+
+const formatGuaranteeAmount = (val) => {
+    if (!val) return '';
+    const parts = String(val).split('.');
+    let formatted = Number(parts[0]).toLocaleString('en-US');
+    if (parts.length > 1) {
+        formatted += '.' + parts[1];
+    }
+    return formatted === 'NaN' ? val : formatted;
+};
+
+const handleGuaranteeAmountInput = (storeKey, fileName, field, rawValue) => {
+    let num = rawValue.replace(/[^0-9.]/g, '');
+    const parts = num.split('.');
+    if (parts.length > 2) {
+        num = parts[0] + '.' + parts.slice(1).join('');
+    }
+    updateGuaranteeDetail(storeKey, fileName, field, num);
+};
+
+const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
+    if (!project.value) return;
+    if (!project.value[storeKey]) {
+        project.value[storeKey] = {};
+    }
+    if (!project.value[storeKey][fileName]) {
+        project.value[storeKey][fileName] = {};
+    }
+    project.value[storeKey][fileName][field] = value;
+};
+
+const addProductItem = () => {
+    if (!project.value) return;
+    if (!project.value.adjustedProductList) {
+        project.value.adjustedProductList = [];
+    }
+    project.value.adjustedProductList.push({ name: '', cost: '', price: '' });
+};
+
+const removeProductItem = (idx) => {
+    if (!project.value) return;
+    project.value.adjustedProductList.splice(idx, 1);
+};
+</script>
+
+<style scoped>
+@import '../shared-styles.css';
+
+.project-info-section {
+    padding: 0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.upload-grid-small {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.guarantee-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.guarantee-detail-card {
+    background-color: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 10px;
+}
+
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.section-header h3 {
+  margin: 0;
+}
+
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.required::after {
+    content: " *";
+    color: red;
+}
+
+.text-primary {
+    color: #0056FF;
+}
+
+.btn-text-add {
+    background: none;
+    border: none;
+    color: #0056FF;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+    padding: 0;
+    line-height: 1;
+}
+
+.btn-text-add:hover {
+    text-decoration: underline;
+}
+
+.product-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.product-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-icon-delete-small {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon-delete-small:hover {
+    color: #dc3545;
+    background-color: #fee2e2;
+}
+
+.text-muted {
+    color: #888;
+}
+</style>
