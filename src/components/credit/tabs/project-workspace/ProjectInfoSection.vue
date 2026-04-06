@@ -46,6 +46,8 @@
                   placeholder="DD/MM/YYYY"
               />
           </div>
+          </div>
+      <div class="form-grid-three-columns" style="margin-top: 15px;">
           <div class="form-group">
               <label>มูลค่าโครงการรวม (บาท)</label>
               <input
