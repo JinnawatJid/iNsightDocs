@@ -427,6 +427,18 @@ const comparisonChartData = computed(() => {
     const datasets = [
         {
             type: 'line',
+            label: 'ยอดหนี้การค้าปัจจุบัน (Mock)',
+            data: uniqueDates.map(ts => ts <= chartStartTs + thirtyDaysMs ? mockCurrentDebt.value : 0),
+            borderColor: '#9e9e9e',
+            backgroundColor: 'rgba(158, 158, 158, 0.5)',
+            borderWidth: 2,
+            stepped: 'before',
+            fill: true,
+            pointRadius: 0,
+            pointHoverRadius: 6
+        },
+        {
+            type: 'line',
             label: 'ยอดหนี้ตามแผน (Planned)',
             data: plannedData,
             borderColor: 'rgba(156, 163, 175, 1)',
