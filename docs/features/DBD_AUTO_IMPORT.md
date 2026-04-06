@@ -24,6 +24,8 @@ If the user has checked the "ลูกค้าไม่ส่งงบการ
 
 ## Architecture
 
+> **Deep Dive:** For a granular, step-by-step technical breakdown of the browser automation, file download polling, and data extraction process, please see the [**DBD Scraping & Data Extraction Workflow**](./DBD_SCRAPING_WORKFLOW.md) document.
+
 ### 1. Local Cache Auto-Import (First Priority)
 *   **Environment:** Internal Application Server.
 *   **Flow:** Client Browser -> API (`/api/financials/check-local/:customer_no`) -> Server Storage (`customers/{customer_no}/`).
