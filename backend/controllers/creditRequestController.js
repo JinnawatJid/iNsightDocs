@@ -3,6 +3,7 @@ const db = require('../db');
 const fs = require('fs-extra');
 const path = require('path');
 const mime = require('mime-types');
+const fileResolver = require('../utils/fileResolver');
 
 let projectRoot = path.resolve(__dirname, '../../../../');
 if (!fs.existsSync(path.join(projectRoot, 'customers'))) {
@@ -113,29 +114,8 @@ exports.deleteAdditionalDocument = async (req, res) => {
             normalizedPath = normalizedPath.replace(/^uploads\//, '');
         }
 
-        let fullPath = normalizedPath;
-        let foundPath = null;
-
-        if (path.isAbsolute(normalizedPath) && fs.existsSync(normalizedPath)) {
-            foundPath = normalizedPath;
-        } else {
-            const candidatePaths = [
-                path.join(UPLOAD_BASE, normalizedPath),
-                path.join(projectRoot, 'uploads', normalizedPath),
-                path.join(projectRoot, 'customers', normalizedPath)
-            ];
-
-            for (const candidate of candidatePaths) {
-                if (fs.existsSync(candidate)) {
-                    foundPath = candidate;
-                    break;
-                }
-            }
-        }
-
-        if (foundPath) {
-            fullPath = foundPath;
-        }
+        let resolvedPath = await fileResolver.resolveFilePath(normalizedPath, UPLOAD_BASE, projectRoot);
+        let fullPath = resolvedPath || normalizedPath;
 
         // Soft Delete from database
         const deleteSql = `UPDATE CreditRequestAttachments SET is_deleted = 1 WHERE id = ?`;
@@ -206,26 +186,7 @@ exports.downloadCreditRequestFile = async (req, res) => {
             normalizedPath = normalizedPath.replace(/^uploads\//, '');
         }
 
-        let foundPath = null;
-
-        // Try as an absolute path first
-        if (path.isAbsolute(normalizedPath) && fs.existsSync(normalizedPath)) {
-            foundPath = normalizedPath;
-        } else {
-            // Fallback candidates
-            const candidatePaths = [
-                path.join(UPLOAD_BASE, normalizedPath),
-                path.join(projectRoot, 'uploads', normalizedPath),
-                path.join(projectRoot, 'customers', normalizedPath)
-            ];
-
-            for (const candidate of candidatePaths) {
-                if (fs.existsSync(candidate)) {
-                    foundPath = candidate;
-                    break;
-                }
-            }
-        }
+        let foundPath = await fileResolver.resolveFilePath(normalizedPath, UPLOAD_BASE, projectRoot);
 
         if (!foundPath) {
             logger.error(`File not found on server. DB Path: ${fileRecord.file_path}, Normalized: ${normalizedPath}`);
