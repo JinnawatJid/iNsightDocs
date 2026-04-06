@@ -533,66 +533,6 @@ const formatAdjustedValue = () => {
     }
 };
 
-const handleProductPriceInput = (event, idx) => {
-    let val = event.target.value;
-    val = val.replace(/[^0-9.-]/g, ''); // Allow decimals
-    store.transactionData.adjustedProductList[idx].price = val;
-};
-
-const formatProductPrice = (idx) => {
-    const raw = store.transactionData.adjustedProductList[idx].price;
-    if (!raw) return;
-    const num = parseFloat(String(raw).replace(/,/g, ''));
-    if (!isNaN(num)) {
-        store.transactionData.adjustedProductList[idx].price = formatNumber(num);
-    }
-};
-
-// Guarantee Details Handlers
-const getGuaranteeDetail = (storeKey, fileName, field) => {
-    if (!store.transactionData[storeKey]) return '';
-    if (!store.transactionData[storeKey][fileName]) return '';
-    return store.transactionData[storeKey][fileName][field] || '';
-};
-
-const formatGuaranteeAmount = (val) => {
-    if (!val) return '';
-    const parts = String(val).split('.');
-    let formatted = Number(parts[0]).toLocaleString('en-US');
-    if (parts.length > 1) {
-        formatted += '.' + parts[1];
-    }
-    return formatted === 'NaN' ? val : formatted;
-};
-
-const handleGuaranteeAmountInput = (storeKey, fileName, field, rawValue) => {
-    let num = rawValue.replace(/[^0-9.-]/g, '');
-    const parts = num.split('.');
-    if (parts.length > 2) {
-        num = parts[0] + '.' + parts.slice(1).join('');
-    }
-    updateGuaranteeDetail(storeKey, fileName, field, num);
-};
-
-const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
-    if (!store.transactionData[storeKey]) {
-        store.transactionData[storeKey] = {};
-    }
-    if (!store.transactionData[storeKey][fileName]) {
-        store.transactionData[storeKey][fileName] = {};
-    }
-    store.transactionData[storeKey][fileName][field] = value;
-};
-
-const addProduct = () => {
-    if (!store.transactionData) store.transactionData = {};
-    if (!store.transactionData.adjustedProductList) {
-        store.transactionData.adjustedProductList = [];
-    }
-    store.transactionData.adjustedProductList.push({ name: '', price: '' });
-};
-
-const removeProduct = (idx) => {
     store.transactionData.adjustedProductList.splice(idx, 1);
 };
 
