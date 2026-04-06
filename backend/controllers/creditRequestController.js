@@ -3,6 +3,7 @@ const db = require('../db');
 const fs = require('fs-extra');
 const path = require('path');
 const mime = require('mime-types');
+const fileResolver = require('../utils/fileResolver');
 
 let projectRoot = path.resolve(__dirname, '../../../../');
 if (!fs.existsSync(path.join(projectRoot, 'customers'))) {
@@ -101,14 +102,20 @@ exports.deleteAdditionalDocument = async (req, res) => {
             return res.status(403).json({ error: 'Permission denied. You can only delete your own documents.' });
         }
 
-        let fullPath = file.file_path;
-        if (!path.isAbsolute(fullPath)) {
-            // Backward compatibility check for corrupted paths
-            if (fullPath.startsWith('customers/')) {
-                fullPath = fullPath.replace('customers/', '');
-            }
-            fullPath = path.join(UPLOAD_BASE, fullPath);
+        if (!file.file_path) {
+            return res.status(400).json({ error: 'File path is missing in the database' });
         }
+
+        let normalizedPath = file.file_path.replace(/\\/g, '/');
+
+        if (normalizedPath.startsWith('customers/')) {
+            normalizedPath = normalizedPath.replace(/^customers\//, '');
+        } else if (normalizedPath.startsWith('uploads/')) {
+            normalizedPath = normalizedPath.replace(/^uploads\//, '');
+        }
+
+        let resolvedPath = await fileResolver.resolveFilePath(normalizedPath, UPLOAD_BASE, projectRoot);
+        let fullPath = resolvedPath || normalizedPath;
 
         // Soft Delete from database
         const deleteSql = `UPDATE CreditRequestAttachments SET is_deleted = 1 WHERE id = ?`;
@@ -116,7 +123,7 @@ exports.deleteAdditionalDocument = async (req, res) => {
 
         // Try to delete physically
         try {
-            if (fs.existsSync(fullPath)) {
+            if (await fs.pathExists(fullPath)) {
                 fs.unlinkSync(fullPath);
             }
         } catch (fsError) {
@@ -165,26 +172,28 @@ exports.downloadCreditRequestFile = async (req, res) => {
         const fileRecord = rows[0];
         let filePath = fileRecord.file_path;
 
-        // Handle relative paths (new format) vs absolute paths (legacy format)
-        if (!path.isAbsolute(filePath)) {
-            filePath = path.join(UPLOAD_BASE, filePath);
+        if (!filePath) {
+            return res.status(404).json({ error: 'File path is missing in the database' });
         }
 
-        if (!await fs.pathExists(filePath)) {
-            // Backward compatibility fix: If the path in the DB has "customers/" prefix due to a bug,
-            // strip it and try looking in the correct path.
-            if (fileRecord.file_path && fileRecord.file_path.startsWith('customers/')) {
-                const correctedRelativePath = fileRecord.file_path.replace('customers/', '');
-                const correctedPath = path.join(UPLOAD_BASE, correctedRelativePath);
-                if (await fs.pathExists(correctedPath)) {
-                    filePath = correctedPath;
-                } else {
-                    return res.status(404).json({ error: 'File not found on server' });
-                }
-            } else {
-                return res.status(404).json({ error: 'File not found on server' });
-            }
+        // Normalize path separators (handle backslashes from legacy Windows systems)
+        let normalizedPath = filePath.replace(/\\/g, '/');
+
+        // Strip out erroneous legacy prefixes
+        if (normalizedPath.startsWith('customers/')) {
+            normalizedPath = normalizedPath.replace(/^customers\//, '');
+        } else if (normalizedPath.startsWith('uploads/')) {
+            normalizedPath = normalizedPath.replace(/^uploads\//, '');
         }
+
+        let foundPath = await fileResolver.resolveFilePath(normalizedPath, UPLOAD_BASE, projectRoot);
+
+        if (!foundPath) {
+            logger.error(`File not found on server. DB Path: ${fileRecord.file_path}, Normalized: ${normalizedPath}`);
+            return res.status(404).json({ error: 'File not found on server' });
+        }
+
+        filePath = foundPath;
 
         const mimeType = mime.lookup(filePath) || 'application/octet-stream';
         res.setHeader('Content-Type', mimeType);
@@ -906,7 +915,7 @@ exports.uploadAdditionalDocument = async (req, res) => {
         const yyyymmdd = `${creationDate.getFullYear()}${String(creationDate.getMonth() + 1).padStart(2, '0')}${String(creationDate.getDate()).padStart(2, '0')}`;
 
         const customerDir = path.join(defaultUploadPath, customerNo, yyyymmdd);
-        if (!fs.existsSync(customerDir)) {
+        if (!await fs.pathExists(customerDir)) {
             fs.mkdirSync(customerDir, { recursive: true });
         }
 

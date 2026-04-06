@@ -126,3 +126,9 @@ If the web application is hosted on a server (e.g., `192.168.1.50`) but the user
 **Technical Details:**
 - The bridge server sends `Access-Control-Allow-Private-Network: true` to satisfy the PNA preflight check.
 - The browser flag is currently required because the spec is still evolving and browsers default to strict blocking for mixed-content (Public/Private) on HTTP.
+
+### กลไกการอ่านไฟล์ข้อมูลทางการเงิน (Financial Data Folder Scanning)
+
+เมื่อระบบทำการตรวจสอบหาไฟล์ข้อมูลงบการเงิน (เช่น DBD Profile, Balance Sheet) ใน Local Cache ผ่าน Endpoint `/api/financials/check-local/:customer_no` ระบบจะไม่ตรวจสอบเพียงแค่โฟลเดอร์ล่าสุด (Newest Folder) เพียงโฟลเดอร์เดียวเท่านั้น
+
+แต่ระบบจะทำการ **สแกนทุกโฟลเดอร์วันที่ทั้งหมด** จากใหม่สุดไปเก่าสุด เพื่อรวบรวมไฟล์ที่จำเป็นทั้งหมด เพื่อรองรับกรณีที่ลูกค้าอาจส่งเอกสาร Company Profile มาก่อนเมื่อวาน (สร้างโฟลเดอร์วันที่เมื่อวาน) และเพิ่งส่งไฟล์ Excel งบการเงินตามมาวันนี้ (สร้างโฟลเดอร์วันทีของวันนี้) ระบบจะสามารถดึง Company Profile จากโฟลเดอร์เก่ามารวมกับไฟล์ใหม่ได้อย่างถูกต้อง

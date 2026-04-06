@@ -990,69 +990,8 @@ const checkSingleCustomerFiles = async (customer_no) => {
             return { exists: false, reason: 'No date folders' };
         }
 
-        const latestFolder = dateFolders[0];
-
-        // Check Freshness (180 days)
-        const folderDate = new Date(
-            parseInt(latestFolder.substring(0, 4)),
-            parseInt(latestFolder.substring(4, 6)) - 1,
-            parseInt(latestFolder.substring(6, 8))
-        );
-        const now = new Date();
-        const diffTime = Math.abs(now - folderDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays > 180) {
-            logger.info(`[DEBUG] Local files for ${customer_no} (${latestFolder}) rejected. diffDays=${diffDays} > 180`);
-            return { exists: false, reason: 'Files too old', days: diffDays, limit: 180 };
-        }
-
-        const latestPath = path.join(customerRoot, latestFolder);
-
-        // Check for No Financial Data Marker FIRST
-        const markerPath = path.join(latestPath, 'DBD_NoFinancialData.txt');
-        const hasNoDataMarker = await fs.pathExists(markerPath);
-
-        if (hasNoDataMarker) {
-            // Include profile if it exists, but don't strictly require it here
-            const profilePath = path.join(latestPath, 'DBD_Profile.pdf');
-            let profileDetail = null;
-            let dbdCompanyName = null;
-            let dbdYearsInBusiness = null;
-            let dbdRegisteredCapital = null;
-            if (await fs.pathExists(profilePath)) {
-                const stats = await fs.stat(profilePath);
-                profileDetail = { filename: 'DBD_Profile.pdf', size: stats.size, date: stats.mtime, path: profilePath };
-
-                try {
-                    const dataBuffer = await fs.readFile(profilePath);
-                    const extracted = await extractDBDData(dataBuffer);
-                    if (extracted.success) {
-                        if (extracted.companyName) dbdCompanyName = extracted.companyName;
-                        if (extracted.yearsInBusiness) dbdYearsInBusiness = extracted.yearsInBusiness;
-                        if (extracted.registeredCapital) dbdRegisteredCapital = extracted.registeredCapital;
-                    }
-                } catch (pdfErr) {
-                    logger.warn('Failed to parse profile for name:', pdfErr.message);
-                }
-            }
-
-            return {
-                exists: true,
-                isNoFinancialData: true,
-                noFinancialData: true,
-                date: latestFolder,
-                daysOld: diffDays,
-                path: latestPath,
-                reason: 'ลูกค้าไม่ส่งงบการเงิน',
-                dbdCompanyName: dbdCompanyName,
-                dbdYearsInBusiness: dbdYearsInBusiness,
-                dbdRegisteredCapital: dbdRegisteredCapital,
-                files: profileDetail ? { profile: profileDetail } : {}
-            };
-        }
-
-        // Check required files
+                // We will scan all dateFolders to find the newest occurrence of each required file
+        // or the No Financial Data marker.
         const requiredFiles = [
             { key: 'profile', name: 'DBD_Profile.pdf' },
             { key: 'balanceSheet', name: 'DBD_BalanceSheet.xlsx' },
@@ -1060,51 +999,101 @@ const checkSingleCustomerFiles = async (customer_no) => {
             { key: 'financialRatios', name: 'DBD_FinancialRatios.xlsx' }
         ];
 
-        const fileDetails = {};
-
+        let fileDetails = {};
         let dbdCompanyName = null;
         let dbdYearsInBusiness = null;
         let dbdRegisteredCapital = null;
-        for (const file of requiredFiles) {
-            const filePath = path.join(latestPath, file.name);
-            logger.info(`[DEBUG] Checking for file: ${filePath}`);
-            if (!await fs.pathExists(filePath)) {
-                logger.info(`[DEBUG] File NOT FOUND: ${filePath}`);
-                continue; // Skip instead of returning false immediately
+        let hasNoDataMarker = false;
+        let primaryFolder = dateFolders[0]; // defaults to newest folder
+
+        // Search for marker first
+        for (const folder of dateFolders) {
+            const currentPath = path.join(customerRoot, folder);
+            const markerPath = path.join(currentPath, 'DBD_NoFinancialData.txt');
+            if (await fs.pathExists(markerPath)) {
+                hasNoDataMarker = true;
+                primaryFolder = folder;
+                break;
             }
-            logger.info(`[DEBUG] File FOUND: ${filePath}`);
+        }
 
-            // Get File Stats
-            const stats = await fs.stat(filePath);
-            fileDetails[file.key] = {
-                filename: file.name,
-                size: stats.size,
-                date: stats.mtime, // Modification time
-                path: filePath
-            };
+        // Search for required files across all folders (newest first)
+        for (const file of requiredFiles) {
+            for (const folder of dateFolders) {
+                const currentPath = path.join(customerRoot, folder);
+                const filePath = path.join(currentPath, file.name);
 
-            if (file.key === 'profile') {
-                try {
-                    const dataBuffer = await fs.readFile(filePath);
-                    const extracted = await extractDBDData(dataBuffer);
-                    if (extracted.success) {
-                        if (extracted.companyName) dbdCompanyName = extracted.companyName;
-                        if (extracted.yearsInBusiness) dbdYearsInBusiness = extracted.yearsInBusiness;
-                        if (extracted.registeredCapital) dbdRegisteredCapital = extracted.registeredCapital;
+                if (await fs.pathExists(filePath)) {
+                    logger.info(`[DEBUG] File FOUND: ${filePath}`);
+
+                    const stats = await fs.stat(filePath);
+                    fileDetails[file.key] = {
+                        filename: file.name,
+                        size: stats.size,
+                        date: stats.mtime,
+                        path: filePath,
+                        folderDate: folder // track which folder it came from
+                    };
+
+                    if (file.key === 'profile') {
+                        try {
+                            const dataBuffer = await fs.readFile(filePath);
+                            const extracted = await extractDBDData(dataBuffer);
+                            if (extracted.success) {
+                                if (extracted.companyName) dbdCompanyName = extracted.companyName;
+                                if (extracted.yearsInBusiness) dbdYearsInBusiness = extracted.yearsInBusiness;
+                                if (extracted.registeredCapital) dbdRegisteredCapital = extracted.registeredCapital;
+                            }
+                        } catch (pdfErr) {
+                            logger.warn('Failed to parse profile for name:', pdfErr.message);
+                        }
                     }
-                } catch (pdfErr) {
-                    logger.warn('Failed to parse profile for name:', pdfErr.message);
+                    // Found the newest version of this file, break inner loop to check next file
+                    break;
                 }
             }
+        }
+
+        // Check Freshness (180 days) against primary folder
+        const folderDate = new Date(
+            parseInt(primaryFolder.substring(0, 4)),
+            parseInt(primaryFolder.substring(4, 6)) - 1,
+            parseInt(primaryFolder.substring(6, 8))
+        );
+        const now = new Date();
+        const diffTime = Math.abs(now - folderDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > 180) {
+            logger.info(`[DEBUG] Local files for ${customer_no} (${primaryFolder}) rejected. diffDays=${diffDays} > 180`);
+            return { exists: false, reason: 'Files too old', days: diffDays, limit: 180 };
+        }
+
+        const primaryPath = path.join(customerRoot, primaryFolder);
+
+        if (hasNoDataMarker) {
+            return {
+                exists: true,
+                isNoFinancialData: true,
+                noFinancialData: true,
+                date: primaryFolder,
+                daysOld: diffDays,
+                path: primaryPath,
+                reason: 'ลูกค้าไม่ส่งงบการเงิน',
+                dbdCompanyName: dbdCompanyName,
+                dbdYearsInBusiness: dbdYearsInBusiness,
+                dbdRegisteredCapital: dbdRegisteredCapital,
+                files: fileDetails.profile ? { profile: fileDetails.profile } : {}
+            };
         }
 
         return {
             exists: Object.keys(fileDetails).length > 0,
             isNoFinancialData: false,
             noFinancialData: false,
-            date: latestFolder,
+            date: primaryFolder,
             daysOld: diffDays,
-            path: latestPath,
+            path: primaryPath,
             files: fileDetails,
             dbdCompanyName: dbdCompanyName,
             dbdYearsInBusiness: dbdYearsInBusiness,
@@ -1238,13 +1227,19 @@ exports.downloadLocalFile = async (req, res) => {
 
         if (dateFolders.length === 0) return res.status(404).send('No date folders found');
 
-        // Use Latest Folder
-        const latestPath = path.join(customerRoot, dateFolders[0]);
-        const filePath = path.join(latestPath, filename);
+        // Search through all date folders from newest to oldest
+        let foundFilePath = null;
+        for (const folder of dateFolders) {
+            const currentPath = path.join(customerRoot, folder, filename);
+            if (await fs.pathExists(currentPath)) {
+                foundFilePath = currentPath;
+                break;
+            }
+        }
 
-        if (!await fs.pathExists(filePath)) return res.status(404).send('File not found');
+        if (!foundFilePath) return res.status(404).send('File not found');
 
-        res.download(filePath);
+        res.download(foundFilePath);
 
     } catch (error) {
         logger.error('Download Local File Error:', error);
