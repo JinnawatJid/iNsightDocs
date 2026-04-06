@@ -6,7 +6,7 @@ const mime = require('mime-types');
 const fileResolver = require('../utils/fileResolver');
 
 let projectRoot = path.resolve(__dirname, '../../../../');
-if (!fs.existsSync(path.join(projectRoot, 'customers'))) {
+if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
     projectRoot = path.resolve(__dirname, '../../');
 }
 const defaultUploadPath = path.join(projectRoot, 'uploads');
@@ -123,7 +123,7 @@ exports.deleteAdditionalDocument = async (req, res) => {
 
         // Try to delete physically
         try {
-            if (fs.existsSync(fullPath)) {
+            if (await fs.pathExists(fullPath)) {
                 fs.unlinkSync(fullPath);
             }
         } catch (fsError) {
@@ -372,7 +372,7 @@ exports.createCreditRequest = async (req, res) => {
             const oldDir = path.join(UPLOAD_BASE, existing.customer_no, cleanOldTxId);
             const newDir = path.join(UPLOAD_BASE, existing.customer_no, cleanNewTxId);
 
-            if (fs.existsSync(oldDir)) {
+            if (await fs.pathExists(oldDir)) {
                 // Ensure parent of newDir exists
                 await fs.ensureDir(path.dirname(newDir));
                 await fs.move(oldDir, newDir);
@@ -840,7 +840,7 @@ exports.reviseRequest = async (req, res) => {
         const oldDirPath = path.join(UPLOAD_BASE, oldRequest.customer_no, cleanOldId);
         const newDirPath = path.join(UPLOAD_BASE, oldRequest.customer_no, cleanNewId);
 
-        if (fs.existsSync(oldDirPath)) {
+        if (await fs.pathExists(oldDirPath)) {
              await fs.copy(oldDirPath, newDirPath);
              logger.info(`Copied files from ${oldDirPath} to ${newDirPath}`);
 
@@ -915,7 +915,7 @@ exports.uploadAdditionalDocument = async (req, res) => {
         const yyyymmdd = `${creationDate.getFullYear()}${String(creationDate.getMonth() + 1).padStart(2, '0')}${String(creationDate.getDate()).padStart(2, '0')}`;
 
         const customerDir = path.join(defaultUploadPath, customerNo, yyyymmdd);
-        if (!fs.existsSync(customerDir)) {
+        if (!await fs.pathExists(customerDir)) {
             fs.mkdirSync(customerDir, { recursive: true });
         }
 
