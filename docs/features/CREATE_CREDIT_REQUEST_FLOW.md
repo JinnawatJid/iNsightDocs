@@ -35,3 +35,10 @@ To ensure the "Search First" pattern is preserved and no stale data persists acr
 
 - **Component-Level Cleanup:** The `CreateCreditRequest.vue` view component enforces this by calling `store.resetState()` within its `onMounted` lifecycle hook.
 - **Why it matters:** Other views, such as `/pending-requests`, share the global `creditRequest` store to display detailed customer data. If a user views a pending request and then navigates to `/create-credit-request`, the store would retain the pending request's ID and customer data, completely bypassing the "Initial State" search requirement and jumping straight into the "Form Mode" with incorrect context. The `onMounted` cleanup guarantees a clean slate.
+
+## 4. Request Type Business Logic
+Specific request types trigger dynamic UI and validation behavior in the `CreditRequestForm` (specifically within `RequestInfoTab.vue`):
+
+- **Change Term (เปลี่ยนแปลงระยะเวลาเครดิต) & Change Payment Conditions (เปลี่ยนแปลงเงื่อนไขการชำระเงิน):**
+  - **UI Display:** The "Requested Amount" (`amount`) field is re-labeled as "วงเงินปัจจุบัน (บาท)" (Current Limit). The input field becomes read-only and displays the customer's actual `current_credit_limit` instead of requiring new user input.
+  - **Validation Logic:** Because these request types do not involve requesting a new credit amount, the `amount` field is explicitly skipped during the `validateRequest` process in the Pinia store (`src/stores/creditRequest.js`), ensuring that submission is not blocked by a missing amount value.

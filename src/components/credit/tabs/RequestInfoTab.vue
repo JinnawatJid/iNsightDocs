@@ -104,10 +104,21 @@
 
             <div class="form-group" v-if="isDraftMode">
               <label>
-                  {{ isRequestIncrease ? 'ต้องการวงเงินเพิ่ม' : 'วงเงินเครดิตที่ต้องการ (บาท)' }}
+                  <template v-if="isChangeTerm || isChangePayment">วงเงินปัจจุบัน (บาท)</template>
+                  <template v-else>{{ isRequestIncrease ? 'ต้องการวงเงินเพิ่ม' : 'วงเงินเครดิตที่ต้องการ (บาท)' }}</template>
                   <span v-if="isRequired('amount')" class="text-red-500">*</span>
               </label>
+              <!-- For Change Term / Change Payment, show current credit limit and disabled -->
               <input
+                v-if="isChangeTerm || isChangePayment"
+                type="text"
+                class="form-input disabled"
+                disabled
+                :value="formattedCurrentCreditLimit" :data-empty="!store.customer.current_credit_limit"
+              />
+              <!-- Default input for other types -->
+              <input
+                v-else
                 type="text"
                 class="form-input"
                 :class="{ 'border-red-500': errors.amount, 'disabled': !canEditAmount }"
@@ -116,7 +127,7 @@
                 v-model="formattedAmount" :data-empty="!formattedAmount"
                 @input="handleAmountInput"
               />
-              <span v-if="errors.amount" class="error-text">กรุณาระบุข้อมูล</span>
+              <span v-if="errors.amount && !(isChangeTerm || isChangePayment)" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
 
             <div class="form-group" v-if="isRequestIncrease && isDraftMode">
