@@ -408,6 +408,37 @@ const initDB = async () => {
         `;
         await pool.request().query(createRequestCommentsSQL);
 
+        // Migration: Update 3-digit tx_id to 2-digit tx_id (e.g., 00TRCA2603/001 -> 00TRCA2603/01)
+        try {
+            const result = await pool.request().query(`SELECT tx_id FROM CreditRequests WHERE tx_id LIKE '%/%'`);
+            if (result.recordset && result.recordset.length > 0) {
+                for (const row of result.recordset) {
+                    const txId = row.tx_id;
+                    const parts = txId.split('/');
+                    if (parts.length === 2 && parts[1].length === 3 && !isNaN(parseInt(parts[1], 10))) {
+                        const newTxId = `${parts[0]}/${parts[1].substring(1)}`;
+
+                        await pool.request()
+                            .input('newTxId', sql.NVarChar, newTxId)
+                            .input('txId', sql.NVarChar, txId)
+                            .query(`UPDATE CreditRequests SET tx_id = @newTxId WHERE tx_id = @txId`);
+
+                        await pool.request()
+                            .input('newTxId', sql.NVarChar, newTxId)
+                            .input('txId', sql.NVarChar, txId)
+                            .query(`UPDATE CreditRequestAttachments SET tx_id = @newTxId WHERE tx_id = @txId`);
+
+                        await pool.request()
+                            .input('newTxId', sql.NVarChar, newTxId)
+                            .input('txId', sql.NVarChar, txId)
+                            .query(`UPDATE RequestComments SET tx_id = @newTxId WHERE tx_id = @txId`);
+                    }
+                }
+            }
+        } catch (e) {
+            logger.error('Error migrating 3-digit tx_id to 2-digit tx_id:', e);
+        }
+
         logger.info('Database initialized (MSSQL).');
     } catch (error) {
         logger.error('Database initialization failed (MSSQL):', error);

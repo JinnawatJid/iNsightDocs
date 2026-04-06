@@ -315,6 +315,26 @@ const initDB = async () => {
             FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
         )`);
 
+        // Migration: Update 3-digit tx_id to 2-digit tx_id (e.g., 00TRCA2603/001 -> 00TRCA2603/01)
+        try {
+            const txs = await db.allAsync(`SELECT tx_id FROM CreditRequests WHERE tx_id LIKE '%/%'`);
+            if (txs && txs.length > 0) {
+                for (const tx of txs) {
+                    const txId = tx.tx_id;
+                    const parts = txId.split('/');
+                    if (parts.length === 2 && parts[1].length === 3 && !isNaN(parseInt(parts[1], 10))) {
+                        const newTxId = `${parts[0]}/${parts[1].substring(1)}`;
+
+                        await db.runAsync(`UPDATE CreditRequests SET tx_id = ? WHERE tx_id = ?`, [newTxId, txId]);
+                        await db.runAsync(`UPDATE CreditRequestAttachments SET tx_id = ? WHERE tx_id = ?`, [newTxId, txId]);
+                        await db.runAsync(`UPDATE RequestComments SET tx_id = ? WHERE tx_id = ?`, [newTxId, txId]);
+                    }
+                }
+            }
+        } catch (e) {
+            logger.error('Error migrating 3-digit tx_id to 2-digit tx_id:', e);
+        }
+
         logger.info('Database initialized (SQLite).');
     } catch (error) {
         logger.error('Database initialization failed (SQLite):', error);
