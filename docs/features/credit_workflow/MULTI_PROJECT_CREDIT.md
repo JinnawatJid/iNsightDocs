@@ -51,4 +51,5 @@ A key advantage of the multi-project architecture is the ability to aggregate da
 ### `GlobalPhasingAnalysis.vue`
 When one or more projects are added, the `GlobalPhasingAnalysis.vue` component is rendered. It utilizes `Chart.js` to provide:
 - **Consolidated Cash Flow:** An aggregated view combining the phasing data (Expected Revenue vs. Expected Costs) across all active projects.
+- **Planned vs Actual Tracking:** An industry-standard Running Balance Line Chart comparing the "Planned" cumulative debt (dashed line) against an "Actual" mock cumulative debt (solid line). The actual data simulates real-world delays (e.g., late drawdowns and payments) to provide approvers with a realistic risk profile. Both charts share a synchronized Y-Axis scale to ensure accurate visual comparison.
 - **Peak Exposure Calculation:** It calculates the "Total Peak Exposure" (ยอดหนี้สะสมรวมสูงสุด) by combining project-specific debt with current trade debt over the timeline, providing approvers with a clear visualization of maximum risk.
