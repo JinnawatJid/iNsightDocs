@@ -474,7 +474,7 @@ const calculateFromCost = () => {
 
 const handleCostInput = (event) => {
     let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, '');
+    val = val.replace(/[^0-9.-]/g, '');
     store.transactionData.projectCost = val;
     calculateFromCost();
 };
@@ -505,7 +505,7 @@ const calculateFromProfit = () => {
 
 const handleProfitInput = (event) => {
     let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, '');
+    val = val.replace(/[^0-9.-]/g, '');
     store.transactionData.projectProfit = val;
     calculateFromProfit();
 };
@@ -537,7 +537,7 @@ const calculateFromProfitPercent = () => {
 
 const handleProfitPercentInput = (event) => {
     let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, '');
+    val = val.replace(/[^0-9.-]/g, '');
     store.transactionData.projectProfitPercent = val;
     calculateFromProfitPercent();
 };
@@ -553,7 +553,7 @@ const formatProfitPercent = () => {
 
 const handleAdjustedValueInput = (event) => {
     let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, '');
+    val = val.replace(/[^0-9.-]/g, '');
     store.transactionData.adjustedProjectValue = val;
     if (store.transactionData.projectCost) {
         calculateFromCost();
@@ -570,7 +570,7 @@ const formatAdjustedValue = () => {
 
 const handleProductPriceInput = (event, idx) => {
     let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, ''); // Allow decimals
+    val = val.replace(/[^0-9.-]/g, ''); // Allow decimals
     store.transactionData.adjustedProductList[idx].price = val;
 };
 
@@ -601,7 +601,7 @@ const formatGuaranteeAmount = (val) => {
 };
 
 const handleGuaranteeAmountInput = (storeKey, fileName, field, rawValue) => {
-    let num = rawValue.replace(/[^0-9.]/g, '');
+    let num = rawValue.replace(/[^0-9.-]/g, '');
     const parts = num.split('.');
     if (parts.length > 2) {
         num = parts[0] + '.' + parts.slice(1).join('');

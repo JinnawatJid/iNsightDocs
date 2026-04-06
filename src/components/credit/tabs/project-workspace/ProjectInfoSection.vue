@@ -421,7 +421,7 @@ const calculateFromCost = () => {
 const handleCostInput = (event) => {
     if (!project.value) return;
     let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, '');
+    val = val.replace(/[^0-9.-]/g, '');
     project.value.projectCost = val;
     calculateFromCost();
 };
@@ -455,7 +455,7 @@ const calculateFromProfit = () => {
 const handleProfitInput = (event) => {
     if (!project.value) return;
     let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, '');
+    val = val.replace(/[^0-9.-]/g, '');
     project.value.projectProfit = val;
     calculateFromProfit();
 };
@@ -490,7 +490,7 @@ const calculateFromProfitPercent = () => {
 const handleProfitPercentInput = (event) => {
     if (!project.value) return;
     let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, '');
+    val = val.replace(/[^0-9.-]/g, '');
     project.value.projectProfitPercent = val;
     calculateFromProfitPercent();
 };
@@ -508,7 +508,7 @@ const formatProfitPercent = () => {
 const handleAdjustedValueInput = (event) => {
     if (!project.value) return;
     let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, '');
+    val = val.replace(/[^0-9.-]/g, '');
     project.value.adjustedProjectValue = val;
     if (project.value.projectCost) {
         calculateFromCost();
@@ -527,7 +527,7 @@ const formatAdjustedValue = () => {
 const handleProductPriceInput = (event, idx) => {
     if (!project.value) return;
     let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, ''); // Allow decimals
+    val = val.replace(/[^0-9.-]/g, ''); // Allow decimals
     project.value.adjustedProductList[idx].price = val;
 };
 
@@ -544,7 +544,7 @@ const formatProductPrice = (idx) => {
 const handleProductCostInput = (event, idx) => {
     if (!project.value) return;
     let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, ''); // Allow decimals
+    val = val.replace(/[^0-9.-]/g, ''); // Allow decimals
     project.value.adjustedProductList[idx].cost = val;
 };
 
@@ -594,7 +594,7 @@ const formatGuaranteeAmount = (val) => {
 };
 
 const handleGuaranteeAmountInput = (storeKey, fileName, field, rawValue) => {
-    let num = rawValue.replace(/[^0-9.]/g, '');
+    let num = rawValue.replace(/[^0-9.-]/g, '');
     const parts = num.split('.');
     if (parts.length > 2) {
         num = parts[0] + '.' + parts.slice(1).join('');
