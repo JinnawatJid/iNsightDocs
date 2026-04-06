@@ -58,6 +58,42 @@
                   placeholder="ระบุมูลค่าโครงการ"
               />
           </div>
+          <div class="form-group">
+              <label>ต้นทุนโครงการ (บาท)</label>
+              <input
+                  type="text"
+                  v-model="project.projectCost"
+                  :disabled="props.readOnly"
+                  @blur="formatCost"
+                  @input="handleCostInput"
+                  class="form-control"
+                  placeholder="ระบุต้นทุน"
+              />
+          </div>
+          <div class="form-group">
+              <label>กำไร (บาท)</label>
+              <input
+                  type="text"
+                  v-model="project.projectProfit"
+                  :disabled="props.readOnly"
+                  @blur="formatProfit"
+                  @input="handleProfitInput"
+                  class="form-control"
+                  placeholder="ระบุกำไร"
+              />
+          </div>
+          <div class="form-group">
+              <label>กำไร (%)</label>
+              <input
+                  type="text"
+                  v-model="project.projectProfitPercent"
+                  :disabled="props.readOnly"
+                  @blur="formatProfitPercent"
+                  @input="handleProfitPercentInput"
+                  class="form-control"
+                  placeholder="ระบุ % กำไร"
+              />
+          </div>
       </div>
 
       <div class="form-group full-width" style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
@@ -366,11 +402,117 @@ const formatNumber = (num) => {
     return Number(num).toLocaleString('en-US');
 };
 
+const calculateFromCost = () => {
+    if (!project.value) return;
+    const totalValue = parseFloat(String(project.value.adjustedProjectValue || '0').replace(/,/g, ''));
+    const cost = parseFloat(String(project.value.projectCost || '0').replace(/,/g, ''));
+
+    if (!isNaN(totalValue) && totalValue > 0 && !isNaN(cost)) {
+        const profit = totalValue - cost;
+        const profitPercent = (profit / totalValue) * 100;
+
+        project.value.projectProfit = profit % 1 !== 0 ? profit.toFixed(2) : String(profit);
+        project.value.projectProfitPercent = profitPercent % 1 !== 0 ? profitPercent.toFixed(2) : String(profitPercent);
+
+        project.value.projectProfit = formatNumber(project.value.projectProfit);
+    }
+};
+
+const handleCostInput = (event) => {
+    if (!project.value) return;
+    let val = event.target.value;
+    val = val.replace(/[^0-9.]/g, '');
+    project.value.projectCost = val;
+    calculateFromCost();
+};
+
+const formatCost = () => {
+    if (!project.value) return;
+    const raw = project.value.projectCost;
+    if (!raw) return;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        project.value.projectCost = formatNumber(num % 1 !== 0 ? num.toFixed(2) : num);
+    }
+};
+
+const calculateFromProfit = () => {
+    if (!project.value) return;
+    const totalValue = parseFloat(String(project.value.adjustedProjectValue || '0').replace(/,/g, ''));
+    const profit = parseFloat(String(project.value.projectProfit || '0').replace(/,/g, ''));
+
+    if (!isNaN(totalValue) && totalValue > 0 && !isNaN(profit)) {
+        const cost = totalValue - profit;
+        const profitPercent = (profit / totalValue) * 100;
+
+        project.value.projectCost = cost % 1 !== 0 ? cost.toFixed(2) : String(cost);
+        project.value.projectProfitPercent = profitPercent % 1 !== 0 ? profitPercent.toFixed(2) : String(profitPercent);
+
+        project.value.projectCost = formatNumber(project.value.projectCost);
+    }
+};
+
+const handleProfitInput = (event) => {
+    if (!project.value) return;
+    let val = event.target.value;
+    val = val.replace(/[^0-9.]/g, '');
+    project.value.projectProfit = val;
+    calculateFromProfit();
+};
+
+const formatProfit = () => {
+    if (!project.value) return;
+    const raw = project.value.projectProfit;
+    if (!raw) return;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        project.value.projectProfit = formatNumber(num % 1 !== 0 ? num.toFixed(2) : num);
+    }
+};
+
+const calculateFromProfitPercent = () => {
+    if (!project.value) return;
+    const totalValue = parseFloat(String(project.value.adjustedProjectValue || '0').replace(/,/g, ''));
+    const profitPercent = parseFloat(String(project.value.projectProfitPercent || '0').replace(/,/g, ''));
+
+    if (!isNaN(totalValue) && totalValue > 0 && !isNaN(profitPercent)) {
+        const profit = totalValue * (profitPercent / 100);
+        const cost = totalValue - profit;
+
+        project.value.projectProfit = profit % 1 !== 0 ? profit.toFixed(2) : String(profit);
+        project.value.projectCost = cost % 1 !== 0 ? cost.toFixed(2) : String(cost);
+
+        project.value.projectProfit = formatNumber(project.value.projectProfit);
+        project.value.projectCost = formatNumber(project.value.projectCost);
+    }
+};
+
+const handleProfitPercentInput = (event) => {
+    if (!project.value) return;
+    let val = event.target.value;
+    val = val.replace(/[^0-9.]/g, '');
+    project.value.projectProfitPercent = val;
+    calculateFromProfitPercent();
+};
+
+const formatProfitPercent = () => {
+    if (!project.value) return;
+    const raw = project.value.projectProfitPercent;
+    if (!raw) return;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        project.value.projectProfitPercent = String(num % 1 !== 0 ? num.toFixed(2) : num);
+    }
+};
+
 const handleAdjustedValueInput = (event) => {
     if (!project.value) return;
     let val = event.target.value;
-    val = val.replace(/[^0-9]/g, '');
+    val = val.replace(/[^0-9.]/g, '');
     project.value.adjustedProjectValue = val;
+    if (project.value.projectCost) {
+        calculateFromCost();
+    }
 };
 
 const formatAdjustedValue = () => {
@@ -378,7 +520,7 @@ const formatAdjustedValue = () => {
     const raw = project.value.adjustedProjectValue;
     const num = parseFloat(String(raw).replace(/,/g, ''));
     if (!isNaN(num)) {
-        project.value.adjustedProjectValue = formatNumber(num);
+        project.value.adjustedProjectValue = formatNumber(num % 1 !== 0 ? num.toFixed(2) : num);
     }
 };
 

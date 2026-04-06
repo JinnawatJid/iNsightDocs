@@ -98,6 +98,42 @@
                              placeholder="ระบุมูลค่าโครงการ"
                          />
                      </div>
+                     <div class="form-group">
+                         <label>ต้นทุนโครงการ (บาท)</label>
+                         <input
+                             type="text"
+                             v-model="transactionData.projectCost"
+                             :disabled="props.readOnly"
+                             @blur="formatCost"
+                             @input="handleCostInput"
+                             class="form-control"
+                             placeholder="ระบุต้นทุน"
+                         />
+                     </div>
+                     <div class="form-group">
+                         <label>กำไร (บาท)</label>
+                         <input
+                             type="text"
+                             v-model="transactionData.projectProfit"
+                             :disabled="props.readOnly"
+                             @blur="formatProfit"
+                             @input="handleProfitInput"
+                             class="form-control"
+                             placeholder="ระบุกำไร"
+                         />
+                     </div>
+                     <div class="form-group">
+                         <label>กำไร (%)</label>
+                         <input
+                             type="text"
+                             v-model="transactionData.projectProfitPercent"
+                             :disabled="props.readOnly"
+                             @blur="formatProfitPercent"
+                             @input="handleProfitPercentInput"
+                             class="form-control"
+                             placeholder="ระบุ % กำไร"
+                         />
+                     </div>
                  </div>
              </div>
 
@@ -421,17 +457,114 @@ const formatNumber = (num) => {
     return Number(num).toLocaleString('en-US');
 };
 
+const calculateFromCost = () => {
+    const totalValue = parseFloat(String(store.transactionData.adjustedProjectValue || '0').replace(/,/g, ''));
+    const cost = parseFloat(String(store.transactionData.projectCost || '0').replace(/,/g, ''));
+
+    if (!isNaN(totalValue) && totalValue > 0 && !isNaN(cost)) {
+        const profit = totalValue - cost;
+        const profitPercent = (profit / totalValue) * 100;
+
+        store.transactionData.projectProfit = profit % 1 !== 0 ? profit.toFixed(2) : String(profit);
+        store.transactionData.projectProfitPercent = profitPercent % 1 !== 0 ? profitPercent.toFixed(2) : String(profitPercent);
+
+        store.transactionData.projectProfit = formatNumber(store.transactionData.projectProfit);
+    }
+};
+
+const handleCostInput = (event) => {
+    let val = event.target.value;
+    val = val.replace(/[^0-9.]/g, '');
+    store.transactionData.projectCost = val;
+    calculateFromCost();
+};
+
+const formatCost = () => {
+    const raw = store.transactionData.projectCost;
+    if (!raw) return;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        store.transactionData.projectCost = formatNumber(num % 1 !== 0 ? num.toFixed(2) : num);
+    }
+};
+
+const calculateFromProfit = () => {
+    const totalValue = parseFloat(String(store.transactionData.adjustedProjectValue || '0').replace(/,/g, ''));
+    const profit = parseFloat(String(store.transactionData.projectProfit || '0').replace(/,/g, ''));
+
+    if (!isNaN(totalValue) && totalValue > 0 && !isNaN(profit)) {
+        const cost = totalValue - profit;
+        const profitPercent = (profit / totalValue) * 100;
+
+        store.transactionData.projectCost = cost % 1 !== 0 ? cost.toFixed(2) : String(cost);
+        store.transactionData.projectProfitPercent = profitPercent % 1 !== 0 ? profitPercent.toFixed(2) : String(profitPercent);
+
+        store.transactionData.projectCost = formatNumber(store.transactionData.projectCost);
+    }
+};
+
+const handleProfitInput = (event) => {
+    let val = event.target.value;
+    val = val.replace(/[^0-9.]/g, '');
+    store.transactionData.projectProfit = val;
+    calculateFromProfit();
+};
+
+const formatProfit = () => {
+    const raw = store.transactionData.projectProfit;
+    if (!raw) return;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        store.transactionData.projectProfit = formatNumber(num % 1 !== 0 ? num.toFixed(2) : num);
+    }
+};
+
+const calculateFromProfitPercent = () => {
+    const totalValue = parseFloat(String(store.transactionData.adjustedProjectValue || '0').replace(/,/g, ''));
+    const profitPercent = parseFloat(String(store.transactionData.projectProfitPercent || '0').replace(/,/g, ''));
+
+    if (!isNaN(totalValue) && totalValue > 0 && !isNaN(profitPercent)) {
+        const profit = totalValue * (profitPercent / 100);
+        const cost = totalValue - profit;
+
+        store.transactionData.projectProfit = profit % 1 !== 0 ? profit.toFixed(2) : String(profit);
+        store.transactionData.projectCost = cost % 1 !== 0 ? cost.toFixed(2) : String(cost);
+
+        store.transactionData.projectProfit = formatNumber(store.transactionData.projectProfit);
+        store.transactionData.projectCost = formatNumber(store.transactionData.projectCost);
+    }
+};
+
+const handleProfitPercentInput = (event) => {
+    let val = event.target.value;
+    val = val.replace(/[^0-9.]/g, '');
+    store.transactionData.projectProfitPercent = val;
+    calculateFromProfitPercent();
+};
+
+const formatProfitPercent = () => {
+    const raw = store.transactionData.projectProfitPercent;
+    if (!raw) return;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        store.transactionData.projectProfitPercent = String(num % 1 !== 0 ? num.toFixed(2) : num);
+    }
+};
+
 const handleAdjustedValueInput = (event) => {
     let val = event.target.value;
-    val = val.replace(/[^0-9]/g, '');
+    val = val.replace(/[^0-9.]/g, '');
     store.transactionData.adjustedProjectValue = val;
+    if (store.transactionData.projectCost) {
+        calculateFromCost();
+    }
 };
 
 const formatAdjustedValue = () => {
     const raw = store.transactionData.adjustedProjectValue;
     const num = parseFloat(String(raw).replace(/,/g, ''));
     if (!isNaN(num)) {
-        store.transactionData.adjustedProjectValue = formatNumber(num);
+        store.transactionData.adjustedProjectValue = formatNumber(num % 1 !== 0 ? num.toFixed(2) : num);
     }
 };
 
