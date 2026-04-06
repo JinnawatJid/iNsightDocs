@@ -57,7 +57,7 @@ The application implements Frontend Role-Based Access Control (RBAC) driven by t
    - **Navigation**: The primary CTA in `Navbar.vue` dynamically displays "สร้างคำขอ" (Create Request) for Initiators, but "ค้นหาลูกค้า" (Search Customer) for other roles.
    - **Action Menus**: The "+ เพิ่มคำขอเครดิตใหม่" button on the `/create-credit-request` page is completely hidden from non-initiators to prevent unauthorized request creation.
    - **Dashboard Filtering**: In the `/pending-requests` dashboard, the `RequestSidebar.vue` automatically filters the API query for the "Pending" tab so users only see requests in statuses relevant to their approval level (e.g., `Opened` for Regional Managers, while Initiators track their submitted requests).
-3. **Dynamic Identifiers**: The `branchCode` payload from the JWT (`req.user.branchCode`) is actively used by the backend `creditRequestController.js` to dynamically generate localized Transaction IDs (e.g., prefixing `TRCA2603/001` for branch `TR` instead of a hardcoded value).
+3. **Dynamic Identifiers**: The `branchCode` payload from the JWT (`req.user.branchCode`) is actively used by the backend `creditRequestController.js` to dynamically generate localized Transaction IDs (e.g., prefixing `TRCA2603/01` for branch `TR` instead of a hardcoded value). Note that the running number is strictly 2 digits, allowing a maximum of 99 requests per month per branch.
 
 ## 5. Future Security Roadmap
 
