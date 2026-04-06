@@ -535,7 +535,11 @@ const submitTransaction = async (btn) => {
         for (const [key, file] of Object.entries(store.files)) {
             if (file) {
                 if (Array.isArray(file)) {
-                    file.forEach(f => formData.append(key, f));
+                    file.forEach(f => {
+                        if (!f.isRemote) {
+                            formData.append(key, f);
+                        }
+                    });
                 } else if (!file.isRemote) { // Only append actual File objects, not remote placeholders
                     formData.append(key, file);
                 }
@@ -562,6 +566,10 @@ const submitTransaction = async (btn) => {
                     }
                 });
                 store.requestId = newTxId;
+            }
+            // Refresh state to map newly uploaded remote files properly
+            if (store.requestId) {
+                await store.loadRequestDetail(store.requestId);
             }
         } else {
             window.location.reload();
