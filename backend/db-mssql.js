@@ -408,6 +408,86 @@ const initDB = async () => {
         `;
         await pool.request().query(createRequestCommentsSQL);
 
+        // Migration: Update 3-digit tx_id to 2-digit tx_id (e.g., 00TRCA2603/001 -> 00TRCA2603/01)
+        try {
+            const result = await pool.request().query(`SELECT tx_id FROM CreditRequests WHERE tx_id LIKE '%/%'`);
+            if (result.recordset && result.recordset.length > 0) {
+                const customersDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'customers');
+
+                // Get all column names from CreditRequests dynamically to safely duplicate the row
+                const columnsResult = await pool.request().query(`
+                    SELECT COLUMN_NAME
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'CreditRequests' AND COLUMN_NAME != 'id' AND COLUMN_NAME != 'tx_id'
+                `);
+                const columnNames = columnsResult.recordset.map(r => r.COLUMN_NAME).join(', ');
+
+                for (const row of result.recordset) {
+                    try {
+                        const txId = row.tx_id;
+                        const parts = txId.split('/');
+                        const runningNum = parseInt(parts[1], 10);
+                        if (parts.length === 2 && parts[1].length === 3 && !isNaN(runningNum) && runningNum <= 99) {
+                            const newTxId = `${parts[0]}/${runningNum.toString().padStart(2, '0')}`;
+                            const oldFolderName = txId.replace(/\//g, '_');
+                            const newFolderName = newTxId.replace(/\//g, '_');
+
+                            // MSSQL strictly enforces foreign keys. To avoid constraint errors without ON UPDATE CASCADE:
+                            // 1. Insert duplicate row in parent table with new ID.
+                            await pool.request()
+                                .input('newTxId', sql.NVarChar, newTxId)
+                                .input('txId', sql.NVarChar, txId)
+                                .query(`
+                                    INSERT INTO CreditRequests (tx_id, ${columnNames})
+                                    SELECT @newTxId, ${columnNames}
+                                    FROM CreditRequests WHERE tx_id = @txId
+                                `);
+
+                            // 2. Update child tables to point to new ID and update file_path
+                            await pool.request()
+                                .input('newTxId', sql.NVarChar, newTxId)
+                                .input('txId', sql.NVarChar, txId)
+                                .input('oldFolder', sql.NVarChar, oldFolderName)
+                                .input('newFolder', sql.NVarChar, newFolderName)
+                                .query(`UPDATE CreditRequestAttachments SET tx_id = @newTxId, file_path = REPLACE(file_path, @oldFolder, @newFolder) WHERE tx_id = @txId`);
+
+                            await pool.request()
+                                .input('newTxId', sql.NVarChar, newTxId)
+                                .input('txId', sql.NVarChar, txId)
+                                .query(`UPDATE RequestComments SET tx_id = @newTxId WHERE tx_id = @txId`);
+
+                            // 3. Delete old row from parent table.
+                            await pool.request()
+                                .input('txId', sql.NVarChar, txId)
+                                .query(`DELETE FROM CreditRequests WHERE tx_id = @txId`);
+
+                            // Rename physical folder if it exists
+                            try {
+
+                                if (fs.existsSync(customersDir)) {
+                                    const customerDirs = fs.readdirSync(customersDir);
+                                    for (const custDir of customerDirs) {
+                                        const oldPath = path.join(customersDir, custDir, oldFolderName);
+                                        if (fs.existsSync(oldPath)) {
+                                            const newPath = path.join(customersDir, custDir, newFolderName);
+                                            fs.renameSync(oldPath, newPath);
+                                            break;
+                                        }
+                                    }
+                                }
+                            } catch (fsErr) {
+                                logger.error(`Error renaming folder for tx_id ${txId}:`, fsErr);
+                            }
+                        }
+                    } catch (innerErr) {
+                        logger.error(`Error migrating single tx_id ${row.tx_id}:`, innerErr);
+                    }
+                }
+            }
+        } catch (e) {
+            logger.error('Error migrating 3-digit tx_id to 2-digit tx_id:', e);
+        }
+
         logger.info('Database initialized (MSSQL).');
     } catch (error) {
         logger.error('Database initialization failed (MSSQL):', error);

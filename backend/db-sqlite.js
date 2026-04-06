@@ -315,6 +315,57 @@ const initDB = async () => {
             FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
         )`);
 
+        // Migration: Update 3-digit tx_id to 2-digit tx_id (e.g., 00TRCA2603/001 -> 00TRCA2603/01)
+        try {
+            const txs = await db.allAsync(`SELECT tx_id FROM CreditRequests WHERE tx_id LIKE '%/%'`);
+            if (txs && txs.length > 0) {
+                const customersDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'customers');
+                for (const tx of txs) {
+                    try {
+                        const txId = tx.tx_id;
+                        const parts = txId.split('/');
+                        const runningNum = parseInt(parts[1], 10);
+                        if (parts.length === 2 && parts[1].length === 3 && !isNaN(runningNum) && runningNum <= 99) {
+                            const newTxId = `${parts[0]}/${runningNum.toString().padStart(2, '0')}`;
+
+                            // In SQLite, PRAGMA foreign_keys is OFF by default unless explicitly enabled.
+                            // However, doing parent first is standard.
+                            await db.runAsync(`UPDATE CreditRequests SET tx_id = ? WHERE tx_id = ?`, [newTxId, txId]);
+
+                            // Update tx_id and replace the old folder name in the file_path for attachments
+                            const oldFolderName = txId.replace(/\//g, '_');
+                            const newFolderName = newTxId.replace(/\//g, '_');
+                            await db.runAsync(`UPDATE CreditRequestAttachments SET tx_id = ?, file_path = REPLACE(file_path, ?, ?) WHERE tx_id = ?`, [newTxId, oldFolderName, newFolderName, txId]);
+
+                            await db.runAsync(`UPDATE RequestComments SET tx_id = ? WHERE tx_id = ?`, [newTxId, txId]);
+
+                            // Rename physical folder if it exists
+                            try {
+
+                                if (fs.existsSync(customersDir)) {
+                                    const customerDirs = fs.readdirSync(customersDir);
+                                    for (const custDir of customerDirs) {
+                                        const oldPath = path.join(customersDir, custDir, oldFolderName);
+                                        if (fs.existsSync(oldPath)) {
+                                            const newPath = path.join(customersDir, custDir, newFolderName);
+                                            fs.renameSync(oldPath, newPath);
+                                            break;
+                                        }
+                                    }
+                                }
+                            } catch (fsErr) {
+                                logger.error(`Error renaming folder for tx_id ${txId}:`, fsErr);
+                            }
+                        }
+                    } catch (innerErr) {
+                         logger.error(`Error migrating single tx_id ${tx.tx_id}:`, innerErr);
+                    }
+                }
+            }
+        } catch (e) {
+            logger.error('Error migrating 3-digit tx_id to 2-digit tx_id:', e);
+        }
+
         logger.info('Database initialized (SQLite).');
     } catch (error) {
         logger.error('Database initialization failed (SQLite):', error);

@@ -347,9 +347,9 @@ exports.createCreditRequest = async (req, res) => {
                 if (!isNaN(lastNum)) runningNum = lastNum + 1;
             }
 
-            if (runningNum > 999) return res.status(500).json({ error: 'Transaction limit exceeded for this month' });
+            if (runningNum > 99) return res.status(500).json({ error: 'Transaction limit exceeded for this month (max 99)' });
 
-            const newRealTxId = `${prefix}${runningNum.toString().padStart(3, '0')}`;
+            const newRealTxId = `${prefix}${runningNum.toString().padStart(2, '0')}`;
             const oldTxId = txId;
             const oldRequestId = requestId;
 
