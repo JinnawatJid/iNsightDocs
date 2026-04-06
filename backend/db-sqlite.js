@@ -317,7 +317,7 @@ const initDB = async () => {
 
         // Migration: Update 3-digit tx_id to 2-digit tx_id (e.g., 00TRCA2603/001 -> 00TRCA2603/01)
         try {
-            const txs = await db.allAsync(`SELECT tx_id FROM CreditRequests WHERE tx_id LIKE '%/%'`);
+            const { rows: txs } = await db.query(`SELECT tx_id FROM CreditRequests WHERE tx_id LIKE '%/%'`);
             if (txs && txs.length > 0) {
                 const customersDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'customers');
                 for (const tx of txs) {
