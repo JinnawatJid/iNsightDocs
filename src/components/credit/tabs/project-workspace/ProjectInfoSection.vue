@@ -464,9 +464,6 @@ const formatAdjustedValue = () => {
     }
 };
 
-    if (!project.value) return;
-    project.value.adjustedProductList.splice(idx, 1);
-};
 </script>
 
 <style scoped>
