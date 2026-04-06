@@ -87,57 +87,61 @@
                          />
                      </div>
                      <div class="form-group">
-                         <label>มูลค่าโครงการรวม (บาท)</label>
-                         <input
-                             type="text"
-                             v-model="transactionData.adjustedProjectValue"
-                             :disabled="props.readOnly"
-                             @blur="formatAdjustedValue"
-                             @input="handleAdjustedValueInput"
-                             class="form-control text-primary font-bold"
-                             placeholder="ระบุมูลค่าโครงการ"
-                         />
+                             <label>มูลค่าโครงการรวม (บาท)</label>
+                             <input
+                                 type="text"
+                                 v-model="store.transactionData.adjustedProjectValue"
+                                 :disabled="props.readOnly"
+                                 @blur="formatAdjustedValue"
+                                 @input="handleAdjustedValueInput"
+                                 class="form-control text-primary font-bold"
+                                 placeholder="ระบุมูลค่าโครงการ"
+                             />
+                         </div>
+                         <div class="form-group">
+                             <label>ต้นทุนโครงการ (บาท)</label>
+                             <input
+                                 type="text"
+                                 v-model="store.transactionData.projectCost"
+                                 :disabled="props.readOnly"
+                                 @blur="formatCost"
+                                 @input="handleCostInput"
+                                 class="form-control"
+                                 placeholder="ระบุต้นทุน"
+                             />
+                         </div>
+                         <div class="form-group">
+                             <label>กำไร</label>
+                             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                                 <div class="input-with-suffix">
+                                     <input
+                                         type="text"
+                                         v-model="store.transactionData.projectProfit"
+                                         :disabled="props.readOnly"
+                                         @blur="formatProfit"
+                                         @input="handleProfitInput"
+                                         class="form-control"
+                                         placeholder="กำไร (บาท)"
+                                     />
+                                 </div>
+                                 <div class="input-with-suffix" style="position: relative;">
+                                     <input
+                                         type="text"
+                                         v-model="store.transactionData.projectProfitPercent"
+                                         :disabled="props.readOnly"
+                                         @blur="formatProfitPercent"
+                                         @input="handleProfitPercentInput"
+                                         class="form-control"
+                                         placeholder="%"
+                                         style="padding-right: 25px;"
+                                     />
+                                     <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #6c757d;">%</span>
+                                 </div>
+                             </div>
+                         </div>
                      </div>
-                     <div class="form-group">
-                         <label>ต้นทุนโครงการ (บาท)</label>
-                         <input
-                             type="text"
-                             v-model="transactionData.projectCost"
-                             :disabled="props.readOnly"
-                             @blur="formatCost"
-                             @input="handleCostInput"
-                             class="form-control"
-                             placeholder="ระบุต้นทุน"
-                         />
-                     </div>
-                     <div class="form-group">
-                         <label>กำไร (บาท)</label>
-                         <input
-                             type="text"
-                             v-model="transactionData.projectProfit"
-                             :disabled="props.readOnly"
-                             @blur="formatProfit"
-                             @input="handleProfitInput"
-                             class="form-control"
-                             placeholder="ระบุกำไร"
-                         />
-                     </div>
-                     <div class="form-group">
-                         <label>กำไร (%)</label>
-                         <input
-                             type="text"
-                             v-model="transactionData.projectProfitPercent"
-                             :disabled="props.readOnly"
-                             @blur="formatProfitPercent"
-                             @input="handleProfitPercentInput"
-                             class="form-control"
-                             placeholder="ระบุ % กำไร"
-                         />
-                     </div>
-                 </div>
-             </div>
 
-             <div class="form-group full-width" style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+                     <div class="form-group full-width" style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
                  <div class="section-header" style="margin-bottom: 15px;">
                      <h3>ข้อมูลเพิ่มเติม</h3>
                  </div>

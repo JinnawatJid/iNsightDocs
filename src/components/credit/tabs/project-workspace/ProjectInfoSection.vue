@@ -71,28 +71,33 @@
               />
           </div>
           <div class="form-group">
-              <label>กำไร (บาท)</label>
-              <input
-                  type="text"
-                  v-model="project.projectProfit"
-                  :disabled="props.readOnly"
-                  @blur="formatProfit"
-                  @input="handleProfitInput"
-                  class="form-control"
-                  placeholder="ระบุกำไร"
-              />
-          </div>
-          <div class="form-group">
-              <label>กำไร (%)</label>
-              <input
-                  type="text"
-                  v-model="project.projectProfitPercent"
-                  :disabled="props.readOnly"
-                  @blur="formatProfitPercent"
-                  @input="handleProfitPercentInput"
-                  class="form-control"
-                  placeholder="ระบุ % กำไร"
-              />
+              <label>กำไร</label>
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                  <div class="input-with-suffix">
+                      <input
+                          type="text"
+                          v-model="project.projectProfit"
+                          :disabled="props.readOnly"
+                          @blur="formatProfit"
+                          @input="handleProfitInput"
+                          class="form-control"
+                          placeholder="กำไร (บาท)"
+                      />
+                  </div>
+                  <div class="input-with-suffix" style="position: relative;">
+                      <input
+                          type="text"
+                          v-model="project.projectProfitPercent"
+                          :disabled="props.readOnly"
+                          @blur="formatProfitPercent"
+                          @input="handleProfitPercentInput"
+                          class="form-control"
+                          placeholder="%"
+                          style="padding-right: 25px;"
+                      />
+                      <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #6c757d;">%</span>
+                  </div>
+              </div>
           </div>
       </div>
 
