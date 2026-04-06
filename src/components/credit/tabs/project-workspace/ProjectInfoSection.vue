@@ -464,6 +464,43 @@ const formatAdjustedValue = () => {
     }
 };
 
+// Guarantee Details Handlers
+const getGuaranteeDetail = (storeKey, fileName, field) => {
+    if (!project.value || !project.value[storeKey]) return '';
+    if (!project.value[storeKey][fileName]) return '';
+    return project.value[storeKey][fileName][field] || '';
+};
+
+const formatGuaranteeAmount = (val) => {
+    if (!val) return '';
+    const parts = String(val).split('.');
+    let formatted = Number(parts[0]).toLocaleString('en-US');
+    if (parts.length > 1) {
+        formatted += '.' + parts[1];
+    }
+    return formatted === 'NaN' ? val : formatted;
+};
+
+const handleGuaranteeAmountInput = (storeKey, fileName, field, rawValue) => {
+    let num = rawValue.replace(/[^0-9.-]/g, '');
+    const parts = num.split('.');
+    if (parts.length > 2) {
+        num = parts[0] + '.' + parts.slice(1).join('');
+    }
+    updateGuaranteeDetail(storeKey, fileName, field, num);
+};
+
+const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
+    if (!project.value) return;
+    if (!project.value[storeKey]) {
+        project.value[storeKey] = {};
+    }
+    if (!project.value[storeKey][fileName]) {
+        project.value[storeKey][fileName] = {};
+    }
+    project.value[storeKey][fileName][field] = value;
+};
+
 </script>
 
 <style scoped>

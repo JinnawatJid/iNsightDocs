@@ -15,9 +15,7 @@ transactionData: {
       projectId: "PRJ-2023-001",
       projectData: { /* Data from Sales System */ },
       adjustedProjectValue: "15,000,000",
-      projectCost: "11,250,000",
-      projectProfit: "3,750,000",
-      projectProfitPercent: "25",
+      adjustedProductList: [ ... ],
       projectPhasing: [ ... ], // Delivery schedules
       addressData: { /* Project specific location */ },
       contractorType: "Sub-Contractor",
@@ -38,7 +36,7 @@ When `isProjectCredit` is true, the form dynamically renders a loop over `store.
 
 ### `ProjectApplicationTabs.vue`
 Each project card utilizes the `ProjectApplicationTabs.vue` component, which provides a horizontal tab navigation specifically scoped to that project's index. The tabs include:
-1. **ข้อมูลโครงการ (Project Info):** Core details, adjusted values, interlocking financial metrics (Cost, Profit, Margin).
+1. **ข้อมูลโครงการ (Project Info):** Core details, adjusted values, product lists.
 2. **ที่อยู่โครงการ (Project Address):** Physical location and map coordinates.
 3. **รอบส่งสินค้า (Project Phasing):** Delivery timelines and billing schedules.
 
