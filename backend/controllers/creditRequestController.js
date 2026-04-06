@@ -101,13 +101,40 @@ exports.deleteAdditionalDocument = async (req, res) => {
             return res.status(403).json({ error: 'Permission denied. You can only delete your own documents.' });
         }
 
-        let fullPath = file.file_path;
-        if (!path.isAbsolute(fullPath)) {
-            // Backward compatibility check for corrupted paths
-            if (fullPath.startsWith('customers/')) {
-                fullPath = fullPath.replace('customers/', '');
+        if (!file.file_path) {
+            return res.status(400).json({ error: 'File path is missing in the database' });
+        }
+
+        let normalizedPath = file.file_path.replace(/\\/g, '/');
+
+        if (normalizedPath.startsWith('customers/')) {
+            normalizedPath = normalizedPath.replace(/^customers\//, '');
+        } else if (normalizedPath.startsWith('uploads/')) {
+            normalizedPath = normalizedPath.replace(/^uploads\//, '');
+        }
+
+        let fullPath = normalizedPath;
+        let foundPath = null;
+
+        if (path.isAbsolute(normalizedPath) && fs.existsSync(normalizedPath)) {
+            foundPath = normalizedPath;
+        } else {
+            const candidatePaths = [
+                path.join(UPLOAD_BASE, normalizedPath),
+                path.join(projectRoot, 'uploads', normalizedPath),
+                path.join(projectRoot, 'customers', normalizedPath)
+            ];
+
+            for (const candidate of candidatePaths) {
+                if (fs.existsSync(candidate)) {
+                    foundPath = candidate;
+                    break;
+                }
             }
-            fullPath = path.join(UPLOAD_BASE, fullPath);
+        }
+
+        if (foundPath) {
+            fullPath = foundPath;
         }
 
         // Soft Delete from database
@@ -165,26 +192,47 @@ exports.downloadCreditRequestFile = async (req, res) => {
         const fileRecord = rows[0];
         let filePath = fileRecord.file_path;
 
-        // Handle relative paths (new format) vs absolute paths (legacy format)
-        if (!path.isAbsolute(filePath)) {
-            filePath = path.join(UPLOAD_BASE, filePath);
+        if (!filePath) {
+            return res.status(404).json({ error: 'File path is missing in the database' });
         }
 
-        if (!await fs.pathExists(filePath)) {
-            // Backward compatibility fix: If the path in the DB has "customers/" prefix due to a bug,
-            // strip it and try looking in the correct path.
-            if (fileRecord.file_path && fileRecord.file_path.startsWith('customers/')) {
-                const correctedRelativePath = fileRecord.file_path.replace('customers/', '');
-                const correctedPath = path.join(UPLOAD_BASE, correctedRelativePath);
-                if (await fs.pathExists(correctedPath)) {
-                    filePath = correctedPath;
-                } else {
-                    return res.status(404).json({ error: 'File not found on server' });
+        // Normalize path separators (handle backslashes from legacy Windows systems)
+        let normalizedPath = filePath.replace(/\\/g, '/');
+
+        // Strip out erroneous legacy prefixes
+        if (normalizedPath.startsWith('customers/')) {
+            normalizedPath = normalizedPath.replace(/^customers\//, '');
+        } else if (normalizedPath.startsWith('uploads/')) {
+            normalizedPath = normalizedPath.replace(/^uploads\//, '');
+        }
+
+        let foundPath = null;
+
+        // Try as an absolute path first
+        if (path.isAbsolute(normalizedPath) && fs.existsSync(normalizedPath)) {
+            foundPath = normalizedPath;
+        } else {
+            // Fallback candidates
+            const candidatePaths = [
+                path.join(UPLOAD_BASE, normalizedPath),
+                path.join(projectRoot, 'uploads', normalizedPath),
+                path.join(projectRoot, 'customers', normalizedPath)
+            ];
+
+            for (const candidate of candidatePaths) {
+                if (fs.existsSync(candidate)) {
+                    foundPath = candidate;
+                    break;
                 }
-            } else {
-                return res.status(404).json({ error: 'File not found on server' });
             }
         }
+
+        if (!foundPath) {
+            logger.error(`File not found on server. DB Path: ${fileRecord.file_path}, Normalized: ${normalizedPath}`);
+            return res.status(404).json({ error: 'File not found on server' });
+        }
+
+        filePath = foundPath;
 
         const mimeType = mime.lookup(filePath) || 'application/octet-stream';
         res.setHeader('Content-Type', mimeType);
@@ -363,7 +411,7 @@ exports.createCreditRequest = async (req, res) => {
             const oldDir = path.join(UPLOAD_BASE, existing.customer_no, cleanOldTxId);
             const newDir = path.join(UPLOAD_BASE, existing.customer_no, cleanNewTxId);
 
-            if (await fs.pathExists(oldDir)) {
+            if (fs.existsSync(oldDir)) {
                 // Ensure parent of newDir exists
                 await fs.ensureDir(path.dirname(newDir));
                 await fs.move(oldDir, newDir);
@@ -831,7 +879,7 @@ exports.reviseRequest = async (req, res) => {
         const oldDirPath = path.join(UPLOAD_BASE, oldRequest.customer_no, cleanOldId);
         const newDirPath = path.join(UPLOAD_BASE, oldRequest.customer_no, cleanNewId);
 
-        if (await fs.pathExists(oldDirPath)) {
+        if (fs.existsSync(oldDirPath)) {
              await fs.copy(oldDirPath, newDirPath);
              logger.info(`Copied files from ${oldDirPath} to ${newDirPath}`);
 
