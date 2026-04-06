@@ -6,7 +6,7 @@ const mime = require('mime-types');
 const fileResolver = require('../utils/fileResolver');
 
 let projectRoot = path.resolve(__dirname, '../../../../');
-if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
+if (!fs.existsSync(path.join(projectRoot, 'customers'))) {
     projectRoot = path.resolve(__dirname, '../../');
 }
 const defaultUploadPath = path.join(projectRoot, 'uploads');
