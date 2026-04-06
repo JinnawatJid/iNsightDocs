@@ -46,6 +46,8 @@
                   placeholder="DD/MM/YYYY"
               />
           </div>
+          </div>
+      <div class="form-grid-three-columns" style="margin-top: 15px;">
           <div class="form-group">
               <label>มูลค่าโครงการรวม (บาท)</label>
               <input
@@ -57,6 +59,47 @@
                   class="form-control text-primary font-bold"
                   placeholder="ระบุมูลค่าโครงการ"
               />
+          </div>
+          <div class="form-group">
+              <label>ต้นทุนโครงการ (บาท)</label>
+              <input
+                  type="text"
+                  v-model="project.projectCost"
+                  :disabled="props.readOnly"
+                  @blur="formatCost"
+                  @input="handleCostInput"
+                  class="form-control"
+                  placeholder="ระบุต้นทุน"
+              />
+          </div>
+          <div class="form-group">
+              <label>กำไร</label>
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                  <div class="input-with-suffix">
+                      <input
+                          type="text"
+                          v-model="project.projectProfit"
+                          :disabled="props.readOnly"
+                          @blur="formatProfit"
+                          @input="handleProfitInput"
+                          class="form-control"
+                          placeholder="กำไร (บาท)"
+                      />
+                  </div>
+                  <div class="input-with-suffix" style="position: relative;">
+                      <input
+                          type="text"
+                          v-model="project.projectProfitPercent"
+                          :disabled="props.readOnly"
+                          @blur="formatProfitPercent"
+                          @input="handleProfitPercentInput"
+                          class="form-control"
+                          placeholder="%"
+                          style="padding-right: 25px;"
+                      />
+                      <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #6c757d;">%</span>
+                  </div>
+              </div>
           </div>
       </div>
 
@@ -153,66 +196,6 @@
                   accept=".xlsx, .xls"
                 />
               </div>
-          </div>
-      </div>
-
-      <div class="form-group full-width" style="border-top: 1px solid #ddd; padding-top: 25px; margin-top: 25px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-              <label style="margin: 0;">รายการสินค้าหลัก:</label>
-              <button v-if="!props.readOnly" @click="addProductItem" class="btn-text-add">+ เพิ่มสินค้า</button>
-          </div>
-          <div v-if="project.adjustedProductList && project.adjustedProductList.length > 0" class="product-list" style="gap: 15px;">
-              <div v-for="(prod, idx) in project.adjustedProductList" :key="idx" class="product-item" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 15px; align-items: center; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                  <div class="field-item">
-                      <label style="font-size: 11px; color: #64748b; margin-bottom: 6px; display: block;">ชื่อสินค้า</label>
-                      <input
-                          type="text"
-                          v-model="project.adjustedProductList[idx].name"
-                          :disabled="props.readOnly"
-                          class="form-control"
-                          placeholder="ชื่อสินค้า..."
-                      />
-                  </div>
-                  <div class="field-item">
-                      <label style="font-size: 11px; color: #64748b; margin-bottom: 6px; display: block;">ต้นทุน (บาท)</label>
-                      <input
-                          type="text"
-                          :value="project.adjustedProductList[idx].cost"
-                          @input="handleProductCostInput($event, idx)"
-                          @blur="formatProductCost(idx)"
-                          :disabled="props.readOnly"
-                          class="form-control text-right"
-                          placeholder="0.00"
-                      />
-                  </div>
-                  <div class="field-item">
-                      <label style="font-size: 11px; color: #64748b; margin-bottom: 6px; display: block;">ราคาขาย (บาท)</label>
-                      <input
-                          type="text"
-                          :value="project.adjustedProductList[idx].price"
-                          @input="handleProductPriceInput($event, idx)"
-                          @blur="formatProductPrice(idx)"
-                          :disabled="props.readOnly"
-                          class="form-control text-right"
-                          placeholder="0.00"
-                      />
-                  </div>
-                  <div class="field-item">
-                      <label style="font-size: 11px; color: #64748b; margin-bottom: 6px; display: block;">กำไร (บาท)</label>
-                      <input
-                          type="text"
-                          :value="calculateProfit(idx)"
-                          disabled
-                          class="form-control text-right"
-                          style="background-color: #f1f5f9; color: #10b981; font-weight: 600;"
-                          placeholder="0.00"
-                      />
-                  </div>
-                  <button v-if="!props.readOnly" class="btn-icon-delete-small" @click="removeProductItem(idx)" style="padding: 6px; margin-top: 22px;">✕</button>
-              </div>
-          </div>
-          <div v-else class="text-muted" style="font-size: 14px; margin-top: 5px;">
-              (ไม่มีรายการสินค้าหลัก)
           </div>
       </div>
 
@@ -366,11 +349,117 @@ const formatNumber = (num) => {
     return Number(num).toLocaleString('en-US');
 };
 
+const calculateFromCost = () => {
+    if (!project.value) return;
+    const totalValue = parseFloat(String(project.value.adjustedProjectValue || '0').replace(/,/g, ''));
+    const cost = parseFloat(String(project.value.projectCost || '0').replace(/,/g, ''));
+
+    if (!isNaN(totalValue) && totalValue > 0 && !isNaN(cost)) {
+        const profit = totalValue - cost;
+        const profitPercent = (profit / totalValue) * 100;
+
+        project.value.projectProfit = profit % 1 !== 0 ? profit.toFixed(2) : String(profit);
+        project.value.projectProfitPercent = profitPercent % 1 !== 0 ? profitPercent.toFixed(2) : String(profitPercent);
+
+        project.value.projectProfit = formatNumber(project.value.projectProfit);
+    }
+};
+
+const handleCostInput = (event) => {
+    if (!project.value) return;
+    let val = event.target.value;
+    val = val.replace(/[^0-9.-]/g, '');
+    project.value.projectCost = val;
+    calculateFromCost();
+};
+
+const formatCost = () => {
+    if (!project.value) return;
+    const raw = project.value.projectCost;
+    if (!raw) return;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        project.value.projectCost = formatNumber(num % 1 !== 0 ? num.toFixed(2) : num);
+    }
+};
+
+const calculateFromProfit = () => {
+    if (!project.value) return;
+    const totalValue = parseFloat(String(project.value.adjustedProjectValue || '0').replace(/,/g, ''));
+    const profit = parseFloat(String(project.value.projectProfit || '0').replace(/,/g, ''));
+
+    if (!isNaN(totalValue) && totalValue > 0 && !isNaN(profit)) {
+        const cost = totalValue - profit;
+        const profitPercent = (profit / totalValue) * 100;
+
+        project.value.projectCost = cost % 1 !== 0 ? cost.toFixed(2) : String(cost);
+        project.value.projectProfitPercent = profitPercent % 1 !== 0 ? profitPercent.toFixed(2) : String(profitPercent);
+
+        project.value.projectCost = formatNumber(project.value.projectCost);
+    }
+};
+
+const handleProfitInput = (event) => {
+    if (!project.value) return;
+    let val = event.target.value;
+    val = val.replace(/[^0-9.-]/g, '');
+    project.value.projectProfit = val;
+    calculateFromProfit();
+};
+
+const formatProfit = () => {
+    if (!project.value) return;
+    const raw = project.value.projectProfit;
+    if (!raw) return;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        project.value.projectProfit = formatNumber(num % 1 !== 0 ? num.toFixed(2) : num);
+    }
+};
+
+const calculateFromProfitPercent = () => {
+    if (!project.value) return;
+    const totalValue = parseFloat(String(project.value.adjustedProjectValue || '0').replace(/,/g, ''));
+    const profitPercent = parseFloat(String(project.value.projectProfitPercent || '0').replace(/,/g, ''));
+
+    if (!isNaN(totalValue) && totalValue > 0 && !isNaN(profitPercent)) {
+        const profit = totalValue * (profitPercent / 100);
+        const cost = totalValue - profit;
+
+        project.value.projectProfit = profit % 1 !== 0 ? profit.toFixed(2) : String(profit);
+        project.value.projectCost = cost % 1 !== 0 ? cost.toFixed(2) : String(cost);
+
+        project.value.projectProfit = formatNumber(project.value.projectProfit);
+        project.value.projectCost = formatNumber(project.value.projectCost);
+    }
+};
+
+const handleProfitPercentInput = (event) => {
+    if (!project.value) return;
+    let val = event.target.value;
+    val = val.replace(/[^0-9.-]/g, '');
+    project.value.projectProfitPercent = val;
+    calculateFromProfitPercent();
+};
+
+const formatProfitPercent = () => {
+    if (!project.value) return;
+    const raw = project.value.projectProfitPercent;
+    if (!raw) return;
+    const num = parseFloat(String(raw).replace(/,/g, ''));
+    if (!isNaN(num)) {
+        project.value.projectProfitPercent = String(num % 1 !== 0 ? num.toFixed(2) : num);
+    }
+};
+
 const handleAdjustedValueInput = (event) => {
     if (!project.value) return;
     let val = event.target.value;
-    val = val.replace(/[^0-9]/g, '');
+    val = val.replace(/[^0-9.-]/g, '');
     project.value.adjustedProjectValue = val;
+    if (project.value.projectCost) {
+        calculateFromCost();
+    }
 };
 
 const formatAdjustedValue = () => {
@@ -378,60 +467,8 @@ const formatAdjustedValue = () => {
     const raw = project.value.adjustedProjectValue;
     const num = parseFloat(String(raw).replace(/,/g, ''));
     if (!isNaN(num)) {
-        project.value.adjustedProjectValue = formatNumber(num);
+        project.value.adjustedProjectValue = formatNumber(num % 1 !== 0 ? num.toFixed(2) : num);
     }
-};
-
-const handleProductPriceInput = (event, idx) => {
-    if (!project.value) return;
-    let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, ''); // Allow decimals
-    project.value.adjustedProductList[idx].price = val;
-};
-
-const formatProductPrice = (idx) => {
-    if (!project.value) return;
-    const raw = project.value.adjustedProductList[idx].price;
-    if (!raw) return;
-    const num = parseFloat(String(raw).replace(/,/g, ''));
-    if (!isNaN(num)) {
-        project.value.adjustedProductList[idx].price = formatNumber(num);
-    }
-};
-
-const handleProductCostInput = (event, idx) => {
-    if (!project.value) return;
-    let val = event.target.value;
-    val = val.replace(/[^0-9.]/g, ''); // Allow decimals
-    project.value.adjustedProductList[idx].cost = val;
-};
-
-const formatProductCost = (idx) => {
-    if (!project.value) return;
-    const raw = project.value.adjustedProductList[idx].cost;
-    if (!raw) return;
-    const num = parseFloat(String(raw).replace(/,/g, ''));
-    if (!isNaN(num)) {
-        project.value.adjustedProductList[idx].cost = formatNumber(num);
-    }
-};
-
-const calculateProfit = (idx) => {
-    if (!project.value) return '0.00';
-    const rawPrice = project.value.adjustedProductList[idx].price;
-    const rawCost = project.value.adjustedProductList[idx].cost;
-
-    const priceNum = parseFloat(String(rawPrice || '0').replace(/,/g, '')) || 0;
-    const costNum = parseFloat(String(rawCost || '0').replace(/,/g, '')) || 0;
-
-    // Calculate profit
-    const profit = priceNum - costNum;
-
-    // Keep 2 decimals if there's fractional parts, else return grouped integer
-    if (profit % 1 !== 0) {
-        return formatNumber(profit.toFixed(2));
-    }
-    return formatNumber(profit);
 };
 
 // Guarantee Details Handlers
@@ -452,7 +489,7 @@ const formatGuaranteeAmount = (val) => {
 };
 
 const handleGuaranteeAmountInput = (storeKey, fileName, field, rawValue) => {
-    let num = rawValue.replace(/[^0-9.]/g, '');
+    let num = rawValue.replace(/[^0-9.-]/g, '');
     const parts = num.split('.');
     if (parts.length > 2) {
         num = parts[0] + '.' + parts.slice(1).join('');
@@ -471,18 +508,6 @@ const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
     project.value[storeKey][fileName][field] = value;
 };
 
-const addProductItem = () => {
-    if (!project.value) return;
-    if (!project.value.adjustedProductList) {
-        project.value.adjustedProductList = [];
-    }
-    project.value.adjustedProductList.push({ name: '', cost: '', price: '' });
-};
-
-const removeProductItem = (idx) => {
-    if (!project.value) return;
-    project.value.adjustedProductList.splice(idx, 1);
-};
 </script>
 
 <style scoped>
