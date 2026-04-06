@@ -397,7 +397,12 @@ const comparisonChartData = computed(() => {
     const plannedData = [];
     const actualData = [];
 
+    const chartStartTs = uniqueDates.length > 0 ? uniqueDates[0] : 0;
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+
     uniqueDates.forEach(ts => {
+        const tradeDebt = ts <= chartStartTs + thirtyDaysMs ? mockCurrentDebt.value : 0;
+
         const dayPEvents = pEvents.filter(e => {
             const ed = new Date(e.time);
             return new Date(ed.getFullYear(), ed.getMonth(), ed.getDate()).getTime() === ts;
@@ -406,7 +411,7 @@ const comparisonChartData = computed(() => {
             if (ev.type === 'add') plannedBalance += ev.amount;
             if (ev.type === 'sub') plannedBalance -= ev.amount;
         });
-        plannedData.push(Math.max(0, plannedBalance));
+        plannedData.push(Math.max(0, plannedBalance) + tradeDebt);
 
         const dayAEvents = aEvents.filter(e => {
             const ed = new Date(e.time);
@@ -416,39 +421,103 @@ const comparisonChartData = computed(() => {
             if (ev.type === 'add') actualBalance += ev.amount;
             if (ev.type === 'sub') actualBalance -= ev.amount;
         });
-        actualData.push(Math.max(0, actualBalance));
+        actualData.push(Math.max(0, actualBalance) + tradeDebt);
     });
+
+    const datasets = [
+        {
+            type: 'line',
+            label: 'ยอดหนี้ตามแผน (Planned)',
+            data: plannedData,
+            borderColor: 'rgba(156, 163, 175, 1)',
+            backgroundColor: 'rgba(156, 163, 175, 0.1)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            stepped: 'before',
+            fill: true,
+            pointRadius: 0,
+            pointHoverRadius: 6
+        },
+        {
+            type: 'line',
+            label: 'ยอดหนี้จริง (Actual - Mock)',
+            data: actualData,
+            borderColor: '#0056FF',
+            backgroundColor: 'rgba(0, 86, 255, 0.1)',
+            borderWidth: 3,
+            stepped: 'before',
+            fill: true,
+            pointRadius: 0,
+            pointHoverRadius: 6
+        }
+    ];
+
+    datasets.push({
+        type: 'line',
+        label: 'วงเงินเครดิตปัจจุบัน',
+        data: labels.map(() => currentCreditLimit.value),
+        borderColor: '#ef4444',
+        borderWidth: 2,
+        borderDash: [5, 5],
+        fill: false,
+        pointRadius: 0,
+        stepped: false
+    });
+
+    const reqAmount = parseFloat(String(store.transactionData.amount || '0').replace(/,/g, '')) || 0;
+    const totalNewLimit = currentCreditLimit.value + reqAmount;
+    if (totalNewLimit > currentCreditLimit.value) {
+         datasets.push({
+            type: 'line',
+            label: 'วงเงินใหม่ (รวมส่วนที่ขอเพิ่ม)',
+            data: labels.map(() => totalNewLimit),
+            borderColor: '#10b981',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            fill: false,
+            pointRadius: 0,
+            stepped: false
+        });
+    }
 
     return {
         labels,
-        datasets: [
-            {
-                type: 'line',
-                label: 'ยอดหนี้ตามแผน (Planned)',
-                data: plannedData,
-                borderColor: 'rgba(156, 163, 175, 1)',
-                backgroundColor: 'rgba(156, 163, 175, 0.1)',
-                borderWidth: 2,
-                borderDash: [5, 5],
-                stepped: 'before',
-                fill: true,
-                pointRadius: 0,
-                pointHoverRadius: 6
-            },
-            {
-                type: 'line',
-                label: 'ยอดหนี้จริง (Actual - Mock)',
-                data: actualData,
-                borderColor: '#0056FF',
-                backgroundColor: 'rgba(0, 86, 255, 0.1)',
-                borderWidth: 3,
-                stepped: 'before',
-                fill: true,
-                pointRadius: 0,
-                pointHoverRadius: 6
-            }
-        ]
+        datasets
     };
+});
+
+const sharedYAxisMax = computed(() => {
+    // Top chart max
+    const peakExposure = globalPeakExposure.value;
+
+    // Bottom chart max (actual peak)
+    const aEvents = actualEvents.value;
+    let maxActual = mockCurrentDebt.value;
+    let currentActualProj = 0;
+
+    if (aEvents.length > 0) {
+        let startTs = new Date(aEvents[0].time);
+        startTs.setDate(startTs.getDate() - 5);
+        const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+
+        aEvents.forEach(ev => {
+            if (ev.type === 'add') currentActualProj += ev.amount;
+            if (ev.type === 'sub') currentActualProj -= ev.amount;
+
+            const tradeDebt = ev.time <= startTs.getTime() + thirtyDaysMs ? mockCurrentDebt.value : 0;
+            const total = currentActualProj + tradeDebt;
+            if (total > maxActual) {
+                maxActual = total;
+            }
+        });
+    }
+
+    // Limits
+    const limit = currentCreditLimit.value;
+    const reqAmount = parseFloat(String(store.transactionData.amount || '0').replace(/,/g, '')) || 0;
+    const totalNewLimit = limit + reqAmount;
+
+    return Math.max(peakExposure, maxActual, limit, totalNewLimit) * 1.1; // Add 10% padding
 });
 
 const comparisonChartOptions = computed(() => {
@@ -483,6 +552,7 @@ const comparisonChartOptions = computed(() => {
       scales: {
         y: {
           beginAtZero: true,
+          suggestedMax: sharedYAxisMax.value,
           grid: { color: '#f1f5f9' },
           title: {
             display: true,
@@ -559,6 +629,7 @@ const chartOptions = computed(() => {
     y: {
       stacked: true, // Enable Y-axis stacking!
       beginAtZero: true,
+      suggestedMax: sharedYAxisMax.value,
       grid: {
           color: '#f1f5f9'
       },
