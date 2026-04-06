@@ -53,6 +53,17 @@
              </div>
           </div>
 
+          <!-- Planned vs Actual Comparison Chart -->
+          <div class="chart-section" v-if="chartData">
+            <h4 class="section-subtitle">ติดตามสถานะหนี้จริงเทียบกับแผน (Planned vs Actual Tracking)</h4>
+            <div class="chart-wrapper">
+               <VueChart v-if="comparisonChartData" type="line" :data="comparisonChartData" :options="comparisonChartOptions" />
+               <div v-else class="empty-state">
+                  <p>กำลังประมวลผลข้อมูลเปรียบเทียบ...</p>
+               </div>
+            </div>
+          </div>
+
         </div>
       </transition>
     </div>
@@ -338,6 +349,170 @@ const chartData = computed(() => {
     };
 });
 
+const actualEvents = computed(() => {
+    const events = globalEvents.value;
+    return events.map(ev => {
+        const delayDays = ev.type === 'add' ? 3 : 7; // Mock delay: drawdowns 3 days late, repayments 7 days late
+        const delayedTime = ev.time + (delayDays * 24 * 60 * 60 * 1000);
+        return {
+            ...ev,
+            time: delayedTime,
+            isActual: true
+        };
+    }).sort((a, b) => a.time - b.time);
+});
+
+const comparisonChartData = computed(() => {
+    const pEvents = globalEvents.value;
+    const aEvents = actualEvents.value;
+    if (pEvents.length === 0) return null;
+
+    let uniqueDates = Array.from(new Set([
+        ...pEvents.map(e => {
+            const d = new Date(e.time);
+            return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        }),
+        ...aEvents.map(e => {
+            const d = new Date(e.time);
+            return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        })
+    ])).sort((a, b) => a - b);
+
+    if (uniqueDates.length > 0) {
+        const firstD = new Date(uniqueDates[0]);
+        firstD.setDate(firstD.getDate() - 5);
+
+        const lastD = new Date(uniqueDates[uniqueDates.length - 1]);
+        lastD.setDate(lastD.getDate() + 5);
+
+        uniqueDates.push(firstD.getTime(), lastD.getTime());
+        uniqueDates = Array.from(new Set(uniqueDates)).sort((a, b) => a - b);
+    }
+
+    const labels = uniqueDates.map(ts => formatDateString(new Date(ts)));
+
+    let plannedBalance = 0;
+    let actualBalance = 0;
+
+    const plannedData = [];
+    const actualData = [];
+
+    uniqueDates.forEach(ts => {
+        const dayPEvents = pEvents.filter(e => {
+            const ed = new Date(e.time);
+            return new Date(ed.getFullYear(), ed.getMonth(), ed.getDate()).getTime() === ts;
+        });
+        dayPEvents.forEach(ev => {
+            if (ev.type === 'add') plannedBalance += ev.amount;
+            if (ev.type === 'sub') plannedBalance -= ev.amount;
+        });
+        plannedData.push(Math.max(0, plannedBalance));
+
+        const dayAEvents = aEvents.filter(e => {
+            const ed = new Date(e.time);
+            return new Date(ed.getFullYear(), ed.getMonth(), ed.getDate()).getTime() === ts;
+        });
+        dayAEvents.forEach(ev => {
+            if (ev.type === 'add') actualBalance += ev.amount;
+            if (ev.type === 'sub') actualBalance -= ev.amount;
+        });
+        actualData.push(Math.max(0, actualBalance));
+    });
+
+    return {
+        labels,
+        datasets: [
+            {
+                type: 'line',
+                label: 'ยอดหนี้ตามแผน (Planned)',
+                data: plannedData,
+                borderColor: 'rgba(156, 163, 175, 1)',
+                backgroundColor: 'rgba(156, 163, 175, 0.1)',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                stepped: 'before',
+                fill: true,
+                pointRadius: 0,
+                pointHoverRadius: 6
+            },
+            {
+                type: 'line',
+                label: 'ยอดหนี้จริง (Actual - Mock)',
+                data: actualData,
+                borderColor: '#0056FF',
+                backgroundColor: 'rgba(0, 86, 255, 0.1)',
+                borderWidth: 3,
+                stepped: 'before',
+                fill: true,
+                pointRadius: 0,
+                pointHoverRadius: 6
+            }
+        ]
+    };
+});
+
+const comparisonChartOptions = computed(() => {
+  return {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+          mode: 'index',
+          intersect: false,
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { font: { family: 'Kanit' } }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed.y !== null) {
+                label += new Intl.NumberFormat('en-US').format(context.parsed.y) + ' บาท';
+              }
+              return label;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' },
+          title: {
+            display: true,
+            text: 'ยอดหนี้สะสม (บาท)',
+            font: { family: 'Kanit' }
+          },
+          ticks: {
+            callback: function(value) {
+              if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+              return (value / 1000) + 'K';
+            }
+          }
+        },
+        x: {
+          grid: { display: false },
+          title: {
+             display: true,
+             text: 'ระยะเวลา',
+             font: { family: 'Kanit' }
+          },
+          ticks: {
+             maxRotation: 45,
+             minRotation: 45,
+             font: { size: 10 }
+          }
+        }
+      }
+  };
+});
+
 const chartOptions = computed(() => {
   return {
   responsive: true,
@@ -546,6 +721,19 @@ const chartOptions = computed(() => {
     border: 1px solid #eee;
     border-radius: 8px;
     padding: 15px;
+}
+
+.chart-section {
+  margin-top: 30px;
+}
+
+.section-subtitle {
+  font-size: 15px;
+  color: #333;
+  font-weight: bold;
+  margin-bottom: 15px;
+  border-top: 1px dashed #eee;
+  padding-top: 20px;
 }
 
 .empty-state {
