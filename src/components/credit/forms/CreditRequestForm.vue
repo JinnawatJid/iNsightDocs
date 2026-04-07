@@ -56,15 +56,6 @@
          <AddProjectTab />
       </div>
 
-      <!-- Request Info for Project Credit -->
-      <div v-if="isProjectCredit" class="unified-card project-card">
-        <div class="card-header" style="padding-bottom: 20px; border-bottom: 1px solid #eee;">
-          <h3>เงื่อนไขและคำขอ</h3>
-        </div>
-        <div class="tabs-container" style="padding: 0 20px 20px 20px;">
-          <RequestInfoTab :readOnly="isReadOnly" viewMode="full" />
-        </div>
-      </div>
 
       <!-- Global Phasing Analysis (Cross-Project Cash Flow) -->
       <GlobalPhasingAnalysis v-if="store.transactionData.projects && store.transactionData.projects.length > 0" />
@@ -148,7 +139,6 @@
 import ApplicationTabs from './ApplicationTabs.vue';
 import ProjectApplicationTabs from './ProjectApplicationTabs.vue';
 import AddProjectTab from '../tabs/project-workspace/AddProjectTab.vue';
-import RequestInfoTab from '../tabs/RequestInfoTab.vue';
 import GlobalPhasingAnalysis from '../GlobalPhasingAnalysis.vue';
 import CreditReviewSection from '../workflow/CreditReviewSection.vue';
 import ChangeSummaryModal from '../modals/ChangeSummaryModal.vue';
@@ -224,10 +214,6 @@ watch(isProjectCredit, (newVal) => {
     if (newVal) {
         // When switching to project credit, ensure the customer info starts expanded
         isCustomerInfoExpanded.value = true;
-        // if activeTab is requestInfo, shift to store to hide the blank tab
-        if (store.activeTab === 'requestInfo') {
-            store.setActiveTab('store');
-        }
     }
 });
 
