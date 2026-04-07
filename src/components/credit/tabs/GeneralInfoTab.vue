@@ -581,10 +581,17 @@ async function performSearch() {
             store.customer.tungnam_relationship_customer_id = customer.customer.id;
 
             // Populate summary data
+            let pt = customer.customer.payment_terms_code || '-';
+            if (String(pt).toUpperCase() === 'CASH') {
+                pt = 'เงินสด';
+            } else if (pt !== '-') {
+                pt = `${pt} วัน`;
+            }
+
             summaryData.value = {
                 name: customer.customer.name,
                 creditLimit: customer.customer.current_credit_limit || 0,
-                paymentTerms: customer.customer.payment_terms_code || '-',
+                paymentTerms: pt,
                 paymentMethod: customer.customer.payment_method,
                 paymentCondition: customer.customer.payment_condition,
                 billingSchedule: customer.customer.billing_schedule
