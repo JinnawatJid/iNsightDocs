@@ -61,7 +61,9 @@
         <div class="card-header" style="padding-bottom: 20px; border-bottom: 1px solid #eee;">
           <h3>เงื่อนไขและคำขอ</h3>
         </div>
-        <RequestInfoTab :readOnly="isReadOnly" viewMode="full" />
+        <div class="tabs-container" style="padding: 0 20px 20px 20px;">
+          <RequestInfoTab :readOnly="isReadOnly" viewMode="full" />
+        </div>
       </div>
 
       <!-- Global Phasing Analysis (Cross-Project Cash Flow) -->
