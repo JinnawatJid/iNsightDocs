@@ -2,7 +2,7 @@
   <div v-if="isOpen" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>สรุปการเปลี่ยนแปลง (Summary of Changes)</h3>
+        <h3>สรุปการเปลี่ยนแปลง</h3>
         <button class="close-btn" @click="close">×</button>
       </div>
 
@@ -12,9 +12,9 @@
         <table class="diff-table">
           <thead>
             <tr>
-              <th>รายการ (Field)</th>
-              <th>ข้อมูลเดิม (Original)</th>
-              <th>ข้อมูลใหม่ (New)</th>
+              <th>รายการ</th>
+              <th>ข้อมูลเดิม</th>
+              <th>ข้อมูลใหม่</th>
             </tr>
           </thead>
           <tbody>
@@ -24,7 +24,7 @@
               <td class="new-value">{{ item.newVal }}</td>
             </tr>
             <tr v-if="changes.length === 0">
-              <td colspan="3" class="no-changes">ไม่มีการเปลี่ยนแปลงข้อมูล (No changes detected)</td>
+              <td colspan="3" class="no-changes">ไม่มีการเปลี่ยนแปลงข้อมูล</td>
             </tr>
           </tbody>
         </table>

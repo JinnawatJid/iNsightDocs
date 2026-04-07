@@ -924,6 +924,20 @@ exports.searchCustomers = async (req, res) => {
                   logger.error(`[Blacklist] Failed to lookup local data for ${row["No_"]}`, e);
               }
 
+              // Fetch local billing and payment details to populate Original Data correctly
+              let localBillingPayment = {};
+              try {
+                  const localBillingQuery = db.dbType === 'mssql'
+                    ? `SELECT TOP 1 payment_method, payment_condition, payment_bank_name, payment_bank_branch, payment_account_no, billing_requirement, billing_method, billing_schedule FROM Customers WHERE "No_" = ?`
+                    : `SELECT payment_method, payment_condition, payment_bank_name, payment_bank_branch, payment_account_no, billing_requirement, billing_method, billing_schedule FROM Customers WHERE "No_" = ? LIMIT 1`;
+                  const localBillingRes = await db.query(localBillingQuery, [row["No_"]]);
+                  if (localBillingRes && localBillingRes.rows && localBillingRes.rows.length > 0) {
+                      localBillingPayment = localBillingRes.rows[0];
+                  }
+              } catch (e) {
+                  logger.error(`[Billing] Failed to lookup local billing data for ${row["No_"]}`, e);
+              }
+
               const blacklistInfo = await checkBlacklist({
                   taxId,
                   personNames,
@@ -949,7 +963,15 @@ exports.searchCustomers = async (req, res) => {
                       customer_since: customerSince,
                       payment_terms_code: row["Payment Terms Code"],
                       billing_terms_code: row["Billing Terms Code"],
-                      current_credit_limit: row["Fixed Credit Limit"]
+                      current_credit_limit: row["Fixed Credit Limit"],
+                      payment_method: localBillingPayment.payment_method || "",
+                      payment_condition: localBillingPayment.payment_condition || "",
+                      payment_bank_name: localBillingPayment.payment_bank_name || "",
+                      payment_bank_branch: localBillingPayment.payment_bank_branch || "",
+                      payment_account_no: localBillingPayment.payment_account_no || "",
+                      billing_requirement: localBillingPayment.billing_requirement || "",
+                      billing_method: localBillingPayment.billing_method || "",
+                      billing_schedule: localBillingPayment.billing_schedule || ""
                   },
                   history: enriched.history,
                   financial_summary: {
