@@ -441,7 +441,9 @@ const computeChanges = () => {
         // If not available, we stick to N/A but with better label if possible.
 
         // For now, check if financialSummary has a 'current_limit' property (future proofing)
-        if (store.financialSummary && store.financialSummary.current_credit_limit) {
+        if (store.customer && store.customer.current_credit_limit) {
+            currentLimit = store.customer.current_credit_limit;
+        } else if (store.financialSummary && store.financialSummary.current_credit_limit) {
             currentLimit = store.financialSummary.current_credit_limit;
         }
 
