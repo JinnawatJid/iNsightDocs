@@ -447,10 +447,19 @@ const computeChanges = () => {
             currentLimit = store.financialSummary.current_credit_limit;
         }
 
+        let newLimit = fmt(txn.amount);
+        if (currentLimit !== 'N/A' && txn.amount) {
+            const current = Number(String(currentLimit).replace(/,/g, ''));
+            const requested = Number(String(txn.amount).replace(/,/g, ''));
+            if (!isNaN(current) && !isNaN(requested)) {
+                newLimit = (current + requested).toLocaleString('en-US');
+            }
+        }
+
         changes.push({
             label: 'วงเงินใหม่ที่ต้องการ (New Limit)',
             oldVal: currentLimit,
-            newVal: fmt(txn.amount)
+            newVal: newLimit
         });
     }
 
