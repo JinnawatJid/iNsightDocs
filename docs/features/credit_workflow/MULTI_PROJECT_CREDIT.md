@@ -35,6 +35,7 @@ To prevent UI clutter and ensure a smooth user experience, the project credit wo
 
 ### `CreditRequestForm.vue`
 When `isProjectCredit` is true, the form dynamically renders a loop over `store.transactionData.projects`. Each project is rendered as a distinct `unified-card` that can be collapsed or expanded.
+Additionally, the "Request Info" (เงื่อนไขและคำขอ) section is decoupled from the inner project tabs and rendered as a standalone, global `unified-card` (`RequestInfoTab.vue`) positioned directly below the project list and above the `GlobalPhasingAnalysis` component.
 
 ### `ProjectApplicationTabs.vue`
 Each project card utilizes the `ProjectApplicationTabs.vue` component, which provides a horizontal tab navigation specifically scoped to that project's index. The tabs include:
