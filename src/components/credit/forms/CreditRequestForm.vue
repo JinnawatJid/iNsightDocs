@@ -441,14 +441,34 @@ const computeChanges = () => {
         // If not available, we stick to N/A but with better label if possible.
 
         // For now, check if financialSummary has a 'current_limit' property (future proofing)
-        if (store.financialSummary && store.financialSummary.current_credit_limit) {
+        if (store.customer && store.customer.current_credit_limit) {
+            currentLimit = store.customer.current_credit_limit;
+        } else if (store.financialSummary && store.financialSummary.current_credit_limit) {
             currentLimit = store.financialSummary.current_credit_limit;
+        }
+
+        let newLimit = fmt(txn.amount);
+        let formattedCurrentLimit = currentLimit;
+
+        if (currentLimit !== 'N/A') {
+            const currentNum = Number(String(currentLimit).replace(/,/g, ''));
+            if (!isNaN(currentNum)) {
+                formattedCurrentLimit = currentNum.toLocaleString('en-US');
+            }
+        }
+
+        if (currentLimit !== 'N/A' && txn.amount) {
+            const current = Number(String(currentLimit).replace(/,/g, ''));
+            const requested = Number(String(txn.amount).replace(/,/g, ''));
+            if (!isNaN(current) && !isNaN(requested)) {
+                newLimit = (current + requested).toLocaleString('en-US');
+            }
         }
 
         changes.push({
             label: 'วงเงินใหม่ที่ต้องการ (New Limit)',
-            oldVal: currentLimit,
-            newVal: fmt(txn.amount)
+            oldVal: formattedCurrentLimit,
+            newVal: newLimit
         });
     }
 
