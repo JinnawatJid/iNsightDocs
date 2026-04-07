@@ -2,7 +2,7 @@
   <div class="request-info-tab">
     <!-- Upload Section -->
     <transition name="slide-fade">
-        <div class="upload-section" v-if="isUploadsVisible && !isProjectCredit">
+        <div class="upload-section" v-if="isUploadsVisible">
         <div class="upload-grid">
             <FileUploader
             label="ใบขอเปิดเครดิต"
@@ -523,7 +523,7 @@ const showAll = computed(() => props.viewMode === 'full');
 
 const isUploadsVisible = computed(() => {
     if (showAll.value) return true;
-    if (isNewRequest.value) return true;
+    if (isNewRequest.value || isProjectCredit.value) return true;
     if (isRequestIncrease.value) return true;
     if (isChangeTerm.value) return true;
     if (isChangePayment.value) return true;
