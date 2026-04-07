@@ -626,6 +626,16 @@ watch(() => store.customer.has_other_credit, (newVal) => {
     }
 });
 
+watch(() => store.customer.billing_requirement, (newVal) => {
+    if (newVal && newVal !== 'required') {
+        store.customer.billing_method = '';
+        store.customer.billing_method_note = '';
+        store.customer.billing_schedule = '';
+        store.customer.billing_mobile = '';
+        store.customer.billing_email = '';
+    }
+});
+
 // Watch for file changes to update store
 watch(() => files.creditApp, (newVal) => {
   store.updateFile('credit_application_doc', newVal);

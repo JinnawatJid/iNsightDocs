@@ -477,17 +477,33 @@ const computeChanges = () => {
         }
 
         changes.push({
-            label: 'วงเงินใหม่ที่ต้องการ (New Limit)',
+            label: 'วงเงินใหม่ที่ต้องการ',
             oldVal: formattedCurrentLimit,
             newVal: newLimit
         });
     }
 
+    // Localization maps
+    const translateBillingReq = (val) => {
+        if (val === 'required') return 'ต้องการ';
+        if (val === 'not_required') return 'ไม่ต้องการ';
+        if (val === 'other') return 'อื่นๆ';
+        return val;
+    };
+
+    const translateBillingMethod = (val) => {
+        if (val === 'delivery') return 'พร้อมการส่งมอบสินค้า';
+        if (val === 'mail') return 'ทางไปรษณีย์';
+        if (val === 'company') return 'ที่บริษัท ร้านค้า';
+        if (val === 'other') return 'อื่นๆ';
+        return val;
+    };
+
     // 2. Change Payment
     if (type && (type.includes('เปลี่ยนแปลงเงื่อนไขการชำระเงิน') || type.includes('เครดิตเพิ่ม'))) {
         const fields = [
-            { key: 'billing_requirement', label: 'การวางบิล' },
-            { key: 'billing_method', label: 'วิธีการวางบิล' },
+            { key: 'billing_requirement', label: 'การวางบิล', translate: translateBillingReq },
+            { key: 'billing_method', label: 'วิธีการวางบิล', translate: translateBillingMethod },
             { key: 'billing_schedule', label: 'กำหนดวางบิล' },
             { key: 'payment_method', label: 'วิธีการชำระเงิน' },
             { key: 'payment_condition', label: 'เงื่อนไขการชำระเงิน' },
@@ -495,11 +511,17 @@ const computeChanges = () => {
         ];
 
         fields.forEach(f => {
-            if (old[f.key] !== curr[f.key]) {
+            let oldVal = old[f.key];
+            let newVal = curr[f.key];
+            if (oldVal !== newVal) {
+                 if (f.translate) {
+                     oldVal = f.translate(oldVal);
+                     newVal = f.translate(newVal);
+                 }
                  changes.push({
                     label: f.label,
-                    oldVal: fmt(old[f.key]),
-                    newVal: fmt(curr[f.key])
+                    oldVal: fmt(oldVal),
+                    newVal: fmt(newVal)
                  });
             }
         });
