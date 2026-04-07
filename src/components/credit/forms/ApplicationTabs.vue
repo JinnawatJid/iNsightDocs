@@ -51,9 +51,7 @@ const tabs = computed(() => {
   const isProjectCredit = requestType && requestType.includes('เครดิตโครงการ');
 
   let requestInfoLabel = 'เงื่อนไขและคำขอ';
-  if (isProjectCredit) {
-    requestInfoLabel = 'เงื่อนไขและโครงการ';
-  } else if (isChangeRequest && props.viewMode === 'focus') {
+  if (isChangeRequest && props.viewMode === 'focus') {
     requestInfoLabel = 'เปลี่ยนแปลงข้อมูลคำขอ';
   }
 
