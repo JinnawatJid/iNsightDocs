@@ -180,7 +180,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
     async loadRequestDetail(txId) {
       this.loading = true;
       this.error = null;
-      this.activeTab = "requestInfo";
+      // Do not reset activeTab here to allow users to stay on their current tab
+      if (!this.activeTab) {
+        this.activeTab = "requestInfo";
+      }
       try {
         const response =
           await CreditRequestService.getCreditRequestDetail(txId);
