@@ -45,6 +45,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         mainContractorName: "",
         mainContractorVat: "",
         customerTeam: "",
+        projects: [],
     },
 
     requestsList: [],
@@ -304,6 +305,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           mainContractorName: parsedSnapshot.transaction_data?.mainContractorName || "",
           mainContractorVat: parsedSnapshot.transaction_data?.mainContractorVat || "",
           customerTeam: parsedSnapshot.transaction_data?.customerTeam || "",
+          projects: parsedSnapshot.transaction_data?.projects || [],
         };
 
         this.hasSearched = true;
@@ -583,6 +585,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               mainContractorName: parsedSnapshotTransactionData.mainContractorName || "",
               mainContractorVat: parsedSnapshotTransactionData.mainContractorVat || "",
               customerTeam: parsedSnapshotTransactionData.customerTeam || "",
+              projects: parsedSnapshotTransactionData.projects || [],
             };
           }
         }
@@ -831,11 +834,18 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
       // Project specific validations
       if (isSubmit && isProject) {
-          if (!this.transactionData.projectId) {
-              missingFields.push('projectId');
+          filesToCheck.push('credit_application_doc'); // Required in RequestInfoTab for projects
+          if (this.transactionData.projects && this.transactionData.projects.length > 0) {
+              this.transactionData.projects.forEach((proj, index) => {
+                  if (!proj.projectId) {
+                      missingFields.push(`projects[${index}].projectId`);
+                  }
+                  filesToCheck.push(`project_contract_doc_${proj.projectId}`);
+                  filesToCheck.push(`quotation_doc_${proj.projectId}`);
+              });
+          } else {
+              missingFields.push('projects');
           }
-          filesToCheck.push('project_contract_doc');
-          filesToCheck.push('project_plan_doc');
       }
 
       const missingFiles = [];
@@ -965,6 +975,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         mainContractorName: "",
         mainContractorVat: "",
         customerTeam: "",
+        projects: [],
       };
     },
 
@@ -1008,6 +1019,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         mainContractorName: "",
         mainContractorVat: "",
         customerTeam: "",
+        projects: [],
       };
     },
 
