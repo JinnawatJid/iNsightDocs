@@ -22,6 +22,12 @@ async function cleanDuplicates(txId) {
     }
 
     try {
+        // Initialize the database connection for standalone script
+        if (db.initialize) {
+            console.log('Connecting to database...');
+            await db.initialize();
+        }
+
         console.log(`\n==================================================`);
         console.log(` Analyzing duplicates for txId: ${txId}`);
         console.log(`==================================================\n`);
