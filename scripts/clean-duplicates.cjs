@@ -41,18 +41,21 @@ async function cleanDuplicates(txId) {
             process.exit(0);
         }
 
-        // Group by file_type
+        // Group files to find duplicates
         const groupedFiles = {};
         for (const att of attachments) {
-            // Ignore 'other_' docs as they allow multiple files
+            let groupKey = att.file_type;
+
+            // For 'other_' docs, they legitimately allow multiple different files.
+            // So we only consider them duplicates if they have the EXACT SAME original_name inside the same category.
             if (att.file_type.startsWith('other_')) {
-                continue;
+                groupKey = `${att.file_type}::${att.original_name}`;
             }
 
-            if (!groupedFiles[att.file_type]) {
-                groupedFiles[att.file_type] = [];
+            if (!groupedFiles[groupKey]) {
+                groupedFiles[groupKey] = [];
             }
-            groupedFiles[att.file_type].push(att);
+            groupedFiles[groupKey].push(att);
         }
 
         let totalDuplicates = 0;
