@@ -56,6 +56,14 @@
          <AddProjectTab />
       </div>
 
+      <!-- Request Info for Project Credit -->
+      <div v-if="isProjectCredit" class="unified-card project-card">
+        <div class="card-header" style="padding-bottom: 20px; border-bottom: 1px solid #eee;">
+          <h3>เงื่อนไขและคำขอ</h3>
+        </div>
+        <RequestInfoTab :readOnly="isReadOnly" viewMode="full" />
+      </div>
+
       <!-- Global Phasing Analysis (Cross-Project Cash Flow) -->
       <GlobalPhasingAnalysis v-if="store.transactionData.projects && store.transactionData.projects.length > 0" />
 
@@ -138,6 +146,7 @@
 import ApplicationTabs from './ApplicationTabs.vue';
 import ProjectApplicationTabs from './ProjectApplicationTabs.vue';
 import AddProjectTab from '../tabs/project-workspace/AddProjectTab.vue';
+import RequestInfoTab from '../tabs/RequestInfoTab.vue';
 import GlobalPhasingAnalysis from '../GlobalPhasingAnalysis.vue';
 import CreditReviewSection from '../workflow/CreditReviewSection.vue';
 import ChangeSummaryModal from '../modals/ChangeSummaryModal.vue';
