@@ -40,6 +40,10 @@ if (btn.action === 'saveDraft') {
         });
         store.requestId = newTxId;
     }
+    // IMPORTANT: Refresh state to map newly uploaded remote files properly
+    if (store.requestId) {
+        await store.loadRequestDetail(store.requestId);
+    }
 } else {
     // For actual submissions moving the workflow forward, reload to clear state and return to Search
     window.location.reload();
@@ -69,3 +73,30 @@ The backend `createCreditRequest` endpoint will intercept this and compare it ag
 
 ### The Frontend Handling
 The frontend (`CreditRequestForm.vue`) explicitly catches this `409` status code. Instead of showing a generic "Error Submitting Request" message, it parses the custom error message returned by the backend (e.g., "มีคำขอเครดิตที่กำลังดำเนินการอยู่สำหรับลูกค้ารายนี้ โปรดรีเฟรชหน้าจอ") and displays it to the user via a SweetAlert popup. This strictly informs the user that their current screen state is stale and they must refresh to see the latest progress made by their colleague.
+
+## 5. File Uploads & Remote State Flags
+
+A critical aspect of state management involves uploaded files, specifically preventing duplicate files from being uploaded upon successive saves (like clicking "Save Draft" multiple times).
+
+### The `isRemote` Flag
+
+When a user selects a file from their local machine, it is added to the Pinia store (`store.files`) as a standard JavaScript `File` object.
+
+When the frontend appends data to a `FormData` object during submission, it iterates over `store.files`. If it encounters a raw `File` object, it assumes it is a new file and appends it to the upload payload.
+
+If the backend successfully saves the file, that file is now "Remote". To prevent re-uploading the same file, the frontend must replace the local `File` object in `store.files` with a placeholder object containing the property `isRemote: true`.
+
+```javascript
+// Example remote placeholder
+const fileObj = {
+    name: "DBD_Profile.pdf",
+    original_name: "DBD_Profile.pdf",
+    isRemote: true,
+    // ...
+};
+```
+
+When building the next `FormData` payload, the frontend explicitly ignores any object where `!file.isRemote` is false.
+
+**Crucial Implementation Rule:**
+Whenever an action occurs that performs a background save (like "Save Draft" preventing page reloads), the application **must** actively refresh the state of the transaction from the backend (e.g., `await store.loadRequestDetail(requestId)`). Failing to do so will leave the local `File` objects in the store without the `isRemote` flag, resulting in them being incorrectly appended and duplicated on the next save or submit action. Similarly, when iterating over arrays of files (like "Other Documents"), the `!f.isRemote` check must be applied to every single element in the array mapping.
