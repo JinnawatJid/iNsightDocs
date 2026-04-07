@@ -45,6 +45,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         mainContractorName: "",
         mainContractorVat: "",
         customerTeam: "",
+        projects: [],
     },
 
     requestsList: [],
@@ -304,6 +305,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           mainContractorName: parsedSnapshot.transaction_data?.mainContractorName || "",
           mainContractorVat: parsedSnapshot.transaction_data?.mainContractorVat || "",
           customerTeam: parsedSnapshot.transaction_data?.customerTeam || "",
+          projects: parsedSnapshot.transaction_data?.projects || [],
         };
 
         this.hasSearched = true;
@@ -583,6 +585,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               mainContractorName: parsedSnapshotTransactionData.mainContractorName || "",
               mainContractorVat: parsedSnapshotTransactionData.mainContractorVat || "",
               customerTeam: parsedSnapshotTransactionData.customerTeam || "",
+              projects: parsedSnapshotTransactionData.projects || [],
             };
           }
         }
@@ -965,6 +968,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         mainContractorName: "",
         mainContractorVat: "",
         customerTeam: "",
+        projects: [],
       };
     },
 
@@ -1008,6 +1012,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         mainContractorName: "",
         mainContractorVat: "",
         customerTeam: "",
+        projects: [],
       };
     },
 
