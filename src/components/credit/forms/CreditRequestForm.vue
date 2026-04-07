@@ -448,6 +448,15 @@ const computeChanges = () => {
         }
 
         let newLimit = fmt(txn.amount);
+        let formattedCurrentLimit = currentLimit;
+
+        if (currentLimit !== 'N/A') {
+            const currentNum = Number(String(currentLimit).replace(/,/g, ''));
+            if (!isNaN(currentNum)) {
+                formattedCurrentLimit = currentNum.toLocaleString('en-US');
+            }
+        }
+
         if (currentLimit !== 'N/A' && txn.amount) {
             const current = Number(String(currentLimit).replace(/,/g, ''));
             const requested = Number(String(txn.amount).replace(/,/g, ''));
@@ -458,7 +467,7 @@ const computeChanges = () => {
 
         changes.push({
             label: 'วงเงินใหม่ที่ต้องการ (New Limit)',
-            oldVal: currentLimit,
+            oldVal: formattedCurrentLimit,
             newVal: newLimit
         });
     }
