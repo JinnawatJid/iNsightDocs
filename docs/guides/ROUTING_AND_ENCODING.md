@@ -5,12 +5,12 @@ This document describes the routing, URL encoding, and database retrieval patter
 ## 1. Transaction ID URL Encoding
 
 ### The Problem
-Credit Request IDs in the system inherently contain forward slashes (e.g., `AYCA2603/006`). When these IDs are passed as path parameters in API requests (like `/api/credit-requests/AYCA2603/006/pdf`), standard web servers, routing proxies (like NGINX or IIS), and client browsers interpret the slash as a directory separator, which breaks the API route definition (`/api/credit-requests/:id/pdf`).
+Credit Request IDs in the system inherently contain forward slashes (e.g., `AYCA6903/006`). When these IDs are passed as path parameters in API requests (like `/api/credit-requests/AYCA6903/006/pdf`), standard web servers, routing proxies (like NGINX or IIS), and client browsers interpret the slash as a directory separator, which breaks the API route definition (`/api/credit-requests/:id/pdf`).
 
 ### The Solution
-To safely transmit these IDs, the frontend URL-encodes the slash as `%2F` (e.g., `AYCA2603%2F006`).
+To safely transmit these IDs, the frontend URL-encodes the slash as `%2F` (e.g., `AYCA6903%2F006`).
 
-**Crucially:** Depending on the reverse proxy and server configuration, the Express.js backend may receive `req.params.id` in its raw, encoded form (`AYCA2603%2F006`). If this encoded string is passed directly into a database query (e.g., `WHERE tx_id = ?`), the query will search for the literal string `AYCA2603%2F006` rather than `AYCA2603/006`, resulting in a **404 Not Found** error.
+**Crucially:** Depending on the reverse proxy and server configuration, the Express.js backend may receive `req.params.id` in its raw, encoded form (`AYCA6903%2F006`). If this encoded string is passed directly into a database query (e.g., `WHERE tx_id = ?`), the query will search for the literal string `AYCA6903%2F006` rather than `AYCA6903/006`, resulting in a **404 Not Found** error.
 
 ### Implementation Standard
 **All backend controllers** that accept a transaction ID via a route parameter must explicitly decode it before using it in any business logic or database queries.

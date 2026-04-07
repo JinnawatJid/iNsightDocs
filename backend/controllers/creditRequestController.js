@@ -332,7 +332,7 @@ exports.createCreditRequest = async (req, res) => {
         if (existing.status === 'Draft' && newStatus === 'Opened' && !existing.tx_id.includes('-R')) {
             const now = new Date();
             const year = now.getFullYear();
-            const yy = year.toString().slice(-2);
+            const yy = (year + 543).toString().slice(-2);
             const mm = (now.getMonth() + 1).toString().padStart(2, '0');
 
             // Extract branchCode from JWT payload (req.user is set by authMiddleware)
