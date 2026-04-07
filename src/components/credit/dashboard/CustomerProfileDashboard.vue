@@ -138,6 +138,7 @@ export default {
     const paymentTermsLabel = computed(() => {
       const code = customer.value.payment_terms_code;
       if (!code) return 'N/A';
+      if (String(code).toUpperCase() === 'CASH') return 'เงินสด';
       return `${code} วัน`;
     });
 
