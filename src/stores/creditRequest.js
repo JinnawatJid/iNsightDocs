@@ -379,7 +379,6 @@ export const useCreditRequestStore = defineStore("creditRequest", {
             data.customer.map_code = "";
             data.customer.landmark = "";
             data.customer.note = "";
-          } else {
           }
 
           this.customer = data.customer;
