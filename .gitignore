@@ -32,3 +32,4 @@ temp_uploads/
 
 release
 *.zip
+venv/
