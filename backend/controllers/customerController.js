@@ -658,7 +658,7 @@ const searchCustomersFallback = async (req, res, query) => {
         SELECT TOP 20
           "No_", "Name", "Contact", "Phone No_", "Fax No_", "E-Mail",
           "Telex No_", "Mobile Phone No_", "VAT Registration No_",
-          "Address", "City", "County", "Post Code",
+        "Address", "District", "City", "County", "Post Code",
           "residence_latitude", "residence_longitude", "store_latitude", "store_longitude",
           "residence_landmark", "residence_note", "store_landmark", "store_note",
           "residence_map_code", "store_map_code",
@@ -688,7 +688,27 @@ const searchCustomersFallback = async (req, res, query) => {
       `;
     } else {
       sql = `
-        SELECT *
+      SELECT "No_", "Name", "Contact", "Phone No_", "Fax No_", "E-Mail",
+             "Telex No_", "Mobile Phone No_", "VAT Registration No_",
+             "Address", "District", "City", "County", "Post Code",
+             "residence_latitude", "residence_longitude", "store_latitude", "store_longitude",
+             "residence_landmark", "residence_note", "store_landmark", "store_note",
+             "residence_map_code", "store_map_code",
+             "authorized_person", "authorized_position", "contact_position", "contact_phone_number",
+             "authorized_person_2", "authorized_position_2",
+             "business_type", "main_products", "years_in_business",
+             "contact_department", "contact_division",
+             "billing_requirement", "billing_requirement_note",
+             "billing_method", "billing_method_note",
+             "billing_schedule", "billing_contact", "billing_department",
+             "billing_phone", "billing_mobile", "billing_email",
+             "existing_credits",
+             "residence_location_type", "residence_location_type_other",
+             "residence_ownership", "residence_ownership_other",
+             "residence_value",
+             "store_location_type", "store_location_type_other",
+             "store_ownership", "store_ownership_other",
+             "store_value", "Fixed Credit Limit", "Payment Terms Code", "Billing Terms Code", "Sales Billing Condition"
         FROM "Customers"
         WHERE
           "Name" LIKE ? OR
@@ -736,20 +756,6 @@ const searchCustomersFallback = async (req, res, query) => {
         const currentCreditLimit = parseFloat(row["Fixed Credit Limit"]) || 0;
         const taxIdForEnrich = row["VAT Registration No_"] ? row["VAT Registration No_"].trim() : null;
         const enriched = await enrichCustomerData(row["No_"], currentCreditLimit, taxIdForEnrich);
-
-        // Billing Information
-        let localBillingPayment = {};
-        try {
-            const localBillingQuery = db.dbType === 'mssql'
-              ? `SELECT TOP 1 payment_method, payment_condition, payment_bank_name, payment_bank_branch, payment_account_no, billing_requirement, billing_method, billing_schedule FROM Customers WHERE "No_" = ?`
-              : `SELECT payment_method, payment_condition, payment_bank_name, payment_bank_branch, payment_account_no, billing_requirement, billing_method, billing_schedule FROM Customers WHERE "No_" = ? LIMIT 1`;
-            const localBillingRes = await db.query(localBillingQuery, [row["No_"]]);
-            if (localBillingRes && localBillingRes.rows && localBillingRes.rows.length > 0) {
-                localBillingPayment = localBillingRes.rows[0];
-            }
-        } catch (e) {
-            logger.error(`[Billing] Failed to lookup local billing data for ${row["No_"]}`, e);
-        }
 
         // Blacklist Check (Advanced)
         const isCompanyRec = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
@@ -819,11 +825,11 @@ const searchCustomersFallback = async (req, res, query) => {
             contact_department: row["contact_department"] || "",
             contact_division: row["contact_division"] || "",
             // Billing Information
-            billing_requirement: localBillingPayment.billing_requirement || row["billing_requirement"] || "",
+            billing_requirement: row["billing_requirement"] || "",
             billing_requirement_note: row["billing_requirement_note"] || "",
-            billing_method: localBillingPayment.billing_method || row["billing_method"] || "",
+            billing_method: row["billing_method"] || "",
             billing_method_note: row["billing_method_note"] || "",
-            billing_schedule: localBillingPayment.billing_schedule || row["billing_schedule"] || "",
+            billing_schedule: row["billing_schedule"] || "",
             billing_contact: row["billing_contact"] || "",
             billing_department: row["billing_department"] || "",
             billing_phone: row["billing_phone"] || "",
@@ -1028,7 +1034,7 @@ exports.searchCustomers = async (req, res) => {
       SELECT TOP 20
         "No_", "Name", "Contact", "Phone No_", "Fax No_", "E-Mail",
         "Telex No_", "Mobile Phone No_", "VAT Registration No_",
-        "Address", "City", "County", "Post Code",
+        "Address", "District", "City", "County", "Post Code",
         "residence_latitude", "residence_longitude", "store_latitude", "store_longitude",
         "residence_landmark", "residence_note", "store_landmark", "store_note",
         "residence_map_code", "store_map_code",
@@ -1058,7 +1064,27 @@ exports.searchCustomers = async (req, res) => {
     `;
   } else {
     sql = `
-      SELECT *
+      SELECT "No_", "Name", "Contact", "Phone No_", "Fax No_", "E-Mail",
+             "Telex No_", "Mobile Phone No_", "VAT Registration No_",
+             "Address", "District", "City", "County", "Post Code",
+             "residence_latitude", "residence_longitude", "store_latitude", "store_longitude",
+             "residence_landmark", "residence_note", "store_landmark", "store_note",
+             "residence_map_code", "store_map_code",
+             "authorized_person", "authorized_position", "contact_position", "contact_phone_number",
+             "authorized_person_2", "authorized_position_2",
+             "business_type", "main_products", "years_in_business",
+             "contact_department", "contact_division",
+             "billing_requirement", "billing_requirement_note",
+             "billing_method", "billing_method_note",
+             "billing_schedule", "billing_contact", "billing_department",
+             "billing_phone", "billing_mobile", "billing_email",
+             "existing_credits",
+             "residence_location_type", "residence_location_type_other",
+             "residence_ownership", "residence_ownership_other",
+             "residence_value",
+             "store_location_type", "store_location_type_other",
+             "store_ownership", "store_ownership_other",
+             "store_value", "Fixed Credit Limit", "Payment Terms Code", "Billing Terms Code", "Sales Billing Condition"
       FROM "Customers"
       WHERE
         "Name" LIKE ? OR
