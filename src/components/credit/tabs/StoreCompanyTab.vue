@@ -425,14 +425,15 @@ watch(() => store.customer, (newVal) => {
     if (!isCompany.value) {
         // INDIVIDUAL
         console.log("[DEBUG] Using store_ keys. store_district:", newVal.store_district, "store_subdistrict:", newVal.store_subdistrict);
-        formData.houseAddress = newVal.store_address || '';
-        formData.subdistrict = newVal.store_subdistrict || '';
-        formData.postCode = newVal.store_zipcode || '';
-        formData.district = newVal.store_district || '';
-        formData.city = newVal.store_province || '';
-        formData.phone = newVal.store_phone || '';
-        formData.fax = newVal.store_fax || '';
-        formData.email = newVal.store_email || '';
+        formData.houseAddress = newVal.store_address || newVal.address || '';
+        // Fallback to API-sourced fields (District→subdistrict, City→district, etc.) when store_ keys are absent
+        formData.subdistrict = newVal.store_subdistrict || newVal.subdistrict || '';
+        formData.postCode = newVal.store_zipcode || newVal.zipcode || '';
+        formData.district = newVal.store_district || newVal.district || '';
+        formData.city = newVal.store_province || newVal.province || '';
+        formData.phone = newVal.store_phone || newVal.phone || '';
+        formData.fax = newVal.store_fax || newVal.fax || '';
+        formData.email = newVal.store_email || newVal.email || '';
 
         formData.mapCode = newVal.store_map_code || '';
         formData.landmark = newVal.store_landmark || '';

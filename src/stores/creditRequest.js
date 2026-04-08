@@ -232,26 +232,48 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         this.financialSummary = parsedSnapshot.financial_summary || {};
         this.creditScore = parsedSnapshot.credit_score || {};
 
-        if (
-          Object.keys(this.financialSummary).length === 0 &&
-          data.customer_no
-        ) {
+        // Refresh financial summary if missing, AND backfill any address fields absent in old snapshots
+        const needsFinancialRefresh = Object.keys(this.financialSummary).length === 0;
+        const needsAddressBackfill = !!data.customer_no && !this.customer.store_subdistrict;
+
+        if ((needsFinancialRefresh || needsAddressBackfill) && data.customer_no) {
           try {
-            const results = await CustomerService.searchCustomers(
-              data.customer_no,
-            );
+            const results = await CustomerService.searchCustomers(data.customer_no);
             if (results && results.length > 0) {
               const freshData = results[0];
-              const resultId = freshData.customer.id || freshData.customer.No_;
+              const freshCustomer = freshData.customer;
+              const resultId = freshCustomer.id || freshCustomer.No_;
+
               if (resultId === data.customer_no) {
-                this.financialSummary = freshData.financial_summary || {};
-                if (Object.keys(this.creditScore).length === 0) {
-                  this.creditScore = freshData.credit_score || {};
+                // 1. Refresh financial summary if it was missing
+                if (needsFinancialRefresh) {
+                  this.financialSummary = freshData.financial_summary || {};
+                  if (Object.keys(this.creditScore).length === 0) {
+                    this.creditScore = freshData.credit_score || {};
+                  }
+                }
+
+                // 2. Backfill missing address fields (handles old snapshots pre-dating subdistrict mapping)
+                if (needsAddressBackfill) {
+                  const companyKeywords = ['บริษัท', 'ห้างหุ้นส่วนจำกัด', 'บ.', 'หจก.'];
+                  const isCompany = companyKeywords.some(k => (freshCustomer.name || '').includes(k));
+
+                  if (!isCompany) {
+                    // Individual: backfill store_ address keys from API values
+                    if (!this.customer.store_subdistrict) this.customer.store_subdistrict = freshCustomer.subdistrict || '';
+                    if (!this.customer.store_address)    this.customer.store_address    = freshCustomer.address  || '';
+                    if (!this.customer.store_zipcode)    this.customer.store_zipcode    = freshCustomer.zipcode  || '';
+                    if (!this.customer.store_district)   this.customer.store_district   = freshCustomer.district || '';
+                    if (!this.customer.store_province)   this.customer.store_province   = freshCustomer.province || '';
+                  } else {
+                    // Company: backfill main subdistrict key
+                    if (!this.customer.subdistrict) this.customer.subdistrict = freshCustomer.subdistrict || '';
+                  }
                 }
               }
             }
           } catch (e) {
-            console.warn("Fallback fetch for financial summary failed", e);
+            console.warn("Fresh API fetch on loadRequestDetail failed:", e);
           }
         }
 
