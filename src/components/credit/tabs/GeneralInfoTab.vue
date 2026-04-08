@@ -268,11 +268,7 @@
                 </div>
                 <div class="summary-item">
                     <span class="summary-label">เงื่อนไขการชำระเงิน</span>
-                    <span class="summary-value">{{ summaryData.paymentMethod || '-' }} {{ summaryData.paymentCondition ? `(${summaryData.paymentCondition})` : '' }}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="summary-label">เงื่อนไขการวางบิล/รับเช็ค</span>
-                    <span class="summary-value">{{ summaryData.billingSchedule || '-' }}</span>
+                    <span class="summary-value">{{ summaryData.salesBillingCondition || '-' }}</span>
                 </div>
             </div>
         </div>
@@ -592,9 +588,7 @@ async function performSearch() {
                 name: customer.customer.name,
                 creditLimit: customer.customer.current_credit_limit || 0,
                 paymentTerms: pt,
-                paymentMethod: customer.customer.payment_method,
-                paymentCondition: customer.customer.payment_condition,
-                billingSchedule: customer.customer.billing_schedule
+                salesBillingCondition: customer.customer.sales_billing_condition
             };
 
             saveTungnamRelationship();

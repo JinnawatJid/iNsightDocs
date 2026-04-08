@@ -711,6 +711,7 @@ const searchCustomersFallback = async (req, res, query) => {
         // Address Concatenation
         const addressParts = [
           row["Address"],
+          row["District"],
           row["City"],
           row["County"],
           row["Post Code"]
@@ -768,6 +769,7 @@ const searchCustomersFallback = async (req, res, query) => {
             company_name: row["Name"],
             address: row["Address"],
             district: row["City"],
+            subdistrict: row["District"],
             province: row["County"],
             zipcode: row["Post Code"],
             // Coordinates & Extra Fields
@@ -871,6 +873,7 @@ exports.searchCustomers = async (req, res) => {
               // Address Concatenation
               const addressParts = [
                   row["Address"],
+                  row["District"],
                   row["City"],
                   row["County"],
                   row["Post Code"]
@@ -958,6 +961,7 @@ exports.searchCustomers = async (req, res) => {
                       company_name: row["Name"],
                       address: row["Address"],
                       district: row["City"],
+                      subdistrict: row["District"],
                       province: row["County"],
                       zipcode: row["Post Code"],
                       customer_since: customerSince,
@@ -971,7 +975,8 @@ exports.searchCustomers = async (req, res) => {
                       payment_account_no: localBillingPayment.payment_account_no || "",
                       billing_requirement: localBillingPayment.billing_requirement || "",
                       billing_method: localBillingPayment.billing_method || "",
-                      billing_schedule: localBillingPayment.billing_schedule || ""
+                      billing_schedule: localBillingPayment.billing_schedule || "",
+                      sales_billing_condition: row["Sales Billing Condition"] || ""
                   },
                   history: enriched.history,
                   financial_summary: {
@@ -1061,6 +1066,7 @@ exports.searchCustomers = async (req, res) => {
       // Address Concatenation
       const addressParts = [
         row["Address"],
+        row["District"],
         row["City"],
         row["County"],
         row["Post Code"]
@@ -1118,6 +1124,7 @@ exports.searchCustomers = async (req, res) => {
           company_name: row["Name"],
           address: row["Address"],
           district: row["City"],
+          subdistrict: row["District"],
           province: row["County"],
           zipcode: row["Post Code"],
           // Coordinates & Extra Fields
@@ -1163,7 +1170,8 @@ exports.searchCustomers = async (req, res) => {
           billing_phone: row["billing_phone"] || "",
           billing_mobile: row["billing_mobile"] || "",
           current_credit_limit: currentCreditLimit,
-          billing_email: row["billing_email"] || ""
+          billing_email: row["billing_email"] || "",
+          sales_billing_condition: row["Sales Billing Condition"] || ""
         },
         history: enriched.history,
         financial_summary: {
