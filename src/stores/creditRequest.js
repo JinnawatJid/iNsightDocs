@@ -348,10 +348,12 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         if (results && results.length > 0) {
           this.clearFormData();
           const data = results[0];
+          console.log("[DEBUG] API Data inside Pinia searchCustomer:", JSON.parse(JSON.stringify(data.customer)));
 
           const name = data.customer.name || "";
           const keywords = ["บริษัท", "ห้างหุ้นส่วนจำกัด", "บ.", "หจก."];
           const isCompany = keywords.some((keyword) => name.includes(keyword));
+          console.log("[DEBUG] isCompany evaluated to:", isCompany);
 
           if (!isCompany) {
             data.customer.store_address = data.customer.address;

@@ -415,12 +415,16 @@ function formatPhoneNumber(phone) {
 // Watch store.customer for initial load
 watch(() => store.customer, (newVal) => {
   if (newVal) {
+    console.log("[DEBUG] StoreCompanyTab received new customer data:", JSON.parse(JSON.stringify(newVal)));
+    console.log("[DEBUG] StoreCompanyTab isCompany evaluated to:", isCompany.value);
+
     // Populate form data from store fields
     // Individual -> store_ keys
     // Company -> address (main) keys
 
     if (!isCompany.value) {
         // INDIVIDUAL
+        console.log("[DEBUG] Using store_ keys. store_district:", newVal.store_district, "store_subdistrict:", newVal.store_subdistrict);
         formData.houseAddress = newVal.store_address || '';
         formData.subdistrict = newVal.store_subdistrict || '';
         formData.postCode = newVal.store_zipcode || '';
