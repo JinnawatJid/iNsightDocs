@@ -737,6 +737,20 @@ const searchCustomersFallback = async (req, res, query) => {
         const taxIdForEnrich = row["VAT Registration No_"] ? row["VAT Registration No_"].trim() : null;
         const enriched = await enrichCustomerData(row["No_"], currentCreditLimit, taxIdForEnrich);
 
+        // Billing Information
+        let localBillingPayment = {};
+        try {
+            const localBillingQuery = db.dbType === 'mssql'
+              ? `SELECT TOP 1 payment_method, payment_condition, payment_bank_name, payment_bank_branch, payment_account_no, billing_requirement, billing_method, billing_schedule FROM Customers WHERE "No_" = ?`
+              : `SELECT payment_method, payment_condition, payment_bank_name, payment_bank_branch, payment_account_no, billing_requirement, billing_method, billing_schedule FROM Customers WHERE "No_" = ? LIMIT 1`;
+            const localBillingRes = await db.query(localBillingQuery, [row["No_"]]);
+            if (localBillingRes && localBillingRes.rows && localBillingRes.rows.length > 0) {
+                localBillingPayment = localBillingRes.rows[0];
+            }
+        } catch (e) {
+            logger.error(`[Billing] Failed to lookup local billing data for ${row["No_"]}`, e);
+        }
+
         // Blacklist Check (Advanced)
         const isCompanyRec = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
         const personNamesRec = [row["Contact"], row["authorized_person"], row["authorized_person_2"]];
@@ -805,16 +819,17 @@ const searchCustomersFallback = async (req, res, query) => {
             contact_department: row["contact_department"] || "",
             contact_division: row["contact_division"] || "",
             // Billing Information
-            billing_requirement: row["billing_requirement"] || "",
+            billing_requirement: localBillingPayment.billing_requirement || row["billing_requirement"] || "",
             billing_requirement_note: row["billing_requirement_note"] || "",
-            billing_method: row["billing_method"] || "",
+            billing_method: localBillingPayment.billing_method || row["billing_method"] || "",
             billing_method_note: row["billing_method_note"] || "",
-            billing_schedule: row["billing_schedule"] || "",
+            billing_schedule: localBillingPayment.billing_schedule || row["billing_schedule"] || "",
             billing_contact: row["billing_contact"] || "",
             billing_department: row["billing_department"] || "",
             billing_phone: row["billing_phone"] || "",
             billing_mobile: row["billing_mobile"] || "",
-            billing_email: row["billing_email"] || ""
+            billing_email: row["billing_email"] || "",
+            sales_billing_condition: row["Sales Billing Condition"] || ""
           },
           history: enriched.history,
           financial_summary: {

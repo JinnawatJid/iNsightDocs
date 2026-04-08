@@ -31,4 +31,5 @@ backend/downloads
 temp_uploads/
 
 release
-*.zipvenv/
+*.zip
+venv/
