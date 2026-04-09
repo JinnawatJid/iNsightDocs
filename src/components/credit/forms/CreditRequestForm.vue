@@ -36,9 +36,12 @@
     <!-- Project Tabs (Project Info) -->
     <template v-if="isProjectCredit">
       <div v-for="(project, index) in store.transactionData.projects" :key="index" class="unified-card project-card" :class="{ 'collapsed-card': collapsedProjects[index] }">
-        <div class="card-header" :style="collapsedProjects[index] ? 'padding-bottom: 20px;' : 'padding-bottom: 20px; border-bottom: 1px solid #eee;'">
-          <h3>ข้อมูลและเงื่อนไขโครงการ: <span style="font-weight: normal; color: #555;">{{ project.projectData.name }}</span></h3>
-          <div class="header-actions">
+        <div class="card-header" :style="collapsedProjects[index] ? 'padding-bottom: 20px; align-items: center;' : 'padding-bottom: 20px; border-bottom: 1px solid #eee; align-items: center;'">
+          <h3 style="flex: 1; margin-right: 20px; display: flex; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; align-items: center;">
+            <span style="white-space: nowrap;">ข้อมูลและเงื่อนไขโครงการ:</span>
+            <span style="font-weight: normal; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-left: 10px;" :title="project.projectData.name">{{ project.projectData.name }}</span>
+          </h3>
+          <div class="header-actions" style="flex-shrink: 0;">
              <button class="toggle-details-btn" @click="toggleProjectCollapse(index)">
                  {{ collapsedProjects[index] ? 'แสดงข้อมูลโครงการ' : 'พับข้อมูลโครงการ' }}
              </button>
