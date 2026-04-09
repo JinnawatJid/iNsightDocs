@@ -103,7 +103,7 @@ const store = useCreditRequestStore();
 const showAnalysis = ref(false);
 
 // Mock current trade debt
-const mockCurrentDebt = ref(200000);
+const currentTradeDebt = ref(0);
 
 function formatNumber(num) {
     if (!num) return '0';
@@ -183,10 +183,9 @@ const globalPeakExposureData = computed(() => {
         firstD.setDate(firstD.getDate() - 5);
         startTs = firstD.getTime();
     }
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
-    let maxTotal = mockCurrentDebt.value; // Initial check at start
-    let peakTrade = mockCurrentDebt.value;
+    let maxTotal = currentTradeDebt.value; // Initial check at start
+    let peakTrade = currentTradeDebt.value;
     let peakProject = 0;
 
     let currProjectDebt = 0;
@@ -195,7 +194,7 @@ const globalPeakExposureData = computed(() => {
         if (ev.type === 'add') currProjectDebt += ev.amount;
         if (ev.type === 'sub') currProjectDebt -= ev.amount;
 
-        const tradeDebt = ev.time <= startTs + thirtyDaysMs ? mockCurrentDebt.value : 0;
+        const tradeDebt = currentTradeDebt.value;
         const total = currProjectDebt + tradeDebt;
 
         if (total > maxTotal) {
@@ -239,12 +238,7 @@ const chartData = computed(() => {
 
         const lastD = new Date(uniqueDates[uniqueDates.length - 1]);
         lastD.setDate(lastD.getDate() + 5);
-
-        // Date where mock debt drops out (30 days from start)
-        const monthEnd = new Date(firstD.getTime());
-        monthEnd.setDate(monthEnd.getDate() + 30);
-
-        uniqueDates.push(firstD.getTime(), lastD.getTime(), monthEnd.getTime());
+        uniqueDates.push(firstD.getTime(), lastD.getTime());
         uniqueDates = Array.from(new Set(uniqueDates)).sort((a, b) => a - b);
     }
 
@@ -294,12 +288,11 @@ const chartData = computed(() => {
 
     // 4. Add Mock Current Debt at the bottom layer (start of the array)
     const chartStartTs = uniqueDates.length > 0 ? uniqueDates[0] : 0;
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
     datasets.unshift({
         type: 'line',
-        label: 'ยอดหนี้การค้าปัจจุบัน (Mock)',
-        data: uniqueDates.map(ts => ts <= chartStartTs + thirtyDaysMs ? mockCurrentDebt.value : 0),
+        label: 'ยอดหนี้การค้าปัจจุบัน',
+        data: uniqueDates.map(ts => currentTradeDebt.value),
         borderColor: '#9e9e9e',
         backgroundColor: 'rgba(158, 158, 158, 0.5)',
         borderWidth: 2,
@@ -352,7 +345,7 @@ const chartData = computed(() => {
 const actualEvents = computed(() => {
     const events = globalEvents.value;
     return events.map(ev => {
-        const delayDays = ev.type === 'add' ? 3 : 7; // Mock delay: drawdowns 3 days late, repayments 7 days late
+        const delayDays = ev.type === 'add' ? 3 : 7; // Simulation delay: drawdowns 3 days late, repayments 7 days late
         const delayedTime = ev.time + (delayDays * 24 * 60 * 60 * 1000);
         return {
             ...ev,
@@ -398,10 +391,9 @@ const comparisonChartData = computed(() => {
     const actualData = [];
 
     const chartStartTs = uniqueDates.length > 0 ? uniqueDates[0] : 0;
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
     uniqueDates.forEach(ts => {
-        const tradeDebt = ts <= chartStartTs + thirtyDaysMs ? mockCurrentDebt.value : 0;
+        const tradeDebt = currentTradeDebt.value;
 
         const dayPEvents = pEvents.filter(e => {
             const ed = new Date(e.time);
@@ -427,8 +419,8 @@ const comparisonChartData = computed(() => {
     const datasets = [
         {
             type: 'line',
-            label: 'ยอดหนี้การค้าปัจจุบัน (Mock)',
-            data: uniqueDates.map(ts => ts <= chartStartTs + thirtyDaysMs ? mockCurrentDebt.value : 0),
+            label: 'ยอดหนี้การค้าปัจจุบัน',
+            data: uniqueDates.map(ts => currentTradeDebt.value),
             borderColor: '#9e9e9e',
             backgroundColor: 'rgba(158, 158, 158, 0.5)',
             borderWidth: 2,
@@ -452,7 +444,7 @@ const comparisonChartData = computed(() => {
         },
         {
             type: 'line',
-            label: 'ยอดหนี้จริง (Actual - Mock)',
+            label: 'ยอดหนี้จริง (Actual)',
             data: actualData,
             borderColor: '#0056FF',
             backgroundColor: 'rgba(0, 86, 255, 0.1)',
@@ -504,19 +496,18 @@ const sharedYAxisMax = computed(() => {
 
     // Bottom chart max (actual peak)
     const aEvents = actualEvents.value;
-    let maxActual = mockCurrentDebt.value;
+    let maxActual = currentTradeDebt.value;
     let currentActualProj = 0;
 
     if (aEvents.length > 0) {
         let startTs = new Date(aEvents[0].time);
         startTs.setDate(startTs.getDate() - 5);
-        const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
         aEvents.forEach(ev => {
             if (ev.type === 'add') currentActualProj += ev.amount;
             if (ev.type === 'sub') currentActualProj -= ev.amount;
 
-            const tradeDebt = ev.time <= startTs.getTime() + thirtyDaysMs ? mockCurrentDebt.value : 0;
+            const tradeDebt = currentTradeDebt.value;
             const total = currentActualProj + tradeDebt;
             if (total > maxActual) {
                 maxActual = total;

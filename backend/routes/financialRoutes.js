@@ -21,6 +21,8 @@ router.post('/upload-local/:customer_no', cpUpload, financialController.uploadLo
 router.get('/download-local/:customer_no/:file_key', financialController.downloadLocalFile);
 router.get('/late-payment-benchmark/:customer_no', financialController.getLatePaymentBenchmark);
 
+router.get('/remaining-credit/:customer_no', financialController.getCustomerRemainingCredit);
+
 module.exports = router;
 
 // New Route for DBD Data Table API

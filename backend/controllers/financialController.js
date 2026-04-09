@@ -15,6 +15,7 @@ const FINANCIAL_API_TAX_URL = "http://192.192.0.37:8000/api/customer-analytics/m
 const LATE_PAYMENT_API_URL = "http://192.192.0.37:8280/customer-late-payment/1.0.0";
 // New WADL API Endpoint
 const LATE_PAYMENT_WADL_API_URL = "http://192.192.0.37:8280/weight-baselatepayment/1.0.0";
+const REMAINING_CREDIT_API_URL = "http://192.192.0.37:8280/silver_customerremainingcredit/1.0.0";
 
 const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
 // Separate API Key for Late Payment Service (if different from Customer API)
@@ -1429,3 +1430,37 @@ exports.getDBDData = async (req, res) => {
     }
 };
 exports.fetchWADLData = fetchWADLData;
+
+
+exports.getCustomerRemainingCredit = async (req, res) => {
+    const customerNo = req.params.customer_no;
+
+    if (!customerNo) {
+        return res.status(400).json({ error: "Customer number is required" });
+    }
+
+    try {
+        logger.info(`[Remaining Credit API] Fetching remaining credit for ${customerNo}`);
+        const response = await axios.post(REMAINING_CREDIT_API_URL, {
+            "Customer No.": { "$eq": customerNo }
+        }, {
+            headers: {
+                "apikey": API_KEY,
+                "Content-Type": "application/json"
+            },
+            timeout: 5000
+        });
+
+        const responseData = response.data;
+        let totalUtilization = 0;
+
+        if (responseData && responseData.success && responseData.data && responseData.data.length > 0) {
+            totalUtilization = responseData.data[0]["Total Utilization"] || 0;
+        }
+
+        res.json({ totalUtilization: totalUtilization });
+    } catch (error) {
+        logger.error(`[Remaining Credit API] Error fetching for ${customerNo}:`, error.message);
+        res.status(500).json({ error: "Failed to fetch remaining credit", details: error.message });
+    }
+};
