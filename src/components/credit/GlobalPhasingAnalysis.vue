@@ -71,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { Line, Chart as VueChart } from 'vue-chartjs';
