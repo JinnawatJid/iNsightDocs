@@ -405,6 +405,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           }
 
           this.customer = data.customer;
+          if (this.customer["Billing Terms Code"]) {
+            this.customer.billing_terms_code = this.customer["Billing Terms Code"];
+          }
 
           if (!this.customer.payment_method) this.customer.payment_method = "";
           if (!this.customer.billing_requirement)
