@@ -1094,8 +1094,8 @@ const autoDownloadDBD = async () => {
 
 const analyzeFinancials = async () => {
   // Use global validation logic to ensure all required fields/files are present
-  // Passing true, true to simulate strict submit-level validation including financials
-  const validation = store.validateRequest(true, true);
+  // Passing false, true to check financials without requiring submission-level fields like projects
+  const validation = store.validateRequest(false, true);
   if (!validation.valid) {
       console.log('Validation Failed during Financial Analysis:', validation);
       store.triggerValidation();
