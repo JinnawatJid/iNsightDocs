@@ -15,7 +15,12 @@
               <th width="8%">งวด</th>
               <th width="38%">รายละเอียดงาน</th>
               <th width="15%">วันเบิก</th>
-              <th width="15%">กำหนดชำระ</th>
+              <th width="15%">
+                 กำหนดชำระ
+                 <span v-if="store.customer?.billing_terms_code || store.customer?.['Billing Terms Code']" style="font-weight: normal; font-size: 12px; display: block; color: #555;">
+                     ({{ store.customer?.billing_terms_code || store.customer?.['Billing Terms Code'] }})
+                 </span>
+              </th>
               <th width="20%">จำนวนเงิน (บาท)</th>
               <th width="4%" v-if="!props.readOnly"></th>
             </tr>

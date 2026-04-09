@@ -137,7 +137,7 @@ const mockFetchProjects = async (query) => {
                     customerCode: '693026RY',
                     customerName: 'บริษัท เอ็กซ์คอน คอนสตรัคชั่น จำกัด',
                     branch: 'ระยอง',
-                    projectManager: 'นายพีระพัฒน์ สีแจจันทร์ (ZM ของ RY)',
+                    projectManager: 'นายพีระพัฒน์ สีแจจันทร์',
                     startDate: '01/08/2025',
                     expectedEndDate: '31/07/2027',
                     productList: [],
