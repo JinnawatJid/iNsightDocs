@@ -17,8 +17,8 @@
               <th width="15%">วันเบิก</th>
               <th width="15%">
                  กำหนดชำระ
-                 <span v-if="store.customer?.billing_terms_code || store.customer?.['Billing Terms Code']" style="font-weight: normal; font-size: 12px; display: block; color: #555;">
-                     ({{ store.customer?.billing_terms_code || store.customer?.['Billing Terms Code'] }})
+                 <span style="font-weight: normal; font-size: 12px; display: block; color: #555;">
+                     ({{ store.customer?.billing_terms_code || store.customer?.['Billing Terms Code'] || '-' }})
                  </span>
               </th>
               <th width="20%">จำนวนเงิน (บาท)</th>
