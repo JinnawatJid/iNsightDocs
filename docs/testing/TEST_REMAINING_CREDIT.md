@@ -15,7 +15,8 @@ This document provides instructions on how to manually test the integration of t
     *   Observe the line chart.
 4.  **Verification Steps:**
     *   **Label:** Check the legend/labels on the chart. It should display **`ยอดหนี้การค้าปัจจุบัน`** (without the "(Mock)" suffix).
-    *   **Data Consistency:** The line representing this debt should be **flat/constant** across the entire chart's timeline (it no longer drops off to 0 after 30 days).
+    *   **Billing Terms:** Confirm the selected customer has a `Billing Terms Code` loaded. The drop-out date in the chart should correspond to the parsed billing-term offset.
+    *   **Data Consistency:** The line representing this debt should remain at the `Total Utilization` level until the billing-term offset is reached, then drop to 0 afterwards. If the customer lacks billing terms, the line may remain constant across the available timeline.
     *   **Value:** Hover over the line tooltips. The value should exactly match the `Total Utilization` field returned by the API (e.g., `218055` for customer `01013AY`), rather than the old hardcoded `200000` value.
 
 ## 3. Testing the Backend API Endpoint Directly
