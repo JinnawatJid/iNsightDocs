@@ -109,24 +109,31 @@ const currentTradeDebt = ref(0);
 
 
 
+const fetchTradeDebt = async (customerNo) => {
+    if (!customerNo) return;
+    console.log(`[GlobalPhasingAnalysis] Fetching remaining credit for ${customerNo}`);
+    try {
+        const response = await axios.get(`/api/financials/remaining-credit/${encodeURIComponent(customerNo)}`);
+        console.log('[GlobalPhasingAnalysis] API Response:', response.data);
+        if (response.data && response.data.totalUtilization !== undefined) {
+            currentTradeDebt.value = response.data.totalUtilization;
+            console.log('[GlobalPhasingAnalysis] currentTradeDebt updated to:', currentTradeDebt.value);
+        }
+    } catch (error) {
+        console.error('[GlobalPhasingAnalysis] Failed to fetch remaining credit:', error);
+    }
+};
+
+watch(() => store.customer?.id || store.customer?.No_, (newId) => {
+    if (newId) {
+        console.log('[GlobalPhasingAnalysis] Customer changed to:', newId);
+        fetchTradeDebt(newId);
+    }
+}, { immediate: true });
+
 onMounted(async () => {
     ChartJS.register(Title, Tooltip, Legend, CategoryScale, LinearScale, LineElement, LineController, PointElement, Filler);
-    console.log('[GlobalPhasingAnalysis] Mounted. Store Customer:', store.customer);
-    if (store.customer && store.customer.No_) {
-        console.log(`[GlobalPhasingAnalysis] Fetching remaining credit for ${store.customer.No_}`);
-        try {
-            const response = await axios.get(`/api/financials/remaining-credit/${encodeURIComponent(store.customer.No_)}`);
-            console.log('[GlobalPhasingAnalysis] API Response:', response.data);
-            if (response.data && response.data.totalUtilization !== undefined) {
-                currentTradeDebt.value = response.data.totalUtilization;
-                console.log('[GlobalPhasingAnalysis] currentTradeDebt updated to:', currentTradeDebt.value);
-            }
-        } catch (error) {
-            console.error('[GlobalPhasingAnalysis] Failed to fetch remaining credit:', error);
-        }
-    } else {
-        console.warn('[GlobalPhasingAnalysis] No store.customer.No_ found, skipping API fetch.');
-    }
+    console.log('[GlobalPhasingAnalysis] Mounted.');
 });
 
 

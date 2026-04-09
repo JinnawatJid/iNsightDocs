@@ -8,6 +8,17 @@ To reliably fetch a customer's monthly purchasing behavior and category-based sa
 
 ## 2. API Endpoints
 
+The system integrates with several external endpoints. **Important:** All requests to these external WSO2 API Gateway endpoints require a valid API key to be passed in the `apikey` HTTP header.
+
+### Environment Variable Requirements
+Ensure your `backend/.env` file contains the following variable:
+```env
+CUSTOMER_API_KEY="eyJ4NX..." # Your valid WSO2 API key
+```
+If this key is missing or invalid, the external APIs will immediately reject requests with a `401 Unauthorized` or timeout error (often caught and logged as a `500` error by Axios).
+
+---
+
 The system integrates with two different external endpoints depending on the available customer data.
 
 ### Purchasing Behavior (Monthly Summary)
