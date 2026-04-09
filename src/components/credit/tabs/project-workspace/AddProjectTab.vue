@@ -132,7 +132,7 @@ const mockFetchProjects = async (query) => {
         setTimeout(() => {
             const db = [
                 {
-                    id: 'PJ6904/001',
+                    id: 'PJ6904001',
                     name: 'โรงพยาบาลเกษมราษฏร์ จังหวัดระยอง',
                     customerCode: '693026RY',
                     customerName: 'บริษัท เอ็กซ์คอน คอนสตรัคชั่น จำกัด',
@@ -145,14 +145,14 @@ const mockFetchProjects = async (query) => {
                     status: 'Active'
                 },
                 {
-                    id: 'PRJ-2023-001',
-                    name: 'ก่อสร้างคอนโดหรู ใจกลางเมือง',
-                    customerCode: 'CUST-001',
+                    id: 'PJ6904002',
+                    name: 'คอนโดมิเนียมออริจิน สาทร',
+                    customerCode: '01131TS',
                     customerName: 'บริษัท แสนสิริ จำกัด (มหาชน)',
-                    branch: 'สาขาสำนักงานใหญ่',
-                    projectManager: 'นายสมชาย ขายเก่ง',
-                    startDate: '01/06/2023',
-                    expectedEndDate: '31/12/2024',
+                    branch: 'พระราม 2',
+                    projectManager: 'นางสาวทิพวัลย์ ริ้วงาม',
+                    startDate: '01/07/2024',
+                    expectedEndDate: '28/06/2026',
                     productList: [
                         { name: 'กระจกใส 6 มม.', price: '5,000,000' },
                         { name: 'กระจกเงา', price: '2,000,000' }
@@ -161,12 +161,12 @@ const mockFetchProjects = async (query) => {
                     status: 'Active'
                 },
                 {
-                    id: 'PRJ-2023-002',
-                    name: 'ปรับปรุงอาคารสำนักงาน กฟผ.',
-                    customerCode: 'CUST-002',
-                    customerName: 'การไฟฟ้าฝ่ายผลิตแห่งประเทศไทย',
-                    branch: 'สาขานนทบุรี',
-                    projectManager: 'นางสาวสุดสวย ปิดยอดไว',
+                    id: 'PJ6904003',
+                    name: 'ปรับปรุงอาคารสำนักงานการไฟฟ้าฝ่ายผลิต อยุธยา',
+                    customerCode: '01013AY',
+                    customerName: 'ร้านกระจกอำนวย',
+                    branch: 'อยุธยา',
+                    projectManager: 'ว่าที่ ร.ต.จุไรรัตน์ ชนะประโคน',
                     startDate: '15/08/2023',
                     expectedEndDate: '15/05/2024',
                     productList: [
@@ -176,12 +176,12 @@ const mockFetchProjects = async (query) => {
                     status: 'Active'
                 },
                 {
-                    id: 'PRJ-2024-003',
-                    name: 'หมู่บ้านจัดสรร เฟส 3',
-                    customerCode: 'CUST-003',
-                    customerName: 'บริษัท แลนด์แอนด์เฮ้าส์ จำกัด',
-                    branch: 'สาขารังสิต',
-                    projectManager: 'นายยอดเยี่ยม ทะลุเป้า',
+                    id: 'PJ6904004',
+                    name: 'หมู่บ้านจัดสรร ชลบุรี',
+                    customerCode: '10001CB',
+                    customerName: 'บริษัท โชคชัย 2 กระจกพัทยา จำกัด',
+                    branch: 'ชลบุรี',
+                    projectManager: 'นายธวัชชัย  อุทัย',
                     startDate: '10/01/2024',
                     expectedEndDate: '30/11/2025',
                     productList: [
