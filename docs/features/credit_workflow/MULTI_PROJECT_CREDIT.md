@@ -12,7 +12,7 @@ transactionData: {
   // ... other global request data
   projects: [
     {
-      projectId: "PRJ-2023-001",
+      projectId: "PJ6904/001",
       projectData: { /* Data from Sales System */ },
       adjustedProjectValue: "15,000,000",
       projectCost: "11,250,000",
@@ -28,7 +28,7 @@ transactionData: {
 ```
 
 ### File Uploads
-Files specific to a single project must be uniquely identified to prevent collisions. This is achieved by appending the `projectId` to the file key in the store and the database (e.g., `project_contract_doc_PRJ-2023-001`).
+Files specific to a single project must be uniquely identified to prevent collisions. This is achieved by appending the `projectId` to the file key in the store and the database (e.g., `project_contract_doc_PJ6904/001`).
 
 ## UI Architecture
 To prevent UI clutter and ensure a smooth user experience, the project credit workspace employs a dynamic tab and card system.
