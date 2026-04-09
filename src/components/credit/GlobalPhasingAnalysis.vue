@@ -54,7 +54,7 @@
           </div>
 
           <!-- Planned vs Actual Comparison Chart -->
-          <div class="chart-section" v-if="chartData">
+          <div class="chart-section" v-if="comparisonChartData && !authStore.isInitiator">
             <h4 class="section-subtitle">ติดตามสถานะหนี้จริงเทียบกับแผน (Planned vs Actual Tracking)</h4>
             <div class="chart-wrapper">
                <VueChart v-if="comparisonChartData" type="line" :data="comparisonChartData" :options="comparisonChartOptions" />
@@ -74,6 +74,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 import { Line, Chart as VueChart } from 'vue-chartjs';
 import {
   Chart as ChartJS,
@@ -101,6 +102,7 @@ ChartJS.register(
 );
 
 const store = useCreditRequestStore();
+const authStore = useAuthStore();
 const showAnalysis = ref(false);
 
 // Mock current trade debt
