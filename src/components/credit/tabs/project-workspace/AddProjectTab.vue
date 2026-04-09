@@ -132,6 +132,19 @@ const mockFetchProjects = async (query) => {
         setTimeout(() => {
             const db = [
                 {
+                    id: 'PJ2604/001',
+                    name: 'โรงพยาบาลเกษมราษฏร์ จังหวัดระยอง',
+                    customerCode: '693026RY',
+                    customerName: 'บริษัท เอ็กซ์คอน คอนสตรัคชั่น จำกัด',
+                    branch: 'ระยอง',
+                    projectManager: 'นายพีระพัฒน์ สีแจจันทร์ (ZM ของ RY)',
+                    startDate: '01/08/2025',
+                    expectedEndDate: '31/07/2027',
+                    productList: [],
+                    value: 0,
+                    status: 'Active'
+                },
+                {
                     id: 'PRJ-2023-001',
                     name: 'ก่อสร้างคอนโดหรู ใจกลางเมือง',
                     customerCode: 'CUST-001',
