@@ -71,7 +71,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import axios from 'axios';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { Line, Chart as VueChart } from 'vue-chartjs';
 import {
@@ -104,6 +105,20 @@ const showAnalysis = ref(false);
 
 // Mock current trade debt
 const currentTradeDebt = ref(0);
+
+
+onMounted(async () => {
+    if (store.customer && store.customer.No_) {
+        try {
+            const response = await axios.get(`/api/financials/remaining-credit/${encodeURIComponent(store.customer.No_)}`);
+            if (response.data && response.data.totalUtilization !== undefined) {
+                currentTradeDebt.value = response.data.totalUtilization;
+            }
+        } catch (error) {
+            console.error('Failed to fetch remaining credit:', error);
+        }
+    }
+});
 
 function formatNumber(num) {
     if (!num) return '0';

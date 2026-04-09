@@ -284,8 +284,7 @@ const currentProjectValueLimit = computed(() => {
 
 // Credit Calculation Logic
 const currentCreditLimit = computed(() => {
-  // Use mock for now, can be updated later when API is ready
-  return Number(store.customer?.current_credit_limit) || 300000;
+  return Number(store.customer?.current_credit_limit) || 0;
 });
 
 // Helper to parse dates securely
