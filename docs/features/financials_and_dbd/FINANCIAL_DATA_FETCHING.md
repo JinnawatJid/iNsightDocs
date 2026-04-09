@@ -24,6 +24,15 @@ The system integrates with two different external endpoints depending on the ava
     *   **Body:** `{ "customer_code": "<Customer_No>" }`
     *   **Description:** This legacy endpoint fetches data strictly for a single, specific ERP customer code.
 
+
+### Remaining Credit & Trade Debt
+
+*   **API (`REMAINING_CREDIT_API_URL`)**
+    *   **Method:** `POST`
+    *   **Endpoint:** `http://192.192.0.37:8280/silver_customerremainingcredit/1.0.0`
+    *   **Body:** `{ "Customer No.": { "$eq": "<Customer_No>" } }`
+    *   **Description:** This endpoint fetches the current remaining credit and trade debt details for a specific customer. The system specifically extracts the `Total Utilization` field to be used continuously as the Current Trade Debt (`ยอดหนี้การค้าปัจจุบัน`) in the Global Phasing Analysis chart, without any artificial drop-off timeframes.
+
 ### Category Summary
 
 *   **Primary API (`CATEGORY_API_TAX_URL`)**
