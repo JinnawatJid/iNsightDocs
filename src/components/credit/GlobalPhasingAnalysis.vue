@@ -107,18 +107,28 @@ const showAnalysis = ref(false);
 const currentTradeDebt = ref(0);
 
 
+
+
 onMounted(async () => {
+    ChartJS.register(Title, Tooltip, Legend, CategoryScale, LinearScale, LineElement, LineController, PointElement, Filler);
+    console.log('[GlobalPhasingAnalysis] Mounted. Store Customer:', store.customer);
     if (store.customer && store.customer.No_) {
+        console.log(`[GlobalPhasingAnalysis] Fetching remaining credit for ${store.customer.No_}`);
         try {
             const response = await axios.get(`/api/financials/remaining-credit/${encodeURIComponent(store.customer.No_)}`);
+            console.log('[GlobalPhasingAnalysis] API Response:', response.data);
             if (response.data && response.data.totalUtilization !== undefined) {
                 currentTradeDebt.value = response.data.totalUtilization;
+                console.log('[GlobalPhasingAnalysis] currentTradeDebt updated to:', currentTradeDebt.value);
             }
         } catch (error) {
-            console.error('Failed to fetch remaining credit:', error);
+            console.error('[GlobalPhasingAnalysis] Failed to fetch remaining credit:', error);
         }
+    } else {
+        console.warn('[GlobalPhasingAnalysis] No store.customer.No_ found, skipping API fetch.');
     }
 });
+
 
 function formatNumber(num) {
     if (!num) return '0';
@@ -235,12 +245,37 @@ const suggestedIncrease = computed(() => {
     return Math.max(0, diff);
 });
 
+
 // Build Chart.js Datasets
 const chartData = computed(() => {
     const events = globalEvents.value;
-    if (events.length === 0) return null;
+
+    // Fallback timeline if there are no events but we have trade debt to show
+    if (events.length === 0) {
+        if (currentTradeDebt.value > 0) {
+            const today = new Date();
+            const nextMonth = new Date(today);
+            nextMonth.setMonth(today.getMonth() + 1);
+
+            return {
+                labels: [formatDateString(today), formatDateString(nextMonth)],
+                datasets: [{
+                    type: 'line',
+                    label: 'ยอดหนี้การค้าปัจจุบัน',
+                    data: [currentTradeDebt.value, currentTradeDebt.value],
+                    borderColor: '#9e9e9e',
+                    backgroundColor: 'rgba(158, 158, 158, 0.5)',
+                    borderWidth: 2,
+                    stepped: 'before',
+                    fill: true,
+                }]
+            };
+        }
+        return null;
+    }
 
     // 1. Find all unique timeline dates across ALL projects
+
     let uniqueDates = Array.from(new Set(events.map(e => {
         const d = new Date(e.time);
         return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
