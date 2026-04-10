@@ -179,7 +179,10 @@ export default {
       if (!files || files.length === 0) return;
 
       const validFiles = [];
-      const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+      const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+      const MAX_SIZE_MB = 20;
+
+      console.log(`[FileUploader] Processing ${files.length} files. Max size allowed: ${MAX_SIZE_MB}MB`);
 
       const isExtensionValid = (fileName) => {
           if (this.accept === '*/*') return true;
@@ -190,18 +193,23 @@ export default {
 
       for (let i = 0; i < files.length; i++) {
           const file = files[i];
+          const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+          
+          console.log(`[FileUploader] File ${i + 1}: "${file.name}" - Size: ${fileSizeMB}MB`);
 
           if (file.size > MAX_SIZE) {
+              console.error(`[FileUploader] File rejected: "${file.name}" (${fileSizeMB}MB exceeds ${MAX_SIZE_MB}MB limit)`);
               Swal.fire({
                   icon: 'error',
                   title: 'File too large',
-                  text: `File "${file.name}" exceeds the 5MB limit.`
+                  text: `File "${file.name}" exceeds the ${MAX_SIZE_MB}MB limit. (Size: ${fileSizeMB}MB)`
               });
               this.$refs.fileInput.value = '';
               return;
           }
 
           if (!isExtensionValid(file.name)) {
+               console.error(`[FileUploader] File rejected: "${file.name}" - Invalid extension`);
                Swal.fire({
                   icon: 'error',
                   title: 'Invalid file type',
@@ -211,8 +219,11 @@ export default {
               return;
           }
 
+          console.log(`[FileUploader] File accepted: "${file.name}"`);
           validFiles.push(file);
       }
+
+      console.log(`[FileUploader] Total valid files: ${validFiles.length}`);
 
       if (this.multiple) {
         const currentFiles = this.file || [];
