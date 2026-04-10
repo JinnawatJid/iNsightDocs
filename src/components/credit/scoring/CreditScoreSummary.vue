@@ -219,7 +219,7 @@ export default {
       const creditScore = computed(() => store.creditScore);
 
       const shouldHideValues = computed(() => {
-          return authStore.isInitiator && store.requestStatus !== 'Approved';
+          return authStore.hideCreditScoreEnabled && authStore.isInitiator && store.requestStatus !== 'Approved';
       });
 
       return {
