@@ -8,6 +8,17 @@ To reliably fetch a customer's monthly purchasing behavior and category-based sa
 
 ## 2. API Endpoints
 
+The system integrates with several external endpoints. **Important:** All requests to these external WSO2 API Gateway endpoints require a valid API key to be passed in the `apikey` HTTP header.
+
+### Environment Variable Requirements
+Ensure your `backend/.env` file contains the following variable:
+```env
+CUSTOMER_API_KEY="eyJ4NX..." # Your valid WSO2 API key
+```
+If this key is missing or invalid, the external APIs will immediately reject requests with a `401 Unauthorized` or timeout error (often caught and logged as a `500` error by Axios).
+
+---
+
 The system integrates with two different external endpoints depending on the available customer data.
 
 ### Purchasing Behavior (Monthly Summary)
@@ -23,6 +34,16 @@ The system integrates with two different external endpoints depending on the ava
     *   **Endpoint:** `http://192.192.0.37:8280/sales-summary-6-months/1.0.0`
     *   **Body:** `{ "customer_code": "<Customer_No>" }`
     *   **Description:** This legacy endpoint fetches data strictly for a single, specific ERP customer code.
+
+
+### Remaining Credit & Trade Debt
+
+*   **API (`REMAINING_CREDIT_API_URL`)**
+    *   **Method:** `POST`
+    *   **Endpoint:** `http://192.192.0.37:8280/silver_customerremainingcredit/1.0.0`
+    *   **Body:** `{ "Customer No.": { "$eq": "<Customer_No>" } }`
+    *   **Description:** This endpoint fetches the current remaining credit and trade debt details for a specific customer. The system extracts the `Total Utilization` field and returns it as the Current Trade Debt (`ยอดหนี้การค้าปัจจุบัน`).
+    *   **Usage Note:** In `GlobalPhasingAnalysis.vue`, the frontend now applies billing-term-based drop-out logic using the customer's `Billing Terms Code` so the trade debt is only counted until the configured billing term offset expires. If no billing terms code is available, the component falls back to a continuous trade debt line.
 
 ### Category Summary
 

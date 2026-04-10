@@ -4,7 +4,10 @@ const multer = require('multer');
 const financialController = require('../controllers/financialController');
 
 // Configure multer for memory storage (we process buffers directly)
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
+});
 
 // Define the file fields we expect
 const cpUpload = upload.fields([
@@ -20,6 +23,8 @@ router.post('/check-local-batch', financialController.checkLocalFilesBatch);
 router.post('/upload-local/:customer_no', cpUpload, financialController.uploadLocalFiles);
 router.get('/download-local/:customer_no/:file_key', financialController.downloadLocalFile);
 router.get('/late-payment-benchmark/:customer_no', financialController.getLatePaymentBenchmark);
+
+router.get('/remaining-credit/:customer_no', financialController.getCustomerRemainingCredit);
 
 module.exports = router;
 

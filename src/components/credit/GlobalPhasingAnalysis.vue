@@ -54,7 +54,7 @@
           </div>
 
           <!-- Planned vs Actual Comparison Chart -->
-          <div class="chart-section" v-if="chartData">
+          <div class="chart-section" v-if="comparisonChartData && !authStore.isInitiator">
             <h4 class="section-subtitle">ติดตามสถานะหนี้จริงเทียบกับแผน (Planned vs Actual Tracking)</h4>
             <div class="chart-wrapper">
                <VueChart v-if="comparisonChartData" type="line" :data="comparisonChartData" :options="comparisonChartOptions" />
@@ -71,8 +71,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import axios from 'axios';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 import { Line, Chart as VueChart } from 'vue-chartjs';
 import {
   Chart as ChartJS,
@@ -100,10 +102,42 @@ ChartJS.register(
 );
 
 const store = useCreditRequestStore();
+const authStore = useAuthStore();
 const showAnalysis = ref(false);
 
 // Mock current trade debt
-const mockCurrentDebt = ref(200000);
+const currentTradeDebt = ref(0);
+
+
+
+
+const fetchTradeDebt = async (customerNo) => {
+    if (!customerNo) return;
+    console.log(`[GlobalPhasingAnalysis] Fetching remaining credit for ${customerNo}`);
+    try {
+        const response = await axios.get(`/api/financials/remaining-credit/${encodeURIComponent(customerNo)}`);
+        console.log('[GlobalPhasingAnalysis] API Response:', response.data);
+        if (response.data && response.data.totalUtilization !== undefined) {
+            currentTradeDebt.value = response.data.totalUtilization;
+            console.log('[GlobalPhasingAnalysis] currentTradeDebt updated to:', currentTradeDebt.value);
+        }
+    } catch (error) {
+        console.error('[GlobalPhasingAnalysis] Failed to fetch remaining credit:', error);
+    }
+};
+
+watch(() => store.customer?.id || store.customer?.No_, (newId) => {
+    if (newId) {
+        console.log('[GlobalPhasingAnalysis] Customer changed to:', newId);
+        fetchTradeDebt(newId);
+    }
+}, { immediate: true });
+
+onMounted(async () => {
+    ChartJS.register(Title, Tooltip, Legend, CategoryScale, LinearScale, LineElement, LineController, PointElement, Filler);
+    console.log('[GlobalPhasingAnalysis] Mounted.');
+});
+
 
 function formatNumber(num) {
     if (!num) return '0';
@@ -113,6 +147,30 @@ function formatNumber(num) {
 const currentCreditLimit = computed(() => {
   return Number(store.customer?.current_credit_limit) || 0;
 });
+
+const billingTermsCode = computed(() => {
+  return store.customer?.billing_terms_code || store.customer?.['Billing Terms Code'] || '';
+});
+
+const billingTermsOffsetDays = computed(() => {
+  const code = billingTermsCode.value;
+  if (!code) return null;
+  const matches = String(code).match(/\d+/g);
+  if (!matches || matches.length === 0) return null;
+  return matches.reduce((sum, value) => sum + (parseInt(value, 10) || 0), 0);
+});
+
+const getTradeDebtValueForDate = (timestamp, timelineStart) => {
+  const amount = Number(currentTradeDebt.value) || 0;
+  const offsetDays = billingTermsOffsetDays.value;
+  if (offsetDays === null || amount === 0 || !timelineStart) {
+    return amount;
+  }
+
+  const dropOutDate = new Date(timelineStart);
+  dropOutDate.setDate(dropOutDate.getDate() + offsetDays);
+  return timestamp <= dropOutDate.getTime() ? amount : 0;
+};
 
 // Helper to parse dates securely
 const parseDate = (dateString) => {
@@ -177,16 +235,16 @@ const globalEvents = computed(() => {
 
 const globalPeakExposureData = computed(() => {
     const events = globalEvents.value;
-    let startTs = 0;
+    let startTs = Date.now();
     if (events.length > 0) {
         const firstD = new Date(events[0].time);
         firstD.setDate(firstD.getDate() - 5);
         startTs = firstD.getTime();
     }
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
-    let maxTotal = mockCurrentDebt.value; // Initial check at start
-    let peakTrade = mockCurrentDebt.value;
+    const initialTradeDebt = getTradeDebtValueForDate(startTs, startTs);
+    let maxTotal = initialTradeDebt;
+    let peakTrade = initialTradeDebt;
     let peakProject = 0;
 
     let currProjectDebt = 0;
@@ -195,7 +253,7 @@ const globalPeakExposureData = computed(() => {
         if (ev.type === 'add') currProjectDebt += ev.amount;
         if (ev.type === 'sub') currProjectDebt -= ev.amount;
 
-        const tradeDebt = ev.time <= startTs + thirtyDaysMs ? mockCurrentDebt.value : 0;
+        const tradeDebt = getTradeDebtValueForDate(ev.time, startTs);
         const total = currProjectDebt + tradeDebt;
 
         if (total > maxTotal) {
@@ -221,12 +279,54 @@ const suggestedIncrease = computed(() => {
     return Math.max(0, diff);
 });
 
+
 // Build Chart.js Datasets
 const chartData = computed(() => {
     const events = globalEvents.value;
-    if (events.length === 0) return null;
+
+    // Fallback timeline if there are no events but we have trade debt to show
+    if (events.length === 0) {
+        if (currentTradeDebt.value > 0) {
+            const today = new Date();
+            const startTs = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+            const offsetDays = billingTermsOffsetDays.value;
+            const labels = [formatDateString(new Date(startTs))];
+            const data = [currentTradeDebt.value];
+
+            if (offsetDays !== null) {
+                const dropDate = new Date(startTs);
+                dropDate.setDate(dropDate.getDate() + offsetDays);
+                labels.push(formatDateString(dropDate));
+                data.push(currentTradeDebt.value);
+                const afterDate = new Date(dropDate.getTime() + 24 * 60 * 60 * 1000);
+                labels.push(formatDateString(afterDate));
+                data.push(0);
+            } else {
+                const nextMonth = new Date(startTs);
+                nextMonth.setMonth(nextMonth.getMonth() + 1);
+                labels.push(formatDateString(nextMonth));
+                data.push(currentTradeDebt.value);
+            }
+
+            return {
+                labels,
+                datasets: [{
+                    type: 'line',
+                    label: 'ยอดหนี้การค้าปัจจุบัน',
+                    data,
+                    borderColor: '#9e9e9e',
+                    backgroundColor: 'rgba(158, 158, 158, 0.5)',
+                    borderWidth: 2,
+                    stepped: 'before',
+                    fill: true,
+                }]
+            };
+        }
+        return null;
+    }
 
     // 1. Find all unique timeline dates across ALL projects
+
     let uniqueDates = Array.from(new Set(events.map(e => {
         const d = new Date(e.time);
         return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -239,12 +339,7 @@ const chartData = computed(() => {
 
         const lastD = new Date(uniqueDates[uniqueDates.length - 1]);
         lastD.setDate(lastD.getDate() + 5);
-
-        // Date where mock debt drops out (30 days from start)
-        const monthEnd = new Date(firstD.getTime());
-        monthEnd.setDate(monthEnd.getDate() + 30);
-
-        uniqueDates.push(firstD.getTime(), lastD.getTime(), monthEnd.getTime());
+        uniqueDates.push(firstD.getTime(), lastD.getTime());
         uniqueDates = Array.from(new Set(uniqueDates)).sort((a, b) => a - b);
     }
 
@@ -292,14 +387,13 @@ const chartData = computed(() => {
         });
     });
 
-    // 4. Add Mock Current Debt at the bottom layer (start of the array)
-    const chartStartTs = uniqueDates.length > 0 ? uniqueDates[0] : 0;
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+    // 4. Add current trade debt with billing-term drop-out
+    const chartStartTs = uniqueDates.length > 0 ? uniqueDates[0] : Date.now();
 
     datasets.unshift({
         type: 'line',
-        label: 'ยอดหนี้การค้าปัจจุบัน (Mock)',
-        data: uniqueDates.map(ts => ts <= chartStartTs + thirtyDaysMs ? mockCurrentDebt.value : 0),
+        label: 'ยอดหนี้การค้าปัจจุบัน',
+        data: uniqueDates.map(ts => getTradeDebtValueForDate(ts, chartStartTs)),
         borderColor: '#9e9e9e',
         backgroundColor: 'rgba(158, 158, 158, 0.5)',
         borderWidth: 2,
@@ -352,7 +446,7 @@ const chartData = computed(() => {
 const actualEvents = computed(() => {
     const events = globalEvents.value;
     return events.map(ev => {
-        const delayDays = ev.type === 'add' ? 3 : 7; // Mock delay: drawdowns 3 days late, repayments 7 days late
+        const delayDays = ev.type === 'add' ? 3 : 7; // Simulation delay: drawdowns 3 days late, repayments 7 days late
         const delayedTime = ev.time + (delayDays * 24 * 60 * 60 * 1000);
         return {
             ...ev,
@@ -398,10 +492,9 @@ const comparisonChartData = computed(() => {
     const actualData = [];
 
     const chartStartTs = uniqueDates.length > 0 ? uniqueDates[0] : 0;
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
     uniqueDates.forEach(ts => {
-        const tradeDebt = ts <= chartStartTs + thirtyDaysMs ? mockCurrentDebt.value : 0;
+        const tradeDebt = getTradeDebtValueForDate(ts, uniqueDates[0]);
 
         const dayPEvents = pEvents.filter(e => {
             const ed = new Date(e.time);
@@ -427,8 +520,8 @@ const comparisonChartData = computed(() => {
     const datasets = [
         {
             type: 'line',
-            label: 'ยอดหนี้การค้าปัจจุบัน (Mock)',
-            data: uniqueDates.map(ts => ts <= chartStartTs + thirtyDaysMs ? mockCurrentDebt.value : 0),
+            label: 'ยอดหนี้การค้าปัจจุบัน',
+            data: uniqueDates.map(ts => getTradeDebtValueForDate(ts, uniqueDates[0])),
             borderColor: '#9e9e9e',
             backgroundColor: 'rgba(158, 158, 158, 0.5)',
             borderWidth: 2,
@@ -452,7 +545,7 @@ const comparisonChartData = computed(() => {
         },
         {
             type: 'line',
-            label: 'ยอดหนี้จริง (Actual - Mock)',
+            label: 'ยอดหนี้จริง (Actual)',
             data: actualData,
             borderColor: '#0056FF',
             backgroundColor: 'rgba(0, 86, 255, 0.1)',
@@ -504,19 +597,18 @@ const sharedYAxisMax = computed(() => {
 
     // Bottom chart max (actual peak)
     const aEvents = actualEvents.value;
-    let maxActual = mockCurrentDebt.value;
+    let maxActual = currentTradeDebt.value;
     let currentActualProj = 0;
 
     if (aEvents.length > 0) {
         let startTs = new Date(aEvents[0].time);
         startTs.setDate(startTs.getDate() - 5);
-        const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
         aEvents.forEach(ev => {
             if (ev.type === 'add') currentActualProj += ev.amount;
             if (ev.type === 'sub') currentActualProj -= ev.amount;
 
-            const tradeDebt = ev.time <= startTs.getTime() + thirtyDaysMs ? mockCurrentDebt.value : 0;
+            const tradeDebt = getTradeDebtValueForDate(ev.time, startTs.getTime());
             const total = currentActualProj + tradeDebt;
             if (total > maxActual) {
                 maxActual = total;
