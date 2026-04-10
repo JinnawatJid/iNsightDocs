@@ -325,15 +325,13 @@
         <div class="analysis-results-legacy">
 
         <!-- Scoring Highlight -->
-        <div v-if="analysisResults.scoringResult" class="score-highlight">
+        <div v-if="analysisResults.scoringResult && !shouldHideValues" class="score-highlight">
             <!-- Card 1: Credit Score (Narrower) -->
             <div class="score-card card-narrow">
                 <div class="score-title">คะแนนเครดิต</div>
                 <div class="score-val-container" :class="getGradeClass(analysisResults.scoringResult.grade)">
-                    <template v-if="!shouldHideValues">
-                        <div class="score-main">{{ analysisResults.scoringResult.totalScore }}</div>
-                        <div class="score-max">/ 200</div>
-                    </template>
+                    <div class="score-main">{{ analysisResults.scoringResult.totalScore }}</div>
+                    <div class="score-max">/ 200</div>
                 </div>
             </div>
 
@@ -362,10 +360,8 @@
             <!-- Card 3: Limit -->
             <div class="limit-card">
                 <div class="score-title">วงเงินแนะนำ</div>
-                <template v-if="!shouldHideValues">
-                    <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
-                    <div class="limit-unit">บาท</div>
-                </template>
+                <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
+                <div class="limit-unit">บาท</div>
                 <div v-if="store.customer.current_credit_limit" class="current-limit-sub">
                     (ปัจจุบัน: {{ formatNumber(Number(store.customer.current_credit_limit)) }})
                 </div>
@@ -373,7 +369,7 @@
         </div>
 
         <!-- Score Breakdown (New Section) -->
-        <div v-if="analysisResults.scoringResult && analysisResults.scoringResult.breakdown" class="score-breakdown-section">
+        <div v-if="analysisResults.scoringResult && analysisResults.scoringResult.breakdown && !shouldHideValues" class="score-breakdown-section">
              <h4>รายละเอียดคะแนน</h4>
              <div class="breakdown-grid">
                  <!-- C1 -->
