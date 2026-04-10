@@ -2,15 +2,13 @@
   <div class="credit-score-summary">
 
     <!-- NEW: Credit Score Section -->
-    <div v-if="creditScore && creditScore.totalScore !== undefined" class="score-section">
+    <div v-if="creditScore && creditScore.totalScore !== undefined && !shouldHideValues" class="score-section">
         <h3>ผลคะแนนเครดิต</h3>
 
         <div class="score-display">
             <div class="score-circle" :class="getGradeClass(creditScore.grade)">
-                <template v-if="!shouldHideValues">
-                  <span class="score-number">{{ creditScore.totalScore }}</span>
-                  <span class="score-max">/ 200</span>
-                </template>
+                <span class="score-number">{{ creditScore.totalScore }}</span>
+                <span class="score-max">/ 200</span>
             </div>
 
             <div class="score-badges-row">
@@ -25,11 +23,7 @@
 
         <div class="limit-display">
             <div class="limit-label">วงเงินแนะนำ</div>
-            <div class="limit-value">
-              <template v-if="!shouldHideValues">
-                {{ formatNumber(creditScore.recommendedLimit) }} บาท
-              </template>
-            </div>
+            <div class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} บาท</div>
         </div>
 
         <hr class="divider" />
