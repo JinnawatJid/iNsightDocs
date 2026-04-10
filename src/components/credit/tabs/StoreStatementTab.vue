@@ -330,8 +330,10 @@
             <div class="score-card card-narrow">
                 <div class="score-title">คะแนนเครดิต</div>
                 <div class="score-val-container" :class="getGradeClass(analysisResults.scoringResult.grade)">
-                    <div class="score-main">{{ analysisResults.scoringResult.totalScore }}</div>
-                    <div class="score-max">/ 200</div>
+                    <template v-if="!shouldHideValues">
+                        <div class="score-main">{{ analysisResults.scoringResult.totalScore }}</div>
+                        <div class="score-max">/ 200</div>
+                    </template>
                 </div>
             </div>
 
@@ -360,8 +362,10 @@
             <!-- Card 3: Limit -->
             <div class="limit-card">
                 <div class="score-title">วงเงินแนะนำ</div>
-                <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
-                <div class="limit-unit">บาท</div>
+                <template v-if="!shouldHideValues">
+                    <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
+                    <div class="limit-unit">บาท</div>
+                </template>
                 <div v-if="store.customer.current_credit_limit" class="current-limit-sub">
                     (ปัจจุบัน: {{ formatNumber(Number(store.customer.current_credit_limit)) }})
                 </div>
@@ -465,6 +469,7 @@ import { useRoute, useRouter } from 'vue-router';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import OtherDocumentsSection from '../forms/OtherDocumentsSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 import CreditScoreSheet from '../scoring/CreditScoreSheet.vue';
 import axios from '../../../utils/axios.js';
@@ -473,6 +478,11 @@ import { useFormValidation } from '@/composables/useFormValidation';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
+const authStore = useAuthStore();
+
+const shouldHideValues = computed(() => {
+    return authStore.isInitiator && store.requestStatus !== 'Approved';
+});
 const route = useRoute();
 const router = useRouter();
 

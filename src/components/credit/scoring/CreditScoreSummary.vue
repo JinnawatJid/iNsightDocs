@@ -7,8 +7,10 @@
 
         <div class="score-display">
             <div class="score-circle" :class="getGradeClass(creditScore.grade)">
-                <span class="score-number">{{ creditScore.totalScore }}</span>
-                <span class="score-max">/ 200</span>
+                <template v-if="!shouldHideValues">
+                  <span class="score-number">{{ creditScore.totalScore }}</span>
+                  <span class="score-max">/ 200</span>
+                </template>
             </div>
 
             <div class="score-badges-row">
@@ -23,7 +25,11 @@
 
         <div class="limit-display">
             <div class="limit-label">วงเงินแนะนำ</div>
-            <div class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} บาท</div>
+            <div class="limit-value">
+              <template v-if="!shouldHideValues">
+                {{ formatNumber(creditScore.recommendedLimit) }} บาท
+              </template>
+            </div>
         </div>
 
         <hr class="divider" />
@@ -157,6 +163,7 @@
 import iconCheckCircle from '@/assets/icons/check-circle-green.svg';
 import iconShoppingCart from '@/assets/icons/shopping-cart.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 import { computed } from 'vue';
 
 export default {
@@ -214,10 +221,16 @@ export default {
   },
   setup() {
       const store = useCreditRequestStore();
+      const authStore = useAuthStore();
       const creditScore = computed(() => store.creditScore);
 
+      const shouldHideValues = computed(() => {
+          return authStore.isInitiator && store.requestStatus !== 'Approved';
+      });
+
       return {
-          creditScore
+          creditScore,
+          shouldHideValues
       };
   },
   methods: {
