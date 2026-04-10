@@ -54,11 +54,13 @@ app.get('/api/config/auth', (req, res) => {
     const isAuthEnabled = process.env.ENABLE_AUTH !== 'false';
     const projectCreditEnabled = process.env.ENABLE_PROJECT_CREDIT === 'true';
     const additionalDocumentsEnabled = process.env.ENABLE_ADDITIONAL_DOCUMENTS === 'true';
+    const hideCreditScoreEnabled = process.env.ENABLE_HIDE_CREDIT_SCORE === 'true';
 
     res.status(200).json({
       authRequired: isAuthEnabled,
       projectCreditEnabled: projectCreditEnabled,
-      additionalDocumentsEnabled: additionalDocumentsEnabled
+      additionalDocumentsEnabled: additionalDocumentsEnabled,
+      hideCreditScoreEnabled: hideCreditScoreEnabled
     });
 });
 
