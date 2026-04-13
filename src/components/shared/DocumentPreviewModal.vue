@@ -53,6 +53,7 @@
 </template>
 
 <script setup>
+import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 import { computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
@@ -98,16 +99,9 @@ const fileType = computed(() => {
 const formatDateTime = (dateString) => {
     if (!dateString) return '';
     try {
-        let normalizedDateString = dateString;
-        if (typeof normalizedDateString === 'string') {
-            if (!normalizedDateString.includes('T')) {
-                normalizedDateString = normalizedDateString.replace(' ', 'T');
-            }
-            if (!normalizedDateString.endsWith('Z')) {
-                normalizedDateString += 'Z';
-            }
-        }
-        let dateObj = new Date(normalizedDateString);
+
+    let dateObj = normalizeDateString(dateString);
+
 
         const day = String(dateObj.getDate()).padStart(2, '0');
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');

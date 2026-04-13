@@ -83,6 +83,7 @@
 </template>
 
 <script setup>
+import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
@@ -165,16 +166,9 @@ watch(searchQuery, () => {
 const formatDate = (dateString) => {
     if (!dateString) return '';
 
-    let normalizedDateString = dateString;
-    // Standardize to UTC string if it doesn't have a timezone indicator
-    if (!normalizedDateString.includes('T')) {
-        normalizedDateString = normalizedDateString.replace(' ', 'T');
-    }
-    if (!normalizedDateString.endsWith('Z')) {
-        normalizedDateString += 'Z';
-    }
 
-    const date = new Date(normalizedDateString);
+    const date = normalizeDateString(dateString);
+
 
     const d = String(date.getDate()).padStart(2, '0');
     const m = String(date.getMonth() + 1).padStart(2, '0');
