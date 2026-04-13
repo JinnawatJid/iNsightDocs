@@ -133,11 +133,11 @@ exports.deleteAdditionalDocument = async (req, res) => {
 
         // Add audit comment
         const comment = `เอกสาร ${file.original_name} (${file.file_type || 'เอกสารเพิ่มเติม'}) ถูกลบโดย ${username}`;
-        let commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, datetime('now', 'localtime'))`;
+        let commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)`;
         let commentParams = [id, actor_role || 'System', comment];
 
         if (db.dbType === 'mssql') {
-             commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETDATE())`;
+             commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETUTCDATE())`;
         }
 
         await db.runAsync(commentSql, commentParams);
@@ -465,8 +465,8 @@ exports.createCreditRequest = async (req, res) => {
       status = 'Draft';
 
       const result = await db.runAsync(
-        'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [txId, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data]
+        'INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [txId, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data, new Date().toISOString()]
       );
       requestId = result.id;
     }
@@ -625,7 +625,7 @@ exports.getCreditRequests = async (req, res) => {
 
   try {
     let sql = `
-      SELECT id, tx_id, customer_no, customer_name, status, request_amount, request_type, created_at
+      SELECT id, tx_id, customer_no, customer_name, status, request_amount, request_type, created_at, updated_at
       FROM CreditRequests
     `;
     const params = [];
@@ -650,7 +650,7 @@ exports.getCreditRequests = async (req, res) => {
       sql += ` WHERE ${conditions.join(' AND ')}`;
     }
 
-    sql += ` ORDER BY created_at DESC`;
+    sql += ` ORDER BY updated_at DESC`;
 
     const { rows } = await db.query(sql, params);
 
@@ -690,8 +690,8 @@ exports.cancelCreditRequest = async (req, res) => {
     }
 
     await db.runAsync(
-      'UPDATE CreditRequests SET status = ? WHERE tx_id = ?',
-      ['Canceled', id]
+      'UPDATE CreditRequests SET status = ?, updated_at = ? WHERE tx_id = ?',
+      ['Canceled', new Date().toISOString(), id]
     );
 
     res.status(200).json({ message: 'Credit request canceled successfully' });
@@ -790,10 +790,10 @@ exports.reviseRequest = async (req, res) => {
                 INSERT INTO CreditRequests (
                     customer_no, customer_name, tx_id, status, request_amount,
                     request_reason, request_credit_term, term_gs, term_ae, term_yc,
-                    request_type, snapshot_data
+                    request_type, snapshot_data, updated_at
                 )
                 OUTPUT INSERTED.id
-                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             insertParams = [
                 oldRequest.customer_no,
@@ -806,16 +806,17 @@ exports.reviseRequest = async (req, res) => {
                 oldRequest.term_ae,
                 oldRequest.term_yc,
                 oldRequest.request_type,
-                newSnapshotData
+                newSnapshotData,
+                new Date().toISOString()
             ];
         } else {
             insertSql = `
                 INSERT INTO CreditRequests (
                     customer_no, customer_name, tx_id, status, request_amount,
                     request_reason, request_credit_term, term_gs, term_ae, term_yc,
-                    request_type, snapshot_data
+                    request_type, snapshot_data, updated_at
                 )
-                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             insertParams = [
                 oldRequest.customer_no,
@@ -828,7 +829,8 @@ exports.reviseRequest = async (req, res) => {
                 oldRequest.term_ae,
                 oldRequest.term_yc,
                 oldRequest.request_type,
-                newSnapshotData
+                newSnapshotData,
+                new Date().toISOString()
             ];
         }
 
@@ -974,9 +976,9 @@ exports.uploadAdditionalDocument = async (req, res) => {
 
         // Also log the description if provided
         if (documentDescription) {
-            let commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, datetime('now', 'localtime'))`;
+            let commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)`;
             if (db.dbType === 'mssql') {
-                 commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETDATE())`;
+                 commentSql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETUTCDATE())`;
             }
             await db.runAsync(commentSql, [txId, 'System', `Additional Document Uploaded (${file.originalname}): ${documentDescription}`]);
         }
@@ -1007,11 +1009,11 @@ exports.addComment = async (req, res) => {
     const username = req.user ? (req.user.empname || req.user.username) : 'System';
 
     try {
-        let sql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, datetime('now', 'localtime'))`;
+        let sql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)`;
         let params = [id, actor_role || 'System', comment];
 
         if (db.dbType === 'mssql') {
-             sql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETDATE())`;
+             sql = `INSERT INTO RequestComments (tx_id, actor_role, comment_text, created_at) VALUES (?, ?, ?, GETUTCDATE())`;
         }
 
         await db.query(sql, params);
