@@ -1,6 +1,6 @@
 <template>
   <div class="upload-item" :class="{ 'upload-item-large': multiple }">
-    <label>{{ label }} <span v-if="required" class="required">*</span></label>
+    <label v-if="label">{{ label }} <span v-if="required" class="required">*</span></label>
 
     <!-- New Compact Upload Box -->
     <div class="upload-box-compact" :class="{ 'disabled': disabled, 'border-red-500': showError }" @click="triggerUpload">
