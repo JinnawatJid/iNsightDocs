@@ -42,10 +42,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       bankGuaranteeDetails: {},
       letterGuaranteeDetails: {},
       cashDepositDetails: {},
-        mainContractorName: "",
-        mainContractorVat: "",
-        customerTeam: "",
-        projects: [],
+      mainContractorName: "",
+      mainContractorVat: "",
+      customerTeam: "",
+      projects: [],
     },
 
     requestsList: [],
@@ -141,7 +141,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       this.loading = true;
       this.error = null;
       try {
-        const response = await CreditRequestService.uploadAdditionalDocument(txId, formData);
+        const response = await CreditRequestService.uploadAdditionalDocument(
+          txId,
+          formData,
+        );
 
         // Refresh the detail view to get the updated files list
         await this.loadRequestDetail(txId);
@@ -160,9 +163,13 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       this.loading = true;
       this.error = null;
       try {
-        const response = await CreditRequestService.deleteAdditionalDocument(txId, fileId, {
-          actor_role: this.targetRole
-        });
+        const response = await CreditRequestService.deleteAdditionalDocument(
+          txId,
+          fileId,
+          {
+            actor_role: this.targetRole,
+          },
+        );
 
         // Refresh the detail view to get the updated files list
         await this.loadRequestDetail(txId);
@@ -208,7 +215,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
         this.customer = parsedSnapshot;
         if (this.customer["Billing Terms Code"]) {
-          this.customer.billing_terms_code = this.customer["Billing Terms Code"];
+          this.customer.billing_terms_code =
+            this.customer["Billing Terms Code"];
         }
 
         if (!this.customer.name && data.customer_name) {
@@ -236,12 +244,19 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         this.creditScore = parsedSnapshot.credit_score || {};
 
         // Refresh financial summary if missing, AND backfill any address fields absent in old snapshots
-        const needsFinancialRefresh = Object.keys(this.financialSummary).length === 0;
-        const needsAddressBackfill = !!data.customer_no && !this.customer.store_subdistrict;
+        const needsFinancialRefresh =
+          Object.keys(this.financialSummary).length === 0;
+        const needsAddressBackfill =
+          !!data.customer_no && !this.customer.store_subdistrict;
 
-        if ((needsFinancialRefresh || needsAddressBackfill) && data.customer_no) {
+        if (
+          (needsFinancialRefresh || needsAddressBackfill) &&
+          data.customer_no
+        ) {
           try {
-            const results = await CustomerService.searchCustomers(data.customer_no);
+            const results = await CustomerService.searchCustomers(
+              data.customer_no,
+            );
             if (results && results.length > 0) {
               const freshData = results[0];
               const freshCustomer = freshData.customer;
@@ -258,19 +273,36 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
                 // 2. Backfill missing address fields (handles old snapshots pre-dating subdistrict mapping)
                 if (needsAddressBackfill) {
-                  const companyKeywords = ['บริษัท', 'ห้างหุ้นส่วนจำกัด', 'บ.', 'หจก.'];
-                  const isCompany = companyKeywords.some(k => (freshCustomer.name || '').includes(k));
+                  const companyKeywords = [
+                    "บริษัท",
+                    "ห้างหุ้นส่วนจำกัด",
+                    "บ.",
+                    "หจก.",
+                  ];
+                  const isCompany = companyKeywords.some((k) =>
+                    (freshCustomer.name || "").includes(k),
+                  );
 
                   if (!isCompany) {
                     // Individual: backfill store_ address keys from API values
-                    if (!this.customer.store_subdistrict) this.customer.store_subdistrict = freshCustomer.subdistrict || '';
-                    if (!this.customer.store_address)    this.customer.store_address    = freshCustomer.address  || '';
-                    if (!this.customer.store_zipcode)    this.customer.store_zipcode    = freshCustomer.zipcode  || '';
-                    if (!this.customer.store_district)   this.customer.store_district   = freshCustomer.district || '';
-                    if (!this.customer.store_province)   this.customer.store_province   = freshCustomer.province || '';
+                    if (!this.customer.store_subdistrict)
+                      this.customer.store_subdistrict =
+                        freshCustomer.subdistrict || "";
+                    if (!this.customer.store_address)
+                      this.customer.store_address = freshCustomer.address || "";
+                    if (!this.customer.store_zipcode)
+                      this.customer.store_zipcode = freshCustomer.zipcode || "";
+                    if (!this.customer.store_district)
+                      this.customer.store_district =
+                        freshCustomer.district || "";
+                    if (!this.customer.store_province)
+                      this.customer.store_province =
+                        freshCustomer.province || "";
                   } else {
                     // Company: backfill main subdistrict key
-                    if (!this.customer.subdistrict) this.customer.subdistrict = freshCustomer.subdistrict || '';
+                    if (!this.customer.subdistrict)
+                      this.customer.subdistrict =
+                        freshCustomer.subdistrict || "";
                   }
                 }
               }
@@ -324,11 +356,16 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           noFinancialData:
             parsedSnapshot.transaction_data?.noFinancialData || false,
           draftComment: parsedSnapshot.transaction_data?.draftComment || "",
-          bankGuaranteeDetails: parsedSnapshot.transaction_data?.bankGuaranteeDetails || {},
-          letterGuaranteeDetails: parsedSnapshot.transaction_data?.letterGuaranteeDetails || {},
-          cashDepositDetails: parsedSnapshot.transaction_data?.cashDepositDetails || {},
-          mainContractorName: parsedSnapshot.transaction_data?.mainContractorName || "",
-          mainContractorVat: parsedSnapshot.transaction_data?.mainContractorVat || "",
+          bankGuaranteeDetails:
+            parsedSnapshot.transaction_data?.bankGuaranteeDetails || {},
+          letterGuaranteeDetails:
+            parsedSnapshot.transaction_data?.letterGuaranteeDetails || {},
+          cashDepositDetails:
+            parsedSnapshot.transaction_data?.cashDepositDetails || {},
+          mainContractorName:
+            parsedSnapshot.transaction_data?.mainContractorName || "",
+          mainContractorVat:
+            parsedSnapshot.transaction_data?.mainContractorVat || "",
           customerTeam: parsedSnapshot.transaction_data?.customerTeam || "",
           projects: parsedSnapshot.transaction_data?.projects || [],
         };
@@ -373,12 +410,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         if (results && results.length > 0) {
           this.clearFormData();
           const data = results[0];
-          console.log("[DEBUG] API Data inside Pinia searchCustomer:", JSON.parse(JSON.stringify(data.customer)));
 
           const name = data.customer.name || "";
           const keywords = ["บริษัท", "ห้างหุ้นส่วนจำกัด", "บ.", "หจก."];
           const isCompany = keywords.some((keyword) => name.includes(keyword));
-          console.log("[DEBUG] isCompany evaluated to:", isCompany);
 
           if (!isCompany) {
             data.customer.store_address = data.customer.address;
@@ -409,7 +444,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
           this.customer = data.customer;
           if (this.customer["Billing Terms Code"]) {
-            this.customer.billing_terms_code = this.customer["Billing Terms Code"];
+            this.customer.billing_terms_code =
+              this.customer["Billing Terms Code"];
           }
 
           if (!this.customer.payment_method) this.customer.payment_method = "";
@@ -430,7 +466,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           if (this.customer.payment_terms_code) {
             const rawCode = String(this.customer.payment_terms_code);
             // Default to empty if the code is not a valid number (e.g., 'CASH')
-            const code = isNaN(Number(rawCode)) || rawCode.trim() === '' ? "" : rawCode;
+            const code =
+              isNaN(Number(rawCode)) || rawCode.trim() === "" ? "" : rawCode;
             this.transactionData.creditTerm = code;
             this.transactionData.termGS = code;
             this.transactionData.termAE = code;
@@ -520,7 +557,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               }
               this.customer = { ...this.customer, ...parsedSnapshot };
               if (this.customer["Billing Terms Code"]) {
-                this.customer.billing_terms_code = this.customer["Billing Terms Code"];
+                this.customer.billing_terms_code =
+                  this.customer["Billing Terms Code"];
               }
 
               if (!this.customer.payment_method)
@@ -593,10 +631,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
             resData.request_type
           ) {
             const parsedSnapshotTransactionData = resData.snapshot_data
-                ? typeof resData.snapshot_data === "string"
-                  ? JSON.parse(resData.snapshot_data).transaction_data || {}
-                  : resData.snapshot_data.transaction_data || {}
-                : {};
+              ? typeof resData.snapshot_data === "string"
+                ? JSON.parse(resData.snapshot_data).transaction_data || {}
+                : resData.snapshot_data.transaction_data || {}
+              : {};
             this.transactionData = {
               amount: resData.request_amount || "",
               creditTerm: resData.request_credit_term || "",
@@ -612,11 +650,16 @@ export const useCreditRequestStore = defineStore("creditRequest", {
                   : resData.snapshot_data.transaction_data?.noFinancialData ||
                     false
                 : false,
-              bankGuaranteeDetails: parsedSnapshotTransactionData.bankGuaranteeDetails || {},
-              letterGuaranteeDetails: parsedSnapshotTransactionData.letterGuaranteeDetails || {},
-              cashDepositDetails: parsedSnapshotTransactionData.cashDepositDetails || {},
-              mainContractorName: parsedSnapshotTransactionData.mainContractorName || "",
-              mainContractorVat: parsedSnapshotTransactionData.mainContractorVat || "",
+              bankGuaranteeDetails:
+                parsedSnapshotTransactionData.bankGuaranteeDetails || {},
+              letterGuaranteeDetails:
+                parsedSnapshotTransactionData.letterGuaranteeDetails || {},
+              cashDepositDetails:
+                parsedSnapshotTransactionData.cashDepositDetails || {},
+              mainContractorName:
+                parsedSnapshotTransactionData.mainContractorName || "",
+              mainContractorVat:
+                parsedSnapshotTransactionData.mainContractorVat || "",
               customerTeam: parsedSnapshotTransactionData.customerTeam || "",
               projects: parsedSnapshotTransactionData.projects || [],
             };
@@ -699,6 +742,11 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       return snapshot;
     },
 
+    /**
+     * Centralized function to package state data into FormData.
+     * Handles inserting/updating complex transaction fields, snapshot data,
+     * and file attachments simultaneously.
+     */
     async saveTransactionData() {
       if (!this.customer || !this.customer.id) return;
       try {
@@ -786,15 +834,20 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
       fieldsToCheck.forEach((key) => {
         // Skip specific validations based on requestType context
-        const isRequestIncrease = this.transactionData.requestType?.includes("เครดิตเพิ่ม");
-        const isChangePayment = this.transactionData.requestType?.includes("เปลี่ยนแปลงเงื่อนไขการชำระเงิน");
-        const isChangeTerm = this.transactionData.requestType?.includes("เปลี่ยนแปลงระยะเวลาเครดิต");
+        const isRequestIncrease =
+          this.transactionData.requestType?.includes("เครดิตเพิ่ม");
+        const isChangePayment = this.transactionData.requestType?.includes(
+          "เปลี่ยนแปลงเงื่อนไขการชำระเงิน",
+        );
+        const isChangeTerm = this.transactionData.requestType?.includes(
+          "เปลี่ยนแปลงระยะเวลาเครดิต",
+        );
 
         if (isRequestIncrease && ["termGS", "termAE", "termYC"].includes(key)) {
-            return; // Skip term validation if credit increase
+          return; // Skip term validation if credit increase
         }
         if ((isChangePayment || isChangeTerm) && key === "amount") {
-            return; // Skip amount validation since we show current limit
+          return; // Skip amount validation since we show current limit
         }
 
         let val;
@@ -867,18 +920,21 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
       // Project specific validations
       if (isSubmit && isProject) {
-          filesToCheck.push('credit_application_doc'); // Required in RequestInfoTab for projects
-          if (this.transactionData.projects && this.transactionData.projects.length > 0) {
-              this.transactionData.projects.forEach((proj, index) => {
-                  if (!proj.projectId) {
-                      missingFields.push(`projects[${index}].projectId`);
-                  }
-                  filesToCheck.push(`project_contract_doc_${proj.projectId}`);
-                  filesToCheck.push(`quotation_doc_${proj.projectId}`);
-              });
-          } else {
-              missingFields.push('projects');
-          }
+        filesToCheck.push("credit_application_doc"); // Required in RequestInfoTab for projects
+        if (
+          this.transactionData.projects &&
+          this.transactionData.projects.length > 0
+        ) {
+          this.transactionData.projects.forEach((proj, index) => {
+            if (!proj.projectId) {
+              missingFields.push(`projects[${index}].projectId`);
+            }
+            filesToCheck.push(`project_contract_doc_${proj.projectId}`);
+            filesToCheck.push(`quotation_doc_${proj.projectId}`);
+          });
+        } else {
+          missingFields.push("projects");
+        }
       }
 
       const missingFiles = [];
@@ -912,10 +968,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         }
 
         // Check dynamically added "Other Documents" categories
-        Object.keys(this.files).forEach(key => {
-            if (key.startsWith('other_') && !filesToCheck.includes(key)) {
-                filesToCheck.push(key);
-            }
+        Object.keys(this.files).forEach((key) => {
+          if (key.startsWith("other_") && !filesToCheck.includes(key)) {
+            filesToCheck.push(key);
+          }
         });
 
         filesToCheck.forEach((key) => {
@@ -1079,6 +1135,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       this.activeProjectTab = tabId;
     },
 
+    /**
+     * Updates the status of the credit request (e.g., Approvals or Submissions).
+     * Reuses the createCreditRequest endpoint structure to progress the workflow.
+     */
     async updateStatus(newStatus, comment = "") {
       if (!this.requestId || !this.customer.id) return;
 
