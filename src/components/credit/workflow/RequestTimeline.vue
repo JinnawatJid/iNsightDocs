@@ -20,7 +20,7 @@
         <div class="step-content">
           <div class="step-header">
             <span class="step-role">{{ step.roleLabel }}</span>
-            <span class="step-date" v-if="step.completed || step.rejected">{{ formatDate(step.date) }}</span>
+            <span class="step-date" v-if="step.completed || step.rejected">{{ formatDateLocale(step.date) }}</span>
           </div>
           <div class="step-body" v-if="step.completed || step.rejected">
             <div v-if="step.comment" class="comment-text">{{ step.comment }}</div>
@@ -39,6 +39,7 @@
 </template>
 
 <script>
+import { formatDateTime, formatDateString, formatDateLocale } from '@/utils/date';
 import { computed } from 'vue';
 
 // Define the static 5-step workflow
@@ -64,32 +65,6 @@ export default {
     }
   },
   setup(props) {
-    const formatDate = (dateString) => {
-      if (!dateString) return '';
-
-
-
-
-
-          let normalizedDateString = dateString;
-    if (typeof normalizedDateString === 'string') {
-        if (!normalizedDateString.includes('T')) {
-            normalizedDateString = normalizedDateString.replace(' ', 'T');
-        }
-        if (!normalizedDateString.endsWith('Z')) {
-            normalizedDateString += 'Z';
-        }
-    }
-    const date = new Date(normalizedDateString);
-
-      return date.toLocaleString('th-TH', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    };
 
     // Map current request status to the corresponding workflow step index that is CURRENTLY pending/active.
     // Anything BEFORE this index is guaranteed to be completed.
@@ -205,8 +180,8 @@ export default {
     });
 
     return {
-      formatDate,
-      timelineSteps
+            timelineSteps,
+      formatDateLocale
     };
   }
 };

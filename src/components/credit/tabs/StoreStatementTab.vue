@@ -293,7 +293,7 @@
           />
           <span v-if="errors.customer_duration_years && store.showValidationErrors" class="error-text">กรุณาระบุข้อมูล</span>
           <small v-if="customerSinceDate" class="text-muted d-block mt-1" style="font-size: 0.8em;">
-            เป็นลูกค้าตั้งแต่: {{ formatDate(customerSinceDate) }} ({{ calculatedDuration }} ปี)
+            เป็นลูกค้าตั้งแต่: {{ formatDateString(customerSinceDate) }} ({{ calculatedDuration }} ปี)
           </small>
           <small v-if="isInvalidDuration" class="text-danger d-block mt-1" style="font-size: 0.8em;">
              ⚠️ ข้อมูลระยะเวลาดูไม่ถูกต้อง ({{ calculatedDuration }} ปี) กรุณาระบุใหม่
@@ -460,6 +460,7 @@
 </template>
 
 <script setup>
+import { formatDateTime, formatDateString, formatDateLocale } from '@/utils/date';
 import { reactive, ref, watch, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import FileUploader from '@/components/shared/FileUploader.vue';
@@ -570,10 +571,6 @@ const isInvalidDuration = computed(() => {
     return calculatedDuration.value > 100;
 });
 
-const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('th-TH');
-};
 
 // Auto-fill Duration from API Data if available and empty
 watch(calculatedDuration, (val) => {

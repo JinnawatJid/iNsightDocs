@@ -147,6 +147,7 @@
 </template>
 
 <script setup>
+import { formatDateTime, formatDateString, formatDateLocale } from '@/utils/date';
 import { ref, computed, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { Line, Chart as VueChart } from 'vue-chartjs';
@@ -370,9 +371,6 @@ const chartData = computed(() => {
     return 0;
   });
 
-  const formatDateString = (dateObj) => {
-    return `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
-  };
 
   // Group events by exact date to prevent horizontal stretching of the same day
   const groupedEvents = [];

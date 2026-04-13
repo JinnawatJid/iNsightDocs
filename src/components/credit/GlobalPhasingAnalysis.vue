@@ -71,6 +71,7 @@
 </template>
 
 <script setup>
+import { formatDateTime, formatDateString, formatDateLocale } from '@/utils/date';
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 import { useCreditRequestStore } from '@/stores/creditRequest';
@@ -180,9 +181,6 @@ const parseDate = (dateString) => {
   return d.getTime();
 };
 
-const formatDateString = (dateObj) => {
-    return `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
-};
 
 // Define accessible colors for up to 10 projects
 const projectColors = [

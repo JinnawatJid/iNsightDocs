@@ -43,7 +43,7 @@
                  {{ doc.original_name }}
               </div>
               <div v-if="doc.created_at" class="file-date">
-                 {{ formatDate(doc.created_at) }}
+                 {{ formatDateLocale(doc.created_at) }}
               </div>
             </div>
           </div>
@@ -74,6 +74,7 @@
 </template>
 
 <script setup>
+import { formatDateTime, formatDateString, formatDateLocale } from '@/utils/date';
 import { ref, computed, inject } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
@@ -315,28 +316,7 @@ const closePreviewModal = () => {
   previewFile.value = null;
 };
 
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  let normalizedDateString = dateString;
-  if (typeof normalizedDateString === 'string') {
-      if (!normalizedDateString.includes('T')) {
-          normalizedDateString = normalizedDateString.replace(' ', 'T');
-      }
-      if (!normalizedDateString.endsWith('Z')) {
-          normalizedDateString += 'Z';
-      }
-  }
-  const date = new Date(normalizedDateString);
-  if (isNaN(date.getTime())) return dateString;
 
-  return date.toLocaleString('th-TH', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
 
 const getInitials = (name) => {
   if (!name) return '?';

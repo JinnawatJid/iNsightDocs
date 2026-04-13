@@ -127,7 +127,7 @@
                         <tbody>
                             <tr v-for="(item, idx) in top5Contributors" :key="idx">
                                 <td class="font-bold">{{ item.inv.Invoice_No }}</td>
-                                <td>{{ formatDate(item.inv.Invoice_Date) }}</td>
+                                <td>{{ formatDateString(item.inv.Invoice_Date) }}</td>
                                 <td class="text-center" :class="item.lateDays > 0 ? 'text-danger' : 'text-success'">
                                     {{ item.lateDays }}
                                 </td>
@@ -170,8 +170,8 @@
                 <tbody>
                     <tr v-for="(inv, idx) in latePaymentInvoices" :key="idx" :class="getRowClass(inv)">
                         <td>{{ inv.Invoice_No }}</td>
-                        <td>{{ formatDate(inv.Invoice_Date) }}</td>
-                        <td>{{ formatDate(inv['Due Date']) }}</td>
+                        <td>{{ formatDateString(inv.Invoice_Date) }}</td>
+                        <td>{{ formatDateString(inv['Due Date']) }}</td>
                         <td class="text-right">{{ inv.Amount ? formatValue(inv.Amount) : '-' }}</td>
                         <td class="text-center">
                             <span v-if="getPaymentMethod(inv)" class="badge" :class="getPaymentMethodClass(inv)">
@@ -180,7 +180,7 @@
                             <span v-else>-</span>
                         </td>
                         <td>
-                            {{ formatDate(inv.Effective_Payment_Date) }}
+                            {{ formatDateString(inv.Effective_Payment_Date) }}
                             <small v-if="inv.Payment_Doc_No" class="d-block text-muted">({{ inv.Payment_Doc_No }})</small>
                         </td>
                         <td class="text-center font-bold" :class="getLateDaysClass(inv)">
@@ -214,6 +214,7 @@
 </template>
 
 <script setup>
+import { formatDateTime, formatDateString, formatDateLocale } from '@/utils/date';
 import { ref, onMounted, computed } from 'vue';
 import CreditScoreSheet from '@/components/credit/scoring/CreditScoreSheet.vue';
 

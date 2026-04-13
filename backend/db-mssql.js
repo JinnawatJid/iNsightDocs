@@ -375,7 +375,8 @@ const initDB = async () => {
         // Ensure new columns exist in CreditRequestAttachments table (for existing DBs)
         const attachmentColumns = [
             { name: 'uploaded_by', type: 'NVARCHAR(255)' },
-            { name: 'is_deleted', type: 'BIT DEFAULT 0' }
+            { name: 'is_deleted', type: 'BIT DEFAULT 0' },
+            { name: 'updated_at', type: 'DATETIME' }
         ];
 
         for (const col of attachmentColumns) {
@@ -410,6 +411,30 @@ const initDB = async () => {
             )
         `;
         await pool.request().query(createRequestCommentsSQL);
+
+        // Ensure new columns exist in RequestComments table
+        const requestCommentsColumns = [
+            { name: 'updated_at', type: 'DATETIME' }
+        ];
+
+        for (const col of requestCommentsColumns) {
+            try {
+                 const checkSql = `
+                    IF NOT EXISTS (
+                        SELECT * FROM sys.columns
+                        WHERE Name = '${col.name}' AND Object_ID = Object_ID('RequestComments')
+                    )
+                    BEGIN
+                        ALTER TABLE RequestComments ADD ${col.name} ${col.type}
+                    END
+                `;
+                await pool.request().query(checkSql);
+                logger.info(`Added column ${col.name} to RequestComments`);
+            } catch (err) {
+                 logger.error(`Error adding column ${col.name} to RequestComments:`, err);
+            }
+        }
+
 
         // Migration: Update 3-digit tx_id to 2-digit tx_id (e.g., 00TRCA2603/001 -> 00TRCA2603/01)
         try {

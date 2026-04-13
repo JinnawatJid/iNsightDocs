@@ -53,6 +53,7 @@
 </template>
 
 <script setup>
+import { formatDateTime, formatDateString, formatDateLocale } from '@/utils/date';
 import { computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
@@ -94,32 +95,6 @@ const fileType = computed(() => {
     console.log('[DEBUG] DocumentPreviewModal computed fileType:', ext);
     return ext;
 });
-
-const formatDateTime = (dateString) => {
-    if (!dateString) return '';
-    try {
-        let normalizedDateString = dateString;
-        if (typeof normalizedDateString === 'string') {
-            if (!normalizedDateString.includes('T')) {
-                normalizedDateString = normalizedDateString.replace(' ', 'T');
-            }
-            if (!normalizedDateString.endsWith('Z')) {
-                normalizedDateString += 'Z';
-            }
-        }
-        let dateObj = new Date(normalizedDateString);
-
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const year = dateObj.getFullYear();
-        const hours = String(dateObj.getHours()).padStart(2, '0');
-        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-
-        return `${day}/${month}/${year} ${hours}:${minutes} น.`;
-    } catch (e) {
-        return dateString;
-    }
-};
 
 const close = () => {
   emit('close');

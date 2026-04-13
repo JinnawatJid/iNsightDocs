@@ -75,7 +75,7 @@
         <!-- Bottom: TxID and Date -->
         <div class="item-bottom">
            <span class="tx-id">{{ req.tx_id }}</span>
-           <span class="date">{{ formatDate(req.updated_at || req.created_at) }}</span>
+           <span class="date">{{ formatDateTime(req.updated_at || req.created_at) }}</span>
         </div>
       </div>
     </div>
@@ -83,6 +83,7 @@
 </template>
 
 <script setup>
+import { formatDateTime, formatDateString, formatDateLocale } from '@/utils/date';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
@@ -162,28 +163,6 @@ watch(searchQuery, () => {
     debouncedSearch();
 });
 
-const formatDate = (dateString) => {
-    if (!dateString) return '';
-
-    let normalizedDateString = dateString;
-    // Standardize to UTC string if it doesn't have a timezone indicator
-    if (!normalizedDateString.includes('T')) {
-        normalizedDateString = normalizedDateString.replace(' ', 'T');
-    }
-    if (!normalizedDateString.endsWith('Z')) {
-        normalizedDateString += 'Z';
-    }
-
-    const date = new Date(normalizedDateString);
-
-    const d = String(date.getDate()).padStart(2, '0');
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const y = date.getFullYear(); // Gregorian year
-    const hh = String(date.getHours()).padStart(2, '0');
-    const mm = String(date.getMinutes()).padStart(2, '0');
-
-    return `${d}/${m}/${y} ${hh}:${mm} น.`;
-};
 
 const selectRequest = (req) => {
     if (req.tx_id) {

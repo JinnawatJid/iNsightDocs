@@ -293,7 +293,8 @@ const initDB = async () => {
         // Ensure new columns exist in CreditRequestAttachments table (for existing DBs)
         const attachmentColumns = [
             { name: 'uploaded_by', type: 'TEXT' },
-            { name: 'is_deleted', type: 'INTEGER DEFAULT 0' }
+            { name: 'is_deleted', type: 'INTEGER DEFAULT 0' },
+            { name: 'updated_at', type: 'DATETIME' }
         ];
 
         for (const col of attachmentColumns) {
@@ -317,6 +318,23 @@ const initDB = async () => {
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
         )`);
+
+        // Ensure new columns exist in RequestComments table
+        const requestCommentsColumns = [
+            { name: 'updated_at', type: 'DATETIME' }
+        ];
+
+        for (const col of requestCommentsColumns) {
+            try {
+                await db.runAsync(`ALTER TABLE RequestComments ADD COLUMN ${col.name} ${col.type}`);
+                logger.info(`Added column ${col.name} to RequestComments`);
+            } catch (err) {
+                 if (!err.message.includes('duplicate column name')) {
+                     logger.error(`Error adding column ${col.name} to RequestComments:`, err);
+                }
+            }
+        }
+
 
         // Migration: Update 3-digit tx_id to 2-digit tx_id (e.g., 00TRCA2603/001 -> 00TRCA2603/01)
         try {
