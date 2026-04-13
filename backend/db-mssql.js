@@ -285,7 +285,9 @@ const initDB = async () => {
                 customer_name NVARCHAR(255),
                 status NVARCHAR(50),
                 created_at DATETIME DEFAULT GETUTCDATE(),
-                updated_at DATETIME DEFAULT GETUTCDATE()
+                updated_at DATETIME DEFAULT GETUTCDATE(),
+                created_by NVARCHAR(255),
+                updated_by NVARCHAR(255)
             )
         `;
         await pool.request().query(createCreditRequestsSQL);
@@ -300,7 +302,9 @@ const initDB = async () => {
             { name: 'term_ae', type: 'INT' },
             { name: 'term_yc', type: 'INT' },
             { name: 'request_type', type: 'NVARCHAR(255)' },
-            { name: 'updated_at', type: 'DATETIME' }
+            { name: 'updated_at', type: 'DATETIME' },
+            { name: 'created_by', type: 'NVARCHAR(255)' },
+            { name: 'updated_by', type: 'NVARCHAR(255)' }
         ];
 
         for (const col of creditRequestColumns) {
@@ -367,6 +371,7 @@ const initDB = async () => {
                 uploaded_by NVARCHAR(255),
                 created_at DATETIME DEFAULT GETUTCDATE(),
                 updated_at DATETIME DEFAULT GETUTCDATE(),
+                username NVARCHAR(255),
                 FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
             )
         `;
@@ -375,7 +380,8 @@ const initDB = async () => {
         // Ensure new columns exist in CreditRequestAttachments table (for existing DBs)
         const attachmentColumns = [
             { name: 'uploaded_by', type: 'NVARCHAR(255)' },
-            { name: 'is_deleted', type: 'BIT DEFAULT 0' }
+            { name: 'is_deleted', type: 'BIT DEFAULT 0' },
+            { name: 'updated_by', type: 'NVARCHAR(255)' }
         ];
 
         for (const col of attachmentColumns) {
@@ -396,6 +402,23 @@ const initDB = async () => {
             }
         }
 
+
+        // Create CustomerDocuments table
+        const createCustomerDocumentsSQL = `
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='CustomerDocuments' and xtype='U')
+            CREATE TABLE CustomerDocuments (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                customer_no NVARCHAR(255),
+                file_type NVARCHAR(255),
+                file_path NVARCHAR(MAX),
+                original_name NVARCHAR(255),
+                uploaded_by NVARCHAR(255),
+                created_at DATETIME DEFAULT GETUTCDATE(),
+                updated_at DATETIME DEFAULT GETUTCDATE()
+            )
+        `;
+        await pool.request().query(createCustomerDocumentsSQL);
+
         // Create RequestComments table
         const createRequestCommentsSQL = `
             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='RequestComments' and xtype='U')
@@ -406,10 +429,27 @@ const initDB = async () => {
                 comment_text NVARCHAR(MAX),
                 created_at DATETIME DEFAULT GETUTCDATE(),
                 updated_at DATETIME DEFAULT GETUTCDATE(),
+                username NVARCHAR(255),
                 FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
             )
         `;
         await pool.request().query(createRequestCommentsSQL);
+
+        try {
+             const checkSql = `
+                IF NOT EXISTS (
+                    SELECT * FROM sys.columns
+                    WHERE Name = 'username' AND Object_ID = Object_ID('RequestComments')
+                )
+                BEGIN
+                    ALTER TABLE RequestComments ADD username NVARCHAR(255)
+                END
+            `;
+            await pool.request().query(checkSql);
+            logger.info(`Added column username to RequestComments`);
+        } catch (err) {
+             logger.error(`Error adding column username to RequestComments:`, err);
+        }
 
         // Migration: Update 3-digit tx_id to 2-digit tx_id (e.g., 00TRCA2603/001 -> 00TRCA2603/01)
         try {

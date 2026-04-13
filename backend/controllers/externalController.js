@@ -671,11 +671,31 @@ exports.streamDBDProfile = async (req, res) => {
                 await fs.ensureDir(customerDir);
                 logger.info(`[DBD Persistent] Saving files to: ${customerDir}`);
 
+
+                // Helper to insert audit trail
+                const logAuditTrail = async (fileName, originalName) => {
+                    const relativePath = path.join(dateFolder, fileName).replace(/\\/g, '/');
+                    const sql = `INSERT INTO CustomerDocuments (customer_no, file_type, file_path, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)`;
+                    try {
+                        // Use db.runAsync to insert, handling both sqlite and mssql implicitly through db.js
+                        if (db.dbType === 'mssql') {
+                            await db.runAsync(`INSERT INTO CustomerDocuments (customer_no, file_type, file_path, original_name, uploaded_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, GETUTCDATE(), GETUTCDATE())`,
+                            [customerCode, 'DBD_Document', relativePath, originalName, 'SYSTEM_AUTO_FETCH']);
+                        } else {
+                            await db.runAsync(sql, [customerCode, 'DBD_Document', relativePath, originalName, 'SYSTEM_AUTO_FETCH']);
+                        }
+                        logger.info(`[Audit Trail] Logged ${fileName} for customer ${customerCode}`);
+                    } catch (err) {
+                        logger.error(`[Audit Trail] Failed to log ${fileName}:`, err);
+                    }
+                };
+
                 // Copy files with standardized names (Overwrite allowed)
 
                 // 1. Profile
                 if (await fs.pathExists(pdfPath)) {
                     await fs.copy(pdfPath, path.join(customerDir, 'DBD_Profile.pdf'), { overwrite: true });
+                    await logAuditTrail('DBD_Profile.pdf', 'DBD_Profile.pdf');
                 }
 
                 // 2. Balance Sheet
@@ -683,6 +703,7 @@ exports.streamDBDProfile = async (req, res) => {
                      const src = path.join(downloadsDir, excelFilename);
                      if (await fs.pathExists(src)) {
                          await fs.copy(src, path.join(customerDir, 'DBD_BalanceSheet.xlsx'), { overwrite: true });
+                         await logAuditTrail('DBD_BalanceSheet.xlsx', excelFilename);
                      }
                 }
 
@@ -691,6 +712,7 @@ exports.streamDBDProfile = async (req, res) => {
                      const src = path.join(downloadsDir, incomeFilename);
                      if (await fs.pathExists(src)) {
                          await fs.copy(src, path.join(customerDir, 'DBD_IncomeStatement.xlsx'), { overwrite: true });
+                         await logAuditTrail('DBD_IncomeStatement.xlsx', incomeFilename);
                      }
                 }
 
@@ -699,12 +721,14 @@ exports.streamDBDProfile = async (req, res) => {
                      const src = path.join(downloadsDir, ratioFilename);
                      if (await fs.pathExists(src)) {
                          await fs.copy(src, path.join(customerDir, 'DBD_FinancialRatios.xlsx'), { overwrite: true });
+                         await logAuditTrail('DBD_FinancialRatios.xlsx', ratioFilename);
                      }
                 }
 
                 // 5. Marker for No Financial Data
                 if (!hasFinancialData) {
                      await fs.outputFile(path.join(customerDir, 'DBD_NoFinancialData.txt'), 'No financial statements submitted by customer.');
+                     await logAuditTrail('DBD_NoFinancialData.txt', 'DBD_NoFinancialData.txt');
                 }
 
             } catch (persistErr) {
