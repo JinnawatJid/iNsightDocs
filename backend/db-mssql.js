@@ -284,7 +284,8 @@ const initDB = async () => {
                 customer_no NVARCHAR(255),
                 customer_name NVARCHAR(255),
                 status NVARCHAR(50),
-                created_at DATETIME DEFAULT GETUTCDATE()
+                created_at DATETIME DEFAULT GETUTCDATE(),
+                updated_at DATETIME DEFAULT GETUTCDATE()
             )
         `;
         await pool.request().query(createCreditRequestsSQL);
@@ -365,6 +366,7 @@ const initDB = async () => {
                 original_name NVARCHAR(255),
                 uploaded_by NVARCHAR(255),
                 created_at DATETIME DEFAULT GETUTCDATE(),
+                updated_at DATETIME DEFAULT GETUTCDATE(),
                 FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
             )
         `;
@@ -403,6 +405,7 @@ const initDB = async () => {
                 actor_role NVARCHAR(255),
                 comment_text NVARCHAR(MAX),
                 created_at DATETIME DEFAULT GETUTCDATE(),
+                updated_at DATETIME DEFAULT GETUTCDATE(),
                 FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
             )
         `;
