@@ -371,7 +371,7 @@ const initDB = async () => {
                 uploaded_by NVARCHAR(255),
                 created_at DATETIME DEFAULT GETUTCDATE(),
                 updated_at DATETIME DEFAULT GETUTCDATE(),
-                username NVARCHAR(255),
+                updated_by NVARCHAR(255),
                 FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
             )
         `;
