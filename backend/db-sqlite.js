@@ -235,7 +235,8 @@ const initDB = async () => {
             request_reason TEXT,
             request_credit_term REAL,
             snapshot_data TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
         // Ensure new columns exist in CreditRequests table (for existing DBs)
@@ -285,6 +286,7 @@ const initDB = async () => {
             original_name TEXT,
             uploaded_by TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
         )`);
 
@@ -312,6 +314,7 @@ const initDB = async () => {
             actor_role TEXT,
             comment_text TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
         )`);
 

@@ -75,7 +75,7 @@
         <!-- Bottom: TxID and Date -->
         <div class="item-bottom">
            <span class="tx-id">{{ req.tx_id }}</span>
-           <span class="date">{{ formatDate(req.created_at) }}</span>
+           <span class="date">{{ formatDate(req.updated_at || req.created_at) }}</span>
         </div>
       </div>
     </div>
@@ -83,6 +83,7 @@
 </template>
 
 <script setup>
+import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
@@ -165,13 +166,9 @@ watch(searchQuery, () => {
 const formatDate = (dateString) => {
     if (!dateString) return '';
 
-    // Apply the same timezone offset fix as RequestTimeline (strip 'Z')
-    let normalizedDateString = dateString;
-    if (normalizedDateString.endsWith('Z')) {
-        normalizedDateString = normalizedDateString.slice(0, -1);
-    }
 
-    const date = new Date(normalizedDateString);
+    const date = normalizeDateString(dateString);
+
 
     const d = String(date.getDate()).padStart(2, '0');
     const m = String(date.getMonth() + 1).padStart(2, '0');

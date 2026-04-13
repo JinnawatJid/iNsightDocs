@@ -74,6 +74,7 @@
 </template>
 
 <script setup>
+import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 import { ref, computed, inject } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
@@ -317,7 +318,9 @@ const closePreviewModal = () => {
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
+
+    const date = normalizeDateString(dateString);
+
   if (isNaN(date.getTime())) return dateString;
 
   return date.toLocaleString('th-TH', {

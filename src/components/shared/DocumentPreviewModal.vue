@@ -53,6 +53,7 @@
 </template>
 
 <script setup>
+import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 import { computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
@@ -98,15 +99,16 @@ const fileType = computed(() => {
 const formatDateTime = (dateString) => {
     if (!dateString) return '';
     try {
-        let dateObj = new Date(dateString);
-        // Avoid applying standard Thai offset to UTC, but append ' น.'
-        // To be safe against timezone mismatches, assume the string is roughly correct
-        // but we can parse it locally.
+
+    let dateObj = normalizeDateString(dateString);
+
+
         const day = String(dateObj.getDate()).padStart(2, '0');
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const year = dateObj.getFullYear();
         const hours = String(dateObj.getHours()).padStart(2, '0');
         const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+
         return `${day}/${month}/${year} ${hours}:${minutes} น.`;
     } catch (e) {
         return dateString;
