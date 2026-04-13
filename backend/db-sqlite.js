@@ -236,7 +236,9 @@ const initDB = async () => {
             request_credit_term REAL,
             snapshot_data TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_by TEXT,
+            updated_by TEXT
         )`);
 
         // Ensure new columns exist in CreditRequests table (for existing DBs)
@@ -249,7 +251,9 @@ const initDB = async () => {
             { name: 'term_ae', type: 'INTEGER' },
             { name: 'term_yc', type: 'INTEGER' },
             { name: 'request_type', type: 'TEXT' },
-            { name: 'updated_at', type: 'DATETIME' }
+            { name: 'updated_at', type: 'DATETIME' },
+            { name: 'created_by', type: 'TEXT' },
+            { name: 'updated_by', type: 'TEXT' }
         ];
 
         for (const col of creditRequestColumns) {
@@ -287,13 +291,15 @@ const initDB = async () => {
             uploaded_by TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_by TEXT,
             FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
         )`);
 
         // Ensure new columns exist in CreditRequestAttachments table (for existing DBs)
         const attachmentColumns = [
             { name: 'uploaded_by', type: 'TEXT' },
-            { name: 'is_deleted', type: 'INTEGER DEFAULT 0' }
+            { name: 'is_deleted', type: 'INTEGER DEFAULT 0' },
+            { name: 'updated_by', type: 'TEXT' }
         ];
 
         for (const col of attachmentColumns) {
@@ -307,6 +313,19 @@ const initDB = async () => {
             }
         }
 
+
+        // Create CustomerDocuments table
+        await db.runAsync(`CREATE TABLE IF NOT EXISTS CustomerDocuments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_no TEXT,
+            file_type TEXT,
+            file_path TEXT,
+            original_name TEXT,
+            uploaded_by TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
         // Create RequestComments table
         await db.runAsync(`CREATE TABLE IF NOT EXISTS RequestComments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -315,8 +334,20 @@ const initDB = async () => {
             comment_text TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            username TEXT,
             FOREIGN KEY(tx_id) REFERENCES CreditRequests(tx_id)
         )`);
+
+
+        // Ensure username column exists in RequestComments table (for existing DBs)
+        try {
+            await db.runAsync(`ALTER TABLE RequestComments ADD COLUMN username TEXT`);
+            logger.info(`Added column username to RequestComments`);
+        } catch (err) {
+             if (!err.message.includes('duplicate column name')) {
+                 logger.error(`Error adding column username to RequestComments:`, err);
+            }
+        }
 
         // Migration: Update 3-digit tx_id to 2-digit tx_id (e.g., 00TRCA2603/001 -> 00TRCA2603/01)
         try {
