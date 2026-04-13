@@ -617,12 +617,29 @@ exports.analyzeFinancials = async (req, res) => {
             logger.info(`[Financial Persistent] Saving files to: ${customerDir}`);
 
             // Helper to save buffer
+
             const saveFile = async (field, filename) => {
-                if (files[field] && files[field][0]) {
+                if (files[field] && files[field].length > 0) {
                     const dest = path.join(customerDir, filename);
                     await fs.outputFile(dest, files[field][0].buffer);
+
+                    // Add Audit Trail entry
+                    const relativePath = path.join(dateFolder, filename).replace(/\\/g, '/');
+                    const sql = `INSERT INTO CustomerDocuments (customer_no, file_type, file_path, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)`;
+                    const uploadedBy = req.body.uploaded_by || (req.user ? req.user.username : 'SYSTEM');
+                    try {
+                        if (db.dbType === 'mssql') {
+                            await db.runAsync(`INSERT INTO CustomerDocuments (customer_no, file_type, file_path, original_name, uploaded_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, GETUTCDATE(), GETUTCDATE())`,
+                            [customer_no, 'Financial_Document', relativePath, filename, uploadedBy]);
+                        } else {
+                            await db.runAsync(sql, [customer_no, 'Financial_Document', relativePath, filename, uploadedBy]);
+                        }
+                    } catch(err) {
+                        logger.error(`[Audit Trail] Failed to log ${filename}:`, err);
+                    }
                 }
             };
+
 
             await saveFile('company_profile', 'DBD_Profile.pdf');
             await saveFile('balance_sheet', 'DBD_BalanceSheet.xlsx');
@@ -1379,6 +1396,14 @@ exports.uploadLocalFiles = async (req, res) => {
             await saveFile('company_profile', 'DBD_Profile.pdf');
             // Create Marker file
             await fs.outputFile(path.join(customerDir, 'DBD_NoFinancialData.txt'), 'No financial statements submitted by customer.');
+            try {
+                const relPath = path.join(dateFolder, 'DBD_NoFinancialData.txt').replace(/\\/g, '/');
+                if (db.dbType === 'mssql') {
+                    await db.runAsync(`INSERT INTO CustomerDocuments (customer_no, file_type, file_path, original_name, uploaded_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, GETUTCDATE(), GETUTCDATE())`, [customer_no, 'Financial_Document', relPath, 'DBD_NoFinancialData.txt', req.body.uploaded_by || (req.user ? req.user.username : 'SYSTEM')]);
+                } else {
+                    await db.runAsync(`INSERT INTO CustomerDocuments (customer_no, file_type, file_path, original_name, uploaded_by) VALUES (?, ?, ?, ?, ?)`, [customer_no, 'Financial_Document', relPath, 'DBD_NoFinancialData.txt', req.body.uploaded_by || (req.user ? req.user.username : 'SYSTEM')]);
+                }
+            } catch(e) {}
         } else {
             // Require all files for normal processing
             if (!files['company_profile'] || !files['balance_sheet'] || !files['profit_loss'] || !files['financial_ratios']) {
