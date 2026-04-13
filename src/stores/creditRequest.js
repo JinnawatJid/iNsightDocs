@@ -911,6 +911,13 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           }
         }
 
+        // Check dynamically added "Other Documents" categories
+        Object.keys(this.files).forEach(key => {
+            if (key.startsWith('other_') && !filesToCheck.includes(key)) {
+                filesToCheck.push(key);
+            }
+        });
+
         filesToCheck.forEach((key) => {
           const file = this.files[key];
           const isUploaded = this.uploadedDocuments[key];

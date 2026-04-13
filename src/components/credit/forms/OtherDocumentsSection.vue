@@ -20,6 +20,7 @@
           v-model="store.files[key]"
           :disabled="!isEditing"
           multiple
+          :required="true"
           @update:modelValue="(val) => updateFile(key, val)"
         />
       </div>
