@@ -83,3 +83,8 @@ When displaying detailed scorecards (e.g., in `ScoringBreakdownGrid.vue`), the g
 3. **Performance Metric Highlighting:**
    - The **"คะแนนที่ได้" (Obtained Score)** is the primary performance metric and must be visually highlighted (e.g., using a `.yellow-bg` background).
    - The **"คะแนนเต็ม" (Max Score)** is secondary reference data and must visually recede using a neutral color (e.g., `.white-bg` or light gray). Highlighting the max score creates a false focal point and should be avoided.
+### D. Credit Score Visibility Controls
+To maintain confidentiality and prevent bias during the initial request creation phase, the visibility of sensitive financial metrics (specifically the **Credit Score** and **Recommended Limit**) is strictly controlled via environment variables and user roles:
+1. **Feature Flag:** The visibility logic is governed by the `ENABLE_HIDE_CREDIT_SCORE` environment variable in the backend `.env` file.
+2. **Initiator View:** When the flag is enabled, users with the "Initiator" (ผู้สร้างคำขอ) role are completely blocked from viewing the credit score circle, the breakdown cards, and the recommended limit **until** the request reaches the final `Approved` status. The UI sections are entirely hidden to provide a cleaner layout.
+3. **Reviewer/Approver View:** Users in downstream approval roles (e.g., Finance Officers, Regional Managers) bypass this restriction and can view the credit score metrics at all stages of the workflow to facilitate their decision-making process.
