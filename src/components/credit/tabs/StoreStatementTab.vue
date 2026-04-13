@@ -325,7 +325,7 @@
         <div class="analysis-results-legacy">
 
         <!-- Scoring Highlight -->
-        <div v-if="analysisResults.scoringResult" class="score-highlight">
+        <div v-if="analysisResults.scoringResult && !shouldHideValues" class="score-highlight">
             <!-- Card 1: Credit Score (Narrower) -->
             <div class="score-card card-narrow">
                 <div class="score-title">คะแนนเครดิต</div>
@@ -369,7 +369,7 @@
         </div>
 
         <!-- Score Breakdown (New Section) -->
-        <div v-if="analysisResults.scoringResult && analysisResults.scoringResult.breakdown" class="score-breakdown-section">
+        <div v-if="analysisResults.scoringResult && analysisResults.scoringResult.breakdown && !shouldHideValues" class="score-breakdown-section">
              <h4>รายละเอียดคะแนน</h4>
              <div class="breakdown-grid">
                  <!-- C1 -->
@@ -465,6 +465,7 @@ import { useRoute, useRouter } from 'vue-router';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import OtherDocumentsSection from '../forms/OtherDocumentsSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 import CreditScoreSheet from '../scoring/CreditScoreSheet.vue';
 import axios from '../../../utils/axios.js';
@@ -473,6 +474,11 @@ import { useFormValidation } from '@/composables/useFormValidation';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
+const authStore = useAuthStore();
+
+const shouldHideValues = computed(() => {
+    return authStore.hideCreditScoreEnabled && authStore.isInitiator && store.requestStatus !== 'Approved';
+});
 const route = useRoute();
 const router = useRouter();
 

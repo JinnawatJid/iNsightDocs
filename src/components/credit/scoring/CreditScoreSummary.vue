@@ -2,7 +2,7 @@
   <div class="credit-score-summary">
 
     <!-- NEW: Credit Score Section -->
-    <div v-if="creditScore && creditScore.totalScore !== undefined" class="score-section">
+    <div v-if="creditScore && creditScore.totalScore !== undefined && !shouldHideValues" class="score-section">
         <h3>ผลคะแนนเครดิต</h3>
 
         <div class="score-display">
@@ -157,6 +157,7 @@
 import iconCheckCircle from '@/assets/icons/check-circle-green.svg';
 import iconShoppingCart from '@/assets/icons/shopping-cart.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 import { computed } from 'vue';
 
 export default {
@@ -214,10 +215,16 @@ export default {
   },
   setup() {
       const store = useCreditRequestStore();
+      const authStore = useAuthStore();
       const creditScore = computed(() => store.creditScore);
 
+      const shouldHideValues = computed(() => {
+          return authStore.hideCreditScoreEnabled && authStore.isInitiator && store.requestStatus !== 'Approved';
+      });
+
       return {
-          creditScore
+          creditScore,
+          shouldHideValues
       };
   },
   methods: {
