@@ -67,16 +67,20 @@ export default {
     const formatDate = (dateString) => {
       if (!dateString) return '';
 
-      // The backend SQL database stores timestamps in local Thai time (UTC+7) but the Node.js SQL driver
-      // incorrectly assumes it's UTC when serializing to JSON, appending a 'Z' to the end (e.g. "2026-03-18T19:30:00.560Z").
-      // When the browser reads this 'Z', it adds another 7 hours to the time, causing a +7 hour display bug!
-      // To fix this, we must STRIP the 'Z' from the end so the browser interprets the string as local time.
-      let normalizedDateString = dateString;
-      if (normalizedDateString.endsWith('Z')) {
-          normalizedDateString = normalizedDateString.slice(0, -1);
-      }
 
-      const date = new Date(normalizedDateString);
+
+
+
+          let normalizedDateString = dateString;
+    if (typeof normalizedDateString === 'string') {
+        if (!normalizedDateString.includes('T')) {
+            normalizedDateString = normalizedDateString.replace(' ', 'T');
+        }
+        if (!normalizedDateString.endsWith('Z')) {
+            normalizedDateString += 'Z';
+        }
+    }
+    const date = new Date(normalizedDateString);
 
       return date.toLocaleString('th-TH', {
         year: 'numeric',

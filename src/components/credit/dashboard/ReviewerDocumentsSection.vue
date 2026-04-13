@@ -317,7 +317,16 @@ const closePreviewModal = () => {
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
+  let normalizedDateString = dateString;
+  if (typeof normalizedDateString === 'string') {
+      if (!normalizedDateString.includes('T')) {
+          normalizedDateString = normalizedDateString.replace(' ', 'T');
+      }
+      if (!normalizedDateString.endsWith('Z')) {
+          normalizedDateString += 'Z';
+      }
+  }
+  const date = new Date(normalizedDateString);
   if (isNaN(date.getTime())) return dateString;
 
   return date.toLocaleString('th-TH', {

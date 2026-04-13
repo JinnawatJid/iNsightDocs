@@ -75,7 +75,7 @@
         <!-- Bottom: TxID and Date -->
         <div class="item-bottom">
            <span class="tx-id">{{ req.tx_id }}</span>
-           <span class="date">{{ formatDate(req.created_at) }}</span>
+           <span class="date">{{ formatDate(req.updated_at || req.created_at) }}</span>
         </div>
       </div>
     </div>
@@ -165,10 +165,13 @@ watch(searchQuery, () => {
 const formatDate = (dateString) => {
     if (!dateString) return '';
 
-    // Apply the same timezone offset fix as RequestTimeline (strip 'Z')
     let normalizedDateString = dateString;
-    if (normalizedDateString.endsWith('Z')) {
-        normalizedDateString = normalizedDateString.slice(0, -1);
+    // Standardize to UTC string if it doesn't have a timezone indicator
+    if (!normalizedDateString.includes('T')) {
+        normalizedDateString = normalizedDateString.replace(' ', 'T');
+    }
+    if (!normalizedDateString.endsWith('Z')) {
+        normalizedDateString += 'Z';
     }
 
     const date = new Date(normalizedDateString);
