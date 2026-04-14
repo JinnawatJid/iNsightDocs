@@ -301,8 +301,8 @@
             <td>{{ item.customerId }}</td>
             <td>{{ item.name || "-" }}</td>
             <td>{{ formatCurrency(item.totalPurchase3Months) }}</td>
-            <td>{{ item.purchaseProportion ? item.purchaseProportion.toFixed(2) + "%" : "-" }}</td>
-            <td>{{ item.cumulativeProportion ? item.cumulativeProportion.toFixed(2) + "%" : "-" }}</td>
+            <td>{{ typeof item.purchaseProportion === "number" ? item.purchaseProportion.toFixed(2) + "%" : "-" }}</td>
+            <td>{{ typeof item.cumulativeProportion === "number" ? item.cumulativeProportion.toFixed(2) + "%" : "-" }}</td>
             <td>
               {{ item.wadlScore !== null ? formatDays(item.wadlScore) : "-" }}
             </td>
@@ -678,7 +678,7 @@ const getGradeClass = (grade) => {
 };
 
 const getRowClass = (item) => {
-  if (item.cumulativeProportion > 0 && item.cumulativeProportion <= 80) return "row-pareto-focus";
+
   if (item.status === "Processing") return "row-active";
   if (
     item.status === "Pending" &&
@@ -688,6 +688,7 @@ const getRowClass = (item) => {
   )
     return "row-warning";
   if (item.hasNameMismatch) return "row-warning";
+  if (item.cumulativeProportion > 0 && item.cumulativeProportion <= 80) return "row-pareto-focus";
   return "";
 };
 
@@ -2845,6 +2846,27 @@ button:disabled {
   font-weight: 600;
   color: #333;
   white-space: nowrap;
+}
+
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.sortable-header:hover {
+  background-color: #e9ecef !important;
+}
+
+.sort-icon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.8em;
+  color: #0056ff;
+}
+
+.sort-icon.inactive {
+  color: #ccc;
 }
 
 .data-table th:first-child,
