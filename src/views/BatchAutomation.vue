@@ -267,17 +267,25 @@
         <thead>
           <tr>
             <th style="width: 50px">#</th>
-            <th>รหัสลูกค้า</th>
-            <th>ชื่อลูกค้า</th>
-            <th>ยอดซื้อรวม 3 เดือน</th>
-            <th>สัดส่วนยอดซื้อ (%)</th>
-            <th>สัดส่วนยอดซื้อสะสม (%)</th>
-            <th>เฉลี่ยการจ่ายเงินล่าช้า</th>
-            <th>ระยะเวลาเครดิต</th>
-            <th>ระยะเวลาการวางบิล</th>
-            <th>วงเงินปัจจุบัน</th>
-            <th>วงเงินแนะนำ</th>
-            <th>คะแนน</th>
+            <th @click="sortBy('customerId')" class="sortable-header">รหัสลูกค้า <span v-if="sortKey === 'customerId'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('name')" class="sortable-header">ชื่อลูกค้า <span v-if="sortKey === 'name'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('totalPurchase3Months')" class="sortable-header">ยอดซื้อรวม 3 เดือน <span v-if="sortKey === 'totalPurchase3Months'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('purchaseProportion')" class="sortable-header">
+              สัดส่วนยอดซื้อ (%)
+              <span v-if="sortKey === 'purchaseProportion'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+              <span v-else class="sort-icon inactive">↕</span>
+            </th>
+            <th @click="sortBy('cumulativeProportion')" class="sortable-header">
+              สัดส่วนยอดซื้อสะสม (%)
+              <span v-if="sortKey === 'cumulativeProportion'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
+              <span v-else class="sort-icon inactive">↕</span>
+            </th>
+            <th @click="sortBy('wadlScore')" class="sortable-header">เฉลี่ยการจ่ายเงินล่าช้า <span v-if="sortKey === 'wadlScore'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('paymentTerms')" class="sortable-header">ระยะเวลาเครดิต <span v-if="sortKey === 'paymentTerms'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('billingDuration')" class="sortable-header">ระยะเวลาการวางบิล <span v-if="sortKey === 'billingDuration'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('currentLimit')" class="sortable-header">วงเงินปัจจุบัน <span v-if="sortKey === 'currentLimit'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('newLimit')" class="sortable-header">วงเงินแนะนำ <span v-if="sortKey === 'newLimit'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('score')" class="sortable-header">คะแนน <span v-if="sortKey === 'score'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
             <th>สถานะ</th>
             <th>ไฟล์</th>
             <th>การดำเนินการ</th>
@@ -285,7 +293,7 @@
         </thead>
         <tbody>
           <tr
-            v-for="(item, index) in queue"
+            v-for="(item, index) in sortedQueue"
             :key="index"
             :class="getRowClass(item)"
           >
@@ -460,6 +468,8 @@ import CustomerService from "@/services/CustomerService";
 
 // State
 const queue = ref([]);
+const sortKey = ref("totalPurchase3Months");
+const sortOrder = ref("desc");
 const isProcessing = ref(false);
 const shouldStop = ref(false);
 const concurrency = ref(1);
@@ -482,6 +492,43 @@ const uploadForm = ref({
   incomeStatement: null,
   financialRatios: null,
 });
+
+const sortedQueue = computed(() => {
+  if (!sortKey.value) return queue.value;
+
+  return [...queue.value].sort((a, b) => {
+    let valA = a[sortKey.value];
+    let valB = b[sortKey.value];
+
+    // Custom handling for billing duration extraction
+    if (sortKey.value === "billingDuration") {
+      valA = parseInt(a.billingTerms ? a.billingTerms.replace(/[^0-9]/g, "") : 0) || 0;
+      valB = parseInt(b.billingTerms ? b.billingTerms.replace(/[^0-9]/g, "") : 0) || 0;
+    }
+
+    if (valA === valB) return 0;
+
+    if (valA === null || valA === undefined) return sortOrder.value === "asc" ? 1 : -1;
+    if (valB === null || valB === undefined) return sortOrder.value === "asc" ? -1 : 1;
+
+    if (typeof valA === "string" && typeof valB === "string") {
+      return sortOrder.value === "asc"
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    }
+
+    return sortOrder.value === "asc" ? valA - valB : valB - valA;
+  });
+});
+
+const sortBy = (key) => {
+  if (sortKey.value === key) {
+    sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
+  } else {
+    sortKey.value = key;
+    sortOrder.value = "desc";
+  }
+};
 
 // Input Method State
 const inputType = ref("branch"); // Default to 'branch'
