@@ -6,6 +6,12 @@
         {{ authStore.isInitiator ? 'สร้างคำขอ' : 'ค้นหาลูกค้า' }}
       </router-link>
       <router-link to="/pending-requests" class="nav-link">คำขอทั้งหมด</router-link>
+      <router-link
+        v-if="authStore.isFinanceOfficer"
+        to="/batch-automation"
+        class="nav-link">
+        ระบบอัตโนมัติ
+      </router-link>
     </div>
     <div class="nav-right">
       <div class="dev-role-switcher" v-if="!authStore.authRequired">

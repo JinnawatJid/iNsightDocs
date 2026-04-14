@@ -1,7 +1,9 @@
 <template>
-  <div class="batch-automation-container">
-    <div class="header-section">
-      <h2>ระบบคำนวณวงเงินสินเชื่ออัตโนมัติ</h2>
+  <div>
+    <Navbar />
+    <div class="batch-automation-container" style="padding-top: 100px;">
+      <div class="header-section">
+        <h2>ระบบคำนวณวงเงินสินเชื่ออัตโนมัติ</h2>
       <p class="subtitle">
         อัปโหลดรายชื่อลูกค้าเพื่อคำนวณคะแนนและวงเงินสินเชื่ออัตโนมัติ
       </p>
@@ -339,6 +341,7 @@
       </table>
     </div>
   </div>
+  </div>
 
   <!-- Custom Upload Modal (Teleported to body to avoid z-index issues) -->
   <Teleport to="body">
@@ -432,6 +435,7 @@
 </template>
 
 <script setup>
+import Navbar from "@/components/shared/Navbar.vue";
 import { ref, reactive, computed, watch, onMounted } from "vue";
 import * as XLSX from "xlsx";
 import axios from "../utils/axios.js";
