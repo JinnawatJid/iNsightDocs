@@ -2,6 +2,7 @@ export const fieldLabels = {
     'amount': 'วงเงินที่ขอ',
     'reason': 'เหตุผล',
     'contact_person': 'ชื่อผู้ติดต่อ',
+    'contact_position': 'ตำแหน่งผู้ติดต่อ',
     'contact_phone_number': 'เบอร์โทร',
     'payment_method': 'วิธีชำระเงิน',
     'billing_requirement': 'เงื่อนไขวางบิล',
@@ -11,7 +12,29 @@ export const fieldLabels = {
     'billing_schedule': 'รอบวางบิล',
     'payment_condition': 'เงื่อนไขชำระเงิน',
     'payment_bank_name': 'ธนาคาร',
-    'payment_account_no': 'เลขบัญชี'
+    'payment_account_no': 'เลขบัญชี',
+    'has_other_credit': 'มีสินเชื่ออื่นหรือไม่',
+    'termGS': 'Term GS',
+    'termAE': 'Term AE',
+    'termYC': 'Term YC',
+    'name': 'ชื่อบริษัท/ร้านค้า',
+    'authorized_person': 'ผู้มีอำนาจลงนาม',
+    'authorized_position': 'ตำแหน่งผู้มีอำนาจลงนาม',
+    'business_type': 'ประเภทธุรกิจ',
+    'main_products': 'สินค้าหลัก',
+    'years_in_business': 'ระยะเวลาดำเนินกิจการ (ปี)',
+    'address': 'ที่อยู่/บ้านเลขที่',
+    'subdistrict': 'แขวง/ตำบล',
+    'zipcode': 'รหัสไปรษณีย์',
+    'district': 'เขต/อำเภอ',
+    'province': 'จังหวัด',
+    'phone': 'เบอร์โทรศัพท์ (General Info)',
+    'residence_location_type': 'ลักษณะที่ตั้ง (ที่อยู่อาศัย)',
+    'residence_ownership': 'กรรมสิทธิ์ที่อยู่อาศัย',
+    'residence_value': 'มูลค่าที่อยู่อาศัย (บาท)',
+    'store_location_type': 'ลักษณะที่ตั้ง (ร้านค้า/บริษัท)',
+    'store_ownership': 'กรรมสิทธิ์ร้านค้า/บริษัท',
+    'store_value': 'มูลค่าร้านค้า/บริษัท (บาท)'
 };
 
 export const docLabels = {
