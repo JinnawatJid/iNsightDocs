@@ -238,6 +238,19 @@ export default {
         this.$emit('file-selected', selectedFile);
       }
 
+      // Show non-blocking success toast
+      const Toast = Swal.mixin({
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 2000,
+          timerProgressBar: true,
+      });
+      Toast.fire({
+          icon: 'success',
+          title: 'แนบไฟล์สำเร็จ'
+      });
+
       this.$refs.fileInput.value = '';
     },
     removeFile(index) {

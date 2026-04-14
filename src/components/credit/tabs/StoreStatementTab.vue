@@ -471,6 +471,7 @@ import CreditScoreSheet from '../scoring/CreditScoreSheet.vue';
 import axios from '../../../utils/axios.js';
 import Swal from 'sweetalert2';
 import { useFormValidation } from '@/composables/useFormValidation';
+import { fieldLabels, docLabels } from '@/utils/validationLabels';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
@@ -1066,7 +1067,7 @@ const autoDownloadDBD = async () => {
 
                     Swal.fire({
                         title: 'Success',
-                        text: 'ดาวน์โหลดและบันทึกข้อมูลเรียบร้อยแล้ว',
+                        text: 'ดึงข้อมูลและดาวน์โหลดเอกสารสำเร็จ',
                         icon: 'success',
                         timer: 2000
                     });
@@ -1105,10 +1106,63 @@ const analyzeFinancials = async () => {
   if (!validation.valid) {
       console.log('Validation Failed during Financial Analysis:', validation);
       store.triggerValidation();
+
+      const groupByTab = (items, dict) => {
+          const grouped = {};
+          items.forEach(key => {
+              const mapping = dict[key];
+              let tab = 'ข้อมูลทั่วไป'; // Fallback
+              let label = key;
+              if (mapping) {
+                  if (typeof mapping === 'object') {
+                      tab = mapping.tab;
+                      label = mapping.label;
+                  } else {
+                      label = mapping;
+                  }
+              }
+              if (!grouped[tab]) grouped[tab] = [];
+              grouped[tab].push(label);
+          });
+          return grouped;
+      };
+
+      const missingFGrouped = validation.missingFields ? groupByTab(validation.missingFields, fieldLabels) : {};
+      const missingDGrouped = validation.missingFiles ? groupByTab(validation.missingFiles, docLabels) : {};
+
+      const hasMissingFields = Object.keys(missingFGrouped).length > 0;
+      const hasMissingDocs = Object.keys(missingDGrouped).length > 0;
+
+      let htmlText = '';
+      if (hasMissingFields || hasMissingDocs) {
+          htmlText = `<div style="text-align: left; background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 6px; font-size: 14px; margin-top: 10px; border: 1px solid #ffeeba;">`;
+          htmlText += `<p style="margin-bottom: 10px;"><strong>กรุณากลับไปตรวจสอบและระบุข้อมูลดังต่อไปนี้:</strong></p>`;
+
+          if (hasMissingFields) {
+              htmlText += `<p style="margin-bottom: 5px;">📝 <strong>ข้อมูลที่ต้องระบุ:</strong></p>`;
+              htmlText += `<ul style="margin-top: 0; margin-bottom: 15px; padding-left: 20px; list-style-type: none;">`;
+              for (const [tab, fields] of Object.entries(missingFGrouped)) {
+                  htmlText += `<li style="margin-bottom: 3px;">&bull; <strong>หน้า${tab}:</strong> ${fields.join(', ')}</li>`;
+              }
+              htmlText += `</ul>`;
+          }
+
+          if (hasMissingDocs) {
+              htmlText += `<p style="margin-bottom: 5px;">📎 <strong>เอกสารที่ต้องแนบ:</strong></p>`;
+              htmlText += `<ul style="margin-top: 0; margin-bottom: 0; padding-left: 20px; list-style-type: none;">`;
+              for (const [tab, docs] of Object.entries(missingDGrouped)) {
+                  htmlText += `<li style="margin-bottom: 3px;">&bull; <strong>หน้า${tab}:</strong> ${docs.join(', ')}</li>`;
+              }
+              htmlText += `</ul>`;
+          }
+          htmlText += `</div>`;
+      }
+
       Swal.fire({
           icon: 'warning',
           title: 'ข้อมูลไม่ครบถ้วน',
-          text: 'กรุณากรอกข้อมูลและแนบเอกสารให้ครบถ้วนตามรายการที่มีเครื่องหมาย * ก่อนทำการวิเคราะห์ข้อมูล'
+          html: htmlText || 'กรุณากรอกข้อมูลและแนบเอกสารให้ครบถ้วนตามรายการที่มีเครื่องหมาย * ก่อนทำการวิเคราะห์ข้อมูล',
+          confirmButtonText: 'กลับไปแก้ไข'
       });
       return;
   } else {

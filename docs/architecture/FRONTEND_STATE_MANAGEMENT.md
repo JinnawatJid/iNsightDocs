@@ -100,3 +100,25 @@ When building the next `FormData` payload, the frontend explicitly ignores any o
 
 **Crucial Implementation Rule:**
 Whenever an action occurs that performs a background save (like "Save Draft" preventing page reloads), the application **must** actively refresh the state of the transaction from the backend (e.g., `await store.loadRequestDetail(requestId)`). Failing to do so will leave the local `File` objects in the store without the `isRemote` flag, resulting in them being incorrectly appended and duplicated on the next save or submit action. Similarly, when iterating over arrays of files (like "Other Documents"), the `!f.isRemote` check must be applied to every single element in the array mapping.
+## 4. Form Validation & Error Feedback UI
+
+When validating complex forms with multiple tabs (such as the Credit Request Form), the application adheres to the following UI standards to ensure user-friendly feedback:
+
+### Tab-Grouped Validation Presentation
+
+If a user attempts to submit a form that fails validation (e.g., missing required fields or documents), the application groups the missing items by their corresponding UI tab.
+
+The feedback is presented via a SweetAlert (`Swal.fire`) popup. However, the HTML string inside the popup must follow specific formatting rules to maximize readability and adhere to industry standards for long lists:
+
+*   **Avoid Bracket Notation:** Do not use `[Tab Name]` as a prefix, as it appears overly technical.
+*   **Use Descriptive Labels:** Use the word "หน้า" (Page/Tab) followed by the tab name and a colon (e.g., `หน้าข้อมูลที่อยู่:`).
+*   **Use Bullet Points:** Render the grouped list as a bulleted list (`<ul><li>&bull; ...</li></ul>`) to separate the sections clearly and make them easily scannable.
+
+**Correct Format Example:**
+```html
+📝 ข้อมูลที่ต้องระบุ:
+• หน้าเงื่อนไขและคำขอ: วงเงินที่ขอ, เหตุผล, วิธีชำระเงิน
+• หน้าข้อมูลที่อยู่: ที่อยู่/บ้านเลขที่, แขวง/ตำบล
+```
+
+This ensures the user does not feel overwhelmed by a wall of text and knows exactly which tab to navigate to in order to resolve the errors. The internal logic maps database field keys (e.g., `address_no`) to these readable labels using the `src/utils/validationLabels.js` dictionary.
