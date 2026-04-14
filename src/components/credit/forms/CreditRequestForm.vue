@@ -149,6 +149,7 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { workflowConfig, roleLabels } from '@/config/workflow';
 import Swal from 'sweetalert2';
 import axios from '@/utils/axios';
+import { fieldLabels, docLabels } from '@/utils/validationLabels';
 import { computed, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
@@ -321,10 +322,22 @@ const handleAction = async (btn) => {
         if (!validation.valid) {
              console.log('Validation Failed:', validation);
              store.triggerValidation();
+
+             const missingFText = validation.missingFields ? validation.missingFields.map(f => fieldLabels[f] || f).join(', ') : '';
+             const missingDText = validation.missingFiles ? validation.missingFiles.map(d => docLabels[d] || d).join(', ') : '';
+
+             let htmlText = '';
+             if (missingFText || missingDText) {
+                 htmlText = '<div style="text-align: left;">';
+                 if (missingFText) htmlText += `<p><strong>ข้อมูลที่ขาด:</strong> ${missingFText}</p>`;
+                 if (missingDText) htmlText += `<p><strong>เอกสารที่ขาด:</strong> ${missingDText}</p>`;
+                 htmlText += '</div>';
+             }
+
              Swal.fire({
                 icon: 'warning',
                 title: 'ข้อมูลไม่ครบถ้วน',
-                text: 'กรุณากรอกข้อมูลและแนบเอกสารให้ครบถ้วนตามรายการที่มีเครื่องหมาย *'
+                html: htmlText || 'กรุณากรอกข้อมูลและแนบเอกสารให้ครบถ้วนตามรายการที่มีเครื่องหมาย *'
              });
              return;
         } else {

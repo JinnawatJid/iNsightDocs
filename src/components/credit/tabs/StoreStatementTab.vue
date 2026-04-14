@@ -471,6 +471,7 @@ import CreditScoreSheet from '../scoring/CreditScoreSheet.vue';
 import axios from '../../../utils/axios.js';
 import Swal from 'sweetalert2';
 import { useFormValidation } from '@/composables/useFormValidation';
+import { fieldLabels, docLabels } from '@/utils/validationLabels';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
@@ -1066,7 +1067,7 @@ const autoDownloadDBD = async () => {
 
                     Swal.fire({
                         title: 'Success',
-                        text: 'ดาวน์โหลดและบันทึกข้อมูลเรียบร้อยแล้ว',
+                        text: 'ดึงข้อมูลและดาวน์โหลดเอกสารสำเร็จ',
                         icon: 'success',
                         timer: 2000
                     });
@@ -1105,10 +1106,22 @@ const analyzeFinancials = async () => {
   if (!validation.valid) {
       console.log('Validation Failed during Financial Analysis:', validation);
       store.triggerValidation();
+
+      const missingFText = validation.missingFields ? validation.missingFields.map(f => fieldLabels[f] || f).join(', ') : '';
+      const missingDText = validation.missingFiles ? validation.missingFiles.map(d => docLabels[d] || d).join(', ') : '';
+
+      let htmlText = '';
+      if (missingFText || missingDText) {
+          htmlText = '<div style="text-align: left;">';
+          if (missingFText) htmlText += `<p><strong>ข้อมูลที่ขาด:</strong> ${missingFText}</p>`;
+          if (missingDText) htmlText += `<p><strong>เอกสารที่ขาด:</strong> ${missingDText}</p>`;
+          htmlText += '</div>';
+      }
+
       Swal.fire({
           icon: 'warning',
           title: 'ข้อมูลไม่ครบถ้วน',
-          text: 'กรุณากรอกข้อมูลและแนบเอกสารให้ครบถ้วนตามรายการที่มีเครื่องหมาย * ก่อนทำการวิเคราะห์ข้อมูล'
+          html: htmlText || 'กรุณากรอกข้อมูลและแนบเอกสารให้ครบถ้วนตามรายการที่มีเครื่องหมาย * ก่อนทำการวิเคราะห์ข้อมูล'
       });
       return;
   } else {

@@ -10,13 +10,13 @@
     <div v-if="hasOtherDocs" class="other-docs-grid">
       <div v-for="(item, key) in otherDocs" :key="key" class="other-doc-item">
         <div class="doc-header">
-           <span class="doc-label">{{ getLabel(key) }}</span>
+           <span class="doc-label">{{ getLabel(key) }} <span class="required">*</span></span>
            <button v-if="isEditing" class="btn-remove-category" @click="removeCategory(key)">
              ลบ
            </button>
         </div>
         <FileUploader
-          :label="getLabel(key)"
+          label=""
           v-model="store.files[key]"
           :disabled="!isEditing"
           multiple
@@ -170,16 +170,24 @@ const updateFile = (key, val) => {
 
 .doc-header {
     display: flex;
-    justify-content: flex-end; /* Align Remove button to right */
+    justify-content: space-between; /* Space out title and button */
     align-items: center;
-    margin-bottom: -25px; /* Pull remove button into FileUploader header area */
-    position: relative;
-    z-index: 10;
+    margin-bottom: 8px; /* Give space between header and uploader */
 }
 
 .doc-label {
-    display: none;
+    display: block;
+    font-weight: 600;
+    font-size: 13px;
+    color: #444;
 }
+
+.required {
+    color: #ef4444;
+    margin-left: 3px;
+}
+
+
 
 .btn-remove-category {
     font-size: 0.75em;

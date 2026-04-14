@@ -26,10 +26,15 @@ This prefix ensures that:
 1. **Isolation**: When rendering the component, it only filters and displays keys from `store.files` that start with its specific `other_{tabName}:` prefix.
 2. **Preventing Name Collisions**: Users can upload a document named "เอกสารสัญญา" in the General tab and another identically named document in the Store tab without the state conflicting.
 
+### Validation & Enforcement
+While creating an "Other Documents" category is optional, **once a category is created by the user, uploading at least one file to that category becomes mandatory**.
+
+During form submission (`validateRequest` in `stores/creditRequest.js`), the validation logic dynamically scans the Pinia store (`this.files`) for any keys prefixed with `other_`. If an "Other Document" category exists but is empty (has no files), it is pushed to the `missingFiles` array, triggering a validation error and blocking submission.
+
 ### Completeness Metrics
 The `creditRequest` Pinia store includes getters to calculate how complete an application is (e.g., `uploadedDocumentCount`, `approvalChancePercent`).
 
-To prevent these optional, dynamically generated "Other" documents from falsely inflating the core document count, the store explicitly filters out any key starting with `other_`:
+To prevent these dynamically generated "Other" documents from falsely inflating the core mandatory document count used for progress bars, the store explicitly filters out any key starting with `other_`:
 
 ```javascript
 const count = Object.entries(state.files)

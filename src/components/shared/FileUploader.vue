@@ -1,6 +1,6 @@
 <template>
   <div class="upload-item" :class="{ 'upload-item-large': multiple }">
-    <label>{{ label }} <span v-if="required" class="required">*</span></label>
+    <label v-if="label">{{ label }} <span v-if="required" class="required">*</span></label>
 
     <!-- New Compact Upload Box -->
     <div class="upload-box-compact" :class="{ 'disabled': disabled, 'border-red-500': showError }" @click="triggerUpload">
@@ -237,6 +237,19 @@ export default {
         this.$emit('update:modelValue', selectedFile);
         this.$emit('file-selected', selectedFile);
       }
+
+      // Show non-blocking success toast
+      const Toast = Swal.mixin({
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 2000,
+          timerProgressBar: true,
+      });
+      Toast.fire({
+          icon: 'success',
+          title: 'แนบไฟล์สำเร็จ'
+      });
 
       this.$refs.fileInput.value = '';
     },
