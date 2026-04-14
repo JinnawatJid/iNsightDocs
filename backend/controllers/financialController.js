@@ -121,16 +121,16 @@ const sanitizeInvoices = (invoices) => {
 };
 
 // Helper: Fetch Purchasing Behavior from External API
-const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
+const fetchPurchasingBehavior = async (customerNo, taxId = null, fetchBy = 'vat') => {
     if (MOCK_EXTERNAL_APIS || MOCK_FINANCIAL_API) {
         logger.info(`[Financial API] Using Mock Data for ${customerNo}`);
         const data = getMockFinancialData(customerNo);
-        data.fetchSource = taxId ? 'tax_no' : 'customer_code';
+        data.fetchSource = (taxId && fetchBy === 'vat') ? 'tax_no' : 'customer_code';
         return data;
     }
 
     try {
-        if (taxId && taxId.trim().length > 0) {
+        if (taxId && taxId.trim().length > 0 && fetchBy === 'vat') {
             logger.info(`[Financial API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
             const response = await axios.get(FINANCIAL_API_TAX_URL, {
                 params: { tax_no: taxId.trim() },
@@ -513,7 +513,8 @@ exports.analyzeFinancials = async (req, res) => {
       model_type, // 'new' or 'existing'
       limit_exponent, // Optional override
       wadl, // Manual override for WADL
-      tax_id
+      tax_id,
+      fetch_purchase_by
     } = req.body;
 
     // --- LOCAL FILE HANDLING ---
@@ -777,10 +778,11 @@ exports.analyzeFinancials = async (req, res) => {
 
         // We need tax_id for fetchPurchasingBehavior if available
         const taxIdForFinancials = tax_id || (customerData && customerData.tax_id ? customerData.tax_id : null);
+        const fetchPurchaseBy = fetch_purchase_by || 'vat';
 
         // Parallel Fetch: Financial Data (API) & Late Payment Data (API) & WADL Data
         const [apiData, lateData, wadlData] = await Promise.all([
-             fetchPurchasingBehavior(customer_no, taxIdForFinancials),
+             fetchPurchasingBehavior(customer_no, taxIdForFinancials, fetchPurchaseBy),
              fetchLatePaymentData(customer_no),
              fetchWADLData(customer_no)
         ]);
