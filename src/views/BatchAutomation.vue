@@ -1,4 +1,5 @@
 <template>
+  <Navbar />
   <div class="batch-automation-container">
     <div class="header-section">
       <h2>ระบบคำนวณวงเงินสินเชื่ออัตโนมัติ</h2>
@@ -205,6 +206,15 @@
       </button>
 
       <button
+        class="btn-warning-upload"
+        @click="retryFailed"
+        v-if="hasErrorItems"
+        :disabled="isProcessing"
+      >
+        ลองใหม่ที่ผิดพลาด
+      </button>
+
+      <button
         class="btn-secondary"
         @click="checkReadiness"
         :disabled="isProcessing || queue.length === 0"
@@ -270,11 +280,11 @@
         </thead>
         <tbody>
           <tr
-            v-for="(item, index) in queue"
-            :key="index"
+            v-for="(item, index) in paginatedQueue"
+            :key="item.customerId || index"
             :class="getRowClass(item)"
           >
-            <td>{{ index + 1 }}</td>
+            <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>{{ item.customerId }}</td>
             <td>{{ item.name || "-" }}</td>
             <td>{{ formatCurrency(item.totalPurchase3Months) }}</td>
@@ -338,9 +348,58 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Pagination Controls -->
+    <div class="pagination-controls" v-if="queue.length > 0">
+      <div class="pagination-info">
+        แสดง {{ (currentPage - 1) * itemsPerPage + 1 }} ถึง
+        {{ Math.min(currentPage * itemsPerPage, queue.length) }}
+        จากทั้งหมด {{ queue.length }} รายการ
+      </div>
+
+      <div class="pagination-actions">
+        <label>แสดงหน้าละ:</label>
+        <select v-model="itemsPerPage" @change="currentPage = 1" class="form-control" style="width: 80px; display: inline-block; margin-right: 20px;">
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+          <option :value="200">200</option>
+          <option :value="500">500</option>
+        </select>
+
+        <button class="btn-secondary btn-sm" @click="currentPage--" :disabled="currentPage === 1">ก่อนหน้า</button>
+        <span class="page-text">หน้า {{ currentPage }} / {{ totalPages }}</span>
+        <button class="btn-secondary btn-sm" @click="currentPage++" :disabled="currentPage >= totalPages">ถัดไป</button>
+      </div>
+    </div>
   </div>
 
+
+  <!-- Column Mapping Modal -->
+  <Teleport to="body">
+    <div v-if="showColumnMapping" class="modal-overlay" @click.self="cancelColumnMapping">
+      <div class="modal-content">
+        <h3 class="modal-title">เลือกคอลัมน์รหัสลูกค้า</h3>
+        <p class="modal-subtitle">กรุณาเลือกคอลัมน์ที่ตรงกับ "รหัสลูกค้า" (Customer ID)</p>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label>คอลัมน์รหัสลูกค้า:</label>
+            <select v-model="selectedIdColumn" class="form-control" style="font-size: 1em; padding: 10px;">
+              <option v-for="col in excelHeaders" :key="col" :value="col">{{ col }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="cancelColumnMapping">ยกเลิก</button>
+          <button class="btn-submit" @click="confirmColumnMapping" :disabled="!selectedIdColumn">ยืนยัน</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+
   <!-- Custom Upload Modal (Teleported to body to avoid z-index issues) -->
+
   <Teleport to="body">
     <div
       v-if="isUploadModalOpen"
@@ -433,6 +492,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from "vue";
+import Navbar from "@/components/shared/Navbar.vue";
 import * as XLSX from "xlsx";
 import axios from "../utils/axios.js";
 import Swal from "sweetalert2";
@@ -451,6 +511,16 @@ const activeWorkers = ref(0);
 const bridgeHost = ref(localStorage.getItem("bridgeHost") || "localhost");
 const bridgeStatus = ref("ไม่ทราบสถานะ");
 const isExportDropdownOpen = ref(false); // State for dropdown
+
+// Pagination State
+const currentPage = ref(1);
+const itemsPerPage = ref(100);
+
+// Excel Upload State
+const rawExcelData = ref(null);
+const excelHeaders = ref([]);
+const selectedIdColumn = ref("");
+const showColumnMapping = ref(false);
 
 // Modal State
 const isUploadModalOpen = ref(false);
@@ -545,11 +615,32 @@ watch(bridgeHost, (val) => {
   localStorage.setItem("bridgeHost", val);
 });
 
+watch(queue, () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = 1;
+  }
+});
+
+
 // Computed
 const processedCount = computed(() => {
   return queue.value.filter((i) =>
     ["Done", "Done (Int)", "Error", "Skipped"].includes(i.status),
   ).length;
+});
+
+const hasErrorItems = computed(() => {
+  return queue.value.some((i) => i.status === "Error");
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(queue.value.length / itemsPerPage.value) || 1;
+});
+
+const paginatedQueue = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return queue.value.slice(start, end);
 });
 
 // Helper: Get Billing Duration Value (Number)
@@ -896,73 +987,100 @@ const processFile = (file) => {
     const worksheet = workbook.Sheets[firstSheetName];
     const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-    // Smart detection of ID column
-    const idKey = findBestIdColumn(jsonData);
-    if (!idKey) {
-      Swal.fire(
-        "ข้อผิดพลาด",
-        "ไม่พบคอลัมน์ที่ระบุรหัสลูกค้า (Customer ID)",
-        "error",
-      );
+    if (!jsonData || jsonData.length === 0) {
+      Swal.fire("ข้อผิดพลาด", "ไม่พบข้อมูลในไฟล์ Excel", "error");
       return;
     }
 
-    // Map to Queue Format
-    queue.value = jsonData
-      .map((row) => {
-        const id = row[idKey];
-        const name = String(row["ชื่อลูกค้า"] || row["Name"] || "").trim();
-        const corporateKeywords = [
-          "บริษัท",
-          "ห้างหุ้นส่วน",
-          "บ.",
-          "หจก.",
-          "ltd",
-          "limited",
-          "co.",
-          "plc",
-          "corp",
-          "inc",
-          "company",
-        ];
-        const isCompany = corporateKeywords.some((k) =>
-          name.toLowerCase().includes(k),
-        );
-        return {
-          customerId: String(id || "").trim(),
-          name: name,
-          taxId: "",
-          totalPurchase3Months: 0,
-          latePaymentAverage: null,
-          wadlScore: null,
-          currentLimit: 0,
-          paymentTerms: "",
-          billingTerms: "",
-          newLimit: null,
-          score: null,
-          grade: "",
-          status: "Pending",
-          log: "",
-          files: {}, // to store downloaded blobs
-          debugFiles: null, // to store file metadata for debug
-          isCompany: isCompany,
-          isReady: false,
-          isNoFinancialData: false,
-          analysisResult: null,
-          modelType: null, // Store model type for report
-          limitExponent: null, // Store limit exponent for report
-        };
-      })
-      .filter((i) => i.customerId && i.customerId !== "undefined"); // Filter empty rows
+    rawExcelData.value = jsonData;
+    excelHeaders.value = Object.keys(jsonData[0]);
 
-    Swal.fire(
-      "โหลดข้อมูลสำเร็จ",
-      `โหลดรายชื่อลูกค้า ${queue.value.length} รายการ (ใช้คอลัมน์: ${idKey})`,
-      "success",
-    );
+    // Smart detection of ID column
+    const bestMatch = findBestIdColumn(jsonData);
+    if (bestMatch) {
+      selectedIdColumn.value = bestMatch;
+    } else if (excelHeaders.value.length > 0) {
+      selectedIdColumn.value = excelHeaders.value[0];
+    }
+
+    showColumnMapping.value = true;
   };
   reader.readAsArrayBuffer(file);
 };
+
+const confirmColumnMapping = () => {
+  if (!selectedIdColumn.value || !rawExcelData.value) return;
+
+  const idKey = selectedIdColumn.value;
+
+  // Map to Queue Format
+  queue.value = rawExcelData.value
+    .map((row) => {
+      const id = row[idKey];
+      const name = String(row["ชื่อลูกค้า"] || row["Name"] || "").trim();
+      const corporateKeywords = [
+        "บริษัท",
+        "ห้างหุ้นส่วน",
+        "บ.",
+        "หจก.",
+        "ltd",
+        "limited",
+        "co.",
+        "plc",
+        "corp",
+        "inc",
+        "company",
+      ];
+      const isCompany = corporateKeywords.some((k) =>
+        name.toLowerCase().includes(k),
+      );
+      return {
+        customerId: String(id || "").trim(),
+        name: name,
+        taxId: "",
+        totalPurchase3Months: 0,
+        latePaymentAverage: null,
+        wadlScore: null,
+        currentLimit: 0,
+        paymentTerms: "",
+        billingTerms: "",
+        newLimit: null,
+        score: null,
+        grade: "",
+        status: "Pending",
+        log: "",
+        files: {}, // to store downloaded blobs
+        debugFiles: null, // to store file metadata for debug
+        isCompany: isCompany,
+        isReady: false,
+        isNoFinancialData: false,
+        analysisResult: null,
+        modelType: null, // Store model type for report
+        limitExponent: null, // Store limit exponent for report
+      };
+    })
+    .filter((i) => i.customerId && i.customerId !== "undefined"); // Filter empty rows
+
+  Swal.fire(
+    "โหลดข้อมูลสำเร็จ",
+    `โหลดรายชื่อลูกค้า ${queue.value.length} รายการ (ใช้คอลัมน์: ${idKey})`,
+    "success",
+  );
+
+  showColumnMapping.value = false;
+  rawExcelData.value = null; // Clear raw data after mapping
+};
+
+const cancelColumnMapping = () => {
+  showColumnMapping.value = false;
+  rawExcelData.value = null;
+  excelHeaders.value = [];
+  selectedIdColumn.value = "";
+  // Reset file input
+  const fileInput = document.querySelector('input[type="file"]');
+  if (fileInput) fileInput.value = "";
+};
+
 
 // --- Bridge Logic ---
 
@@ -1566,7 +1684,21 @@ const stopBatch = () => {
   isProcessing.value = false;
 };
 
+
+const retryFailed = () => {
+  const errorItems = queue.value.filter((i) => i.status === "Error");
+  if (errorItems.length === 0) return;
+
+  errorItems.forEach((item) => {
+    item.status = "Pending";
+    item.log = "รอคิว (Retry)";
+  });
+
+  startBatch();
+};
+
 // Worker function to process items one by one from the shared queue
+
 const processNextItem = async () => {
   while (!shouldStop.value) {
     const index = queue.value.findIndex((i) => i.status === "Pending");
@@ -2319,6 +2451,7 @@ const exportFullDetailReport = () => {
 }
 .batch-automation-container {
   padding: 20px;
+  padding-top: 100px; /* Navbar height + some extra */
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -2945,4 +3078,43 @@ button:disabled {
   text-decoration: none;
   background-color: #f8f9fa;
 }
+
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.pagination-info {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pagination-actions label {
+  margin-bottom: 0;
+  color: #555;
+}
+
+.page-text {
+  font-weight: 500;
+  color: #333;
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 0.9em;
+}
+
 </style>
