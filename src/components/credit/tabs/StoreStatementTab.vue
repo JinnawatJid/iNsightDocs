@@ -1142,7 +1142,7 @@ const analyzeFinancials = async () => {
               htmlText += `<p style="margin-bottom: 5px;">📝 <strong>ข้อมูลที่ต้องระบุ:</strong></p>`;
               htmlText += `<ul style="margin-top: 0; margin-bottom: 15px; padding-left: 20px; list-style-type: none;">`;
               for (const [tab, fields] of Object.entries(missingFGrouped)) {
-                  htmlText += `<li style="margin-bottom: 3px;"><strong>[${tab}]</strong> ${fields.join(', ')}</li>`;
+                  htmlText += `<li style="margin-bottom: 3px;">&bull; <strong>หน้า${tab}:</strong> ${fields.join(', ')}</li>`;
               }
               htmlText += `</ul>`;
           }
@@ -1151,7 +1151,7 @@ const analyzeFinancials = async () => {
               htmlText += `<p style="margin-bottom: 5px;">📎 <strong>เอกสารที่ต้องแนบ:</strong></p>`;
               htmlText += `<ul style="margin-top: 0; margin-bottom: 0; padding-left: 20px; list-style-type: none;">`;
               for (const [tab, docs] of Object.entries(missingDGrouped)) {
-                  htmlText += `<li style="margin-bottom: 3px;"><strong>[${tab}]</strong> ${docs.join(', ')}</li>`;
+                  htmlText += `<li style="margin-bottom: 3px;">&bull; <strong>หน้า${tab}:</strong> ${docs.join(', ')}</li>`;
               }
               htmlText += `</ul>`;
           }
