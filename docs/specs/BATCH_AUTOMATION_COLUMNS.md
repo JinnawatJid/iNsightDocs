@@ -10,6 +10,8 @@ This document details the logic, formatting, and calculation rules for the colum
 | **รหัสลูกค้า** | Customer ID | `item.customerId` | Text | - |
 | **ชื่อลูกค้า** | Customer Name | `item.name` | Text | - |
 | **ยอดซื้อรวม 3 เดือน** | Total Purchase (3 Months) | `item.totalPurchase3Months` | `#,##0.00 บาท` | - |
+| **สัดส่วนยอดซื้อ (%)** | Purchase Proportion (%) | `item.purchaseProportion` | `0.00%` | Calculated post-batch |
+| **สัดส่วนยอดซื้อสะสม (%)** | Cumulative Proportion (%) | `item.cumulativeProportion` | `0.00%` | Calculated post-batch |
 | **เฉลี่ยการจ่ายเงินล่าช้า** | WADL Score | `item.wadlScore` | `X วัน` | If null: `-` |
 | **ระยะเวลาเครดิต** | Credit Term | `item.paymentTerms` | `X วัน` | If null: `-` |
 | **ระยะเวลาการวางบิล** | Billing Duration | Extracted from `Billing Terms Code` | `X วัน` or `ไม่มีวางบิล` | If code starts with `B0` or `B00`, display `ไม่มีวางบิล`. <br> Else, extract digits after 'B'. |

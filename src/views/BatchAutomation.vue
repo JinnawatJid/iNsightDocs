@@ -270,6 +270,8 @@
             <th>รหัสลูกค้า</th>
             <th>ชื่อลูกค้า</th>
             <th>ยอดซื้อรวม 3 เดือน</th>
+            <th>สัดส่วนยอดซื้อ (%)</th>
+            <th>สัดส่วนยอดซื้อสะสม (%)</th>
             <th>เฉลี่ยการจ่ายเงินล่าช้า</th>
             <th>ระยะเวลาเครดิต</th>
             <th>ระยะเวลาการวางบิล</th>
@@ -291,6 +293,8 @@
             <td>{{ item.customerId }}</td>
             <td>{{ item.name || "-" }}</td>
             <td>{{ formatCurrency(item.totalPurchase3Months) }}</td>
+            <td>{{ item.purchaseProportion ? item.purchaseProportion.toFixed(2) + "%" : "-" }}</td>
+            <td>{{ item.cumulativeProportion ? item.cumulativeProportion.toFixed(2) + "%" : "-" }}</td>
             <td>
               {{ item.wadlScore !== null ? formatDays(item.wadlScore) : "-" }}
             </td>
