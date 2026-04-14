@@ -4,8 +4,10 @@
 
     <!-- Close Preview Banner -->
     <div v-if="store.viewingHistory" class="preview-banner">
-        <span>กำลังดูประวัติคำขอ: {{ store.requestId }} (Read Only)</span>
-        <button class="btn-close-preview" @click="closePreview">ปิดการดูประวัติ / สร้างคำขอใหม่</button>
+      <span>กำลังดูประวัติคำขอ: {{ store.requestId }} (Read Only)</span>
+      <button class="btn-close-preview" @click="closePreview">
+        ปิดการดูประวัติ / สร้างคำขอใหม่
+      </button>
     </div>
 
     <div class="page-content">
@@ -15,15 +17,18 @@
           <RequestStatus v-if="store.hasSearched" />
         </div>
         <div class="grid-col center">
-          <div v-if="isOcrEnabled && authStore.isInitiator" class="smart-import-wrapper">
-             <button class="btn-smart-import" @click="showSmartImport = true">
-                📷 Smart Import (Thai ID)
-             </button>
+          <div
+            v-if="isOcrEnabled && authStore.isInitiator"
+            class="smart-import-wrapper"
+          >
+            <button class="btn-smart-import" @click="showSmartImport = true">
+              📷 Smart Import (Thai ID)
+            </button>
           </div>
           <CreditRequestHeader
-             @search="handleSearch"
-             @start-request="handleStartRequest"
-             :isRequestStarted="isRequestStarted"
+            @search="handleSearch"
+            @start-request="handleStartRequest"
+            :isRequestStarted="isRequestStarted"
           />
         </div>
         <div class="grid-col right">
@@ -46,30 +51,36 @@
 
         <!-- Center Column: Purpose/Form -->
         <div class="grid-col center">
-           <!-- State 1: Placeholder -->
-           <div v-if="!store.hasSearched" class="placeholder-state">
-             <div class="placeholder-content">
-               <img :src="iconSearchLarge" alt="Search" width="64" height="64" />
-               <h3>{{ authStore.isInitiator ? 'ค้นหาลูกค้า เพื่อเริ่มสร้างคำขอเครดิต' : 'ค้นหาลูกค้า เพื่อดูข้อมูล' }}</h3>
-             </div>
-           </div>
+          <!-- State 1: Placeholder -->
+          <div v-if="!store.hasSearched" class="placeholder-state">
+            <div class="placeholder-content">
+              <img :src="iconSearchLarge" alt="Search" width="64" height="64" />
+              <h3>
+                {{
+                  authStore.isInitiator
+                    ? "ค้นหาลูกค้า เพื่อเริ่มสร้างคำขอเครดิต"
+                    : "ค้นหาลูกค้า เพื่อดูข้อมูล"
+                }}
+              </h3>
+            </div>
+          </div>
 
-           <!-- State 2: Dashboard (Context) -->
-           <CustomerProfileDashboard v-else-if="!isRequestStarted" />
+          <!-- State 2: Dashboard (Context) -->
+          <CustomerProfileDashboard v-else-if="!isRequestStarted" />
 
-           <!-- State 3: Form (Action) -->
-           <CreditRequestForm v-else />
+          <!-- State 3: Form (Action) -->
+          <CreditRequestForm v-else />
         </div>
 
         <!-- Right Column: Idea/Summary -->
         <div class="grid-col right">
-           <CreditScoreSummary
-             v-if="store.hasSearched"
-             :financial="store.financialSummary"
-             :canRequest="store.creditScore.can_request_credit"
-             :badges="store.creditScore.badges"
-             :suggestions="store.creditScore.suggestions"
-           />
+          <CreditScoreSummary
+            v-if="store.hasSearched"
+            :financial="store.financialSummary"
+            :canRequest="store.creditScore.can_request_credit"
+            :badges="store.creditScore.badges"
+            :suggestions="store.creditScore.suggestions"
+          />
         </div>
       </div>
     </div>
@@ -84,22 +95,22 @@
 </template>
 
 <script setup>
-import Navbar from '@/components/shared/Navbar.vue';
-import CreditRequestHeader from '@/components/credit/dashboard/CreditRequestHeader.vue';
-import CreditHistorySidebar from '@/components/credit/dashboard/CreditHistorySidebar.vue';
-import RequestStatus from '@/components/credit/workflow/RequestStatus.vue';
-import CreditRequestForm from '@/components/credit/forms/CreditRequestForm.vue';
-import CustomerProfileDashboard from '@/components/credit/dashboard/CustomerProfileDashboard.vue';
-import CreditScoreSummary from '@/components/credit/scoring/CreditScoreSummary.vue';
-import DocumentChecklist from '@/components/credit/workflow/DocumentChecklist.vue';
-import SmartImportModal from '@/components/credit/modals/SmartImportModal.vue';
-import { useCreditRequestStore } from '@/stores/creditRequest';
-import { useFeatureFlag } from '@/composables/useFeatureFlag';
-import { useAuthStore } from '@/stores/auth';
-import { useRoute } from 'vue-router';
-import iconSearchLarge from '@/assets/icons/search-large.svg';
-import { ref, watch , onMounted} from 'vue';
-import Swal from 'sweetalert2';
+import Navbar from "@/components/shared/Navbar.vue";
+import CreditRequestHeader from "@/components/credit/dashboard/CreditRequestHeader.vue";
+import CreditHistorySidebar from "@/components/credit/dashboard/CreditHistorySidebar.vue";
+import RequestStatus from "@/components/credit/workflow/RequestStatus.vue";
+import CreditRequestForm from "@/components/credit/forms/CreditRequestForm.vue";
+import CustomerProfileDashboard from "@/components/credit/dashboard/CustomerProfileDashboard.vue";
+import CreditScoreSummary from "@/components/credit/scoring/CreditScoreSummary.vue";
+import DocumentChecklist from "@/components/credit/workflow/DocumentChecklist.vue";
+import SmartImportModal from "@/components/credit/modals/SmartImportModal.vue";
+import { useCreditRequestStore } from "@/stores/creditRequest";
+import { useFeatureFlag } from "@/composables/useFeatureFlag";
+import { useAuthStore } from "@/stores/auth";
+import { useRoute } from "vue-router";
+import iconSearchLarge from "@/assets/icons/search-large.svg";
+import { ref, watch, onMounted } from "vue";
+import Swal from "sweetalert2";
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
@@ -109,49 +120,52 @@ const showSmartImport = ref(false);
 const isRequestStarted = ref(false);
 
 const closePreview = () => {
-    store.resetState();
-    isRequestStarted.value = false;
+  store.resetState();
+  isRequestStarted.value = false;
 };
 
 onMounted(async () => {
-    // Reset state unconditionally when visiting the page to ensure a clean slate
-    store.resetState();
-    isRequestStarted.value = false;
+  // Reset state unconditionally when visiting the page to ensure a clean slate
+  store.resetState();
+  isRequestStarted.value = false;
 
-    const { search, txId } = route.query;
+  const { search, txId } = route.query;
 
-    if (search) {
-        // If we are given a search parameter, we should fetch it.
-        await store.searchCustomer(search);
-        if (txId) {
-            // Load the specific draft and start the request
-            await store.loadRequestDetail(txId);
-            isRequestStarted.value = true;
-        }
+  if (search) {
+    // If we are given a search parameter, we should fetch it.
+    await store.searchCustomer(search);
+    if (txId) {
+      // Load the specific draft and start the request
+      await store.loadRequestDetail(txId);
+      isRequestStarted.value = true;
     }
+  }
 });
 
 const handleSearch = async (query) => {
-    // Reset local state before search
-    isRequestStarted.value = false;
-    await store.searchCustomer(query);
+  // Reset local state before search
+  isRequestStarted.value = false;
+  await store.searchCustomer(query);
 };
 
+/**
+ * Initiates the credit request process by setting the request type in the Pinia store.
+ * Triggers the backend insertion of a new draft request before the user fills out the form.
+ */
 const handleStartRequest = async (type) => {
-    console.log('Starting Request Type:', type);
-    store.updateTransactionData({ requestType: type });
+  store.updateTransactionData({ requestType: type });
 
-    // Create the credit request now that a type is selected
-    if (!store.requestId && store.customer && store.customer.id) {
-        await store.createCreditRequest(store.customer.id, store.customer.name);
-    }
+  // Create the credit request now that a type is selected
+  if (!store.requestId && store.customer && store.customer.id) {
+    await store.createCreditRequest(store.customer.id, store.customer.name);
+  }
 
-    isRequestStarted.value = true;
+  isRequestStarted.value = true;
 
-    // Save to backend immediately so the Draft correctly reflects the chosen type
-    if (store.requestId) {
-        await store.saveTransactionData();
-    }
+  // Save to backend immediately so the Draft correctly reflects the chosen type
+  if (store.requestId) {
+    await store.saveTransactionData();
+  }
 };
 
 // Watch for route changes to handle query parameters (e.g. from Revision flow)
@@ -160,17 +174,17 @@ watch(
   async (newQuery) => {
     const { search, txId } = newQuery;
     if (search) {
-        // We need to re-fetch customer data if search parameter changes or if we need to load a new txId
-        // store.requestId check prevents infinite loop if the route stays the same
-        if (txId && store.requestId !== txId) {
-             await store.searchCustomer(search);
-             await store.loadRequestDetail(txId);
-             isRequestStarted.value = true;
-        } else if (!txId && store.customer?.id !== search) {
-             await store.searchCustomer(search);
-        }
+      // We need to re-fetch customer data if search parameter changes or if we need to load a new txId
+      // store.requestId check prevents infinite loop if the route stays the same
+      if (txId && store.requestId !== txId) {
+        await store.searchCustomer(search);
+        await store.loadRequestDetail(txId);
+        isRequestStarted.value = true;
+      } else if (!txId && store.customer?.id !== search) {
+        await store.searchCustomer(search);
+      }
     }
-  }
+  },
 );
 
 // Watch for Blacklist Alert
@@ -179,14 +193,14 @@ watch(
   (newVal) => {
     if (newVal) {
       Swal.fire({
-        icon: 'error',
-        title: 'แจ้งเตือน: ลูกค้ารายนี้อยู่ในบัญชี NPL',
+        icon: "error",
+        title: "แจ้งเตือน: ลูกค้ารายนี้อยู่ในบัญชี NPL",
         showCancelButton: true,
-        confirmButtonText: 'ดำเนินการต่อ',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        reverseButtons: true
+        confirmButtonText: "ดำเนินการต่อ",
+        cancelButtonText: "ยกเลิก",
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        reverseButtons: true,
       }).then((result) => {
         if (!result.isConfirmed) {
           // If cancelled, clear state (reset search)
@@ -195,26 +209,30 @@ watch(
         // If confirmed, do nothing (stay on page)
       });
     }
-  }
+  },
 );
 
+/**
+ * Maps the extracted OCR data directly into the Pinia store's state,
+ * automatically pre-filling the customer application fields.
+ */
 const handleOcrData = (data) => {
   // Map extracted data to store
-  console.log('Applying OCR Data to Form:', data);
 
   // 1. Name
-  const fullName = `${data.title || ''} ${data.firstName} ${data.lastName}`.trim();
+  const fullName =
+    `${data.title || ""} ${data.firstName} ${data.lastName}`.trim();
   store.customer.name = fullName;
 
   // 2. ID Number
   store.customer.tax_id = data.idNumber;
   // Ensure we have a customer ID so the form renders (hasData check)
   if (!store.customer.id) {
-    store.customer.id = 'NEW';
+    store.customer.id = "NEW";
   }
 
   // 3. Address Parsing
-  const fullAddr = data.address || '';
+  const fullAddr = data.address || "";
 
   // Basic Regex for Thai Address Components
   const zipMatch = fullAddr.match(/\d{5}$/);
@@ -253,7 +271,7 @@ const handleOcrData = (data) => {
 .create-credit-request {
   padding-top: 80px; /* Navbar height */
   min-height: 100vh;
-  background-color: #F5F5F5;
+  background-color: #f5f5f5;
 }
 
 .page-content {
@@ -330,28 +348,28 @@ const handleOcrData = (data) => {
 }
 
 .preview-banner {
-    background-color: #333;
-    color: white;
-    padding: 10px 20px;
-    display: flex;
-    justify-content: center; /* Center content */
-    align-items: center;
-    gap: 20px;
-    width: 100%;
-    z-index: 999;
+  background-color: #333;
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: center; /* Center content */
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  z-index: 999;
 }
 
 .btn-close-preview {
-    background-color: white;
-    color: #333;
-    border: none;
-    padding: 5px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
+  background-color: white;
+  color: #333;
+  border: none;
+  padding: 5px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
 }
 .btn-close-preview:hover {
-    background-color: #ddd;
+  background-color: #ddd;
 }
 
 .smart-import-wrapper {
@@ -361,7 +379,7 @@ const handleOcrData = (data) => {
 }
 
 .btn-smart-import {
-  background: linear-gradient(135deg, #0056FF 0%, #0033cc 100%);
+  background: linear-gradient(135deg, #0056ff 0%, #0033cc 100%);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -369,7 +387,7 @@ const handleOcrData = (data) => {
   cursor: pointer;
   font-weight: bold;
   font-size: 14px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s;
   display: flex;
   align-items: center;
@@ -378,6 +396,6 @@ const handleOcrData = (data) => {
 
 .btn-smart-import:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 </style>
