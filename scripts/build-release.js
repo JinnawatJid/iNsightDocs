@@ -267,7 +267,9 @@ const downloadFile = async (url, destPath) => {
       'DB_PORT=1433',
       'DB_NAME=CreditRequestDB',
       'UPLOAD_PATH=../../customers',
-      'LOG_DIR=../../logs'
+      'LOG_DIR=../../logs',
+      '# Number of days before downloaded DBD financial files are considered expired',
+      'DBD_FILE_FRESHNESS_DAYS=180'
     ].join('\n');
     await fs.writeFile(path.join(RELEASE_DIR, 'backend', '.env'), envContent);
 

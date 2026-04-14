@@ -33,7 +33,7 @@ Before starting the batch process, users can verify if the required financial do
     2.  For each ID, it fetches the customer's basic information (Name and Tax ID) from the Customer API.
     3.  **Company Validation:** It checks if the customer is a corporate entity by looking for keywords in the name (e.g., "บริษัท", "หจก.", "co.", "ltd.") and ensuring a valid Tax ID exists.
     4.  **Skipping Individuals:** If the customer is an individual (not a company), they are automatically marked as `isSkipped: true` with the reason "ข้าม (ไม่ใช่บริษัท)". They do not need DBD files and are excluded from the "Needs Download" count.
-    5.  **File Check:** For valid companies, it checks the local file system for fresh DBD files (within 180 days).
+    5.  **File Check:** For valid companies, it checks the local file system for fresh DBD files (within 180 days by default, configurable via `DBD_FILE_FRESHNESS_DAYS` environment variable).
 *   **Result Display:** The frontend presents a SweetAlert2 summary showing the count of Ready items, Skipped items (Individuals), and items that need to be downloaded from the Bridge.
 
 
@@ -85,7 +85,7 @@ To optimize performance and reduce costs, the system checks for existing local f
 1.  **Check**: The system calls `GET /api/financials/check-local/{Customer_ID}`.
 2.  **Validity**: Files are considered valid if:
     *   They exist in the `SP682/customers/{Customer_ID}/{LatestDate}` folder.
-    *   The folder date is within **180 days** of the current date.
+    *   The folder date is within **180 days** of the current date (this limit is configurable via the `DBD_FILE_FRESHNESS_DAYS` environment variable in the backend `.env` file).
     *   All 4 required files are present.
 3.  **Action**:
     *   **If Valid**: The system skips the Bridge download and uses the local files for analysis (`use_local=true`). The status will reflect "Done (Local)".
