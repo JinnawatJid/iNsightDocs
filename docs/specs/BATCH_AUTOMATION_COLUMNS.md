@@ -17,6 +17,8 @@ This document details the logic, formatting, and calculation rules for the colum
 | **วงเงินแนะนำ ต่อเดือน** | Recommended Limit (Monthly) | `item.newLimit` (from Scoring Engine) | `#,##0.00 บาท` | - |
 | **วงเงินแนะนำ ต่อรอบบิล** | Recommended Limit (Cycle) | Calculated Formula | `#,##0.00 บาท` | See Formula below. |
 | **คะแนน** | Total Score | `item.score` | `Score (Grade)` | Color-coded (A=Green, B=Yellow, C=Red) |
+| **สัดส่วนยอดซื้อ (%)** | Purchase Proportion (%) | `item.purchaseProportion` | `0.00%` | Calculated post-batch |
+| **สัดส่วนยอดซื้อสะสม (%)** | Cumulative Proportion (%) | `item.cumulativeProportion` | `0.00%` | Calculated post-batch |
 
 ## Calculations
 
