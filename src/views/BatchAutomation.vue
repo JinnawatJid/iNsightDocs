@@ -270,6 +270,12 @@
             <th @click="sortBy('customerId')" class="sortable-header">รหัสลูกค้า <span v-if="sortKey === 'customerId'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
             <th @click="sortBy('name')" class="sortable-header">ชื่อลูกค้า <span v-if="sortKey === 'name'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
             <th @click="sortBy('totalPurchase3Months')" class="sortable-header">ยอดซื้อรวม 3 เดือน <span v-if="sortKey === 'totalPurchase3Months'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('wadlScore')" class="sortable-header">เฉลี่ยการจ่ายเงินล่าช้า <span v-if="sortKey === 'wadlScore'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('paymentTerms')" class="sortable-header">ระยะเวลาเครดิต <span v-if="sortKey === 'paymentTerms'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('billingDuration')" class="sortable-header">ระยะเวลาการวางบิล <span v-if="sortKey === 'billingDuration'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('currentLimit')" class="sortable-header">วงเงินปัจจุบัน <span v-if="sortKey === 'currentLimit'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('newLimit')" class="sortable-header">วงเงินแนะนำ <span v-if="sortKey === 'newLimit'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
+            <th @click="sortBy('score')" class="sortable-header">คะแนน <span v-if="sortKey === 'score'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
             <th @click="sortBy('purchaseProportion')" class="sortable-header">
               สัดส่วนยอดซื้อ (%)
               <span v-if="sortKey === 'purchaseProportion'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
@@ -280,12 +286,6 @@
               <span v-if="sortKey === 'cumulativeProportion'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span>
               <span v-else class="sort-icon inactive">↕</span>
             </th>
-            <th @click="sortBy('wadlScore')" class="sortable-header">เฉลี่ยการจ่ายเงินล่าช้า <span v-if="sortKey === 'wadlScore'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
-            <th @click="sortBy('paymentTerms')" class="sortable-header">ระยะเวลาเครดิต <span v-if="sortKey === 'paymentTerms'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
-            <th @click="sortBy('billingDuration')" class="sortable-header">ระยะเวลาการวางบิล <span v-if="sortKey === 'billingDuration'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
-            <th @click="sortBy('currentLimit')" class="sortable-header">วงเงินปัจจุบัน <span v-if="sortKey === 'currentLimit'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
-            <th @click="sortBy('newLimit')" class="sortable-header">วงเงินแนะนำ <span v-if="sortKey === 'newLimit'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
-            <th @click="sortBy('score')" class="sortable-header">คะแนน <span v-if="sortKey === 'score'" class="sort-icon">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span><span v-else class="sort-icon inactive">↕</span></th>
             <th>สถานะ</th>
             <th>ไฟล์</th>
             <th>การดำเนินการ</th>
@@ -301,8 +301,6 @@
             <td>{{ item.customerId }}</td>
             <td>{{ item.name || "-" }}</td>
             <td>{{ formatCurrency(item.totalPurchase3Months) }}</td>
-            <td>{{ typeof item.purchaseProportion === "number" ? item.purchaseProportion.toFixed(2) + "%" : "-" }}</td>
-            <td>{{ typeof item.cumulativeProportion === "number" ? item.cumulativeProportion.toFixed(2) + "%" : "-" }}</td>
             <td>
               {{ item.wadlScore !== null ? formatDays(item.wadlScore) : "-" }}
             </td>
@@ -326,6 +324,8 @@
               </span>
               <span v-else>-</span>
             </td>
+            <td>{{ typeof item.purchaseProportion === "number" ? item.purchaseProportion.toFixed(2) + "%" : "-" }}</td>
+            <td>{{ typeof item.cumulativeProportion === "number" ? item.cumulativeProportion.toFixed(2) + "%" : "-" }}</td>
             <td>
               <span class="status-badge" :class="item.status.toLowerCase()">
                 {{ translateStatus(item.status) }}
