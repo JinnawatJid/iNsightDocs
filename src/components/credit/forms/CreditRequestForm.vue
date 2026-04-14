@@ -323,21 +323,39 @@ const handleAction = async (btn) => {
              console.log('Validation Failed:', validation);
              store.triggerValidation();
 
-             const missingFText = validation.missingFields ? validation.missingFields.map(f => fieldLabels[f] || f).join(', ') : '';
-             const missingDText = validation.missingFiles ? validation.missingFiles.map(d => docLabels[d] || d).join(', ') : '';
+             const missingFList = validation.missingFields ? validation.missingFields.map(f => fieldLabels[f] || f) : [];
+             const missingDList = validation.missingFiles ? validation.missingFiles.map(d => docLabels[d] || d) : [];
 
              let htmlText = '';
-             if (missingFText || missingDText) {
-                 htmlText = '<div style="text-align: left;">';
-                 if (missingFText) htmlText += `<p><strong>ข้อมูลที่ขาด:</strong> ${missingFText}</p>`;
-                 if (missingDText) htmlText += `<p><strong>เอกสารที่ขาด:</strong> ${missingDText}</p>`;
-                 htmlText += '</div>';
+             if (missingFList.length > 0 || missingDList.length > 0) {
+                 htmlText = `<div style="text-align: left; background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 6px; font-size: 14px; margin-top: 10px; border: 1px solid #ffeeba;">`;
+                 htmlText += `<p style="margin-bottom: 10px;"><strong>กรุณากลับไปตรวจสอบและระบุข้อมูลดังต่อไปนี้:</strong></p>`;
+
+                 if (missingFList.length > 0) {
+                     htmlText += `<p style="margin-bottom: 5px;">📝 <strong>ข้อมูลที่ต้องระบุ:</strong></p>`;
+                     htmlText += `<ul style="margin-top: 0; margin-bottom: 15px; padding-left: 20px;">`;
+                     missingFList.forEach(item => {
+                         htmlText += `<li>${item}</li>`;
+                     });
+                     htmlText += `</ul>`;
+                 }
+
+                 if (missingDList.length > 0) {
+                     htmlText += `<p style="margin-bottom: 5px;">📎 <strong>เอกสารที่ต้องแนบ:</strong></p>`;
+                     htmlText += `<ul style="margin-top: 0; margin-bottom: 0; padding-left: 20px;">`;
+                     missingDList.forEach(item => {
+                         htmlText += `<li>${item}</li>`;
+                     });
+                     htmlText += `</ul>`;
+                 }
+                 htmlText += `</div>`;
              }
 
              Swal.fire({
                 icon: 'warning',
                 title: 'ข้อมูลไม่ครบถ้วน',
-                html: htmlText || 'กรุณากรอกข้อมูลและแนบเอกสารให้ครบถ้วนตามรายการที่มีเครื่องหมาย *'
+                html: htmlText || 'กรุณากรอกข้อมูลและแนบเอกสารให้ครบถ้วนตามรายการที่มีเครื่องหมาย *',
+                confirmButtonText: 'กลับไปแก้ไข'
              });
              return;
         } else {
