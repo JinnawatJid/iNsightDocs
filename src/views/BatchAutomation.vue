@@ -631,6 +631,7 @@ const getGradeClass = (grade) => {
 };
 
 const getRowClass = (item) => {
+  if (item.cumulativeProportion > 0 && item.cumulativeProportion <= 80) return "row-pareto-focus";
   if (item.status === "Processing") return "row-active";
   if (
     item.status === "Pending" &&
@@ -2821,6 +2822,10 @@ button:disabled {
 
 .row-warning {
   background: #fff3cd !important;
+}
+
+.row-pareto-focus {
+  background-color: #fffde7 !important; /* Soft Yellow for Top 80% */
 }
 
 .status-badge {
