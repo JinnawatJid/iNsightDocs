@@ -775,7 +775,9 @@ const fetchByBranch = async () => {
           customerId: item.No_,
           name: name,
           taxId: item.VAT_Registration_No_ || "",
-          totalPurchase3Months: 0, // Will be fetched during process
+          totalPurchase3Months: 0,
+          purchaseProportion: 0,
+          cumulativeProportion: 0, // Will be fetched during process
           latePaymentAverage: null,
           wadlScore: null,
           currentLimit: item.Fixed_Credit_Limit || 0,
@@ -949,6 +951,8 @@ const processFile = (file) => {
           name: name,
           taxId: "",
           totalPurchase3Months: 0,
+          purchaseProportion: 0,
+          cumulativeProportion: 0,
           latePaymentAverage: null,
           wadlScore: null,
           currentLimit: 0,
@@ -2017,6 +2021,33 @@ const startBatch = async () => {
   }
 
   await Promise.all(workers);
+
+  // Start Pareto / Purchase Proportion Calculations
+  const totalBranchPurchase = queue.value.reduce((sum, item) => sum + (Number(item.totalPurchase3Months) || 0), 0);
+
+  // Sort descending by totalPurchase3Months
+  queue.value.sort((a, b) => {
+    const valA = Number(a.totalPurchase3Months) || 0;
+    const valB = Number(b.totalPurchase3Months) || 0;
+    return valB - valA;
+  });
+
+  // Calculate proportions
+  let runningCumulative = 0;
+  queue.value.forEach(item => {
+    const purchaseVal = Number(item.totalPurchase3Months) || 0;
+
+    let proportion = 0;
+    if (totalBranchPurchase > 0) {
+      proportion = (purchaseVal / totalBranchPurchase) * 100;
+    }
+
+    runningCumulative += proportion;
+
+    item.purchaseProportion = proportion;
+    item.cumulativeProportion = runningCumulative;
+  });
+  // End Pareto Calculations
 
   isProcessing.value = false;
   if (!shouldStop.value) {
