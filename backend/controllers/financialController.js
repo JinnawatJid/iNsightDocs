@@ -1072,7 +1072,10 @@ const checkSingleCustomerFiles = async (customer_no) => {
             }
         }
 
-        // Check Freshness (180 days) against primary folder
+        // Check Freshness against primary folder (configurable, defaults to 180 days)
+        const freshnessLimit = process.env.DBD_FILE_FRESHNESS_DAYS ? parseInt(process.env.DBD_FILE_FRESHNESS_DAYS, 10) : 180;
+        const effectiveLimit = isNaN(freshnessLimit) ? 180 : freshnessLimit;
+
         const folderDate = new Date(
             parseInt(primaryFolder.substring(0, 4)),
             parseInt(primaryFolder.substring(4, 6)) - 1,
@@ -1082,9 +1085,9 @@ const checkSingleCustomerFiles = async (customer_no) => {
         const diffTime = Math.abs(now - folderDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        if (diffDays > 180) {
-            logger.info(`[DEBUG] Local files for ${customer_no} (${primaryFolder}) rejected. diffDays=${diffDays} > 180`);
-            return { exists: false, reason: 'Files too old', days: diffDays, limit: 180 };
+        if (diffDays > effectiveLimit) {
+            logger.info(`[DEBUG] Local files for ${customer_no} (${primaryFolder}) rejected. diffDays=${diffDays} > ${effectiveLimit}`);
+            return { exists: false, reason: 'Files too old', days: diffDays, limit: effectiveLimit };
         }
 
         const primaryPath = path.join(customerRoot, primaryFolder);
