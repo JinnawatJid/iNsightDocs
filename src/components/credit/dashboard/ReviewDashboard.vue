@@ -43,7 +43,9 @@
         <div class="card-header">
             <h3>สถานะเอกสาร</h3>
             <div class="doc-header-actions" style="display: flex; align-items: center; gap: 15px;">
-                <span class="doc-count">ครบแล้ว {{ uploadedCount }}/{{ documents.length }} รายการ</span>
+                <span class="doc-count" :class="{ 'text-success': uploadedCount === documents.length, 'text-warning': uploadedCount < documents.length }">
+                    {{ uploadedCount === documents.length ? `เอกสารครบถ้วน (${uploadedCount}/${documents.length} รายการ)` : `เอกสารยังไม่ครบ (${uploadedCount}/${documents.length} รายการ)` }}
+                </span>
                 <button class="btn-view-all-docs" @click="handleOpenAllDocs">
                    ดูเอกสารทั้งหมด
                 </button>
@@ -449,7 +451,13 @@ const openFinancialModal = async () => {
 /* Documents Grid */
 .doc-count {
     font-size: 14px;
-    color: #666;
+    font-weight: 600;
+}
+.doc-count.text-success {
+    color: #28a745;
+}
+.doc-count.text-warning {
+    color: #ffc107;
 }
 
 .documents-grid {
