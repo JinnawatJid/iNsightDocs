@@ -4,94 +4,104 @@
     <div class="batch-automation-container page-content">
 
     <!-- Configuration & Upload -->
-    <div class="control-panel">
-      <div class="input-section">
-        <!-- Input Type Toggle -->
-        <div class="input-type-toggle">
-          <button
-            class="toggle-btn"
-            :class="{ active: inputType === 'branch' }"
-            @click="inputType = 'branch'"
-          >
-            ดึงข้อมูลตามสาขา
-          </button>
-          <button
-            class="toggle-btn"
-            :class="{ active: inputType === 'file' }"
-            @click="inputType = 'file'"
-          >
-            อัปโหลด Excel
-          </button>
-        </div>
-
-        <!-- File Upload -->
-        <div
-          v-if="inputType === 'file'"
-          class="upload-area"
-          @dragover.prevent
-          @drop.prevent="handleDrop"
-        >
-          <input
-            type="file"
-            ref="fileInput"
-            class="hidden-input"
-            accept=".xlsx, .xls"
-            @change="handleFileSelect"
-          />
-          <div class="upload-content" @click="$refs.fileInput.click()">
-            <span class="upload-icon" style="font-size: 2em; line-height: 1"
-              >&#8681;</span
+    <div class="dashboard-grid">
+      <!-- Data Source Card -->
+      <div class="unified-card">
+        <div class="card-header">
+          <h3 class="card-title">แหล่งข้อมูล (Data Source)</h3>
+          <!-- Modern Segmented Control -->
+          <div class="segmented-control">
+            <button
+              class="segment-btn"
+              :class="{ active: inputType === 'branch' }"
+              @click="inputType = 'branch'"
             >
-            <span v-if="!queue.length">คลิกหรือลากไฟล์ Excel มาวางที่นี่</span>
-            <span v-else>โหลดข้อมูลแล้ว {{ queue.length }} รายการ</span>
+              ดึงข้อมูลตามสาขา
+            </button>
+            <button
+              class="segment-btn"
+              :class="{ active: inputType === 'file' }"
+              @click="inputType = 'file'"
+            >
+              อัปโหลด Excel
+            </button>
           </div>
         </div>
 
-        <!-- Branch Selection -->
-        <div v-else class="branch-area">
-          <div class="d-flex align-items-center" style="gap: 15px">
-            <label style="white-space: nowrap; margin-bottom: 0"
-              >เลือกสาขา (Branch):</label
-            >
-            <select
-              v-model="selectedBranch"
-              class="form-control branch-select"
-              style="max-width: 300px"
-            >
-              <option value="" disabled>-- กรุณาเลือกสาขา / ภูมิภาค --</option>
-              <optgroup
-                v-for="region in branchData"
-                :key="region.region"
-                :label="region.region"
+        <div class="card-body">
+          <!-- File Upload -->
+          <div
+            v-if="inputType === 'file'"
+            class="upload-area"
+            @dragover.prevent
+            @drop.prevent="handleDrop"
+          >
+            <input
+              type="file"
+              ref="fileInput"
+              class="hidden-input"
+              accept=".xlsx, .xls"
+              @change="handleFileSelect"
+            />
+            <div class="upload-content" @click="$refs.fileInput.click()">
+              <span class="upload-icon" style="font-size: 2em; line-height: 1"
+                >&#8681;</span
               >
-                <option
-                  :value="`REGION:${region.region}`"
-                  style="font-weight: bold; color: #0056ff"
+              <span v-if="!queue.length">คลิกหรือลากไฟล์ Excel มาวางที่นี่</span>
+              <span v-else>โหลดข้อมูลแล้ว {{ queue.length }} รายการ</span>
+            </div>
+          </div>
+
+          <!-- Branch Selection -->
+          <div v-else class="branch-area">
+            <div class="branch-select-wrapper">
+              <label class="input-label">เลือกสาขา หรือภูมิภาค:</label>
+              <div class="d-flex" style="gap: 15px; width: 100%;">
+                <select
+                  v-model="selectedBranch"
+                  class="form-control flex-1"
                 >
-                  รวมทั้งหมดใน {{ region.region }}
-                </option>
-                <option
-                  v-for="zone in region.zones"
-                  :key="zone.code"
-                  :value="zone.code"
+                  <option value="" disabled>-- กรุณาเลือก --</option>
+                  <optgroup
+                    v-for="region in branchData"
+                    :key="region.region"
+                    :label="region.region"
+                  >
+                    <option
+                      :value="`REGION:${region.region}`"
+                      style="font-weight: bold; color: #0056ff"
+                    >
+                      รวมทั้งหมดใน {{ region.region }}
+                    </option>
+                    <option
+                      v-for="zone in region.zones"
+                      :key="zone.code"
+                      :value="zone.code"
+                    >
+                      {{ zone.code }} - {{ zone.name }}
+                    </option>
+                  </optgroup>
+                </select>
+                <button
+                  class="btn-primary"
+                  @click="fetchByBranch"
+                  :disabled="!selectedBranch || isFetchingBranch"
+                  style="white-space: nowrap"
                 >
-                  {{ zone.code }} - {{ zone.name }}
-                </option>
-              </optgroup>
-            </select>
-            <button
-              class="btn-primary btn-fetch"
-              @click="fetchByBranch"
-              :disabled="!selectedBranch || isFetchingBranch"
-              style="white-space: nowrap"
-            >
-              {{ isFetchingBranch ? "กำลังดึงข้อมูล..." : "ดึงรายชื่อลูกค้า" }}
-            </button>
+                  {{ isFetchingBranch ? "กำลังดึงข้อมูล..." : "ดึงรายชื่อลูกค้า" }}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="settings-area" style="text-align: left">
+      <!-- System Settings Card -->
+      <div class="unified-card">
+        <div class="card-header">
+          <h3 class="card-title">ตั้งค่าระบบ (System Settings)</h3>
+        </div>
+        <div class="card-body">
         <label style="display: block; margin-bottom: 5px"
           >การเชื่อมต่อ Bridge:</label
         >
@@ -179,73 +189,80 @@
             </div>
           </div>
         </div>
+        </div>
       </div>
     </div>
 
-    <!-- Actions -->
-    <div class="action-bar">
-      <button
-        class="btn-primary"
-        @click="startBatch"
-        :disabled="isProcessing || queue.length === 0"
-      >
-        {{ isProcessing ? "กำลังประมวลผล..." : "เริ่มประมวลผล" }}
-      </button>
+    <!-- Results Card -->
+    <div class="unified-card mt-4">
+      <div class="card-header">
+        <h3 class="card-title">ผลการประมวลผล (Results)</h3>
+      </div>
 
-      <button
-        class="btn-outline-danger"
-        @click="stopBatch"
-        :disabled="!isProcessing"
-      >
-        หยุด
-      </button>
-
-      <button
-        class="btn-secondary"
-        @click="checkReadiness"
-        :disabled="isProcessing || queue.length === 0"
-      >
-        ตรวจเอกสารการเงิน
-      </button>
-
-      <!-- DROPDOWN FOR EXPORT -->
-      <div class="dropdown" v-click-outside="closeExportDropdown">
+      <!-- Actions Toolbar -->
+      <div class="action-toolbar">
         <button
-          class="btn-secondary dropdown-toggle"
-          @click="toggleExportDropdown"
-          :disabled="queue.length === 0"
+          class="btn-primary"
+          @click="startBatch"
+          :disabled="isProcessing || queue.length === 0"
         >
-          ส่งออกรายงาน
+          {{ isProcessing ? "กำลังประมวลผล..." : "เริ่มประมวลผล" }}
         </button>
-        <div class="dropdown-menu" v-if="isExportDropdownOpen">
-          <a class="dropdown-item" @click="exportSummarizedReport"
-            >แบบย่อ (Summary)</a
+
+        <button
+          class="btn-outline-danger"
+          @click="stopBatch"
+          :disabled="!isProcessing"
+        >
+          หยุด
+        </button>
+
+        <button
+          class="btn-secondary"
+          @click="checkReadiness"
+          :disabled="isProcessing || queue.length === 0"
+        >
+          ตรวจเอกสารการเงิน
+        </button>
+
+        <!-- DROPDOWN FOR EXPORT -->
+        <div class="dropdown" v-click-outside="closeExportDropdown">
+          <button
+            class="btn-secondary dropdown-toggle"
+            @click="toggleExportDropdown"
+            :disabled="queue.length === 0"
           >
-          <a class="dropdown-item" @click="exportFullDetailReport"
-            >แบบละเอียด (Full Detail)</a
-          >
+            ส่งออกรายงาน
+          </button>
+          <div class="dropdown-menu" v-if="isExportDropdownOpen">
+            <a class="dropdown-item" @click="exportSummarizedReport"
+              >แบบย่อ (Summary)</a
+            >
+            <a class="dropdown-item" @click="exportFullDetailReport"
+              >แบบละเอียด (Full Detail)</a
+            >
+          </div>
+        </div>
+
+        <div class="progress-info" v-if="queue.length > 0">
+          <div class="d-flex justify-content-between">
+            <span>ประมวลผลแล้ว: {{ processedCount }} / {{ queue.length }}</span>
+            <span v-if="activeWorkers > 0" class="text-primary processing-badge">
+              <span class="spinner-border spinner-border-sm"></span>
+              กำลังทำงาน: {{ activeWorkers }}
+            </span>
+          </div>
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              :style="{ width: (processedCount / queue.length) * 100 + '%' }"
+            ></div>
+          </div>
         </div>
       </div>
 
-      <div class="progress-info" v-if="queue.length > 0">
-        <div class="d-flex justify-content-between">
-          <span>ประมวลผลแล้ว: {{ processedCount }} / {{ queue.length }}</span>
-          <span v-if="activeWorkers > 0" class="text-primary processing-badge">
-            <span class="spinner-border spinner-border-sm"></span>
-            กำลังทำงาน: {{ activeWorkers }}
-          </span>
-        </div>
-        <div class="progress-bar">
-          <div
-            class="progress-fill"
-            :style="{ width: (processedCount / queue.length) * 100 + '%' }"
-          ></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Data Table -->
-    <div class="table-container">
+      <!-- Data Table -->
+      <div class="table-container card-body">
       <table class="data-table">
         <thead>
           <tr>
@@ -333,8 +350,9 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
-  </div>
+    </div>
   </div>
 
   <!-- Custom Upload Modal (Teleported to body to avoid z-index issues) -->
@@ -2328,52 +2346,86 @@ const exportFullDetailReport = () => {
   margin: 0 auto;
 }
 
-.control-panel {
-  display: flex;
-  gap: 30px;
-  margin-bottom: 30px;
-  align-items: flex-start;
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
-.input-section {
-  flex: 2;
+.unified-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
-  gap: 15px;
 }
 
-.input-type-toggle {
+.card-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
   display: flex;
-  gap: 10px;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 10px;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+  border-radius: 8px 8px 0 0;
 }
 
-.toggle-btn {
-  padding: 8px 15px;
-  border: 1px solid #ddd;
-  background: #fff;
+.card-title {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #333;
+}
+
+.card-body {
+  padding: 20px;
+  flex: 1;
+}
+
+/* Modern Segmented Control */
+.segmented-control {
+  display: inline-flex;
+  background: #e9ecef;
   border-radius: 20px;
-  cursor: pointer;
+  padding: 3px;
+}
+
+.segment-btn {
+  border: none;
+  background: transparent;
+  padding: 6px 16px;
+  border-radius: 18px;
+  font-size: 0.9em;
   font-weight: 500;
-  color: #666;
+  color: #555;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
-.toggle-btn.active {
-  background: #0056ff;
-  color: #fff;
-  border-color: #0056ff;
+.segment-btn.active {
+  background: #fff;
+  color: #0056ff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.branch-area {
-  padding: 20px;
-  background: #fff;
-  border: 1px solid #eee;
+.input-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.branch-select-wrapper {
+  background: #f8f9fa;
+  padding: 15px;
   border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  border: 1px solid #eee;
+}
+
+.flex-1 {
+  flex: 1;
 }
 
 .branch-select {
@@ -2413,13 +2465,6 @@ const exportFullDetailReport = () => {
   font-size: 2em;
 }
 
-.settings-area {
-  flex: 1;
-  background: #f1f1f1;
-  padding: 15px;
-  border-radius: 8px;
-}
-
 .input-group {
   display: flex;
   gap: 5px;
@@ -2442,16 +2487,14 @@ const exportFullDetailReport = () => {
   cursor: pointer;
 }
 
-.action-bar {
+.action-toolbar {
   display: flex;
   gap: 15px;
   align-items: center;
-  margin-bottom: 20px;
+  padding: 15px 20px;
   background: #fff;
-  padding: 10px 0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  border-bottom: 1px solid #eee;
+  flex-wrap: wrap;
 }
 
 button {
@@ -2698,10 +2741,8 @@ button:disabled {
 }
 
 .table-container {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  overflow: hidden;
   overflow-x: auto;
+  padding: 0; /* Remove padding to let table span full width of card body */
 }
 
 .data-table {
@@ -2733,6 +2774,10 @@ button:disabled {
 .data-table th:not(:first-child),
 .data-table td:not(:first-child) {
   min-width: 100px;
+}
+
+.mt-4 {
+  margin-top: 20px;
 }
 
 .row-active {
