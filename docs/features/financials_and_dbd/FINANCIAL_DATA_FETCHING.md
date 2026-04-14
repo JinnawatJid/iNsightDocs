@@ -70,14 +70,20 @@ To resolve this, the backend (`customerController.js`) employs a **Proportional 
 
 This ensures the UI safely displays a "3 Month Category Breakdown" whose sum perfectly matches the "3 Month Total Purchases" without requiring the external API to support dynamic month filtering.
 
-## 4. Fallback Logic (`fetchPurchasingBehavior` & `fetchCategorySummary`)
+## 4. Fallback Logic and UI Selection (`fetchPurchasingBehavior` & `fetchCategorySummary`)
 
 The logic is centralized in the `fetchPurchasingBehavior` and `fetchCategorySummary` functions (used in `customerController.js` and `financialController.js`).
 
-1.  **Attempt Tax ID Fetch:** If the customer record possesses a valid, non-empty `VAT Registration No_` (passed as `taxId`), the system first attempts a `GET` request to the Primary API.
-2.  **Graceful Degradation:** If the Primary API request fails (e.g., timeout, 404, or server error), the error is caught, a warning is logged, and the system immediately proceeds to the Fallback API.
-3.  **Attempt Customer Code Fetch:** If the customer lacks a `taxId`, or if the Primary API failed, the system executes a `POST` request to the Fallback API using the specific `customerNo`.
-4.  **Source Identification:** To ensure transparency for debugging and UI display, the returned data payload is dynamically injected with a `fetchSource` attribute:
+Recently, the system introduced an explicit **User Selection** in the Batch Automation page (Advanced Settings). This setting (`fetchBy` parameter) dictates how the financial data is resolved:
+*   **Select VAT No. (Default):** The system prioritizes the Primary API using the Tax ID.
+*   **Select Customer Code:** The system forces the use of the Fallback API using the specific Customer Code, entirely skipping the Tax ID lookup.
+
+**Execution Flow:**
+1.  **Evaluate Input:** The backend extracts the `fetchBy` parameter from the request.
+2.  **Attempt Tax ID Fetch (If Permitted):** If `fetchBy === 'vat'` and the customer record possesses a valid, non-empty `VAT Registration No_` (passed as `taxId`), the system first attempts a `GET` request to the Primary API.
+3.  **Graceful Degradation:** If the Primary API request fails (e.g., timeout, 404, or server error), the error is caught, a warning is logged, and the system immediately proceeds to the secondary action as a fallback.
+4.  **Attempt Customer Code Fetch:** If the customer lacks a `taxId`, if the Primary API failed, or if `fetchBy === 'customer_code'`, the system executes a `POST` request to the Fallback API using the specific `customerNo`.
+5.  **Source Identification:** To ensure transparency for debugging and UI display, the returned data payload is dynamically injected with a `fetchSource` attribute:
     *   `fetchSource: 'tax_no'` (If data originated from the Primary API)
     *   `fetchSource: 'customer_code'` (If data originated from the Fallback API)
     *   `fetchSource: 'error'` (If both API calls failed or resulted in an empty dataset)

@@ -50,6 +50,7 @@ The system includes a confirmation step to prevent accidental processing and ens
 1.  **Configuration**:
     *   **Default Model**: Existing Customer (ลูกค้าปัจจุบัน)
     *   **Default Limit Exponent**: 0.5 (Controls credit limit sensitivity)
+    *   **Purchasing Behavior Fetch Option**: Allows users to explicitly choose to fetch purchasing data using either the `VAT No.` (default) or the specific ERP `Customer Code`.
     *   **Concurrency**: User can adjust the number of worker threads (Recommended: 2-4).
 
 2.  **Confirmation**:
