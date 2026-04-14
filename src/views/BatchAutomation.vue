@@ -1,13 +1,7 @@
 <template>
-  <div>
+  <div class="batch-automation-wrapper">
     <Navbar />
-    <div class="batch-automation-container" style="padding-top: 100px;">
-      <div class="header-section">
-        <h2>ระบบคำนวณวงเงินสินเชื่ออัตโนมัติ</h2>
-      <p class="subtitle">
-        อัปโหลดรายชื่อลูกค้าเพื่อคำนวณคะแนนและวงเงินสินเชื่ออัตโนมัติ
-      </p>
-    </div>
+    <div class="batch-automation-container page-content">
 
     <!-- Configuration & Upload -->
     <div class="control-panel">
@@ -2321,25 +2315,17 @@ const exportFullDetailReport = () => {
 .hidden-input {
   display: none;
 }
-.batch-automation-container {
-  padding: 20px;
-  max-width: 1200px;
+
+.batch-automation-wrapper {
+  padding-top: 80px; /* Navbar height */
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.page-content {
+  padding: 20px 40px;
+  max-width: 1600px;
   margin: 0 auto;
-}
-
-.header-section {
-  margin-bottom: 30px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
-}
-
-.header-section h2 {
-  color: #0056ff;
-  margin-bottom: 5px;
-}
-
-.subtitle {
-  color: #666;
 }
 
 .control-panel {
