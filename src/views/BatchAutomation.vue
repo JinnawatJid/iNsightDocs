@@ -167,6 +167,19 @@
               </div>
             </div>
 
+            <!-- Fetch Option -->
+            <div class="setting-row">
+              <label class="setting-label">ดึงยอดซื้อด้วย:</label>
+              <select
+                v-model="fetchPurchaseBy"
+                class="form-control"
+                style="width: 200px"
+              >
+                <option value="vat">เลขผู้เสียภาษี (VAT)</option>
+                <option value="customer_code">รหัสลูกค้า</option>
+              </select>
+            </div>
+
             <div class="divider"></div>
 
             <!-- Concurrency -->
@@ -476,6 +489,7 @@ const concurrency = ref(1);
 const showConcurrencySettings = ref(false);
 const selectedModel = ref("existing"); // 'new' or 'existing'
 const limitExponent = ref(0.5);
+const fetchPurchaseBy = ref("vat");
 
 const activeWorkers = ref(0);
 const bridgeHost = ref(localStorage.getItem("bridgeHost") || "localhost");
@@ -1659,7 +1673,7 @@ const processNextItem = async () => {
     try {
       // 1. Fetch Customer Data
       item.log = "กำลังดึงข้อมูลลูกค้า...";
-      const searchRes = await CustomerService.searchCustomers(item.customerId);
+      const searchRes = await CustomerService.searchCustomers(item.customerId, fetchPurchaseBy.value);
       const customer =
         searchRes.find((c) => c.customer.id === item.customerId) ||
         searchRes[0];
@@ -1936,6 +1950,7 @@ const processNextItem = async () => {
       formData.append("years_in_business", String(yearsInBusiness));
       formData.append("request_credit_term", item.paymentTerms || "30");
       formData.append("request_amount", String(item.currentLimit || 0));
+      formData.append("fetch_purchase_by", fetchPurchaseBy.value);
 
       formData.append("model_type", selectedModel.value);
       if (selectedModel.value === "existing") {

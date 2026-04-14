@@ -104,16 +104,16 @@ const getCategoryLabel = (code) => {
     return map[code] || `Category ${code}`;
 };
 
-const fetchPurchasingBehavior = async (customerNo, taxId = null) => {
+const fetchPurchasingBehavior = async (customerNo, taxId = null, fetchBy = 'vat') => {
     if (MOCK_EXTERNAL_APIS || MOCK_FINANCIAL_API) {
         logger.info(`[Financial API] Using Mock Data for ${customerNo}`);
         const data = getMockFinancialData(customerNo);
-        data.fetchSource = taxId ? 'tax_no' : 'customer_code';
+        data.fetchSource = (taxId && fetchBy === 'vat') ? 'tax_no' : 'customer_code';
         return data;
     }
 
     try {
-        if (taxId && taxId.trim().length > 0) {
+        if (taxId && taxId.trim().length > 0 && fetchBy === 'vat') {
             logger.info(`[Financial API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
             const response = await axios.get(FINANCIAL_API_TAX_URL, {
                 params: { tax_no: taxId.trim() },
@@ -402,9 +402,10 @@ const checkBlacklist = async ({ taxId, personNames = [], companyNames = [] }) =>
  * @param {string} customerNo - The customer ID (No_).
  * @param {number} currentCreditLimit - The customer's current credit limit.
  * @param {string} taxId - The customer's Tax ID (VAT Registration No_).
+ * @param {string} fetchBy - Fetch behavior ('vat' or 'customer_code')
  * @returns {Promise<Object>} - Object containing { history, financial_summary, suggestions }
  */
-const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = null) => {
+const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = null, fetchBy = 'vat') => {
     let financialSummary = {};
     let suggestions = [];
     let history = [];
@@ -434,7 +435,7 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
     // 2. Fetch Financial Data (New API)
     try {
         const results = await Promise.allSettled([
-            fetchPurchasingBehavior(customerNo, taxId),
+            fetchPurchasingBehavior(customerNo, taxId, fetchBy),
             fetchCategorySummary(customerNo, categoryMonths, taxId),
             fetchWADLData(customerNo)
         ]);
@@ -866,6 +867,7 @@ const searchCustomersFallback = async (req, res, query) => {
  */
 exports.searchCustomers = async (req, res) => {
   const query = req.query.q;
+  const fetchPurchaseBy = req.query.fetch_purchase_by || 'vat';
 
   if (!query) {
     return res.status(400).json({ error: "Query parameter 'q' is required" });
@@ -910,7 +912,7 @@ exports.searchCustomers = async (req, res) => {
               // Side-load History & Financials from Local DB
               const currentCreditLimit = parseFloat(row["Fixed Credit Limit"]) || 0;
               const taxIdForEnrich = row["VAT Registration No_"] ? row["VAT Registration No_"].trim() : null;
-              const enriched = await enrichCustomerData(row["No_"], currentCreditLimit, taxIdForEnrich);
+              const enriched = await enrichCustomerData(row["No_"], currentCreditLimit, taxIdForEnrich, fetchPurchaseBy);
 
               // Improved Blacklist Logic: Gather Tax ID and Names (from API + Local Fallback)
               let taxId = row["VAT Registration No_"];
@@ -1131,7 +1133,8 @@ exports.searchCustomers = async (req, res) => {
       // Enrich with History & Financials
       const currentCreditLimit = parseFloat(row["Fixed Credit Limit"]) || 0;
       const taxIdForEnrich = row["VAT Registration No_"] ? row["VAT Registration No_"].trim() : null;
-      const enriched = await enrichCustomerData(row["No_"], currentCreditLimit, taxIdForEnrich);
+      const fetchPurchaseBy = req.query.fetch_purchase_by || 'vat';
+      const enriched = await enrichCustomerData(row["No_"], currentCreditLimit, taxIdForEnrich, fetchPurchaseBy);
 
       // Blacklist Check (Advanced)
       const isCompanyRec = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;

@@ -3,10 +3,10 @@ import axios from '../utils/axios.js';
 const API_URL = '/api/customers';
 
 export default {
-  async searchCustomers(query) {
+  async searchCustomers(query, fetchBy = 'vat') {
     try {
       const response = await axios.get(`${API_URL}/search`, {
-        params: { q: query },
+        params: { q: query, fetch_purchase_by: fetchBy },
       });
       return response.data;
     } catch (error) {
