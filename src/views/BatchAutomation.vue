@@ -8,7 +8,7 @@
       <!-- Data Source Card -->
       <div class="unified-card">
         <div class="card-header">
-          <h3 class="card-title">แหล่งข้อมูล (Data Source)</h3>
+          <h3 class="card-title">แหล่งข้อมูล</h3>
           <!-- Modern Segmented Control -->
           <div class="segmented-control">
             <button
@@ -55,7 +55,7 @@
           <!-- Branch Selection -->
           <div v-else class="branch-area">
             <div class="branch-select-wrapper">
-              <label class="input-label">เลือกสาขา หรือภูมิภาค:</label>
+              <label class="input-label" style="text-align: left;">เลือกสาขา หรือภูมิภาค:</label>
               <div class="d-flex" style="gap: 15px; width: 100%;">
                 <select
                   v-model="selectedBranch"
@@ -99,10 +99,10 @@
       <!-- System Settings Card -->
       <div class="unified-card">
         <div class="card-header">
-          <h3 class="card-title">ตั้งค่าระบบ (System Settings)</h3>
+          <h3 class="card-title">ตั้งค่าระบบ</h3>
         </div>
         <div class="card-body">
-        <label style="display: block; margin-bottom: 5px"
+        <label style="display: block; margin-bottom: 5px; text-align: left;"
           >การเชื่อมต่อ Bridge:</label
         >
         <div class="input-group" style="display: flex; gap: 10px">
@@ -121,7 +121,7 @@
             ตรวจสอบ
           </button>
         </div>
-        <small class="text-muted" style="display: block; margin-top: 5px"
+        <small class="text-muted" style="display: block; margin-top: 5px; text-align: left;"
           >สถานะ: {{ bridgeStatus }}</small
         >
 
@@ -196,7 +196,7 @@
     <!-- Results Card -->
     <div class="unified-card mt-4">
       <div class="card-header">
-        <h3 class="card-title">ผลการประมวลผล (Results)</h3>
+        <h3 class="card-title">ผลการประมวลผล</h3>
       </div>
 
       <!-- Actions Toolbar -->
