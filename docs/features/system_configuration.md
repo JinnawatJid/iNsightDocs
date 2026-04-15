@@ -50,6 +50,7 @@ A generic `Configurations` table will be created to store settings dynamically u
 - **Form Controls:** Dynamically rendered based on `data_type` (toggles for booleans, numeric inputs, text fields, or masked inputs for secrets).
 - **Feedback:** SweetAlert2 toasts for successful saves (non-disruptive).
 
-### 3.4 Access Control
-- Access is restricted to users with the Admin role (e.g., `"ผู้ดูแลระบบ"` or via `authStore.isAdmin`).
-- The `Navbar.vue` will conditionally render the link to this page.
+### 3.4 Access Control (RBAC Implementation)
+- **Backend Protection:** A dedicated `checkIsAdmin` middleware (`backend/middleware/checkIsAdmin.js`) parses the JWT/Mock role and guarantees that `GET` and `PUT` endpoints (`/api/config`) are restricted to users with the `"ผู้ดูแลระบบ"` role.
+- **Frontend Router Guard:** A global `beforeEach` navigation guard in `src/router/index.js` intercepts access to the `/configuration` route and redirects non-admins.
+- **UI Visibility:** The `Navbar.vue` conditionally renders the navigation link based on the `authStore.isAdmin` computed property.

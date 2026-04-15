@@ -75,6 +75,10 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
+  if (to.path === '/configuration' && !authStore.isAdmin) {
+    return next('/'); // Protect admin configuration path
+  }
+
   // User is authenticated, proceed to route
   next();
 });

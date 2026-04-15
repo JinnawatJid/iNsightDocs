@@ -12,6 +12,12 @@
         class="nav-link">
         ระบบอัตโนมัติ
       </router-link>
+      <router-link
+        v-if="authStore.isAdmin"
+        to="/configuration"
+        class="nav-link">
+        ตั้งค่าระบบ
+      </router-link>
     </div>
     <div class="nav-right">
       <div class="dev-role-switcher" v-if="!authStore.authRequired">

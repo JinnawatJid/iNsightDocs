@@ -118,9 +118,6 @@ const categories = computed(() => {
 });
 
 const currentCategoryConfigs = computed(() => {
-  if (!activeCategory.value && Object.keys(configStore.configurations || {}).length > 0) {
-    activeCategory.value = Object.keys(configStore.configurations).sort()[0];
-  }
   if (!activeCategory.value || !configStore.configurations[activeCategory.value]) {
     return [];
   }
