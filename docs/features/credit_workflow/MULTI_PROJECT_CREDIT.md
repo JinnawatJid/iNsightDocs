@@ -43,6 +43,18 @@ Each project card utilizes the `ProjectApplicationTabs.vue` component, which pro
 2. **ที่อยู่โครงการ (Project Address):** Physical location and map coordinates.
 3. **รอบส่งสินค้า (Project Phasing):** Delivery timelines and billing schedules.
 
+#### `รอบส่งสินค้า (Project Phasing)` details
+- Each phasing row now requires the following fields:
+  - **รายละเอียดงาน** (Work Description)
+  - **วันส่งสินค้า** (Delivery Date)
+  - **กำหนดชำระ** (Payment Due Date)
+  - **จำนวนเงิน (บาท)** (Amount in THB)
+- The delivery date (`วันส่งสินค้า`) and payment due date (`กำหนดชำระ`) are required and use a localized Thai date interaction pattern.
+- The UI shows Thai date values in `DD/MM/YYYY` format for users, while the underlying data remains stored as ISO `YYYY-MM-DD`.
+- The implementation uses a native browser date picker behind a readonly visible field so Thai users do not need to manually type a US-style date.
+- `กำหนดชำระ` is auto-calculated from `วันส่งสินค้า` plus the customer's billing terms code where available, preserving the standard business rule for payment offsets.
+- Required fields are visually marked with the existing red `*` style to match the application’s form validation conventions.
+
 ### `AddProjectTab.vue`
 Located at the bottom of the project list, this component provides an interface to query the external Sales System (mocked locally) via Project ID or Name. Upon selection, a new project object is initialized and pushed into the `transactionData.projects` array, instantly rendering a new project card.
 

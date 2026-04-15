@@ -8,15 +8,15 @@
           <thead>
             <tr>
               <th width="8%">งวด</th>
-              <th width="38%">รายละเอียดงาน</th>
-              <th width="15%">วันเบิก</th>
+              <th width="38%">รายละเอียดงาน <span class="required"></span></th>
+              <th width="15%">วันส่งสินค้า <span class="required"></span></th>
               <th width="15%">
-                 กำหนดชำระ
+                 กำหนดชำระ <span class="required"></span>
                  <span style="font-weight: normal; font-size: 12px; display: block; color: #555;">
                      ({{ store.customer?.billing_terms_code || store.customer?.['Billing Terms Code'] || '-' }})
                  </span>
               </th>
-              <th width="20%">จำนวนเงิน (บาท)</th>
+              <th width="20%">จำนวนเงิน (บาท) <span class="required"></span></th>
               <th width="4%" v-if="!readOnly"></th>
             </tr>
           </thead>
@@ -33,21 +33,48 @@
                 />
               </td>
               <td>
-                <input
-                  type="date"
-                  v-model="phase.billingDate"
-                  :disabled="readOnly"
-                  @change="handleBillingDateChange(idx)"
-                  class="table-input text-center"
-                />
+                <div class="date-picker-cell">
+                  <input
+                    type="text"
+                    :value="formatDateForDisplay(phase.billingDate)"
+                    :disabled="readOnly"
+                    readonly
+                    @click="!readOnly && openDatePicker(idx, 'billingDate')"
+                    class="table-input text-center date-text-input"
+                    placeholder="dd/mm/yyyy"
+                  />
+                  <input
+                    type="date"
+                    v-model="phase.billingDate"
+                    :id="`billingDate-${props.projectIndex}-${idx}`"
+                    :disabled="readOnly"
+                    @change="handleBillingDateChange(idx)"
+                    class="hidden-date-input"
+                    lang="th-TH"
+                  />
+                </div>
               </td>
               <td>
-                <input
-                  type="date"
-                  v-model="phase.paymentDate"
-                  :disabled="readOnly"
-                  class="table-input text-center"
-                />
+                <div class="date-picker-cell">
+                  <input
+                    type="text"
+                    :value="formatDateForDisplay(phase.paymentDate)"
+                    :disabled="readOnly"
+                    readonly
+                    @click="!readOnly && openDatePicker(idx, 'paymentDate')"
+                    class="table-input text-center date-text-input"
+                    placeholder="dd/mm/yyyy"
+                  />
+                  <input
+                    type="date"
+                    v-model="phase.paymentDate"
+                    :id="`paymentDate-${props.projectIndex}-${idx}`"
+                    :disabled="readOnly"
+                    @change="handlePaymentDateChange(idx)"
+                    class="hidden-date-input"
+                    lang="th-TH"
+                  />
+                </div>
               </td>
               <td>
                 <input
@@ -246,6 +273,38 @@ const handleBillingDateChange = (index) => {
             }
         }
     }
+};
+
+const handlePaymentDateChange = (index) => {
+    if (!project.value) return;
+    const paymentDate = project.value.projectPhasing[index].paymentDate;
+    if (paymentDate) {
+        project.value.projectPhasing[index].paymentDate = paymentDate;
+    }
+};
+
+const openDatePicker = (index, field) => {
+    const elementId = `${field}-${props.projectIndex}-${index}`;
+    const input = document.getElementById(elementId);
+    if (input) {
+        input.focus();
+        if (typeof input.showPicker === 'function') {
+            input.showPicker();
+        } else {
+            input.click();
+        }
+    }
+};
+
+const formatDateForDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('th-TH', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
 };
 
 const handlePhaseAmountInput = (index, event) => {
@@ -616,6 +675,24 @@ const chartOptions = computed(() => {
     border-color: #0056FF;
 }
 
+.date-picker-cell {
+    position: relative;
+}
+
+.date-text-input {
+    cursor: pointer;
+    background-color: #fff;
+}
+
+.hidden-date-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+}
 .table-input:disabled {
     background-color: #f5f5f5;
     color: #777;
@@ -624,6 +701,11 @@ const chartOptions = computed(() => {
 .text-center { text-align: center; }
 .text-right { text-align: right; }
 .font-bold { font-weight: bold; }
+
+.required::after {
+    content: " *";
+    color: #dc3545;
+}
 
 .empty-row {
     color: #888;
