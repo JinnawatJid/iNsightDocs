@@ -400,6 +400,26 @@ const initDB = async () => {
             logger.error('Error migrating 3-digit tx_id to 2-digit tx_id:', e);
         }
 
+        // Create Configurations table
+        await db.runAsync(`CREATE TABLE IF NOT EXISTS Configurations (
+            config_key TEXT PRIMARY KEY,
+            config_value TEXT,
+            data_type TEXT,
+            category TEXT,
+            description TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_by TEXT
+        )`);
+
+        // Seed default configuration if not exists
+        const checkConfig = await db.query(`SELECT * FROM Configurations WHERE config_key = ?`, ['DBD_FILE_FRESHNESS_DAYS']);
+        if (checkConfig && checkConfig.rows && checkConfig.rows.length === 0) {
+            await db.runAsync(`INSERT INTO Configurations (config_key, config_value, data_type, category, description, updated_by)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+                ['DBD_FILE_FRESHNESS_DAYS', '180', 'number', 'System', 'จำนวนวันสูงสุดที่ยอมรับได้สำหรับความใหม่ของไฟล์ DBD (Days)', 'system']);
+            logger.info("Seeded default configuration: DBD_FILE_FRESHNESS_DAYS");
+        }
+
         logger.info('Database initialized (SQLite).');
     } catch (error) {
         logger.error('Database initialization failed (SQLite):', error);
