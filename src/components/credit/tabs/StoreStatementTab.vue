@@ -1250,23 +1250,24 @@ const analyzeFinancials = async () => {
         return val || '-';
       };
 
-      const sizeLabel = scoreData.sizeCategory || '-';
-      const gradeLabel = scoreData.finalGrade || '-';
+      // Extract size and grade based on the structure returned by the engine
+      const sizeLabel = scoreData.sizeResult?.label || scoreData.sizeCategory || '-';
+      const gradeLabel = scoreData.gradeResult?.label || scoreData.grade || scoreData.finalGrade || '-';
       const limitVal = scoreData.recommendedLimit !== undefined && scoreData.recommendedLimit !== null ? formatVal(scoreData.recommendedLimit) + ' บาท' : '-';
 
       const successHtml = `
         <div style="text-align: left; padding: 10px;">
           <h4 style="color: #28a745; margin-bottom: 20px; text-align: center;">วิเคราะห์ข้อมูลเสร็จสมบูรณ์</h4>
           <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-            <span style="font-weight: bold; color: #555;">Size (ขนาดธุรกิจ):</span>
+            <span style="font-weight: bold; color: #555;">ขนาดธุรกิจ:</span>
             <span style="font-size: 1.1em; color: #007bff; font-weight: bold;">${sizeLabel}</span>
           </div>
           <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-            <span style="font-weight: bold; color: #555;">Grade (เกรด):</span>
+            <span style="font-weight: bold; color: #555;">เกรด:</span>
             <span style="font-size: 1.1em; color: #007bff; font-weight: bold;">${gradeLabel}</span>
           </div>
           <div style="display: flex; justify-content: space-between; padding-bottom: 10px;">
-            <span style="font-weight: bold; color: #555;">Recommended Limit (วงเงินแนะนำ):</span>
+            <span style="font-weight: bold; color: #555;">วงเงินแนะนำ:</span>
             <span style="font-size: 1.2em; color: #28a745; font-weight: bold;">${limitVal}</span>
           </div>
         </div>
