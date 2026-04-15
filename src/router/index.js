@@ -5,6 +5,7 @@ import CreateCreditRequest from '../views/CreateCreditRequest.vue';
 import OcrComparison from '../views/OcrComparison.vue';
 import CreditAnalysisReport from '../views/CreditAnalysisReport.vue';
 import BatchAutomation from '../views/BatchAutomation.vue';
+import SystemConfiguration from '../views/SystemConfiguration.vue';
 
 const routes = [
   {
@@ -41,6 +42,11 @@ const routes = [
     name: 'BatchAutomation',
     component: BatchAutomation,
   },
+  {
+    path: '/configuration',
+    name: 'SystemConfiguration',
+    component: SystemConfiguration,
+  },
 ];
 
 import { useAuthStore } from '../stores/auth';
@@ -67,6 +73,10 @@ router.beforeEach(async (to, from, next) => {
       window.location.href = authStore.loginUrl;
       return next(false); // Abort current navigation
     }
+  }
+
+  if (to.path === '/configuration' && !authStore.isAdmin) {
+    return next('/'); // Protect admin configuration path
   }
 
   // User is authenticated, proceed to route

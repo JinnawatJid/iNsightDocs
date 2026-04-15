@@ -12,6 +12,12 @@
         class="nav-link">
         ระบบอัตโนมัติ
       </router-link>
+      <router-link
+        v-if="authStore.isAdmin"
+        to="/configuration"
+        class="nav-link">
+        ตั้งค่าระบบ
+      </router-link>
     </div>
     <div class="nav-right">
       <div class="dev-role-switcher" v-if="!authStore.authRequired">
@@ -47,7 +53,8 @@ export default {
         'ผู้พิจารณาฝ่ายขาย',
         'ผู้ตรวจสอบเอกสาร',
         'ผู้อนุมัติ (วงเงิน <300K)',
-        'ผู้อนุมัติ (วงเงิน > 300K)'
+        'ผู้อนุมัติ (วงเงิน > 300K)',
+        'ผู้ดูแลระบบ'
       ]
     };
   },
