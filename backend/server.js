@@ -13,6 +13,7 @@ const financialRoutes = require('./routes/financialRoutes');
 const ocrRoutes = require('./routes/ocrRoutes');
 const externalRoutes = require('./routes/externalRoutes');
 const authRoutes = require('./routes/authRoutes');
+const configRoutes = require('./routes/configRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +41,7 @@ app.use('/api/customers', authMiddleware, customerRoutes);
 app.use('/api/credit-requests', authMiddleware, creditRequestRoutes);
 app.use('/api/financials', authMiddleware, financialRoutes);
 app.use('/api/ocr', authMiddleware, ocrRoutes);
+app.use('/api/config', authMiddleware, configRoutes);
 
 // External Routes (Should typically have their own API key protection, not user JWT)
 app.use('/api/external', externalRoutes);
