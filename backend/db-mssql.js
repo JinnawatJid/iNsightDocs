@@ -531,6 +531,43 @@ const initDB = async () => {
             logger.error('Error migrating 3-digit tx_id to 2-digit tx_id:', e);
         }
 
+        // Create Configurations table
+        const createConfigurationsSQL = `
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Configurations' and xtype='U')
+            CREATE TABLE Configurations (
+                config_key NVARCHAR(255) PRIMARY KEY,
+                config_value NVARCHAR(MAX),
+                data_type NVARCHAR(50),
+                category NVARCHAR(100),
+                description NVARCHAR(MAX),
+                updated_at DATETIME DEFAULT GETUTCDATE(),
+                updated_by NVARCHAR(255)
+            )
+        `;
+        await pool.request().query(createConfigurationsSQL);
+
+        // Seed default configuration if not exists
+        const checkConfigSQL = `SELECT * FROM Configurations WHERE config_key = @p0`;
+        const checkConfigReq = pool.request();
+        checkConfigReq.input('p0', mssql.NVarChar, 'DBD_FILE_FRESHNESS_DAYS');
+        const checkConfigRes = await checkConfigReq.query(checkConfigSQL);
+
+        if (checkConfigRes.recordset.length === 0) {
+            const insertConfigSQL = `
+                INSERT INTO Configurations (config_key, config_value, data_type, category, description, updated_by)
+                VALUES (@k, @v, @t, @c, @d, @u)
+            `;
+            const insertReq = pool.request();
+            insertReq.input('k', mssql.NVarChar, 'DBD_FILE_FRESHNESS_DAYS');
+            insertReq.input('v', mssql.NVarChar, '180');
+            insertReq.input('t', mssql.NVarChar, 'number');
+            insertReq.input('c', mssql.NVarChar, 'System');
+            insertReq.input('d', mssql.NVarChar, 'จำนวนวันสูงสุดที่ยอมรับได้สำหรับความใหม่ของไฟล์ DBD (Days)');
+            insertReq.input('u', mssql.NVarChar, 'system');
+            await insertReq.query(insertConfigSQL);
+            logger.info("Seeded default configuration: DBD_FILE_FRESHNESS_DAYS");
+        }
+
         logger.info('Database initialized (MSSQL).');
     } catch (error) {
         logger.error('Database initialization failed (MSSQL):', error);

@@ -1,0 +1,55 @@
+# System Configuration Page Design Document
+
+## 1. Overview
+The System Configuration Page (Admin Panel) is designed to allow administrators to manage global settings, business rules, and integration parameters without requiring code redeployments. This document outlines the scope, categories, and technical implementation approach based on industry standards.
+
+## 2. Scope & Categories (What to Configure)
+The configuration settings are logically grouped into categories. The UI will use a vertical tabbed interface (sidebar on the left, content on the right) to organize these.
+
+### Categories
+1. **System & General Settings**
+   - **Data Freshness Limits:** e.g., `DBD_FILE_FRESHNESS_DAYS` (default 180 days).
+   - **Data Retention:** Policies for temporary requests or logs.
+2. **Workflow & Approval Rules**
+   - **Approval Thresholds:** e.g., requiring senior approval for requests > 1,000,000 THB.
+   - **SLA / Timeouts:** Overdue thresholds for pending requests.
+3. **Business & Financial Rules**
+   - **Scoring Parameters:** Weights used in financial analysis to calculate `finalGrade` or `recommendedLimit`.
+   - **Risk Tolerance:** Score thresholds that trigger automatic rejection vs. manual review.
+4. **Integrations & APIs**
+   - **API Keys & Endpoints:** WSO2 API Gateway, OCR API, and DBD integrations.
+   - **Timeouts & Retries:** Wait limits for external APIs.
+5. **User & Role Management (Optional/Future)**
+   - **Role Mapping:** Mapping SSO group claims to internal system roles.
+
+## 3. Implementation Approach (How to Implement)
+
+### 3.1 Database Schema (Backend)
+A generic `Configurations` table will be created to store settings dynamically using a Key-Value structure.
+
+**Schema Definition:**
+- `config_key` (String, Primary Key / Unique) - e.g., `dbd_freshness_days`
+- `config_value` (String/Text) - e.g., `180` (stored as string, casted based on `data_type`)
+- `data_type` (String) - e.g., `number`, `string`, `boolean`
+- `category` (String) - e.g., `System`, `API`, `Workflow`
+- `description` (Text) - What this setting does.
+- `updated_at` (Datetime) - UTC Timestamp for audit trail.
+- `updated_by` (String) - Username for audit trail.
+
+**Initial Seed Data:**
+- The system will automatically seed the `DBD_FILE_FRESHNESS_DAYS` (180, System, number) upon database initialization if the table is empty.
+
+### 3.2 API Endpoints (Backend)
+- `GET /api/config`: Fetches all configurations, grouped by `category`.
+- `PUT /api/config`: Accepts an array of modified configurations to perform bulk updates.
+
+### 3.3 Frontend Architecture (Vue 3 + Pinia)
+- **State:** A Pinia store (`src/stores/config.js`) will manage the configuration state.
+- **Service:** Axios calls in `src/services/api/config.js`.
+- **UI Component:** `src/views/SystemConfiguration.vue` using a vertical tabbed layout.
+- **Form Controls:** Dynamically rendered based on `data_type` (toggles for booleans, numeric inputs, text fields, or masked inputs for secrets).
+- **Feedback:** SweetAlert2 toasts for successful saves (non-disruptive).
+
+### 3.4 Access Control
+- Access is restricted to users with the Admin role (e.g., `"ผู้ดูแลระบบ"` or via `authStore.isAdmin`).
+- The `Navbar.vue` will conditionally render the link to this page.
