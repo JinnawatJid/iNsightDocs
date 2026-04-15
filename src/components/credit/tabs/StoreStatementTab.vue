@@ -1243,11 +1243,67 @@ const analyzeFinancials = async () => {
       // Auto-save transaction data (including analysis result & inputs)
       await store.saveTransactionData();
       
-      Swal.fire('Success', 'วิเคราะห์ข้อมูลเรียบร้อยแล้ว', 'success');
+      // Dynamic Success Popup
+      const scoreData = response.data.scoringResult || {};
+      const formatVal = (val) => {
+        if (typeof val === 'number') return val.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return val || '-';
+      };
+
+      const sizeLabel = scoreData.sizeCategory || '-';
+      const gradeLabel = scoreData.finalGrade || '-';
+      const limitVal = scoreData.recommendedLimit !== undefined && scoreData.recommendedLimit !== null ? formatVal(scoreData.recommendedLimit) + ' บาท' : '-';
+
+      const successHtml = `
+        <div style="text-align: left; padding: 10px;">
+          <h4 style="color: #28a745; margin-bottom: 20px; text-align: center;">วิเคราะห์ข้อมูลเสร็จสมบูรณ์</h4>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
+            <span style="font-weight: bold; color: #555;">Size (ขนาดธุรกิจ):</span>
+            <span style="font-size: 1.1em; color: #007bff; font-weight: bold;">${sizeLabel}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
+            <span style="font-weight: bold; color: #555;">Grade (เกรด):</span>
+            <span style="font-size: 1.1em; color: #007bff; font-weight: bold;">${gradeLabel}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding-bottom: 10px;">
+            <span style="font-weight: bold; color: #555;">Recommended Limit (วงเงินแนะนำ):</span>
+            <span style="font-size: 1.2em; color: #28a745; font-weight: bold;">${limitVal}</span>
+          </div>
+        </div>
+      `;
+
+      Swal.fire({
+        icon: 'success',
+        html: successHtml,
+        confirmButtonText: 'ตกลง'
+      });
     }
   } catch (error) {
     console.error(error);
-    Swal.fire('Error', 'ไม่สามารถวิเคราะห์ไฟล์ได้ กรุณาตรวจสอบว่าไฟล์เป็น Excel ที่ถูกต้อง', 'error');
+    const backendMsg = error.response?.data?.message || error.response?.data?.error;
+    let errorMsg = 'ไม่สามารถวิเคราะห์ไฟล์ได้ กรุณาตรวจสอบว่าไฟล์เป็น Excel ที่ถูกต้อง และข้อมูลครบถ้วน';
+    if (backendMsg) {
+      // Basic HTML escaping to prevent XSS
+      const escapeHtml = (unsafe) => {
+        return (unsafe || '').toString().replace(/[&<"'>]/g, function (m) {
+          return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+          }[m];
+        });
+      };
+      errorMsg = `เกิดข้อผิดพลาดจากระบบ: <br/><strong style="color: #dc3545;">${escapeHtml(backendMsg)}</strong>`;
+    }
+
+    Swal.fire({
+      icon: 'error',
+      title: 'วิเคราะห์ข้อมูลล้มเหลว',
+      html: errorMsg,
+      confirmButtonText: 'ตกลง'
+    });
   } finally {
     analyzing.value = false;
   }
