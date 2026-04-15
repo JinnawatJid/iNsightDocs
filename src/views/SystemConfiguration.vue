@@ -1,0 +1,490 @@
+<template>
+  <div class="system-configuration">
+    <div class="config-container">
+      <div class="config-header">
+        <h2>การตั้งค่าระบบ (System Configuration)</h2>
+        <p>จัดการการตั้งค่าและกฎเกณฑ์ต่างๆ ของระบบ</p>
+      </div>
+
+      <div class="config-body">
+        <div v-if="configStore.isLoading" class="loading-state">
+          <div class="spinner"></div>
+          <p>กำลังโหลดการตั้งค่า...</p>
+        </div>
+
+        <div v-else-if="configStore.error" class="error-state">
+          <p class="error-text">{{ configStore.error }}</p>
+          <button class="btn btn-secondary" @click="fetchConfigs">ลองใหม่</button>
+        </div>
+
+        <div v-else class="layout-wrapper">
+          <!-- Sidebar: Categories -->
+          <div class="config-sidebar">
+            <ul>
+              <li
+                v-for="category in categories"
+                :key="category"
+                :class="{ active: activeCategory === category }"
+                @click="activeCategory = category"
+              >
+                {{ category }}
+              </li>
+            </ul>
+          </div>
+
+          <!-- Content Pane: Configuration Inputs -->
+          <div class="config-content">
+            <div class="content-header">
+              <h3>{{ activeCategory }}</h3>
+              <button
+                class="btn btn-primary"
+                @click="handleSave"
+                :disabled="!hasChanges || isSaving"
+              >
+                {{ isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
+              </button>
+            </div>
+
+            <div class="config-items">
+              <div
+                v-for="item in currentCategoryConfigs"
+                :key="item.config_key"
+                class="config-card"
+              >
+                <div class="config-info">
+                  <label :for="item.config_key">{{ item.config_key }}</label>
+                  <p class="description">{{ item.description }}</p>
+                  <p class="audit-info">
+                    แก้ไขล่าสุดเมื่อ: {{ formatDateString(item.updated_at).toLocaleString('th-TH') }} โดย {{ item.updated_by }}
+                  </p>
+                </div>
+
+                <div class="config-input">
+                  <input
+                    v-if="item.data_type === 'number'"
+                    :id="item.config_key"
+                    type="number"
+                    v-model="editState[item.config_key]"
+                    @input="markAsChanged"
+                    class="form-control"
+                  />
+                  <div v-else-if="item.data_type === 'boolean'" class="toggle-switch">
+                    <input
+                      :id="item.config_key"
+                      type="checkbox"
+                      :checked="editState[item.config_key] === 'true' || editState[item.config_key] === true"
+                      @change="(e) => handleBooleanChange(item.config_key, e.target.checked)"
+                    />
+                    <label :for="item.config_key" class="slider round"></label>
+                  </div>
+                  <input
+                    v-else
+                    :id="item.config_key"
+                    type="text"
+                    v-model="editState[item.config_key]"
+                    @input="markAsChanged"
+                    class="form-control"
+                  />
+                </div>
+              </div>
+
+              <div v-if="currentCategoryConfigs.length === 0" class="empty-state">
+                ไม่พบการตั้งค่าในหมวดหมู่นี้
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { useConfigStore } from '../stores/config';
+import { formatDateString } from '../utils/dateUtils';
+import Swal from 'sweetalert2';
+
+// State
+const configStore = useConfigStore();
+const activeCategory = ref('');
+const editState = ref({});
+const hasChanges = ref(false);
+const isSaving = ref(false);
+
+// Computed
+const categories = computed(() => {
+  return configStore.configurations ? Object.keys(configStore.configurations).sort() : [];
+});
+
+const currentCategoryConfigs = computed(() => {
+  if (!activeCategory.value && Object.keys(configStore.configurations || {}).length > 0) {
+    activeCategory.value = Object.keys(configStore.configurations).sort()[0];
+  }
+  if (!activeCategory.value || !configStore.configurations[activeCategory.value]) {
+    return [];
+  }
+  return configStore.configurations[activeCategory.value];
+});
+
+// Methods
+const fetchConfigs = async () => {
+  await configStore.fetchConfigurations();
+
+  if (configStore.configurations) {
+    // Initialize edit state
+    const newState = {};
+    Object.values(configStore.configurations).forEach(categoryGroup => {
+      categoryGroup.forEach(config => {
+        newState[config.config_key] = config.config_value;
+      });
+    });
+    editState.value = newState;
+    hasChanges.value = false;
+
+    // Set default active category if none selected
+    if (!activeCategory.value && Object.keys(configStore.configurations).length > 0) {
+      activeCategory.value = Object.keys(configStore.configurations).sort()[0];
+    }
+  }
+};
+
+const markAsChanged = () => {
+  hasChanges.value = true;
+};
+
+const handleBooleanChange = (key, isChecked) => {
+  editState.value[key] = isChecked ? 'true' : 'false';
+  markAsChanged();
+};
+
+const handleSave = async () => {
+  if (!hasChanges.value) return;
+
+  isSaving.value = true;
+
+  // Extract only the fields that were modified compared to original store state
+  const payload = [];
+  Object.values(configStore.configurations).forEach(categoryGroup => {
+    categoryGroup.forEach(originalConfig => {
+      const currentVal = String(editState.value[originalConfig.config_key]);
+      const originalVal = String(originalConfig.config_value);
+
+      if (currentVal !== originalVal) {
+        payload.push({
+          config_key: originalConfig.config_key,
+          config_value: currentVal
+        });
+      }
+    });
+  });
+
+  if (payload.length > 0) {
+    const success = await configStore.updateConfigurations(payload);
+
+    if (success) {
+      hasChanges.value = false;
+      Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        timer: 2000,
+        showConfirmButton: false
+      }).fire({
+        icon: 'success',
+        title: 'บันทึกการตั้งค่าสำเร็จ'
+      });
+
+      // Sync editState back from store to ensure parity
+      fetchConfigs();
+    } else {
+      Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        timer: 3000,
+        showConfirmButton: false
+      }).fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาดในการบันทึก'
+      });
+    }
+  }
+
+  isSaving.value = false;
+};
+
+// Lifecycle
+onMounted(async () => {
+  await fetchConfigs();
+});
+</script>
+
+<style scoped>
+.system-configuration {
+  padding: 100px 20px 20px 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.config-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.config-header {
+  padding: 24px;
+  border-bottom: 1px solid #eaeaea;
+  background-color: #fff;
+}
+
+.config-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  color: #2c3e50;
+}
+
+.config-header p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.config-body {
+  min-height: 500px;
+}
+
+.layout-wrapper {
+  display: flex;
+  min-height: 500px;
+}
+
+.config-sidebar {
+  width: 250px;
+  background-color: #fdfdfd;
+  border-right: 1px solid #eaeaea;
+  padding: 16px 0;
+}
+
+.config-sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.config-sidebar li {
+  padding: 12px 24px;
+  cursor: pointer;
+  color: #495057;
+  font-weight: 500;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.config-sidebar li:hover {
+  background-color: #f1f3f5;
+}
+
+.config-sidebar li.active {
+  background-color: #e9ecef;
+  color: #0d6efd;
+  border-left-color: #0d6efd;
+}
+
+.config-content {
+  flex: 1;
+  padding: 24px;
+  background-color: #fff;
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.content-header h3 {
+  margin: 0;
+  color: #343a40;
+}
+
+.config-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.config-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  background-color: #fff;
+  transition: border-color 0.2s;
+}
+
+.config-card:hover {
+  border-color: #ced4da;
+}
+
+.config-info {
+  flex: 1;
+  padding-right: 24px;
+}
+
+.config-info label {
+  display: block;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.config-info .description {
+  margin: 0 0 8px 0;
+  color: #6c757d;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.config-info .audit-info {
+  margin: 0;
+  color: #adb5bd;
+  font-size: 11px;
+}
+
+.config-input {
+  width: 200px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-control:focus {
+  border-color: #86b7fe;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s;
+}
+
+.btn-primary {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #0b5ed7;
+}
+
+.btn-primary:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.loading-state, .error-state, .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #6c757d;
+}
+
+.spinner {
+  border: 3px solid rgba(0,0,0,0.1);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: #09f;
+  animation: spin 1s ease infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-text {
+  color: #dc3545;
+  margin-bottom: 16px;
+}
+
+/* Toggle Switch Styles */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+.slider.round {
+  border-radius: 24px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+</style>
