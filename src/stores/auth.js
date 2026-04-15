@@ -24,6 +24,10 @@ export const useAuthStore = defineStore('auth', {
     userRoles: (state) => {
       return state.user?.roles || [];
     },
+    isAdmin: (state) => {
+      // Standardizes admin check for settings/configurations
+      return state.user?.roles?.some(r => r.role === 'ผู้ดูแลระบบ');
+    },
     isInitiator: (state) => {
       return state.user?.roles?.some(r => r.role === 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)');
     },

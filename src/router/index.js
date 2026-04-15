@@ -5,6 +5,7 @@ import CreateCreditRequest from '../views/CreateCreditRequest.vue';
 import OcrComparison from '../views/OcrComparison.vue';
 import CreditAnalysisReport from '../views/CreditAnalysisReport.vue';
 import BatchAutomation from '../views/BatchAutomation.vue';
+import SystemConfiguration from '../views/SystemConfiguration.vue';
 
 const routes = [
   {
@@ -40,6 +41,11 @@ const routes = [
     path: '/batch-automation',
     name: 'BatchAutomation',
     component: BatchAutomation,
+  },
+  {
+    path: '/configuration',
+    name: 'SystemConfiguration',
+    component: SystemConfiguration,
   },
 ];
 
