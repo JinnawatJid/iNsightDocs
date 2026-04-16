@@ -32,7 +32,7 @@
     </div>
 
     <div class="info-text" v-if="!disabled">
-        {{ multiple ? 'รองรับการอัปโหลดหลายไฟล์' : 'รองรับ JPG, PNG, PDF (สูงสุด 5MB)' }}
+        {{ multiple ? 'รองรับ JPG, PNG, PDF (สูงสุด 20MB / อัปโหลดได้สูงสุด 10 ไฟล์)' : 'รองรับ JPG, PNG, PDF (สูงสุด 20MB)' }}
     </div>
 
     <!-- File List (Outside box, scrollable) -->
@@ -183,6 +183,19 @@ export default {
       const MAX_SIZE_MB = 20;
 
       console.log(`[FileUploader] Processing ${files.length} files. Max size allowed: ${MAX_SIZE_MB}MB`);
+
+      if (this.multiple) {
+          const currentFilesCount = this.file ? this.file.length : 0;
+          if (currentFilesCount + files.length > 10) {
+              Swal.fire({
+                  icon: 'error',
+                  title: 'อัปโหลดไฟล์เกินจำนวนที่กำหนด',
+                  text: `คุณสามารถอัปโหลดได้สูงสุด 10 ไฟล์เท่านั้น`
+              });
+              this.$refs.fileInput.value = '';
+              return;
+          }
+      }
 
       const isExtensionValid = (fileName) => {
           if (this.accept === '*/*') return true;
