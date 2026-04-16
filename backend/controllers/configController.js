@@ -49,6 +49,14 @@ exports.updateConfig = async (req, res) => {
                 WHERE config_key = ?
             `;
             await db.query(query, [config_value, updated_at, updated_by, config_key]);
+
+            // Trigger dynamic reconfiguration if specific keys are updated
+            if (config_key === 'AUDIT_LOG_RETENTION_DAYS') {
+                const days = parseInt(config_value, 10);
+                if (!isNaN(days)) {
+                    logger.updateLogRetention(days);
+                }
+            }
         }
 
         res.json({ success: true, message: 'Configurations updated successfully' });

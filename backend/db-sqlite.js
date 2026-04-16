@@ -412,12 +412,23 @@ const initDB = async () => {
         )`);
 
         // Seed default configuration if not exists
-        const checkConfig = await db.query(`SELECT * FROM Configurations WHERE config_key = ?`, ['DBD_FILE_FRESHNESS_DAYS']);
-        if (checkConfig && checkConfig.rows && checkConfig.rows.length === 0) {
-            await db.runAsync(`INSERT INTO Configurations (config_key, config_value, data_type, category, description, updated_by)
-            VALUES (?, ?, ?, ?, ?, ?)`,
-                ['DBD_FILE_FRESHNESS_DAYS', '180', 'number', 'System', 'จำนวนวันสูงสุดที่ยอมรับได้สำหรับความใหม่ของไฟล์ DBD (Days)', 'system']);
-            logger.info("Seeded default configuration: DBD_FILE_FRESHNESS_DAYS");
+        const defaultConfigs = [
+            { key: 'DBD_FILE_FRESHNESS_DAYS', value: '180', type: 'number', category: 'System', desc: 'จำนวนวันสูงสุดที่ยอมรับได้สำหรับความใหม่ของไฟล์ DBD (Days)' },
+            { key: 'AUDIT_LOG_RETENTION_DAYS', value: '14', type: 'number', category: 'System', desc: 'ระยะเวลาจัดเก็บไฟล์ Log ของระบบ (Days)' },
+            { key: 'MAX_FILE_UPLOAD_SIZE_MB', value: '50', type: 'number', category: 'System', desc: 'ขนาดไฟล์สูงสุดที่อนุญาตให้อัปโหลด (MB)' },
+            { key: 'SYSTEM_MAINTENANCE_MODE', value: 'false', type: 'boolean', category: 'System', desc: 'เปิดโหมดปิดปรับปรุงระบบ' },
+            { key: 'DEFAULT_PAGE_SIZE', value: '20', type: 'number', category: 'System', desc: 'จำนวนรายการเริ่มต้นที่แสดงต่อหน้า' },
+            { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation' }
+        ];
+
+        for (const config of defaultConfigs) {
+            const checkConfig = await db.query(`SELECT * FROM Configurations WHERE config_key = ?`, [config.key]);
+            if (checkConfig && checkConfig.rows && checkConfig.rows.length === 0) {
+                await db.runAsync(`INSERT INTO Configurations (config_key, config_value, data_type, category, description, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+                    [config.key, config.value, config.type, config.category, config.desc, 'system']);
+                logger.info(`Seeded default configuration: ${config.key}`);
+            }
         }
 
         logger.info('Database initialized (SQLite).');
