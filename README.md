@@ -64,6 +64,10 @@ ENABLE_AUTH=false
 ```
 Restart the backend server. The frontend will dynamically detect this configuration on startup, bypass the login redirect, and the backend will inject a mock user (`DEV_MODE_USER`) to allow API calls to function normally. You can switch between different user roles dynamically using the **Dev Role Switcher** dropdown located in the Navbar.
 
+## Feature Flags
+You can configure feature flags in the `backend/.env` file:
+*   `FEATURE_ISOLATE_INITIATOR_REQUESTS=true`: When enabled, users with the Initiator/Branch Manager role ("ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)") will only see credit requests they have created themselves on the pending requests view. Default is `false`.
+
 ## IDE Support
 
 Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).

@@ -814,7 +814,9 @@ exports.getCreditRequests = async (req, res) => {
     const conditions = [];
 
     // Role-based filtering: Initiator/Branch Manager should only see their own requests
-    if (req.user && req.user.roles) {
+    // Controlled by a feature flag for safe rollout.
+    const isIsolateEnabled = process.env.FEATURE_ISOLATE_INITIATOR_REQUESTS === 'true';
+    if (isIsolateEnabled && req.user && req.user.roles) {
       const isInitiator = req.user.roles.some(
         (r) => r.role === "ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)"
       );
