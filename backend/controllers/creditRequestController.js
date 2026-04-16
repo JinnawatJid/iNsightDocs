@@ -813,6 +813,17 @@ exports.getCreditRequests = async (req, res) => {
     const params = [];
     const conditions = [];
 
+    // Role-based filtering: Initiator/Branch Manager should only see their own requests
+    if (req.user && req.user.roles) {
+      const isInitiator = req.user.roles.some(
+        (r) => r.role === "ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)"
+      );
+      if (isInitiator) {
+        conditions.push(`created_by = ?`);
+        params.push(req.user.username);
+      }
+    }
+
     if (status) {
       // Split status by comma if multiple statuses are provided (e.g. ?status=Submitted,Reviewed)
       const statusList = status.split(",").map((s) => s.trim());
