@@ -88,6 +88,20 @@ app.get('*', (req, res) => {
 
 const startServer = async () => {
   await db.initialize();
+
+  // Apply configurations that require dynamic reconfiguration on startup
+  try {
+      const configRes = await db.query("SELECT config_value FROM Configurations WHERE config_key = 'AUDIT_LOG_RETENTION_DAYS'");
+      if (configRes && configRes.rows && configRes.rows.length > 0) {
+          const days = parseInt(configRes.rows[0].config_value, 10);
+          if (!isNaN(days)) {
+              logger.updateLogRetention(days);
+          }
+      }
+  } catch (err) {
+      logger.error('Failed to fetch and apply AUDIT_LOG_RETENTION_DAYS on startup:', err);
+  }
+
   app.listen(PORT, () => {
     logger.info(`Server is running on http://localhost:${PORT}`);
   });

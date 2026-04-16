@@ -547,25 +547,36 @@ const initDB = async () => {
         await pool.request().query(createConfigurationsSQL);
 
         // Seed default configuration if not exists
-        const checkConfigSQL = `SELECT * FROM Configurations WHERE config_key = @p0`;
-        const checkConfigReq = pool.request();
-        checkConfigReq.input('p0', mssql.NVarChar, 'DBD_FILE_FRESHNESS_DAYS');
-        const checkConfigRes = await checkConfigReq.query(checkConfigSQL);
+        const defaultConfigs = [
+            { key: 'DBD_FILE_FRESHNESS_DAYS', value: '180', type: 'number', category: 'System', desc: 'จำนวนวันสูงสุดที่ยอมรับได้สำหรับความใหม่ของไฟล์ DBD (Days)' },
+            { key: 'AUDIT_LOG_RETENTION_DAYS', value: '14', type: 'number', category: 'System', desc: 'ระยะเวลาจัดเก็บไฟล์ Log ของระบบ (Days)' },
+            { key: 'MAX_FILE_UPLOAD_SIZE_MB', value: '50', type: 'number', category: 'System', desc: 'ขนาดไฟล์สูงสุดที่อนุญาตให้อัปโหลด (MB)' },
+            { key: 'SYSTEM_MAINTENANCE_MODE', value: 'false', type: 'boolean', category: 'System', desc: 'เปิดโหมดปิดปรับปรุงระบบ' },
+            { key: 'DEFAULT_PAGE_SIZE', value: '20', type: 'number', category: 'System', desc: 'จำนวนรายการเริ่มต้นที่แสดงต่อหน้า' },
+            { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation' }
+        ];
 
-        if (checkConfigRes.recordset.length === 0) {
-            const insertConfigSQL = `
-                INSERT INTO Configurations (config_key, config_value, data_type, category, description, updated_by)
-                VALUES (@k, @v, @t, @c, @d, @u)
-            `;
-            const insertReq = pool.request();
-            insertReq.input('k', mssql.NVarChar, 'DBD_FILE_FRESHNESS_DAYS');
-            insertReq.input('v', mssql.NVarChar, '180');
-            insertReq.input('t', mssql.NVarChar, 'number');
-            insertReq.input('c', mssql.NVarChar, 'System');
-            insertReq.input('d', mssql.NVarChar, 'จำนวนวันสูงสุดที่ยอมรับได้สำหรับความใหม่ของไฟล์ DBD (Days)');
-            insertReq.input('u', mssql.NVarChar, 'system');
-            await insertReq.query(insertConfigSQL);
-            logger.info("Seeded default configuration: DBD_FILE_FRESHNESS_DAYS");
+        for (const config of defaultConfigs) {
+            const checkConfigSQL = `SELECT * FROM Configurations WHERE config_key = @p0`;
+            const checkConfigReq = pool.request();
+            checkConfigReq.input('p0', mssql.NVarChar, config.key);
+            const checkConfigRes = await checkConfigReq.query(checkConfigSQL);
+
+            if (checkConfigRes.recordset.length === 0) {
+                const insertConfigSQL = `
+                    INSERT INTO Configurations (config_key, config_value, data_type, category, description, updated_by)
+                    VALUES (@k, @v, @t, @c, @d, @u)
+                `;
+                const insertReq = pool.request();
+                insertReq.input('k', mssql.NVarChar, config.key);
+                insertReq.input('v', mssql.NVarChar, config.value);
+                insertReq.input('t', mssql.NVarChar, config.type);
+                insertReq.input('c', mssql.NVarChar, config.category);
+                insertReq.input('d', mssql.NVarChar, config.desc);
+                insertReq.input('u', mssql.NVarChar, 'system');
+                await insertReq.query(insertConfigSQL);
+                logger.info(`Seeded default configuration: ${config.key}`);
+            }
         }
 
         logger.info('Database initialized (MSSQL).');

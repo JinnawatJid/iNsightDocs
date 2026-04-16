@@ -79,4 +79,24 @@ logger.stream = {
     },
 };
 
+/**
+ * Dynamically updates the maxFiles retention policy for DailyRotateFile transports.
+ * @param {number|string} days Number of days to retain logs
+ */
+logger.updateLogRetention = (days) => {
+    const daysStr = typeof days === 'number' ? `${days}d` : days;
+    let updated = false;
+
+    for (const transport of logger.transports) {
+        if (transport.name === 'dailyRotateFile') {
+            transport.maxFiles = daysStr;
+            updated = true;
+        }
+    }
+
+    if (updated) {
+        logger.info(`[Logger] Updated DailyRotateFile retention to ${daysStr}`);
+    }
+};
+
 module.exports = logger;
