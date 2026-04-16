@@ -4,7 +4,10 @@ const fs = require("fs-extra");
 const path = require("path");
 const mime = require("mime-types");
 const fileResolver = require("../utils/fileResolver");
-const { normalizeBranchCode } = require("../utils/branchCode");
+const {
+  normalizeBranchCode,
+  getBranchCodeFromUser,
+} = require("../utils/branchCode");
 
 let projectRoot = path.resolve(__dirname, "../../../../");
 if (!fs.existsSync(path.join(projectRoot, "customers"))) {
@@ -399,7 +402,14 @@ exports.createCreditRequest = async (req, res) => {
           const mm = (now.getMonth() + 1).toString().padStart(2, "0");
 
           // Extract branchCode from JWT payload (req.user is set by authMiddleware)
-          const branchCode = normalizeBranchCode(req.user?.branchCode);
+          const branchCode = normalizeBranchCode(
+            getBranchCodeFromUser(req.user),
+          );
+          if (branchCode === "XX") {
+            logger.warn(
+              `Branch code missing in JWT payload for user ${req.user?.username || "unknown"}; falling back to XX`,
+            );
+          }
           const prefix = `${branchCode}CA${yy}${mm}/`;
 
           // Find the latest running number

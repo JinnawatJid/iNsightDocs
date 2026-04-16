@@ -1,5 +1,5 @@
 const assert = require('node:assert');
-const { normalizeBranchCode } = require('../utils/branchCode');
+const { normalizeBranchCode, getBranchCodeFromUser } = require('../utils/branchCode');
 
 const runTests = () => {
   const cases = [
@@ -19,6 +19,24 @@ const runTests = () => {
       actual,
       expected,
       `normalizeBranchCode('${input}') should be '${expected}', got '${actual}'`
+    );
+  });
+
+  const branchUserCases = [
+    { user: { branchCode: '00TR' }, expected: '00TR' },
+    { user: { branch_code: '00TR' }, expected: '00TR' },
+    { user: { branch: '00TR' }, expected: '00TR' },
+    { user: { office: '00TR' }, expected: '00TR' },
+    { user: { branches: ['00TR'] }, expected: '00TR' },
+    { user: null, expected: '' },
+  ];
+
+  branchUserCases.forEach(({ user, expected }) => {
+    const actual = getBranchCodeFromUser(user);
+    assert.strictEqual(
+      actual,
+      expected,
+      `getBranchCodeFromUser(${JSON.stringify(user)}) should be '${expected}', got '${actual}'`
     );
   });
 

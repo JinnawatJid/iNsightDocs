@@ -49,7 +49,7 @@
           </div>
       <div class="form-grid-three-columns" style="margin-top: 15px;">
           <div class="form-group">
-              <label>มูลค่าโครงการรวม (บาท)</label>
+              <label>มูลค่าสินค้าที่ขายให้กับโครงการ (บาท)</label>
               <input
                   type="text"
                   v-model="project.adjustedProjectValue"

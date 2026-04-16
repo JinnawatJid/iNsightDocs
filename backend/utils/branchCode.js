@@ -4,6 +4,24 @@ const normalizeBranchCode = (rawBranchCode) => {
   return normalized || "XX";
 };
 
+const getBranchCodeFromUser = (user) => {
+  if (!user || typeof user !== "object") return "";
+
+  if (Array.isArray(user.branches) && user.branches.length > 0) {
+    return user.branches[0] || "";
+  }
+
+  return (
+    user.branchCode ||
+    user.branch_code ||
+    user.branch ||
+    user.office ||
+    user.officeCode ||
+    ""
+  );
+};
+
 module.exports = {
   normalizeBranchCode,
+  getBranchCodeFromUser,
 };

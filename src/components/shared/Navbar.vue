@@ -28,7 +28,6 @@
       </div>
       <div class="notification-bell">
         <img :src="iconBell" alt="Notifications" width="24" height="24" />
-        <div class="notification-badge">1</div>
       </div>
       <div class="user-info">
         <span class="user-name">{{ authStore.user?.branchCode || 'N/A' }} : {{ authStore.user?.username || 'User' }}{{ authStore.user?.empname ? ' - ' + authStore.user.empname : '' }}</span>
