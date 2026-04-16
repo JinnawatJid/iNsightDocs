@@ -37,11 +37,18 @@ A generic `Configurations` table will be created to store settings dynamically u
 - `updated_by` (String) - Username for audit trail.
 
 **Initial Seed Data:**
-- The system will automatically seed the `DBD_FILE_FRESHNESS_DAYS` (180, System, number) upon database initialization if the table is empty.
+The system automatically seeds the following baseline configurations upon database initialization if they do not exist:
+- `DBD_FILE_FRESHNESS_DAYS` (180, System, number)
+- `AUDIT_LOG_RETENTION_DAYS` (14, System, number)
+- `MAX_FILE_UPLOAD_SIZE_MB` (50, System, number)
+- `SYSTEM_MAINTENANCE_MODE` (false, System, boolean)
+- `DEFAULT_PAGE_SIZE` (20, System, number)
+- `ENABLE_BATCH_PROCESSING` (true, System, boolean)
 
-### 3.2 API Endpoints (Backend)
+### 3.2 API Endpoints & Dynamic Reconfiguration (Backend)
 - `GET /api/config`: Fetches all configurations, grouped by `category`.
 - `PUT /api/config`: Accepts an array of modified configurations to perform bulk updates.
+  - *Note on Dynamic Reconfiguration:* Certain system-level configurations (e.g., `AUDIT_LOG_RETENTION_DAYS` governing the Winston logger) are applied immediately during the `PUT` request via exposed utility functions (e.g., `logger.updateLogRetention`) to avoid requiring server restarts.
 
 ### 3.3 Frontend Architecture (Vue 3 + Pinia)
 - **State:** A Pinia store (`src/stores/config.js`) will manage the configuration state.
