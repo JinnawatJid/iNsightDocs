@@ -828,6 +828,17 @@ exports.getCreditRequests = async (req, res) => {
       params.push(`%${search}%`);
     }
 
+    // Filter by created_by if the user is an Initiator (Branch Manager)
+    if (req.user && req.user.roles) {
+      const isInitiator = req.user.roles.some(
+        (r) => r.role === "ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)",
+      );
+      if (isInitiator) {
+        conditions.push(`created_by = ?`);
+        params.push(req.user.username);
+      }
+    }
+
     if (conditions.length > 0) {
       sql += ` WHERE ${conditions.join(" AND ")}`;
     }
