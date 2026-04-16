@@ -825,9 +825,10 @@ exports.getCreditRequests = async (req, res) => {
       // Check if we are viewing the Pending List (active statuses) vs History (final statuses)
       // If it's a mix or active, we restrict it for Initiators.
       const hasFinalStatuses = statusList.some(s => ['Approved', 'Rejected', 'Closed', 'Canceled'].includes(s));
+      const restrictToOwner = process.env.RESTRICT_PENDING_LIST_TO_OWNER === 'true';
 
       // Branch Managers / Initiators should only see requests they created, but ONLY when viewing pending requests
-      if (isInitiator && !hasFinalStatuses) {
+      if (isInitiator && !hasFinalStatuses && restrictToOwner) {
         conditions.push(`created_by = ?`);
         params.push(username);
       }
