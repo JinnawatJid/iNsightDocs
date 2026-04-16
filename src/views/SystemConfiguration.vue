@@ -35,7 +35,10 @@
           <!-- Content Pane: Configuration Inputs -->
           <div class="config-content">
             <div class="content-header">
-              <h3>{{ activeCategory }}</h3>
+              <div class="header-title">
+                <span class="icon-sliders">⚙️</span>
+                <h3>หมวดหมู่: {{ activeCategory }}</h3>
+              </div>
               <button
                 class="btn btn-primary"
                 @click="handleSave"
@@ -305,50 +308,67 @@ onMounted(async () => {
   border-bottom: 1px solid #f0f0f0;
 }
 
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-title .icon-sliders {
+  font-size: 20px;
+}
+
 .content-header h3 {
   margin: 0;
-  color: #343a40;
+  color: #2c3e50;
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .config-items {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .config-card {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  padding: 16px;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  background-color: #fff;
-  transition: border-color 0.2s;
+  align-items: center;
+  padding: 20px 24px;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  background-color: #fcfcfc;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
 
 .config-card:hover {
-  border-color: #ced4da;
+  border-color: #dcdcdc;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
 }
 
 .config-info {
   flex: 1;
-  padding-right: 24px;
+  padding-right: 32px;
+  text-align: left;
 }
 
 .config-info label {
   display: block;
   font-weight: 600;
-  color: #212529;
-  margin-bottom: 4px;
+  color: #2c3e50;
+  margin-bottom: 6px;
   font-size: 15px;
+  letter-spacing: 0.3px;
 }
 
 .config-info .description {
   margin: 0 0 8px 0;
   color: #6c757d;
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .config-info .audit-info {
@@ -358,15 +378,27 @@ onMounted(async () => {
 }
 
 .config-input {
-  width: 200px;
+  flex: 0 0 240px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .form-control {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
+  padding: 10px 14px;
+  border: 1px solid #dcdcdc;
+  border-radius: 6px;
   font-size: 14px;
+  transition: all 0.2s;
+  background-color: #fff;
+}
+
+.form-control[type="number"] {
+  text-align: center;
+  font-family: monospace;
+  font-size: 15px;
+  letter-spacing: 1px;
 }
 
 .form-control:focus {
