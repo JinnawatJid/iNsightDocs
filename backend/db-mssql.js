@@ -540,20 +540,37 @@ const initDB = async () => {
                 data_type NVARCHAR(50),
                 category NVARCHAR(100),
                 description NVARCHAR(MAX),
+                label NVARCHAR(255),
                 updated_at DATETIME DEFAULT GETUTCDATE(),
                 updated_by NVARCHAR(255)
             )
         `;
         await pool.request().query(createConfigurationsSQL);
 
+        // Ensure new column exists in Configurations table (for existing DBs)
+        try {
+            await pool.request().query(`
+                IF NOT EXISTS (
+                    SELECT * FROM sys.columns
+                    WHERE object_id = OBJECT_ID('Configurations') AND name = 'label'
+                )
+                BEGIN
+                    ALTER TABLE Configurations ADD label NVARCHAR(255)
+                END
+            `);
+            logger.info(`Ensured column label exists in Configurations`);
+        } catch (err) {
+             logger.error(`Error adding column label to Configurations:`, err);
+        }
+
         // Seed default configuration if not exists
         const defaultConfigs = [
-            { key: 'DBD_FILE_FRESHNESS_DAYS', value: '180', type: 'number', category: 'System', desc: 'จำนวนวันสูงสุดที่ยอมรับได้สำหรับความใหม่ของไฟล์ DBD (Days)' },
-            { key: 'AUDIT_LOG_RETENTION_DAYS', value: '14', type: 'number', category: 'System', desc: 'ระยะเวลาจัดเก็บไฟล์ Log ของระบบ (Days)' },
-            { key: 'MAX_FILE_UPLOAD_SIZE_MB', value: '50', type: 'number', category: 'System', desc: 'ขนาดไฟล์สูงสุดที่อนุญาตให้อัปโหลด (MB)' },
-            { key: 'SYSTEM_MAINTENANCE_MODE', value: 'false', type: 'boolean', category: 'System', desc: 'เปิดโหมดปิดปรับปรุงระบบ' },
-            { key: 'DEFAULT_PAGE_SIZE', value: '20', type: 'number', category: 'System', desc: 'จำนวนรายการเริ่มต้นที่แสดงต่อหน้า' },
-            { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation' }
+            { key: 'DBD_FILE_FRESHNESS_DAYS', value: '180', type: 'number', category: 'System', desc: 'จำนวนวันสูงสุดที่ยอมรับได้สำหรับความใหม่ของไฟล์ DBD (Days)', label: 'อายุไฟล์ข้อมูล DBD (วัน)' },
+            { key: 'AUDIT_LOG_RETENTION_DAYS', value: '14', type: 'number', category: 'System', desc: 'ระยะเวลาจัดเก็บไฟล์ Log ของระบบ (Days)', label: 'ระยะเวลาจัดเก็บประวัติระบบ (วัน)' },
+            { key: 'MAX_FILE_UPLOAD_SIZE_MB', value: '50', type: 'number', category: 'System', desc: 'ขนาดไฟล์สูงสุดที่อนุญาตให้อัปโหลด (MB)', label: 'ขนาดไฟล์อัปโหลดสูงสุด (MB)' },
+            { key: 'SYSTEM_MAINTENANCE_MODE', value: 'false', type: 'boolean', category: 'System', desc: 'เปิดโหมดปิดปรับปรุงระบบ', label: 'โหมดปิดปรับปรุงระบบ' },
+            { key: 'DEFAULT_PAGE_SIZE', value: '20', type: 'number', category: 'System', desc: 'จำนวนรายการเริ่มต้นที่แสดงต่อหน้า', label: 'จำนวนรายการต่อหน้า (ค่าเริ่มต้น)' },
+            { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation', label: 'เปิดใช้งานระบบประมวลผลอัตโนมัติ (Batch)' }
         ];
 
         for (const config of defaultConfigs) {
@@ -564,8 +581,8 @@ const initDB = async () => {
 
             if (checkConfigRes.recordset.length === 0) {
                 const insertConfigSQL = `
-                    INSERT INTO Configurations (config_key, config_value, data_type, category, description, updated_by)
-                    VALUES (@k, @v, @t, @c, @d, @u)
+                    INSERT INTO Configurations (config_key, config_value, data_type, category, description, label, updated_by)
+                    VALUES (@k, @v, @t, @c, @d, @l, @u)
                 `;
                 const insertReq = pool.request();
                 insertReq.input('k', mssql.NVarChar, config.key);
@@ -573,9 +590,21 @@ const initDB = async () => {
                 insertReq.input('t', mssql.NVarChar, config.type);
                 insertReq.input('c', mssql.NVarChar, config.category);
                 insertReq.input('d', mssql.NVarChar, config.desc);
+                insertReq.input('l', mssql.NVarChar, config.label);
                 insertReq.input('u', mssql.NVarChar, 'system');
                 await insertReq.query(insertConfigSQL);
                 logger.info(`Seeded default configuration: ${config.key}`);
+            } else {
+                // Update label for existing seed data if it's missing
+                const updateLabelSQL = `
+                    UPDATE Configurations
+                    SET label = @l
+                    WHERE config_key = @k AND label IS NULL
+                `;
+                const updateReq = pool.request();
+                updateReq.input('k', mssql.NVarChar, config.key);
+                updateReq.input('l', mssql.NVarChar, config.label);
+                await updateReq.query(updateLabelSQL);
             }
         }
 
