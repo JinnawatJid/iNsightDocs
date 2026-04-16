@@ -27,7 +27,7 @@
                 :class="{ active: activeCategory === category }"
                 @click="activeCategory = category"
               >
-                {{ category }}
+                {{ getCategoryLabel(category) }}
               </li>
             </ul>
           </div>
@@ -37,7 +37,7 @@
             <div class="content-header">
               <div class="header-title">
                 <span class="icon-sliders">⚙️</span>
-                <h3>หมวดหมู่: {{ activeCategory }}</h3>
+                <h3>หมวดหมู่: {{ getCategoryLabel(activeCategory) }}</h3>
               </div>
               <button
                 class="btn btn-primary"
@@ -55,7 +55,8 @@
                 class="config-card"
               >
                 <div class="config-info">
-                  <label :for="item.config_key">{{ item.config_key }}</label>
+                  <label :for="item.config_key">{{ item.label || item.config_key }}</label>
+                  <p class="config-key-subtitle">{{ item.config_key }}</p>
                   <p class="description">{{ item.description }}</p>
                   <p class="audit-info">
                     แก้ไขล่าสุดเมื่อ: {{ formatDateString(item.updated_at).toLocaleString('th-TH') }} โดย {{ item.updated_by }}
@@ -114,6 +115,18 @@ const activeCategory = ref('');
 const editState = ref({});
 const hasChanges = ref(false);
 const isSaving = ref(false);
+
+// Dictionaries
+const categoryLabels = {
+  'System': 'การตั้งค่าระบบ',
+  'Workflow': 'การอนุมัติและขั้นตอน',
+  'API': 'การเชื่อมต่อระบบ (API)',
+  'Business': 'กฎเกณฑ์ธุรกิจ'
+};
+
+const getCategoryLabel = (category) => {
+  return categoryLabels[category] || category;
+};
 
 // Computed
 const categories = computed(() => {
@@ -359,9 +372,16 @@ onMounted(async () => {
   display: block;
   font-weight: 600;
   color: #2c3e50;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
   font-size: 15px;
   letter-spacing: 0.3px;
+}
+
+.config-info .config-key-subtitle {
+  margin: 0 0 6px 0;
+  color: #adb5bd;
+  font-size: 11px;
+  font-family: monospace;
 }
 
 .config-info .description {

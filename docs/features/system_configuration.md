@@ -33,6 +33,7 @@ A generic `Configurations` table will be created to store settings dynamically u
 - `data_type` (String) - e.g., `number`, `string`, `boolean`
 - `category` (String) - e.g., `System`, `API`, `Workflow`
 - `description` (Text) - What this setting does.
+- `label` (String) - Human-readable Thai label for the UI (e.g., "อายุไฟล์ข้อมูล DBD (วัน)").
 - `updated_at` (Datetime) - UTC Timestamp for audit trail.
 - `updated_by` (String) - Username for audit trail.
 

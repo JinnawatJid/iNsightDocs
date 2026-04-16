@@ -407,27 +407,42 @@ const initDB = async () => {
             data_type TEXT,
             category TEXT,
             description TEXT,
+            label TEXT,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_by TEXT
         )`);
 
+        // Ensure new column exists in Configurations table (for existing DBs)
+        try {
+            await db.runAsync(`ALTER TABLE Configurations ADD COLUMN label TEXT`);
+            logger.info(`Added column label to Configurations`);
+        } catch (err) {
+             if (!err.message.includes('duplicate column name')) {
+                 logger.error(`Error adding column label to Configurations:`, err);
+            }
+        }
+
         // Seed default configuration if not exists
         const defaultConfigs = [
-            { key: 'DBD_FILE_FRESHNESS_DAYS', value: '180', type: 'number', category: 'System', desc: 'จำนวนวันสูงสุดที่ยอมรับได้สำหรับความใหม่ของไฟล์ DBD (Days)' },
-            { key: 'AUDIT_LOG_RETENTION_DAYS', value: '14', type: 'number', category: 'System', desc: 'ระยะเวลาจัดเก็บไฟล์ Log ของระบบ (Days)' },
-            { key: 'MAX_FILE_UPLOAD_SIZE_MB', value: '50', type: 'number', category: 'System', desc: 'ขนาดไฟล์สูงสุดที่อนุญาตให้อัปโหลด (MB)' },
-            { key: 'SYSTEM_MAINTENANCE_MODE', value: 'false', type: 'boolean', category: 'System', desc: 'เปิดโหมดปิดปรับปรุงระบบ' },
-            { key: 'DEFAULT_PAGE_SIZE', value: '20', type: 'number', category: 'System', desc: 'จำนวนรายการเริ่มต้นที่แสดงต่อหน้า' },
-            { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation' }
+            { key: 'DBD_FILE_FRESHNESS_DAYS', value: '180', type: 'number', category: 'System', desc: 'จำนวนวันสูงสุดที่ยอมรับได้สำหรับความใหม่ของไฟล์ DBD (Days)', label: 'อายุไฟล์ข้อมูล DBD (วัน)' },
+            { key: 'AUDIT_LOG_RETENTION_DAYS', value: '14', type: 'number', category: 'System', desc: 'ระยะเวลาจัดเก็บไฟล์ Log ของระบบ (Days)', label: 'ระยะเวลาจัดเก็บประวัติระบบ (วัน)' },
+            { key: 'MAX_FILE_UPLOAD_SIZE_MB', value: '50', type: 'number', category: 'System', desc: 'ขนาดไฟล์สูงสุดที่อนุญาตให้อัปโหลด (MB)', label: 'ขนาดไฟล์อัปโหลดสูงสุด (MB)' },
+            { key: 'SYSTEM_MAINTENANCE_MODE', value: 'false', type: 'boolean', category: 'System', desc: 'เปิดโหมดปิดปรับปรุงระบบ', label: 'โหมดปิดปรับปรุงระบบ' },
+            { key: 'DEFAULT_PAGE_SIZE', value: '20', type: 'number', category: 'System', desc: 'จำนวนรายการเริ่มต้นที่แสดงต่อหน้า', label: 'จำนวนรายการต่อหน้า (ค่าเริ่มต้น)' },
+            { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation', label: 'เปิดใช้งานระบบประมวลผลอัตโนมัติ (Batch)' }
         ];
 
         for (const config of defaultConfigs) {
             const checkConfig = await db.query(`SELECT * FROM Configurations WHERE config_key = ?`, [config.key]);
             if (checkConfig && checkConfig.rows && checkConfig.rows.length === 0) {
-                await db.runAsync(`INSERT INTO Configurations (config_key, config_value, data_type, category, description, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?)`,
-                    [config.key, config.value, config.type, config.category, config.desc, 'system']);
+                await db.runAsync(`INSERT INTO Configurations (config_key, config_value, data_type, category, description, label, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [config.key, config.value, config.type, config.category, config.desc, config.label, 'system']);
                 logger.info(`Seeded default configuration: ${config.key}`);
+            } else {
+                // Update label for existing seed data if it's missing
+                await db.runAsync(`UPDATE Configurations SET label = ? WHERE config_key = ? AND label IS NULL`,
+                    [config.label, config.key]);
             }
         }
 
