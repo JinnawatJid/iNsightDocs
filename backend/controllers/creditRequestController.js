@@ -805,6 +805,11 @@ exports.createCreditRequest = async (req, res) => {
 exports.getCreditRequests = async (req, res) => {
   const { status, search } = req.query;
 
+  // Determine user info and roles from req.user
+  const username = req.user?.username || "";
+  const roles = req.user?.roles || [];
+  const isInitiator = roles.some((r) => r.role === 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)');
+
   try {
     let sql = `
       SELECT id, tx_id, customer_no, customer_name, status, request_amount, request_type, created_at, updated_at
@@ -816,6 +821,18 @@ exports.getCreditRequests = async (req, res) => {
     if (status) {
       // Split status by comma if multiple statuses are provided (e.g. ?status=Submitted,Reviewed)
       const statusList = status.split(",").map((s) => s.trim());
+
+      // Check if we are viewing the Pending List (active statuses) vs History (final statuses)
+      // If it's a mix or active, we restrict it for Initiators.
+      const hasFinalStatuses = statusList.some(s => ['Approved', 'Rejected', 'Closed', 'Canceled'].includes(s));
+      const restrictToOwner = process.env.RESTRICT_PENDING_LIST_TO_OWNER === 'true';
+
+      // Branch Managers / Initiators should only see requests they created, but ONLY when viewing pending requests
+      if (isInitiator && !hasFinalStatuses && restrictToOwner) {
+        conditions.push(`created_by = ?`);
+        params.push(username);
+      }
+
       if (statusList.length > 0) {
         const placeholders = statusList.map(() => "?").join(",");
         conditions.push(`status IN (${placeholders})`);
