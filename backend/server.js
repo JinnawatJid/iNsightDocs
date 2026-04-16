@@ -92,8 +92,9 @@ const startServer = async () => {
   // Apply configurations that require dynamic reconfiguration on startup
   try {
       const configRes = await db.query("SELECT config_value FROM Configurations WHERE config_key = 'AUDIT_LOG_RETENTION_DAYS'");
-      if (configRes && configRes.rows && configRes.rows.length > 0) {
-          const days = parseInt(configRes.rows[0].config_value, 10);
+      const rows = configRes?.rows || configRes?.recordset; // Handle both SQLite and MSSQL responses
+      if (rows && rows.length > 0) {
+          const days = parseInt(rows[0].config_value, 10);
           if (!isNaN(days)) {
               logger.updateLogRetention(days);
           }
