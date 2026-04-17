@@ -18,7 +18,7 @@
   ],
   "components": {
     "c1": {
-      "name": "Company Strength",
+      "name": "ความแข็งแกร่งของบริษัท",
       "factors": [
         {
           "key": "years_in_business",
@@ -28,30 +28,30 @@
             {
               "min": 10,
               "score": 2,
-              "label": "Established (> 10 Years)"
+              "label": "ดำเนินกิจการมานาน (> 10 ปี)"
             },
             {
               "min": 5,
               "max": 10,
               "score": 1.5,
-              "label": "Stable (5-10 Years)"
+              "label": "มั่นคง (5-10 ปี)"
             },
             {
               "min": 3,
               "max": 5,
               "score": 1,
-              "label": "Growing (3-5 Years)"
+              "label": "กำลังเติบโต (3-5 ปี)"
             },
             {
               "min": 1,
               "max": 3,
               "score": 0.5,
-              "label": "New (1-3 Years)"
+              "label": "เริ่มกิจการใหม่ (1-3 ปี)"
             },
             {
               "max": 1,
               "score": 0.25,
-              "label": "Startup (< 1 Year)"
+              "label": "กิจการใหม่มาก (< 1 ปี)"
             }
           ]
         },
@@ -63,30 +63,30 @@
             {
               "max": 0.51,
               "score": 2,
-              "label": "Very Low Risk (<= 0.5)"
+              "label": "ความเสี่ยงต่ำมาก (<= 0.5)"
             },
             {
               "min": 0.51,
               "max": 0.9,
               "score": 1.5,
-              "label": "Low Risk (0.5-0.9)"
+              "label": "ความเสี่ยงต่ำ (0.5-0.9)"
             },
             {
               "min": 0.9,
               "max": 1.5,
               "score": 1,
-              "label": "Medium Risk (0.9-1.5)"
+              "label": "ความเสี่ยงปานกลาง (0.9-1.5)"
             },
             {
               "min": 1.5,
               "max": 1.99,
               "score": 0.5,
-              "label": "High Risk (1.5-1.99)"
+              "label": "ความเสี่ยงสูง (1.5-1.99)"
             },
             {
               "min": 1.99,
               "score": 0.25,
-              "label": "Very High Risk (> 1.99)"
+              "label": "ความเสี่ยงสูงมาก (> 1.99)"
             }
           ]
         },
@@ -101,7 +101,7 @@
                 "Own"
               ],
               "score": 2,
-              "label": "Owned (Self)"
+              "label": "เป็นเจ้าของ (ตนเอง)"
             },
             {
               "match": [
@@ -111,7 +111,7 @@
                 "Parents"
               ],
               "score": 1.5,
-              "label": "Owned (Family)"
+              "label": "เป็นเจ้าของ (ครอบครัว)"
             },
             {
               "match": [
@@ -119,19 +119,19 @@
                 "Rent"
               ],
               "score": 1,
-              "label": "Rented"
+              "label": "เช่า"
             },
             {
               "default": true,
               "score": 1,
-              "label": "Unknown/Other"
+              "label": "ไม่ระบุ/อื่นๆ"
             }
           ]
         }
       ]
     },
     "c2": {
-      "name": "Financial Status",
+      "name": "กระแสเงินสดและสภาพคล่อง",
       "factors": [
         {
           "key": "de_ratio",
@@ -142,30 +142,30 @@
             {
               "max": 1.01,
               "score": 2,
-              "label": "Excellent (<= 1.0)"
+              "label": "ดีเยี่ยม (<= 1.0)"
             },
             {
               "min": 1.01,
               "max": 1.5,
               "score": 1.6,
-              "label": "Good (1.0-1.5)"
+              "label": "ดี (1.0-1.5)"
             },
             {
               "min": 1.5,
               "max": 2,
               "score": 1.2,
-              "label": "Fair (1.5-2.0)"
+              "label": "พอใช้ (1.5-2.0)"
             },
             {
               "min": 2,
               "max": 3,
               "score": 1,
-              "label": "Poor (2.0-3.0)"
+              "label": "แย่ (2.0-3.0)"
             },
             {
               "min": 3,
               "score": 0,
-              "label": "Critical (> 3.0)"
+              "label": "วิกฤต (> 3.0)"
             }
           ]
         },
@@ -177,30 +177,30 @@
             {
               "min": 12,
               "score": 2,
-              "label": "High (> 12)"
+              "label": "สูง (> 12)"
             },
             {
               "min": 8,
               "max": 12,
               "score": 1.5,
-              "label": "Good (8-12)"
+              "label": "ดี (8-12)"
             },
             {
               "min": 6,
               "max": 8,
               "score": 1,
-              "label": "Average (6-8)"
+              "label": "ปานกลาง (6-8)"
             },
             {
               "min": 4,
               "max": 6,
               "score": 0.5,
-              "label": "Low (4-6)"
+              "label": "ต่ำ (4-6)"
             },
             {
               "max": 4,
               "score": 0,
-              "label": "Very Low (< 4)"
+              "label": "ต่ำมาก (< 4)"
             }
           ],
           "condition": "isCompany"
@@ -214,37 +214,37 @@
             {
               "min": 0.5,
               "score": 2,
-              "label": "Strong (>= 0.5)"
+              "label": "แข็งแกร่ง (>= 0.5)"
             },
             {
               "min": 0.4,
               "max": 0.5,
               "score": 1.5,
-              "label": "Good (0.4-0.5)"
+              "label": "ดี (0.4-0.5)"
             },
             {
               "min": 0.33,
               "max": 0.4,
               "score": 1,
-              "label": "Fair (0.33-0.4)"
+              "label": "พอใช้ (0.33-0.4)"
             },
             {
               "min": 0.25,
               "max": 0.33,
               "score": 0.5,
-              "label": "Weak (0.25-0.33)"
+              "label": "อ่อนแอ (0.25-0.33)"
             },
             {
               "max": 0.25,
               "score": 0,
-              "label": "Critical (< 0.25)"
+              "label": "วิกฤต (< 0.25)"
             }
           ]
         }
       ]
     },
     "c3": {
-      "name": "Purchase Behavior",
+      "name": "พฤติกรรมการซื้อและประวัติ",
       "factors": [
         {
           "key": "revenue_capital_ratio",
@@ -254,30 +254,30 @@
             {
               "min": 1.5,
               "score": 2,
-              "label": "Excellent (>= 1.5)"
+              "label": "ดีเยี่ยม (>= 1.5)"
             },
             {
               "min": 1,
               "max": 1.5,
               "score": 1.5,
-              "label": "Good (1.0-1.5)"
+              "label": "ดี (1.0-1.5)"
             },
             {
               "min": 0.6,
               "max": 1,
               "score": 1,
-              "label": "Fair (0.6-1.0)"
+              "label": "พอใช้ (0.6-1.0)"
             },
             {
               "min": 0.26,
               "max": 0.6,
               "score": 0.5,
-              "label": "Poor (0.26-0.6)"
+              "label": "แย่ (0.26-0.6)"
             },
             {
               "max": 0.26,
               "score": 0.25,
-              "label": "Critical (< 0.26)"
+              "label": "วิกฤต (< 0.26)"
             }
           ]
         },
@@ -289,30 +289,30 @@
             {
               "min": 1.5,
               "score": 2,
-              "label": "High Capacity (>= 1.5)"
+              "label": "ความสามารถสูง (>= 1.5)"
             },
             {
               "min": 0.99,
               "max": 1.5,
               "score": 1.5,
-              "label": "Good Capacity (1.0-1.5)"
+              "label": "ความสามารถดี (1.0-1.5)"
             },
             {
               "min": 0.59,
               "max": 0.99,
               "score": 1,
-              "label": "Moderate Capacity (0.6-1.0)"
+              "label": "ความสามารถปานกลาง (0.6-1.0)"
             },
             {
               "min": 0.25,
               "max": 0.59,
               "score": 0.5,
-              "label": "Low Capacity (0.25-0.6)"
+              "label": "ความสามารถต่ำ (0.25-0.6)"
             },
             {
               "max": 0.25,
               "score": 0.25,
-              "label": "Very Low Capacity (< 0.25)"
+              "label": "ความสามารถต่ำมาก (< 0.25)"
             }
           ]
         },
@@ -324,24 +324,24 @@
             {
               "min": 1.5,
               "score": 2,
-              "label": "Fast (>= 1.5)"
+              "label": "เร็ว (>= 1.5)"
             },
             {
               "min": 0.9,
               "max": 1.5,
               "score": 1.5,
-              "label": "Normal (0.9-1.5)"
+              "label": "ปกติ (0.9-1.5)"
             },
             {
               "min": 0.5,
               "max": 0.9,
               "score": 1,
-              "label": "Slow (0.5-0.9)"
+              "label": "ช้า (0.5-0.9)"
             },
             {
               "max": 0.5,
               "score": 0.5,
-              "label": "Very Slow (< 0.5)"
+              "label": "ช้ามาก (< 0.5)"
             }
           ]
         },
@@ -353,30 +353,30 @@
             {
               "min": 16008.34,
               "score": 2,
-              "label": "Strong Uptrend (> 16k)"
+              "label": "แนวโน้มขาขึ้นอย่างมาก (> 16k)"
             },
             {
               "min": 205.52,
               "max": 16008.34,
               "score": 1.5,
-              "label": "Uptrend (200 - 16k)"
+              "label": "แนวโน้มขาขึ้น (200 - 16k)"
             },
             {
               "min": -0.01,
               "max": 205.52,
               "score": 1,
-              "label": "Stable (Flat)"
+              "label": "คงที่"
             },
             {
               "min": -4654.54,
               "max": -0.01,
               "score": 0.5,
-              "label": "Downtrend"
+              "label": "แนวโน้มขาลง"
             },
             {
               "max": -4654.54,
               "score": 0.25,
-              "label": "Strong Downtrend"
+              "label": "แนวโน้มขาลงอย่างมาก"
             }
           ]
         },
@@ -388,30 +388,30 @@
             {
               "min": 7,
               "score": 2,
-              "label": "Long-term (> 7 Years)"
+              "label": "ระยะยาว (> 7 ปี)"
             },
             {
               "min": 4,
               "max": 7,
               "score": 1.5,
-              "label": "Mid-term (4-7 Years)"
+              "label": "ระยะกลาง (4-7 ปี)"
             },
             {
               "min": 2,
               "max": 4,
               "score": 1,
-              "label": "Short-term (2-4 Years)"
+              "label": "ระยะสั้น (2-4 ปี)"
             },
             {
               "min": 1,
               "max": 2,
               "score": 0.5,
-              "label": "New (1-2 Years)"
+              "label": "ใหม่ (1-2 ปี)"
             },
             {
               "max": 1,
               "score": 0.25,
-              "label": "Brand New (< 1 Year)"
+              "label": "ใหม่มาก (< 1 ปี)"
             }
           ]
         },
@@ -421,32 +421,32 @@
           "weight": 19.8,
           "rules": [
             {
-              "max": 0.000001,
+              "max": 1e-06,
               "score": 2,
-              "label": "Perfect (0 Days)"
+              "label": "ดีเลิศ (0 วัน)"
             },
             {
-              "min": 0.000001,
+              "min": 1e-06,
               "max": 5.000001,
               "score": 1.5,
-              "label": "Excellent (<= 5 Days)"
+              "label": "ดีเยี่ยม (<= 5 วัน)"
             },
             {
               "min": 5.000001,
               "max": 10.000001,
               "score": 1,
-              "label": "Good (5-10 Days)"
+              "label": "ดี (5-10 วัน)"
             },
             {
               "min": 10.000001,
               "max": 15.000001,
               "score": 0.5,
-              "label": "Fair (10-15 Days)"
+              "label": "พอใช้ (10-15 วัน)"
             },
             {
               "min": 15.000001,
               "score": 0,
-              "label": "Poor (> 15 Days)"
+              "label": "แย่ (> 15 วัน)"
             }
           ]
         }

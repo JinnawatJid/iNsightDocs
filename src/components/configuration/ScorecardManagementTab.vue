@@ -1,27 +1,28 @@
 <template>
   <div class="scorecard-management">
-    <div class="config-container">
-      <div class="config-header">
+    <div class="content-header">
+      <div class="header-title">
         <div class="header-content">
-          <h2>จัดการโมเดลให้คะแนน (Scorecard Management)</h2>
+          <h3>จัดการโมเดลให้คะแนน</h3>
           <p>ปรับปรุงน้ำหนักและเกณฑ์การให้คะแนนสำหรับแบบจำลองเครดิต</p>
         </div>
-        <div class="header-actions">
-          <select v-model="selectedModel" @change="handleModelChange" class="model-select">
-            <option value="new">ลูกค้าใหม่ (New Customer Model)</option>
-            <option value="existing">ลูกค้าปัจจุบัน (Existing Customer Model)</option>
-          </select>
-          <button
-            class="btn btn-primary"
-            :disabled="!store.hasChanges || !isWeightValid || store.isLoading"
-            @click="handleSave"
-          >
-            {{ store.isLoading ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
-          </button>
-        </div>
       </div>
+      <div class="header-actions">
+        <select v-model="selectedModel" @change="handleModelChange" class="model-select">
+          <option value="new">ลูกค้าใหม่</option>
+          <option value="existing">ลูกค้าปัจจุบัน</option>
+        </select>
+        <button
+          class="btn btn-primary"
+          :disabled="!store.hasChanges || !isWeightValid || store.isLoading"
+          @click="handleSave"
+        >
+          {{ store.isLoading ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
+        </button>
+      </div>
+    </div>
 
-      <div class="config-body">
+    <div class="config-body">
         <div v-if="store.isLoading && !store.configData" class="loading-state">
           <div class="spinner"></div>
           <p>กำลังโหลดข้อมูลโมเดล...</p>
@@ -51,11 +52,12 @@
           </div>
 
           <div v-for="(component, compKey) in store.components" :key="compKey" class="component-card">
-            <div class="component-header">
+            <div class="component-header accordion-header" @click="toggleAccordion(compKey)">
               <h3>{{ compKey.toUpperCase() }}: {{ component.name || 'ไม่มีชื่อหมวดหมู่' }}</h3>
+              <span class="accordion-icon">{{ activeAccordions.includes(compKey) ? '▼' : '▶' }}</span>
             </div>
 
-            <div class="factors-list">
+            <div class="factors-list" v-show="activeAccordions.includes(compKey)">
               <div v-for="(factor, fIndex) in component.factors" :key="factor.key" class="factor-item">
                 <div class="factor-header">
                   <div class="factor-title">
@@ -63,7 +65,7 @@
                     <span class="factor-key">{{ factor.key }}</span>
                   </div>
                   <div class="factor-weight">
-                    <label>น้ำหนัก (Weight):</label>
+                    <label>น้ำหนัก:</label>
                     <input
                       type="number"
                       v-model.number="factor.weight"
@@ -77,11 +79,11 @@
                   <table class="rules-table">
                     <thead>
                       <tr>
-                        <th>คำอธิบาย (Label)</th>
-                        <th>Min (>=)</th>
-                        <th>Max (<)</th>
-                        <th>เงื่อนไขพิเศษ (Match)</th>
-                        <th>คะแนน (Score)</th>
+                        <th>คำอธิบาย</th>
+                        <th v-if="!hasMatchRules(factor)">ขั้นต่ำ (>=)</th>
+                        <th v-if="!hasMatchRules(factor)">สูงสุด (<)</th>
+                        <th v-if="hasMatchRules(factor)">เงื่อนไขพิเศษ</th>
+                        <th>คะแนน</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -89,9 +91,9 @@
                         <td>
                           <input type="text" v-model="rule.label" class="form-control text-input" />
                         </td>
-                        <td>
+                        <td v-if="!hasMatchRules(factor)">
                           <input
-                            v-if="rule.min !== undefined || (rule.max === undefined && !rule.match && !rule.default)"
+                            v-if="rule.min !== undefined || (rule.max === undefined && !rule.default)"
                             type="number"
                             v-model.number="rule.min"
                             step="0.01"
@@ -99,9 +101,9 @@
                           />
                           <span v-else class="na-text">-</span>
                         </td>
-                        <td>
+                        <td v-if="!hasMatchRules(factor)">
                           <input
-                            v-if="rule.max !== undefined || (rule.min === undefined && !rule.match && !rule.default)"
+                            v-if="rule.max !== undefined || (rule.min === undefined && !rule.default)"
                             type="number"
                             v-model.number="rule.max"
                             step="0.01"
@@ -109,7 +111,7 @@
                           />
                           <span v-else class="na-text">-</span>
                         </td>
-                        <td>
+                        <td v-if="hasMatchRules(factor)">
                            <input
                             v-if="rule.match"
                             type="text"
@@ -137,7 +139,6 @@
             </div>
           </div>
 
-        </div>
       </div>
     </div>
   </div>
@@ -145,12 +146,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useScorecardStore } from '../stores/scorecard';
+import { useScorecardStore } from '../../stores/scorecard';
 import Swal from 'sweetalert2';
 
 const store = useScorecardStore();
 const selectedModel = ref('new');
 const expectedTotalWeight = ref(100); // Standard, will update dynamically based on initial load
+const activeAccordions = ref([]); // All collapsed by default
 
 // Computed
 const totalWeight = computed(() => {
@@ -208,6 +210,19 @@ const updateMatchArray = (rule, valString) => {
     rule.match = valString.split(',').map(s => s.trim()).filter(s => s);
 };
 
+const hasMatchRules = (factor) => {
+  return factor.rules && factor.rules.some(r => r.match !== undefined);
+};
+
+const toggleAccordion = (key) => {
+  const index = activeAccordions.value.indexOf(key);
+  if (index > -1) {
+    activeAccordions.value.splice(index, 1); // collapse if already open
+  } else {
+    activeAccordions.value.push(key); // expand clicked
+  }
+};
+
 const handleReset = () => {
    store.resetChanges();
 };
@@ -243,63 +258,60 @@ onMounted(() => {
 
 <style scoped>
 .scorecard-management {
-  padding: 100px 20px 20px 20px;
-  background-color: #f8f9fa;
-  min-height: 100vh;
+  width: 100%;
 }
 
-.config-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  overflow: hidden;
-}
-
-.config-header {
-  padding: 24px;
-  border-bottom: 1px solid #eaeaea;
-  background-color: #fff;
+.content-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.header-content h2 {
-  margin: 0 0 8px 0;
-  font-size: 24px;
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.header-content h3 {
+  margin: 0 0 4px 0;
+  font-size: 20px;
   color: #2c3e50;
+  font-weight: 600;
 }
 
 .header-content p {
   margin: 0;
   color: #6c757d;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .header-actions {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
 }
 
 .model-select {
-  padding: 10px 14px;
+  padding: 6px 10px;
   border: 1px solid #dcdcdc;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 4px;
+  font-size: 13px;
   background-color: #fcfcfc;
   cursor: pointer;
 }
 
 .validation-banner {
-  padding: 16px 24px;
+  padding: 10px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #eaeaea;
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .validation-banner.is-valid {
@@ -313,34 +325,53 @@ onMounted(() => {
 }
 
 .validation-warning {
-  font-size: 13px;
-  margin-left: 8px;
+  font-size: 12px;
+  margin-left: 6px;
   font-weight: 500;
 }
 
 .scorecard-content {
   background-color: #f8f9fa;
-  padding: 24px;
+  padding: 16px;
 }
 
 .component-card {
   background: white;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  margin-bottom: 24px;
+  border-radius: 6px;
+  margin-bottom: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  transition: all 0.3s ease;
 }
 
 .component-header {
   background-color: #f1f3f5;
-  padding: 16px 24px;
+  padding: 10px 16px;
   border-bottom: 1px solid #e0e0e0;
+}
+
+.accordion-header {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.accordion-header:hover {
+  background-color: #e9ecef;
+}
+
+.accordion-icon {
+  font-size: 12px;
+  color: #6c757d;
+  transition: transform 0.3s;
 }
 
 .component-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 15px;
   color: #343a40;
 }
 
@@ -349,7 +380,7 @@ onMounted(() => {
 }
 
 .factor-item {
-  padding: 24px;
+  padding: 16px;
   border-bottom: 1px solid #eee;
 }
 
@@ -360,46 +391,51 @@ onMounted(() => {
 .factor-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.factor-title {
+  text-align: left;
 }
 
 .factor-title h4 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
+  margin: 0 0 2px 0;
+  font-size: 14px;
   color: #212529;
 }
 
 .factor-key {
-  font-size: 12px;
+  font-size: 11px;
   color: #868e96;
   font-family: monospace;
   background: #f8f9fa;
-  padding: 2px 6px;
+  padding: 1px 4px;
   border-radius: 4px;
 }
 
 .factor-weight {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   background: #fdfdfd;
-  padding: 10px 16px;
+  padding: 6px 12px;
   border: 1px solid #e9ecef;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .factor-weight label {
   font-weight: 600;
   color: #495057;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .form-control {
-  padding: 8px 12px;
+  padding: 4px 8px;
   border: 1px solid #ced4da;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
+  box-sizing: border-box;
 }
 
 .form-control:focus {
@@ -408,10 +444,11 @@ onMounted(() => {
 }
 
 .weight-input {
-  width: 100px;
+  width: 70px;
   text-align: center;
   font-weight: bold;
   color: #0d6efd;
+  font-size: 13px;
 }
 
 .rules-container {
@@ -421,12 +458,12 @@ onMounted(() => {
 .rules-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .rules-table th {
-  text-align: left;
-  padding: 10px;
+  text-align: center;
+  padding: 8px 16px;
   background-color: #f8f9fa;
   color: #495057;
   font-weight: 600;
@@ -434,19 +471,19 @@ onMounted(() => {
 }
 
 .rules-table td {
-  padding: 8px 10px;
+  padding: 8px 16px;
   border-bottom: 1px solid #e9ecef;
   vertical-align: middle;
 }
 
 .num-input, .score-input {
-  width: 80px;
+  width: 60px;
   text-align: center;
 }
 
 .text-input {
   width: 100%;
-  min-width: 150px;
+  min-width: 120px;
 }
 
 .na-text {
@@ -458,18 +495,19 @@ onMounted(() => {
 .badge.default {
   background-color: #6c757d;
   color: white;
-  padding: 4px 8px;
+  padding: 2px 6px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .btn {
-  padding: 10px 20px;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 4px;
   font-weight: 500;
   cursor: pointer;
   border: none;
   transition: all 0.2s;
+  font-size: 13px;
 }
 
 .btn-primary {
@@ -496,8 +534,8 @@ onMounted(() => {
   background-color: transparent;
   border: 1px solid #ced4da;
   color: #495057;
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 4px 8px;
+  font-size: 12px;
 }
 
 .btn-outline:hover {
