@@ -63,6 +63,10 @@ export default {
     currentStatus: {
       type: String,
       default: 'Draft'
+    },
+    requestAmount: {
+      type: [Number, String],
+      default: 0
     }
   },
   setup(props) {
@@ -109,7 +113,21 @@ export default {
       // Sort comments chronologically
       const sortedComments = [...props.comments].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-      let steps = WORKFLOW_STEPS.map(ws => ({
+      // Filter out Committee step if amount <= 300,000
+      let amount = 0;
+      if (typeof props.requestAmount === 'string') {
+        amount = Number(props.requestAmount.replace(/,/g, ''));
+      } else {
+        amount = Number(props.requestAmount || 0);
+      }
+
+      let activeSteps = WORKFLOW_STEPS;
+      // We hide the 6th step if the amount is explicitly <= 300,000 OR if it's 0 (default empty state)
+      if (amount <= 300000) {
+          activeSteps = WORKFLOW_STEPS.filter(step => step.id !== 'step-6');
+      }
+
+      let steps = activeSteps.map(ws => ({
         ...ws,
         roleLabel: ws.label,
         completed: false,
