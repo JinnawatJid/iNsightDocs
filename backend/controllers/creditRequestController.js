@@ -307,12 +307,13 @@ exports.createCreditRequest = async (req, res) => {
   try {
     // Check for existing active request for this customer
     // Legacy statuses: Submitted, Reviewed
-    // New statuses: RegionalSubmitted, SalesSubmitted, Reviewed
+    // New statuses: RegionalSubmitted, SalesSubmitted, FinanceReviewed, Reviewed
     const activeStatuses = [
       "Draft",
       "Opened",
       "RegionalSubmitted",
       "SalesSubmitted",
+      "FinanceReviewed",
       "Reviewed",
       "Submitted",
     ];
@@ -885,6 +886,7 @@ exports.cancelCreditRequest = async (req, res) => {
       "Opened",
       "RegionalSubmitted",
       "SalesSubmitted",
+      "FinanceReviewed",
       "Reviewed",
       "Submitted",
     ];

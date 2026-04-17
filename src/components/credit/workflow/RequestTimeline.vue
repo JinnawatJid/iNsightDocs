@@ -49,7 +49,8 @@ const WORKFLOW_STEPS = [
   { id: 'step-2', roleKeys: ['ผู้จัดการภาค'], label: 'ผู้จัดการภาค' },
   { id: 'step-3', roleKeys: ['ผู้จัดการฝ่ายขาย', 'ผู้จัดการฝ่ายขาย (Legacy)'], label: 'ผู้จัดการฝ่ายขาย' },
   { id: 'step-4', roleKeys: ['เจ้าหน้าที่ฝ่ายการเงิน', 'เจ้าหน้าที่ฝ่ายการเงิน (Legacy)'], label: 'เจ้าหน้าที่ฝ่ายการเงิน' },
-  { id: 'step-5', roleKeys: ['ผู้จัดการฝ่ายการเงิน / กรรมการเครดิต', 'ผู้จัดการฝ่ายการเงิน', 'กรรมการเครดิต', 'กรรมการเครดิต (Legacy)'], label: 'ผู้จัดการฝ่ายการเงิน / กรรมการเครดิต' }
+  { id: 'step-5', roleKeys: ['ผู้อนุมัติ (วงเงิน <300K)', 'ผู้จัดการฝ่ายการเงิน'], label: 'ผู้จัดการฝ่ายการเงิน' },
+  { id: 'step-6', roleKeys: ['ผู้อนุมัติ (วงเงิน > 300K)', 'กรรมการเครดิต', 'กรรมการเครดิต (Legacy)'], label: 'กรรมการเครดิต' }
 ];
 
 export default {
@@ -62,6 +63,10 @@ export default {
     currentStatus: {
       type: String,
       default: 'Draft'
+    },
+    requestAmount: {
+      type: [Number, String],
+      default: 0
     }
   },
   setup(props) {
@@ -92,13 +97,14 @@ export default {
       'Opened': 1,            // 1: ผู้จัดการภาค
       'RegionalSubmitted': 2, // 2: ผู้จัดการฝ่ายขาย
       'SalesSubmitted': 3,    // 3: เจ้าหน้าที่ฝ่ายการเงิน
-      'Reviewed': 4,          // 4: กรรมการเครดิต
-      'Approved': 5,          // 5: Done (all 0-4 are completed)
-      'Closed': 5,            // 5: Done
+      'FinanceReviewed': 4,   // 4: ผู้อนุมัติ (วงเงิน <300K)
+      'Reviewed': 5,          // 5: ผู้อนุมัติ (วงเงิน > 300K)
+      'Approved': 6,          // 6: Done (all 0-5 are completed)
+      'Closed': 6,            // 6: Done
       // Legacy Support
       'Submitted': 2,
       'PendingSales (ชั่วคราว)': 3,
-      'PendingFinance (ชั่วคราว)': 4,
+      'PendingFinance (ชั่วคราว)': 5,
       'Rejected': -1,         // Special handling below
       'Canceled': -1          // Special handling below
     };
@@ -107,7 +113,21 @@ export default {
       // Sort comments chronologically
       const sortedComments = [...props.comments].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-      let steps = WORKFLOW_STEPS.map(ws => ({
+      // Filter out Committee step if amount <= 300,000
+      let amount = 0;
+      if (typeof props.requestAmount === 'string') {
+        amount = Number(props.requestAmount.replace(/,/g, ''));
+      } else {
+        amount = Number(props.requestAmount || 0);
+      }
+
+      let activeSteps = WORKFLOW_STEPS;
+      // We hide the 6th step if the amount is explicitly <= 300,000 OR if it's 0 (default empty state)
+      if (amount <= 300000) {
+          activeSteps = WORKFLOW_STEPS.filter(step => step.id !== 'step-6');
+      }
+
+      let steps = activeSteps.map(ws => ({
         ...ws,
         roleLabel: ws.label,
         completed: false,
@@ -130,9 +150,8 @@ export default {
           step.date = lastComment.created_at;
           step.comment = lastComment.comment_text;
 
-          // If the actual actor role was "ผู้จัดการฝ่ายการเงิน" or "กรรมการเครดิต",
-          // let's dynamically update the label to show specifically who approved/rejected it!
-          if (step.id === 'step-5' && lastComment.actor_role && lastComment.actor_role !== 'ผู้จัดการฝ่ายการเงิน / กรรมการเครดิต') {
+          // We can optionally use the actual actor role if provided and valid.
+          if (lastComment.actor_role && (step.id === 'step-5' || step.id === 'step-6')) {
               step.roleLabel = lastComment.actor_role;
           }
         }

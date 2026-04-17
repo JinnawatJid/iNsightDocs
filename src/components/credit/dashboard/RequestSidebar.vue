@@ -62,7 +62,7 @@
            <span class="customer-name">{{ req.customer_name }}</span>
            <div class="status-icon">
               <!-- Active Statuses (Clock) -->
-              <img v-if="['Draft', 'Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed', 'Submitted', 'PendingSales (ชั่วคราว)'].includes(req.status)" :src="iconClock" :alt="req.status" width="24" height="24" />
+              <img v-if="['Draft', 'Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'Submitted', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'].includes(req.status)" :src="iconClock" :alt="req.status" width="24" height="24" />
               <!-- Negative Statuses (X) -->
               <img v-else-if="['Rejected', 'Canceled'].includes(req.status)" :src="iconRejected" :alt="req.status" width="24" height="24" />
               <!-- Positive Statuses (Check) -->
@@ -121,7 +121,7 @@ const fetchData = () => {
     // Determine allowed statuses based on the user's role
     if (authStore.isInitiator) {
       // Initiator (Branch Manager) should see all active requests they submitted
-      allowedStatuses.push('Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
+      allowedStatuses.push('Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
     }
     if (authStore.isRegionalManager) {
       allowedStatuses.push('Opened');
@@ -132,7 +132,10 @@ const fetchData = () => {
     if (authStore.isFinanceOfficer) {
       allowedStatuses.push('SalesSubmitted');
     }
-    if (authStore.isFinanceManager || authStore.isCreditCommittee) {
+    if (authStore.isFinanceManager) {
+      allowedStatuses.push('FinanceReviewed');
+    }
+    if (authStore.isCreditCommittee) {
       allowedStatuses.push('Reviewed');
     }
 

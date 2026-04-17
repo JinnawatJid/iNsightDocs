@@ -30,9 +30,9 @@ This document defines the Roles and Responsibilities for the Credit Request Appl
 | **4. Submit to Regional** <br>*(Draft -> Opened)* | **R** / A | I | - | - | - | - |
 | **5. Regional Review** <br>*(Opened -> RegionalSubmitted)* | I | **R** / A | I | - | - | - |
 | **6. Sales Review** <br>*(RegionalSubmitted -> SalesSubmitted)* | I | I | **R** / A | - | I | - |
-| **7. Finance Screening** <br>*(SalesSubmitted -> Reviewed)* | I | I | I | **R** | A | - |
-| **8. Final Approval (<= 300k)** | I | I | I | C | **R** / A | - |
-| **9. Final Approval (> 300k)** | I | I | I | C | C | **R** / A |
+| **7. Finance Screening** <br>*(SalesSubmitted -> FinanceReviewed)* | I | I | I | **R** | A | - |
+| **8. Final Approval (<= 300k)** <br>*(FinanceReviewed -> Approved/Reviewed)*| I | I | I | C | **R** / A | - |
+| **9. Final Approval (> 300k)** <br>*(Reviewed -> Approved)*| I | I | I | C | C | **R** / A |
 | **10. Rejection Decision** | I | I | I | - | **A** / R | - |
 | **11. Cancel Request** | **R** | **A** | I | - | I | - |
 

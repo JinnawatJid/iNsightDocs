@@ -62,18 +62,20 @@ const availableActions = computed(() => {
     actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
   }
 
-  // 3. Finance Officer (SalesSubmitted -> Reviewed)
+  // 3. Finance Officer (SalesSubmitted -> FinanceReviewed)
   if (status === 'SalesSubmitted' && authStore.isFinanceOfficer) {
-    actions.push({ key: 'review', label: 'ตรวจสอบ (Verify)', targetStatus: 'Reviewed', class: 'btn-success' });
+    actions.push({ key: 'review', label: 'ตรวจสอบ (Verify)', targetStatus: 'FinanceReviewed', class: 'btn-success' });
     actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
   }
 
-  // 4. Finance Manager (Reviewed -> Approved if <= 300k)
-  if (status === 'Reviewed' && authStore.isFinanceManager) {
+  // 4. Finance Manager (FinanceReviewed -> Approved if <= 300k, or Reviewed if > 300k)
+  if (status === 'FinanceReviewed' && authStore.isFinanceManager) {
     if (amount <= 300000) {
         actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
-        actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
+    } else {
+        actions.push({ key: 'submit', label: 'ส่งต่อ (Send to Committee)', targetStatus: 'Reviewed', class: 'btn-primary' });
     }
+    actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
   }
 
   // 5. Credit Committee (Reviewed -> Approved if > 300k)
