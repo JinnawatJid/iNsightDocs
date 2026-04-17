@@ -18,7 +18,7 @@
   ],
   "components": {
     "c1": {
-      "name": "Company Strength",
+      "name": "ความแข็งแกร่งของบริษัท",
       "factors": [
         {
           "key": "years_in_business",
@@ -131,7 +131,7 @@
       ]
     },
     "c2": {
-      "name": "Financial Status",
+      "name": "กระแสเงินสดและสภาพคล่อง",
       "factors": [
         {
           "key": "de_ratio",
@@ -244,7 +244,7 @@
       ]
     },
     "c3": {
-      "name": "Purchase Behavior",
+      "name": "พฤติกรรมการซื้อและประวัติ",
       "factors": [
         {
           "key": "revenue_capital_ratio",

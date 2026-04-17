@@ -51,11 +51,12 @@
           </div>
 
           <div v-for="(component, compKey) in store.components" :key="compKey" class="component-card">
-            <div class="component-header">
+            <div class="component-header accordion-header" @click="toggleAccordion(compKey)">
               <h3>{{ compKey.toUpperCase() }}: {{ component.name || 'ไม่มีชื่อหมวดหมู่' }}</h3>
+              <span class="accordion-icon">{{ activeAccordion === compKey ? '▼' : '▶' }}</span>
             </div>
 
-            <div class="factors-list">
+            <div class="factors-list" v-show="activeAccordion === compKey">
               <div v-for="(factor, fIndex) in component.factors" :key="factor.key" class="factor-item">
                 <div class="factor-header">
                   <div class="factor-title">
@@ -151,6 +152,7 @@ import Swal from 'sweetalert2';
 const store = useScorecardStore();
 const selectedModel = ref('new');
 const expectedTotalWeight = ref(100); // Standard, will update dynamically based on initial load
+const activeAccordion = ref('c1'); // Open first component by default
 
 // Computed
 const totalWeight = computed(() => {
@@ -206,6 +208,14 @@ const handleModelChange = () => {
 
 const updateMatchArray = (rule, valString) => {
     rule.match = valString.split(',').map(s => s.trim()).filter(s => s);
+};
+
+const toggleAccordion = (key) => {
+  if (activeAccordion.value === key) {
+    activeAccordion.value = null; // collapse if already open
+  } else {
+    activeAccordion.value = key; // expand clicked
+  }
 };
 
 const handleReset = () => {
@@ -326,12 +336,31 @@ onMounted(() => {
   margin-bottom: 16px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  transition: all 0.3s ease;
 }
 
 .component-header {
   background-color: #f1f3f5;
   padding: 10px 16px;
   border-bottom: 1px solid #e0e0e0;
+}
+
+.accordion-header {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.accordion-header:hover {
+  background-color: #e9ecef;
+}
+
+.accordion-icon {
+  font-size: 12px;
+  color: #6c757d;
+  transition: transform 0.3s;
 }
 
 .component-header h3 {
