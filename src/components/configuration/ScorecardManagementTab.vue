@@ -8,8 +8,8 @@
         </div>
         <div class="header-actions">
           <select v-model="selectedModel" @change="handleModelChange" class="model-select">
-            <option value="new">ลูกค้าใหม่ (New Customer Model)</option>
-            <option value="existing">ลูกค้าปัจจุบัน (Existing Customer Model)</option>
+            <option value="new">ลูกค้าใหม่</option>
+            <option value="existing">ลูกค้าปัจจุบัน</option>
           </select>
           <button
             class="btn btn-primary"
@@ -63,7 +63,7 @@
                     <span class="factor-key">{{ factor.key }}</span>
                   </div>
                   <div class="factor-weight">
-                    <label>น้ำหนัก (Weight):</label>
+                    <label>น้ำหนัก:</label>
                     <input
                       type="number"
                       v-model.number="factor.weight"
@@ -77,11 +77,11 @@
                   <table class="rules-table">
                     <thead>
                       <tr>
-                        <th>คำอธิบาย (Label)</th>
-                        <th>Min (>=)</th>
-                        <th>Max (<)</th>
-                        <th>เงื่อนไขพิเศษ (Match)</th>
-                        <th>คะแนน (Score)</th>
+                        <th>คำอธิบาย</th>
+                        <th>ขั้นต่ำ (>=)</th>
+                        <th>สูงสุด (<)</th>
+                        <th>เงื่อนไขพิเศษ</th>
+                        <th>คะแนน</th>
                       </tr>
                     </thead>
                     <tbody>
