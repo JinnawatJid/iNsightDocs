@@ -247,13 +247,26 @@
                             </div>
                             <div class="col-6">
                                 <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
-                                <input
-                                    type="date"
-                                    class="form-control form-control-sm"
-                                    :value="getGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate')"
-                                    @input="(e) => updateGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
-                                    :disabled="props.readOnly"
-                                />
+                                <div class="date-picker-cell">
+                                    <input
+                                        type="text"
+                                        :value="formatDateForDisplay(getGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate'))"
+                                        :disabled="props.readOnly"
+                                        readonly
+                                        @click="!props.readOnly && openDatePicker('projectBankGuaranteeDetails', file.name)"
+                                        class="form-control form-control-sm text-center date-text-input"
+                                        placeholder="dd/mm/yyyy"
+                                    />
+                                    <input
+                                        type="date"
+                                        :id="`date-projectBankGuaranteeDetails-${project.projectId}-${file.name}`"
+                                        :value="getGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate')"
+                                        @input="(e) => updateGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
+                                        class="hidden-date-input"
+                                        lang="th-TH"
+                                        :disabled="props.readOnly"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -287,13 +300,26 @@
                             </div>
                             <div class="col-6">
                                 <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
-                                <input
-                                    type="date"
-                                    class="form-control form-control-sm"
-                                    :value="getGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate')"
-                                    @input="(e) => updateGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate', e.target.value)"
-                                    :disabled="props.readOnly"
-                                />
+                                <div class="date-picker-cell">
+                                    <input
+                                        type="text"
+                                        :value="formatDateForDisplay(getGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate'))"
+                                        :disabled="props.readOnly"
+                                        readonly
+                                        @click="!props.readOnly && openDatePicker('projectCashDepositDetails', file.name)"
+                                        class="form-control form-control-sm text-center date-text-input"
+                                        placeholder="dd/mm/yyyy"
+                                    />
+                                    <input
+                                        type="date"
+                                        :id="`date-projectCashDepositDetails-${project.projectId}-${file.name}`"
+                                        :value="getGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate')"
+                                        @input="(e) => updateGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate', e.target.value)"
+                                        class="hidden-date-input"
+                                        lang="th-TH"
+                                        :disabled="props.readOnly"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -506,6 +532,31 @@ const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
         project.value[storeKey][fileName] = {};
     }
     project.value[storeKey][fileName][field] = value;
+};
+
+const formatDateForDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('th-TH', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+};
+
+const openDatePicker = (storeKey, fileName) => {
+    if (!project.value) return;
+    const elementId = `date-${storeKey}-${project.value.projectId}-${fileName}`;
+    const input = document.getElementById(elementId);
+    if (input) {
+        input.focus();
+        if (typeof input.showPicker === 'function') {
+            input.showPicker();
+        } else {
+            input.click();
+        }
+    }
 };
 
 </script>

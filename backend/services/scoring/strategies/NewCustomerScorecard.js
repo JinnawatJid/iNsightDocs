@@ -34,7 +34,11 @@ class NewCustomerScorecard extends BaseScorecard {
         const maxLimit = 500000;
         const exponent = typeof limitExponent === 'number' ? limitExponent : (this.evaluator.config.limitExponent || 2.0);
         const ratio = Math.pow((totalScore / 200), exponent);
-        const recommendedLimit = minLimit + (maxLimit - minLimit) * ratio;
+
+        // Base limit plus guarantee totals
+        const baseLimit = minLimit + (maxLimit - minLimit) * ratio;
+        const recommendedLimit = baseLimit + (context.totalGuaranteeAmount || 0);
+
         const roundedLimit = Math.round(recommendedLimit / 1000) * 1000;
 
         // 4. Calculate Size & Grade

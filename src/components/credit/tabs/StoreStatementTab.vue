@@ -31,13 +31,26 @@
                     </div>
                     <div class="col-6">
                         <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
-                        <input
-                            type="date"
-                            class="form-control form-control-sm"
-                            :value="getGuaranteeDetail('bankGuaranteeDetails', file.name, 'expiryDate')"
-                            @input="(e) => updateGuaranteeDetail('bankGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
-                            :disabled="!isEditing"
-                        />
+                        <div class="date-picker-cell">
+                            <input
+                                type="text"
+                                :value="formatDateForDisplay(getGuaranteeDetail('bankGuaranteeDetails', file.name, 'expiryDate'))"
+                                :disabled="!isEditing"
+                                readonly
+                                @click="isEditing && openDatePicker('bankGuaranteeDetails', file.name)"
+                                class="form-control form-control-sm text-center date-text-input cursor-pointer"
+                                placeholder="dd/mm/yyyy"
+                            />
+                            <input
+                                type="date"
+                                :id="`date-bankGuaranteeDetails-${file.name}`"
+                                :value="getGuaranteeDetail('bankGuaranteeDetails', file.name, 'expiryDate')"
+                                @input="(e) => updateGuaranteeDetail('bankGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
+                                class="hidden-date-input"
+                                lang="th-TH"
+                                :disabled="!isEditing"
+                            />
+                        </div>
                     </div>
                 </div>
              </div>
@@ -71,13 +84,26 @@
                     </div>
                     <div class="col-6">
                         <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
-                        <input
-                            type="date"
-                            class="form-control form-control-sm"
-                            :value="getGuaranteeDetail('letterGuaranteeDetails', file.name, 'expiryDate')"
-                            @input="(e) => updateGuaranteeDetail('letterGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
-                            :disabled="!isEditing"
-                        />
+                        <div class="date-picker-cell">
+                            <input
+                                type="text"
+                                :value="formatDateForDisplay(getGuaranteeDetail('letterGuaranteeDetails', file.name, 'expiryDate'))"
+                                :disabled="!isEditing"
+                                readonly
+                                @click="isEditing && openDatePicker('letterGuaranteeDetails', file.name)"
+                                class="form-control form-control-sm text-center date-text-input cursor-pointer"
+                                placeholder="dd/mm/yyyy"
+                            />
+                            <input
+                                type="date"
+                                :id="`date-letterGuaranteeDetails-${file.name}`"
+                                :value="getGuaranteeDetail('letterGuaranteeDetails', file.name, 'expiryDate')"
+                                @input="(e) => updateGuaranteeDetail('letterGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
+                                class="hidden-date-input"
+                                lang="th-TH"
+                                :disabled="!isEditing"
+                            />
+                        </div>
                     </div>
                 </div>
              </div>
@@ -111,13 +137,26 @@
                     </div>
                     <div class="col-6">
                         <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
-                        <input
-                            type="date"
-                            class="form-control form-control-sm"
-                            :value="getGuaranteeDetail('cashDepositDetails', file.name, 'expiryDate')"
-                            @input="(e) => updateGuaranteeDetail('cashDepositDetails', file.name, 'expiryDate', e.target.value)"
-                            :disabled="!isEditing"
-                        />
+                        <div class="date-picker-cell">
+                            <input
+                                type="text"
+                                :value="formatDateForDisplay(getGuaranteeDetail('cashDepositDetails', file.name, 'expiryDate'))"
+                                :disabled="!isEditing"
+                                readonly
+                                @click="isEditing && openDatePicker('cashDepositDetails', file.name)"
+                                class="form-control form-control-sm text-center date-text-input cursor-pointer"
+                                placeholder="dd/mm/yyyy"
+                            />
+                            <input
+                                type="date"
+                                :id="`date-cashDepositDetails-${file.name}`"
+                                :value="getGuaranteeDetail('cashDepositDetails', file.name, 'expiryDate')"
+                                @input="(e) => updateGuaranteeDetail('cashDepositDetails', file.name, 'expiryDate', e.target.value)"
+                                class="hidden-date-input"
+                                lang="th-TH"
+                                :disabled="!isEditing"
+                            />
+                        </div>
                     </div>
                 </div>
              </div>
@@ -687,6 +726,31 @@ const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
     }
     store.transactionData[storeKey][fileName][field] = value;
 };
+
+const formatDateForDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('th-TH', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+};
+
+const openDatePicker = (storeKey, fileName) => {
+    const elementId = `date-${storeKey}-${fileName}`;
+    const input = document.getElementById(elementId);
+    if (input) {
+        input.focus();
+        if (typeof input.showPicker === 'function') {
+            input.showPicker();
+        } else {
+            input.click();
+        }
+    }
+};
+
 // Initialize files from store
 watch(() => store.files, (newVal) => {
   files.bankGuarantee = newVal?.bank_guarantee_doc || [];
@@ -1224,6 +1288,50 @@ const analyzeFinancials = async () => {
 
   // Determine model_type
   formData.append('model_type', currentModelType.value);
+
+  // Calculate Total Guarantees
+  let totalGuaranteeSum = 0;
+
+  // 1. General Tab Guarantees
+  const generalGuaranteeKeys = ['bankGuaranteeDetails', 'letterGuaranteeDetails', 'cashDepositDetails'];
+  generalGuaranteeKeys.forEach(key => {
+      const detailsMap = store.transactionData[key] || {};
+      Object.values(detailsMap).forEach(detail => {
+          if (detail.amount) {
+              const num = parseFloat(String(detail.amount).replace(/,/g, ''));
+              if (!isNaN(num)) totalGuaranteeSum += num;
+          }
+      });
+  });
+
+  // 2. Project Guarantees
+  if (store.transactionData.projectData && Array.isArray(store.transactionData.projectData)) {
+      store.transactionData.projectData.forEach(project => {
+          const projectGuaranteeKeys = ['projectBankGuaranteeDetails', 'projectCashDepositDetails'];
+          projectGuaranteeKeys.forEach(key => {
+              const detailsMap = project[key] || {};
+              Object.values(detailsMap).forEach(detail => {
+                  if (detail.amount) {
+                      const num = parseFloat(String(detail.amount).replace(/,/g, ''));
+                      if (!isNaN(num)) totalGuaranteeSum += num;
+                  }
+              });
+          });
+      });
+  } else if (store.transactionData.projectData && typeof store.transactionData.projectData === 'object') {
+      const projectGuaranteeKeys = ['projectBankGuaranteeDetails', 'projectCashDepositDetails'];
+      projectGuaranteeKeys.forEach(key => {
+          const detailsMap = store.transactionData[key] || {};
+          Object.values(detailsMap).forEach(detail => {
+              if (detail.amount) {
+                  const num = parseFloat(String(detail.amount).replace(/,/g, ''));
+                  if (!isNaN(num)) totalGuaranteeSum += num;
+              }
+          });
+      });
+  }
+
+  formData.append('total_guarantee_amount', totalGuaranteeSum);
 
   try {
     const response = await axios.post('/api/financials/analyze', formData, {
@@ -1929,6 +2037,25 @@ const shouldShowFinancialAnalysis = computed(() => {
   font-size: 0.8em;
   margin-top: 4px;
   display: block;
+}
+
+.date-picker-cell {
+    position: relative;
+}
+
+.date-text-input {
+    cursor: pointer;
+    background-color: #fff;
+}
+
+.hidden-date-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .guarantee-section {

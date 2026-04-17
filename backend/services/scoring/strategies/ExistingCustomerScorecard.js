@@ -46,7 +46,10 @@ class ExistingCustomerScorecard extends BaseScorecard {
         }
 
         const ratio = Math.pow((totalScore / 200), exponent);
-        const recommendedLimit = avg1_5Months * ratio;
+
+        // Base limit plus guarantee totals
+        const baseLimit = avg1_5Months * ratio;
+        const recommendedLimit = baseLimit + (context.totalGuaranteeAmount || 0);
 
         // Round to nearest 1,000
         const roundedLimit = Math.round(recommendedLimit / 1000) * 1000;
