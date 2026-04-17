@@ -34,21 +34,23 @@
 
           <!-- Content Pane: Configuration Inputs -->
           <div class="config-content">
-            <div class="content-header">
-              <div class="header-title">
-                <span class="icon-sliders">⚙️</span>
-                <h3>หมวดหมู่: {{ getCategoryLabel(activeCategory) }}</h3>
+            <ScorecardManagementTab v-if="activeCategory === 'Scorecards'" />
+            <div v-else class="config-items-container">
+              <div class="content-header">
+                <div class="header-title">
+                  <span class="icon-sliders">⚙️</span>
+                  <h3>หมวดหมู่: {{ getCategoryLabel(activeCategory) }}</h3>
+                </div>
+                <button
+                  class="btn btn-primary"
+                  @click="handleSave"
+                  :disabled="!hasChanges || isSaving"
+                >
+                  {{ isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
+                </button>
               </div>
-              <button
-                class="btn btn-primary"
-                @click="handleSave"
-                :disabled="!hasChanges || isSaving"
-              >
-                {{ isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
-              </button>
-            </div>
 
-            <div class="config-items">
+              <div class="config-items">
               <div
                 v-for="item in currentCategoryConfigs"
                 :key="item.config_key"
@@ -95,6 +97,7 @@
               <div v-if="currentCategoryConfigs.length === 0" class="empty-state">
                 ไม่พบการตั้งค่าในหมวดหมู่นี้
               </div>
+              </div>
             </div>
           </div>
         </div>
@@ -107,6 +110,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useConfigStore } from '../stores/config';
 import { formatDateString } from '../utils/dateUtils';
+import ScorecardManagementTab from '../components/configuration/ScorecardManagementTab.vue';
 import Swal from 'sweetalert2';
 
 // State
@@ -121,7 +125,8 @@ const categoryLabels = {
   'System': 'การตั้งค่าระบบ',
   'Workflow': 'การอนุมัติและขั้นตอน',
   'API': 'การเชื่อมต่อระบบ (API)',
-  'Business': 'กฎเกณฑ์ธุรกิจ'
+  'Business': 'กฎเกณฑ์ธุรกิจ',
+  'Scorecards': 'โมเดลให้คะแนน (Scorecards)'
 };
 
 const getCategoryLabel = (category) => {
@@ -130,7 +135,9 @@ const getCategoryLabel = (category) => {
 
 // Computed
 const categories = computed(() => {
-  return configStore.configurations ? Object.keys(configStore.configurations).sort() : [];
+  if (!configStore.configurations) return ['Scorecards'];
+  const dbCategories = Object.keys(configStore.configurations).sort();
+  return [...dbCategories, 'Scorecards'];
 });
 
 const currentCategoryConfigs = computed(() => {

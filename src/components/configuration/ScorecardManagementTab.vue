@@ -145,7 +145,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useScorecardStore } from '../stores/scorecard';
+import { useScorecardStore } from '../../stores/scorecard';
 import Swal from 'sweetalert2';
 
 const store = useScorecardStore();
@@ -243,17 +243,13 @@ onMounted(() => {
 
 <style scoped>
 .scorecard-management {
-  padding: 100px 20px 20px 20px;
   background-color: #f8f9fa;
-  min-height: 100vh;
+  border-radius: 8px;
 }
 
 .config-container {
-  max-width: 1200px;
-  margin: 0 auto;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   overflow: hidden;
 }
 

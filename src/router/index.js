@@ -6,7 +6,6 @@ import OcrComparison from '../views/OcrComparison.vue';
 import CreditAnalysisReport from '../views/CreditAnalysisReport.vue';
 import BatchAutomation from '../views/BatchAutomation.vue';
 import SystemConfiguration from '../views/SystemConfiguration.vue';
-import ScorecardManagement from '../views/ScorecardManagement.vue';
 
 const routes = [
   {
@@ -48,11 +47,6 @@ const routes = [
     name: 'SystemConfiguration',
     component: SystemConfiguration,
   },
-  {
-    path: '/scorecard-management',
-    name: 'ScorecardManagement',
-    component: ScorecardManagement,
-  },
 ];
 
 import { useAuthStore } from '../stores/auth';
@@ -81,7 +75,7 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  if ((to.path === '/configuration' || to.path === '/scorecard-management') && !authStore.isAdmin) {
+  if (to.path === '/configuration' && !authStore.isAdmin) {
     return next('/'); // Protect admin paths
   }
 
