@@ -53,10 +53,10 @@
           <div v-for="(component, compKey) in store.components" :key="compKey" class="component-card">
             <div class="component-header accordion-header" @click="toggleAccordion(compKey)">
               <h3>{{ compKey.toUpperCase() }}: {{ component.name || 'ไม่มีชื่อหมวดหมู่' }}</h3>
-              <span class="accordion-icon">{{ activeAccordion === compKey ? '▼' : '▶' }}</span>
+              <span class="accordion-icon">{{ activeAccordions.includes(compKey) ? '▼' : '▶' }}</span>
             </div>
 
-            <div class="factors-list" v-show="activeAccordion === compKey">
+            <div class="factors-list" v-show="activeAccordions.includes(compKey)">
               <div v-for="(factor, fIndex) in component.factors" :key="factor.key" class="factor-item">
                 <div class="factor-header">
                   <div class="factor-title">
@@ -152,7 +152,7 @@ import Swal from 'sweetalert2';
 const store = useScorecardStore();
 const selectedModel = ref('new');
 const expectedTotalWeight = ref(100); // Standard, will update dynamically based on initial load
-const activeAccordion = ref('c1'); // Open first component by default
+const activeAccordions = ref([]); // All collapsed by default
 
 // Computed
 const totalWeight = computed(() => {
@@ -215,10 +215,11 @@ const hasMatchRules = (factor) => {
 };
 
 const toggleAccordion = (key) => {
-  if (activeAccordion.value === key) {
-    activeAccordion.value = null; // collapse if already open
+  const index = activeAccordions.value.indexOf(key);
+  if (index > -1) {
+    activeAccordions.value.splice(index, 1); // collapse if already open
   } else {
-    activeAccordion.value = key; // expand clicked
+    activeAccordions.value.push(key); // expand clicked
   }
 };
 
