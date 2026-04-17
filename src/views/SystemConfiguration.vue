@@ -258,6 +258,7 @@ onMounted(async () => {
   padding: 24px;
   border-bottom: 1px solid #eaeaea;
   background-color: #fff;
+  text-align: left;
 }
 
 .config-header h2 {
@@ -292,6 +293,7 @@ onMounted(async () => {
   list-style: none;
   padding: 0;
   margin: 0;
+  text-align: left;
 }
 
 .config-sidebar li {

@@ -1,27 +1,28 @@
 <template>
   <div class="scorecard-management">
-    <div class="config-container">
-      <div class="config-header">
+    <div class="content-header">
+      <div class="header-title">
         <div class="header-content">
-          <h2>จัดการโมเดลให้คะแนน</h2>
+          <h3>จัดการโมเดลให้คะแนน</h3>
           <p>ปรับปรุงน้ำหนักและเกณฑ์การให้คะแนนสำหรับแบบจำลองเครดิต</p>
         </div>
-        <div class="header-actions">
-          <select v-model="selectedModel" @change="handleModelChange" class="model-select">
-            <option value="new">ลูกค้าใหม่</option>
-            <option value="existing">ลูกค้าปัจจุบัน</option>
-          </select>
-          <button
-            class="btn btn-primary"
-            :disabled="!store.hasChanges || !isWeightValid || store.isLoading"
-            @click="handleSave"
-          >
-            {{ store.isLoading ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
-          </button>
-        </div>
       </div>
+      <div class="header-actions">
+        <select v-model="selectedModel" @change="handleModelChange" class="model-select">
+          <option value="new">ลูกค้าใหม่</option>
+          <option value="existing">ลูกค้าปัจจุบัน</option>
+        </select>
+        <button
+          class="btn btn-primary"
+          :disabled="!store.hasChanges || !isWeightValid || store.isLoading"
+          @click="handleSave"
+        >
+          {{ store.isLoading ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
+        </button>
+      </div>
+    </div>
 
-      <div class="config-body">
+    <div class="config-body">
         <div v-if="store.isLoading && !store.configData" class="loading-state">
           <div class="spinner"></div>
           <p>กำลังโหลดข้อมูลโมเดล...</p>
@@ -138,7 +139,6 @@
             </div>
           </div>
 
-        </div>
       </div>
     </div>
   </div>
@@ -258,35 +258,36 @@ onMounted(() => {
 
 <style scoped>
 .scorecard-management {
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  width: 100%;
 }
 
-.config-container {
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.config-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #eaeaea;
-  background-color: #fff;
+.content-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.header-content h2 {
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.header-content h3 {
   margin: 0 0 4px 0;
-  font-size: 18px;
+  font-size: 20px;
   color: #2c3e50;
+  font-weight: 600;
 }
 
 .header-content p {
   margin: 0;
   color: #6c757d;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .header-actions {
@@ -394,6 +395,10 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
+.factor-title {
+  text-align: left;
+}
+
 .factor-title h4 {
   margin: 0 0 2px 0;
   font-size: 14px;
@@ -430,6 +435,7 @@ onMounted(() => {
   border: 1px solid #ced4da;
   border-radius: 4px;
   font-size: 13px;
+  box-sizing: border-box;
 }
 
 .form-control:focus {
@@ -456,8 +462,8 @@ onMounted(() => {
 }
 
 .rules-table th {
-  text-align: left;
-  padding: 6px 8px;
+  text-align: center;
+  padding: 8px 16px;
   background-color: #f8f9fa;
   color: #495057;
   font-weight: 600;
@@ -465,7 +471,7 @@ onMounted(() => {
 }
 
 .rules-table td {
-  padding: 4px 8px;
+  padding: 8px 16px;
   border-bottom: 1px solid #e9ecef;
   vertical-align: middle;
 }
