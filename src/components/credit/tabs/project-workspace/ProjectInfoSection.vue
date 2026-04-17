@@ -671,4 +671,32 @@ const openDatePicker = (storeKey, fileName) => {
 .text-muted {
     color: #888;
 }
+
+.date-picker-cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.date-text-input {
+    width: 100%;
+    cursor: pointer;
+    background-color: white !important;
+}
+
+.hidden-date-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.date-picker-cell:not(.disabled) .date-text-input {
+    pointer-events: none;
+}
 </style>

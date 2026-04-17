@@ -420,7 +420,6 @@
                     <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
                 </template>
 
-                <div class="limit-unit">บาท</div>
                 <div v-if="store.customer.current_credit_limit" class="current-limit-sub">
                     (ปัจจุบัน: {{ formatNumber(Number(store.customer.current_credit_limit)) }})
                 </div>
