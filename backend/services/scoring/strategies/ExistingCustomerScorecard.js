@@ -46,10 +46,13 @@ class ExistingCustomerScorecard extends BaseScorecard {
         }
 
         const ratio = Math.pow((totalScore / 200), exponent);
-        const recommendedLimit = avg1_5Months * ratio;
 
-        // Round to nearest 1,000
-        const roundedLimit = Math.round(recommendedLimit / 1000) * 1000;
+        // Base limit plus guarantee totals
+        const baseLimitRaw = avg1_5Months * ratio;
+        const baseLimitRounded = Math.round(baseLimitRaw / 1000) * 1000;
+
+        const guaranteeAmount = context.totalGuaranteeAmount || 0;
+        const recommendedLimit = baseLimitRounded + guaranteeAmount;
 
         // 4. Calculate Size & Grade
         // Dynamically calculate boundaries based on max possible scores
@@ -73,7 +76,9 @@ class ExistingCustomerScorecard extends BaseScorecard {
         return {
             totalScore: Math.round(totalScore),
             grade: gradeLabel,
-            recommendedLimit: roundedLimit,
+            recommendedLimit: recommendedLimit,
+            baseLimit: baseLimitRounded,
+            guaranteeAmount: guaranteeAmount,
             breakdown: { c1, c2, c3 },
             sizeResult: { score: sizeScore, label: sizeLabel },
             gradeResult: { score: gradeScore, label: gradeLabel },

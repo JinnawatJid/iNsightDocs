@@ -23,7 +23,27 @@
 
         <div class="limit-display">
             <div class="limit-label">วงเงินแนะนำ</div>
-            <div class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} บาท</div>
+
+            <template v-if="creditScore.guaranteeAmount > 0">
+                <div class="limit-breakdown">
+                    <div class="breakdown-line">
+                        <span class="breakdown-text">จากคะแนนเกณฑ์มาตรฐาน:</span>
+                        <span class="breakdown-num">{{ formatNumber(creditScore.baseLimit) }}</span>
+                    </div>
+                    <div class="breakdown-line">
+                        <span class="breakdown-text">จากหลักประกัน (บวกเพิ่ม):</span>
+                        <span class="breakdown-num">+ {{ formatNumber(creditScore.guaranteeAmount) }}</span>
+                    </div>
+                    <hr class="breakdown-divider" />
+                    <div class="breakdown-line total-line">
+                        <span class="breakdown-text">รวมวงเงินแนะนำ:</span>
+                        <span class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} บาท</span>
+                    </div>
+                </div>
+            </template>
+            <template v-else>
+                <div class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} บาท</div>
+            </template>
         </div>
 
         <hr class="divider" />
@@ -369,6 +389,39 @@ export default {
     font-size: 20px;
     font-weight: bold;
     color: #007bff;
+}
+
+.limit-breakdown {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.breakdown-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.breakdown-text {
+    color: #555;
+}
+
+.breakdown-num {
+    font-weight: bold;
+    color: #333;
+}
+
+.breakdown-divider {
+    border: none;
+    border-top: 1px dashed #ccc;
+    margin: 5px 0;
+}
+
+.total-line {
+    margin-top: 5px;
 }
 
 .score-breakdown {

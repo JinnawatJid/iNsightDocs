@@ -14,8 +14,10 @@ The Credit Scoring Model is configuration-driven, allowing business logic (weigh
 *   **Config File:** `backend/config/credit_scorecard_v1.json`
 *   **Key Logic:** Heavy emphasis on external financial data (D/E Ratio, DSCR) and Company Strength.
 *   **Credit Limit Formula:**
-    $$ Limit = 50,000 + (450,000 \times (\frac{TotalScore}{200})^{\text{Exponent}}) $$
+    $$ Base Limit = 50,000 + (450,000 \times (\frac{TotalScore}{200})^{\text{Exponent}}) $$
+    $$ Final Limit = Base Limit + Guarantee Amount $$
     *   **Exponent:** Configurable via `limitExponent`. Defaults to `2.0`.
+    *   **Guarantee Amount:** Sum of submitted Bank Guarantees and Cash Deposits.
 
 ### 2. Existing Customer Model
 *   **Target:** Current customers requesting a credit increase.
@@ -24,8 +26,10 @@ The Credit Scoring Model is configuration-driven, allowing business logic (weigh
 *   **New Factor:** **WADL (Weighted Average Days Late)** is a critical component in the C3 category.
 *   **Gatekeeper:** If **Avg 1.5 Month Purchases (K10)** is `0`, the WADL score is automatically set to `0`.
 *   **Credit Limit Formula:**
-    $$ Limit = \frac{\text{Avg 1.5 Month Sales}}{2} \times (\frac{TotalScore}{200})^{\text{Exponent}} $$
+    $$ Base Limit = \frac{\text{Avg 1.5 Month Sales}}{2} \times (\frac{TotalScore}{200})^{\text{Exponent}} $$
+    $$ Final Limit = Base Limit + Guarantee Amount $$
     *   **Exponent:** Configurable. Defaults to `0.5` (as used in Batch Automation for safer initial limits), but can be overridden via API request.
+    *   **Guarantee Amount:** Sum of submitted Bank Guarantees and Cash Deposits.
 
 ---
 

@@ -280,13 +280,26 @@
                                     </div>
                                     <div class="col-6">
                                         <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
-                                        <input
-                                            type="date"
-                                            class="form-control form-control-sm"
-                                            :value="getGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate')"
-                                            @input="(e) => updateGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
-                                            :disabled="props.readOnly"
-                                        />
+                                        <div class="date-picker-cell">
+                                            <input
+                                                type="text"
+                                                :value="formatDateForDisplay(getGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate'))"
+                                                :disabled="props.readOnly"
+                                                readonly
+                                                @click="!props.readOnly && openDatePicker('projectBankGuaranteeDetails', file.name)"
+                                                class="form-control form-control-sm text-center date-text-input"
+                                                placeholder="dd/mm/yyyy"
+                                            />
+                                            <input
+                                                type="date"
+                                                :id="`date-projectBankGuaranteeDetails-${store.transactionData.projectData.projectId}-${file.name}`"
+                                                :value="getGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate')"
+                                                @input="(e) => updateGuaranteeDetail('projectBankGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
+                                                class="hidden-date-input"
+                                                lang="th-TH"
+                                                :disabled="props.readOnly"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -319,13 +332,26 @@
                                     </div>
                                     <div class="col-6">
                                         <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
-                                        <input
-                                            type="date"
-                                            class="form-control form-control-sm"
-                                            :value="getGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate')"
-                                            @input="(e) => updateGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate', e.target.value)"
-                                            :disabled="props.readOnly"
-                                        />
+                                        <div class="date-picker-cell">
+                                            <input
+                                                type="text"
+                                                :value="formatDateForDisplay(getGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate'))"
+                                                :disabled="props.readOnly"
+                                                readonly
+                                                @click="!props.readOnly && openDatePicker('projectCashDepositDetails', file.name)"
+                                                class="form-control form-control-sm text-center date-text-input"
+                                                placeholder="dd/mm/yyyy"
+                                            />
+                                            <input
+                                                type="date"
+                                                :id="`date-projectCashDepositDetails-${store.transactionData.projectData.projectId}-${file.name}`"
+                                                :value="getGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate')"
+                                                @input="(e) => updateGuaranteeDetail('projectCashDepositDetails', file.name, 'expiryDate', e.target.value)"
+                                                class="hidden-date-input"
+                                                lang="th-TH"
+                                                :disabled="props.readOnly"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -590,6 +616,31 @@ const updateGuaranteeDetail = (storeKey, fileName, field, value) => {
     store.transactionData[storeKey][fileName][field] = value;
 };
 
+const formatDateForDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('th-TH', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+};
+
+const openDatePicker = (storeKey, fileName) => {
+    if (!store.transactionData.projectData) return;
+    const elementId = `date-${storeKey}-${store.transactionData.projectData.projectId}-${fileName}`;
+    const input = document.getElementById(elementId);
+    if (input) {
+        input.focus();
+        if (typeof input.showPicker === 'function') {
+            input.showPicker();
+        } else {
+            input.click();
+        }
+    }
+};
+
 
 // Project Actions
 const handleProjectSearch = async () => {
@@ -740,6 +791,25 @@ const mockFetchProjects = async (query) => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+}
+
+.date-picker-cell {
+    position: relative;
+}
+
+.date-text-input {
+    cursor: pointer;
+    background-color: #fff;
+}
+
+.hidden-date-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .guarantee-section {

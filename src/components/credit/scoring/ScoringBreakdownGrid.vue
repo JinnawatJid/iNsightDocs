@@ -104,9 +104,29 @@
       </div>
 
        <!-- RESULT: LIMIT -->
-       <div class="result-box green-bg" :style="{ gridColumn: c3Count + 4, gridRow: '2 / span 4' }">
+       <div class="result-box green-bg limit-box" :style="{ gridColumn: c3Count + 4, gridRow: '2 / span 4' }">
              <div class="res-title">วงเงินเครดิตใหม่</div>
-             <div class="res-grade limit-val">{{ formatMoney(recommendedLimit) }}</div>
+             <div class="res-grade limit-content">
+                <template v-if="guaranteeAmount > 0">
+                    <div class="limit-breakdown">
+                        <div class="bd-line">
+                            <span class="bd-label">เกณฑ์มาตรฐาน:</span>
+                            <span class="bd-val">{{ formatMoney(baseLimit) }}</span>
+                        </div>
+                        <div class="bd-line">
+                            <span class="bd-label">หลักประกัน:</span>
+                            <span class="bd-val">+ {{ formatMoney(guaranteeAmount) }}</span>
+                        </div>
+                        <div class="bd-line total-line">
+                            <span class="bd-label">รวม:</span>
+                            <span class="bd-val total-val">{{ formatMoney(recommendedLimit) }}</span>
+                        </div>
+                    </div>
+                </template>
+                <template v-else>
+                    <div class="limit-val">{{ formatMoney(recommendedLimit) }}</div>
+                </template>
+             </div>
              <div class="res-score">{{ formatNum(totalScore) }}</div>
         </div>
 
@@ -131,6 +151,8 @@ const c3Items = computed(() => props.scoringResult.breakdown?.c3?.items || []);
 const sizeResult = computed(() => props.scoringResult.sizeResult || { label: '-', score: 0 });
 const gradeResult = computed(() => props.scoringResult.gradeResult || { label: '-', score: 0 });
 const recommendedLimit = computed(() => props.scoringResult.recommendedLimit || 0);
+const baseLimit = computed(() => props.scoringResult.baseLimit || 0);
+const guaranteeAmount = computed(() => props.scoringResult.guaranteeAmount || 0);
 const totalScore = computed(() => props.scoringResult.totalScore || 0);
 
 const c3Count = computed(() => {
@@ -337,4 +359,50 @@ const formatMoney = (val) => {
     font-size: 1.1em;
 }
 
+.limit-box {
+    min-width: 180px;
+}
+
+.limit-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.limit-breakdown {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    font-size: 0.45em;
+    gap: 4px;
+    padding: 0 5px;
+    text-align: left;
+}
+
+.bd-line {
+    display: flex;
+    justify-content: space-between;
+}
+
+.bd-label {
+    color: #555;
+    font-weight: normal;
+}
+
+.bd-val {
+    font-weight: bold;
+    color: #333;
+}
+
+.total-line {
+    border-top: 1px dashed #ccc;
+    padding-top: 4px;
+    margin-top: 2px;
+}
+
+.total-val {
+    font-size: 1.4em;
+    color: #28a745;
+}
 </style>

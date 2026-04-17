@@ -34,8 +34,13 @@ class NewCustomerScorecard extends BaseScorecard {
         const maxLimit = 500000;
         const exponent = typeof limitExponent === 'number' ? limitExponent : (this.evaluator.config.limitExponent || 2.0);
         const ratio = Math.pow((totalScore / 200), exponent);
-        const recommendedLimit = minLimit + (maxLimit - minLimit) * ratio;
-        const roundedLimit = Math.round(recommendedLimit / 1000) * 1000;
+
+        // Base limit plus guarantee totals
+        const baseLimitRaw = minLimit + (maxLimit - minLimit) * ratio;
+        const baseLimitRounded = Math.round(baseLimitRaw / 1000) * 1000;
+
+        const guaranteeAmount = context.totalGuaranteeAmount || 0;
+        const recommendedLimit = baseLimitRounded + guaranteeAmount;
 
         // 4. Calculate Size & Grade
         // Dynamically calculate boundaries based on max possible scores
@@ -59,7 +64,9 @@ class NewCustomerScorecard extends BaseScorecard {
         return {
             totalScore: Math.round(totalScore),
             grade: gradeLabel,
-            recommendedLimit: roundedLimit,
+            recommendedLimit: recommendedLimit,
+            baseLimit: baseLimitRounded,
+            guaranteeAmount: guaranteeAmount,
             breakdown: { c1, c2, c3 },
             sizeResult: { score: sizeScore, label: sizeLabel },
             gradeResult: { score: gradeScore, label: gradeLabel },

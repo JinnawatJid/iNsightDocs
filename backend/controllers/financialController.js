@@ -514,7 +514,8 @@ exports.analyzeFinancials = async (req, res) => {
       limit_exponent, // Optional override
       wadl, // Manual override for WADL
       tax_id,
-      fetch_purchase_by
+      fetch_purchase_by,
+      total_guarantee_amount
     } = req.body;
 
     // --- LOCAL FILE HANDLING ---
@@ -883,7 +884,8 @@ exports.analyzeFinancials = async (req, res) => {
         modelType: model_type || 'new',
         limitExponent: limit_exponent ? parseFloat(limit_exponent) : undefined,
         // Priority: Manual Input > API Result > 0 (Safe check)
-        wadl: wadl ? parseFloat(wadl) : (typeof wadlDataResult !== 'undefined' && wadlDataResult ? wadlDataResult.score : 0)
+        wadl: wadl ? parseFloat(wadl) : (typeof wadlDataResult !== 'undefined' && wadlDataResult ? wadlDataResult.score : 0),
+        totalGuaranteeAmount: total_guarantee_amount ? parseFloat(total_guarantee_amount) : 0
     };
 
     // Execute Scoring via Engine
