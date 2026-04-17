@@ -254,7 +254,7 @@ onMounted(() => {
 }
 
 .config-header {
-  padding: 24px;
+  padding: 16px 20px;
   border-bottom: 1px solid #eaeaea;
   background-color: #fff;
   display: flex;
@@ -263,39 +263,39 @@ onMounted(() => {
 }
 
 .header-content h2 {
-  margin: 0 0 8px 0;
-  font-size: 24px;
+  margin: 0 0 4px 0;
+  font-size: 18px;
   color: #2c3e50;
 }
 
 .header-content p {
   margin: 0;
   color: #6c757d;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .header-actions {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
 }
 
 .model-select {
-  padding: 10px 14px;
+  padding: 6px 10px;
   border: 1px solid #dcdcdc;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 4px;
+  font-size: 13px;
   background-color: #fcfcfc;
   cursor: pointer;
 }
 
 .validation-banner {
-  padding: 16px 24px;
+  padding: 10px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #eaeaea;
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .validation-banner.is-valid {
@@ -309,34 +309,34 @@ onMounted(() => {
 }
 
 .validation-warning {
-  font-size: 13px;
-  margin-left: 8px;
+  font-size: 12px;
+  margin-left: 6px;
   font-weight: 500;
 }
 
 .scorecard-content {
   background-color: #f8f9fa;
-  padding: 24px;
+  padding: 16px;
 }
 
 .component-card {
   background: white;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  margin-bottom: 24px;
+  border-radius: 6px;
+  margin-bottom: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
 }
 
 .component-header {
   background-color: #f1f3f5;
-  padding: 16px 24px;
+  padding: 10px 16px;
   border-bottom: 1px solid #e0e0e0;
 }
 
 .component-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 15px;
   color: #343a40;
 }
 
@@ -345,7 +345,7 @@ onMounted(() => {
 }
 
 .factor-item {
-  padding: 24px;
+  padding: 16px;
   border-bottom: 1px solid #eee;
 }
 
@@ -356,46 +356,46 @@ onMounted(() => {
 .factor-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .factor-title h4 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
+  margin: 0 0 2px 0;
+  font-size: 14px;
   color: #212529;
 }
 
 .factor-key {
-  font-size: 12px;
+  font-size: 11px;
   color: #868e96;
   font-family: monospace;
   background: #f8f9fa;
-  padding: 2px 6px;
+  padding: 1px 4px;
   border-radius: 4px;
 }
 
 .factor-weight {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   background: #fdfdfd;
-  padding: 10px 16px;
+  padding: 6px 12px;
   border: 1px solid #e9ecef;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .factor-weight label {
   font-weight: 600;
   color: #495057;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .form-control {
-  padding: 8px 12px;
+  padding: 4px 8px;
   border: 1px solid #ced4da;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .form-control:focus {
@@ -404,10 +404,11 @@ onMounted(() => {
 }
 
 .weight-input {
-  width: 100px;
+  width: 70px;
   text-align: center;
   font-weight: bold;
   color: #0d6efd;
+  font-size: 13px;
 }
 
 .rules-container {
@@ -417,12 +418,12 @@ onMounted(() => {
 .rules-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .rules-table th {
   text-align: left;
-  padding: 10px;
+  padding: 6px 8px;
   background-color: #f8f9fa;
   color: #495057;
   font-weight: 600;
@@ -430,19 +431,19 @@ onMounted(() => {
 }
 
 .rules-table td {
-  padding: 8px 10px;
+  padding: 4px 8px;
   border-bottom: 1px solid #e9ecef;
   vertical-align: middle;
 }
 
 .num-input, .score-input {
-  width: 80px;
+  width: 60px;
   text-align: center;
 }
 
 .text-input {
   width: 100%;
-  min-width: 150px;
+  min-width: 120px;
 }
 
 .na-text {
@@ -454,18 +455,19 @@ onMounted(() => {
 .badge.default {
   background-color: #6c757d;
   color: white;
-  padding: 4px 8px;
+  padding: 2px 6px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .btn {
-  padding: 10px 20px;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 4px;
   font-weight: 500;
   cursor: pointer;
   border: none;
   transition: all 0.2s;
+  font-size: 13px;
 }
 
 .btn-primary {
@@ -492,8 +494,8 @@ onMounted(() => {
   background-color: transparent;
   border: 1px solid #ced4da;
   color: #495057;
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 4px 8px;
+  font-size: 12px;
 }
 
 .btn-outline:hover {
