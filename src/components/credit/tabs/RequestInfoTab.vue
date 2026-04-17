@@ -127,7 +127,7 @@
                 v-model="formattedAmount" :data-empty="!formattedAmount"
                 @input="handleAmountInput"
               />
-              <div v-if="isFinanceOfficerReviewMode && store.originalTransactionData?.amount && formattedAmount.replace(/,/g, '') != store.originalTransactionData.amount" class="text-sm text-gray-500 mt-1">
+              <div v-if="isFinanceOfficerReviewMode && store.originalTransactionData?.amount && formattedAmount?.replace(/,/g, '') != store.originalTransactionData.amount" class="text-sm text-gray-500 mt-1">
                  เดิม: {{ Number(store.originalTransactionData.amount).toLocaleString('en-US') }}
               </div>
               <span v-if="errors.amount && !(isChangeTerm || isChangePayment)" class="error-text">กรุณาระบุข้อมูล</span>
