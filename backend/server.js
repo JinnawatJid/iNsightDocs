@@ -11,6 +11,7 @@ const customerRoutes = require('./routes/customerRoutes');
 const creditRequestRoutes = require('./routes/creditRequestRoutes');
 const financialRoutes = require('./routes/financialRoutes');
 const ocrRoutes = require('./routes/ocrRoutes');
+const scorecardRoutes = require('./routes/scorecardRoutes');
 const externalRoutes = require('./routes/externalRoutes');
 const authRoutes = require('./routes/authRoutes');
 const configRoutes = require('./routes/configRoutes');
@@ -42,6 +43,7 @@ app.use('/api/credit-requests', authMiddleware, creditRequestRoutes);
 app.use('/api/financials', authMiddleware, financialRoutes);
 app.use('/api/ocr', authMiddleware, ocrRoutes);
 app.use('/api/config', authMiddleware, configRoutes);
+app.use('/api/scorecard', authMiddleware, scorecardRoutes);
 
 // External Routes (Should typically have their own API key protection, not user JWT)
 app.use('/api/external', externalRoutes);
