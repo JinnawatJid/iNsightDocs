@@ -399,7 +399,27 @@
             <!-- Card 3: Limit -->
             <div class="limit-card">
                 <div class="score-title">วงเงินแนะนำ</div>
-                <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
+
+                <template v-if="analysisResults.scoringResult.guaranteeAmount > 0">
+                     <div class="limit-breakdown">
+                        <div class="breakdown-line">
+                            <span class="bd-text">จากเกณฑ์มาตรฐาน:</span>
+                            <span class="bd-num">{{ formatNumber(analysisResults.scoringResult.baseLimit) }}</span>
+                        </div>
+                        <div class="breakdown-line">
+                            <span class="bd-text">บวกหลักประกัน:</span>
+                            <span class="bd-num">+ {{ formatNumber(analysisResults.scoringResult.guaranteeAmount) }}</span>
+                        </div>
+                        <div class="breakdown-line total">
+                            <span class="bd-text">รวม:</span>
+                            <span class="bd-num limit-val-small">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</span>
+                        </div>
+                    </div>
+                </template>
+                <template v-else>
+                    <div class="limit-val">{{ formatNumber(analysisResults.scoringResult.recommendedLimit) }}</div>
+                </template>
+
                 <div class="limit-unit">บาท</div>
                 <div v-if="store.customer.current_credit_limit" class="current-limit-sub">
                     (ปัจจุบัน: {{ formatNumber(Number(store.customer.current_credit_limit)) }})
@@ -1374,6 +1394,16 @@ const analyzeFinancials = async () => {
             <span style="font-weight: bold; color: #555;">เกรด:</span>
             <span style="font-size: 1.1em; color: #007bff; font-weight: bold;">${gradeLabel}</span>
           </div>
+          ${scoreData.guaranteeAmount > 0 ? `
+          <div style="display: flex; justify-content: space-between; padding-bottom: 5px;">
+            <span style="color: #666; font-size: 0.9em;">จากเกณฑ์มาตรฐาน:</span>
+            <span style="font-weight: bold;">${formatVal(scoreData.baseLimit)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 5px;">
+            <span style="color: #666; font-size: 0.9em;">บวกหลักประกัน:</span>
+            <span style="font-weight: bold;">+ ${formatVal(scoreData.guaranteeAmount)}</span>
+          </div>
+          ` : ''}
           <div style="display: flex; justify-content: space-between; padding-bottom: 10px;">
             <span style="font-weight: bold; color: #555;">วงเงินแนะนำ:</span>
             <span style="font-size: 1.2em; color: #28a745; font-weight: bold;">${limitVal}</span>
@@ -1913,6 +1943,42 @@ const shouldShowFinancialAnalysis = computed(() => {
     font-weight: bold;
     color: #28a745;
     margin: 10px 0;
+}
+
+.limit-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 10px 0;
+    width: 100%;
+    padding: 0 10px;
+}
+
+.limit-breakdown .breakdown-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+
+.limit-breakdown .total {
+    border-top: 1px dashed #ccc;
+    padding-top: 5px;
+    margin-top: 2px;
+}
+
+.limit-breakdown .bd-text {
+    color: #666;
+}
+
+.limit-breakdown .bd-num {
+    font-weight: bold;
+    color: #333;
+}
+
+.limit-val-small {
+    font-size: 1.4em !important;
+    color: #28a745 !important;
 }
 
 .current-limit-sub {
