@@ -244,8 +244,8 @@
                     <option value="not_required">ไม่ต้องการ</option>
                     <option value="other">อื่นๆ (ระบุ)</option>
                                 </select>
-                <div v-if="isFinanceOfficerReviewMode && store.originalCustomer?.billing_requirement && store.customer.billing_requirement !== store.originalCustomer.billing_requirement" class="text-sm text-gray-500 mt-1">
-                   เดิม: {{ store.originalCustomer.billing_requirement === 'required' ? 'ต้องการ' : (store.originalCustomer.billing_requirement === 'not_required' ? 'ไม่ต้องการ' : 'อื่นๆ (ระบุ)') }}
+                <div v-if="isFinanceOfficerReviewMode && store.originalInitiatorCustomer?.billing_requirement && store.customer.billing_requirement !== store.originalInitiatorCustomer.billing_requirement" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalInitiatorCustomer.billing_requirement === 'required' ? 'ต้องการ' : (store.originalInitiatorCustomer.billing_requirement === 'not_required' ? 'ไม่ต้องการ' : 'อื่นๆ (ระบุ)') }}
                 </div>
                 <span v-if="errors.billing_requirement" class="error-text">กรุณาระบุข้อมูล</span>
                 <!-- Other Input for Requirement -->
@@ -274,8 +274,8 @@
                     <option value="company">ที่บริษัท ร้านค้า</option>
                     <option value="other">อื่นๆ</option>
                                 </select>
-                <div v-if="isFinanceOfficerReviewMode && store.originalCustomer?.billing_method && store.customer.billing_method !== store.originalCustomer.billing_method" class="text-sm text-gray-500 mt-1">
-                   เดิม: {{ store.originalCustomer.billing_method === 'delivery' ? 'พร้อมการส่งมอบสินค้า' : (store.originalCustomer.billing_method === 'mail' ? 'ทางไปรษณีย์' : (store.originalCustomer.billing_method === 'company' ? 'ที่บริษัท ร้านค้า' : 'อื่นๆ')) }}
+                <div v-if="isFinanceOfficerReviewMode && store.originalInitiatorCustomer?.billing_method && store.customer.billing_method !== store.originalInitiatorCustomer.billing_method" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalInitiatorCustomer.billing_method === 'delivery' ? 'พร้อมการส่งมอบสินค้า' : (store.originalInitiatorCustomer.billing_method === 'mail' ? 'ทางไปรษณีย์' : (store.originalInitiatorCustomer.billing_method === 'company' ? 'ที่บริษัท ร้านค้า' : 'อื่นๆ')) }}
                 </div>
                 <span v-if="errors.billing_method" class="error-text">กรุณาระบุข้อมูล</span>
                  <!-- Other Input for Method -->
@@ -303,8 +303,8 @@
                   placeholder="ระบุวันที่/เวลา"
                   :disabled="!canEditBillingAndPayment"
                                 >
-                <div v-if="isFinanceOfficerReviewMode && store.originalCustomer?.billing_schedule && store.customer.billing_schedule !== store.originalCustomer.billing_schedule" class="text-sm text-gray-500 mt-1">
-                   เดิม: {{ store.originalCustomer.billing_schedule }}
+                <div v-if="isFinanceOfficerReviewMode && store.originalInitiatorCustomer?.billing_schedule && store.customer.billing_schedule !== store.originalInitiatorCustomer.billing_schedule" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalInitiatorCustomer.billing_schedule }}
                 </div>
                 <span v-if="errors.billing_schedule" class="error-text">กรุณาระบุข้อมูล</span>
              </div>
@@ -355,8 +355,8 @@
                 <option value="โอนเงิน">โอนเงิน</option>
                 <option value="รับเช็ค">รับเช็ค</option>
                                 </select>
-                <div v-if="isFinanceOfficerReviewMode && store.originalCustomer?.payment_method && store.customer.payment_method !== store.originalCustomer.payment_method" class="text-sm text-gray-500 mt-1">
-                   เดิม: {{ store.originalCustomer.payment_method }}
+                <div v-if="isFinanceOfficerReviewMode && store.originalInitiatorCustomer?.payment_method && store.customer.payment_method !== store.originalInitiatorCustomer.payment_method" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalInitiatorCustomer.payment_method }}
                 </div>
                 <span v-if="errors.payment_method" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
@@ -371,8 +371,8 @@
                     v-model="store.customer.payment_condition" :data-empty="!store.customer.payment_condition"
                     :disabled="!canEditBillingAndPayment"
                                 />
-                <div v-if="isFinanceOfficerReviewMode && store.originalCustomer?.payment_condition && store.customer.payment_condition !== store.originalCustomer.payment_condition" class="text-sm text-gray-500 mt-1">
-                   เดิม: {{ store.originalCustomer.payment_condition }}
+                <div v-if="isFinanceOfficerReviewMode && store.originalInitiatorCustomer?.payment_condition && store.customer.payment_condition !== store.originalInitiatorCustomer.payment_condition" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalInitiatorCustomer.payment_condition }}
                 </div>
                 <span v-if="errors.payment_condition" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
