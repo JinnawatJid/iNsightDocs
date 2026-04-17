@@ -3,7 +3,7 @@
     <div class="config-container">
       <div class="config-header">
         <div class="header-content">
-          <h2>จัดการโมเดลให้คะแนน (Scorecard Management)</h2>
+          <h2>จัดการโมเดลให้คะแนน</h2>
           <p>ปรับปรุงน้ำหนักและเกณฑ์การให้คะแนนสำหรับแบบจำลองเครดิต</p>
         </div>
         <div class="header-actions">

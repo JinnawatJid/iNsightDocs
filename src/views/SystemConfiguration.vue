@@ -2,7 +2,7 @@
   <div class="system-configuration">
     <div class="config-container">
       <div class="config-header">
-        <h2>การตั้งค่าระบบ (System Configuration)</h2>
+        <h2>การตั้งค่าระบบ</h2>
         <p>จัดการการตั้งค่าและกฎเกณฑ์ต่างๆ ของระบบ</p>
       </div>
 
@@ -124,9 +124,9 @@ const isSaving = ref(false);
 const categoryLabels = {
   'System': 'การตั้งค่าระบบ',
   'Workflow': 'การอนุมัติและขั้นตอน',
-  'API': 'การเชื่อมต่อระบบ (API)',
+  'API': 'การเชื่อมต่อระบบ',
   'Business': 'กฎเกณฑ์ธุรกิจ',
-  'Scorecards': 'โมเดลให้คะแนน (Scorecards)'
+  'Scorecards': 'โมเดลให้คะแนน'
 };
 
 const getCategoryLabel = (category) => {
