@@ -60,10 +60,11 @@ Currently, `ExistingCustomerScorecard.js` contains a placeholder method `calcula
 ```
 
 ## Maintenance Guide
-- **To Change Weights:** Edit the `weight` property in the `items.push(...)` calls within the specific Scorecard file.
-- **To Change Thresholds:** Edit the `if/else` logic in the `calculateC1`, `calculateC2`, etc., methods.
+- **To Change Weights & Thresholds:** Use the **Scorecard Management UI** in the Frontend Admin Panel to safely modify weights and thresholds without touching code. The UI directly updates the `backend/config/credit_scorecard_v1.json` and `credit_scorecard_existing_v1.json` files.
+- **To Add a New Factor:** Add the new factor definition to the relevant JSON configuration file, then update the backend scoring components to pass the correct value to the `ScorecardEvaluator`.
 - **To Add a New Strategy:**
-  1. Create `strategies/VIPScorecard.js`.
-  2. Extend `BaseScorecard`.
-  3. Implement `calculateScore`.
-  4. Update `ScoringEngine.js` to add the condition for selecting the VIP strategy.
+  1. Create a new JSON configuration file in `backend/config/`.
+  2. Create `strategies/VIPScorecard.js`.
+  3. Extend `BaseScorecard`.
+  4. Implement `calculateScore` and utilize `ScorecardEvaluator`.
+  5. Update `ScoringEngine.js` to add the condition for selecting the VIP strategy.
