@@ -79,9 +79,9 @@
                     <thead>
                       <tr>
                         <th>คำอธิบาย</th>
-                        <th>ขั้นต่ำ (>=)</th>
-                        <th>สูงสุด (<)</th>
-                        <th>เงื่อนไขพิเศษ</th>
+                        <th v-if="!hasMatchRules(factor)">ขั้นต่ำ (>=)</th>
+                        <th v-if="!hasMatchRules(factor)">สูงสุด (<)</th>
+                        <th v-if="hasMatchRules(factor)">เงื่อนไขพิเศษ</th>
                         <th>คะแนน</th>
                       </tr>
                     </thead>
@@ -90,9 +90,9 @@
                         <td>
                           <input type="text" v-model="rule.label" class="form-control text-input" />
                         </td>
-                        <td>
+                        <td v-if="!hasMatchRules(factor)">
                           <input
-                            v-if="rule.min !== undefined || (rule.max === undefined && !rule.match && !rule.default)"
+                            v-if="rule.min !== undefined || (rule.max === undefined && !rule.default)"
                             type="number"
                             v-model.number="rule.min"
                             step="0.01"
@@ -100,9 +100,9 @@
                           />
                           <span v-else class="na-text">-</span>
                         </td>
-                        <td>
+                        <td v-if="!hasMatchRules(factor)">
                           <input
-                            v-if="rule.max !== undefined || (rule.min === undefined && !rule.match && !rule.default)"
+                            v-if="rule.max !== undefined || (rule.min === undefined && !rule.default)"
                             type="number"
                             v-model.number="rule.max"
                             step="0.01"
@@ -110,7 +110,7 @@
                           />
                           <span v-else class="na-text">-</span>
                         </td>
-                        <td>
+                        <td v-if="hasMatchRules(factor)">
                            <input
                             v-if="rule.match"
                             type="text"
@@ -208,6 +208,10 @@ const handleModelChange = () => {
 
 const updateMatchArray = (rule, valString) => {
     rule.match = valString.split(',').map(s => s.trim()).filter(s => s);
+};
+
+const hasMatchRules = (factor) => {
+  return factor.rules && factor.rules.some(r => r.match !== undefined);
 };
 
 const toggleAccordion = (key) => {
