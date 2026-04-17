@@ -116,7 +116,7 @@
                 disabled
                 :value="formattedCurrentCreditLimit" :data-empty="!store.customer.current_credit_limit"
               />
-              <!-- Default input for other types -->
+                            <!-- Default input for other types -->
               <input
                 v-else
                 type="text"
@@ -127,6 +127,9 @@
                 v-model="formattedAmount" :data-empty="!formattedAmount"
                 @input="handleAmountInput"
               />
+              <div v-if="isFinanceOfficerReviewMode && store.originalTransactionData?.amount && formattedAmount.replace(/,/g, '') != store.originalTransactionData.amount" class="text-sm text-gray-500 mt-1">
+                 เดิม: {{ Number(store.originalTransactionData.amount).toLocaleString('en-US') }}
+              </div>
               <span v-if="errors.amount && !(isChangeTerm || isChangePayment)" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
 
@@ -150,7 +153,7 @@
                         (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
                 </label>
-                <input
+                                                <input
                   type="text"
                   class="form-input"
                   :class="{ 'disabled': !canEditTerms, 'border-red-500': store.showValidationErrors && !store.transactionData.termGS }"
@@ -159,6 +162,9 @@
                   v-model="store.transactionData.termGS" :data-empty="!store.transactionData.termGS"
                   @input="(e) => handleNumericInput(e, 'termGS', true)"
                 />
+                <div v-if="isFinanceOfficerReviewMode && store.originalTransactionData?.termGS && store.transactionData.termGS != store.originalTransactionData.termGS" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalTransactionData.termGS }}
+                </div>
               </div>
               <div class="form-group">
                 <label>
@@ -167,7 +173,7 @@
                         (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
                 </label>
-                <input
+                                                <input
                   type="text"
                   class="form-input"
                   :class="{ 'disabled': !canEditTerms, 'border-red-500': store.showValidationErrors && !store.transactionData.termAE }"
@@ -176,6 +182,9 @@
                   v-model="store.transactionData.termAE" :data-empty="!store.transactionData.termAE"
                   @input="(e) => handleNumericInput(e, 'termAE', true)"
                 />
+                <div v-if="isFinanceOfficerReviewMode && store.originalTransactionData?.termAE && store.transactionData.termAE != store.originalTransactionData.termAE" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalTransactionData.termAE }}
+                </div>
               </div>
               <div class="form-group">
                 <label>
@@ -184,7 +193,7 @@
                         (ปัจจุบัน: {{ store.originalCustomer.credit_term }})
                     </span>
                 </label>
-                <input
+                                                <input
                   type="text"
                   class="form-input"
                   :class="{ 'disabled': !canEditTerms, 'border-red-500': store.showValidationErrors && !store.transactionData.termYC }"
@@ -193,6 +202,9 @@
                   v-model="store.transactionData.termYC" :data-empty="!store.transactionData.termYC"
                   @input="(e) => handleNumericInput(e, 'termYC', true)"
                 />
+                <div v-if="isFinanceOfficerReviewMode && store.originalTransactionData?.termYC && store.transactionData.termYC != store.originalTransactionData.termYC" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalTransactionData.termYC }}
+                </div>
               </div>
             </template>
 
@@ -223,15 +235,18 @@
                <label>ต้องมีการวางบิลหรือไม่ <span v-if="isRequired('billing_requirement')" class="text-red-500">*</span></label>
                <select
                   class="form-input"
-                  :class="{ 'border-red-500': errors.billing_requirement, 'disabled': !isEditing }"
-                  :disabled="!isEditing"
+                  :class="{ 'border-red-500': errors.billing_requirement, 'disabled': !canEditBillingAndPayment }"
+                  :disabled="!canEditBillingAndPayment"
                   v-model="store.customer.billing_requirement" :data-empty="!store.customer.billing_requirement"
                 >
                     <option value="" disabled>เลือกการวางบิล</option>
                     <option value="required">ต้องการ</option>
                     <option value="not_required">ไม่ต้องการ</option>
                     <option value="other">อื่นๆ (ระบุ)</option>
-                </select>
+                                </select>
+                <div v-if="isFinanceOfficerReviewMode && store.originalCustomer?.billing_requirement && store.customer.billing_requirement !== store.originalCustomer.billing_requirement" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalCustomer.billing_requirement === 'required' ? 'ต้องการ' : (store.originalCustomer.billing_requirement === 'not_required' ? 'ไม่ต้องการ' : 'อื่นๆ (ระบุ)') }}
+                </div>
                 <span v-if="errors.billing_requirement" class="error-text">กรุณาระบุข้อมูล</span>
                 <!-- Other Input for Requirement -->
                 <div v-if="store.customer.billing_requirement === 'other'" style="margin-top: 10px;">
@@ -240,7 +255,7 @@
                         class="form-input"
                         placeholder="ระบุ"
                         v-model="store.customer.billing_requirement_note" :data-empty="!store.customer.billing_requirement_note"
-                        :disabled="!isEditing"
+                        :disabled="!canEditBillingAndPayment"
                     >
                 </div>
             </div>
@@ -249,8 +264,8 @@
                <label>กรณีต้องวางบิลขอให้เลือกวิธีวางบิล <span class="text-red-500">*</span></label>
                <select
                   class="form-input"
-                  :class="{ 'border-red-500': errors.billing_method, 'disabled': !isEditing }"
-                  :disabled="!isEditing"
+                  :class="{ 'border-red-500': errors.billing_method, 'disabled': !canEditBillingAndPayment }"
+                  :disabled="!canEditBillingAndPayment"
                   v-model="store.customer.billing_method" :data-empty="!store.customer.billing_method"
                 >
                     <option value="" disabled>เลือกวิธีในการวางบิล</option>
@@ -258,17 +273,20 @@
                     <option value="mail">ทางไปรษณีย์</option>
                     <option value="company">ที่บริษัท ร้านค้า</option>
                     <option value="other">อื่นๆ</option>
-                </select>
+                                </select>
+                <div v-if="isFinanceOfficerReviewMode && store.originalCustomer?.billing_method && store.customer.billing_method !== store.originalCustomer.billing_method" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalCustomer.billing_method === 'delivery' ? 'พร้อมการส่งมอบสินค้า' : (store.originalCustomer.billing_method === 'mail' ? 'ทางไปรษณีย์' : (store.originalCustomer.billing_method === 'company' ? 'ที่บริษัท ร้านค้า' : 'อื่นๆ')) }}
+                </div>
                 <span v-if="errors.billing_method" class="error-text">กรุณาระบุข้อมูล</span>
                  <!-- Other Input for Method -->
                  <div v-if="store.customer.billing_method === 'other'" style="margin-top: 10px;">
                     <input
                         type="text"
                         class="form-input"
-                        :class="{ 'border-red-500': errors.billing_method_note, 'disabled': !isEditing }"
+                        :class="{ 'border-red-500': errors.billing_method_note, 'disabled': !canEditBillingAndPayment }"
                         placeholder="ระบุ"
                         v-model="store.customer.billing_method_note" :data-empty="!store.customer.billing_method_note"
-                        :disabled="!isEditing"
+                        :disabled="!canEditBillingAndPayment"
                     >
                     <span v-if="errors.billing_method_note" class="error-text">กรุณาระบุข้อมูล</span>
                 </div>
@@ -280,11 +298,14 @@
                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'border-red-500': errors.billing_schedule, 'disabled': !isEditing }"
+                  :class="{ 'border-red-500': errors.billing_schedule, 'disabled': !canEditBillingAndPayment }"
                   v-model="store.customer.billing_schedule" :data-empty="!store.customer.billing_schedule"
                   placeholder="ระบุวันที่/เวลา"
-                  :disabled="!isEditing"
-                >
+                  :disabled="!canEditBillingAndPayment"
+                                >
+                <div v-if="isFinanceOfficerReviewMode && store.originalCustomer?.billing_schedule && store.customer.billing_schedule !== store.originalCustomer.billing_schedule" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalCustomer.billing_schedule }}
+                </div>
                 <span v-if="errors.billing_schedule" class="error-text">กรุณาระบุข้อมูล</span>
              </div>
         </div>
@@ -298,7 +319,7 @@
                       class="form-input"
                       v-model="store.customer.billing_mobile" :data-empty="!store.customer.billing_mobile"
                       placeholder="ระบุเบอร์มือถือ"
-                      :disabled="!isEditing"
+                      :disabled="!canEditBillingAndPayment"
                     >
                  </div>
                  <div class="form-group">
@@ -308,7 +329,7 @@
                       class="form-input"
                       v-model="store.customer.billing_email" :data-empty="!store.customer.billing_email"
                       placeholder="ระบุอีเมล"
-                      :disabled="!isEditing"
+                      :disabled="!canEditBillingAndPayment"
                     >
                  </div>
             </div>
@@ -326,14 +347,17 @@
                 <label>ชำระเงินโดย <span v-if="isRequired('payment_method')" class="text-red-500">*</span></label>
                 <select
                 class="form-input"
-                :class="{ 'border-red-500': errors.payment_method, 'disabled': !isEditing }"
-                :disabled="!isEditing"
+                :class="{ 'border-red-500': errors.payment_method, 'disabled': !canEditBillingAndPayment }"
+                :disabled="!canEditBillingAndPayment"
                 v-model="store.customer.payment_method" :data-empty="!store.customer.payment_method"
                 >
                 <option value="" disabled>เลือกวิธีการชำระเงิน</option>
                 <option value="โอนเงิน">โอนเงิน</option>
                 <option value="รับเช็ค">รับเช็ค</option>
-                </select>
+                                </select>
+                <div v-if="isFinanceOfficerReviewMode && store.originalCustomer?.payment_method && store.customer.payment_method !== store.originalCustomer.payment_method" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalCustomer.payment_method }}
+                </div>
                 <span v-if="errors.payment_method" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
 
@@ -343,10 +367,13 @@
                 <input
                     type="text"
                     class="form-input"
-                    :class="{ 'border-red-500': errors.payment_condition, 'disabled': !isEditing }"
+                    :class="{ 'border-red-500': errors.payment_condition, 'disabled': !canEditBillingAndPayment }"
                     v-model="store.customer.payment_condition" :data-empty="!store.customer.payment_condition"
-                    :disabled="!isEditing"
-                />
+                    :disabled="!canEditBillingAndPayment"
+                                />
+                <div v-if="isFinanceOfficerReviewMode && store.originalCustomer?.payment_condition && store.customer.payment_condition !== store.originalCustomer.payment_condition" class="text-sm text-gray-500 mt-1">
+                   เดิม: {{ store.originalCustomer.payment_condition }}
+                </div>
                 <span v-if="errors.payment_condition" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
         </div>
@@ -358,8 +385,8 @@
             <input
                 type="text"
                 class="form-input"
-                :class="{ 'border-red-500': errors.payment_bank_name, 'disabled': !isEditing }"
-                :disabled="!isEditing"
+                :class="{ 'border-red-500': errors.payment_bank_name, 'disabled': !canEditBillingAndPayment }"
+                :disabled="!canEditBillingAndPayment"
                 v-model="store.customer.payment_bank_name" :data-empty="!store.customer.payment_bank_name"
                 placeholder="ระบุชื่อธนาคาร"
             />
@@ -370,8 +397,8 @@
             <input
                 type="text"
                 class="form-input"
-                :class="{ 'border-red-500': errors.payment_bank_branch, 'disabled': !isEditing }"
-                :disabled="!isEditing"
+                :class="{ 'border-red-500': errors.payment_bank_branch, 'disabled': !canEditBillingAndPayment }"
+                :disabled="!canEditBillingAndPayment"
                 v-model="store.customer.payment_bank_branch" :data-empty="!store.customer.payment_bank_branch"
                 placeholder="ระบุสาขา"
             />
@@ -382,8 +409,8 @@
             <input
                 type="text"
                 class="form-input"
-                :class="{ 'border-red-500': errors.payment_account_no, 'disabled': !isEditing }"
-                :disabled="!isEditing"
+                :class="{ 'border-red-500': errors.payment_account_no, 'disabled': !canEditBillingAndPayment }"
+                :disabled="!canEditBillingAndPayment"
                 v-model="store.customer.payment_account_no" :data-empty="!store.customer.payment_account_no"
                 placeholder="ระบุเลขที่บัญชี"
                 @input="(e) => handlePhoneInput(e, 'payment_account_no')"
@@ -497,6 +524,7 @@ import { reactive, watch, ref, computed } from 'vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import OtherDocumentsSection from '../forms/OtherDocumentsSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 
 const props = defineProps(['readOnly', 'viewMode']);
@@ -540,6 +568,7 @@ const isBillingVisible = computed(() => {
     if (showAll.value) return true;
     if (isNewRequest.value || isProjectCredit.value) return true;
     if (isChangePayment.value) return true;
+    if (isFinanceOfficerReviewMode.value) return true;
     return false;
 });
 
@@ -547,12 +576,27 @@ const isTermsVisible = computed(() => {
     if (showAll.value) return true;
     if (isNewRequest.value || isProjectCredit.value) return true;
     if (isChangeTerm.value) return true;
+    if (isFinanceOfficerReviewMode.value) return true;
     return false;
 });
 
 // Field Visibility / Editability Logic
-const canEditAmount = computed(() => isEditing.value && isDraftMode.value && (isRequestIncrease.value || isNewRequest.value || isProjectCredit.value));
-const canEditTerms = computed(() => isEditing.value && isDraftMode.value && (isChangeTerm.value || isNewRequest.value || isProjectCredit.value));
+const isFinanceOfficerReviewMode = computed(() => {
+    const authStore = useAuthStore();
+    return authStore.isFinanceOfficer && store.requestStatus === 'SalesSubmitted';
+});
+
+const canEditAmount = computed(() => {
+    if (isFinanceOfficerReviewMode.value) return true;
+    return isEditing.value && isDraftMode.value && (isRequestIncrease.value || isNewRequest.value || isProjectCredit.value);
+});
+const canEditTerms = computed(() => {
+    if (isFinanceOfficerReviewMode.value) return true;
+    return isEditing.value && isDraftMode.value && (isChangeTerm.value || isNewRequest.value || isProjectCredit.value);
+});
+const canEditBillingAndPayment = computed(() => {
+    return isEditing.value || isFinanceOfficerReviewMode.value;
+});
 
 function isRequired(storeKey) {
     return mandatoryStoreKeys.fields.includes(storeKey);

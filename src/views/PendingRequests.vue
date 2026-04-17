@@ -82,21 +82,12 @@ watch(() => store.requestId, () => {
 });
 
 const isReadOnly = computed(() => {
-    // Pending requests are read-only for the Application Tabs (customer data),
-    // but the Review Section (terms/comments) might be editable depending on role.
-    // However, CreditReviewSection's 'readOnly' prop controls the INPUTS.
-    // If the user is an approver, they should be able to edit Terms/Comment.
-    // If the request is truly final (Approved/Rejected/Closed/Canceled), then it's read-only.
+    // If the user is a Finance Officer and the request is pending their review, allow editing
+    if (authStore.isFinanceOfficer && store.requestStatus === 'SalesSubmitted') {
+        return false;
+    }
 
-    // NEW: If the user is just tracking the request (Initiator) and the request is not in Draft
-    // or pending their specific action, it should be entirely read-only.
-    // The current userRole logic in store evaluates to the role that *should* be acting.
-    // We can use authStore to check if the current logged-in user is an Initiator.
-
-    // If they are an initiator tracking progress, and the request is past Draft
     if (authStore.isInitiator && store.requestStatus && store.requestStatus !== 'Draft') {
-        // Technically Initiators might have actions if it's "PendingSales (ชั่วคราว)" etc.
-        // But normally if it's Opened, RegionalSubmitted etc., it's read-only for them.
         const trackingStatuses = ['Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed'];
         if (trackingStatuses.includes(store.requestStatus)) {
              return true;

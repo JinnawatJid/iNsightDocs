@@ -17,6 +17,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       customer_since: "",
     },
     originalCustomer: {},
+    originalTransactionData: {},
     displayCustomer: {},
     history: [],
     financialSummary: {},
@@ -367,6 +368,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           customerTeam: parsedSnapshot.transaction_data?.customerTeam || "",
           projects: parsedSnapshot.transaction_data?.projects || [],
         };
+        this.originalTransactionData = JSON.parse(JSON.stringify(this.transactionData));
+
 
         this.hasSearched = true;
       } catch (err) {
@@ -661,6 +664,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               customerTeam: parsedSnapshotTransactionData.customerTeam || "",
               projects: parsedSnapshotTransactionData.projects || [],
             };
+            this.originalTransactionData = JSON.parse(JSON.stringify(this.transactionData));
           }
         }
       } catch (err) {
@@ -1040,6 +1044,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         tungnam_relationship_note: "",
       };
       this.originalCustomer = {};
+      this.originalTransactionData = {};
       this.history = [];
       this.financialSummary = {};
       this.creditScore = {};
@@ -1086,6 +1091,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         tungnam_relationship_note: "",
       };
       this.originalCustomer = {};
+      this.originalTransactionData = {};
       this.history = [];
       this.financialSummary = {};
       this.creditScore = {};

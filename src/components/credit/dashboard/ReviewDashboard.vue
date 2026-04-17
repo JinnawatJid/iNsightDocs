@@ -154,7 +154,7 @@
 
     <!-- Section 4: Full Application Form (Conditional) -->
     <div v-if="showFullDetails" class="full-details-wrapper">
-        <ApplicationTabs :readOnly="true" viewMode="full" />
+        <ApplicationTabs :readOnly="isReadOnly" viewMode="full" />
     </div>
 
     <!-- Section 5: Additional/Reviewer Documents -->
@@ -177,6 +177,20 @@ import axios from '../../../utils/axios.js';
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
 const showFullDetails = ref(false);
+
+const isReadOnly = computed(() => {
+    if (authStore.isFinanceOfficer && store.requestStatus === 'SalesSubmitted') {
+        return false;
+    }
+    if (authStore.isInitiator && store.requestStatus && store.requestStatus !== 'Draft') {
+        const trackingStatuses = ['Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed'];
+        if (trackingStatuses.includes(store.requestStatus)) {
+             return true;
+        }
+    }
+    const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled'];
+    return finalStatuses.includes(store.requestStatus);
+});
 
 const formatNumber = (num) => {
     if (!num) return '0';
