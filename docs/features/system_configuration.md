@@ -45,6 +45,7 @@ The system automatically seeds the following baseline configurations upon databa
 - `SYSTEM_MAINTENANCE_MODE` (false, System, boolean)
 - `DEFAULT_PAGE_SIZE` (20, System, number)
 - `ENABLE_BATCH_PROCESSING` (true, System, boolean)
+- `COMMITTEE_APPROVAL_THRESHOLD_THB` (300000, Workflow, number)
 
 ### 3.2 API Endpoints & Dynamic Reconfiguration (Backend)
 - `GET /api/config`: Fetches all configurations, grouped by `category`.
