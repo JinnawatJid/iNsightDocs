@@ -429,7 +429,8 @@ const initDB = async () => {
             { key: 'MAX_FILE_UPLOAD_SIZE_MB', value: '50', type: 'number', category: 'System', desc: 'ขนาดไฟล์สูงสุดที่อนุญาตให้อัปโหลด (MB)', label: 'ขนาดไฟล์อัปโหลดสูงสุด (MB)' },
             { key: 'SYSTEM_MAINTENANCE_MODE', value: 'false', type: 'boolean', category: 'System', desc: 'เปิดโหมดปิดปรับปรุงระบบ', label: 'โหมดปิดปรับปรุงระบบ' },
             { key: 'DEFAULT_PAGE_SIZE', value: '20', type: 'number', category: 'System', desc: 'จำนวนรายการเริ่มต้นที่แสดงต่อหน้า', label: 'จำนวนรายการต่อหน้า (ค่าเริ่มต้น)' },
-            { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation', label: 'เปิดใช้งานระบบประมวลผลอัตโนมัติ (Batch)' }
+            { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation', label: 'เปิดใช้งานระบบประมวลผลอัตโนมัติ (Batch)' },
+            { key: 'COMMITTEE_APPROVAL_THRESHOLD_THB', value: '300000', type: 'number', category: 'Workflow', desc: 'วงเงินที่ต้องได้รับการอนุมัติจากคณะกรรมการ (บาท)', label: 'วงเงินพิจารณาโดยคณะกรรมการ (บาท)' }
         ];
 
         for (const config of defaultConfigs) {
