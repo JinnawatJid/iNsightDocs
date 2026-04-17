@@ -67,10 +67,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       if (s === "Opened") return "ผู้จัดการภาค";
       if (s === "RegionalSubmitted") return "ผู้จัดการฝ่ายขาย";
       if (s === "SalesSubmitted") return "เจ้าหน้าที่ฝ่ายการเงิน";
-      if (s === "Reviewed") {
-        const amount = Number(state.transactionData?.amount || 0);
-        return amount <= 300000 ? "ผู้จัดการฝ่ายการเงิน" : "กรรมการเครดิต";
-      }
+      if (s === "FinanceReviewed") return "ผู้อนุมัติ (วงเงิน <300K)";
+      if (s === "Reviewed") return "ผู้อนุมัติ (วงเงิน > 300K)";
 
       // Legacy support
       if (s === "Submitted") return "ผู้จัดการฝ่ายขาย (HO)";
@@ -1188,6 +1186,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
                 "Opened",
                 "RegionalSubmitted",
                 "SalesSubmitted",
+                "FinanceReviewed",
                 "Reviewed",
                 "PendingSales (ชั่วคราว)",
                 "PendingFinance (ชั่วคราว)",
@@ -1202,7 +1201,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
             if (authStore.isFinanceOfficer) {
               allowedStatuses.push("SalesSubmitted");
             }
-            if (authStore.isFinanceManager || authStore.isCreditCommittee) {
+            if (authStore.isFinanceManager) {
+              allowedStatuses.push("FinanceReviewed");
+            }
+            if (authStore.isCreditCommittee) {
               allowedStatuses.push("Reviewed");
             }
 

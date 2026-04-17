@@ -39,6 +39,7 @@ const store = useCreditRequestStore();
 const statusConfig = {
   'Opened': { label: 'Opened', class: 'info', icon: iconFile },
   'Submitted': { label: 'Submitted', class: 'warning', icon: iconClock },
+  'FinanceReviewed': { label: 'Finance Reviewed', class: 'purple', icon: iconUser },
   'Reviewed': { label: 'Reviewed', class: 'purple', icon: iconUser },
   'Approved': { label: 'Approved', class: 'success', icon: iconCheck },
   'Rejected': { label: 'Rejected', class: 'error', icon: iconX },
@@ -67,6 +68,7 @@ const showExportButton = computed(() => {
     'Opened',
     'Submitted',
     'PendingSales (ชั่วคราว)',
+    'FinanceReviewed',
     'Reviewed',
     'PendingFinance (ชั่วคราว)',
     'Approved',

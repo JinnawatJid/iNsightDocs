@@ -97,7 +97,7 @@ const isReadOnly = computed(() => {
     if (authStore.isInitiator && store.requestStatus && store.requestStatus !== 'Draft') {
         // Technically Initiators might have actions if it's "PendingSales (ชั่วคราว)" etc.
         // But normally if it's Opened, RegionalSubmitted etc., it's read-only for them.
-        const trackingStatuses = ['Opened', 'RegionalSubmitted', 'SalesSubmitted', 'Reviewed'];
+        const trackingStatuses = ['Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed'];
         if (trackingStatuses.includes(store.requestStatus)) {
              return true;
         }

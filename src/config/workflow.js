@@ -63,12 +63,39 @@ export const workflowConfig = {
             label: 'ส่งต่อให้ผู้จัดการฝ่ายการเงิน',
             action: 'submit',
             variant: 'submit',
-            targetStatus: 'Reviewed',
+            targetStatus: 'FinanceReviewed',
             confirmText: 'ส่งต่อให้ผู้จัดการฝ่ายการเงิน',
             confirmMessage: 'ทำรายการสำเร็จ'
         }
     ],
-    // Finance Manager / Credit Committee (Reviewed)
+    // Finance Manager (Approver <300k)
+    'FinanceReviewed': [
+        {
+            label: 'ปฏิเสธ',
+            action: 'reject',
+            variant: 'reject',
+            targetStatus: 'Rejected',
+            confirmText: 'ปฏิเสธคำขอ',
+            confirmMessage: 'ปฏิเสธคำขอสำเร็จ'
+        },
+        {
+            label: 'อนุมัติคำขอ',
+            action: 'approve',
+            variant: 'approve', // Green
+            targetStatus: 'Approved',
+            confirmText: 'อนุมัติคำขอ',
+            confirmMessage: 'อนุมัติคำขอสำเร็จ'
+        },
+        {
+            label: 'ส่งต่อให้กรรมการเครดิต',
+            action: 'submit',
+            variant: 'submit',
+            targetStatus: 'Reviewed',
+            confirmText: 'ส่งต่อให้กรรมการเครดิต',
+            confirmMessage: 'ทำรายการสำเร็จ'
+        }
+    ],
+    // Credit Committee (Approver >300k)
     'Reviewed': [
         {
             label: 'ปฏิเสธ',
@@ -78,7 +105,6 @@ export const workflowConfig = {
             confirmText: 'ปฏิเสธคำขอ',
             confirmMessage: 'ปฏิเสธคำขอสำเร็จ'
         },
-        // Both High and Low value lead to Approved, but strictly by different roles (checked in component)
         {
             label: 'อนุมัติคำขอ',
             action: 'approve',
@@ -95,7 +121,8 @@ export const roleLabels = {
     'Opened': 'ผู้จัดการภาค',
     'RegionalSubmitted': 'ผู้จัดการฝ่ายขาย',
     'SalesSubmitted': 'เจ้าหน้าที่ฝ่ายการเงิน',
-    'Reviewed': 'ผู้จัดการฝ่ายการเงิน / กรรมการเครดิต',
+    'FinanceReviewed': 'ผู้จัดการฝ่ายการเงิน',
+    'Reviewed': 'กรรมการเครดิต',
     'Approved': 'อนุมัติแล้ว',
     'Rejected': 'ปฏิเสธ',
     'Canceled': 'ยกเลิกแล้ว',
@@ -112,5 +139,6 @@ export const commentPlaceholders = {
     'Opened': 'ระบุความเห็นเพิ่มเติมสำหรับการพิจารณาของผู้จัดการภาค...',
     'RegionalSubmitted': 'ระบุศักยภาพของลูกค้า, ปริมาณการซื้อขายที่คาดหวัง, หรือความจำเป็นทางธุรกิจ...',
     'SalesSubmitted': 'ระบุผลการตรวจสอบเอกสาร, ความครบถ้วนของข้อมูล, หรือประเด็นที่ต้องตรวจสอบเพิ่มเติม...',
-    'Reviewed': 'วิเคราะห์ความเสี่ยง, ประวัติการชำระเงิน, และข้อเสนอแนะทางการเงิน...'
+    'FinanceReviewed': 'วิเคราะห์ความเสี่ยง, ประวัติการชำระเงิน, และข้อเสนอแนะทางการเงิน...',
+    'Reviewed': 'ความเห็นของกรรมการเครดิต...'
 };
