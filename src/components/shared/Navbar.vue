@@ -18,6 +18,12 @@
         class="nav-link">
         ตั้งค่าระบบ
       </router-link>
+      <router-link
+        v-if="authStore.isAdmin"
+        to="/scorecard-management"
+        class="nav-link">
+        จัดการโมเดลให้คะแนน
+      </router-link>
     </div>
     <div class="nav-right">
       <div class="dev-role-switcher" v-if="!authStore.authRequired">

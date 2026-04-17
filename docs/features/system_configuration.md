@@ -3,6 +3,8 @@
 ## 1. Overview
 The System Configuration Page (Admin Panel) is designed to allow administrators to manage global settings, business rules, and integration parameters without requiring code redeployments. This document outlines the scope, categories, and technical implementation approach based on industry standards.
 
+*Note: For deep modifications to the Credit Scoring rules (factors, weights, and thresholds), the system provides a dedicated **"Scorecard Management"** UI. Please refer to `docs/specs/CREDIT_SCORING_CONFIG_GUIDE.md` for details on scorecard modification.*
+
 ## 2. Scope & Categories (What to Configure)
 The configuration settings are logically grouped into categories. The UI will use a vertical tabbed interface (sidebar on the left, content on the right) to organize these.
 

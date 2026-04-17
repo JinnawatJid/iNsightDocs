@@ -79,9 +79,13 @@ The configuration files follow this hierarchical structure:
 
 ## How to Modify
 
+**Recommended Approach:** Administrators can modify the scorecards via the **"Scorecard Management" (จัดการโมเดลให้คะแนน)** tab in the frontend UI. This provides a user-friendly dynamic form with built-in mathematical validation to ensure total weights remain perfectly balanced before saving.
+
+**Manual Approach (Not Recommended):** If editing the JSON files directly:
+
 ### 1. Changing Weights
 Locate the `weight` property under any factor and update it.
-*Ensure total weights sum to 200 (or 100%).*
+*Ensure total weights sum to the exact original total (e.g., 200).*
 
 ### 2. Updating Rules
 *   `min`: Inclusive lower bound.

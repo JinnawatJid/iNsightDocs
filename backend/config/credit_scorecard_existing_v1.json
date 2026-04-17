@@ -23,7 +23,7 @@
         {
           "key": "years_in_business",
           "label": "ระยะเวลาธุรกิจ",
-          "weight": 4,
+          "weight": 5,
           "rules": [
             {
               "min": 10,
@@ -58,7 +58,7 @@
         {
           "key": "leverage",
           "label": "สัดส่วนเครดิตที่ขอต่อทุนจดทะเบียน",
-          "weight": 13.4,
+          "weight": 12.4,
           "rules": [
             {
               "max": 0.51,
