@@ -138,8 +138,21 @@ sequenceDiagram
 
 ซึ่งความท้าทายหลักตรงนี้คือ ข้อมูลมันกระจัดกระจายอยู่ตาม Tabs ต่างๆ ครับ ถ้าเราส่งข้อมูลไปบันทึกทีละหน้า ข้อมูลอาจจะไม่สมบูรณ์หรือสูญหายระหว่างทางได้ครับ"
 
-**[เปิดรูป Sequence Diagram ด้านล่างให้ดู]**
-"และนี่คือวิธีการแก้ปัญหาของเราครับ จาก Sequence Diagram อาจารย์จะเห็นว่าเมื่อ User กรอกข้อมูลตาม Flow จนเสร็จสมบูรณ์ และกดปุ่ม Submit ตัว Vue Component จะไม่ยิง API ไปหา Database โดยตรงเลยครับ แต่จะเรียกฟังก์ชันผ่าน Pinia Store แทน"
+**[เปิดรูป Mini-Sequence Diagram: API Call Delegation]**
+"และนี่คือวิธีการแก้ปัญหาของเราครับ จาก Diagram ขนาดย่อยนี้ อาจารย์จะเห็นว่าเมื่อ User กรอกข้อมูลตาม Flow จนเสร็จสมบูรณ์ และกดปุ่ม Submit ตัว Vue Component จะไม่ยิง API ไปหา Database โดยตรงเลยครับ แต่จะส่งผ่านไปให้ Pinia Store จัดการแทน"
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Vue as CreateCreditRequest.vue
+    participant Store as Pinia (creditRequest)
+    participant API as Backend
+
+    User->>Vue: Clicks "Submit"
+    Vue->>Store: saveTransactionData()
+    Note over Store: Prepares Payload
+    Store->>API: POST Data
+```
 
 <details>
 <summary><b>View Source Code: Vue Component API Call Delegation</b></summary>
@@ -155,7 +168,20 @@ const handleStartRequest = async () => {
 ```
 </details>
 
-"จากนั้นเราใช้ฟังก์ชันนี้เพื่อแพ็คข้อมูล JSON และ File Blobs รวมกันเป็นก้อน `FormData` เดียว แล้วส่งไปที่ Backend ทีเดียวครับ"
+**[เปิดรูป Mini-Sequence Diagram: Frontend Payload Construction]**
+"จากนั้น Pinia จะนำไฟล์ที่เราเก็บไว้ (Delayed Upload) และ State ทั้งหมดมาแพ็ครวมกันเป็นก้อนเดียวส่งไปครับ"
+
+```mermaid
+sequenceDiagram
+    participant Store as Pinia (creditRequest)
+    participant FormData
+    participant API as Backend
+
+    Store->>FormData: append("customer_no", ...)
+    Store->>FormData: append("snapshot_data", JSON)
+    Store->>FormData: append("files", Binary Blobs)
+    Store->>API: POST /api/credit-requests (multipart/form-data)
+```
 
 **[คลิกขยาย "View Source Code: Frontend Payload Construction"]**
 "อาจารย์ลองดูโค้ดตรงนี้ครับ เราใช้ `FormData.append()` เพื่อรวมข้อมูลทุกอย่าง รวมถึงไฟล์และการตั้งค่าต่างๆ (Snapshot) เข้าด้วยกันครับ"
@@ -183,6 +209,23 @@ async saveTransactionData() {
 }
 ```
 </details>
+
+**[เปิดรูป Mini-Sequence Diagram: Sequential Data Processing]**
+"เพื่อให้เห็นภาพเรื่อง Atomicity ชัดเจนขึ้น ดู Diagram นี้ครับ Backend จะทำงานเป็นลำดับขั้นแบบ Sequential"
+
+```mermaid
+sequenceDiagram
+    participant API as creditRequestController.js
+    participant DB as Database
+    participant FS as File System
+
+    API->>DB: 1. Insert New Request Record (Cloned)
+    API->>FS: 2. Move Physical Uploaded Files
+    API->>DB: 3. Update DB Attachment Paths
+    API->>DB: 4. Move Audit Comments
+    API->>DB: 5. Delete Old Draft Record
+    Note over API,DB: Sequential Await acts as<br/>Logical Transaction
+```
 
 **[คลิกขยาย "View Source Code: Sequential Data Processing"]**
 "และนี่คือโค้ดฝั่ง Backend ครับ เมื่อข้อมูลมาถึง เราให้ความสำคัญกับ Atomicity ของข้อมูล แม้ว่าเราจะไม่ได้เขียน SQL TRANSACTION ครอบโดยตรง แต่เราออกแบบลอจิกเป็น Sequential Await ให้ทำงานต่อเนื่องกันอย่างเข้มงวด ตัวอย่างเช่นตอนที่เราจะเลื่อนสถานะจาก Draft เป็นคำขอจริง (Opened) เราต้องสร้าง ID (tx_id) แบบทางการขึ้นมาใหม่, Insert โคลน Record เข้าไป, อัปเดตตารางไฟล์ให้ชี้ไปที่ ID ใหม่, แล้วถึงลบ Draft เก่าทิ้ง ทั้งหมดนี้ถูกแพ็ครวมไว้ใน Controller ชุดเดียว เพื่อป้องกันข้อมูลขยะค้างในระบบครับ"
