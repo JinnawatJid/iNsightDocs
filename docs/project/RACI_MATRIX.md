@@ -41,5 +41,6 @@ This document defines the Roles and Responsibilities for the Credit Request Appl
 ## Notes on Specific Responsibilities
 
 1.  **Editing Data**: The **Branch Manager** is **Responsible (R)** and **Accountable (A)** for ensuring customer data (General, Addresses, Financials) is accurate before submission. They initiate the request and act as the primary touchpoint.
+    *   *Exception:* The **Finance Officer (FO)** is **Responsible (R)** for editing and finalizing specific financial terms (Credit Limit, Credit Terms, Billing Conditions, Payment Conditions) during the Finance Screening stage (`SalesSubmitted` -> `FinanceReviewed`).
 2.  **Rejection**: The **Finance Manager** is **Accountable (A)** for final rejection decisions. If a request is rejected, the Branch Manager and Regional Manager are **Informed (I)** of the outcome and the reason.
 3.  **High Value Requests**: For requests exceeding 300,000 THB, the **Credit Committee** becomes the **Accountable (A)** authority. The **Finance Manager** acts as a **Consultant (C)** to present the analysis.
