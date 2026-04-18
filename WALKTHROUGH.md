@@ -1,73 +1,172 @@
-# Code Walkthrough Guide: Final Presentation
+# Code Walkthrough Guide: Technical Architecture & Workflows
 
-This document is your "Cheat Sheet" for presenting your codebase to your professor. It outlines the core features (Create Request, Approve Request, and Batch Automation) and maps the exact flow from Frontend $\rightarrow$ State Management $\rightarrow$ Backend Database.
+This document is an in-depth technical walkthrough designed to present the system's architecture to the reviewing professor. It details the system architecture, core design patterns, and provides sequence diagrams for key features.
 
 ---
 
-## General Presentation Tips
-*   **Don't open files randomly.** Follow the "Traceability Walkthrough" approach: Start at the UI (Vue component), show where the data is managed (Pinia store), then show where it's saved (Backend controller/route).
-*   **Highlight the "Why".** Explain *why* you chose a specific pattern. For example: "We use Pinia here to manage form state so that if the user changes tabs, the data persists."
-*   **Keep it high-level.** Don't explain what an `if` statement does. Explain what the *block of code* achieves for the business logic.
+## 0. System Architecture Overview
+
+The system is designed with a clear separation of concerns, employing a modular, state-driven frontend and a transactional backend.
+
+### Tech Stack
+*   **Frontend:** Vue.js 3, Vite, Pinia (State Management), Axios (API Client).
+*   **Backend:** Node.js, Express (Routing), SQLite/MSSQL (Database).
+*   **Integration:** Local Bridge Server via Server-Sent Events (SSE) for external scraping.
+
+### Key Design Patterns
+1.  **Centralized State Management (Pinia):** Form data across multiple UI tabs is gathered into a single reactive store, preventing data loss during navigation and ensuring a unified payload upon submission.
+2.  **Database Transactions (Atomicity):** Operations that span multiple tables (e.g., creating a request and saving file paths) are wrapped in `BEGIN TRANSACTION` / `COMMIT` blocks to ensure data integrity.
+3.  **Unified API Endpoints:** State transitions (creating, updating, approving) reuse a single robust endpoint (`POST /` acting as an upsert/update depending on the presence of a Transaction ID).
+4.  **Resilient Polling & Bridging:** Interactions with slow, external data sources utilize retry loops and fallback mechanisms to prevent process blocking.
 
 ---
 
 ## 1. Feature: Create Credit Request
 
-**The Goal:** Show how a new credit request is initialized, how user input is managed, and how it is sent to the server.
+**The Goal:** Demonstrate how form state is gathered across multiple components and persisted transactionally on the server.
 
-### Step 1: The UI Component (`src/views/CreateCreditRequest.vue`)
-*   **Open:** `src/views/CreateCreditRequest.vue`
-*   **Show:** The `<template>` block. Point out the `Navbar`, `RequestStatus`, and `CreditRequestHeader`.
-*   **Talk About:** "This is the main entry point. We use a modular component design. The header handles the search and initiation, while the form itself is broken down into separate tabs managed below."
-*   **Key Code:** Show the `handleStartRequest` function. Explain that when a user clicks 'Start', it triggers the Pinia store.
+### Sequence Diagram (Mermaid)
 
-### Step 2: State Management (`src/stores/creditRequest.js`)
-*   **Open:** `src/stores/creditRequest.js`
-*   **Show:** The `submitRequest` or `saveTransactionData` action.
-*   **Talk About:** "We use Pinia (Vue's state management) to handle the complex state of a credit request. This allows us to gather data from multiple different components (like project details, attachments, and financial info) into one centralized payload."
-*   **Key Code:** Show how `FormData` is constructed to handle both JSON data and file uploads simultaneously.
+```mermaid
+sequenceDiagram
+    participant User
+    participant VueComponent as CreateCreditRequest.vue
+    participant PiniaStore as creditRequest.js
+    participant ExpressRoute as POST /api/credit-requests
+    participant DB as Database
 
-### Step 3: Backend API (`backend/routes/creditRequestRoutes.js` & `backend/controllers/creditRequestController.js`)
-*   **Open:** `backend/routes/creditRequestRoutes.js` first. Show the `POST /` route.
-*   **Talk About:** "The request hits our Express router, which directs it to the controller."
-*   **Open:** `backend/controllers/creditRequestController.js`. Go to the `createCreditRequest` function.
-*   **Talk About:** "Here is where we handle the business logic. We use database transactions to ensure data integrity. If inserting the request details succeeds but saving the file attachments fails, the entire transaction rolls back."
+    User->>VueComponent: Fills Form Data across Tabs
+    User->>VueComponent: Uploads File (e.g., DBD Profile)
+    User->>VueComponent: Clicks "Submit"
+    VueComponent->>PiniaStore: saveTransactionData()
+    Note over PiniaStore: Appends JSON and File Blobs into a single FormData payload
+    PiniaStore->>ExpressRoute: POST FormData Payload
+    ExpressRoute->>DB: BEGIN TRANSACTION
+    ExpressRoute->>DB: INSERT INTO CreditRequests
+    ExpressRoute->>DB: INSERT INTO CreditRequestAttachments (File Paths)
+    alt Success
+        ExpressRoute->>DB: COMMIT
+        ExpressRoute-->>PiniaStore: 200 OK (returns new tx_id)
+        PiniaStore-->>VueComponent: Update UI (Success)
+    else File Save Fails
+        ExpressRoute->>DB: ROLLBACK
+        ExpressRoute-->>PiniaStore: 500 Error
+        PiniaStore-->>VueComponent: Show Error Toast
+    end
+```
+
+### Data Payload Example
+The frontend constructs a `FormData` object capable of holding both textual data and binary file data.
+
+```javascript
+// src/stores/creditRequest.js
+const formData = new FormData();
+formData.append("customer_no", this.customer.id);
+formData.append("request_amount", this.transactionData.amount || "");
+formData.append("snapshot_data", JSON.stringify(this.getSnapshot()));
+formData.append("is_submit", "true");
+// If editing an existing request:
+// formData.append("tx_id", this.requestId);
+```
+
+### Error Handling & Atomicity
+In the backend (`creditRequestController.js`), saving a request and its associated files is an all-or-nothing operation. If file processing fails after the `CreditRequests` row is inserted, the database transaction is rolled back, preventing orphaned records.
 
 ---
 
 ## 2. Feature: Approve Credit Request (Workflow Progression)
 
-**The Goal:** Demonstrate how the system handles role-based state changes (Initiator $\rightarrow$ Reviewer $\rightarrow$ Approver).
+**The Goal:** Demonstrate how role-based state changes and audit logging are handled using the unified update flow.
 
-### Step 1: The UI / Trigger (`src/stores/creditRequest.js`)
-*   **Open:** `src/stores/creditRequest.js`
-*   **Show:** The `updateStatus` action.
-*   **Talk About:** "Workflow state changes (like Approvals or Submissions) don't have separate endpoints. We reuse our unified `createCreditRequest` endpoint. The frontend updates the status payload and sends it through."
+### Sequence Diagram (Mermaid)
 
-### Step 2: Backend Handling (`backend/controllers/creditRequestController.js`)
-*   **Open:** `backend/controllers/creditRequestController.js`
-*   **Show:** The `createCreditRequest` function again, focusing on the `UPDATE` logic block.
-*   **Talk About:** "When a request already has a transaction ID (`tx_id`), the backend performs an `UPDATE` instead of an `INSERT`. It updates the `status` and `updated_at` timestamps, progressing the workflow."
-*   **Bonus Point:** Show how audit tracking works. "We automatically append the `updated_by` or `username` from the authenticated request (`req.user.username`) so we always have an audit trail of who approved the request."
+```mermaid
+sequenceDiagram
+    participant Reviewer
+    participant VueComponent as RequestDetail.vue
+    participant PiniaStore as creditRequest.js
+    participant ExpressRoute as POST /api/credit-requests
+    participant DB as Database
+
+    Reviewer->>VueComponent: Selects "Approve", adds Comment
+    VueComponent->>PiniaStore: updateStatus('Approved', 'Looks good')
+    Note over PiniaStore: Reuses the same save payload but appends 'status', 'comment', and 'tx_id'
+    PiniaStore->>ExpressRoute: POST FormData (Upsert)
+    ExpressRoute->>DB: UPDATE CreditRequests SET status='Approved'
+    ExpressRoute->>DB: INSERT INTO RequestComments (tx_id, username, comment_text)
+    ExpressRoute-->>PiniaStore: 200 OK
+    PiniaStore-->>VueComponent: Refresh UI (Read-Only Mode)
+```
+
+### Audit Tracking
+When a request is updated, the backend implicitly captures the user making the change.
+
+```javascript
+// backend/controllers/creditRequestController.js
+// Extracting username from the authenticated SSO token
+const username = req.user?.username || req.body.uploaded_by || "System";
+
+// Inserting an immutable audit log entry
+await db.runAsync(
+  "INSERT INTO RequestComments (tx_id, actor_role, comment_text, username) VALUES (?, ?, ?, ?)",
+  [txId, req.body.actor_role, req.body.comment, username]
+);
+```
 
 ---
 
 ## 3. Feature: Batch Automation (External API Integration)
 
-**The Goal:** Showcase your ability to build complex, automated background tasks connecting to external systems.
+**The Goal:** Showcase the system's ability to orchestrate complex background tasks, manage rate limits, and bridge to external Python scraping services.
 
-### Step 1: The UI Component (`src/views/BatchAutomation.vue`)
-*   **Open:** `src/views/BatchAutomation.vue`
-*   **Show:** The `startBatch` or `processNext` functions.
-*   **Talk About:** "This view orchestrates a batch processing job. It doesn't just make one API call; it processes a queue of customers, managing rate limits and bridging to an external automation server."
+### Sequence Diagram (Mermaid)
 
-### Step 2: The Polling / Bridging Logic (`src/views/BatchAutomation.vue`)
-*   **Open:** `src/views/BatchAutomation.vue`
-*   **Show:** The `checkSingleCustomerFiles` and `pollCheckReadiness` functions.
-*   **Talk About:** "We implemented a bridging mechanism to communicate with a local scraping service. The system checks if files exist locally, and if not, it signals the bridge to download them. We use polling (`setInterval` / `setTimeout`) to wait for the external process to finish downloading the files before uploading them to our main server."
-*   **Key Point:** Emphasize the resilience. "If a step fails, it logs the error but continues processing the next item in the batch."
+```mermaid
+sequenceDiagram
+    participant User
+    participant VueComponent as BatchAutomation.vue
+    participant PythonBridge as Local Bridge Server (Port 4343)
+    participant BackendAPI as Backend Financial Analysis
 
----
+    User->>VueComponent: Clicks "Start Processing"
+    loop For each Customer in Queue
+        VueComponent->>BackendAPI: GET /api/financials/check-local (Check Cache)
+        alt Files Exist Locally
+            BackendAPI-->>VueComponent: true
+            Note over VueComponent: Proceed immediately to Analysis
+        else Files Do Not Exist
+            VueComponent->>PythonBridge: Server-Sent Events (SSE) /stream?taxId=...
+            Note over PythonBridge: Headless Browser scraping DBD...
+            PythonBridge-->>VueComponent: Event: "progress" (Downloading...)
+            PythonBridge-->>VueComponent: Event: "complete" (Files ready)
+        end
 
-## Final Words for the Professor
-"This architecture ensures that our frontend is purely presentational and state-driven, our backend handles secure transactions and file storage, and our automation seamlessly bridges external data into our system."
+        VueComponent->>BackendAPI: POST /api/financials/analyze (FormData with files)
+        BackendAPI-->>VueComponent: Scoring Result (Grade A-F, Limit)
+        VueComponent->>VueComponent: Update Queue Status UI (Success)
+    end
+```
+
+### Resiliency & Error Handling
+The `BatchAutomation.vue` orchestrator implements retry logic when connecting to the external bridge.
+
+```javascript
+// src/views/BatchAutomation.vue
+let retries = 0;
+const maxRetries = 2;
+
+while (retries <= maxRetries && !downloadResult) {
+  try {
+    downloadResult = await connectToBridge(item.taxId, item.customerId);
+  } catch (e) {
+    retries++;
+    if (retries > maxRetries) {
+      console.warn("Bridge failed, proceeding with fallback");
+    } else {
+      item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
+}
+```
+If a customer fails processing, the orchestrator logs the specific error message (e.g., "DBD ไม่ครบ: ขาดงบดุล"), marks the row as "Error", and continues to the next customer in the queue without crashing the overall job.
