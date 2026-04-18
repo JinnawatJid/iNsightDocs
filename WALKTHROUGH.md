@@ -33,6 +33,24 @@ This document is an in-depth technical walkthrough designed to present the syste
 **[อธิบาย User Flow และการออกแบบ UI]**
 ในมุมมองของ User Journey ทันทีที่เข้ามาในหน้านี้ ผู้ใช้จะต้องค้นหาลูกค้าก่อนครับ ซึ่งในทางเทคนิค เมื่อผู้ใช้กดค้นหา ระบบจะเรียก API ไปดึงข้อมูล Master Data ของลูกค้ามา และ Mapping เข้าสู่ Pinia State (`store.customer`) ทันที เพื่อนำมา Auto-fill ลงในฟอร์ม ช่วยลดข้อผิดพลาดจากการพิมพ์มือครับ
 
+**[เปิดรูป Mini-Sequence Diagram: Customer Search]**
+"นี่คือลำดับการทำงาน (Data Flow) ตอนที่ User พิมพ์ค้นหาลูกค้าครับ"
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Component as Search Bar
+    participant Store as Pinia (creditRequest)
+    participant API as Backend (CustomerService)
+
+    User->>Component: Types ID & Clicks Search
+    Component->>Store: searchCustomer(query)
+    Store->>API: GET /api/customers?q=...
+    API-->>Store: JSON (Customer Master Data)
+    Note over Store: Maps JSON to store.customer<br/>for Form Auto-fill
+    Store-->>Component: Reactively updates UI
+```
+
 **[คลิกขยาย "View Source Code: Customer Search & Autofill"]**
 <details>
 <summary><b>View Source Code: Customer Search & Autofill</b></summary>
@@ -65,6 +83,24 @@ async searchCustomer(query) {
 </details>
 
 จากนั้นระบบจะสร้างฟอร์มให้กรอกข้อมูล โดยเราออกแบบ UI ให้เป็นแบบ Tabs (เช่น ข้อมูลทั่วไป, ที่อยู่, ข้อมูลทางการเงิน) ในเชิงโค้ด เราใช้ Vue Dynamic Component (`<component :is="currentTabComponent">`) ในการสลับหน้าจอ ทำให้หน้า UI ไม่รกและทำงานได้รวดเร็วครับ และในแต่ละ Tab ก็จะมีช่องสำหรับอัปโหลดเอกสารแนบไปด้วยครับ
+
+**[เปิดรูป Mini-Sequence Diagram: Dynamic Tabs]**
+"และเมื่อข้อมูลพร้อมให้กรอกแล้ว หน้า UI จะแบ่งเป็น Tabs ซึ่งการสลับ Tabs จะทำงานร่วมกับ State แบบนี้ครับ"
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Tabs as ApplicationTabs.vue
+    participant Store as Pinia (creditRequest)
+    participant Vue as Dynamic Component
+
+    User->>Tabs: Clicks "ที่อยู่" (Residence)
+    Tabs->>Store: setActiveTab('residence')
+    Store-->>Tabs: Updates currentTab state
+    Tabs->>Vue: <component :is="currentTabComponent">
+    Note over Vue: Unmounts GeneralInfoTab<br/>Mounts ResidenceTab
+    Vue-->>User: Displays Residence Form instantly
+```
 
 **[คลิกขยาย "View Source Code: Dynamic Vue Components"]**
 <details>
