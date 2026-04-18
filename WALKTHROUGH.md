@@ -4,26 +4,40 @@ This document is an in-depth technical walkthrough designed to present the syste
 
 ---
 
-## 0. System Architecture Overview
+## 🎙️ Presentation Script: System Architecture Overview
 
-The system is designed with a clear separation of concerns, employing a modular, state-driven frontend and a transactional backend.
+**[คำกล่าวเปิด / Intro (5 นาที)]**
+"สวัสดีครับอาจารย์ วันนี้ผมจะขอพรีเซนต์ Architecture และ Workflow หลักของระบบที่เราได้พัฒนาขึ้นมาครับ โดยระบบของเราออกแบบภายใต้คอนเซปต์ 'Separation of Concerns' แยกส่วน Frontend และ Backend ออกจากกันอย่างชัดเจนครับ"
 
-### Tech Stack
-*   **Frontend:** Vue.js 3, Vite, Pinia (State Management), Axios (API Client).
-*   **Backend:** Node.js, Express (Routing), SQLite/MSSQL (Database).
-*   **Integration:** Local Bridge Server via Server-Sent Events (SSE) for external scraping.
+**[อธิบาย Tech Stack]**
+"สำหรับ Tech Stack ฝั่ง Frontend เราใช้ Vue.js 3 ร่วมกับ Vite และใช้ Pinia สำหรับจัดการ State Management ครับ ส่วนฝั่ง Backend เราใช้ Node.js รันด้วย Express ทำหน้าที่เป็น REST API และเชื่อมต่อกับ Database (SQLite/MSSQL) ครับ นอกจากนี้ยังมี Local Bridge Server ที่เขียนเชื่อมต่อผ่าน Server-Sent Events (SSE) เพื่อใช้ทำ Web Scraping ดึงข้อมูลจากภายนอกแบบ Asynchronous ครับ"
 
-### Key Design Patterns
-1.  **Centralized State Management (Pinia):** Form data across multiple UI tabs is gathered into a single reactive store, preventing data loss during navigation and ensuring a unified payload upon submission.
-2.  **Database Transactions (Atomicity):** Operations that span multiple tables (e.g., creating a request and saving file paths) are executed sequentially to ensure data integrity.
-3.  **Unified API Endpoints:** State transitions (creating, updating, approving) reuse a single robust endpoint (`POST /` acting as an upsert/update depending on the presence of a Transaction ID).
-4.  **Resilient Polling & Bridging:** Interactions with slow, external data sources utilize retry loops and fallback mechanisms to prevent process blocking.
+**[อธิบาย Design Patterns]**
+"Design Patterns หลักที่เรานำมาใช้มี 4 ส่วนครับ:
+1. **Centralized State Management:** เราใช้ Pinia รวบรวมข้อมูลฟอร์มจากหลายๆ แท็บไว้ที่เดียว
+2. **Database Transactions (Atomicity):** การบันทึกข้อมูลที่มีความเกี่ยวเนื่องกันหลายตาราง เราบังคับใช้ Transaction เพื่อรับประกัน Data Integrity ครับ
+3. **Unified API Endpoints:** เราลดความซ้ำซ้อนโดยใช้ Endpoint เดียวกัน (`POST /`) ในการทำทั้ง Insert และ Update (Upsert) ครับ
+4. **Resilient Polling & Bridging:** สำหรับการดึงข้อมูลภายนอกที่ใช้เวลานาน เรามีระบบ Retry และ Fallback เพื่อไม่ให้ระบบหลักค้างครับ"
 
 ---
 
 ## 1. Feature: Create Credit Request
 
 **The Goal:** Demonstrate how form state is gathered across multiple components and persisted transactionally on the server.
+
+### 🎙️ Presentation Script: Create Credit Request
+"ฟีเจอร์แรกคือการสร้างคำขอเครดิตครับ ความท้าทายตรงนี้คือฟอร์มของเรามีหลายหน้า (Tabs) และมีการอัปโหลดไฟล์ด้วย ถ้าเราส่งข้อมูลไปบันทึกทีละหน้า ข้อมูลอาจจะไม่สมบูรณ์หรือสูญหายระหว่างทางได้ครับ"
+
+**[เปิดรูป Sequence Diagram ด้านล่างให้ดู]**
+"จาก Sequence Diagram อาจารย์จะเห็นว่าเมื่อ User กรอกข้อมูลและแนบไฟล์เสร็จ พอคลิก Submit ตัว Vue Component จะไม่เรียก API โดยตรงครับ แต่จะเรียกฟังก์ชันใน Pinia Store แทน เพื่อแพ็คข้อมูล JSON และ File Blobs รวมกันเป็นก้อน `FormData` เดียว แล้วส่งไปที่ Backend ทีเดียวครับ"
+
+**[คลิกขยาย "View Source Code: Frontend Payload Construction"]**
+"อาจารย์ลองดูโค้ดตรงนี้ครับ เราใช้ `FormData.append()` เพื่อรวมข้อมูลทุกอย่าง รวมถึงรูปภาพและการตั้งค่าต่างๆ (Snapshot) เข้าด้วยกันครับ"
+
+**[คลิกขยาย "View Source Code: Database Transaction"]**
+"และนี่คือโค้ดฝั่ง Backend ครับ เมื่อข้อมูลมาถึง เราให้ความสำคัญกับ Atomicity มากๆ ตัวอย่างเช่นในตอนที่เราจะเปลี่ยนสถานะจาก Draft เป็นคำขอจริง เราต้องมีการโคลน Record เดิม, ย้ายไฟล์แนบทั้งหมดไปผูกกับ ID ใหม่, และลบ Record เก่าทิ้ง การทำงานทั้งหมดนี้เราครอบไว้ด้วย Transaction ครับ ถ้ามีจุดใดเออเร่อ (เช่น ไฟล์หาย) ระบบจะ Rollback ทั้งหมดทันทีครับ เพื่อป้องกันข้อมูลขยะค้างในระบบ"
+
+---
 
 ### Sequence Diagram (Mermaid)
 
@@ -152,6 +166,17 @@ await db.runAsync("DELETE FROM CreditRequests WHERE id = ?", [
 
 **The Goal:** Demonstrate how role-based state changes and audit logging are handled using the unified update flow.
 
+### 🎙️ Presentation Script: Approve Credit Request
+"ฟีเจอร์ถัดมาคือการทำงานของ Workflow อนุมัติเอกสารครับ เวลาที่ Manager หรือคณะกรรมการกดอนุมัติ ระบบจะไม่มี Endpoint แยกสำหรับ Approve โดยเฉพาะครับ"
+
+**[เปิดรูป Sequence Diagram ด้านล่างให้ดู]**
+"เราออกแบบให้เป็น 'Unified Endpoint' ครับ ตัว Frontend จะเรียกใช้ฟังก์ชันเดิมเลย แต่จะแนบ `status` ใหม่และ `comment` เข้าไปด้วย Backend ก็จะทำหน้าที่เป็น Upsert คือถ้าเห็นว่ามี `tx_id` ส่งมาด้วย ก็จะสั่ง `UPDATE` สถานะแทนที่จะ `INSERT` ใหม่ครับ"
+
+**[คลิกขยาย "View Source Code: Immutable Audit Logging"]**
+"และเรื่องของ Security / Audit Log ระบบเราจะไม่อนุญาตให้แก้ Log ครับ โค้ดตรงนี้จะเห็นว่า Backend จะสกัด `username` ออกมาจาก Token ของระบบ SSO เพื่อยืนยันตัวตนเสมอ ไม่ได้เชื่อข้อมูลจาก Frontend 100% จากนั้นจะบันทึกลงตาราง `RequestComments` ทันที พร้อม Time Stamp ที่แก้ไขไม่ได้ครับ ทำให้เรามี Audit Trail ที่ครบถ้วนสมบูรณ์"
+
+---
+
 ### Sequence Diagram (Mermaid)
 
 ```mermaid
@@ -207,6 +232,22 @@ if (req.body.comment && req.body.actor_role) {
 ## 3. Feature: Batch Automation (External API Integration)
 
 **The Goal:** Showcase the system's ability to orchestrate complex background tasks, manage rate limits, and bridge to external Python scraping services.
+
+### 🎙️ Presentation Script: Batch Automation
+"และฟีเจอร์สุดท้ายที่เป็นไฮไลท์คือ Batch Automation ครับ ฟีเจอร์นี้ใช้สำหรับจัดการข้อมูลลูกค้าแบบกลุ่ม (Queue) เพื่อไปดึงงบการเงินจากกรมพัฒนาธุรกิจการค้า (DBD) มาวิเคราะห์อัตโนมัติ"
+
+**[เปิดรูป Sequence Diagram ด้านล่างให้ดู]**
+"เนื่องจากการดึงข้อมูลจากเว็บนอกมีความไม่แน่นอนและใช้เวลานาน ถ้าเราเขียน API ปกติ เซิร์ฟเวอร์จะ Time Out แน่นอนครับ เราเลยดีไซน์สถาปัตยกรรมใหม่ โดยสร้าง **Python Bridge Server** ขึ้นมาทำงานแยกต่างหาก"
+
+**[คลิกขยาย "View Source Code: Bridge Connection Logic"]**
+"ในโค้ดตรงส่วนนี้ อาจารย์จะเห็นว่า Frontend Vue ของเราเชื่อมต่อกับ Bridge Server ผ่านเทคโนโลยี **Server-Sent Events (SSE)** (`EventSource`) ครับ ข้อดีคือมันเป็นการเปิด Connection ค้างไว้เพื่อรอรับ Event กลับมาทีละชิ้น (Streaming) ไม่ต้องบล็อก UI ทำให้ User ยังคงเห็น Progress Bar วิ่งอยู่ได้ครับ
+
+นอกจากนี้เรายังมีระบบ Retry Logic ด้วยครับ ถ้าโหลดไฟล์จาก Bridge พลาดกี่รอบ ระบบก็จะไม่ล่ม (Crash) แต่จะขึ้น Error Log ในแถวนั้น แล้วข้ามไปทำลูกค้าคนถัดไปในคิวต่อได้ทันทีครับ"
+
+**[สรุปปิดท้าย / Conclusion]**
+"และนี่ก็คือภาพรวม Architecture ของระบบครับ ทั้งหมดนี้ทำให้ระบบเรามีความเป็น Modular สูง, Data ไม่สูญหาย, และสเกลระบบเพื่อรองรับงานหนักๆ (Batch) ได้โดยไม่กระทบ User ครับ... อาจารย์มีคำถามตรงไหนเพิ่มเติมไหมครับ?"
+
+---
 
 ### Sequence Diagram (Mermaid)
 
