@@ -19,7 +19,7 @@ This document is an in-depth technical walkthrough designed to present the syste
 **[อธิบาย Design Patterns]**
 "Design Patterns หลักที่เรานำมาใช้มี 2 ส่วนครับ:
 1. **Centralized State Management:** เราใช้ Pinia รวบรวมข้อมูลฟอร์มจากหลายๆ แท็บไว้ที่เดียว
-2. **Database Transactions (Atomicity):** การบันทึกข้อมูลที่มีความเกี่ยวเนื่องกันหลายตาราง เราบังคับใช้ Transaction เพื่อรับประกันความถูกต้องสมบูรณ์และสอดคล้องกันของข้อมูล (Data Integrity) ครับ"
+2. **Sequential Data Processing (Atomicity Concept):** การบันทึกข้อมูลที่มีความเกี่ยวเนื่องกันหลายตาราง เราจัดการผ่านโค้ดใน Backend ให้ทำงานแบบเรียงลำดับ (Sequential Await) เพื่อรับประกันความถูกต้องสมบูรณ์และสอดคล้องกันของข้อมูล (Data Integrity) โดยควบคุมกระบวนการทั้งหมดให้เสร็จสิ้นเป็นชุดคำสั่งเดียวกันครับ"
 
 ---
 
@@ -31,13 +31,64 @@ This document is an in-depth technical walkthrough designed to present the syste
 "ฟีเจอร์แรกคือการสร้างคำขอเครดิตครับ ความท้าทายตรงนี้คือฟอร์มของเรามีหลายหน้า (Tabs) และมีการอัปโหลดไฟล์ด้วย ถ้าเราส่งข้อมูลไปบันทึกทีละหน้า ข้อมูลอาจจะไม่สมบูรณ์หรือสูญหายระหว่างทางได้ครับ"
 
 **[เปิดรูป Sequence Diagram ด้านล่างให้ดู]**
-"จาก Sequence Diagram อาจารย์จะเห็นว่าเมื่อ User กรอกข้อมูลและแนบไฟล์เสร็จ พอคลิก Submit ตัว Vue Component จะไม่เรียก API โดยตรงครับ แต่จะเรียกฟังก์ชันใน Pinia Store แทน เพื่อแพ็คข้อมูล JSON และ File Blobs รวมกันเป็นก้อน `FormData` เดียว แล้วส่งไปที่ Backend ทีเดียวครับ"
+"จาก Sequence Diagram อาจารย์จะเห็นว่าเมื่อ User กรอกข้อมูลและแนบไฟล์เสร็จ พอคลิก Submit ตัว Vue Component จะไม่เรียก API โดยตรงครับ แต่จะเรียกฟังก์ชันใน Pinia Store แทน"
+
+```javascript
+// src/views/CreateCreditRequest.vue
+const handleStartRequest = async () => {
+  // Save to backend immediately so the Draft correctly reflects the chosen type
+  if (store.requestId) {
+    await store.saveTransactionData();
+  }
+};
+```
+
+"จากนั้นเราใช้ฟังก์ชันนี้เพื่อแพ็คข้อมูล JSON และ File Blobs รวมกันเป็นก้อน `FormData` เดียว แล้วส่งไปที่ Backend ทีเดียวครับ"
 
 **[คลิกขยาย "View Source Code: Frontend Payload Construction"]**
-"อาจารย์ลองดูโค้ดตรงนี้ครับ เราใช้ `FormData.append()` เพื่อรวมข้อมูลทุกอย่าง รวมถึงรูปภาพและการตั้งค่าต่างๆ (Snapshot) เข้าด้วยกันครับ"
+"อาจารย์ลองดูโค้ดตรงนี้ครับ เราใช้ `FormData.append()` เพื่อรวมข้อมูลทุกอย่าง รวมถึงไฟล์และการตั้งค่าต่างๆ (Snapshot) เข้าด้วยกันครับ"
 
-**[คลิกขยาย "View Source Code: Database Transaction"]**
-"และนี่คือโค้ดฝั่ง Backend ครับ เมื่อข้อมูลมาถึง เราให้ความสำคัญกับ Atomicity มากๆ ตัวอย่างเช่นในตอนที่เราจะเปลี่ยนสถานะจาก Draft เป็นคำขอจริง เราต้องมีการโคลน Record เดิม, ย้ายไฟล์แนบทั้งหมดไปผูกกับ ID ใหม่, และลบ Record เก่าทิ้ง การทำงานทั้งหมดนี้เราครอบไว้ด้วย Transaction ครับ ถ้ามีจุดใดเออเร่อ (เช่น ไฟล์หาย) ระบบจะ Rollback ทั้งหมดทันทีครับ เพื่อป้องกันข้อมูลขยะค้างในระบบ"
+```javascript
+// src/stores/creditRequest.js
+async saveTransactionData() {
+  if (!this.customer || !this.customer.id) return;
+  try {
+    const formData = new FormData();
+    formData.append("customer_no", this.customer.id);
+    formData.append("request_amount", this.transactionData.amount || "");
+
+    // Convert reactive object state into a JSON string
+    formData.append("snapshot_data", JSON.stringify(this.getSnapshot()));
+
+    // Attach File Blobs and unified state...
+    await CreditRequestService.createCreditRequest(formData);
+  } catch (e) {
+    console.error("Failed to save transaction data", e);
+  }
+}
+```
+
+**[คลิกขยาย "View Source Code: Sequential Data Processing"]**
+"และนี่คือโค้ดฝั่ง Backend ครับ เมื่อข้อมูลมาถึง เราให้ความสำคัญกับ Atomicity ของข้อมูล แม้ว่าเราจะไม่ได้เขียน SQL TRANSACTION ครอบโดยตรง แต่เราออกแบบลอจิกเป็น Sequential Await ให้ทำงานต่อเนื่องกันอย่างเข้มงวด ตัวอย่างเช่นตอนที่เราจะเลื่อนสถานะจาก Draft เป็นคำขอจริง (Opened) เราต้องสร้าง ID (tx_id) แบบทางการขึ้นมาใหม่, Insert โคลน Record เข้าไป, อัปเดตตารางไฟล์ให้ชี้ไปที่ ID ใหม่, แล้วถึงลบ Draft เก่าทิ้ง ทั้งหมดนี้ถูกแพ็ครวมไว้ใน Controller ชุดเดียว เพื่อป้องกันข้อมูลขยะค้างในระบบครับ"
+
+```javascript
+// backend/controllers/creditRequestController.js
+// ตัวอย่างการทำ Sequential Await เพื่อความต่อเนื่องของข้อมูล (Data Integrity)
+
+// 1. Insert New Record with Generated Official ID
+const insertResult = await db.runAsync(insertSql, [
+  newRealTxId, existing.customer_no, existing.status /*...omitted parameters*/
+]);
+
+// 2. Update DB Attachments Paths (Move Children to point to new official ID)
+await db.runAsync(
+  `UPDATE CreditRequestAttachments SET tx_id = ?, file_path = REPLACE(file_path, ?, ?) WHERE tx_id = ?`,
+  [newRealTxId, oldPathSegment, newPathSegment, oldTxId],
+);
+
+// 3. Delete Old Parent Record (Clean up the draft)
+await db.runAsync("DELETE FROM CreditRequests WHERE id = ?", [ oldRequestId ]);
+```
 
 ---
 
