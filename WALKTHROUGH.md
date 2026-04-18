@@ -7,17 +7,19 @@ This document is an in-depth technical walkthrough designed to present the syste
 ## 🎙️ Presentation Script: System Architecture Overview
 
 **[คำกล่าวเปิด / Intro (5 นาที)]**
-"สวัสดีครับอาจารย์ วันนี้ผมจะขอพรีเซนต์ Architecture และ Workflow หลักของระบบที่เราได้พัฒนาขึ้นมาครับ โดยระบบของเราออกแบบภายใต้คอนเซปต์ 'Separation of Concerns' แยกส่วน Frontend และ Backend ออกจากกันอย่างชัดเจนครับ"
+"Architecture และ Workflow หลักของระบบที่เราได้พัฒนาขึ้นมาครับ ระบบของเราออกแบบโดยแยกส่วน Frontend และ Backend ออกจากกันอย่างชัดเจนครับ"
 
 **[อธิบาย Tech Stack]**
-"สำหรับ Tech Stack ฝั่ง Frontend เราใช้ Vue.js 3 ร่วมกับ Vite และใช้ Pinia สำหรับจัดการ State Management ครับ ส่วนฝั่ง Backend เราใช้ Node.js รันด้วย Express ทำหน้าที่เป็น REST API และเชื่อมต่อกับ Database (SQLite/MSSQL) ครับ นอกจากนี้ยังมี Local Bridge Server ที่เขียนเชื่อมต่อผ่าน Server-Sent Events (SSE) เพื่อใช้ทำ Web Scraping ดึงข้อมูลจากภายนอกแบบ Asynchronous ครับ"
+"สำหรับ Tech Stack ฝั่ง Frontend เราใช้ Vue.js 3 ร่วมกับ Vite และใช้ Pinia สำหรับจัดการ State Management ครับ
+
+โดย **Vue.js** จะเป็น Framework หลักที่ใช้สร้างหน้าจอ UI แบบ Component-based ช่วยให้การจัดการหน้าเว็บมีความยืดหยุ่นและนำโค้ดกลับมาใช้ใหม่ได้ง่าย ส่วน **Vite** เป็น Build Tool ที่ช่วยให้เรารันและคอมไพล์โค้ดในระหว่างพัฒนาได้อย่างรวดเร็วครับ และ **Pinia** คือเครื่องมือสำหรับจัดการ State หรือข้อมูลส่วนกลางของแอปพลิเคชัน เพื่อให้แต่ละ Component สามารถแชร์ข้อมูลกันได้อย่างเป็นระบบครับ
+
+ส่วนฝั่ง Backend เราใช้ Node.js รันด้วย Express ทำหน้าที่เป็น REST API และเชื่อมต่อกับ Database (SQLite/MSSQL) ครับ นอกจากนี้ยังมี Local Bridge Server ที่เขียนเชื่อมต่อผ่าน Server-Sent Events (SSE) เพื่อใช้ทำ Web Scraping ดึงข้อมูลจากภายนอกแบบ Asynchronous ครับ"
 
 **[อธิบาย Design Patterns]**
-"Design Patterns หลักที่เรานำมาใช้มี 4 ส่วนครับ:
+"Design Patterns หลักที่เรานำมาใช้มี 2 ส่วนครับ:
 1. **Centralized State Management:** เราใช้ Pinia รวบรวมข้อมูลฟอร์มจากหลายๆ แท็บไว้ที่เดียว
-2. **Database Transactions (Atomicity):** การบันทึกข้อมูลที่มีความเกี่ยวเนื่องกันหลายตาราง เราบังคับใช้ Transaction เพื่อรับประกัน Data Integrity ครับ
-3. **Unified API Endpoints:** เราลดความซ้ำซ้อนโดยใช้ Endpoint เดียวกัน (`POST /`) ในการทำทั้ง Insert และ Update (Upsert) ครับ
-4. **Resilient Polling & Bridging:** สำหรับการดึงข้อมูลภายนอกที่ใช้เวลานาน เรามีระบบ Retry และ Fallback เพื่อไม่ให้ระบบหลักค้างครับ"
+2. **Database Transactions (Atomicity):** การบันทึกข้อมูลที่มีความเกี่ยวเนื่องกันหลายตาราง เราบังคับใช้ Transaction เพื่อรับประกันความถูกต้องสมบูรณ์และสอดคล้องกันของข้อมูล (Data Integrity) ครับ"
 
 ---
 
