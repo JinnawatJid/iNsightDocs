@@ -33,7 +33,67 @@ This document is an in-depth technical walkthrough designed to present the syste
 **[อธิบาย User Flow และการออกแบบ UI]**
 ในมุมมองของ User Journey ทันทีที่เข้ามาในหน้านี้ ผู้ใช้จะต้องค้นหาลูกค้าก่อนครับ ซึ่งในทางเทคนิค เมื่อผู้ใช้กดค้นหา ระบบจะเรียก API ไปดึงข้อมูล Master Data ของลูกค้ามา และ Mapping เข้าสู่ Pinia State (`store.customer`) ทันที เพื่อนำมา Auto-fill ลงในฟอร์ม ช่วยลดข้อผิดพลาดจากการพิมพ์มือครับ
 
+**[คลิกขยาย "View Source Code: Customer Search & Autofill"]**
+<details>
+<summary><b>View Source Code: Customer Search & Autofill</b></summary>
+
+```javascript
+// src/stores/creditRequest.js
+async searchCustomer(query) {
+  if (!query) return;
+  try {
+    // 1. Fetch from backend API
+    const results = await CustomerService.searchCustomers(query);
+    if (results && results.length > 0) {
+      const data = results[0];
+
+      // 2. Map data into the global Pinia state (this.customer)
+      this.customer = { ...data.customer };
+
+      // Auto-fill form fields explicitly
+      this.customer.store_address = data.customer.address;
+      this.customer.store_subdistrict = data.customer.subdistrict;
+      // ... mapping other fields to pre-fill the form automatically
+
+      this.hasSearched = true;
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+```
+</details>
+
 จากนั้นระบบจะสร้างฟอร์มให้กรอกข้อมูล โดยเราออกแบบ UI ให้เป็นแบบ Tabs (เช่น ข้อมูลทั่วไป, ที่อยู่, ข้อมูลทางการเงิน) ในเชิงโค้ด เราใช้ Vue Dynamic Component (`<component :is="currentTabComponent">`) ในการสลับหน้าจอ ทำให้หน้า UI ไม่รกและทำงานได้รวดเร็วครับ และในแต่ละ Tab ก็จะมีช่องสำหรับอัปโหลดเอกสารแนบไปด้วยครับ
+
+**[คลิกขยาย "View Source Code: Dynamic Vue Components"]**
+<details>
+<summary><b>View Source Code: Dynamic Vue Components</b></summary>
+
+```html
+<!-- src/components/credit/forms/ApplicationTabs.vue -->
+<template>
+  <div class="application-tabs">
+    <!-- Header Navigation for Tabs -->
+    <div class="tabs-header">
+      <div v-for="(tab, index) in tabs" :key="index"
+           :class="['tab-item', { active: currentTab === tab.id }]"
+           @click="handleTabClick(tab.id)">
+        {{ tab.label }}
+      </div>
+    </div>
+
+    <!-- Dynamic Form Body -->
+    <div class="tab-content">
+      <keep-alive>
+        <!-- Renders GeneralInfoTab, ResidenceTab, etc. based on state -->
+        <component :is="currentTabComponent" :readOnly="readOnly" />
+      </keep-alive>
+    </div>
+  </div>
+</template>
+```
+</details>
 
 **[อธิบายตรรกะและ Logic ภายใน]**
 ในเชิงเทคนิคเบื้องหลัง เราได้เขียน Logic ควบคุมไว้หลายจุดครับ เช่น การทำ Form Validation ดักจับข้อมูลที่ไม่ถูกต้อง, การเขียนเงื่อนไขเพื่อซ่อนหรือแสดงฟิลด์ต่างๆ ให้แปรผันตามประเภทลูกค้าแบบ Dynamic
@@ -45,6 +105,9 @@ This document is an in-depth technical walkthrough designed to present the syste
 **[เปิดรูป Sequence Diagram ด้านล่างให้ดู]**
 "และนี่คือวิธีการแก้ปัญหาของเราครับ จาก Sequence Diagram อาจารย์จะเห็นว่าเมื่อ User กรอกข้อมูลตาม Flow จนเสร็จสมบูรณ์ และกดปุ่ม Submit ตัว Vue Component จะไม่ยิง API ไปหา Database โดยตรงเลยครับ แต่จะเรียกฟังก์ชันผ่าน Pinia Store แทน"
 
+<details>
+<summary><b>View Source Code: Vue Component API Call Delegation</b></summary>
+
 ```javascript
 // src/views/CreateCreditRequest.vue
 const handleStartRequest = async () => {
@@ -54,11 +117,15 @@ const handleStartRequest = async () => {
   }
 };
 ```
+</details>
 
 "จากนั้นเราใช้ฟังก์ชันนี้เพื่อแพ็คข้อมูล JSON และ File Blobs รวมกันเป็นก้อน `FormData` เดียว แล้วส่งไปที่ Backend ทีเดียวครับ"
 
 **[คลิกขยาย "View Source Code: Frontend Payload Construction"]**
 "อาจารย์ลองดูโค้ดตรงนี้ครับ เราใช้ `FormData.append()` เพื่อรวมข้อมูลทุกอย่าง รวมถึงไฟล์และการตั้งค่าต่างๆ (Snapshot) เข้าด้วยกันครับ"
+
+<details>
+<summary><b>View Source Code: Frontend Payload Construction</b></summary>
 
 ```javascript
 // src/stores/creditRequest.js
@@ -79,9 +146,13 @@ async saveTransactionData() {
   }
 }
 ```
+</details>
 
 **[คลิกขยาย "View Source Code: Sequential Data Processing"]**
 "และนี่คือโค้ดฝั่ง Backend ครับ เมื่อข้อมูลมาถึง เราให้ความสำคัญกับ Atomicity ของข้อมูล แม้ว่าเราจะไม่ได้เขียน SQL TRANSACTION ครอบโดยตรง แต่เราออกแบบลอจิกเป็น Sequential Await ให้ทำงานต่อเนื่องกันอย่างเข้มงวด ตัวอย่างเช่นตอนที่เราจะเลื่อนสถานะจาก Draft เป็นคำขอจริง (Opened) เราต้องสร้าง ID (tx_id) แบบทางการขึ้นมาใหม่, Insert โคลน Record เข้าไป, อัปเดตตารางไฟล์ให้ชี้ไปที่ ID ใหม่, แล้วถึงลบ Draft เก่าทิ้ง ทั้งหมดนี้ถูกแพ็ครวมไว้ใน Controller ชุดเดียว เพื่อป้องกันข้อมูลขยะค้างในระบบครับ"
+
+<details>
+<summary><b>View Source Code: Sequential Data Processing</b></summary>
 
 ```javascript
 // backend/controllers/creditRequestController.js
@@ -101,6 +172,7 @@ await db.runAsync(
 // 3. Delete Old Parent Record (Clean up the draft)
 await db.runAsync("DELETE FROM CreditRequests WHERE id = ?", [ oldRequestId ]);
 ```
+</details>
 
 ---
 
@@ -130,100 +202,6 @@ sequenceDiagram
         PiniaStore-->>VueComponent: Show Error Toast
     end
 ```
-
-### Data Payload Construction (Frontend)
-The frontend constructs a `FormData` object capable of holding both textual data and binary file data.
-
-<details>
-<summary><b>View Source Code: Frontend Payload Construction</b></summary>
-
-```javascript
-// src/stores/creditRequest.js
-async saveTransactionData() {
-  if (!this.customer || !this.customer.id) return;
-  try {
-    const formData = new FormData();
-    formData.append("customer_no", this.customer.id);
-    formData.append("customer_name", this.customer.name);
-    formData.append("request_amount", this.transactionData.amount || "");
-    formData.append("request_reason", this.transactionData.reason || "");
-    formData.append("request_credit_term", this.transactionData.creditTerm || "");
-    formData.append("term_gs", this.transactionData.termGS || "");
-    formData.append("term_ae", this.transactionData.termAE || "");
-    formData.append("term_yc", this.transactionData.termYC || "");
-    formData.append("request_type", this.transactionData.requestType || "เครดิตใหม่");
-
-    formData.append("snapshot_data", JSON.stringify(this.getSnapshot()));
-
-    formData.append("is_submit", "true");
-
-    if (this.requestId) {
-      formData.append("tx_id", this.requestId);
-    }
-
-    await CreditRequestService.createCreditRequest(formData);
-  } catch (e) {
-    console.error("Failed to save transaction data", e);
-  }
-}
-```
-</details>
-
-### Error Handling & Atomicity (Backend)
-In the backend (`creditRequestController.js`), saving a request and its associated files must be handled carefully. If processing files or inserting attachments fails after the main `CreditRequests` row is inserted or updated, the system relies on the database's foreign key constraints and sequential error catching to prevent orphaned files. When finalizing a draft, a complex clone-and-relink pattern is utilized.
-
-<details>
-<summary><b>View Source Code: Database Transaction (Finalize Draft)</b></summary>
-
-```javascript
-// backend/controllers/creditRequestController.js
-
-// 2. Clone Parent Record with New ID (to satisfy FK constraints in MSSQL)
-// We insert a new record, move children, then delete the old record.
-const insertSql = `INSERT INTO CreditRequests (
-      tx_id, customer_no, customer_name, status,
-      request_amount, request_reason, request_credit_term,
-      term_gs, term_ae, term_yc, request_type, snapshot_data, created_at, created_by, updated_by
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-const insertResult = await db.runAsync(insertSql, [
-  newRealTxId,
-  existing.customer_no,
-  existing.customer_name,
-  existing.status,
-  // ... (fields omitted for brevity)
-  existing.created_at,
-  existing.created_by || "Unknown",
-  req.body.uploaded_by || req.user?.username || "Unknown",
-]);
-
-const newRequestId = insertResult.id;
-
-// 3. Update DB Attachments Paths (Move Children)
-// Path format: customer_no/TXID/file.ext
-const cleanOldTxIdUpdate = oldTxId.replace(/\//g, "_");
-const cleanNewTxIdUpdate = newRealTxId.replace(/\//g, "_");
-const oldPathSegment = `${cleanOldTxIdUpdate}/`;
-const newPathSegment = `${cleanNewTxIdUpdate}/`;
-
-await db.runAsync(
-  `UPDATE CreditRequestAttachments SET tx_id = ?, file_path = REPLACE(file_path, ?, ?) WHERE tx_id = ?`,
-  [newRealTxId, oldPathSegment, newPathSegment, oldTxId],
-);
-
-// 4. Update Comments (Move Children)
-await db.runAsync(
-  `UPDATE RequestComments SET tx_id = ? WHERE tx_id = ?`,
-  [newRealTxId, oldTxId],
-);
-
-// 5. Delete Old Parent Record
-await db.runAsync("DELETE FROM CreditRequests WHERE id = ?", [
-  oldRequestId,
-]);
-```
-</details>
-
 
 ---
 
