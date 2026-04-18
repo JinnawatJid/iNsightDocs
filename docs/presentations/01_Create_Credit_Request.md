@@ -16,6 +16,47 @@ This document is an in-depth technical walkthrough designed to present the syste
 
 ส่วนฝั่ง Backend เราใช้ Node.js รันด้วย Express ทำหน้าที่เป็น REST API และเชื่อมต่อกับ Database (SQLite/MSSQL) ครับ นอกจากนี้ยังมี Local Bridge Server ที่เขียนเชื่อมต่อผ่าน Server-Sent Events (SSE) เพื่อใช้ทำ Web Scraping ดึงข้อมูลจากภายนอกแบบ Asynchronous ครับ"
 
+**[เปิดรูป System Architecture Diagram ด้านล่าง]**
+"นี่คือภาพรวม High-Level Architecture ของระบบครับ (ชี้ที่แผนภาพ) อาจารย์จะเห็นว่าผู้ใช้เชื่อมต่อผ่าน Frontend เข้ามา ส่วนการดึงข้อมูล DBD จะไม่ผ่าน Backend หลักเพื่อลดคอขวด แต่จะคุยกับ Bridge Server ส่วนตัวเพื่อสกัดข้อมูลแทนครับ"
+
+```mermaid
+flowchart LR
+    %% Entities
+    User((User))
+
+    %% Containers
+    subgraph Frontend [Frontend: Vue.js 3]
+        UI[Vue Components]
+        Store[(Pinia State)]
+        UI <--> Store
+    end
+
+    subgraph Backend [Backend: Node.js / Express]
+        API[REST API Routes]
+        Controllers[Logic / Controllers]
+        API <--> Controllers
+    end
+
+    subgraph DatabaseLayer [Databases]
+        DB[(SQLite / MSSQL)]
+        JSONFiles[(Scorecard JSON)]
+    end
+
+    subgraph ExternalIntegration [External Scraping Bridge]
+        PythonBridge[Local Bridge Server :4343]
+        DBD[(DBD Website)]
+    end
+
+    %% Connections
+    User -- "HTTPS" --> Frontend
+    UI -- "HTTPS (Axios)" --> API
+    Controllers -- "SQL Queries" --> DB
+    Controllers -- "Read/Write" --> JSONFiles
+
+    UI -- "Server-Sent Events (SSE)" --> PythonBridge
+    PythonBridge -- "Web Scraping" --> DBD
+```
+
 **[อธิบาย Design Patterns]**
 "Design Patterns หลักที่เรานำมาใช้มี 2 ส่วนครับ:
 1. **Centralized State Management:** เราใช้ Pinia รวบรวมข้อมูลฟอร์มจากหลายๆ แท็บไว้ที่เดียว
