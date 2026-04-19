@@ -48,3 +48,10 @@ Specific request types trigger dynamic UI and validation behavior in the `Credit
 
 ## 5. Credit Increase Summaries
 - **Confirmation Modal Logic:** For "Credit Increase" (เครดิตเพิ่ม) requests, when the user submits or approves the form, a Change Summary confirmation modal is presented. The "New Limit" (วงเงินใหม่ที่ต้องการ) displayed in this modal must be calculated as the sum of the customer's current credit limit (`store.customer.current_credit_limit`) and the explicitly requested additional amount (`store.transactionData.amount`). The modal must not display only the requested amount, as that would misrepresent the final total credit line.
+
+## 6. Credit History Display
+- **Sidebar Presentation:** When a customer has previous credit history, their past requests are displayed in the `CreditHistorySidebar.vue`.
+- **UI Guidelines:**
+  - The **Transaction ID** (`txId`) serves as the primary identifier for each history item and must be displayed prominently (e.g., bolded).
+  - The **Requested Credit Limit** (`requestAmount`) must be displayed immediately below the Transaction ID to provide quick financial context. This value must be properly formatted as currency (e.g., `300,000.00 บาท`).
+- **Data Mapping:** The backend `/api/customers/search` endpoint (`enrichCustomerData`) handles the mapping of historical data from the `CreditRequests` table, specifically mapping `h.tx_id` to `txId` and `h.request_amount` to `requestAmount` to avoid ambiguous variable names like `amount`.

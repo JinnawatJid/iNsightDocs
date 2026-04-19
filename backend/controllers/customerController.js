@@ -424,7 +424,8 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
         history = rows.map(h => ({
             id: h.id,
             date: new Date(h.created_at).toLocaleDateString('th-TH'),
-            amount: h.tx_id,
+            txId: h.tx_id,
+            requestAmount: h.request_amount,
             status: h.status,
             requestType: h.request_type || 'เครดิตใหม่'
         }));
