@@ -430,7 +430,7 @@ export default {
           this.isLoadingWeights = true;
           try {
               const modelType = this.creditScore?.modelType || 'new';
-              const axios = (await import('axios')).default;
+              const axios = (await import('@/utils/axios')).default;
               const response = await axios.get(`/api/scorecard/${modelType}`);
               if (response.data && response.data.components) {
                   const weightsObj = {};
