@@ -967,8 +967,8 @@ h3 {
 .modal-content {
     background: white;
     border-radius: 8px;
-    width: 450px;
-    max-width: 90%;
+    width: 700px;
+    max-width: 95%;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
