@@ -128,6 +128,27 @@ To trigger the **Existing Customer Model**, include the following parameters in 
 
 If `modelType` is omitted or set to `"new"`, the system defaults to the Standard New Customer model.
 
+### Runtime Override Payload (Manual Review Modal)
+
+In addition to static JSON configuration, the scoring API also supports runtime overrides from the reviewer modal.
+
+```json
+{
+  "custom_weights": "{...}",
+  "max_score_factors": "[\"capacity_check\", \"turnover_speed\", \"purchase_trend\"]"
+}
+```
+
+Rules:
+- `custom_weights` must preserve the same component/factor structure as the scorecard config.
+- Total overridden weight must sum to exactly `200` (tolerance `0.01` for floating point variance).
+- If weight sum is invalid, backend rejects `custom_weights` and falls back to default config weights.
+- `max_score_factors` is optional and contains factor keys to force at the highest rule score during evaluation.
+
+UI behavior:
+- The reviewer modal validates total weight before recalculation/save.
+- `Reset all weights` restores model default weights loaded from `/api/scorecard/:modelType`.
+
 ---
 
 ## Verification
@@ -136,6 +157,8 @@ After modifying any configuration:
 1.  Run the verification script (if available).
 2.  Test with a known customer profile.
 3.  Verify that the **"Matched Rule"** in the report output aligns with your changes.
+4.  If runtime overrides are used, verify payload fields (`custom_weights`, `max_score_factors`) are present in the analyze request.
+5.  Confirm forced factors report a forced-max matched rule and produce expected score impact.
 
 ### Calculation Formula (Factor Level)
 $$ \text{Final Score} = \text{Rule Score} \times \left( \frac{\text{Weight}}{2.0} \right) $$

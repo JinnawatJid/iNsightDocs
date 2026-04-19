@@ -5,6 +5,25 @@ The credit scoring system uses a **Policy-Based Strategy Pattern** (Decision Eng
 
 This architecture separates the "Controller" (which handles HTTP requests and data gathering) from the "Scoring Logic" (which calculates the grade and limit).
 
+## Runtime Override Flow
+
+For manual review recalculation, scoring can be overridden at runtime without changing scorecard JSON files.
+
+Flow:
+1. Frontend reviewer modal sends `custom_weights` and optional `max_score_factors` with analyze/recalculate request.
+2. `financialController.js` parses and validates these fields, then injects them into `scoringContext`.
+3. `ScoringEngine.js` passes override options into the selected strategy (`new` or `existing`).
+4. Strategy constructs `ScorecardEvaluator` with:
+  - custom weights
+  - forced-max factor set
+5. `ScorecardEvaluator` computes factor score using normal rule matching, then applies forced-max when configured.
+
+Behavior details:
+- `custom_weights` only changes factor weight (`weight`) used in formula.
+- `max_score_factors` forces selected factors to use the maximum rule score for that factor.
+- Strategy-level guardrails that normally set score to `0` for edge cases (for example invalid term or no purchases) are bypassed for explicitly forced factors.
+- Override behavior is request-scoped; default configuration files remain unchanged.
+
 ## Directory Structure
 ```text
 backend/services/scoring/
