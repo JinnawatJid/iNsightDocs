@@ -49,6 +49,7 @@
              :canRequest="store.creditScore?.can_request_credit"
              :badges="store.creditScore?.badges"
              :suggestions="store.creditScore?.suggestions"
+             @recalculate="handleRecalculateScore"
            />
         </div>
       </div>
@@ -80,6 +81,102 @@ const newComment = ref('');
 watch(() => store.requestId, () => {
     newComment.value = '';
 });
+
+const handleRecalculateScore = async (payload) => {
+    // If we have a request ID, we can trigger a recalculate by building a form data payload
+    if (!store.requestId || !store.customer?.id) return;
+
+    // Calculate total guarantee sum from snapshot data accurately
+    let totalGuaranteeSum = 0;
+    const tData = store.transactionData || {};
+    const generalGuaranteeKeys = ['bankGuaranteeDetails', 'letterGuaranteeDetails', 'cashDepositDetails'];
+    generalGuaranteeKeys.forEach(key => {
+        const detailsMap = tData[key] || {};
+        Object.values(detailsMap).forEach(detail => {
+            if (detail.amount) {
+                const num = parseFloat(String(detail.amount).replace(/,/g, ''));
+                if (!isNaN(num)) totalGuaranteeSum += num;
+            }
+        });
+    });
+    if (tData.projectData && Array.isArray(tData.projectData)) {
+        tData.projectData.forEach(project => {
+            const projectGuaranteeKeys = ['projectBankGuaranteeDetails', 'projectCashDepositDetails'];
+            projectGuaranteeKeys.forEach(key => {
+                const detailsMap = project[key] || {};
+                Object.values(detailsMap).forEach(detail => {
+                    if (detail.amount) {
+                        const num = parseFloat(String(detail.amount).replace(/,/g, ''));
+                        if (!isNaN(num)) totalGuaranteeSum += num;
+                    }
+                });
+            });
+        });
+    }
+
+    // Calculate max credit term from snapshot data
+    const t1 = parseInt(tData.termGS || 0);
+    const t2 = parseInt(tData.termAE || 0);
+    const t3 = parseInt(tData.termYC || 0);
+    const requestTerm = tData.creditTerm || Math.max(t1, t2, t3) || '30';
+
+    const cleanCapital = tData.registeredCapital ? String(tData.registeredCapital).replace(/,/g, '') : '0';
+
+    const formData = new FormData();
+    formData.append('customer_no', store.customer.id);
+    formData.append('use_local', 'true');
+    formData.append('model_type', tData.modelType || 'new');
+    formData.append('registered_capital', cleanCapital);
+    formData.append('request_amount', String(tData.amount || 0).replace(/,/g, ''));
+    formData.append('request_credit_term', requestTerm);
+    formData.append('customer_duration', tData.customerDuration || '0');
+    formData.append('years_in_business', store.customer.years_in_business || '0');
+    formData.append('residence_ownership', store.customer.residence_ownership || '');
+    formData.append('residence_ownership_other', store.customer.residence_ownership_other || '');
+    formData.append('wadl', tData.wadl || 0);
+    formData.append('total_guarantee_amount', totalGuaranteeSum);
+
+    if (payload.force_full_purchase_score) {
+        formData.append('force_full_purchase_score', 'true');
+    }
+
+    if (payload.custom_weights) {
+        formData.append('custom_weights', payload.custom_weights);
+    }
+
+    if (payload.max_score_factors) {
+        formData.append('max_score_factors', payload.max_score_factors);
+    }
+
+    try {
+        const axios = (await import('axios')).default;
+        const response = await axios.post('/api/financials/analyze', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        if (response.data.success) {
+            // If it's just a preview, return the score without saving
+            if (payload.preview) {
+                if (payload.callback) {
+                    payload.callback(response.data.scoringResult);
+                }
+                return;
+            }
+
+            store.updateFinancialAnalysis(response.data);
+            if (response.data.scoringResult) {
+                store.creditScore = {
+                    ...store.creditScore,
+                    ...response.data.scoringResult
+                };
+            }
+            await store.saveTransactionData();
+        }
+    } catch (error) {
+        console.error("Recalculation error:", error);
+        throw error;
+    }
+};
 
 const isReadOnly = computed(() => {
     // Pending requests are read-only for the Application Tabs (customer data),

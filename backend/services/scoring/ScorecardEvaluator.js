@@ -3,15 +3,23 @@ const fs = require('fs');
 const path = require('path');
 
 class ScorecardEvaluator {
-    constructor(configFileName = 'credit_scorecard_v1.json') {
+    constructor(configFileName = 'credit_scorecard_v1.json', customWeights = null, options = {}) {
         const configPath = path.resolve(__dirname, `../../config/${configFileName}`);
         try {
             const raw = fs.readFileSync(configPath, 'utf8');
             this.config = JSON.parse(raw);
+            this.customWeights = customWeights;
+            this.maxScoreFactors = new Set(Array.isArray(options.maxScoreFactors) ? options.maxScoreFactors : []);
         } catch (error) {
             logger.error(`[ScorecardEvaluator] Error loading config (${configFileName}): ${error.message}`);
             this.config = null;
+            this.customWeights = null;
+            this.maxScoreFactors = new Set();
         }
+    }
+
+    isForcedMax(componentKey, factorKey) {
+        return this.maxScoreFactors.has(factorKey) || this.maxScoreFactors.has(`${componentKey}.${factorKey}`);
     }
 
     /**
@@ -46,17 +54,40 @@ class ScorecardEvaluator {
              matchedRule = factor.rules.find(r => r.default) || { score: 0, label: "No Match" };
         }
 
+        if (this.isForcedMax(componentKey, factorKey)) {
+            const maxRuleScore = factor.rules.reduce((max, rule) => {
+                if (typeof rule.score !== 'number') return max;
+                return rule.score > max ? rule.score : max;
+            }, 0);
+
+            matchedRule = {
+                ...matchedRule,
+                score: maxRuleScore,
+                label: `Forced Max Score (${maxRuleScore})`
+            };
+        }
+
         // Calculate Final Score
         // Formula: Rule Score (0.25-2.0) * (Weight / 2)
         // Example: Years > 10 -> Score 2.0 * (14.42 / 2) = 14.42
-        const finalScore = matchedRule.score * (factor.weight / 2.0);
+        let appliedWeight = factor.weight;
+
+        // Apply custom weight if provided
+        if (this.customWeights && this.customWeights[componentKey] && this.customWeights[componentKey].factors) {
+            const customFactor = this.customWeights[componentKey].factors.find(f => f.key === factorKey);
+            if (customFactor && typeof customFactor.weight === 'number') {
+                appliedWeight = customFactor.weight;
+            }
+        }
+
+        const finalScore = matchedRule.score * (appliedWeight / 2.0);
 
         return {
             key: factorKey,
             label: factor.label,
             value: value,
             displayValue: typeof value === 'number' ? value.toFixed(2) : value,
-            weight: factor.weight,
+            weight: appliedWeight,
             score: finalScore,      // The weighted score added to total
             rawScore: matchedRule.score, // The multiplier (0.25-2.0)
             matchedRule: matchedRule.label

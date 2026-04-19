@@ -3,9 +3,9 @@ const ScorecardEvaluator = require('../ScorecardEvaluator');
 
 class ExistingCustomerScorecard extends BaseScorecard {
 
-    constructor() {
+    constructor(customWeights = null, options = {}) {
         super();
-        this.evaluator = new ScorecardEvaluator('credit_scorecard_existing_v1.json');
+        this.evaluator = new ScorecardEvaluator('credit_scorecard_existing_v1.json', customWeights, options);
     }
 
     calculateScore(context) {
@@ -300,10 +300,11 @@ class ExistingCustomerScorecard extends BaseScorecard {
         const turnoverSpeed = numerator / reqAmt;
         let turnoverRes = this.evaluator.evaluate('c3', 'turnover_speed', turnoverSpeed);
 
-        if (!isTermValid) {
+        if (!isTermValid && !this.evaluator.isForcedMax('c3', 'turnover_speed')) {
             turnoverRes.score = 0;
             turnoverRes.matchedRule = "Invalid Term";
         }
+
 
         score += turnoverRes.score;
         items.push(turnoverRes);
@@ -319,12 +320,13 @@ class ExistingCustomerScorecard extends BaseScorecard {
         // 4. Purchase Trend (Slope)
         // Use Slope6 if available, else Slope (3m)
         const slope = use6Months ? (accumData.Slope6 || 0) : (accumData.Slope || 0);
-        const trendRes = this.evaluator.evaluate('c3', 'purchase_trend', slope);
+        let trendRes = this.evaluator.evaluate('c3', 'purchase_trend', slope);
 
-        if (totalPurchase === 0) {
+        if (totalPurchase === 0 && !this.evaluator.isForcedMax('c3', 'purchase_trend')) {
             trendRes.score = 0;
             trendRes.matchedRule = "No Purchases";
         }
+
 
         score += trendRes.score;
         items.push(trendRes);

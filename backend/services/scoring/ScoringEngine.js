@@ -9,14 +9,16 @@ class ScoringEngine {
      * @param {Object} context - The scoring context
      */
     static getStrategy(context) {
+        const customWeights = context.customWeights || null;
+        const maxScoreFactors = context.maxScoreFactors || [];
         if (context.modelType === 'existing') {
             logger.info(`[ScoringEngine] Selected: Existing Customer Scorecard`);
-            return new ExistingCustomerScorecard();
+            return new ExistingCustomerScorecard(customWeights, { maxScoreFactors });
         }
 
         // Default to New Customer Model
         logger.info(`[ScoringEngine] Selected: New Customer Scorecard (Standard)`);
-        return new NewCustomerScorecard();
+        return new NewCustomerScorecard(customWeights, { maxScoreFactors });
     }
 
     /**

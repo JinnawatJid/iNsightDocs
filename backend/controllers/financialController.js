@@ -515,8 +515,52 @@ exports.analyzeFinancials = async (req, res) => {
       wadl, // Manual override for WADL
       tax_id,
       fetch_purchase_by,
-      total_guarantee_amount
+      total_guarantee_amount,
+      force_full_purchase_score,
+            custom_weights,
+            max_score_factors
     } = req.body;
+
+    // Parse custom_weights if provided
+    let parsedCustomWeights = null;
+if (custom_weights) {
+        try {
+            parsedCustomWeights = JSON.parse(custom_weights);
+
+            // Validate that the custom weights strictly sum to 200
+            let totalWeight = 0;
+            for (const compKey in parsedCustomWeights) {
+                const comp = parsedCustomWeights[compKey];
+                if (comp && comp.factors && Array.isArray(comp.factors)) {
+                    for (const factor of comp.factors) {
+                        if (typeof factor.weight === 'number') {
+                            totalWeight += factor.weight;
+                        }
+                    }
+                }
+            }
+
+            // Allow a tiny floating point variance
+            if (Math.abs(totalWeight - 200) > 0.01) {
+                logger.warn(`Custom weights rejected: sum equals ${totalWeight}, expected 200.`);
+                parsedCustomWeights = null; // Reject the payload
+            }
+        } catch (e) {
+            logger.warn(`Failed to parse custom_weights: ${e.message}`);
+        }
+    }
+
+    let parsedMaxScoreFactors = [];
+    if (max_score_factors) {
+        try {
+            const parsed = JSON.parse(max_score_factors);
+            if (Array.isArray(parsed)) {
+                parsedMaxScoreFactors = parsed.filter((key) => typeof key === 'string');
+            }
+        } catch (e) {
+            logger.warn(`Failed to parse max_score_factors: ${e.message}`);
+        }
+    }
 
     // --- LOCAL FILE HANDLING ---
     let localRegisteredCapital = 0;
@@ -885,7 +929,10 @@ exports.analyzeFinancials = async (req, res) => {
         limitExponent: limit_exponent ? parseFloat(limit_exponent) : undefined,
         // Priority: Manual Input > API Result > 0 (Safe check)
         wadl: wadl ? parseFloat(wadl) : (typeof wadlDataResult !== 'undefined' && wadlDataResult ? wadlDataResult.score : 0),
-        totalGuaranteeAmount: total_guarantee_amount ? parseFloat(total_guarantee_amount) : 0
+        totalGuaranteeAmount: total_guarantee_amount ? parseFloat(total_guarantee_amount) : 0,
+        forceFullPurchaseScore: force_full_purchase_score === 'true' || force_full_purchase_score === true,
+        customWeights: parsedCustomWeights,
+        maxScoreFactors: parsedMaxScoreFactors
     };
 
     // Execute Scoring via Engine

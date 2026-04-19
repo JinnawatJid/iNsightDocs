@@ -3,7 +3,12 @@
 
     <!-- NEW: Credit Score Section -->
     <div v-if="creditScore && creditScore.totalScore !== undefined && !shouldHideValues" class="score-section">
-        <h3>ผลคะแนนเครดิต</h3>
+        <div class="score-header-row">
+            <h3 class="flex-1 m-0">ผลคะแนนเครดิต</h3>
+            <button v-if="canOverrideScore" class="btn-edit-score" @click="openOverrideModal" title="ปรับปรุงผลลัพธ์การประเมิน">
+                ⚙️ ปรับแก้
+            </button>
+        </div>
 
         <div class="score-display">
             <div class="score-circle" :class="getGradeClass(creditScore.grade)">
@@ -170,6 +175,93 @@
         </li>
       </ul>
     </div>
+
+    <!-- Override Modal -->
+    <div v-if="showOverrideModal" class="modal-overlay" @click.self="closeOverrideModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>ปรับปรุงผลลัพธ์การประเมิน</h3>
+          <button class="close-btn" @click="closeOverrideModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="custom-weights-container">
+            <div class="validation-banner" :class="{ 'valid': isWeightsValid, 'invalid': !isWeightsValid }">
+                <span>ผลรวมน้ำหนักทั้งหมด:</span>
+                <span class="total-weight-val">{{ currentTotalWeight.toFixed(2) }} / 200.00</span>
+                <span v-if="!isWeightsValid" class="validation-warning">⚠️ ผลรวมต้องเท่ากับ 200 พอดี</span>
+              <button type="button" class="btn-reset-all-weights" @click="resetAllWeightsToDefault">
+                รีเซ็ตน้ำหนักทั้งหมด
+              </button>
+            </div>
+
+            <div v-if="isLoadingWeights" class="loading-weights">
+                กำลังโหลดข้อมูลโมเดล...
+            </div>
+
+            <div v-else-if="!isLoadingWeights" class="weight-components-list">
+                <div v-for="(comp, compKey) in customWeights" :key="compKey" class="weight-component">
+                    <h5 class="comp-title">{{ comp.name || compKey }}</h5>
+                    <div class="factor-grid">
+                        <div v-for="factor in comp.factors" :key="factor.key" class="factor-row">
+                            <div class="factor-info">
+                                <span class="factor-label">{{ factor.label }}</span>
+                                <span class="factor-key">{{ factor.key }}</span>
+                            <label v-if="isMaxTargetFactor(factor.key)" class="force-max-toggle">
+                              <input
+                                type="checkbox"
+                                :checked="isFactorForcedMax(factor.key)"
+                                @change="toggleFactorMax(factor.key, $event)"
+                              />
+                              <span>ให้คะแนนเต็มสำหรับปัจจัยนี้</span>
+                            </label>
+                            </div>
+                            <div class="factor-input">
+                                <label>น้ำหนัก:</label>
+                                <input type="number" step="0.01" v-model.number="factor.weight" class="weight-input-field" @input="debouncePreview" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </div>
+
+          <!-- Preview Section -->
+          <div class="preview-section">
+              <div v-if="isPreviewLoading" class="preview-loading">
+                  กำลังคำนวณผลลัพธ์...
+              </div>
+              <div v-else-if="previewScore" class="preview-results">
+                  <h4>เปรียบเทียบผลลัพธ์</h4>
+                  <div class="preview-row">
+                      <span class="preview-label">คะแนนเครดิต:</span>
+                      <span class="preview-old">{{ creditScore?.totalScore || '-' }}</span>
+                      <span class="preview-arrow">➔</span>
+                      <span class="preview-new">{{ previewScore.totalScore }}</span>
+                  </div>
+                  <div class="preview-row">
+                      <span class="preview-label">เกรด:</span>
+                      <span class="preview-old" :class="getGradeClass(creditScore?.grade)">เกรด {{ creditScore?.grade || '-' }}</span>
+                      <span class="preview-arrow">➔</span>
+                      <span class="preview-new" :class="getGradeClass(previewScore.grade)">เกรด {{ previewScore.grade }}</span>
+                  </div>
+                  <div class="preview-row">
+                      <span class="preview-label">วงเงินแนะนำ:</span>
+                      <span class="preview-old">{{ formatNumber(creditScore?.recommendedLimit) }} บาท</span>
+                      <span class="preview-arrow">➔</span>
+                      <span class="preview-new highlight-limit">{{ formatNumber(previewScore.recommendedLimit) }} บาท</span>
+                  </div>
+              </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="closeOverrideModal">ยกเลิก</button>
+          <button class="btn-save" @click="saveOverride" :disabled="isRecalculating || !isWeightsValid">
+            {{ isRecalculating ? 'กำลังคำนวณ...' : 'คำนวณใหม่และบันทึก' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -187,7 +279,17 @@ export default {
       iconCheckCircle,
       iconShoppingCart,
       showMonthlyDetails: false,
-      showAllCategories: false
+      showAllCategories: false,
+      showOverrideModal: false,
+      enableCustomWeights: false,
+      isRecalculating: false,
+      isPreviewLoading: false,
+      previewScore: null,
+      customWeights: {},
+      defaultWeights: {},
+      maxScoreFactorKeys: [],
+      previewTimeout: null,
+      isLoadingWeights: false
     };
   },
   props: {
@@ -231,6 +333,24 @@ export default {
       };
 
       return [...this.suggestions].sort((a, b) => getWeight(a) - getWeight(b));
+    },
+    currentTotalWeight() {
+      if (!this.customWeights) return 0;
+
+      let total = 0;
+      Object.values(this.customWeights).forEach((comp) => {
+        if (comp && comp.factors) {
+          comp.factors.forEach((factor) => {
+            total += parseFloat(factor.weight) || 0;
+          });
+        }
+      });
+
+      return total;
+    },
+    isWeightsValid() {
+      // UI requirement: total must be exactly 200.
+      return Math.abs(this.currentTotalWeight - 200) < 0.01;
     }
   },
   setup() {
@@ -242,9 +362,15 @@ export default {
           return authStore.hideCreditScoreEnabled && authStore.isInitiator && store.requestStatus !== 'Approved';
       });
 
+      const canOverrideScore = computed(() => {
+          return authStore.isFinanceOfficer || authStore.isFinanceManager || authStore.isCreditCommittee || authStore.isDocumentReviewer;
+      });
+
       return {
+          store,
           creditScore,
-          shouldHideValues
+          shouldHideValues,
+          canOverrideScore
       };
   },
   methods: {
@@ -295,6 +421,146 @@ export default {
           if (grade === 'A') return 'grade-a';
           if (grade === 'B') return 'grade-b';
           return 'grade-c';
+      },
+      async fetchPreviewScore() {
+          if (!this.isWeightsValid) return;
+          this.isPreviewLoading = true;
+          try {
+              await new Promise(resolve => {
+                  const payload = {
+                      preview: true,
+                      callback: (result) => {
+                          this.previewScore = result;
+                          resolve();
+                      }
+                  };
+                  if (this.enableCustomWeights && this.isWeightsValid) {
+                      payload.custom_weights = JSON.stringify(this.customWeights);
+                  }
+                    if (this.maxScoreFactorKeys.length > 0) {
+                      payload.max_score_factors = JSON.stringify(this.maxScoreFactorKeys);
+                    }
+                  this.$emit('recalculate', payload);
+              });
+          } catch (e) {
+              console.error("Failed to fetch preview score", e);
+          } finally {
+              this.isPreviewLoading = false;
+          }
+      },
+      async openOverrideModal() {
+          this.showOverrideModal = true;
+          this.enableCustomWeights = true;
+
+          const savedMaxFactors = this.store.transactionData?.max_score_factors;
+          this.maxScoreFactorKeys = Array.isArray(savedMaxFactors)
+            ? JSON.parse(JSON.stringify(savedMaxFactors))
+            : [];
+
+          await this.loadDefaultWeights({ applyToCustom: false });
+
+          if (this.store.transactionData?.custom_weights) {
+              this.customWeights = JSON.parse(JSON.stringify(this.store.transactionData.custom_weights));
+          } else {
+            this.customWeights = this.cloneWeights(this.defaultWeights);
+          }
+
+          this.fetchPreviewScore();
+      },
+        async loadDefaultWeights(options = {}) {
+          const { applyToCustom = true } = options;
+          this.isLoadingWeights = true;
+          try {
+              const modelType = this.creditScore?.modelType || 'new';
+              const axios = (await import('@/utils/axios')).default;
+              const response = await axios.get(`/api/scorecard/${modelType}`);
+              if (response.data && response.data.components) {
+                  const weightsObj = {};
+                  Object.entries(response.data.components).forEach(([compKey, compVal]) => {
+                      weightsObj[compKey] = {
+                          name: compVal.name,
+                          factors: compVal.factors.map(f => ({
+                              key: f.key,
+                              label: f.label,
+                              weight: f.weight
+                          }))
+                      };
+                  });
+                          this.defaultWeights = weightsObj;
+                          if (applyToCustom) {
+                            this.customWeights = this.cloneWeights(weightsObj);
+                          }
+              }
+          } catch (e) {
+              console.error("Failed to load default weights:", e);
+          } finally {
+              this.isLoadingWeights = false;
+          }
+      },
+                    cloneWeights(weights) {
+                      return JSON.parse(JSON.stringify(weights || {}));
+                    },
+                    resetAllWeightsToDefault() {
+                      if (!this.defaultWeights || Object.keys(this.defaultWeights).length === 0) return;
+
+                      this.customWeights = this.cloneWeights(this.defaultWeights);
+                      this.debouncePreview();
+                    },
+      debouncePreview() {
+          if (this.previewTimeout) clearTimeout(this.previewTimeout);
+          this.previewTimeout = setTimeout(() => {
+              if (this.isWeightsValid) {
+                  this.fetchPreviewScore();
+              }
+          }, 500);
+      },
+        isMaxTargetFactor(factorKey) {
+          return ['capacity_check', 'turnover_speed', 'purchase_trend'].includes(factorKey);
+        },
+        isFactorForcedMax(factorKey) {
+          return this.maxScoreFactorKeys.includes(factorKey);
+        },
+        toggleFactorMax(factorKey, event) {
+          const checked = event?.target?.checked === true;
+          if (checked) {
+            if (!this.maxScoreFactorKeys.includes(factorKey)) {
+              this.maxScoreFactorKeys = [...this.maxScoreFactorKeys, factorKey];
+            }
+          } else {
+            this.maxScoreFactorKeys = this.maxScoreFactorKeys.filter(key => key !== factorKey);
+          }
+          this.debouncePreview();
+        },
+      closeOverrideModal() {
+          this.showOverrideModal = false;
+      },
+      async saveOverride() {
+          this.isRecalculating = true;
+          try {
+              const updateData = {};
+              if (this.enableCustomWeights && this.isWeightsValid) {
+                  updateData.custom_weights = this.customWeights;
+              } else {
+                  updateData.custom_weights = null;
+              }
+                updateData.max_score_factors = this.maxScoreFactorKeys;
+              this.store.updateTransactionData(updateData);
+
+              const payload = {};
+              if (updateData.custom_weights) {
+                  payload.custom_weights = JSON.stringify(updateData.custom_weights);
+              }
+                if (this.maxScoreFactorKeys.length > 0) {
+                  payload.max_score_factors = JSON.stringify(this.maxScoreFactorKeys);
+                }
+              this.$emit('recalculate', payload);
+
+              this.closeOverrideModal();
+          } catch (error) {
+              console.error(error);
+          } finally {
+              this.isRecalculating = false;
+          }
       }
   }
 };
@@ -725,4 +991,341 @@ h3 {
     padding: 15px;
   }
 }
+
+/* Override Header & Button */
+.score-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.score-header-row h3 {
+    margin: 0;
+}
+
+.btn-edit-score {
+    background: transparent;
+    border: 1px solid #dee2e6;
+    color: #6c757d;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-edit-score:hover {
+    background: #f8f9fa;
+    color: #495057;
+    border-color: #ced4da;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+  width: 550px;
+    max-width: 95%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-cancel {
+    background-color: white;
+    border: 1px solid #ced4da;
+    color: #495057;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-save {
+    background-color: #0d6efd;
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-save:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Preview Section Styles */
+.preview-section {
+    margin-top: 16px;
+    padding: 16px;
+    background-color: #f0f7ff;
+    border: 1px dashed #b8daff;
+    border-radius: 6px;
+}
+
+.preview-loading {
+    text-align: center;
+    color: #0056b3;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.preview-results h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #004085;
+    text-align: left;
+}
+
+.preview-row {
+    display: grid;
+    grid-template-columns: 110px 100px 30px 1fr;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.preview-row:last-child {
+    margin-bottom: 0;
+}
+
+.preview-label {
+    color: #495057;
+    font-weight: 500;
+}
+
+.preview-old {
+    text-align: left;
+    color: #6c757d;
+    text-decoration: line-through;
+}
+
+.preview-arrow {
+    text-align: center;
+    color: #adb5bd;
+}
+
+.preview-new {
+    text-align: left;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.preview-new.highlight-limit {
+    color: #0d6efd;
+    font-size: 15px;
+}
+.custom-weights-container {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.validation-banner {
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.validation-banner.valid {
+    background: #d4edda;
+    color: #155724;
+}
+
+.validation-banner.invalid {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.total-weight-val {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.validation-warning {
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.btn-reset-all-weights {
+  margin-left: auto;
+  border: 1px solid #ced4da;
+  background: #fff;
+  color: #495057;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.btn-reset-all-weights:hover {
+  background: #f8f9fa;
+}
+
+.weight-components-list {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px 15px;
+}
+
+.weight-component {
+    margin-bottom: 15px;
+}
+
+.weight-component:last-child {
+    margin-bottom: 0;
+}
+
+.comp-title {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #004085;
+    border-bottom: 1px dashed #ccc;
+    padding-bottom: 4px;
+    text-align: left;
+}
+
+.factor-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.factor-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.factor-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.factor-label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+}
+
+.factor-key {
+    font-size: 11px;
+    color: #888;
+}
+
+.force-max-toggle {
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #0a58ca;
+  cursor: pointer;
+}
+
+.force-max-toggle input {
+  margin: 0;
+}
+
+.factor-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.factor-input label {
+    font-size: 12px;
+    color: #555;
+}
+
+.weight-input-field {
+    width: 60px;
+    padding: 4px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+.weight-input-field:focus {
+    border-color: #80bdff;
+    outline: none;
+}
+
+.loading-weights {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+}
+
 </style>
