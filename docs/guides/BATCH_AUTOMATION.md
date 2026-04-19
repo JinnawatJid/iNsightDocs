@@ -105,7 +105,7 @@ The system enhances the "Local Files" check to provide more context:
 
 ## Validation and Error Handling
 To ensure data accuracy during automated downloads, the system implements several validation steps:
-1.  **Tax ID Validation:** Before initiating any scrape, the system verifies that corporate customers have a valid, 13-digit Tax ID. If missing or invalid, the download is skipped, and the UI flags an error ("เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง/ไม่พบ").
+1.  **Tax ID Validation (Non-Blocking Warning):** Before initiating any scrape, the system verifies that corporate customers have a valid, 13-digit Tax ID. If missing or invalid, the external DBD download is skipped. However, instead of halting the process, the UI logs a warning ("เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง/ไม่พบ") and seamlessly falls back to calculating the credit limit using internal purchasing data or manually uploaded local files if provided.
 2.  **Name Matching (Non-Blocking Warning):**
     * After downloading the DBD Profile PDF, the system extracts the official company name.
     * It normalizes this name (removing common prefixes/suffixes like "บริษัท", "จำกัด") and compares it against the customer name stored in Dynamics 365.
