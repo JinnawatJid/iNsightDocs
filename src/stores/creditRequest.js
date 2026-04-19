@@ -120,7 +120,12 @@ export const useCreditRequestStore = defineStore("creditRequest", {
     },
 
     isReadOnly: (state) => {
-      return !!state.requestStatus && state.requestStatus !== "Draft";
+      if (!state.requestStatus) return false;
+      if (state.requestStatus === "Draft") {
+        const authStore = useAuthStore();
+        return !authStore.isInitiator;
+      }
+      return true;
     },
   },
 
@@ -503,6 +508,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           this.blacklistAlert = null;
           this.creditScore = data.credit_score || {};
           this.dataSource = data._source || null;
+          console.log('Customer Search Data Source:', this.dataSource);
           this.hasSearched = true;
 
           await this.fetchComments();
