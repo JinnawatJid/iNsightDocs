@@ -21,7 +21,9 @@ The `CreateCreditRequest` feature STRICTLY enforces a **"Search First"** pattern
    - Upon selecting a request type from the popover (e.g., "เครดิตใหม่"), the system **finally generates the temporary Draft Request ID** and saves the initial transaction data.
    - The `CustomerProfileDashboard` is hidden, and the `CreditRequestForm` is displayed.
    - The Action area transforms into a standard `MultiSelectDropdown` to allow changing the request type while editing the form.
-   - **Note:** If a request opened from the sidebar has any status other than 'Draft', the form is strictly **read-only** (`isReadOnly = true` in the `creditRequest` store) to prevent modification of submitted data.
+   - **Note:** The `isReadOnly` state in the `creditRequest` store enforces strict access control:
+     - If the status is *anything other than 'Draft'*, the form is strictly read-only for general editing.
+     - If the status *is 'Draft'*, the form remains strictly read-only for everyone **except** the Initiator (`ผู้สร้างคำขอ`) to prevent unauthorized users from editing or accidentally submitting requests on behalf of the creator.
 
 ## 2. Preventing Accidental Reverts
 **DO NOT REMOVE THE DASHBOARD:** The `CustomerProfileDashboard.vue` is a critical intermediate step designed to give users financial context *before* they initiate a request. Reverting this to jump straight to the form bypasses vital business logic and UX design. Do not trigger the creation of a temporary draft ID immediately upon searching; this ID must only be created after the user explicitly selects a request type, preventing the database from filling with unused, blank drafts.

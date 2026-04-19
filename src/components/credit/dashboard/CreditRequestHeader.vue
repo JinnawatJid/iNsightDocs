@@ -4,9 +4,6 @@
     <div class="header-section flex-grow">
       <div class="label-row">
         <label>ค้นหาข้อมูลลูกค้า</label>
-        <span v-if="dataSource" class="source-badge" :class="sourceClass">
-            {{ sourceLabel }}
-        </span>
       </div>
       <div class="search-group" ref="searchContainer">
         <div class="search-icon">
@@ -233,21 +230,6 @@ export default {
             this.selectedTypes = ['เครดิตใหม่'];
         }
       }
-    }
-  },
-  computed: {
-    dataSource() {
-      return this.creditStore.dataSource;
-    },
-    sourceLabel() {
-        if (this.dataSource === 'api') return 'ออนไลน์';
-        if (this.dataSource === 'database') return 'ออฟไลน์';
-        return '';
-    },
-    sourceClass() {
-        if (this.dataSource === 'api') return 'badge-live';
-        if (this.dataSource === 'database') return 'badge-offline';
-        return '';
     }
   },
   created() {
@@ -505,26 +487,6 @@ label {
   color: #888;
   text-align: center;
   font-style: italic;
-}
-
-.source-badge {
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: bold;
-    text-transform: uppercase;
-}
-
-.badge-live {
-    background-color: #d1e7dd;
-    color: #0f5132;
-    border: 1px solid #badbcc;
-}
-
-.badge-offline {
-    background-color: #fff3cd;
-    color: #856404;
-    border: 1px solid #ffeeba;
 }
 
 /* NEW: Styles for Action Wrapper and Menu */
