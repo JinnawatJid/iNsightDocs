@@ -64,6 +64,12 @@
         </div>
 
         <hr class="divider" />
+
+        <div v-if="canOverrideScore" class="score-override-section">
+            <button class="btn-override" @click="openOverrideModal">
+                ⚙️ ปรับปรุงผลลัพธ์การประเมิน
+            </button>
+        </div>
     </div>
 
 
@@ -170,6 +176,34 @@
         </li>
       </ul>
     </div>
+
+    <!-- Override Modal -->
+    <div v-if="showOverrideModal" class="modal-overlay" @click.self="closeOverrideModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>ปรับปรุงผลลัพธ์การประเมิน</h3>
+          <button class="close-btn" @click="closeOverrideModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="override-option">
+            <label class="checkbox-container">
+              <input type="checkbox" v-model="localForceFullScore" />
+              <span class="checkmark"></span>
+              <div class="option-text">
+                <strong>พิจารณาให้คะแนนเต็มในส่วนยอดซื้อและแนวโน้ม</strong>
+                <p>สำหรับลูกค้าที่ไม่มีประวัติการซื้อ เพื่อให้สามารถพิจารณาเครดิตใหม่ได้</p>
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="closeOverrideModal">ยกเลิก</button>
+          <button class="btn-save" @click="saveOverride" :disabled="isRecalculating">
+            {{ isRecalculating ? 'กำลังคำนวณ...' : 'คำนวณใหม่และบันทึก' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -187,7 +221,10 @@ export default {
       iconCheckCircle,
       iconShoppingCart,
       showMonthlyDetails: false,
-      showAllCategories: false
+      showAllCategories: false,
+      showOverrideModal: false,
+      localForceFullScore: false,
+      isRecalculating: false
     };
   },
   props: {
@@ -242,9 +279,15 @@ export default {
           return authStore.hideCreditScoreEnabled && authStore.isInitiator && store.requestStatus !== 'Approved';
       });
 
+      const canOverrideScore = computed(() => {
+          return authStore.isFinanceOfficer || authStore.isFinanceManager || authStore.isCreditCommittee;
+      });
+
       return {
+          store,
           creditScore,
-          shouldHideValues
+          shouldHideValues,
+          canOverrideScore
       };
   },
   methods: {
@@ -295,6 +338,33 @@ export default {
           if (grade === 'A') return 'grade-a';
           if (grade === 'B') return 'grade-b';
           return 'grade-c';
+      },
+      openOverrideModal() {
+          // Initialize checkbox state from current store snapshot data if available
+          this.localForceFullScore = this.store.transactionData?.force_full_purchase_score === true || this.store.transactionData?.force_full_purchase_score === 'true';
+          this.showOverrideModal = true;
+      },
+      closeOverrideModal() {
+          this.showOverrideModal = false;
+      },
+      async saveOverride() {
+          this.isRecalculating = true;
+          try {
+              // Set the override flag in transactionData so it can be picked up globally
+              this.store.updateTransactionData({ force_full_purchase_score: this.localForceFullScore });
+
+              // We need to re-trigger analysis. The best way is to emit an event or let the store handle it.
+              // Since this component might not have the full formData, we should fire an event
+              // that the parent (PendingRequests / StoreStatementTab) can listen to and re-run analysis.
+              this.$emit('recalculate', { force_full_purchase_score: this.localForceFullScore });
+
+              // Temporarily just close modal. The parent will handle the loading state/refresh.
+              this.closeOverrideModal();
+          } catch (error) {
+              console.error(error);
+          } finally {
+              this.isRecalculating = false;
+          }
       }
   }
 };

@@ -19,35 +19,35 @@ const testCases = [
         factor: 'years_in_business',
         input: 12,
         expectedScore: 14.42, // Max (2.0 * 7.21)
-        expectedLabel: 'Established (> 10 Years)'
+        expectedLabel: 'ดำเนินกิจการมานาน (> 10 ปี)'
     },
     {
         component: 'c1',
         factor: 'years_in_business',
         input: 5,
         expectedScore: 10.815, // 1.5 * 7.21
-        expectedLabel: 'Stable (5-10 Years)'
+        expectedLabel: 'มั่นคง (5-10 ปี)'
     },
     {
         component: 'c1',
         factor: 'years_in_business',
         input: 0.5,
         expectedScore: 1.8025, // 0.25 * 7.21
-        expectedLabel: 'Startup (< 1 Year)'
+        expectedLabel: 'กิจการใหม่มาก (< 1 ปี)'
     },
     {
         component: 'c1',
         factor: 'leverage',
         input: 0.4,
         expectedScore: 8.64, // 2.0 * 4.32
-        expectedLabel: 'Very Low Risk (<= 0.5)'
+        expectedLabel: 'ความเสี่ยงต่ำมาก (<= 0.5)'
     },
     {
         component: 'c1',
         factor: 'asset_ownership',
         input: 'Own',
         expectedScore: 25.94, // 2.0 * 12.97
-        expectedLabel: 'Owned (Self)'
+        expectedLabel: 'เป็นเจ้าของ (ตนเอง)'
     },
 
     // --- C2: Financial Status ---
@@ -56,14 +56,14 @@ const testCases = [
         factor: 'de_ratio',
         input: 0.8,
         expectedScore: 24.76, // 2.0 * 12.38
-        expectedLabel: 'Excellent (<= 1.0)'
+        expectedLabel: 'ดีเยี่ยม (<= 1.0)'
     },
     {
         component: 'c2',
         factor: 'de_ratio',
         input: 2.5,
         expectedScore: 12.38, // 1.0 * 12.38
-        expectedLabel: 'Poor (2.0-3.0)'
+        expectedLabel: 'แย่ (2.0-3.0)'
     },
 
     // --- C3: Purchase Behavior ---
@@ -72,14 +72,14 @@ const testCases = [
         factor: 'revenue_capital_ratio',
         input: 1.6,
         expectedScore: 3.04, // 2.0 * 1.52
-        expectedLabel: 'Excellent (>= 1.5)'
+        expectedLabel: 'ดีเยี่ยม (>= 1.5)'
     },
     {
         component: 'c3',
         factor: 'purchase_trend',
         input: 20000,
         expectedScore: 28.96, // 2.0 * 14.48
-        expectedLabel: 'Strong Uptrend (> 16k)'
+        expectedLabel: 'แนวโน้มขาขึ้นอย่างมาก (> 16k)'
     }
 ];
 

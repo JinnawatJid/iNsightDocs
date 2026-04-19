@@ -18,13 +18,14 @@ class NewCustomerScorecard extends BaseScorecard {
             requestTerm,
             customerDuration,
             isCompany,
-            limitExponent
+            limitExponent,
+            forceFullPurchaseScore
         } = context;
 
         // 1. Calculate Component Scores
         const c1 = this.calculateC1(customer, registeredCapital, requestAmount);
         const c2 = this.calculateC2(financials, isCompany);
-        const c3 = this.calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration);
+        const c3 = this.calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, forceFullPurchaseScore);
 
         // 2. Aggregate Total Score
         const totalScore = c1.total + c2.total + c3.total;
@@ -221,7 +222,7 @@ class NewCustomerScorecard extends BaseScorecard {
     /**
      * Override C3 to use Evaluator
      */
-    calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration) {
+    calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, forceFullPurchaseScore = false) {
         let score = 0;
         const items = [];
         const debug = [];
@@ -300,6 +301,14 @@ class NewCustomerScorecard extends BaseScorecard {
             turnoverRes.matchedRule = "Invalid Term";
         }
 
+        if (forceFullPurchaseScore) {
+            // Find max possible score from rules config
+            const rules = this.evaluator.config?.components?.c3?.factors?.find(f => f.key === 'turnover_speed')?.rules || [];
+            const maxRuleScore = Math.max(...rules.map(r => r.score || 0), 2.0); // Fallback to 2.0
+            turnoverRes.score = maxRuleScore * (turnoverRes.weight / 2.0);
+            turnoverRes.matchedRule = "(Manual Override)";
+        }
+
         score += turnoverRes.score;
         items.push(turnoverRes);
         debug.push({
@@ -313,13 +322,21 @@ class NewCustomerScorecard extends BaseScorecard {
 
         // 4. Purchase Trend (Slope)
         const slope = accumData.Slope || 0;
-        const trendRes = this.evaluator.evaluate('c3', 'purchase_trend', slope);
+        let trendRes = this.evaluator.evaluate('c3', 'purchase_trend', slope);
 
         // Handle explicit 0 purchases
         const totalPurchase3Months = accumData.SecondAccum || 0;
         if (totalPurchase3Months === 0) {
             trendRes.score = 0;
             trendRes.matchedRule = "No Purchases";
+        }
+
+        if (forceFullPurchaseScore) {
+            // Find max possible score from rules config
+            const rules = this.evaluator.config?.components?.c3?.factors?.find(f => f.key === 'purchase_trend')?.rules || [];
+            const maxRuleScore = Math.max(...rules.map(r => r.score || 0), 2.0); // Fallback to 2.0
+            trendRes.score = maxRuleScore * (trendRes.weight / 2.0);
+            trendRes.matchedRule = "(Manual Override)";
         }
 
         score += trendRes.score;

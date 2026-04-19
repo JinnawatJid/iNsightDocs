@@ -515,7 +515,8 @@ exports.analyzeFinancials = async (req, res) => {
       wadl, // Manual override for WADL
       tax_id,
       fetch_purchase_by,
-      total_guarantee_amount
+      total_guarantee_amount,
+      force_full_purchase_score
     } = req.body;
 
     // --- LOCAL FILE HANDLING ---
@@ -885,7 +886,8 @@ exports.analyzeFinancials = async (req, res) => {
         limitExponent: limit_exponent ? parseFloat(limit_exponent) : undefined,
         // Priority: Manual Input > API Result > 0 (Safe check)
         wadl: wadl ? parseFloat(wadl) : (typeof wadlDataResult !== 'undefined' && wadlDataResult ? wadlDataResult.score : 0),
-        totalGuaranteeAmount: total_guarantee_amount ? parseFloat(total_guarantee_amount) : 0
+        totalGuaranteeAmount: total_guarantee_amount ? parseFloat(total_guarantee_amount) : 0,
+        forceFullPurchaseScore: force_full_purchase_score === 'true' || force_full_purchase_score === true
     };
 
     // Execute Scoring via Engine

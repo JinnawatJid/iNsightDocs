@@ -19,13 +19,14 @@ class ExistingCustomerScorecard extends BaseScorecard {
             customerDuration,
             isCompany,
             wadl,
-            limitExponent
+            limitExponent,
+            forceFullPurchaseScore
         } = context;
 
         // 1. Calculate Component Scores
         const c1 = this.calculateC1(customer, registeredCapital, requestAmount);
         const c2 = this.calculateC2(financials, isCompany);
-        const c3 = this.calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, wadl);
+        const c3 = this.calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, wadl, forceFullPurchaseScore);
 
         // 2. Aggregate Total Score
         const totalScore = c1.total + c2.total + c3.total;
@@ -216,7 +217,7 @@ class ExistingCustomerScorecard extends BaseScorecard {
     /**
      * Override C3 to use Evaluator with Existing Customer Config + WADL
      */
-    calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, wadl) {
+    calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, wadl, forceFullPurchaseScore = false) {
         let score = 0;
         const items = [];
         const debug = [];
@@ -305,6 +306,14 @@ class ExistingCustomerScorecard extends BaseScorecard {
             turnoverRes.matchedRule = "Invalid Term";
         }
 
+        if (forceFullPurchaseScore) {
+            // Find max possible score from rules config
+            const rules = this.evaluator.config?.components?.c3?.factors?.find(f => f.key === 'turnover_speed')?.rules || [];
+            const maxRuleScore = Math.max(...rules.map(r => r.score || 0), 2.0);
+            turnoverRes.score = maxRuleScore * (turnoverRes.weight / 2.0);
+            turnoverRes.matchedRule = "(Manual Override)";
+        }
+
         score += turnoverRes.score;
         items.push(turnoverRes);
         debug.push({
@@ -319,11 +328,19 @@ class ExistingCustomerScorecard extends BaseScorecard {
         // 4. Purchase Trend (Slope)
         // Use Slope6 if available, else Slope (3m)
         const slope = use6Months ? (accumData.Slope6 || 0) : (accumData.Slope || 0);
-        const trendRes = this.evaluator.evaluate('c3', 'purchase_trend', slope);
+        let trendRes = this.evaluator.evaluate('c3', 'purchase_trend', slope);
 
         if (totalPurchase === 0) {
             trendRes.score = 0;
             trendRes.matchedRule = "No Purchases";
+        }
+
+        if (forceFullPurchaseScore) {
+            // Find max possible score from rules config
+            const rules = this.evaluator.config?.components?.c3?.factors?.find(f => f.key === 'purchase_trend')?.rules || [];
+            const maxRuleScore = Math.max(...rules.map(r => r.score || 0), 2.0);
+            trendRes.score = maxRuleScore * (trendRes.weight / 2.0);
+            trendRes.matchedRule = "(Manual Override)";
         }
 
         score += trendRes.score;

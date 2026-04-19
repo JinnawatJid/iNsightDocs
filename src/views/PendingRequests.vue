@@ -49,6 +49,7 @@
              :canRequest="store.creditScore?.can_request_credit"
              :badges="store.creditScore?.badges"
              :suggestions="store.creditScore?.suggestions"
+             @recalculate="handleRecalculateScore"
            />
         </div>
       </div>
@@ -80,6 +81,49 @@ const newComment = ref('');
 watch(() => store.requestId, () => {
     newComment.value = '';
 });
+
+const handleRecalculateScore = async (payload) => {
+    // If we have a request ID, we can trigger a recalculate by building a form data payload
+    if (!store.requestId || !store.customer?.id) return;
+
+    // Instead of duplicating the entire analyze payload from StoreStatementTab,
+    // we use the backend endpoint passing the `use_local` flag and the `force_full_purchase_score`.
+    // The backend will fetch the local files and re-run the scorecard.
+    const formData = new FormData();
+    formData.append('customer_no', store.customer.id);
+    formData.append('use_local', 'true');
+    formData.append('model_type', store.transactionData?.modelType || 'new');
+    formData.append('registered_capital', store.transactionData?.registeredCapital || 0);
+    formData.append('request_amount', store.transactionData?.amount || 0);
+    formData.append('request_credit_term', store.transactionData?.creditTerm || 0);
+    formData.append('customer_duration', store.transactionData?.customerDuration || 0);
+    formData.append('wadl', store.transactionData?.wadl || 0);
+    formData.append('total_guarantee_amount', store.transactionData?.totalGuaranteeAmount || 0);
+
+    if (payload.force_full_purchase_score) {
+        formData.append('force_full_purchase_score', 'true');
+    }
+
+    try {
+        const axios = (await import('axios')).default;
+        const response = await axios.post('/api/financials/analyze', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        if (response.data.success) {
+            store.updateFinancialAnalysis(response.data);
+            if (response.data.scoringResult) {
+                store.creditScore = {
+                    ...store.creditScore,
+                    ...response.data.scoringResult
+                };
+            }
+            await store.saveTransactionData();
+        }
+    } catch (error) {
+        console.error("Recalculation error:", error);
+    }
+};
 
 const isReadOnly = computed(() => {
     // Pending requests are read-only for the Application Tabs (customer data),
