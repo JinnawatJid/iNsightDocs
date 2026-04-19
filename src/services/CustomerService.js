@@ -36,4 +36,16 @@ export default {
       throw error;
     }
   },
+
+  async checkCreditByVat(vatNo) {
+    try {
+      const response = await axios.get(`${API_URL}/check-credit-by-vat`, {
+        params: { vatNo },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error checking credit by VAT:', error);
+      throw error;
+    }
+  },
 };

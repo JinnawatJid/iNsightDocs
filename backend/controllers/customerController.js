@@ -1542,3 +1542,57 @@ exports.searchCustomersByBranch = async (req, res) => {
 };
 
 exports.checkBlacklist = checkBlacklist;
+
+exports.checkCreditByVat = async (req, res) => {
+    const { vatNo } = req.query;
+
+    if (!vatNo) {
+        return res.status(400).json({ error: "VAT Registration No_ (vatNo) is required" });
+    }
+
+    try {
+        logger.info(`[CustomerAPI] Checking credit by VAT: ${vatNo}`);
+
+        // Construct Payload
+        const payload = {
+            "VAT Registration No_": { "$eq": vatNo }
+        };
+
+        const response = await axios.post(API_URL, {
+            page: 1,
+            size: 100, // Large enough to cover duplicate codes
+            ...payload
+        }, {
+            headers: {
+                "apikey": API_KEY,
+                "Content-Type": "application/json"
+            },
+            timeout: 10000
+        });
+
+        const data = response.data.data || [];
+
+        // Find an account with a Fixed Credit Limit > 0
+        const accountWithCredit = data.find(item => parseFloat(item["Fixed Credit Limit"]) > 0);
+
+        if (accountWithCredit) {
+            return res.json({
+                hasCredit: true,
+                accountWithCredit: {
+                    No_: accountWithCredit["No_"],
+                    Name: accountWithCredit["Name"],
+                    Fixed_Credit_Limit: accountWithCredit["Fixed Credit Limit"],
+                    Branch_Code: accountWithCredit["Branch Code"]
+                }
+            });
+        } else {
+            return res.json({
+                hasCredit: false
+            });
+        }
+
+    } catch (error) {
+        logger.error(`[CustomerAPI] Error checking credit by VAT ${vatNo}:`, error.message);
+        return res.status(502).json({ error: "Failed to check credit from API", details: error.message });
+    }
+};

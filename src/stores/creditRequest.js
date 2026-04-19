@@ -511,6 +511,34 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           console.log('Customer Search Data Source:', this.dataSource);
           this.hasSearched = true;
 
+          // --- Check for existing credit via VAT ---
+          if (this.customer.vatNo || this.customer["VAT Registration No_"]) {
+            try {
+              const vatToCheck = this.customer.vatNo || this.customer["VAT Registration No_"];
+              const creditCheck = await CustomerService.checkCreditByVat(vatToCheck);
+              if (creditCheck && creditCheck.hasCredit) {
+                const account = creditCheck.accountWithCredit;
+
+                // If the account with credit is not the one currently being searched
+                if (account && account.No_ && account.No_ !== this.customer.id && account.No_ !== this.customer.No_) {
+                  Swal.close(); // close loading
+
+                  await Swal.fire({
+                    icon: "warning",
+                    title: "พบข้อมูลเครดิตเดิม",
+                    html: `ลูกค้าท่านนี้มีวงเงินอนุมัติอยู่แล้วภายใต้รหัส <b>${account.No_} (${account.Branch_Code || ""})</b><br/>ระบบจะทำการเปลี่ยนไปยังรหัสดังกล่าว เพื่อให้การขอเครดิตเชื่อมโยงกับบัญชีหลัก`,
+                    confirmButtonText: "ตกลง"
+                  });
+
+                  // Trigger search for the correct account
+                  return this.searchCustomer(account.No_);
+                }
+              }
+            } catch (err) {
+              console.error("Failed to check VAT credit info:", err);
+            }
+          }
+
           await this.fetchComments();
 
           Swal.close();
