@@ -186,7 +186,7 @@
         <div class="modal-body">
           <div class="override-option">
             <label class="checkbox-container">
-              <input type="checkbox" v-model="localForceFullScore" />
+              <input type="checkbox" v-model="enableCustomWeights" />
               <span class="checkmark"></span>
               <div class="option-text">
                 <strong>เปิดใช้งานการปรับน้ำหนักแบบกำหนดเอง (Custom Weights)</strong>
@@ -195,7 +195,7 @@
             </label>
           </div>
 
-          <div v-if="localForceFullScore" class="custom-weights-container">
+          <div v-if="enableCustomWeights" class="custom-weights-container">
             <div class="validation-banner" :class="{ 'valid': isWeightsValid, 'invalid': !isWeightsValid }">
                 <span>ผลรวมน้ำหนักทั้งหมด:</span>
                 <span class="total-weight-val">{{ currentTotalWeight.toFixed(2) }} / 200.00</span>
@@ -226,7 +226,7 @@
           </div>
 
           <!-- Preview Section -->
-          <div v-if="localForceFullScore" class="preview-section">
+          <div v-if="enableCustomWeights" class="preview-section">
               <div v-if="isPreviewLoading" class="preview-loading">
                   กำลังจำลองผลลัพธ์...
               </div>
@@ -255,7 +255,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn-cancel" @click="closeOverrideModal">ยกเลิก</button>
-          <button class="btn-save" @click="saveOverride" :disabled="isRecalculating || (localForceFullScore && !isWeightsValid)">
+          <button class="btn-save" @click="saveOverride" :disabled="isRecalculating || (enableCustomWeights && !isWeightsValid)">
             {{ isRecalculating ? 'กำลังคำนวณ...' : 'คำนวณใหม่และบันทึก' }}
           </button>
         </div>
@@ -281,7 +281,7 @@ export default {
       showMonthlyDetails: false,
       showAllCategories: false,
       showOverrideModal: false,
-      localForceFullScore: false,
+      enableCustomWeights: false,
       isRecalculating: false,
       isPreviewLoading: false,
       previewScore: null,
@@ -370,7 +370,7 @@ export default {
       };
   },
   watch: {
-      localForceFullScore(newValue) {
+      enableCustomWeights(newValue) {
           if (newValue) {
               this.fetchPreviewScore();
           } else {
@@ -459,15 +459,15 @@ export default {
           this.showOverrideModal = true;
           // Check if we already have custom weights saved in transaction data
           if (this.store.transactionData?.custom_weights) {
-              this.localForceFullScore = true;
+              this.enableCustomWeights = true;
               this.customWeights = JSON.parse(JSON.stringify(this.store.transactionData.custom_weights));
               this.fetchPreviewScore();
           } else if (this.store.transactionData?.force_full_purchase_score === true || this.store.transactionData?.force_full_purchase_score === 'true') {
-              this.localForceFullScore = true;
+              this.enableCustomWeights = true;
               await this.loadDefaultWeights();
               this.fetchPreviewScore();
           } else {
-              this.localForceFullScore = false;
+              this.enableCustomWeights = false;
               await this.loadDefaultWeights();
           }
       },
@@ -514,7 +514,7 @@ export default {
           try {
               // Set the override flag and custom weights in transactionData so it can be picked up globally
               const updateData = {};
-              if (this.localForceFullScore && this.isWeightsValid) {
+              if (this.enableCustomWeights && this.isWeightsValid) {
                   updateData.custom_weights = this.customWeights;
               } else {
                   updateData.custom_weights = null;

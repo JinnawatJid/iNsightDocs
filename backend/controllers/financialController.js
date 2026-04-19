@@ -522,9 +522,28 @@ exports.analyzeFinancials = async (req, res) => {
 
     // Parse custom_weights if provided
     let parsedCustomWeights = null;
-    if (custom_weights) {
+if (custom_weights) {
         try {
             parsedCustomWeights = JSON.parse(custom_weights);
+
+            // Validate that the custom weights strictly sum to 200
+            let totalWeight = 0;
+            for (const compKey in parsedCustomWeights) {
+                const comp = parsedCustomWeights[compKey];
+                if (comp && comp.factors && Array.isArray(comp.factors)) {
+                    for (const factor of comp.factors) {
+                        if (typeof factor.weight === 'number') {
+                            totalWeight += factor.weight;
+                        }
+                    }
+                }
+            }
+
+            // Allow a tiny floating point variance
+            if (Math.abs(totalWeight - 200) > 0.01) {
+                logger.warn(`Custom weights rejected: sum equals ${totalWeight}, expected 200.`);
+                parsedCustomWeights = null; // Reject the payload
+            }
         } catch (e) {
             logger.warn(`Failed to parse custom_weights: ${e.message}`);
         }

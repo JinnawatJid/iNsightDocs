@@ -18,8 +18,7 @@ class NewCustomerScorecard extends BaseScorecard {
             requestTerm,
             customerDuration,
             isCompany,
-            limitExponent,
-            /* forceFullPurchaseScore removed */
+            limitExponent
         } = context;
 
         // 1. Calculate Component Scores
