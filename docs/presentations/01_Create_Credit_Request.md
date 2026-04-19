@@ -80,13 +80,18 @@ sequenceDiagram
     Component->>Store: searchCustomer(query)
     Store->>API: GET /api/customers?q=...
     API-->>Store: JSON (Customer Master Data)
+    Store->>API: GET /api/customers/check-credit-by-vat?vatNo=... (SCV Check)
+    API-->>Store: JSON (Credit Limit Status)
+    Note over Store: Evaluates SCV Check:<br/>Redirects if credit exists
     Note over Store: Maps JSON to store.customer<br/>for Form Auto-fill
     Store-->>Component: Reactively updates UI
 ```
 
-**[คลิกขยาย "View Source Code: Customer Search & Autofill"]**
+"ที่สำคัญคือ เรามีการใช้เทคนิค **Single Customer View (SCV)** ในขั้นตอนนี้ด้วยครับ ถ้าระบบพบว่าลูกค้าเคยมีวงเงินอนุมัติอยู่แล้วในรหัสสาขาอื่น (เช็คจากเลขบัตร 13 หลัก) ระบบจะไม่อนุญาตให้เปิดรหัสใหม่เพื่อขอเครดิต แต่จะสลับหน้าจอไปยังรหัสเดิมที่เคยมีวงเงินทันทีครับ ป้องกันปัญหาการขอวงเงินซ้ำซ้อน (Limit Stacking) ได้อย่างมีประสิทธิภาพครับ"
+
+**[คลิกขยาย "View Source Code: Customer Search & SCV Check"]**
 <details>
-<summary><b>View Source Code: Customer Search & Autofill</b></summary>
+<summary><b>View Source Code: Customer Search & SCV Check</b></summary>
 
 ```javascript
 // src/stores/creditRequest.js
@@ -100,6 +105,20 @@ async searchCustomer(query) {
 
       // 2. Map data into the global Pinia state (this.customer)
       this.customer = { ...data.customer };
+
+      // 3. Single Customer View (SCV) Enforcement Check
+      if (this.customer.vatNo || this.customer["VAT Registration No_"]) {
+        const vatToCheck = this.customer.vatNo || this.customer["VAT Registration No_"];
+        const creditCheck = await CustomerService.checkCreditByVat(vatToCheck);
+
+        if (creditCheck && creditCheck.hasCredit) {
+           const account = creditCheck.accountWithCredit;
+           if (account && account.No_ && account.No_ !== this.customer.id) {
+             Swal.fire({ title: "พบข้อมูลเครดิตเดิม", text: "ระบบจะสลับไปยังรหัสหลัก..." });
+             return this.searchCustomer(account.No_); // Redirect to primary account
+           }
+        }
+      }
 
       // Auto-fill form fields explicitly
       this.customer.store_address = data.customer.address;
