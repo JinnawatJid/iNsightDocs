@@ -1080,12 +1080,12 @@ h3 {
     margin: 0 0 12px 0;
     font-size: 14px;
     color: #004085;
-    text-align: center;
+    text-align: left;
 }
 
 .preview-row {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 110px 100px 30px 1fr;
     align-items: center;
     margin-bottom: 8px;
     font-size: 14px;
@@ -1096,25 +1096,22 @@ h3 {
 }
 
 .preview-label {
-    flex: 1;
     color: #495057;
     font-weight: 500;
 }
 
 .preview-old {
-    flex: 1;
-    text-align: right;
+    text-align: left;
     color: #6c757d;
     text-decoration: line-through;
 }
 
 .preview-arrow {
-    margin: 0 10px;
+    text-align: center;
     color: #adb5bd;
 }
 
 .preview-new {
-    flex: 1;
     text-align: left;
     font-weight: bold;
     color: #28a745;
