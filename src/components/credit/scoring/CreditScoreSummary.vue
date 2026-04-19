@@ -189,6 +189,9 @@
                 <span>ผลรวมน้ำหนักทั้งหมด:</span>
                 <span class="total-weight-val">{{ currentTotalWeight.toFixed(2) }} / 200.00</span>
                 <span v-if="!isWeightsValid" class="validation-warning">⚠️ ผลรวมต้องเท่ากับ 200 พอดี</span>
+              <button type="button" class="btn-reset-all-weights" @click="resetAllWeightsToDefault">
+                รีเซ็ตน้ำหนักทั้งหมด
+              </button>
             </div>
 
             <div v-if="isLoadingWeights" class="loading-weights">
@@ -209,12 +212,20 @@
                                 :checked="isFactorForcedMax(factor.key)"
                                 @change="toggleFactorMax(factor.key, $event)"
                               />
-                              <span>Max out score for this factor</span>
+                              <span>ให้คะแนนเต็มสำหรับปัจจัยนี้</span>
                             </label>
                             </div>
                             <div class="factor-input">
                                 <label>น้ำหนัก:</label>
                                 <input type="number" step="0.01" v-model.number="factor.weight" class="weight-input-field" @input="debouncePreview" />
+                                <button
+                                    type="button"
+                                    class="btn-reset-factor"
+                                    :disabled="isFactorWeightAtDefault(compKey, factor)"
+                                    @click="resetFactorWeight(compKey, factor)"
+                                >
+                                    ค่าเริ่มต้น
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -283,6 +294,7 @@ export default {
       isPreviewLoading: false,
       previewScore: null,
       customWeights: {},
+      defaultWeights: {},
       maxScoreFactorKeys: [],
       previewTimeout: null,
       isLoadingWeights: false
@@ -453,15 +465,18 @@ export default {
             ? JSON.parse(JSON.stringify(savedMaxFactors))
             : [];
 
+          await this.loadDefaultWeights({ applyToCustom: false });
+
           if (this.store.transactionData?.custom_weights) {
               this.customWeights = JSON.parse(JSON.stringify(this.store.transactionData.custom_weights));
-              this.fetchPreviewScore();
           } else {
-              await this.loadDefaultWeights();
-              this.fetchPreviewScore();
+            this.customWeights = this.cloneWeights(this.defaultWeights);
           }
+
+          this.fetchPreviewScore();
       },
-      async loadDefaultWeights() {
+        async loadDefaultWeights(options = {}) {
+          const { applyToCustom = true } = options;
           this.isLoadingWeights = true;
           try {
               const modelType = this.creditScore?.modelType || 'new';
@@ -479,7 +494,10 @@ export default {
                           }))
                       };
                   });
-                  this.customWeights = weightsObj;
+                          this.defaultWeights = weightsObj;
+                          if (applyToCustom) {
+                            this.customWeights = this.cloneWeights(weightsObj);
+                          }
               }
           } catch (e) {
               console.error("Failed to load default weights:", e);
@@ -487,6 +505,39 @@ export default {
               this.isLoadingWeights = false;
           }
       },
+                    cloneWeights(weights) {
+                      return JSON.parse(JSON.stringify(weights || {}));
+                    },
+                    getDefaultFactorWeight(compKey, factorKey) {
+                      const defaultComponent = this.defaultWeights?.[compKey];
+                      if (!defaultComponent?.factors) return null;
+
+                      const defaultFactor = defaultComponent.factors.find((f) => f.key === factorKey);
+                      if (!defaultFactor) return null;
+
+                      const weight = parseFloat(defaultFactor.weight);
+                      return Number.isFinite(weight) ? weight : null;
+                    },
+                    isFactorWeightAtDefault(compKey, factor) {
+                      const defaultWeight = this.getDefaultFactorWeight(compKey, factor?.key);
+                      if (defaultWeight === null) return false;
+
+                      const currentWeight = parseFloat(factor?.weight);
+                      return Math.abs((Number.isFinite(currentWeight) ? currentWeight : 0) - defaultWeight) < 0.01;
+                    },
+                    resetFactorWeight(compKey, factor) {
+                      const defaultWeight = this.getDefaultFactorWeight(compKey, factor?.key);
+                      if (defaultWeight === null) return;
+
+                      factor.weight = defaultWeight;
+                      this.debouncePreview();
+                    },
+                    resetAllWeightsToDefault() {
+                      if (!this.defaultWeights || Object.keys(this.defaultWeights).length === 0) return;
+
+                      this.customWeights = this.cloneWeights(this.defaultWeights);
+                      this.debouncePreview();
+                    },
       debouncePreview() {
           if (this.previewTimeout) clearTimeout(this.previewTimeout);
           this.previewTimeout = setTimeout(() => {
@@ -1185,9 +1236,24 @@ h3 {
 }
 
 .validation-warning {
-    margin-left: auto;
     font-weight: bold;
     font-size: 12px;
+}
+
+.btn-reset-all-weights {
+  margin-left: auto;
+  border: 1px solid #ced4da;
+  background: #fff;
+  color: #495057;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.btn-reset-all-weights:hover {
+  background: #f8f9fa;
 }
 
 .weight-components-list {
@@ -1270,6 +1336,26 @@ h3 {
 .factor-input label {
     font-size: 12px;
     color: #555;
+}
+
+.btn-reset-factor {
+  border: 1px solid #ced4da;
+  background: #fff;
+  color: #495057;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.btn-reset-factor:hover:not(:disabled) {
+  background: #f8f9fa;
+}
+
+.btn-reset-factor:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .weight-input-field {
