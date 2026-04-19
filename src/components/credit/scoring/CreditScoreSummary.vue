@@ -194,6 +194,34 @@
               </div>
             </label>
           </div>
+
+          <!-- Preview Section -->
+          <div v-if="localForceFullScore" class="preview-section">
+              <div v-if="isPreviewLoading" class="preview-loading">
+                  กำลังจำลองผลลัพธ์...
+              </div>
+              <div v-else-if="previewScore" class="preview-results">
+                  <h4>เปรียบเทียบผลลัพธ์</h4>
+                  <div class="preview-row">
+                      <span class="preview-label">คะแนนเครดิต:</span>
+                      <span class="preview-old">{{ creditScore?.totalScore || '-' }}</span>
+                      <span class="preview-arrow">➔</span>
+                      <span class="preview-new">{{ previewScore.totalScore }}</span>
+                  </div>
+                  <div class="preview-row">
+                      <span class="preview-label">เกรด:</span>
+                      <span class="preview-old" :class="getGradeClass(creditScore?.grade)">เกรด {{ creditScore?.grade || '-' }}</span>
+                      <span class="preview-arrow">➔</span>
+                      <span class="preview-new" :class="getGradeClass(previewScore.grade)">เกรด {{ previewScore.grade }}</span>
+                  </div>
+                  <div class="preview-row">
+                      <span class="preview-label">วงเงินแนะนำ:</span>
+                      <span class="preview-old">{{ formatNumber(creditScore?.recommendedLimit) }} บาท</span>
+                      <span class="preview-arrow">➔</span>
+                      <span class="preview-new highlight-limit">{{ formatNumber(previewScore.recommendedLimit) }} บาท</span>
+                  </div>
+              </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button class="btn-cancel" @click="closeOverrideModal">ยกเลิก</button>
@@ -223,7 +251,9 @@ export default {
       showAllCategories: false,
       showOverrideModal: false,
       localForceFullScore: false,
-      isRecalculating: false
+      isRecalculating: false,
+      isPreviewLoading: false,
+      previewScore: null
     };
   },
   props: {
@@ -289,7 +319,40 @@ export default {
           canOverrideScore
       };
   },
+  watch: {
+      localForceFullScore(newValue) {
+          if (newValue) {
+              this.fetchPreviewScore();
+          } else {
+              this.previewScore = null;
+          }
+      }
+  },
   methods: {
+      async fetchPreviewScore() {
+          this.isPreviewLoading = true;
+          this.previewScore = null;
+          try {
+              // We need the parent to perform the API call and return the score
+              // We can wrap the emit in a Promise if the parent supports it,
+              // but Vue 3's emit doesn't inherently return a Promise.
+              // Alternatively, we can pass a callback function to the event.
+              await new Promise(resolve => {
+                  this.$emit('recalculate', {
+                      force_full_purchase_score: true,
+                      preview: true,
+                      callback: (result) => {
+                          this.previewScore = result;
+                          resolve();
+                      }
+                  });
+              });
+          } catch (e) {
+              console.error("Preview failed:", e);
+          } finally {
+              this.isPreviewLoading = false;
+          }
+      },
       getTrendClass(trendString) {
           if (!trendString) return '';
           if (trendString.includes('เพิ่มขึ้น')) return 'up';
@@ -995,5 +1058,70 @@ h3 {
 .btn-save:disabled {
     background-color: #6c757d;
     cursor: not-allowed;
+}
+
+/* Preview Section Styles */
+.preview-section {
+    margin-top: 16px;
+    padding: 16px;
+    background-color: #f0f7ff;
+    border: 1px dashed #b8daff;
+    border-radius: 6px;
+}
+
+.preview-loading {
+    text-align: center;
+    color: #0056b3;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.preview-results h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #004085;
+    text-align: center;
+}
+
+.preview-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.preview-row:last-child {
+    margin-bottom: 0;
+}
+
+.preview-label {
+    flex: 1;
+    color: #495057;
+    font-weight: 500;
+}
+
+.preview-old {
+    flex: 1;
+    text-align: right;
+    color: #6c757d;
+    text-decoration: line-through;
+}
+
+.preview-arrow {
+    margin: 0 10px;
+    color: #adb5bd;
+}
+
+.preview-new {
+    flex: 1;
+    text-align: left;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.preview-new.highlight-limit {
+    color: #0d6efd;
+    font-size: 15px;
 }
 </style>

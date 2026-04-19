@@ -147,6 +147,14 @@ const handleRecalculateScore = async (payload) => {
         });
 
         if (response.data.success) {
+            // If it's just a preview, return the score without saving
+            if (payload.preview) {
+                if (payload.callback) {
+                    payload.callback(response.data.scoringResult);
+                }
+                return;
+            }
+
             store.updateFinancialAnalysis(response.data);
             if (response.data.scoringResult) {
                 store.creditScore = {
@@ -158,6 +166,7 @@ const handleRecalculateScore = async (payload) => {
         }
     } catch (error) {
         console.error("Recalculation error:", error);
+        throw error;
     }
 };
 
