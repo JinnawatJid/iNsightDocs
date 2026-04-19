@@ -189,10 +189,40 @@
               <input type="checkbox" v-model="localForceFullScore" />
               <span class="checkmark"></span>
               <div class="option-text">
-                <strong>พิจารณาให้คะแนนเต็มในส่วนยอดซื้อและแนวโน้ม</strong>
-                <p>สำหรับลูกค้าที่ไม่มีประวัติการซื้อ เพื่อให้สามารถพิจารณาเครดิตใหม่ได้</p>
+                <strong>เปิดใช้งานการปรับน้ำหนักแบบกำหนดเอง (Custom Weights)</strong>
+                <p>อนุญาตให้ปรับเปลี่ยนน้ำหนักในโมเดลคะแนนเครดิตได้ (รวมต้องเท่ากับ 200)</p>
               </div>
             </label>
+          </div>
+
+          <div v-if="localForceFullScore" class="custom-weights-container">
+            <div class="validation-banner" :class="{ 'valid': isWeightsValid, 'invalid': !isWeightsValid }">
+                <span>ผลรวมน้ำหนักทั้งหมด:</span>
+                <span class="total-weight-val">{{ currentTotalWeight.toFixed(2) }} / 200.00</span>
+                <span v-if="!isWeightsValid" class="validation-warning">⚠️ ผลรวมต้องเท่ากับ 200 พอดี</span>
+            </div>
+
+            <div v-if="isLoadingWeights" class="loading-weights">
+                กำลังโหลดข้อมูลโมเดล...
+            </div>
+
+            <div v-else class="weight-components-list">
+                <div v-for="(comp, compKey) in customWeights" :key="compKey" class="weight-component">
+                    <h5 class="comp-title">{{ comp.name || compKey }}</h5>
+                    <div class="factor-grid">
+                        <div v-for="factor in comp.factors" :key="factor.key" class="factor-row">
+                            <div class="factor-info">
+                                <span class="factor-label">{{ factor.label }}</span>
+                                <span class="factor-key">{{ factor.key }}</span>
+                            </div>
+                            <div class="factor-input">
+                                <label>น้ำหนัก:</label>
+                                <input type="number" step="0.01" v-model.number="factor.weight" class="weight-input-field" @input="debouncePreview" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
           </div>
 
           <!-- Preview Section -->
@@ -225,7 +255,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn-cancel" @click="closeOverrideModal">ยกเลิก</button>
-          <button class="btn-save" @click="saveOverride" :disabled="isRecalculating">
+          <button class="btn-save" @click="saveOverride" :disabled="isRecalculating || (localForceFullScore && !isWeightsValid)">
             {{ isRecalculating ? 'กำลังคำนวณ...' : 'คำนวณใหม่และบันทึก' }}
           </button>
         </div>
@@ -240,6 +270,7 @@ import iconShoppingCart from '@/assets/icons/shopping-cart.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
 import { computed } from 'vue';
+import axios from 'axios';
 
 export default {
   name: 'CreditScoreSummary',
@@ -253,7 +284,10 @@ export default {
       localForceFullScore: false,
       isRecalculating: false,
       isPreviewLoading: false,
-      previewScore: null
+      previewScore: null,
+      customWeights: {},
+      isLoadingWeights: false,
+      previewTimeout: null
     };
   },
   props: {
@@ -281,6 +315,22 @@ export default {
             return this.financial.category_breakdown;
         }
         return this.financial.category_breakdown.slice(0, 3);
+    },
+    currentTotalWeight() {
+        let total = 0;
+        if (!this.customWeights) return 0;
+        Object.values(this.customWeights).forEach(comp => {
+            if (comp.factors) {
+                comp.factors.forEach(f => {
+                    total += (Number(f.weight) || 0);
+                });
+            }
+        });
+        return total;
+    },
+    isWeightsValid() {
+        // Allow tiny floating point differences
+        return Math.abs(this.currentTotalWeight - 200) < 0.01;
     },
     sortedSuggestions() {
       if (!this.suggestions || this.suggestions.length === 0) return [];
@@ -338,14 +388,18 @@ export default {
               // but Vue 3's emit doesn't inherently return a Promise.
               // Alternatively, we can pass a callback function to the event.
               await new Promise(resolve => {
-                  this.$emit('recalculate', {
-                      force_full_purchase_score: true,
+                  const payload = {
+                      force_full_purchase_score: false,
                       preview: true,
                       callback: (result) => {
                           this.previewScore = result;
                           resolve();
                       }
-                  });
+                  };
+                  if (this.isWeightsValid) {
+                      payload.custom_weights = JSON.stringify(this.customWeights);
+                  }
+                  this.$emit('recalculate', payload);
               });
           } catch (e) {
               console.error("Preview failed:", e);
@@ -401,10 +455,56 @@ export default {
           if (grade === 'B') return 'grade-b';
           return 'grade-c';
       },
-      openOverrideModal() {
-          // Initialize checkbox state from current store snapshot data if available
-          this.localForceFullScore = this.store.transactionData?.force_full_purchase_score === true || this.store.transactionData?.force_full_purchase_score === 'true';
+      async openOverrideModal() {
           this.showOverrideModal = true;
+          // Check if we already have custom weights saved in transaction data
+          if (this.store.transactionData?.custom_weights) {
+              this.localForceFullScore = true;
+              this.customWeights = JSON.parse(JSON.stringify(this.store.transactionData.custom_weights));
+              this.fetchPreviewScore();
+          } else if (this.store.transactionData?.force_full_purchase_score === true || this.store.transactionData?.force_full_purchase_score === 'true') {
+              this.localForceFullScore = true;
+              await this.loadDefaultWeights();
+              this.fetchPreviewScore();
+          } else {
+              this.localForceFullScore = false;
+              await this.loadDefaultWeights();
+          }
+      },
+      async loadDefaultWeights() {
+          this.isLoadingWeights = true;
+          try {
+              // Determine if new or existing model based on score data or default to new
+              const modelType = this.creditScore?.modelType || 'new';
+              const response = await axios.get(`/api/scorecard/${modelType}`);
+              if (response.data && response.data.components) {
+                  // We only need the component name and factor keys, labels, weights
+                  const weightsObj = {};
+                  Object.entries(response.data.components).forEach(([compKey, compVal]) => {
+                      weightsObj[compKey] = {
+                          name: compVal.name,
+                          factors: compVal.factors.map(f => ({
+                              key: f.key,
+                              label: f.label,
+                              weight: f.weight
+                          }))
+                      };
+                  });
+                  this.customWeights = weightsObj;
+              }
+          } catch (e) {
+              console.error("Failed to load default weights:", e);
+          } finally {
+              this.isLoadingWeights = false;
+          }
+      },
+      debouncePreview() {
+          if (this.previewTimeout) clearTimeout(this.previewTimeout);
+          this.previewTimeout = setTimeout(() => {
+              if (this.isWeightsValid) {
+                  this.fetchPreviewScore();
+              }
+          }, 500);
       },
       closeOverrideModal() {
           this.showOverrideModal = false;
@@ -412,13 +512,20 @@ export default {
       async saveOverride() {
           this.isRecalculating = true;
           try {
-              // Set the override flag in transactionData so it can be picked up globally
-              this.store.updateTransactionData({ force_full_purchase_score: this.localForceFullScore });
+              // Set the override flag and custom weights in transactionData so it can be picked up globally
+              const updateData = {};
+              if (this.localForceFullScore && this.isWeightsValid) {
+                  updateData.custom_weights = this.customWeights;
+              } else {
+                  updateData.custom_weights = null;
+              }
+              this.store.updateTransactionData(updateData);
 
-              // We need to re-trigger analysis. The best way is to emit an event or let the store handle it.
-              // Since this component might not have the full formData, we should fire an event
-              // that the parent (PendingRequests / StoreStatementTab) can listen to and re-run analysis.
-              this.$emit('recalculate', { force_full_purchase_score: this.localForceFullScore });
+              const payload = { force_full_purchase_score: false };
+              if (updateData.custom_weights) {
+                  payload.custom_weights = JSON.stringify(updateData.custom_weights);
+              }
+              this.$emit('recalculate', payload);
 
               // Temporarily just close modal. The parent will handle the loading state/refresh.
               this.closeOverrideModal();
@@ -1120,5 +1227,130 @@ h3 {
 .preview-new.highlight-limit {
     color: #0d6efd;
     font-size: 15px;
+}
+.custom-weights-container {
+    margin-top: 15px;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.validation-banner {
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.validation-banner.valid {
+    background: #d4edda;
+    color: #155724;
+}
+
+.validation-banner.invalid {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.total-weight-val {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.validation-warning {
+    margin-left: auto;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.weight-components-list {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px 15px;
+}
+
+.weight-component {
+    margin-bottom: 15px;
+}
+
+.weight-component:last-child {
+    margin-bottom: 0;
+}
+
+.comp-title {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #004085;
+    border-bottom: 1px dashed #ccc;
+    padding-bottom: 4px;
+}
+
+.factor-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.factor-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.factor-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.factor-label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+}
+
+.factor-key {
+    font-size: 11px;
+    color: #888;
+}
+
+.factor-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.factor-input label {
+    font-size: 12px;
+    color: #555;
+}
+
+.weight-input-field {
+    width: 60px;
+    padding: 4px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+.weight-input-field:focus {
+    border-color: #80bdff;
+    outline: none;
+}
+
+.loading-weights {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+    font-size: 14px;
 }
 </style>

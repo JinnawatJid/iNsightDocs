@@ -516,8 +516,19 @@ exports.analyzeFinancials = async (req, res) => {
       tax_id,
       fetch_purchase_by,
       total_guarantee_amount,
-      force_full_purchase_score
+      force_full_purchase_score,
+      custom_weights
     } = req.body;
+
+    // Parse custom_weights if provided
+    let parsedCustomWeights = null;
+    if (custom_weights) {
+        try {
+            parsedCustomWeights = JSON.parse(custom_weights);
+        } catch (e) {
+            logger.warn(`Failed to parse custom_weights: ${e.message}`);
+        }
+    }
 
     // --- LOCAL FILE HANDLING ---
     let localRegisteredCapital = 0;
@@ -887,7 +898,8 @@ exports.analyzeFinancials = async (req, res) => {
         // Priority: Manual Input > API Result > 0 (Safe check)
         wadl: wadl ? parseFloat(wadl) : (typeof wadlDataResult !== 'undefined' && wadlDataResult ? wadlDataResult.score : 0),
         totalGuaranteeAmount: total_guarantee_amount ? parseFloat(total_guarantee_amount) : 0,
-        forceFullPurchaseScore: force_full_purchase_score === 'true' || force_full_purchase_score === true
+        forceFullPurchaseScore: force_full_purchase_score === 'true' || force_full_purchase_score === true,
+        customWeights: parsedCustomWeights
     };
 
     // Execute Scoring via Engine

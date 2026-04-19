@@ -3,9 +3,9 @@ const ScorecardEvaluator = require('../ScorecardEvaluator');
 
 class ExistingCustomerScorecard extends BaseScorecard {
 
-    constructor() {
+    constructor(customWeights = null) {
         super();
-        this.evaluator = new ScorecardEvaluator('credit_scorecard_existing_v1.json');
+        this.evaluator = new ScorecardEvaluator('credit_scorecard_existing_v1.json', customWeights);
     }
 
     calculateScore(context) {
@@ -20,13 +20,13 @@ class ExistingCustomerScorecard extends BaseScorecard {
             isCompany,
             wadl,
             limitExponent,
-            forceFullPurchaseScore
+            /* forceFullPurchaseScore removed */
         } = context;
 
         // 1. Calculate Component Scores
         const c1 = this.calculateC1(customer, registeredCapital, requestAmount);
         const c2 = this.calculateC2(financials, isCompany);
-        const c3 = this.calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, wadl, forceFullPurchaseScore);
+        const c3 = this.calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, wadl, /* forceFullPurchaseScore removed */);
 
         // 2. Aggregate Total Score
         const totalScore = c1.total + c2.total + c3.total;
@@ -217,7 +217,7 @@ class ExistingCustomerScorecard extends BaseScorecard {
     /**
      * Override C3 to use Evaluator with Existing Customer Config + WADL
      */
-    calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, wadl, forceFullPurchaseScore = false) {
+    calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, wadl, /* forceFullPurchaseScore removed */ = false) {
         let score = 0;
         const items = [];
         const debug = [];
@@ -306,15 +306,6 @@ class ExistingCustomerScorecard extends BaseScorecard {
             turnoverRes.matchedRule = "Invalid Term";
         }
 
-        if (forceFullPurchaseScore) {
-            // Find max possible rule multiplier from rules config
-            const rules = this.evaluator.config?.components?.c3?.factors?.find(f => f.key === 'turnover_speed')?.rules || [];
-            const maxRuleScore = Math.max(...rules.map(r => r.score || 0), 2.0);
-            // The mathematical formula in ScorecardEvaluator is: finalScore = ruleScore * (weight / 2.0)
-            // By applying the maxRuleScore, we ensure the customer gets the maximum possible score for this factor.
-            turnoverRes.score = maxRuleScore * (turnoverRes.weight / 2.0);
-            turnoverRes.matchedRule = "(Manual Override)";
-        }
 
         score += turnoverRes.score;
         items.push(turnoverRes);
@@ -337,15 +328,6 @@ class ExistingCustomerScorecard extends BaseScorecard {
             trendRes.matchedRule = "No Purchases";
         }
 
-        if (forceFullPurchaseScore) {
-            // Find max possible rule multiplier from rules config
-            const rules = this.evaluator.config?.components?.c3?.factors?.find(f => f.key === 'purchase_trend')?.rules || [];
-            const maxRuleScore = Math.max(...rules.map(r => r.score || 0), 2.0);
-            // The mathematical formula in ScorecardEvaluator is: finalScore = ruleScore * (weight / 2.0)
-            // By applying the maxRuleScore, we ensure the customer gets the maximum possible score for this factor.
-            trendRes.score = maxRuleScore * (trendRes.weight / 2.0);
-            trendRes.matchedRule = "(Manual Override)";
-        }
 
         score += trendRes.score;
         items.push(trendRes);

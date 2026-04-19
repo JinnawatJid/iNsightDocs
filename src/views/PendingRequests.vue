@@ -140,6 +140,10 @@ const handleRecalculateScore = async (payload) => {
         formData.append('force_full_purchase_score', 'true');
     }
 
+    if (payload.custom_weights) {
+        formData.append('custom_weights', payload.custom_weights);
+    }
+
     try {
         const axios = (await import('axios')).default;
         const response = await axios.post('/api/financials/analyze', formData, {
