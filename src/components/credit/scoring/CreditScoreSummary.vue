@@ -331,9 +331,15 @@ export default {
           return authStore.hideCreditScoreEnabled && authStore.isInitiator && store.requestStatus !== 'Approved';
       });
 
+      const canOverrideScore = computed(() => {
+          return authStore.isFinanceOfficer || authStore.isFinanceManager || authStore.isCreditCommittee || authStore.isDocumentReviewer;
+      });
+
       return {
+          store,
           creditScore,
-          shouldHideValues
+          shouldHideValues,
+          canOverrideScore
       };
   },
   methods: {
