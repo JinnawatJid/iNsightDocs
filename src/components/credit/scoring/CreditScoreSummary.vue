@@ -3,7 +3,12 @@
 
     <!-- NEW: Credit Score Section -->
     <div v-if="creditScore && creditScore.totalScore !== undefined && !shouldHideValues" class="score-section">
-        <h3>ผลคะแนนเครดิต</h3>
+        <div class="score-header-row">
+            <h3 class="flex-1 m-0">ผลคะแนนเครดิต</h3>
+            <button v-if="canOverrideScore" class="btn-edit-score" @click="openOverrideModal" title="ปรับปรุงผลลัพธ์การประเมิน">
+                ⚙️ ปรับแก้
+            </button>
+        </div>
 
         <div class="score-display">
             <div class="score-circle" :class="getGradeClass(creditScore.grade)">
@@ -39,84 +44,8 @@
                         <span class="breakdown-text">รวมวงเงินแนะนำ:</span>
                         <span class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} บาท</span>
                     </div>
-
-    <!-- Override Modal -->
-    <div v-if="showOverrideModal" class="modal-overlay" @click.self="closeOverrideModal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>ปรับปรุงผลลัพธ์การประเมิน</h3>
-          <button class="close-btn" @click="closeOverrideModal">×</button>
-        </div>
-        <div class="modal-body">
-          <div class="custom-weights-container">
-            <div class="validation-banner" :class="{ 'valid': isWeightsValid, 'invalid': !isWeightsValid }">
-                <span>ผลรวมน้ำหนักทั้งหมด:</span>
-                <span class="total-weight-val">{{ currentTotalWeight.toFixed(2) }} / 200.00</span>
-                <span v-if="!isWeightsValid" class="validation-warning">⚠️ ผลรวมต้องเท่ากับ 200 พอดี</span>
-            </div>
-
-            <div v-if="isLoadingWeights" class="loading-weights">
-                กำลังโหลดข้อมูลโมเดล...
-            </div>
-
-            <div v-else-if="!isLoadingWeights" class="weight-components-list">
-                <div v-for="(comp, compKey) in customWeights" :key="compKey" class="weight-component">
-                    <h5 class="comp-title">{{ comp.name || compKey }}</h5>
-                    <div class="factor-grid">
-                        <div v-for="factor in comp.factors" :key="factor.key" class="factor-row">
-                            <div class="factor-info">
-                                <span class="factor-label">{{ factor.label }}</span>
-                                <span class="factor-key">{{ factor.key }}</span>
-                            </div>
-                            <div class="factor-input">
-                                <label>น้ำหนัก:</label>
-                                <input type="number" step="0.01" v-model.number="factor.weight" class="weight-input-field" @input="debouncePreview" />
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            </div>
-          </div>
-
-          <!-- Preview Section -->
-          <div class="preview-section">
-              <div v-if="isPreviewLoading" class="preview-loading">
-                  กำลังคำนวณผลลัพธ์...
-              </div>
-              <div v-else-if="previewScore" class="preview-results">
-                  <h4>เปรียบเทียบผลลัพธ์</h4>
-                  <div class="preview-row">
-                      <span class="preview-label">คะแนนเครดิต:</span>
-                      <span class="preview-old">{{ creditScore?.totalScore || '-' }}</span>
-                      <span class="preview-arrow">➔</span>
-                      <span class="preview-new">{{ previewScore.totalScore }}</span>
-                  </div>
-                  <div class="preview-row">
-                      <span class="preview-label">เกรด:</span>
-                      <span class="preview-old" :class="getGradeClass(creditScore?.grade)">เกรด {{ creditScore?.grade || '-' }}</span>
-                      <span class="preview-arrow">➔</span>
-                      <span class="preview-new" :class="getGradeClass(previewScore.grade)">เกรด {{ previewScore.grade }}</span>
-                  </div>
-                  <div class="preview-row">
-                      <span class="preview-label">วงเงินแนะนำ:</span>
-                      <span class="preview-old">{{ formatNumber(creditScore?.recommendedLimit) }} บาท</span>
-                      <span class="preview-arrow">➔</span>
-                      <span class="preview-new highlight-limit">{{ formatNumber(previewScore.recommendedLimit) }} บาท</span>
-                  </div>
-              </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cancel" @click="closeOverrideModal">ยกเลิก</button>
-          <button class="btn-save" @click="saveOverride" :disabled="isRecalculating || !isWeightsValid">
-            {{ isRecalculating ? 'กำลังคำนวณ...' : 'คำนวณใหม่และบันทึก' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</template>
+            </template>
             <template v-else>
                 <div class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} บาท</div>
             </template>
@@ -230,84 +159,8 @@
                   </button>
               </div>
            </div>
-
-    <!-- Override Modal -->
-    <div v-if="showOverrideModal" class="modal-overlay" @click.self="closeOverrideModal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>ปรับปรุงผลลัพธ์การประเมิน</h3>
-          <button class="close-btn" @click="closeOverrideModal">×</button>
         </div>
-        <div class="modal-body">
-          <div class="custom-weights-container">
-            <div class="validation-banner" :class="{ 'valid': isWeightsValid, 'invalid': !isWeightsValid }">
-                <span>ผลรวมน้ำหนักทั้งหมด:</span>
-                <span class="total-weight-val">{{ currentTotalWeight.toFixed(2) }} / 200.00</span>
-                <span v-if="!isWeightsValid" class="validation-warning">⚠️ ผลรวมต้องเท่ากับ 200 พอดี</span>
-            </div>
-
-            <div v-if="isLoadingWeights" class="loading-weights">
-                กำลังโหลดข้อมูลโมเดล...
-            </div>
-
-            <div v-else-if="!isLoadingWeights" class="weight-components-list">
-                <div v-for="(comp, compKey) in customWeights" :key="compKey" class="weight-component">
-                    <h5 class="comp-title">{{ comp.name || compKey }}</h5>
-                    <div class="factor-grid">
-                        <div v-for="factor in comp.factors" :key="factor.key" class="factor-row">
-                            <div class="factor-info">
-                                <span class="factor-label">{{ factor.label }}</span>
-                                <span class="factor-key">{{ factor.key }}</span>
-                            </div>
-                            <div class="factor-input">
-                                <label>น้ำหนัก:</label>
-                                <input type="number" step="0.01" v-model.number="factor.weight" class="weight-input-field" @input="debouncePreview" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-          </div>
-
-          <!-- Preview Section -->
-          <div class="preview-section">
-              <div v-if="isPreviewLoading" class="preview-loading">
-                  กำลังคำนวณผลลัพธ์...
-              </div>
-              <div v-else-if="previewScore" class="preview-results">
-                  <h4>เปรียบเทียบผลลัพธ์</h4>
-                  <div class="preview-row">
-                      <span class="preview-label">คะแนนเครดิต:</span>
-                      <span class="preview-old">{{ creditScore?.totalScore || '-' }}</span>
-                      <span class="preview-arrow">➔</span>
-                      <span class="preview-new">{{ previewScore.totalScore }}</span>
-                  </div>
-                  <div class="preview-row">
-                      <span class="preview-label">เกรด:</span>
-                      <span class="preview-old" :class="getGradeClass(creditScore?.grade)">เกรด {{ creditScore?.grade || '-' }}</span>
-                      <span class="preview-arrow">➔</span>
-                      <span class="preview-new" :class="getGradeClass(previewScore.grade)">เกรด {{ previewScore.grade }}</span>
-                  </div>
-                  <div class="preview-row">
-                      <span class="preview-label">วงเงินแนะนำ:</span>
-                      <span class="preview-old">{{ formatNumber(creditScore?.recommendedLimit) }} บาท</span>
-                      <span class="preview-arrow">➔</span>
-                      <span class="preview-new highlight-limit">{{ formatNumber(previewScore.recommendedLimit) }} บาท</span>
-                  </div>
-              </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cancel" @click="closeOverrideModal">ยกเลิก</button>
-          <button class="btn-save" @click="saveOverride" :disabled="isRecalculating || !isWeightsValid">
-            {{ isRecalculating ? 'กำลังคำนวณ...' : 'คำนวณใหม่และบันทึก' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</template>
+      </template>
     </div>
 
     <div class="suggestion-section">
@@ -1064,6 +917,7 @@ h3 {
     justify-content: space-between;
     align-items: center;
     position: relative;
+    margin-bottom: 10px;
 }
 
 .score-header-row h3 {
@@ -1071,9 +925,6 @@ h3 {
 }
 
 .btn-edit-score {
-    position: absolute;
-    right: 0;
-    top: -5px;
     background: transparent;
     border: 1px solid #dee2e6;
     color: #6c757d;
@@ -1240,7 +1091,6 @@ h3 {
     font-size: 15px;
 }
 .custom-weights-container {
-    margin-top: 15px;
     background: #fff;
     border: 1px solid #dee2e6;
     border-radius: 6px;
@@ -1364,4 +1214,5 @@ h3 {
     color: #666;
     font-size: 14px;
 }
+
 </style>
