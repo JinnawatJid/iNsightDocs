@@ -1723,11 +1723,14 @@ const processNextItem = async () => {
       const nameLower = (item.name || "").toLowerCase();
       const isCorporate = corporateKeywords.some((k) => nameLower.includes(k));
 
+      let isInvalidTaxId = false;
       if (!isCorporate) {
         item.log = "ข้าม DBD (ไม่ใช่บริษัท)";
         skipDBD = true;
       } else if (!item.taxId || String(item.taxId).trim().length !== 13) {
-        throw new Error("เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง/ไม่พบ");
+        item.log = "เลขผู้เสียภาษีไม่ถูกต้อง (ตรวจสอบไฟล์ Local)";
+        item.warning = "เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง/ไม่พบ";
+        isInvalidTaxId = true;
       }
 
       // 2. Check for Local Files First
@@ -1797,20 +1800,24 @@ const processNextItem = async () => {
       // Step 2: Download from Bridge (Retry Logic) - Only if not skipped AND not local
       // Fallback directly if the initial bridge request failed.
       if (!skipDBD && !useLocalFiles) {
-        item.log = "กำลังดาวน์โหลดไฟล์ DBD...";
-        let retries = 0;
-        const maxRetries = 2;
+        if (isInvalidTaxId) {
+          item.log = "ข้าม DBD (เลขผู้เสียภาษีไม่ถูกต้อง/ไม่มีไฟล์ Local)";
+        } else {
+          item.log = "กำลังดาวน์โหลดไฟล์ DBD...";
+          let retries = 0;
+          const maxRetries = 2;
 
-        while (retries <= maxRetries && !downloadResult) {
-          try {
-            downloadResult = await connectToBridge(item.taxId, item.customerId);
-          } catch (e) {
-            retries++;
-            if (retries > maxRetries) {
-              console.warn("Bridge failed, proceeding with fallback");
-            } else {
-              item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
-              await new Promise((r) => setTimeout(r, 2000));
+          while (retries <= maxRetries && !downloadResult) {
+            try {
+              downloadResult = await connectToBridge(item.taxId, item.customerId);
+            } catch (e) {
+              retries++;
+              if (retries > maxRetries) {
+                console.warn("Bridge failed, proceeding with fallback");
+              } else {
+                item.log = `ลองใหม่ DBD (${retries}/${maxRetries})...`;
+                await new Promise((r) => setTimeout(r, 2000));
+              }
             }
           }
         }
@@ -1851,25 +1858,29 @@ const processNextItem = async () => {
       } else {
         if (!skipDBD) {
           if (!downloadResult) {
-            throw new Error("ดาวน์โหลด DBD ไม่สำเร็จ (กรุณาลองใหม่)");
-          }
-
-          const required = [
-            "profile",
-            "balanceSheet",
-            "incomeStatement",
-            "financialRatios",
-          ];
-          const missing = required.filter((k) => !downloadResult.files[k]);
-          if (missing.length > 0) {
-            const names = {
-              profile: "Company Profile",
-              balanceSheet: "งบดุล",
-              incomeStatement: "งบกำไรขาดทุน",
-              financialRatios: "อัตราส่วนทางการเงิน",
-            };
-            const missingNames = missing.map((k) => names[k] || k).join(", ");
-            throw new Error(`DBD ไม่ครบ: ขาด ${missingNames}`);
+            if (isInvalidTaxId) {
+              // Proceed without throwing, fallback will be used
+            } else {
+              throw new Error("ดาวน์โหลด DBD ไม่สำเร็จ (กรุณาลองใหม่)");
+            }
+          } else {
+            const required = [
+              "profile",
+              "balanceSheet",
+              "incomeStatement",
+              "financialRatios",
+            ];
+            const missing = required.filter((k) => !downloadResult.files[k]);
+            if (missing.length > 0) {
+              const names = {
+                profile: "Company Profile",
+                balanceSheet: "งบดุล",
+                incomeStatement: "งบกำไรขาดทุน",
+                financialRatios: "อัตราส่วนทางการเงิน",
+              };
+              const missingNames = missing.map((k) => names[k] || k).join(", ");
+              throw new Error(`DBD ไม่ครบ: ขาด ${missingNames}`);
+            }
           }
         }
 
@@ -1995,9 +2006,17 @@ const processNextItem = async () => {
         const warnings = suggestions.filter(
           (s) => s.includes("ไม่สามารถ") || s.includes("Error"),
         );
+
+        let finalWarning = null;
         if (warnings.length > 0) {
-          item.log = `เสร็จสิ้น (แจ้งเตือน: ${warnings[0]})`;
-          item.warning = warnings[0];
+            finalWarning = warnings[0];
+        } else if (item.warning) {
+            finalWarning = item.warning;
+        }
+
+        if (finalWarning) {
+          item.log = `เสร็จสิ้น (แจ้งเตือน: ${finalWarning})`;
+          item.warning = finalWarning;
         } else {
           item.log = "เสร็จสิ้น";
         }
