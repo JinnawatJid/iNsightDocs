@@ -3,12 +3,7 @@
 
     <!-- NEW: Credit Score Section -->
     <div v-if="creditScore && creditScore.totalScore !== undefined && !shouldHideValues" class="score-section">
-        <div class="score-header-row">
-            <h3 class="flex-1 text-center m-0">ผลคะแนนเครดิต</h3>
-            <button v-if="canOverrideScore" class="btn-edit-score" @click="openOverrideModal" title="ปรับปรุงผลลัพธ์การประเมิน">
-                ⚙️ ปรับแก้
-            </button>
-        </div>
+        <h3>ผลคะแนนเครดิต</h3>
 
         <div class="score-display">
             <div class="score-circle" :class="getGradeClass(creditScore.grade)">
@@ -44,8 +39,84 @@
                         <span class="breakdown-text">รวมวงเงินแนะนำ:</span>
                         <span class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} บาท</span>
                     </div>
+
+    <!-- Override Modal -->
+    <div v-if="showOverrideModal" class="modal-overlay" @click.self="closeOverrideModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>ปรับปรุงผลลัพธ์การประเมิน</h3>
+          <button class="close-btn" @click="closeOverrideModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="custom-weights-container">
+            <div class="validation-banner" :class="{ 'valid': isWeightsValid, 'invalid': !isWeightsValid }">
+                <span>ผลรวมน้ำหนักทั้งหมด:</span>
+                <span class="total-weight-val">{{ currentTotalWeight.toFixed(2) }} / 200.00</span>
+                <span v-if="!isWeightsValid" class="validation-warning">⚠️ ผลรวมต้องเท่ากับ 200 พอดี</span>
+            </div>
+
+            <div v-if="isLoadingWeights" class="loading-weights">
+                กำลังโหลดข้อมูลโมเดล...
+            </div>
+
+            <div v-else-if="!isLoadingWeights" class="weight-components-list">
+                <div v-for="(comp, compKey) in customWeights" :key="compKey" class="weight-component">
+                    <h5 class="comp-title">{{ comp.name || compKey }}</h5>
+                    <div class="factor-grid">
+                        <div v-for="factor in comp.factors" :key="factor.key" class="factor-row">
+                            <div class="factor-info">
+                                <span class="factor-label">{{ factor.label }}</span>
+                                <span class="factor-key">{{ factor.key }}</span>
+                            </div>
+                            <div class="factor-input">
+                                <label>น้ำหนัก:</label>
+                                <input type="number" step="0.01" v-model.number="factor.weight" class="weight-input-field" @input="debouncePreview" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </template>
+            </div>
+          </div>
+
+          <!-- Preview Section -->
+          <div class="preview-section">
+              <div v-if="isPreviewLoading" class="preview-loading">
+                  กำลังคำนวณผลลัพธ์...
+              </div>
+              <div v-else-if="previewScore" class="preview-results">
+                  <h4>เปรียบเทียบผลลัพธ์</h4>
+                  <div class="preview-row">
+                      <span class="preview-label">คะแนนเครดิต:</span>
+                      <span class="preview-old">{{ creditScore?.totalScore || '-' }}</span>
+                      <span class="preview-arrow">➔</span>
+                      <span class="preview-new">{{ previewScore.totalScore }}</span>
+                  </div>
+                  <div class="preview-row">
+                      <span class="preview-label">เกรด:</span>
+                      <span class="preview-old" :class="getGradeClass(creditScore?.grade)">เกรด {{ creditScore?.grade || '-' }}</span>
+                      <span class="preview-arrow">➔</span>
+                      <span class="preview-new" :class="getGradeClass(previewScore.grade)">เกรด {{ previewScore.grade }}</span>
+                  </div>
+                  <div class="preview-row">
+                      <span class="preview-label">วงเงินแนะนำ:</span>
+                      <span class="preview-old">{{ formatNumber(creditScore?.recommendedLimit) }} บาท</span>
+                      <span class="preview-arrow">➔</span>
+                      <span class="preview-new highlight-limit">{{ formatNumber(previewScore.recommendedLimit) }} บาท</span>
+                  </div>
+              </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="closeOverrideModal">ยกเลิก</button>
+          <button class="btn-save" @click="saveOverride" :disabled="isRecalculating || !isWeightsValid">
+            {{ isRecalculating ? 'กำลังคำนวณ...' : 'คำนวณใหม่และบันทึก' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</template>
             <template v-else>
                 <div class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} บาท</div>
             </template>
@@ -159,8 +230,84 @@
                   </button>
               </div>
            </div>
+
+    <!-- Override Modal -->
+    <div v-if="showOverrideModal" class="modal-overlay" @click.self="closeOverrideModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>ปรับปรุงผลลัพธ์การประเมิน</h3>
+          <button class="close-btn" @click="closeOverrideModal">×</button>
         </div>
-      </template>
+        <div class="modal-body">
+          <div class="custom-weights-container">
+            <div class="validation-banner" :class="{ 'valid': isWeightsValid, 'invalid': !isWeightsValid }">
+                <span>ผลรวมน้ำหนักทั้งหมด:</span>
+                <span class="total-weight-val">{{ currentTotalWeight.toFixed(2) }} / 200.00</span>
+                <span v-if="!isWeightsValid" class="validation-warning">⚠️ ผลรวมต้องเท่ากับ 200 พอดี</span>
+            </div>
+
+            <div v-if="isLoadingWeights" class="loading-weights">
+                กำลังโหลดข้อมูลโมเดล...
+            </div>
+
+            <div v-else-if="!isLoadingWeights" class="weight-components-list">
+                <div v-for="(comp, compKey) in customWeights" :key="compKey" class="weight-component">
+                    <h5 class="comp-title">{{ comp.name || compKey }}</h5>
+                    <div class="factor-grid">
+                        <div v-for="factor in comp.factors" :key="factor.key" class="factor-row">
+                            <div class="factor-info">
+                                <span class="factor-label">{{ factor.label }}</span>
+                                <span class="factor-key">{{ factor.key }}</span>
+                            </div>
+                            <div class="factor-input">
+                                <label>น้ำหนัก:</label>
+                                <input type="number" step="0.01" v-model.number="factor.weight" class="weight-input-field" @input="debouncePreview" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </div>
+
+          <!-- Preview Section -->
+          <div class="preview-section">
+              <div v-if="isPreviewLoading" class="preview-loading">
+                  กำลังคำนวณผลลัพธ์...
+              </div>
+              <div v-else-if="previewScore" class="preview-results">
+                  <h4>เปรียบเทียบผลลัพธ์</h4>
+                  <div class="preview-row">
+                      <span class="preview-label">คะแนนเครดิต:</span>
+                      <span class="preview-old">{{ creditScore?.totalScore || '-' }}</span>
+                      <span class="preview-arrow">➔</span>
+                      <span class="preview-new">{{ previewScore.totalScore }}</span>
+                  </div>
+                  <div class="preview-row">
+                      <span class="preview-label">เกรด:</span>
+                      <span class="preview-old" :class="getGradeClass(creditScore?.grade)">เกรด {{ creditScore?.grade || '-' }}</span>
+                      <span class="preview-arrow">➔</span>
+                      <span class="preview-new" :class="getGradeClass(previewScore.grade)">เกรด {{ previewScore.grade }}</span>
+                  </div>
+                  <div class="preview-row">
+                      <span class="preview-label">วงเงินแนะนำ:</span>
+                      <span class="preview-old">{{ formatNumber(creditScore?.recommendedLimit) }} บาท</span>
+                      <span class="preview-arrow">➔</span>
+                      <span class="preview-new highlight-limit">{{ formatNumber(previewScore.recommendedLimit) }} บาท</span>
+                  </div>
+              </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="closeOverrideModal">ยกเลิก</button>
+          <button class="btn-save" @click="saveOverride" :disabled="isRecalculating || !isWeightsValid">
+            {{ isRecalculating ? 'กำลังคำนวณ...' : 'คำนวณใหม่และบันทึก' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</template>
     </div>
 
     <div class="suggestion-section">
@@ -217,7 +364,7 @@
           <!-- Preview Section -->
           <div class="preview-section">
               <div v-if="isPreviewLoading" class="preview-loading">
-                  กำลังจำลองผลลัพธ์...
+                  กำลังคำนวณผลลัพธ์...
               </div>
               <div v-else-if="previewScore" class="preview-results">
                   <h4>เปรียบเทียบผลลัพธ์</h4>
@@ -244,12 +391,13 @@
         </div>
         <div class="modal-footer">
           <button class="btn-cancel" @click="closeOverrideModal">ยกเลิก</button>
-          <button class="btn-save" @click="saveOverride" :disabled="isRecalculating || (enableCustomWeights && !isWeightsValid)">
+          <button class="btn-save" @click="saveOverride" :disabled="isRecalculating || !isWeightsValid">
             {{ isRecalculating ? 'กำลังคำนวณ...' : 'คำนวณใหม่และบันทึก' }}
           </button>
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -259,7 +407,6 @@ import iconShoppingCart from '@/assets/icons/shopping-cart.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
 import { computed } from 'vue';
-import axios from 'axios';
 
 export default {
   name: 'CreditScoreSummary',
@@ -275,8 +422,8 @@ export default {
       isPreviewLoading: false,
       previewScore: null,
       customWeights: {},
-      isLoadingWeights: false,
-      previewTimeout: null
+      previewTimeout: null,
+      isLoadingWeights: false
     };
   },
   props: {
@@ -305,22 +452,6 @@ export default {
         }
         return this.financial.category_breakdown.slice(0, 3);
     },
-    currentTotalWeight() {
-        let total = 0;
-        if (!this.customWeights) return 0;
-        Object.values(this.customWeights).forEach(comp => {
-            if (comp.factors) {
-                comp.factors.forEach(f => {
-                    total += (Number(f.weight) || 0);
-                });
-            }
-        });
-        return total;
-    },
-    isWeightsValid() {
-        // Allow tiny floating point differences
-        return Math.abs(this.currentTotalWeight - 200) < 0.01;
-    },
     sortedSuggestions() {
       if (!this.suggestions || this.suggestions.length === 0) return [];
 
@@ -347,22 +478,135 @@ export default {
           return authStore.hideCreditScoreEnabled && authStore.isInitiator && store.requestStatus !== 'Approved';
       });
 
-      const canOverrideScore = computed(() => {
-          return authStore.isFinanceOfficer || authStore.isFinanceManager || authStore.isCreditCommittee;
-      });
-
       return {
-          store,
           creditScore,
-          shouldHideValues,
-          canOverrideScore
+          shouldHideValues
       };
   },
-  watch: {
+  methods: {
+      getTrendClass(trendString) {
+          if (!trendString) return '';
+          if (trendString.includes('เพิ่มขึ้น')) return 'up';
+          if (trendString.includes('ลดลง')) return 'down';
+          return 'neutral';
+      },
+      getSuggestionClass(suggestion) {
+          if (!suggestion) return '';
+          const positiveKeywords = ['ลูกค้าชั้นดี', 'มียอดซื้อสะสมสูง', 'สั่งซื้อต่อเนื่อง', 'เติบโต', 'ตรงเวลา', 'สม่ำเสมอ', 'ชำระเงินดี'];
+          const negativeKeywords = ['ไม่มียอดซื้อ', 'สูงถึง', 'ลดลง', 'ไม่สามารถ', 'Error'];
+          const warningKeywords = ['ปานกลาง', 'ทั่วไป', 'เว้นช่วง', 'ควรติดต่อ', 'ควรติดตาม'];
+
+          if (positiveKeywords.some(kw => suggestion.includes(kw))) {
+              return 'suggestion-positive';
+          }
+          if (negativeKeywords.some(kw => suggestion.includes(kw))) {
+              return 'suggestion-negative';
+          }
+          if (warningKeywords.some(kw => suggestion.includes(kw))) {
+              return 'suggestion-warning';
+          }
+          return ''; // default black bullet
+      },
+      toggleMonthlyDetails() {
+        this.showMonthlyDetails = !this.showMonthlyDetails;
+      },
+      formatNumber(num) {
+        if (num === null || num === undefined) return '-';
+        return num.toLocaleString('th-TH');
+      },
+      formatDecimal(num) {
+         if (num === null || num === undefined) return '-';
+
+         let parsedNum = num;
+         if (typeof num === 'string') {
+             // Remove commas before parsing to float
+             parsedNum = parseFloat(num.replace(/,/g, ''));
+         }
+
+         if (isNaN(parsedNum)) return '-';
+
+         return parsedNum.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      },
+      getGradeClass(grade) {
+          if (grade === 'A') return 'grade-a';
+          if (grade === 'B') return 'grade-b';
+          return 'grade-c';
+      },
+      async fetchPreviewScore() {
+          if (!this.isWeightsValid) return;
+          this.isPreviewLoading = true;
+          try {
+              await new Promise(resolve => {
+                  const payload = {
+                      preview: true,
+                      callback: (result) => {
+                          this.previewScore = result;
+                          resolve();
+                      }
+                  };
+                  if (this.enableCustomWeights && this.isWeightsValid) {
+                      payload.custom_weights = JSON.stringify(this.customWeights);
+                  }
+                  this.$emit('recalculate', payload);
+              });
+          } catch (e) {
+              console.error("Failed to fetch preview score", e);
+          } finally {
+              this.isPreviewLoading = false;
+          }
+      },
+      async openOverrideModal() {
+          this.showOverrideModal = true;
+          this.enableCustomWeights = true;
+
+          if (this.store.transactionData?.custom_weights) {
+              this.customWeights = JSON.parse(JSON.stringify(this.store.transactionData.custom_weights));
+              this.fetchPreviewScore();
+          } else {
+              await this.loadDefaultWeights();
+              this.fetchPreviewScore();
+          }
+      },
+      async loadDefaultWeights() {
+          this.isLoadingWeights = true;
+          try {
+              const modelType = this.creditScore?.modelType || 'new';
+              const axios = (await import('axios')).default;
+              const response = await axios.get(`/api/scorecard/${modelType}`);
+              if (response.data && response.data.components) {
+                  const weightsObj = {};
+                  Object.entries(response.data.components).forEach(([compKey, compVal]) => {
+                      weightsObj[compKey] = {
+                          name: compVal.name,
+                          factors: compVal.factors.map(f => ({
+                              key: f.key,
+                              label: f.label,
+                              weight: f.weight
+                          }))
+                      };
+                  });
+                  this.customWeights = weightsObj;
+              }
+          } catch (e) {
+              console.error("Failed to load default weights:", e);
+          } finally {
+              this.isLoadingWeights = false;
+          }
+      },
+      debouncePreview() {
+          if (this.previewTimeout) clearTimeout(this.previewTimeout);
+          this.previewTimeout = setTimeout(() => {
+              if (this.isWeightsValid) {
+                  this.fetchPreviewScore();
+              }
+          }, 500);
+      },
+      closeOverrideModal() {
+          this.showOverrideModal = false;
+      },
       async saveOverride() {
           this.isRecalculating = true;
           try {
-              // Set the override flag and custom weights in transactionData so it can be picked up globally
               const updateData = {};
               if (this.enableCustomWeights && this.isWeightsValid) {
                   updateData.custom_weights = this.customWeights;
@@ -371,13 +615,12 @@ export default {
               }
               this.store.updateTransactionData(updateData);
 
-              const payload = { force_full_purchase_score: false };
+              const payload = {};
               if (updateData.custom_weights) {
                   payload.custom_weights = JSON.stringify(updateData.custom_weights);
               }
               this.$emit('recalculate', payload);
 
-              // Temporarily just close modal. The parent will handle the loading state/refresh.
               this.closeOverrideModal();
           } catch (error) {
               console.error(error);
@@ -825,11 +1068,8 @@ h3 {
 
 .score-header-row h3 {
     margin: 0;
-    /* Center it visually or keep it left aligned, depending on parent */
-    /* If the parent expects it to be centered, we can use absolute positioning on the button */
 }
 
-/* Absolute position for the edit button to keep the header text centered if needed */
 .btn-edit-score {
     position: absolute;
     right: 0;
@@ -903,85 +1143,6 @@ h3 {
 
 .modal-body {
     padding: 20px;
-}
-
-.override-option {
-    background-color: #f8f9fa;
-    padding: 16px;
-    border-radius: 6px;
-    border: 1px solid #e9ecef;
-}
-
-/* Custom Checkbox */
-.checkbox-container {
-    display: flex;
-    align-items: flex-start;
-    position: relative;
-    cursor: pointer;
-    user-select: none;
-}
-
-.checkbox-container input {
-    position: absolute;
-    opacity: 0;
-    cursor: pointer;
-    height: 0;
-    width: 0;
-}
-
-.checkmark {
-    position: relative;
-    top: 2px;
-    height: 20px;
-    width: 20px;
-    background-color: #fff;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    margin-right: 12px;
-    flex-shrink: 0;
-}
-
-.checkbox-container:hover input ~ .checkmark {
-    border-color: #adb5bd;
-}
-
-.checkbox-container input:checked ~ .checkmark {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-}
-
-.checkmark:after {
-    content: "";
-    position: absolute;
-    display: none;
-}
-
-.checkbox-container input:checked ~ .checkmark:after {
-    display: block;
-}
-
-.checkbox-container .checkmark:after {
-    left: 6px;
-    top: 2px;
-    width: 5px;
-    height: 10px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-
-.option-text strong {
-    display: block;
-    color: #212529;
-    font-size: 14px;
-    margin-bottom: 4px;
-}
-
-.option-text p {
-    margin: 0;
-    color: #6c757d;
-    font-size: 12px;
-    line-height: 1.4;
 }
 
 .modal-footer {
