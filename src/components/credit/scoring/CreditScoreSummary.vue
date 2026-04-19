@@ -184,18 +184,7 @@
           <button class="close-btn" @click="closeOverrideModal">×</button>
         </div>
         <div class="modal-body">
-          <div class="override-option">
-            <label class="checkbox-container">
-              <input type="checkbox" v-model="enableCustomWeights" />
-              <span class="checkmark"></span>
-              <div class="option-text">
-                <strong>เปิดใช้งานการปรับน้ำหนักแบบกำหนดเอง (Custom Weights)</strong>
-                <p>อนุญาตให้ปรับเปลี่ยนน้ำหนักในโมเดลคะแนนเครดิตได้ (รวมต้องเท่ากับ 200)</p>
-              </div>
-            </label>
-          </div>
-
-          <div v-if="enableCustomWeights" class="custom-weights-container">
+          <div class="custom-weights-container">
             <div class="validation-banner" :class="{ 'valid': isWeightsValid, 'invalid': !isWeightsValid }">
                 <span>ผลรวมน้ำหนักทั้งหมด:</span>
                 <span class="total-weight-val">{{ currentTotalWeight.toFixed(2) }} / 200.00</span>
@@ -206,7 +195,7 @@
                 กำลังโหลดข้อมูลโมเดล...
             </div>
 
-            <div v-else class="weight-components-list">
+            <div v-else-if="!isLoadingWeights" class="weight-components-list">
                 <div v-for="(comp, compKey) in customWeights" :key="compKey" class="weight-component">
                     <h5 class="comp-title">{{ comp.name || compKey }}</h5>
                     <div class="factor-grid">
@@ -226,7 +215,7 @@
           </div>
 
           <!-- Preview Section -->
-          <div v-if="enableCustomWeights" class="preview-section">
+          <div class="preview-section">
               <div v-if="isPreviewLoading" class="preview-loading">
                   กำลังจำลองผลลัพธ์...
               </div>
@@ -370,145 +359,6 @@ export default {
       };
   },
   watch: {
-      enableCustomWeights(newValue) {
-          if (newValue) {
-              this.fetchPreviewScore();
-          } else {
-              this.previewScore = null;
-          }
-      }
-  },
-  methods: {
-      async fetchPreviewScore() {
-          this.isPreviewLoading = true;
-          this.previewScore = null;
-          try {
-              // We need the parent to perform the API call and return the score
-              // We can wrap the emit in a Promise if the parent supports it,
-              // but Vue 3's emit doesn't inherently return a Promise.
-              // Alternatively, we can pass a callback function to the event.
-              await new Promise(resolve => {
-                  const payload = {
-                      force_full_purchase_score: false,
-                      preview: true,
-                      callback: (result) => {
-                          this.previewScore = result;
-                          resolve();
-                      }
-                  };
-                  if (this.isWeightsValid) {
-                      payload.custom_weights = JSON.stringify(this.customWeights);
-                  }
-                  this.$emit('recalculate', payload);
-              });
-          } catch (e) {
-              console.error("Preview failed:", e);
-          } finally {
-              this.isPreviewLoading = false;
-          }
-      },
-      getTrendClass(trendString) {
-          if (!trendString) return '';
-          if (trendString.includes('เพิ่มขึ้น')) return 'up';
-          if (trendString.includes('ลดลง')) return 'down';
-          return 'neutral';
-      },
-      getSuggestionClass(suggestion) {
-          if (!suggestion) return '';
-          const positiveKeywords = ['ลูกค้าชั้นดี', 'มียอดซื้อสะสมสูง', 'สั่งซื้อต่อเนื่อง', 'เติบโต', 'ตรงเวลา', 'สม่ำเสมอ', 'ชำระเงินดี'];
-          const negativeKeywords = ['ไม่มียอดซื้อ', 'สูงถึง', 'ลดลง', 'ไม่สามารถ', 'Error'];
-          const warningKeywords = ['ปานกลาง', 'ทั่วไป', 'เว้นช่วง', 'ควรติดต่อ', 'ควรติดตาม'];
-
-          if (positiveKeywords.some(kw => suggestion.includes(kw))) {
-              return 'suggestion-positive';
-          }
-          if (negativeKeywords.some(kw => suggestion.includes(kw))) {
-              return 'suggestion-negative';
-          }
-          if (warningKeywords.some(kw => suggestion.includes(kw))) {
-              return 'suggestion-warning';
-          }
-          return ''; // default black bullet
-      },
-      toggleMonthlyDetails() {
-        this.showMonthlyDetails = !this.showMonthlyDetails;
-      },
-      formatNumber(num) {
-        if (num === null || num === undefined) return '-';
-        return num.toLocaleString('th-TH');
-      },
-      formatDecimal(num) {
-         if (num === null || num === undefined) return '-';
-
-         let parsedNum = num;
-         if (typeof num === 'string') {
-             // Remove commas before parsing to float
-             parsedNum = parseFloat(num.replace(/,/g, ''));
-         }
-
-         if (isNaN(parsedNum)) return '-';
-
-         return parsedNum.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      },
-      getGradeClass(grade) {
-          if (grade === 'A') return 'grade-a';
-          if (grade === 'B') return 'grade-b';
-          return 'grade-c';
-      },
-      async openOverrideModal() {
-          this.showOverrideModal = true;
-          // Check if we already have custom weights saved in transaction data
-          if (this.store.transactionData?.custom_weights) {
-              this.enableCustomWeights = true;
-              this.customWeights = JSON.parse(JSON.stringify(this.store.transactionData.custom_weights));
-              this.fetchPreviewScore();
-          } else if (this.store.transactionData?.force_full_purchase_score === true || this.store.transactionData?.force_full_purchase_score === 'true') {
-              this.enableCustomWeights = true;
-              await this.loadDefaultWeights();
-              this.fetchPreviewScore();
-          } else {
-              this.enableCustomWeights = false;
-              await this.loadDefaultWeights();
-          }
-      },
-      async loadDefaultWeights() {
-          this.isLoadingWeights = true;
-          try {
-              // Determine if new or existing model based on score data or default to new
-              const modelType = this.creditScore?.modelType || 'new';
-              const response = await axios.get(`/api/scorecard/${modelType}`);
-              if (response.data && response.data.components) {
-                  // We only need the component name and factor keys, labels, weights
-                  const weightsObj = {};
-                  Object.entries(response.data.components).forEach(([compKey, compVal]) => {
-                      weightsObj[compKey] = {
-                          name: compVal.name,
-                          factors: compVal.factors.map(f => ({
-                              key: f.key,
-                              label: f.label,
-                              weight: f.weight
-                          }))
-                      };
-                  });
-                  this.customWeights = weightsObj;
-              }
-          } catch (e) {
-              console.error("Failed to load default weights:", e);
-          } finally {
-              this.isLoadingWeights = false;
-          }
-      },
-      debouncePreview() {
-          if (this.previewTimeout) clearTimeout(this.previewTimeout);
-          this.previewTimeout = setTimeout(() => {
-              if (this.isWeightsValid) {
-                  this.fetchPreviewScore();
-              }
-          }, 500);
-      },
-      closeOverrideModal() {
-          this.showOverrideModal = false;
-      },
       async saveOverride() {
           this.isRecalculating = true;
           try {
