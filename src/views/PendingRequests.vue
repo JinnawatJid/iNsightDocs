@@ -86,19 +86,55 @@ const handleRecalculateScore = async (payload) => {
     // If we have a request ID, we can trigger a recalculate by building a form data payload
     if (!store.requestId || !store.customer?.id) return;
 
-    // Instead of duplicating the entire analyze payload from StoreStatementTab,
-    // we use the backend endpoint passing the `use_local` flag and the `force_full_purchase_score`.
-    // The backend will fetch the local files and re-run the scorecard.
+    // Calculate total guarantee sum from snapshot data accurately
+    let totalGuaranteeSum = 0;
+    const tData = store.transactionData || {};
+    const generalGuaranteeKeys = ['bankGuaranteeDetails', 'letterGuaranteeDetails', 'cashDepositDetails'];
+    generalGuaranteeKeys.forEach(key => {
+        const detailsMap = tData[key] || {};
+        Object.values(detailsMap).forEach(detail => {
+            if (detail.amount) {
+                const num = parseFloat(String(detail.amount).replace(/,/g, ''));
+                if (!isNaN(num)) totalGuaranteeSum += num;
+            }
+        });
+    });
+    if (tData.projectData && Array.isArray(tData.projectData)) {
+        tData.projectData.forEach(project => {
+            const projectGuaranteeKeys = ['projectBankGuaranteeDetails', 'projectCashDepositDetails'];
+            projectGuaranteeKeys.forEach(key => {
+                const detailsMap = project[key] || {};
+                Object.values(detailsMap).forEach(detail => {
+                    if (detail.amount) {
+                        const num = parseFloat(String(detail.amount).replace(/,/g, ''));
+                        if (!isNaN(num)) totalGuaranteeSum += num;
+                    }
+                });
+            });
+        });
+    }
+
+    // Calculate max credit term from snapshot data
+    const t1 = parseInt(tData.termGS || 0);
+    const t2 = parseInt(tData.termAE || 0);
+    const t3 = parseInt(tData.termYC || 0);
+    const requestTerm = tData.creditTerm || Math.max(t1, t2, t3) || '30';
+
+    const cleanCapital = tData.registeredCapital ? String(tData.registeredCapital).replace(/,/g, '') : '0';
+
     const formData = new FormData();
     formData.append('customer_no', store.customer.id);
     formData.append('use_local', 'true');
-    formData.append('model_type', store.transactionData?.modelType || 'new');
-    formData.append('registered_capital', store.transactionData?.registeredCapital || 0);
-    formData.append('request_amount', store.transactionData?.amount || 0);
-    formData.append('request_credit_term', store.transactionData?.creditTerm || 0);
-    formData.append('customer_duration', store.transactionData?.customerDuration || 0);
-    formData.append('wadl', store.transactionData?.wadl || 0);
-    formData.append('total_guarantee_amount', store.transactionData?.totalGuaranteeAmount || 0);
+    formData.append('model_type', tData.modelType || 'new');
+    formData.append('registered_capital', cleanCapital);
+    formData.append('request_amount', String(tData.amount || 0).replace(/,/g, ''));
+    formData.append('request_credit_term', requestTerm);
+    formData.append('customer_duration', tData.customerDuration || '0');
+    formData.append('years_in_business', store.customer.years_in_business || '0');
+    formData.append('residence_ownership', store.customer.residence_ownership || '');
+    formData.append('residence_ownership_other', store.customer.residence_ownership_other || '');
+    formData.append('wadl', tData.wadl || 0);
+    formData.append('total_guarantee_amount', totalGuaranteeSum);
 
     if (payload.force_full_purchase_score) {
         formData.append('force_full_purchase_score', 'true');

@@ -307,9 +307,11 @@ class ExistingCustomerScorecard extends BaseScorecard {
         }
 
         if (forceFullPurchaseScore) {
-            // Find max possible score from rules config
+            // Find max possible rule multiplier from rules config
             const rules = this.evaluator.config?.components?.c3?.factors?.find(f => f.key === 'turnover_speed')?.rules || [];
             const maxRuleScore = Math.max(...rules.map(r => r.score || 0), 2.0);
+            // The mathematical formula in ScorecardEvaluator is: finalScore = ruleScore * (weight / 2.0)
+            // By applying the maxRuleScore, we ensure the customer gets the maximum possible score for this factor.
             turnoverRes.score = maxRuleScore * (turnoverRes.weight / 2.0);
             turnoverRes.matchedRule = "(Manual Override)";
         }
@@ -336,9 +338,11 @@ class ExistingCustomerScorecard extends BaseScorecard {
         }
 
         if (forceFullPurchaseScore) {
-            // Find max possible score from rules config
+            // Find max possible rule multiplier from rules config
             const rules = this.evaluator.config?.components?.c3?.factors?.find(f => f.key === 'purchase_trend')?.rules || [];
             const maxRuleScore = Math.max(...rules.map(r => r.score || 0), 2.0);
+            // The mathematical formula in ScorecardEvaluator is: finalScore = ruleScore * (weight / 2.0)
+            // By applying the maxRuleScore, we ensure the customer gets the maximum possible score for this factor.
             trendRes.score = maxRuleScore * (trendRes.weight / 2.0);
             trendRes.matchedRule = "(Manual Override)";
         }
