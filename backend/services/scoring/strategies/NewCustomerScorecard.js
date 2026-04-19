@@ -25,7 +25,7 @@ class NewCustomerScorecard extends BaseScorecard {
         // 1. Calculate Component Scores
         const c1 = this.calculateC1(customer, registeredCapital, requestAmount);
         const c2 = this.calculateC2(financials, isCompany);
-        const c3 = this.calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, /* forceFullPurchaseScore removed */);
+        const c3 = this.calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration);
 
         // 2. Aggregate Total Score
         const totalScore = c1.total + c2.total + c3.total;
@@ -222,7 +222,7 @@ class NewCustomerScorecard extends BaseScorecard {
     /**
      * Override C3 to use Evaluator
      */
-    calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, /* forceFullPurchaseScore removed */ = false) {
+    calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration) {
         let score = 0;
         const items = [];
         const debug = [];
