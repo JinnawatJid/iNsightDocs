@@ -203,6 +203,14 @@
                             <div class="factor-info">
                                 <span class="factor-label">{{ factor.label }}</span>
                                 <span class="factor-key">{{ factor.key }}</span>
+                            <label v-if="isMaxTargetFactor(factor.key)" class="force-max-toggle">
+                              <input
+                                type="checkbox"
+                                :checked="isFactorForcedMax(factor.key)"
+                                @change="toggleFactorMax(factor.key, $event)"
+                              />
+                              <span>Max out score for this factor</span>
+                            </label>
                             </div>
                             <div class="factor-input">
                                 <label>น้ำหนัก:</label>
@@ -275,6 +283,7 @@ export default {
       isPreviewLoading: false,
       previewScore: null,
       customWeights: {},
+      maxScoreFactorKeys: [],
       previewTimeout: null,
       isLoadingWeights: false
     };
@@ -320,6 +329,24 @@ export default {
       };
 
       return [...this.suggestions].sort((a, b) => getWeight(a) - getWeight(b));
+    },
+    currentTotalWeight() {
+      if (!this.customWeights) return 0;
+
+      let total = 0;
+      Object.values(this.customWeights).forEach((comp) => {
+        if (comp && comp.factors) {
+          comp.factors.forEach((factor) => {
+            total += parseFloat(factor.weight) || 0;
+          });
+        }
+      });
+
+      return total;
+    },
+    isWeightsValid() {
+      // UI requirement: total must be exactly 200.
+      return Math.abs(this.currentTotalWeight - 200) < 0.01;
     }
   },
   setup() {
@@ -406,6 +433,9 @@ export default {
                   if (this.enableCustomWeights && this.isWeightsValid) {
                       payload.custom_weights = JSON.stringify(this.customWeights);
                   }
+                    if (this.maxScoreFactorKeys.length > 0) {
+                      payload.max_score_factors = JSON.stringify(this.maxScoreFactorKeys);
+                    }
                   this.$emit('recalculate', payload);
               });
           } catch (e) {
@@ -417,6 +447,11 @@ export default {
       async openOverrideModal() {
           this.showOverrideModal = true;
           this.enableCustomWeights = true;
+
+          const savedMaxFactors = this.store.transactionData?.max_score_factors;
+          this.maxScoreFactorKeys = Array.isArray(savedMaxFactors)
+            ? JSON.parse(JSON.stringify(savedMaxFactors))
+            : [];
 
           if (this.store.transactionData?.custom_weights) {
               this.customWeights = JSON.parse(JSON.stringify(this.store.transactionData.custom_weights));
@@ -460,6 +495,23 @@ export default {
               }
           }, 500);
       },
+        isMaxTargetFactor(factorKey) {
+          return ['capacity_check', 'turnover_speed', 'purchase_trend'].includes(factorKey);
+        },
+        isFactorForcedMax(factorKey) {
+          return this.maxScoreFactorKeys.includes(factorKey);
+        },
+        toggleFactorMax(factorKey, event) {
+          const checked = event?.target?.checked === true;
+          if (checked) {
+            if (!this.maxScoreFactorKeys.includes(factorKey)) {
+              this.maxScoreFactorKeys = [...this.maxScoreFactorKeys, factorKey];
+            }
+          } else {
+            this.maxScoreFactorKeys = this.maxScoreFactorKeys.filter(key => key !== factorKey);
+          }
+          this.debouncePreview();
+        },
       closeOverrideModal() {
           this.showOverrideModal = false;
       },
@@ -472,12 +524,16 @@ export default {
               } else {
                   updateData.custom_weights = null;
               }
+                updateData.max_score_factors = this.maxScoreFactorKeys;
               this.store.updateTransactionData(updateData);
 
               const payload = {};
               if (updateData.custom_weights) {
                   payload.custom_weights = JSON.stringify(updateData.custom_weights);
               }
+                if (this.maxScoreFactorKeys.length > 0) {
+                  payload.max_score_factors = JSON.stringify(this.maxScoreFactorKeys);
+                }
               this.$emit('recalculate', payload);
 
               this.closeOverrideModal();
@@ -967,7 +1023,7 @@ h3 {
 .modal-content {
     background: white;
     border-radius: 8px;
-    width: 700px;
+  width: 550px;
     max-width: 95%;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
@@ -1154,6 +1210,7 @@ h3 {
     color: #004085;
     border-bottom: 1px dashed #ccc;
     padding-bottom: 4px;
+    text-align: left;
 }
 
 .factor-grid {
@@ -1175,6 +1232,8 @@ h3 {
 .factor-info {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
 }
 
 .factor-label {
@@ -1186,6 +1245,20 @@ h3 {
 .factor-key {
     font-size: 11px;
     color: #888;
+}
+
+.force-max-toggle {
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #0a58ca;
+  cursor: pointer;
+}
+
+.force-max-toggle input {
+  margin: 0;
 }
 
 .factor-input {

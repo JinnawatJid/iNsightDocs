@@ -517,7 +517,8 @@ exports.analyzeFinancials = async (req, res) => {
       fetch_purchase_by,
       total_guarantee_amount,
       force_full_purchase_score,
-      custom_weights
+            custom_weights,
+            max_score_factors
     } = req.body;
 
     // Parse custom_weights if provided
@@ -546,6 +547,18 @@ if (custom_weights) {
             }
         } catch (e) {
             logger.warn(`Failed to parse custom_weights: ${e.message}`);
+        }
+    }
+
+    let parsedMaxScoreFactors = [];
+    if (max_score_factors) {
+        try {
+            const parsed = JSON.parse(max_score_factors);
+            if (Array.isArray(parsed)) {
+                parsedMaxScoreFactors = parsed.filter((key) => typeof key === 'string');
+            }
+        } catch (e) {
+            logger.warn(`Failed to parse max_score_factors: ${e.message}`);
         }
     }
 
@@ -918,7 +931,8 @@ if (custom_weights) {
         wadl: wadl ? parseFloat(wadl) : (typeof wadlDataResult !== 'undefined' && wadlDataResult ? wadlDataResult.score : 0),
         totalGuaranteeAmount: total_guarantee_amount ? parseFloat(total_guarantee_amount) : 0,
         forceFullPurchaseScore: force_full_purchase_score === 'true' || force_full_purchase_score === true,
-        customWeights: parsedCustomWeights
+        customWeights: parsedCustomWeights,
+        maxScoreFactors: parsedMaxScoreFactors
     };
 
     // Execute Scoring via Engine

@@ -3,17 +3,23 @@ const fs = require('fs');
 const path = require('path');
 
 class ScorecardEvaluator {
-    constructor(configFileName = 'credit_scorecard_v1.json', customWeights = null) {
+    constructor(configFileName = 'credit_scorecard_v1.json', customWeights = null, options = {}) {
         const configPath = path.resolve(__dirname, `../../config/${configFileName}`);
         try {
             const raw = fs.readFileSync(configPath, 'utf8');
             this.config = JSON.parse(raw);
             this.customWeights = customWeights;
+            this.maxScoreFactors = new Set(Array.isArray(options.maxScoreFactors) ? options.maxScoreFactors : []);
         } catch (error) {
             logger.error(`[ScorecardEvaluator] Error loading config (${configFileName}): ${error.message}`);
             this.config = null;
             this.customWeights = null;
+            this.maxScoreFactors = new Set();
         }
+    }
+
+    isForcedMax(componentKey, factorKey) {
+        return this.maxScoreFactors.has(factorKey) || this.maxScoreFactors.has(`${componentKey}.${factorKey}`);
     }
 
     /**
@@ -46,6 +52,19 @@ class ScorecardEvaluator {
         if (!matchedRule) {
              // Try to find default
              matchedRule = factor.rules.find(r => r.default) || { score: 0, label: "No Match" };
+        }
+
+        if (this.isForcedMax(componentKey, factorKey)) {
+            const maxRuleScore = factor.rules.reduce((max, rule) => {
+                if (typeof rule.score !== 'number') return max;
+                return rule.score > max ? rule.score : max;
+            }, 0);
+
+            matchedRule = {
+                ...matchedRule,
+                score: maxRuleScore,
+                label: `Forced Max Score (${maxRuleScore})`
+            };
         }
 
         // Calculate Final Score

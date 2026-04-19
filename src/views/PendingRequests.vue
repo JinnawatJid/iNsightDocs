@@ -144,6 +144,10 @@ const handleRecalculateScore = async (payload) => {
         formData.append('custom_weights', payload.custom_weights);
     }
 
+    if (payload.max_score_factors) {
+        formData.append('max_score_factors', payload.max_score_factors);
+    }
+
     try {
         const axios = (await import('axios')).default;
         const response = await axios.post('/api/financials/analyze', formData, {
