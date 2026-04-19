@@ -8,6 +8,7 @@ The `CreateCreditRequest` feature STRICTLY enforces a **"Search First"** pattern
    - The Search input is active on the left.
    - The Action area (Request Type) on the right displays a **disabled placeholder** (`กรุณาค้นหาลูกค้าก่อน...`).
    - The main content area shows a generic search prompt.
+   - **Single Customer View (SCV) Enforcement:** When a user searches for a customer, the system queries the external API using the customer's 13-digit VAT Registration Number (`vatNo`). If another branch account with the same VAT ID already has an active credit limit (`Fixed Credit Limit > 0`), the UI displays a SweetAlert2 warning ("พบข้อมูลเครดิตเดิม") and automatically redirects the search context to the account holding the credit line. This prevents "limit stacking" across multiple duplicate accounts.
 
 2. **Context Mode (Dashboard State)**:
    - Triggered when `store.hasSearched = true` AND `!isRequestStarted`.
