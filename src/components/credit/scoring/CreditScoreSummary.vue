@@ -3,7 +3,12 @@
 
     <!-- NEW: Credit Score Section -->
     <div v-if="creditScore && creditScore.totalScore !== undefined && !shouldHideValues" class="score-section">
-        <h3>ผลคะแนนเครดิต</h3>
+        <div class="score-header-row">
+            <h3 class="flex-1 text-center m-0">ผลคะแนนเครดิต</h3>
+            <button v-if="canOverrideScore" class="btn-edit-score" @click="openOverrideModal" title="ปรับปรุงผลลัพธ์การประเมิน">
+                ⚙️ ปรับแก้
+            </button>
+        </div>
 
         <div class="score-display">
             <div class="score-circle" :class="getGradeClass(creditScore.grade)">
@@ -64,12 +69,6 @@
         </div>
 
         <hr class="divider" />
-
-        <div v-if="canOverrideScore" class="score-override-section">
-            <button class="btn-override" @click="openOverrideModal">
-                ⚙️ ปรับปรุงผลลัพธ์การประเมิน
-            </button>
-        </div>
     </div>
 
 
@@ -796,26 +795,42 @@ h3 {
   }
 }
 
-/* Override Section */
-.score-override-section {
-    text-align: center;
-    margin-bottom: 10px;
+/* Override Header & Button */
+.score-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
 }
 
-.btn-override {
-    background-color: #f8f9fa;
-    border: 1px dashed #6c757d;
-    color: #495057;
-    padding: 6px 16px;
-    border-radius: 4px;
-    font-size: 13px;
+.score-header-row h3 {
+    margin: 0;
+    /* Center it visually or keep it left aligned, depending on parent */
+    /* If the parent expects it to be centered, we can use absolute positioning on the button */
+}
+
+/* Absolute position for the edit button to keep the header text centered if needed */
+.btn-edit-score {
+    position: absolute;
+    right: 0;
+    top: -5px;
+    background: transparent;
+    border: 1px solid #dee2e6;
+    color: #6c757d;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
-.btn-override:hover {
-    background-color: #e9ecef;
-    border-color: #495057;
+.btn-edit-score:hover {
+    background: #f8f9fa;
+    color: #495057;
+    border-color: #ced4da;
 }
 
 /* Modal Styles */
