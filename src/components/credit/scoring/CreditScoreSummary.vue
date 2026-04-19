@@ -218,14 +218,6 @@
                             <div class="factor-input">
                                 <label>น้ำหนัก:</label>
                                 <input type="number" step="0.01" v-model.number="factor.weight" class="weight-input-field" @input="debouncePreview" />
-                                <button
-                                    type="button"
-                                    class="btn-reset-factor"
-                                    :disabled="isFactorWeightAtDefault(compKey, factor)"
-                                    @click="resetFactorWeight(compKey, factor)"
-                                >
-                                    ค่าเริ่มต้น
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -507,30 +499,6 @@ export default {
       },
                     cloneWeights(weights) {
                       return JSON.parse(JSON.stringify(weights || {}));
-                    },
-                    getDefaultFactorWeight(compKey, factorKey) {
-                      const defaultComponent = this.defaultWeights?.[compKey];
-                      if (!defaultComponent?.factors) return null;
-
-                      const defaultFactor = defaultComponent.factors.find((f) => f.key === factorKey);
-                      if (!defaultFactor) return null;
-
-                      const weight = parseFloat(defaultFactor.weight);
-                      return Number.isFinite(weight) ? weight : null;
-                    },
-                    isFactorWeightAtDefault(compKey, factor) {
-                      const defaultWeight = this.getDefaultFactorWeight(compKey, factor?.key);
-                      if (defaultWeight === null) return false;
-
-                      const currentWeight = parseFloat(factor?.weight);
-                      return Math.abs((Number.isFinite(currentWeight) ? currentWeight : 0) - defaultWeight) < 0.01;
-                    },
-                    resetFactorWeight(compKey, factor) {
-                      const defaultWeight = this.getDefaultFactorWeight(compKey, factor?.key);
-                      if (defaultWeight === null) return;
-
-                      factor.weight = defaultWeight;
-                      this.debouncePreview();
                     },
                     resetAllWeightsToDefault() {
                       if (!this.defaultWeights || Object.keys(this.defaultWeights).length === 0) return;
@@ -1336,26 +1304,6 @@ h3 {
 .factor-input label {
     font-size: 12px;
     color: #555;
-}
-
-.btn-reset-factor {
-  border: 1px solid #ced4da;
-  background: #fff;
-  color: #495057;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 8px;
-  cursor: pointer;
-}
-
-.btn-reset-factor:hover:not(:disabled) {
-  background: #f8f9fa;
-}
-
-.btn-reset-factor:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .weight-input-field {
