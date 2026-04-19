@@ -27,8 +27,11 @@
             >
               {{ item.requestType }}
             </div>
-            <!-- item.amount is actually the TxID in the current API mapping -->
-            <div class="amount">{{ item.amount }}</div>
+            <!-- item.txId is the TxID, and item.requestAmount is the requested amount -->
+            <div class="tx-id">{{ item.txId || item.amount }}</div>
+            <div class="request-amount" v-if="item.requestAmount">
+              วงเงินที่ขอ: {{ formatCurrency(item.requestAmount) }} บาท
+            </div>
             <div class="date">{{ formatDate(item.date) }}</div>
           </div>
           <div class="item-status">
@@ -96,9 +99,15 @@ export default {
     };
   },
   methods: {
+      formatCurrency(val) {
+          if (!val) return '0.00';
+          const num = Number(val);
+          if (isNaN(num)) return '0.00';
+          return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      },
       handleClick(item) {
-          // item.amount holds the TxId (e.g. AYCA2501/014) based on customerController logic
-          const txId = item.amount;
+          // item.txId holds the TxId (fallback to item.amount for legacy compatibility)
+          const txId = item.txId || item.amount;
           if (txId) {
               this.store.loadRequestDetail(txId);
               this.$emit('request-selected', item);
@@ -270,10 +279,16 @@ h3 {
   background-color: #fff3cd;
 }
 
-.amount {
+.tx-id {
   font-weight: bold;
   font-size: 14px;
   color: #333;
+  margin-bottom: 2px;
+}
+
+.request-amount {
+  font-size: 13px;
+  color: #555;
   margin-bottom: 2px;
 }
 
