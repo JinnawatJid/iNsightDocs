@@ -2867,6 +2867,7 @@ button:disabled {
 .data-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .data-table th,
@@ -2874,6 +2875,7 @@ button:disabled {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid #eee;
+  box-sizing: border-box;
 }
 
 .data-table td {
@@ -2942,9 +2944,9 @@ button:disabled {
 
 .data-table th:nth-child(3),
 .data-table td:nth-child(3) {
-  width: 300px;
-  min-width: 300px;
-  max-width: 300px;
+  width: 300px !important;
+  min-width: 300px !important;
+  max-width: 300px !important;
   position: sticky;
   left: 170px;
   z-index: 10;
