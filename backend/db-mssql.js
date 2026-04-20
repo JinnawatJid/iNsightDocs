@@ -513,7 +513,7 @@ const initDB = async () => {
                                         const oldPath = path.join(customersDir, custDir, oldFolderName);
                                         if (fs.existsSync(oldPath)) {
                                             const newPath = path.join(customersDir, custDir, newFolderName);
-                                            fs.renameSync(oldPath, newPath);
+                                            fs.moveSync(oldPath, newPath, { overwrite: true });
                                             break;
                                         }
                                     }

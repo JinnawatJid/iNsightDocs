@@ -464,7 +464,7 @@ exports.createCreditRequest = async (req, res) => {
           if (await fs.pathExists(oldDir)) {
             // Ensure parent of newDir exists
             await fs.ensureDir(path.dirname(newDir));
-            await fs.move(oldDir, newDir);
+            await fs.move(oldDir, newDir, { overwrite: true });
           }
 
           // 2. Clone Parent Record with New ID (to satisfy FK constraints in MSSQL)
@@ -1189,7 +1189,7 @@ exports.uploadAdditionalDocument = async (req, res) => {
     const newPhysicalPath = path.join(customerDir, physicalFileName);
 
     // Move the file from temp storage to final destination
-    fs.renameSync(file.path, newPhysicalPath);
+    fs.moveSync(file.path, newPhysicalPath, { overwrite: true });
 
     // Prepare the logical path to store in DB (relative to base dir)
     const relativeFilePath = path

@@ -500,7 +500,7 @@ exports.streamDBDProfile = async (req, res) => {
         const pdfFilename = `DBD_Profile_${fileIdentifier}_${Date.now()}.pdf`;
         const pdfPath = path.join(downloadsDir, pdfFilename);
         if (await fs.pathExists(profilePdf)) {
-             await fs.move(profilePdf, pdfPath);
+             await fs.move(profilePdf, pdfPath, { overwrite: true });
         }
 
         let excelFilename = null;
@@ -512,7 +512,7 @@ exports.streamDBDProfile = async (req, res) => {
             if (balanceSheetExcel) {
                 excelFilename = `DBD_BalanceSheet_${fileIdentifier}_${Date.now()}.xlsx`;
                 const excelPath = path.join(downloadsDir, excelFilename);
-                await fs.move(balanceSheetExcel, excelPath);
+                await fs.move(balanceSheetExcel, excelPath, { overwrite: true });
             }
 
             // --- NEW: Download Income Statement (งบกำไรขาดทุน) ---
@@ -579,7 +579,7 @@ exports.streamDBDProfile = async (req, res) => {
         if (incomeStatementExcel) {
             incomeFilename = `DBD_IncomeStatement_${fileIdentifier}_${Date.now()}.xlsx`;
             const incomePath = path.join(downloadsDir, incomeFilename);
-            await fs.move(incomeStatementExcel, incomePath);
+            await fs.move(incomeStatementExcel, incomePath, { overwrite: true });
         }
 
         // --- NEW: Download Financial Ratios (อัตราส่วนทางการเงิน) ---
@@ -642,7 +642,7 @@ exports.streamDBDProfile = async (req, res) => {
         if (ratioExcel) {
             ratioFilename = `DBD_FinancialRatios_${fileIdentifier}_${Date.now()}.xlsx`;
             const ratioPath = path.join(downloadsDir, ratioFilename);
-            await fs.move(ratioExcel, ratioPath);
+            await fs.move(ratioExcel, ratioPath, { overwrite: true });
         }
         }
 
