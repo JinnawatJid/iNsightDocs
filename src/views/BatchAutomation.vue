@@ -2942,9 +2942,9 @@ button:disabled {
 
 .data-table th:nth-child(3),
 .data-table td:nth-child(3) {
-  width: 250px;
-  min-width: 250px;
-  max-width: 250px;
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
   position: sticky;
   left: 170px;
   z-index: 10;
