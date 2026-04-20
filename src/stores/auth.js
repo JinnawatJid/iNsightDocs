@@ -41,10 +41,10 @@ export const useAuthStore = defineStore('auth', {
       return state.user?.roles?.some(r => r.role === 'ผู้ตรวจสอบเอกสาร');
     },
     isFinanceManager: (state) => {
-      return state.user?.roles?.some(r => r.role === 'ผู้อนุมัติ (วงเงิน <300K)');
+      return state.user?.roles?.some(r => ['ผู้อนุมัติ (วงเงิน <300K)', 'ผู้จัดการฝ่ายการเงิน'].includes(r.role));
     },
     isCreditCommittee: (state) => {
-      return state.user?.roles?.some(r => r.role === 'ผู้อนุมัติ (วงเงิน > 300K)');
+      return state.user?.roles?.some(r => ['ผู้อนุมัติ (วงเงิน > 300K)', 'กรรมการเครดิต', 'กรรมการเครดิต (Legacy)'].includes(r.role));
     }
   },
 

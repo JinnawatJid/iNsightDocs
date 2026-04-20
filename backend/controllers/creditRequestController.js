@@ -305,6 +305,8 @@ exports.createCreditRequest = async (req, res) => {
   }
 
   try {
+    let existing = null;
+
     // Check for existing active request for this customer
     // Legacy statuses: Submitted, Reviewed
     // New statuses: RegionalSubmitted, SalesSubmitted, FinanceReviewed, Reviewed
@@ -319,23 +321,43 @@ exports.createCreditRequest = async (req, res) => {
     ];
     const statusPlaceholders = activeStatuses.map(() => "?").join(",");
 
-    let existingSql;
-    if (db.dbType === "mssql") {
-      existingSql = `
-        SELECT TOP 1 * FROM CreditRequests
-        WHERE customer_no = ? AND status IN (${statusPlaceholders})
-      `;
-    } else {
-      existingSql = `
-        SELECT * FROM CreditRequests
-        WHERE customer_no = ? AND status IN (${statusPlaceholders})
-        LIMIT 1
-      `;
+    let rows = [];
+
+    // If client specifies tx_id, always update that exact request first.
+    // This prevents accidentally updating another active request for the same customer.
+    if (tx_id) {
+      let txSql;
+      if (db.dbType === "mssql") {
+        txSql = `SELECT TOP 1 * FROM CreditRequests WHERE tx_id = ?`;
+      } else {
+        txSql = `SELECT * FROM CreditRequests WHERE tx_id = ? LIMIT 1`;
+      }
+      const { rows: txRows } = await db.query(txSql, [tx_id]);
+      rows = txRows || [];
     }
-    const { rows } = await db.query(existingSql, [
-      customer_no,
-      ...activeStatuses,
-    ]);
+
+    if (!rows.length) {
+      let existingSql;
+      if (db.dbType === "mssql") {
+        existingSql = `
+          SELECT TOP 1 * FROM CreditRequests
+          WHERE customer_no = ? AND status IN (${statusPlaceholders})
+          ORDER BY updated_at DESC
+        `;
+      } else {
+        existingSql = `
+          SELECT * FROM CreditRequests
+          WHERE customer_no = ? AND status IN (${statusPlaceholders})
+          ORDER BY updated_at DESC
+          LIMIT 1
+        `;
+      }
+      const { rows: existingRows } = await db.query(existingSql, [
+        customer_no,
+        ...activeStatuses,
+      ]);
+      rows = existingRows || [];
+    }
 
     let txId;
     let requestId;
@@ -350,7 +372,7 @@ exports.createCreditRequest = async (req, res) => {
     let responseRequestType = null;
 
     if (rows && rows.length > 0) {
-      const existing = rows[0];
+      existing = rows[0];
 
       // CONCURRENCY CHECK
       // If the client provided a tx_id (meaning they think they are updating a specific request)

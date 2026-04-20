@@ -69,8 +69,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       if (s === "Opened") return "ผู้จัดการภาค";
       if (s === "RegionalSubmitted") return "ผู้จัดการฝ่ายขาย";
       if (s === "SalesSubmitted") return "เจ้าหน้าที่ฝ่ายการเงิน";
-      if (s === "FinanceReviewed") return "ผู้อนุมัติ (วงเงิน <300K)";
-      if (s === "Reviewed") return "ผู้อนุมัติ (วงเงิน > 300K)";
+      if (s === "FinanceReviewed") return "ผู้จัดการฝ่ายการเงิน";
+      if (s === "Reviewed") return "กรรมการเครดิต";
 
       // Legacy support
       if (s === "Submitted") return "ผู้จัดการฝ่ายขาย (HO)";
@@ -1183,13 +1183,23 @@ export const useCreditRequestStore = defineStore("creditRequest", {
      * Reuses the createCreditRequest endpoint structure to progress the workflow.
      */
     async updateStatus(newStatus, comment = "") {
-      if (!this.requestId || !this.customer.id) return;
+      const customerNo = this.customer?.id || this.customer?.No_;
+      const customerName = this.customer?.name || this.customer?.Name;
+
+      if (!this.requestId || !customerNo || !customerName) {
+        Swal.fire(
+          "Error",
+          "ไม่พบข้อมูลคำขอหรือข้อมูลลูกค้า กรุณารีเฟรชและลองใหม่อีกครั้ง",
+          "error",
+        );
+        return false;
+      }
 
       this.loading = true;
       try {
         const formData = new FormData();
-        formData.append("customer_no", this.customer.id);
-        formData.append("customer_name", this.customer.name);
+        formData.append("customer_no", customerNo);
+        formData.append("customer_name", customerName);
 
         formData.append("request_amount", this.transactionData.amount || "");
         formData.append("request_reason", this.transactionData.reason || "");

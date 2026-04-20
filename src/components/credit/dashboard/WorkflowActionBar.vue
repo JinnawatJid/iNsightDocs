@@ -114,8 +114,10 @@ const handleAction = async (action) => {
     });
 
     if (isConfirmed && text) {
-      await store.updateStatus(action.targetStatus, text);
-      Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');
+      const ok = await store.updateStatus(action.targetStatus, text);
+      if (ok) {
+        Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');
+      }
     }
   }
   // Case 2: Comment Provided (Inline) OR Not Required -> Confirm then Submit
@@ -135,8 +137,10 @@ const handleAction = async (action) => {
           commentText = 'Approved/Verified';
       }
 
-      await store.updateStatus(action.targetStatus, commentText);
-      Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');
+      const ok = await store.updateStatus(action.targetStatus, commentText);
+      if (ok) {
+        Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');
+      }
     }
   }
 };
