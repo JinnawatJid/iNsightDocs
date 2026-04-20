@@ -364,9 +364,9 @@
         <div class="analysis-results-legacy">
 
         <!-- Scoring Highlight -->
-        <div v-if="analysisResults.scoringResult && !shouldHideValues" class="score-highlight">
+        <div v-if="analysisResults.scoringResult" class="score-highlight">
             <!-- Card 1: Credit Score (Narrower) -->
-            <div class="score-card card-narrow">
+            <div v-if="!shouldHideValues" class="score-card card-narrow">
                 <div class="score-title">คะแนนเครดิต</div>
                 <div class="score-val-container" :class="getGradeClass(analysisResults.scoringResult.grade)">
                     <div class="score-main">{{ analysisResults.scoringResult.totalScore }}</div>
@@ -397,7 +397,7 @@
             </div>
 
             <!-- Card 3: Limit -->
-            <div class="limit-card">
+            <div v-if="!shouldHideValues" class="limit-card">
                 <div class="score-title">วงเงินแนะนำ</div>
 
                 <template v-if="analysisResults.scoringResult.guaranteeAmount > 0">
@@ -1370,51 +1370,8 @@ const analyzeFinancials = async () => {
       // Auto-save transaction data (including analysis result & inputs)
       await store.saveTransactionData();
       
-      // Dynamic Success Popup
-      const scoreData = response.data.scoringResult || {};
-      const formatVal = (val) => {
-        if (typeof val === 'number') return val.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        return val || '-';
-      };
-
-      // Extract size and grade based on the structure returned by the engine
-      const sizeLabel = scoreData.sizeResult?.label || scoreData.sizeCategory || '-';
-      const gradeLabel = scoreData.gradeResult?.label || scoreData.grade || scoreData.finalGrade || '-';
-      const limitVal = scoreData.recommendedLimit !== undefined && scoreData.recommendedLimit !== null ? formatVal(scoreData.recommendedLimit) + ' บาท' : '-';
-
-      const successHtml = `
-        <div style="text-align: left; padding: 10px;">
-          <h4 style="color: #28a745; margin-bottom: 20px; text-align: center;">วิเคราะห์ข้อมูลเสร็จสมบูรณ์</h4>
-          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-            <span style="font-weight: bold; color: #555;">ขนาดธุรกิจ:</span>
-            <span style="font-size: 1.1em; color: #007bff; font-weight: bold;">${sizeLabel}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-            <span style="font-weight: bold; color: #555;">เกรด:</span>
-            <span style="font-size: 1.1em; color: #007bff; font-weight: bold;">${gradeLabel}</span>
-          </div>
-          ${scoreData.guaranteeAmount > 0 ? `
-          <div style="display: flex; justify-content: space-between; padding-bottom: 5px;">
-            <span style="color: #666; font-size: 0.9em;">จากเกณฑ์มาตรฐาน:</span>
-            <span style="font-weight: bold;">${formatVal(scoreData.baseLimit)}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 5px;">
-            <span style="color: #666; font-size: 0.9em;">บวกหลักประกัน:</span>
-            <span style="font-weight: bold;">+ ${formatVal(scoreData.guaranteeAmount)}</span>
-          </div>
-          ` : ''}
-          <div style="display: flex; justify-content: space-between; padding-bottom: 10px;">
-            <span style="font-weight: bold; color: #555;">วงเงินแนะนำ:</span>
-            <span style="font-size: 1.2em; color: #28a745; font-weight: bold;">${limitVal}</span>
-          </div>
-        </div>
-      `;
-
-      Swal.fire({
-        icon: 'success',
-        html: successHtml,
-        confirmButtonText: 'ตกลง'
-      });
+      // Success: Analysis results are now displayed inline in the component
+      // Modal popup removed - results will show in the score-highlight section below
     }
   } catch (error) {
     console.error(error);
