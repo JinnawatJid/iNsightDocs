@@ -36,10 +36,8 @@
       </div>
     </div>
   </div>
-</template>
-
+  </template>
 <script>
-import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 import { computed } from 'vue';
 
 // Define the static 5-step workflow
@@ -70,18 +68,80 @@ export default {
     }
   },
   setup(props) {
-    const formatDate = (dateString) => {
-      if (!dateString) return '';
+    const formatClockTime = (value) => {
+      if (!value) return '';
 
+      let year;
+      let month;
+      let day;
+      let hour = 0;
+      let minute = 0;
+      let second = 0;
+      let millisecond = 0;
 
+      if (value instanceof Date) {
+        year = value.getUTCFullYear();
+        month = value.getUTCMonth() + 1;
+        day = value.getUTCDate();
+        hour = value.getUTCHours();
+        minute = value.getUTCMinutes();
+        second = value.getUTCSeconds();
+        millisecond = value.getUTCMilliseconds();
+      } else if (typeof value === 'string') {
+        const trimmed = value.trim();
+        const match = trimmed.match(
+          /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?)?(?:Z|[+-]\d{2}:?\d{2})?$/i,
+        );
 
+        if (match) {
+          const [, y, m, d, h = '0', min = '0', s = '0', ms = '0'] = match;
+          year = Number(y);
+          month = Number(m);
+          day = Number(d);
+          hour = Number(h);
+          minute = Number(min);
+          second = Number(s);
+          millisecond = Number(ms.padEnd(3, '0'));
+        } else {
+          const parsed = new Date(trimmed);
+          if (Number.isNaN(parsed.getTime())) {
+            return trimmed;
+          }
 
+          year = parsed.getUTCFullYear();
+          month = parsed.getUTCMonth() + 1;
+          day = parsed.getUTCDate();
+          hour = parsed.getUTCHours();
+          minute = parsed.getUTCMinutes();
+          second = parsed.getUTCSeconds();
+          millisecond = parsed.getUTCMilliseconds();
+        }
+      } else {
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+          return '';
+        }
 
+        year = parsed.getUTCFullYear();
+        month = parsed.getUTCMonth() + 1;
+        day = parsed.getUTCDate();
+        hour = parsed.getUTCHours();
+        minute = parsed.getUTCMinutes();
+        second = parsed.getUTCSeconds();
+        millisecond = parsed.getUTCMilliseconds();
+      }
 
-    const date = normalizeDateString(dateString);
+      const displayDate = new Date(
+        year,
+        month - 1,
+        day,
+        hour,
+        minute,
+        second,
+        millisecond,
+      );
 
-
-      return date.toLocaleString('th-TH', {
+      return displayDate.toLocaleString('th-TH', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -89,6 +149,8 @@ export default {
         minute: '2-digit'
       });
     };
+
+    const formatDate = (dateString) => formatClockTime(dateString);
 
     // Map current request status to the corresponding workflow step index that is CURRENTLY pending/active.
     // Anything BEFORE this index is guaranteed to be completed.
@@ -170,48 +232,48 @@ export default {
         }
       }
 
-      // Handle Rejection State globally
-      if (props.currentStatus === 'Rejected' || props.currentStatus === 'Canceled') {
-        // Find the last completed step (based on comments) and mark it as the rejector
-        let lastCompletedIndex = -1;
-        for (let i = steps.length - 1; i >= 0; i--) {
-          if (steps[i].completed) {
-            lastCompletedIndex = i;
-            break;
+        // Handle Rejection State globally
+        if (props.currentStatus === 'Rejected' || props.currentStatus === 'Canceled') {
+          // Find the last completed step (based on comments) and mark it as the rejector
+          let lastCompletedIndex = -1;
+          for (let i = steps.length - 1; i >= 0; i--) {
+            if (steps[i].completed) {
+              lastCompletedIndex = i;
+              break;
+            }
           }
-        }
 
-        if (lastCompletedIndex !== -1) {
-          steps[lastCompletedIndex].rejected = true;
-          steps[lastCompletedIndex].completed = false; // It's rejected, not successfully completed
-          steps[lastCompletedIndex].actionLabel = props.currentStatus === 'Rejected' ? 'ปฏิเสธคำขอ' : 'ยกเลิก';
-          steps[lastCompletedIndex].actionType = 'badge-danger';
+          if (lastCompletedIndex !== -1) {
+            steps[lastCompletedIndex].rejected = true;
+            steps[lastCompletedIndex].completed = false; // It's rejected, not successfully completed
+            steps[lastCompletedIndex].actionLabel = props.currentStatus === 'Rejected' ? 'ปฏิเสธคำขอ' : 'ยกเลิก';
+            steps[lastCompletedIndex].actionType = 'badge-danger';
 
-          // Fix: Ensure all steps BEFORE the rejector are marked as completed, even without comments
-          for (let i = 0; i < lastCompletedIndex; i++) {
-            steps[i].completed = true;
+            // Fix: Ensure all steps BEFORE the rejector are marked as completed, even without comments
+            for (let i = 0; i < lastCompletedIndex; i++) {
+              steps[i].completed = true;
+            }
           }
-        }
 
-        // Hide all steps after the rejected step
-        for (let i = lastCompletedIndex + 1; i < steps.length; i++) {
-          steps[i].hidden = true;
-        }
-      } else if (props.currentStatus === 'Approved') {
-        // Find the last step and make sure it shows approved
-        const lastStep = steps[steps.length - 1];
-        if (lastStep.completed) {
+          // Hide all steps after the rejected step
+          for (let i = lastCompletedIndex + 1; i < steps.length; i++) {
+            steps[i].hidden = true;
+          }
+        } else if (props.currentStatus === 'Approved') {
+          // Find the last step and make sure it shows approved
+          const lastStep = steps[steps.length - 1];
+          if (lastStep.completed) {
             lastStep.actionLabel = 'อนุมัติแล้ว';
             lastStep.actionType = 'badge-success';
-        }
-      } else if (props.currentStatus === 'Closed') {
-        // Similar to Approved
-        const lastStep = steps[steps.length - 1];
-        if (lastStep.completed) {
+          }
+        } else if (props.currentStatus === 'Closed') {
+          // Similar to Approved
+          const lastStep = steps[steps.length - 1];
+          if (lastStep.completed) {
             lastStep.actionLabel = 'ปิดงานแล้ว';
             lastStep.actionType = 'badge-success';
+          }
         }
-      }
 
       // Hide hidden steps
       return steps.filter(s => !s.hidden);

@@ -575,7 +575,8 @@ exports.createCreditRequest = async (req, res) => {
         status = newStatus;
 
         // Update Query (including tx_id in case it changed)
-        const updatedAt = new Date().toISOString();
+        // Use one shared timestamp so the request row and the workflow comment stay in sync.
+        const statusEventAt = new Date().toISOString();
         await db.runAsync(
           "UPDATE CreditRequests SET tx_id = ?, request_amount = ?, request_reason = ?, request_credit_term = ?, term_gs = ?, term_ae = ?, term_yc = ?, request_type = ?, snapshot_data = ?, status = ?, updated_at = ? WHERE id = ?",
           [
@@ -589,7 +590,7 @@ exports.createCreditRequest = async (req, res) => {
             request_type,
             snapshot_data,
             status,
-            updatedAt,
+            statusEventAt,
             requestId,
           ],
         );
@@ -597,12 +598,13 @@ exports.createCreditRequest = async (req, res) => {
         // Handle Comment insertion
         if (req.body.comment && req.body.actor_role) {
           await db.runAsync(
-            "INSERT INTO RequestComments (tx_id, actor_role, comment_text, username) VALUES (?, ?, ?, ?)",
+            "INSERT INTO RequestComments (tx_id, actor_role, comment_text, username, created_at) VALUES (?, ?, ?, ?, ?)",
             [
               txId,
               req.body.actor_role,
               req.body.comment,
               req.body.uploaded_by || req.user?.username || "Unknown",
+              statusEventAt,
             ],
           );
         }
@@ -939,9 +941,26 @@ exports.cancelCreditRequest = async (req, res) => {
         .json({ error: "Cannot cancel request in current status" });
     }
 
+    const statusEventAt = new Date().toISOString();
+    const username = req.user ? req.user.empname || req.user.username : "System";
+    let lastCommentSql;
+    if (db.dbType === "mssql") {
+      lastCommentSql = "SELECT TOP 1 actor_role FROM RequestComments WHERE tx_id = ? ORDER BY created_at DESC";
+    } else {
+      lastCommentSql = "SELECT actor_role FROM RequestComments WHERE tx_id = ? ORDER BY created_at DESC LIMIT 1";
+    }
+    const { rows: lastCommentRows } = await db.query(lastCommentSql, [id]);
+    const actorRole = (lastCommentRows && lastCommentRows[0] && lastCommentRows[0].actor_role) || request.updated_by || "System";
+
     await db.runAsync(
       "UPDATE CreditRequests SET status = ?, updated_at = ? WHERE tx_id = ?",
-      ["Canceled", new Date().toISOString(), id],
+      ["Canceled", statusEventAt, id],
+    );
+
+    // Keep the timeline and list in sync by writing a cancellation audit comment
+    await db.runAsync(
+      "INSERT INTO RequestComments (tx_id, actor_role, comment_text, username, created_at) VALUES (?, ?, ?, ?, ?)",
+      [id, actorRole, "ยกเลิกคำขอ", username, statusEventAt],
     );
 
     res.status(200).json({ message: "Credit request canceled successfully" });
