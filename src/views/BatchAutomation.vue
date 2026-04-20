@@ -2866,8 +2866,9 @@ button:disabled {
 
 .data-table {
   width: 100%;
+  min-width: 1900px;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .data-table th,
@@ -2930,9 +2931,9 @@ button:disabled {
 
 .data-table th:nth-child(2),
 .data-table td:nth-child(2) {
-  width: 120px;
-  min-width: 120px;
-  max-width: 120px;
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
   position: sticky;
   left: 50px;
   z-index: 10;
@@ -2944,11 +2945,11 @@ button:disabled {
 
 .data-table th:nth-child(3),
 .data-table td:nth-child(3) {
-  width: 300px !important;
-  min-width: 300px !important;
-  max-width: 300px !important;
+  width: 260px !important;
+  min-width: 260px !important;
+  max-width: 260px !important;
   position: sticky;
-  left: 170px;
+  left: 190px;
   z-index: 10;
   border-right: 2px solid #e0e0e0;
 }
@@ -2960,7 +2961,7 @@ button:disabled {
 
 .data-table th:not(:first-child),
 .data-table td:not(:first-child) {
-  min-width: 100px;
+  min-width: 140px;
 }
 
 .mt-4 {
