@@ -660,7 +660,7 @@ const searchCustomersFallback = async (req, res, query) => {
         SELECT TOP 20
           "No_", "Name", "Contact", "Phone No_", "Fax No_", "E-Mail",
           "Telex No_", "Mobile Phone No_", "VAT Registration No_",
-        "Address", "District", "City", "County", "Post Code",
+                "Address", "Address 2" AS "District", "City", "County", "Post Code",
           "residence_latitude", "residence_longitude", "store_latitude", "store_longitude",
           "residence_landmark", "residence_note", "store_landmark", "store_note",
           "residence_map_code", "store_map_code",
@@ -692,7 +692,7 @@ const searchCustomersFallback = async (req, res, query) => {
       sql = `
       SELECT "No_", "Name", "Contact", "Phone No_", "Fax No_", "E-Mail",
              "Telex No_", "Mobile Phone No_", "VAT Registration No_",
-             "Address", "District", "City", "County", "Post Code",
+              "Address", "Address 2" AS "District", "City", "County", "Post Code",
              "residence_latitude", "residence_longitude", "store_latitude", "store_longitude",
              "residence_landmark", "residence_note", "store_landmark", "store_note",
              "residence_map_code", "store_map_code",
@@ -1037,7 +1037,7 @@ exports.searchCustomers = async (req, res) => {
       SELECT TOP 20
         "No_", "Name", "Contact", "Phone No_", "Fax No_", "E-Mail",
         "Telex No_", "Mobile Phone No_", "VAT Registration No_",
-        "Address", "District", "City", "County", "Post Code",
+                "Address", "Address 2" AS "District", "City", "County", "Post Code",
         "residence_latitude", "residence_longitude", "store_latitude", "store_longitude",
         "residence_landmark", "residence_note", "store_landmark", "store_note",
         "residence_map_code", "store_map_code",
@@ -1069,7 +1069,7 @@ exports.searchCustomers = async (req, res) => {
     sql = `
       SELECT "No_", "Name", "Contact", "Phone No_", "Fax No_", "E-Mail",
              "Telex No_", "Mobile Phone No_", "VAT Registration No_",
-             "Address", "District", "City", "County", "Post Code",
+              "Address", "Address 2" AS "District", "City", "County", "Post Code",
              "residence_latitude", "residence_longitude", "store_latitude", "store_longitude",
              "residence_landmark", "residence_note", "store_landmark", "store_note",
              "residence_map_code", "store_map_code",

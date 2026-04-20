@@ -55,3 +55,8 @@ Specific request types trigger dynamic UI and validation behavior in the `Credit
   - The **Transaction ID** (`txId`) serves as the primary identifier for each history item and must be displayed prominently (e.g., bolded).
   - The **Requested Credit Limit** (`requestAmount`) must be displayed immediately below the Transaction ID to provide quick financial context. This value must be properly formatted as currency (e.g., `300,000.00 บาท`).
 - **Data Mapping:** The backend `/api/customers/search` endpoint (`enrichCustomerData`) handles the mapping of historical data from the `CreditRequests` table, specifically mapping `h.tx_id` to `txId` and `h.request_amount` to `requestAmount` to avoid ambiguous variable names like `amount`.
+
+## 7. Draft Finalization and Folder Collision Safeguard
+- **Draft -> Opened TxID Finalization:** When a Draft is submitted and receives a real transaction ID, the backend also renames the upload folder from the temporary ID (`TMP-*`) to the finalized transaction ID format.
+- **Collision Scenario:** If database rows were manually deleted in the past but upload folders were left on disk, the destination folder for the new transaction ID may already exist.
+- **Safeguard:** The backend finalization logic now skips colliding transaction running numbers and selects the next available folder/transaction ID, preventing `dest already exists` failures during submission.

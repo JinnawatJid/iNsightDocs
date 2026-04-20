@@ -41,3 +41,18 @@ node scripts/clean-duplicates.cjs "00TRCA2603/02"
 * **Physical Files**: The script does not touch physical files. If you need to recover disk space later, a separate deep-cleanup script that checks reference counts would be required.
 * **Environment**: The script loads `.env` variables using `dotenv` to ensure it connects to the same database as the backend server.
 * **ES Modules**: The script uses the `.cjs` extension to force CommonJS parsing. This is required because the `package.json` specifies `"type": "module"`, but the internal `backend/db.js` wrapper utilizes CommonJS `require()`.
+
+## 2. Manual Cleanup Warning: DB vs Filesystem Consistency
+
+When manually deleting rows from `CreditRequests`, `RequestComments`, or `CreditRequestAttachments`, note that physical upload folders are not deleted automatically.
+
+### Why this matters
+During Draft -> Opened transition, the backend moves the draft upload folder (`TMP-*`) into a final transaction folder name. If a folder with the target transaction ID already exists from old manual cleanup, a folder move collision can occur and return a 500 error (for example, `dest already exists`).
+
+### Current behavior (safe fallback)
+The backend now checks whether the candidate destination folder already exists and, if so, increments the running transaction number until a free destination folder is found.
+
+### Recommended operator practice
+* Prefer official scripts/endpoints over direct SQL deletes.
+* If direct SQL cleanup is unavoidable, review orphan folders under the upload base path and clean them in a controlled maintenance step.
+* Keep DB and filesystem cleanup as one operation plan to avoid hidden collisions later.

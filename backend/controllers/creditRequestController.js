@@ -432,6 +432,25 @@ exports.createCreditRequest = async (req, res) => {
             if (!isNaN(lastNum)) runningNum = lastNum + 1;
           }
 
+          // If DB rows were deleted manually, old upload folders may still exist.
+          // Skip numbers that would collide with an existing folder on disk.
+          while (runningNum <= 99) {
+            const candidateTxId = `${prefix}${runningNum
+              .toString()
+              .padStart(2, "0")}`;
+            const candidateDir = path.join(
+              UPLOAD_BASE,
+              existing.customer_no,
+              candidateTxId.replace(/\//g, "_"),
+            );
+
+            if (!(await fs.pathExists(candidateDir))) {
+              break;
+            }
+
+            runningNum += 1;
+          }
+
           if (runningNum > 99)
             return res
               .status(500)

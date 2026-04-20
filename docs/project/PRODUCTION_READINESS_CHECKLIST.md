@@ -24,6 +24,7 @@ This document outlines the critical readiness checks required before launching t
 
 ## 5. Testing & Verification
 - [ ] **Health Check Endpoint:** Ping the application's base URL and specific backend health check API endpoints to verify the server is actively responding to requests.
+- [ ] **Customer Route Startup & MSSQL Compatibility Check:** Verify backend startup has no route binding errors (for example, `Route.get() requires a callback function`). Then smoke-test customer endpoints against MSSQL (`/api/customers/search`, `/api/customers/suggestions`, `/api/customers/by-branch`) to confirm no schema mismatch errors such as `Invalid column name 'District'`.
 - [ ] **Core Workflow Validation:** Perform an end-to-end smoke test on the production environment:
     - Search for a customer to verify the external API connection.
     - Create a draft credit request.

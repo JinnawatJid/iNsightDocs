@@ -194,6 +194,9 @@
 > 1. `store_subdistrict` จาก Local DB (ข้อมูลที่ผู้ใช้บันทึกไว้แล้ว)
 > 2. `District` จาก Customer API response → mapped เป็น `subdistrict` (แหล่งข้อมูลสำรอง)
 > หาก snapshot เก่าไม่มี `store_subdistrict` ระบบจะ backfill จาก API อัตโนมัติเมื่อโหลด draft
+>
+> **หมายเหตุด้าน Compatibility (Backend Query):**
+> สำหรับบางชุดข้อมูล Local DB/MSSQL ที่ไม่มีคอลัมน์ `District` โดยตรง ระบบ backend จะ map `Address 2` เป็น alias `District` ใน query เพื่อให้การ mapping `subdistrict` ทำงานต่อเนื่องโดยไม่ขึ้น error `Invalid column name 'District'`.
 
 ---
 

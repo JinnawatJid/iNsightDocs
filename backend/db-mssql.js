@@ -577,7 +577,7 @@ const initDB = async () => {
         for (const config of defaultConfigs) {
             const checkConfigSQL = `SELECT * FROM Configurations WHERE config_key = @p0`;
             const checkConfigReq = pool.request();
-            checkConfigReq.input('p0', mssql.NVarChar, config.key);
+            checkConfigReq.input('p0', sql.NVarChar, config.key);
             const checkConfigRes = await checkConfigReq.query(checkConfigSQL);
 
             if (checkConfigRes.recordset.length === 0) {
@@ -586,13 +586,13 @@ const initDB = async () => {
                     VALUES (@k, @v, @t, @c, @d, @l, @u)
                 `;
                 const insertReq = pool.request();
-                insertReq.input('k', mssql.NVarChar, config.key);
-                insertReq.input('v', mssql.NVarChar, config.value);
-                insertReq.input('t', mssql.NVarChar, config.type);
-                insertReq.input('c', mssql.NVarChar, config.category);
-                insertReq.input('d', mssql.NVarChar, config.desc);
-                insertReq.input('l', mssql.NVarChar, config.label);
-                insertReq.input('u', mssql.NVarChar, 'system');
+                insertReq.input('k', sql.NVarChar, config.key);
+                insertReq.input('v', sql.NVarChar, config.value);
+                insertReq.input('t', sql.NVarChar, config.type);
+                insertReq.input('c', sql.NVarChar, config.category);
+                insertReq.input('d', sql.NVarChar, config.desc);
+                insertReq.input('l', sql.NVarChar, config.label);
+                insertReq.input('u', sql.NVarChar, 'system');
                 await insertReq.query(insertConfigSQL);
                 logger.info(`Seeded default configuration: ${config.key}`);
             } else {
@@ -603,8 +603,8 @@ const initDB = async () => {
                     WHERE config_key = @k AND label IS NULL
                 `;
                 const updateReq = pool.request();
-                updateReq.input('k', mssql.NVarChar, config.key);
-                updateReq.input('l', mssql.NVarChar, config.label);
+                updateReq.input('k', sql.NVarChar, config.key);
+                updateReq.input('l', sql.NVarChar, config.label);
                 await updateReq.query(updateLabelSQL);
             }
         }
