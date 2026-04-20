@@ -2859,13 +2859,16 @@ button:disabled {
 }
 
 .table-container {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 65vh;
   padding: 0; /* Remove padding to let table span full width of card body */
 }
 
 .data-table {
   width: 100%;
+  min-width: 1900px;
   border-collapse: collapse;
+  table-layout: auto;
 }
 
 .data-table th,
@@ -2873,6 +2876,11 @@ button:disabled {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid #eee;
+  box-sizing: border-box;
+}
+
+.data-table td {
+  background-color: inherit;
 }
 
 .data-table th {
@@ -2880,6 +2888,9 @@ button:disabled {
   font-weight: 600;
   color: #333;
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .sortable-header {
@@ -2903,20 +2914,62 @@ button:disabled {
   color: #ccc;
 }
 
-.data-table th:first-child,
-.data-table td:first-child {
+.data-table th:nth-child(1),
+.data-table td:nth-child(1) {
   width: 50px;
   min-width: 50px;
+  max-width: 50px;
   text-align: center;
+  position: sticky;
+  left: 0;
+  z-index: 10;
 }
+
+.data-table th:nth-child(1) {
+  z-index: 30;
+}
+
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) {
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+  position: sticky;
+  left: 50px;
+  z-index: 10;
+}
+
+.data-table th:nth-child(2) {
+  z-index: 30;
+}
+
+.data-table th:nth-child(3),
+.data-table td:nth-child(3) {
+  width: 260px !important;
+  min-width: 260px !important;
+  max-width: 260px !important;
+  position: sticky;
+  left: 190px;
+  z-index: 10;
+  border-right: 2px solid #e0e0e0;
+}
+
+.data-table th:nth-child(3) {
+  z-index: 30;
+}
+
 
 .data-table th:not(:first-child),
 .data-table td:not(:first-child) {
-  min-width: 100px;
+  min-width: 140px;
 }
 
 .mt-4 {
   margin-top: 20px;
+}
+
+.data-table tbody tr {
+  background-color: #fff;
 }
 
 .row-active {
