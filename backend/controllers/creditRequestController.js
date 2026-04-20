@@ -464,7 +464,12 @@ exports.createCreditRequest = async (req, res) => {
           if (await fs.pathExists(oldDir)) {
             // Ensure parent of newDir exists
             await fs.ensureDir(path.dirname(newDir));
-            await fs.move(oldDir, newDir, { overwrite: true });
+            // fs.move with overwrite: true will fail with ENOTEMPTY if the dest dir is not empty.
+            // Since we want to fully replace any orphaned destination folder, we explicitly remove it first.
+            if (await fs.pathExists(newDir)) {
+                await fs.remove(newDir);
+            }
+            await fs.move(oldDir, newDir);
           }
 
           // 2. Clone Parent Record with New ID (to satisfy FK constraints in MSSQL)
@@ -1189,7 +1194,12 @@ exports.uploadAdditionalDocument = async (req, res) => {
     const newPhysicalPath = path.join(customerDir, physicalFileName);
 
     // Move the file from temp storage to final destination
-    fs.moveSync(file.path, newPhysicalPath, { overwrite: true });
+    // For single files, overwrite: true should work, but to be absolutely safe against ENOTEMPTY (if somehow a dir exists)
+    // we use removeSync first if pathExists
+    if (fs.existsSync(newPhysicalPath)) {
+        fs.removeSync(newPhysicalPath);
+    }
+    fs.moveSync(file.path, newPhysicalPath);
 
     // Prepare the logical path to store in DB (relative to base dir)
     const relativeFilePath = path
