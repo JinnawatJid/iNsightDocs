@@ -116,16 +116,16 @@ const store = useCreditRequestStore();
 const selectedFile = ref(null);
 
 const DOC_CONFIG = {
-  'credit_application_doc': { label: 'เอกสารคำขอเปิดเครดิต' },
-  'id_card': { label: 'สำเนาบัตรประชาชน' },
-  'home_reg': { label: 'สำเนาทะเบียนบ้าน' },
-  'home_photo': { label: 'รูปถ่ายที่อยู่อาศัย' },
-  'store_photo': { label: 'รูปถ่ายหน้าร้าน' },
-  'map': { label: 'แผนที่ร้านค้า' },
-  'bank_statement': { label: 'รายการเดินบัญชี (Statement)' },
-  'legal_entity_certificate': { label: 'หนังสือรับรองบริษัท' },
-  'vat_document': { label: 'ใบทะเบียนภาษีมูลค่าเพิ่ม (ภพ.20)' },
-  'company_photo': { label: 'รูปถ่ายบริษัท' }
+  'credit_application_doc': { label: 'ใบขอเปิดเครดิต', tab: 'requestInfo' },
+  'id_card': { label: 'สำเนาบัตรประชาชน', tab: 'general' },
+  'home_reg': { label: 'สำเนาทะเบียนบ้าน', tab: 'general' },
+  'home_photo': { label: 'รูปถ่ายที่อยู่อาศัย', tab: 'residence' },
+  'store_photo': { label: 'รูปถ่ายหน้าร้าน', tab: 'store' },
+  'map': { label: 'แผนที่ร้านค้า', tab: 'store' },
+  'bank_statement': { label: 'รายการเดินบัญชี (Statement)', tab: 'financial' },
+  'legal_entity_certificate': { label: 'หนังสือรับรองบริษัท', tab: 'store' },
+  'vat_document': { label: 'ใบทะเบียนภาษีมูลค่าเพิ่ม (ภพ.20)', tab: 'store' },
+  'company_photo': { label: 'รูปถ่ายบริษัท', tab: 'store' }
 };
 
 const documentGroups = computed(() => {

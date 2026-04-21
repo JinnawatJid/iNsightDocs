@@ -185,16 +185,19 @@ const formatTerms = (data) => {
 
 // Document Logic (Reused from DocumentChecklist)
 const DOC_LABELS = {
-  'credit_application_doc': 'เอกสารคำขอ',
-  'id_card': 'บัตรประชาชน',
-  'home_reg': 'ทะเบียนบ้าน',
-  'home_photo': 'รูปที่อยู่',
-  'store_photo': 'รูปหน้าร้าน',
-  'map': 'แผนที่',
-  'bank_statement': 'Statement',
-  'legal_entity_certificate': 'หนังสือรับรอง',
-  'vat_document': 'ภพ.20',
-  'company_photo': 'รูปบริษัท'
+  "credit_application_doc": "ใบขอเปิดเครดิต",
+  "id_card": "สำเนาบัตรประชาชน",
+  "home_reg": "สำเนาทะเบียนบ้าน",
+  "home_photo": "รูปถ่ายที่อยู่อาศัย",
+  "store_photo": "รูปถ่ายหน้าร้าน",
+  "map": "แผนที่ร้านค้า",
+  "bank_statement": "รายการเดินบัญชี (Statement)",
+  "legal_entity_certificate": "หนังสือรับรองบริษัท",
+  "vat_document": "ใบทะเบียนภาษีมูลค่าเพิ่ม (ภพ.20)",
+  "company_photo": "รูปถ่ายบริษัท",
+  "commercial_registration": "ใบทะเบียนพาณิชย์",
+  "rent_contract": "สัญญาเช่า",
+  "project_contract": "สัญญาจ้างงาน"
 };
 
 const documents = computed(() => {

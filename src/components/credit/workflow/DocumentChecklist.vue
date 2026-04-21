@@ -78,7 +78,7 @@ onUnmounted(() => {
 
 // Map keys to Thai Labels and Target Tabs
 const DOC_CONFIG = {
-  'credit_application_doc': { label: 'เอกสารคำขอเปิดเครดิต', tab: 'requestInfo' },
+  'credit_application_doc': { label: 'ใบขอเปิดเครดิต', tab: 'requestInfo' },
   'id_card': { label: 'สำเนาบัตรประชาชน', tab: 'general' },
   'home_reg': { label: 'สำเนาทะเบียนบ้าน', tab: 'general' },
   'home_photo': { label: 'รูปถ่ายที่อยู่อาศัย', tab: 'residence' },
