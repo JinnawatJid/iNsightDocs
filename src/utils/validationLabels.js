@@ -42,7 +42,13 @@ export const fieldLabels = {
     // Store Tab (ข้อมูลร้านค้า)
     'store_location_type': { label: 'ลักษณะที่ตั้ง', tab: 'ข้อมูลร้านค้า' },
     'store_ownership': { label: 'กรรมสิทธิ์', tab: 'ข้อมูลร้านค้า' },
-    'store_value': { label: 'มูลค่า (บาท)', tab: 'ข้อมูลร้านค้า' }
+    'store_value': { label: 'มูลค่า (บาท)', tab: 'ข้อมูลร้านค้า' },
+
+    // Financial Tab - Guarantee detail requirements
+    'bank_guarantee_amount': { label: 'จำนวนเงิน (Bank Guarantee)', tab: 'เอกสารการเงิน' },
+    'bank_guarantee_expiry_date': { label: 'วันหมดอายุ (Bank Guarantee)', tab: 'เอกสารการเงิน' },
+    'cash_guarantee_amount': { label: 'จำนวนเงิน (หลักฐานเงินค้ำประกัน)', tab: 'เอกสารการเงิน' },
+    'cash_guarantee_expiry_date': { label: 'วันหมดอายุ (หลักฐานเงินค้ำประกัน)', tab: 'เอกสารการเงิน' }
 };
 
 export const docLabels = {
@@ -61,5 +67,8 @@ export const docLabels = {
     'balance_sheet_doc': { label: 'งบดุล', tab: 'เอกสารการเงิน' },
     'profit_loss_doc': { label: 'งบกำไรขาดทุน', tab: 'เอกสารการเงิน' },
     'financial_ratios_doc': { label: 'อัตราส่วนทางการเงิน', tab: 'เอกสารการเงิน' },
-    'quotation_doc': { label: 'ใบสั่งซื้อ/ใบเสนอราคา', tab: 'เงื่อนไขและคำขอ' }
+    'quotation_doc': { label: 'ใบสั่งซื้อ/ใบเสนอราคา', tab: 'เงื่อนไขและคำขอ' },
+    'bank_guarantee_doc': { label: 'Bank Guarantee', tab: 'เอกสารการเงิน' },
+    'letter_guarantee_doc': { label: 'เอกสารค้ำประกัน', tab: 'เอกสารการเงิน' },
+    'cash_deposit_doc': { label: 'หลักฐานเงินค้ำประกัน', tab: 'เอกสารการเงิน' }
 };

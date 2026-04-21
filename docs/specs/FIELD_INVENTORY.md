@@ -26,14 +26,12 @@
 | [ ] | สัญญาโครงการ | อัปโหลดไฟล์ | **มี** | **บังคับ** | - | `project_contract_doc` (เฉพาะเครดิตโครงการ) |
 | [ ] | หลักประกันโครงการ | อัปโหลดไฟล์ | **มี** | **บังคับ** | - | `project_security_doc` (เฉพาะเครดิตโครงการ) |
 | [ ] | Bank Guarantee | อัปโหลดไฟล์ | ไม่มี | ไม่บังคับ | - | `bank_guarantee_doc` |
-| [ ] | &nbsp;&nbsp;▶ จำนวนเงิน | Number | ไม่มี | ไม่บังคับ | ตัวเลขเท่านั้น | `bankGuaranteeDetails.[filename].amount` |
-| [ ] | &nbsp;&nbsp;▶ วันหมดอายุ | Date (TH) | ไม่มี | ไม่บังคับ | รูปแบบ dd/mm/yyyy | `bankGuaranteeDetails.[filename].expiryDate` |
-| [ ] | หนังสือค้ำประกัน | อัปโหลดไฟล์ | ไม่มี | ไม่บังคับ | - | `letter_guarantee_doc` |
-| [ ] | &nbsp;&nbsp;▶ จำนวนเงิน | Number | ไม่มี | ไม่บังคับ | ตัวเลขเท่านั้น | `letterGuaranteeDetails.[filename].amount` |
-| [ ] | &nbsp;&nbsp;▶ วันหมดอายุ | Date (TH) | ไม่มี | ไม่บังคับ | รูปแบบ dd/mm/yyyy | `letterGuaranteeDetails.[filename].expiryDate` |
-| [ ] | หลักฐานเงินสดมัดจำ | อัปโหลดไฟล์ | ไม่มี | ไม่บังคับ | - | `cash_deposit_doc` |
-| [ ] | &nbsp;&nbsp;▶ จำนวนเงิน | Number | ไม่มี | ไม่บังคับ | ตัวเลขเท่านั้น | `cashDepositDetails.[filename].amount` |
-| [ ] | &nbsp;&nbsp;▶ วันหมดอายุ | Date (TH) | ไม่มี | ไม่บังคับ | รูปแบบ dd/mm/yyyy | `cashDepositDetails.[filename].expiryDate` |
+| [ ] | &nbsp;&nbsp;▶ จำนวนเงิน | Number | ไม่มี | **บังคับ (เมื่อมีไฟล์)** | ตัวเลขเท่านั้น | `bankGuaranteeDetails.[filename].amount` |
+| [ ] | &nbsp;&nbsp;▶ วันหมดอายุ | Date (TH) | ไม่มี | **บังคับ (เมื่อมีไฟล์)** | รูปแบบ dd/mm/yyyy | `bankGuaranteeDetails.[filename].expiryDate` |
+| [ ] | เอกสารค้ำประกัน | อัปโหลดไฟล์ | ไม่มี | ไม่บังคับ | - | `letter_guarantee_doc` |
+| [ ] | หลักฐานเงินค้ำประกัน | อัปโหลดไฟล์ | ไม่มี | ไม่บังคับ | - | `cash_deposit_doc` |
+| [ ] | &nbsp;&nbsp;▶ จำนวนเงิน | Number | ไม่มี | **บังคับ (เมื่อมีไฟล์)** | ตัวเลขเท่านั้น | `cashDepositDetails.[filename].amount` |
+| [ ] | &nbsp;&nbsp;▶ วันหมดอายุ | Date (TH) | ไม่มี | **บังคับ (เมื่อมีไฟล์)** | รูปแบบ dd/mm/yyyy | `cashDepositDetails.[filename].expiryDate` |
 
 **ส่วน: ข้อมูลผู้ติดต่อ (Contact Information)**
 | ตรวจสอบ | ชื่อฟิลด์ | ประเภท | แสดงผล (*) | การบังคับ | กฎการตรวจสอบ | หมายเหตุ |

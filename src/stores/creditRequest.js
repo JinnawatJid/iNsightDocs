@@ -977,6 +977,45 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         }
       }
 
+      const guaranteeFieldRequirements = [
+        {
+          fileKey: "bank_guarantee_doc",
+          detailKey: "bankGuaranteeDetails",
+          amountField: "bank_guarantee_amount",
+          expiryField: "bank_guarantee_expiry_date",
+        },
+        {
+          fileKey: "cash_deposit_doc",
+          detailKey: "cashDepositDetails",
+          amountField: "cash_guarantee_amount",
+          expiryField: "cash_guarantee_expiry_date",
+        },
+      ];
+
+      if (isSubmit || isFinancialMandatory) {
+        guaranteeFieldRequirements.forEach(
+          ({ fileKey, detailKey, amountField, expiryField }) => {
+            const uploadedFiles = this.files[fileKey];
+            if (!Array.isArray(uploadedFiles) || uploadedFiles.length === 0) return;
+
+            const detailMap = this.transactionData[detailKey] || {};
+            const hasMissingAmount = uploadedFiles.some((file) => {
+              const fileName = file?.name || file?.original_name;
+              const detail = fileName ? detailMap[fileName] : null;
+              return !detail?.amount || String(detail.amount).trim() === "";
+            });
+            const hasMissingExpiryDate = uploadedFiles.some((file) => {
+              const fileName = file?.name || file?.original_name;
+              const detail = fileName ? detailMap[fileName] : null;
+              return !detail?.expiryDate || String(detail.expiryDate).trim() === "";
+            });
+
+            if (hasMissingAmount) missingFields.push(amountField);
+            if (hasMissingExpiryDate) missingFields.push(expiryField);
+          },
+        );
+      }
+
       const missingFiles = [];
       if (isSubmit || isFinancialMandatory) {
         if (isFinancialMandatory && this.isCompany) {
