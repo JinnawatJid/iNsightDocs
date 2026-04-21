@@ -865,6 +865,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           "contact_phone_number",
           "payment_method",
           "billing_requirement",
+          "has_tungnam_relationship",
         ];
         fieldsToCheck = fields.filter((f) => essential.includes(f));
 

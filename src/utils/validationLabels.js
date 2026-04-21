@@ -24,6 +24,7 @@ export const fieldLabels = {
     'business_type': { label: 'ประเภทธุรกิจ', tab: 'ข้อมูลผู้มีอำนาจ' },
     'main_products': { label: 'สินค้าหลัก', tab: 'ข้อมูลผู้มีอำนาจ' },
     'years_in_business': { label: 'ระยะเวลาดำเนินกิจการ (ปี)', tab: 'ข้อมูลผู้มีอำนาจ' },
+    'has_tungnam_relationship': { label: 'ความสัมพันธ์กับลูกค้ารายอื่นของตังน้ำ', tab: 'ข้อมูลผู้มีอำนาจ' },
     'customer_duration_years': { label: 'ระยะเวลาการเป็นลูกค้า', tab: 'เอกสารการเงิน' },
     'registered_capital': { label: 'ทุนจดทะเบียน', tab: 'เอกสารการเงิน' },
 
