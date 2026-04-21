@@ -39,6 +39,7 @@
   </template>
 <script>
 import { computed } from 'vue';
+import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 
 // Define the static 5-step workflow
 // Use an array of roleKeys to support multiple actors for the same step (e.g. Finance Manager OR Credit Committee)
@@ -68,80 +69,15 @@ export default {
     }
   },
   setup(props) {
-    const formatClockTime = (value) => {
+    const formatDate = (value) => {
       if (!value) return '';
 
-      let year;
-      let month;
-      let day;
-      let hour = 0;
-      let minute = 0;
-      let second = 0;
-      let millisecond = 0;
-
-      if (value instanceof Date) {
-        year = value.getUTCFullYear();
-        month = value.getUTCMonth() + 1;
-        day = value.getUTCDate();
-        hour = value.getUTCHours();
-        minute = value.getUTCMinutes();
-        second = value.getUTCSeconds();
-        millisecond = value.getUTCMilliseconds();
-      } else if (typeof value === 'string') {
-        const trimmed = value.trim();
-        const match = trimmed.match(
-          /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?)?(?:Z|[+-]\d{2}:?\d{2})?$/i,
-        );
-
-        if (match) {
-          const [, y, m, d, h = '0', min = '0', s = '0', ms = '0'] = match;
-          year = Number(y);
-          month = Number(m);
-          day = Number(d);
-          hour = Number(h);
-          minute = Number(min);
-          second = Number(s);
-          millisecond = Number(ms.padEnd(3, '0'));
-        } else {
-          const parsed = new Date(trimmed);
-          if (Number.isNaN(parsed.getTime())) {
-            return trimmed;
-          }
-
-          year = parsed.getUTCFullYear();
-          month = parsed.getUTCMonth() + 1;
-          day = parsed.getUTCDate();
-          hour = parsed.getUTCHours();
-          minute = parsed.getUTCMinutes();
-          second = parsed.getUTCSeconds();
-          millisecond = parsed.getUTCMilliseconds();
-        }
-      } else {
-        const parsed = new Date(value);
-        if (Number.isNaN(parsed.getTime())) {
-          return '';
-        }
-
-        year = parsed.getUTCFullYear();
-        month = parsed.getUTCMonth() + 1;
-        day = parsed.getUTCDate();
-        hour = parsed.getUTCHours();
-        minute = parsed.getUTCMinutes();
-        second = parsed.getUTCSeconds();
-        millisecond = parsed.getUTCMilliseconds();
+      const date = value instanceof Date ? value : normalizeDateString(value);
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+        return typeof value === 'string' ? value : '';
       }
 
-      const displayDate = new Date(
-        year,
-        month - 1,
-        day,
-        hour,
-        minute,
-        second,
-        millisecond,
-      );
-
-      return displayDate.toLocaleString('th-TH', {
+      return date.toLocaleString('th-TH', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -149,8 +85,6 @@ export default {
         minute: '2-digit'
       });
     };
-
-    const formatDate = (dateString) => formatClockTime(dateString);
 
     // Map current request status to the corresponding workflow step index that is CURRENTLY pending/active.
     // Anything BEFORE this index is guaranteed to be completed.
@@ -173,7 +107,12 @@ export default {
 
     const timelineSteps = computed(() => {
       // Sort comments chronologically
-      const sortedComments = [...props.comments].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      const sortedComments = [...props.comments].sort((a, b) => {
+        const dateA = normalizeDateString(a.created_at);
+        const dateB = normalizeDateString(b.created_at);
+
+        return dateA.getTime() - dateB.getTime();
+      });
 
       // Filter out Committee step if amount <= 300,000
       let amount = 0;
