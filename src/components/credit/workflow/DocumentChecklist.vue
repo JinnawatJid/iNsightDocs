@@ -20,6 +20,10 @@
 
     <!-- Dropdown Content (Absolute) -->
     <div v-if="isOpen" class="checklist-dropdown">
+      <div class="checklist-head">
+        <span>รายการเอกสาร</span>
+        <span>ไฟล์ที่แนบ</span>
+      </div>
       <div
         v-for="(doc, index) in documents"
         :key="index"
@@ -27,22 +31,23 @@
         :class="{ 'uploaded': doc.isUploaded, 'missing': !doc.isUploaded }"
         @click="navigateToTab(doc.tab)"
       >
-        <div class="status-icon">
-          <!-- Green Check -->
-          <svg v-if="doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-check"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-
-          <!-- Orange Alert -->
-          <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-alert"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-        </div>
-
-        <div class="doc-info">
+        <div class="doc-info left">
           <span class="doc-name">{{ doc.label }}</span>
           <span class="doc-status">{{ doc.isUploaded ? 'แนบแล้ว' : 'ยังไม่แนบ' }}</span>
         </div>
 
-        <div class="action-arrow">
-           <!-- Chevron Right -->
-           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        <div class="doc-info right">
+          <template v-if="doc.fileNames.length">
+            <span
+              v-for="(fileName, fileIndex) in doc.fileNames"
+              :key="`${doc.id}-${fileIndex}`"
+              class="doc-file-name"
+              :title="fileName"
+            >
+              {{ fileName }}
+            </span>
+          </template>
+          <span v-else class="doc-file-empty">-</span>
         </div>
       </div>
     </div>
@@ -76,40 +81,82 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
 });
 
-// Map keys to Thai Labels and Target Tabs
+// Map keys to Labels and Target Tabs
 const DOC_CONFIG = {
-  'credit_application_doc': { label: 'เอกสารคำขอเปิดเครดิต', tab: 'requestInfo' },
+  'credit_application_doc': { label: 'ใบขอเปิดเครดิต', tab: 'requestInfo' },
   'id_card': { label: 'สำเนาบัตรประชาชน', tab: 'general' },
   'home_reg': { label: 'สำเนาทะเบียนบ้าน', tab: 'general' },
-  'home_photo': { label: 'รูปถ่ายที่อยู่อาศัย', tab: 'residence' },
-  'store_photo': { label: 'รูปถ่ายหน้าร้าน', tab: 'store' },
+  'home_photo': { label: 'รูปถ่ายบ้าน', tab: 'residence' },
+  'store_photo': { label: 'รูปร้านค้า', tab: 'store' },
   'map': { label: 'แผนที่ร้านค้า', tab: 'store' },
   'bank_statement': { label: 'รายการเดินบัญชี (Statement)', tab: 'financial' },
-  'legal_entity_certificate': { label: 'หนังสือรับรองบริษัท', tab: 'store' },
-  'vat_document': { label: 'ใบทะเบียนภาษีมูลค่าเพิ่ม (ภพ.20)', tab: 'store' },
+  'legal_entity_certificate': { label: 'หนังสือรับรองนิติบุคคล', tab: 'store' },
+  'vat_document': { label: 'เอกสารภพ.20', tab: 'store' },
   'company_photo': { label: 'รูปถ่ายบริษัท', tab: 'store' }
+};
+
+const OTHER_TAB_TO_ROUTE_TAB = {
+  requestInfo: 'requestInfo',
+  general: 'general',
+  residence: 'residence',
+  store: 'store',
+  financial: 'financial',
+  project: 'requestInfo'
+};
+
+const getFilesAsArray = (fileValue) => {
+  if (!fileValue) return [];
+  return Array.isArray(fileValue) ? fileValue : [fileValue];
+};
+
+const getFileName = (file) => {
+  return file?.original_name || file?.name || '';
+};
+
+const getOtherDocumentLabel = (key) => {
+  const [, rawLabel = key] = key.split(':');
+  return rawLabel || key;
+};
+
+const getOtherDocumentTab = (key) => {
+  const tabName = key.replace(/^other_/, '').split(':')[0];
+  return OTHER_TAB_TO_ROUTE_TAB[tabName] || 'requestInfo';
 };
 
 const documents = computed(() => {
   // Get mandatory file keys based on customer type (Company vs Individual)
   const { files } = getMandatoryKeys(store.isCompany);
-
-  return files.map(key => {
-    // Check if uploaded (either in files object or marked in uploadedDocuments map)
-    // FIX: Ensure empty arrays (like bank_statement initial state) are treated as false
-    const file = store.files[key];
-    const hasLocalFile = file && (!Array.isArray(file) || file.length > 0);
-    const hasFile = hasLocalFile || !!store.uploadedDocuments[key];
-
+  const mandatoryDocs = files.map(key => {
+    const fileEntries = getFilesAsArray(store.files[key]);
+    const fileNames = fileEntries.map(getFileName).filter(Boolean);
+    const hasFile = fileNames.length > 0 || !!store.uploadedDocuments[key];
     const config = DOC_CONFIG[key] || { label: key, tab: 'requestInfo' };
 
     return {
       id: key,
       label: config.label,
       tab: config.tab,
+      fileNames,
       isUploaded: hasFile
     };
   });
+
+  const otherDocs = Object.keys(store.files || {})
+    .filter((key) => key.startsWith('other_'))
+    .map((key) => {
+      const fileEntries = getFilesAsArray(store.files[key]);
+      const fileNames = fileEntries.map(getFileName).filter(Boolean);
+      return {
+        id: key,
+        label: getOtherDocumentLabel(key),
+        tab: getOtherDocumentTab(key),
+        fileNames,
+        isUploaded: fileNames.length > 0
+      };
+    })
+    .filter((doc) => doc.isUploaded);
+
+  return [...mandatoryDocs, ...otherDocs];
 });
 
 const navigateToTab = (tabId) => {
@@ -198,7 +245,18 @@ const uploadedCount = computed(() => {
 
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+}
+
+.checklist-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 6px 8px 8px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
 }
 
 .checklist-container {
@@ -211,8 +269,10 @@ const uploadedCount = computed(() => {
 }
 
 .checklist-item {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 12px;
   padding: 8px; /* Compact padding */
   border-radius: 6px;
   border: 1px solid transparent;
@@ -226,24 +286,15 @@ const uploadedCount = computed(() => {
   border-color: #d0e1fd;
 }
 
-.status-icon {
-  margin-right: 12px;
-  display: flex;
-  align-items: center;
-}
-
-.icon-check {
-  color: #28a745; /* Green */
-}
-
-.icon-alert {
-  color: #f59e0b; /* Darker Orange for better visibility */
-}
-
 .doc-info {
-  flex-grow: 1;
   display: flex;
   flex-direction: column;
+  gap: 4px;
+}
+
+.doc-info.right {
+  border-left: 1px dashed #e2e8f0;
+  padding-left: 10px;
 }
 
 .doc-name {
@@ -257,13 +308,26 @@ const uploadedCount = computed(() => {
   color: #999;
 }
 
+.doc-file-name {
+  font-size: 12px;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doc-file-empty {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
 /* Specific Styles for states */
 .checklist-item.uploaded .doc-name {
-  color: #28a745;
+  color: #1f2937;
 }
 
 .checklist-item.uploaded .doc-status {
-  color: #28a745;
+  color: #0ea5e9;
 }
 
 .checklist-item.missing .doc-name {
@@ -272,13 +336,5 @@ const uploadedCount = computed(() => {
 
 .checklist-item.missing .doc-status {
   color: #f59e0b;
-}
-
-.action-arrow {
-  opacity: 0.5;
-}
-
-.checklist-item:hover .action-arrow {
-  opacity: 1;
 }
 </style>

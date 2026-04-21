@@ -37,7 +37,7 @@
                </div>
 
                <!-- Action Bar (Sticky at Bottom of Center Col) -->
-               <WorkflowActionBar :comment="newComment" />
+                    <WorkflowActionBar :comment="newComment" @comment-consumed="handleCommentConsumed" />
            </div>
         </div>
 
@@ -58,7 +58,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { computed, watch, onMounted, onUnmounted } from 'vue';
+import debounce from 'lodash/debounce';
 import Navbar from '@/components/shared/Navbar.vue';
 import RequestSidebar from '@/components/credit/dashboard/RequestSidebar.vue';
 import CustomerTitleCard from '@/components/credit/dashboard/CustomerTitleCard.vue';
@@ -75,11 +76,29 @@ const authStore = useAuthStore();
 onMounted(() => {
     store.resetState();
 });
-const newComment = ref('');
+const newComment = computed({
+    get: () => store.transactionData.draftComment || '',
+    set: (value) => {
+        store.transactionData.draftComment = value;
+    }
+});
 
-// Watch for request ID changes to reset comment box
-watch(() => store.requestId, () => {
-    newComment.value = '';
+const debouncedSaveCommentDraft = debounce(async () => {
+    if (!store.requestId || isReadOnly.value) return;
+    await store.saveTransactionData();
+}, 600);
+
+watch(newComment, () => {
+    if (!store.requestId || isReadOnly.value) return;
+    debouncedSaveCommentDraft();
+});
+
+const handleCommentConsumed = () => {
+    store.transactionData.draftComment = '';
+};
+
+onUnmounted(() => {
+    debouncedSaveCommentDraft.cancel();
 });
 
 const handleRecalculateScore = async (payload) => {

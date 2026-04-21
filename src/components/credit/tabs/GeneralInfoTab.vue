@@ -256,7 +256,17 @@
 
         <!-- Summary Section -->
         <div class="summary-section" v-if="summaryData">
-            <h4 class="summary-title">ข้อมูลสรุป ({{ summaryData.name }})</h4>
+            <div class="summary-header">
+                <h4 class="summary-title">ข้อมูลสรุป ({{ summaryData.name }})</h4>
+                <button
+                  type="button"
+                  class="btn-open-profile"
+                  :disabled="!store.customer.tungnam_relationship_customer_id"
+                  @click="openRelatedCustomerProfile"
+                >
+                  เปิดโปรไฟล์ลูกค้า
+                </button>
+            </div>
             <div class="summary-grid">
                 <div class="summary-item">
                     <span class="summary-label">วงเงินเครดิต</span>
@@ -287,10 +297,12 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useFormValidation } from '@/composables/useFormValidation';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 import CustomerService from '@/services/CustomerService';
+import { useRouter } from 'vue-router';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
 const { errors, validateField } = useFormValidation();
+const router = useRouter();
 
 const isEditing = ref(!props.readOnly);
 watch(() => props.readOnly, (val) => {
@@ -606,6 +618,16 @@ function formatCurrency(value) {
     return Number(value).toLocaleString('en-US');
 }
 
+function openRelatedCustomerProfile() {
+    const relatedCustomerId = store.customer.tungnam_relationship_customer_id?.trim();
+    if (!relatedCustomerId) return;
+    const route = router.resolve({
+        path: '/create-credit-request',
+        query: { search: relatedCustomerId }
+    });
+    window.open(route.href, '_blank', 'noopener');
+}
+
 function handleClickOutsideSearch(event) {
     if (searchContainer.value && !searchContainer.value.contains(event.target)) {
         showDropdown.value = false;
@@ -837,6 +859,40 @@ watch(() => store.showValidationErrors, (val) => {
     margin-bottom: 12px;
     color: #334155;
     font-size: 1.1rem;
+}
+
+.summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.summary-header .summary-title {
+    margin-bottom: 0;
+}
+
+.btn-open-profile {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #0f172a;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-open-profile:hover:not(:disabled) {
+    border-color: #94a3b8;
+    background: #f8fafc;
+}
+
+.btn-open-profile:disabled {
+    color: #94a3b8;
+    cursor: not-allowed;
 }
 
 .summary-grid {

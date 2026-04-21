@@ -31,6 +31,7 @@ const props = defineProps({
         default: ''
     }
 });
+const emit = defineEmits(['comment-consumed']);
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
@@ -137,9 +138,20 @@ const handleAction = async (action) => {
           commentText = 'Approved/Verified';
       }
 
+      const hasInlineDraftComment = !!(props.comment && props.comment.trim());
+      const previousDraftComment = store.transactionData.draftComment;
+      if (hasInlineDraftComment) {
+        store.transactionData.draftComment = '';
+      }
+
       const ok = await store.updateStatus(action.targetStatus, commentText);
       if (ok) {
+        if (hasInlineDraftComment) {
+          emit('comment-consumed');
+        }
         Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');
+      } else if (hasInlineDraftComment) {
+        store.transactionData.draftComment = previousDraftComment;
       }
     }
   }
