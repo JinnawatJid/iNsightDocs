@@ -60,3 +60,8 @@ Specific request types trigger dynamic UI and validation behavior in the `Credit
 - **Draft -> Opened TxID Finalization:** When a Draft is submitted and receives a real transaction ID, the backend also renames the upload folder from the temporary ID (`TMP-*`) to the finalized transaction ID format.
 - **Collision Scenario:** If database rows were manually deleted in the past but upload folders were left on disk, the destination folder for the new transaction ID may already exist.
 - **Safeguard:** The backend finalization logic now skips colliding transaction running numbers and selects the next available folder/transaction ID, preventing `dest already exists` failures during submission.
+
+## 3. Reviewer Workflow & Draft Comments
+When a request is processed by a reviewer in the `/pending-requests` view, they can write comments regarding the approval or rejection.
+- **Auto-Save Drafts:** To prevent data loss and avoid heavy backend polling that triggers concurrency (`409 Conflict`) errors, reviewer comments are instantly saved as a draft via **browser LocalStorage** (keyed by `draftComment_${requestId}`).
+- **Clearing Drafts:** Once a formal workflow action (e.g., Approve, Send to Committee) is successfully processed, the LocalStorage draft is immediately deleted.
