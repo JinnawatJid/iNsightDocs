@@ -621,6 +621,7 @@ function formatCurrency(value) {
 function openRelatedCustomerProfile() {
     const relatedCustomerId = store.customer.tungnam_relationship_customer_id?.trim();
     if (!relatedCustomerId) return;
+    // Reuse /create-credit-request with ?search=... to open that customer context (without starting a new request).
     const route = router.resolve({
         path: '/create-credit-request',
         query: { search: relatedCustomerId }

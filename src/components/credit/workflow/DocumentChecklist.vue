@@ -114,8 +114,8 @@ const getFileName = (file) => {
 };
 
 const getOtherDocumentLabel = (key) => {
-  const [, rawLabel = key] = key.split(':');
-  return rawLabel || key;
+  const parts = key.split(':');
+  return parts[1] || parts[0] || key;
 };
 
 const getOtherDocumentTab = (key) => {
