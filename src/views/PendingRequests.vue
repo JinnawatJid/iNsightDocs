@@ -79,14 +79,23 @@ const newComment = ref(store.transactionData?.draftComment || '');
 
 let commentSaveTimeout;
 watch(newComment, (newVal) => {
+    // If the comment is cleared programmatically (e.g. after approval), cancel any pending saves
+    if (newVal === '') {
+        clearTimeout(commentSaveTimeout);
+    }
+
     if (store.transactionData && store.transactionData.draftComment !== newVal) {
         store.transactionData.draftComment = newVal;
         clearTimeout(commentSaveTimeout);
-        commentSaveTimeout = setTimeout(() => {
-            if(store.requestId) {
-               store.saveTransactionData();
-            }
-        }, 1000);
+
+        // Only save if it's an actual comment (not just cleared after submission)
+        if (newVal !== '') {
+            commentSaveTimeout = setTimeout(() => {
+                if(store.requestId) {
+                   store.saveTransactionData();
+                }
+            }, 1000);
+        }
     }
 });
 
