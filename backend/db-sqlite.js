@@ -423,6 +423,32 @@ const initDB = async () => {
         }
 
         // Seed default configuration if not exists
+        const initialRbacMatrix = {
+            roles: [
+                'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)',
+                'ผู้ตรวจสอบเอกสาร',
+                'ผู้จัดการฝ่ายการเงิน',
+                'คณะกรรมการสินเชื่อ',
+                'ผู้ดูแลระบบ'
+            ],
+            permissions: [
+                { key: 'view_pending', label: 'ดูรายการรออนุมัติ' },
+                { key: 'view_history', label: 'ดูประวัติรายการ' },
+                { key: 'edit_request', label: 'แก้ไขคำขอสินเชื่อ' },
+                { key: 'approve_document', label: 'ตรวจสอบเอกสาร' },
+                { key: 'approve_credit_low', label: 'อนุมัติวงเงินต่ำกว่าเกณฑ์' },
+                { key: 'approve_credit_high', label: 'อนุมัติวงเงินสูงกว่าเกณฑ์' },
+                { key: 'manage_config', label: 'จัดการการตั้งค่าระบบ' }
+            ],
+            matrix: {
+                'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)': ['view_pending', 'view_history', 'edit_request'],
+                'ผู้ตรวจสอบเอกสาร': ['view_pending', 'view_history', 'approve_document'],
+                'ผู้จัดการฝ่ายการเงิน': ['view_pending', 'view_history', 'approve_credit_low'],
+                'คณะกรรมการสินเชื่อ': ['view_pending', 'view_history', 'approve_credit_low', 'approve_credit_high'],
+                'ผู้ดูแลระบบ': ['manage_config']
+            }
+        };
+
         const defaultConfigs = [
             { key: 'DBD_FILE_FRESHNESS_DAYS', value: '180', type: 'number', category: 'System', desc: 'จำนวนวันสูงสุดที่ยอมรับได้สำหรับความใหม่ของไฟล์ DBD (Days)', label: 'อายุไฟล์ข้อมูล DBD (วัน)' },
             { key: 'AUDIT_LOG_RETENTION_DAYS', value: '14', type: 'number', category: 'System', desc: 'ระยะเวลาจัดเก็บไฟล์ Log ของระบบ (Days)', label: 'ระยะเวลาจัดเก็บประวัติระบบ (วัน)' },
@@ -430,7 +456,8 @@ const initDB = async () => {
             { key: 'SYSTEM_MAINTENANCE_MODE', value: 'false', type: 'boolean', category: 'System', desc: 'เปิดโหมดปิดปรับปรุงระบบ', label: 'โหมดปิดปรับปรุงระบบ' },
             { key: 'DEFAULT_PAGE_SIZE', value: '20', type: 'number', category: 'System', desc: 'จำนวนรายการเริ่มต้นที่แสดงต่อหน้า', label: 'จำนวนรายการต่อหน้า (ค่าเริ่มต้น)' },
             { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation', label: 'เปิดใช้งานระบบประมวลผลอัตโนมัติ (Batch)' },
-            { key: 'COMMITTEE_APPROVAL_THRESHOLD_THB', value: '300000', type: 'number', category: 'Workflow', desc: 'วงเงินที่ต้องได้รับการอนุมัติจากคณะกรรมการ (บาท)', label: 'วงเงินพิจารณาโดยคณะกรรมการ (บาท)' }
+            { key: 'COMMITTEE_APPROVAL_THRESHOLD_THB', value: '300000', type: 'number', category: 'Workflow', desc: 'วงเงินที่ต้องได้รับการอนุมัติจากคณะกรรมการ (บาท)', label: 'วงเงินพิจารณาโดยคณะกรรมการ (บาท)' },
+            { key: 'RBAC_MATRIX_CONFIG', value: JSON.stringify(initialRbacMatrix), type: 'json', category: 'UserRoles', desc: 'การตั้งค่า Matrix การจัดการสิทธิ์', label: 'Role & Permission Matrix' }
         ];
 
         for (const config of defaultConfigs) {

@@ -35,6 +35,7 @@
           <!-- Content Pane: Configuration Inputs -->
           <div class="config-content">
             <ScorecardManagementTab v-if="activeCategory === 'Scorecards'" />
+            <RoleManagementTab v-else-if="activeCategory === 'UserRoles'" />
             <div v-else class="config-items-container">
               <div class="content-header">
                 <div class="header-title">
@@ -111,6 +112,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useConfigStore } from '../stores/config';
 import { formatDateString } from '../utils/dateUtils';
 import ScorecardManagementTab from '../components/configuration/ScorecardManagementTab.vue';
+import RoleManagementTab from '../components/configuration/RoleManagementTab.vue';
 import Swal from 'sweetalert2';
 
 // State
@@ -126,7 +128,8 @@ const categoryLabels = {
   'Workflow': 'การอนุมัติและขั้นตอน',
   'API': 'การเชื่อมต่อระบบ',
   'Business': 'กฎเกณฑ์ธุรกิจ',
-  'Scorecards': 'โมเดลให้คะแนน'
+  'Scorecards': 'โมเดลให้คะแนน',
+  'UserRoles': 'จัดการสิทธิ์ผู้ใช้งาน'
 };
 
 const getCategoryLabel = (category) => {
@@ -144,7 +147,7 @@ const currentCategoryConfigs = computed(() => {
   if (!activeCategory.value || !configStore.configurations[activeCategory.value]) {
     return [];
   }
-  return configStore.configurations[activeCategory.value];
+  return configStore.configurations[activeCategory.value].filter(c => c.data_type !== 'json');
 });
 
 // Methods
