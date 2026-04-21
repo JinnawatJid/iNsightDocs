@@ -1655,6 +1655,8 @@ const stopBatch = () => {
 
 // Worker function to process items one by one from the shared queue
 const processNextItem = async () => {
+  const isDurationLoggingEnabled = import.meta.env.VITE_ENABLE_BATCH_DURATION_LOGGING === 'true';
+
   while (!shouldStop.value) {
     const index = queue.value.findIndex((i) => i.status === "Pending");
     if (index === -1) {
@@ -1669,6 +1671,7 @@ const processNextItem = async () => {
     item.limitExponent = limitExponent.value;
 
     activeWorkers.value++;
+    const startTime = Date.now();
 
     try {
       // 1. Fetch Customer Data
@@ -2028,6 +2031,10 @@ const processNextItem = async () => {
       item.log = err.message;
       console.error(err);
     } finally {
+      if (isDurationLoggingEnabled) {
+        const durationSec = Math.round((Date.now() - startTime) / 1000);
+        item.log = `${item.log} (${durationSec}s)`;
+      }
       activeWorkers.value--;
     }
   }
