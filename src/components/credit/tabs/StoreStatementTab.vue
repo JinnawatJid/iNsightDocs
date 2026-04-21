@@ -19,7 +19,7 @@
                 </div>
                 <div class="guarantee-inputs row g-2">
                     <div class="col-6">
-                        <label class="text-xs text-muted mb-1">จำนวนเงิน</label>
+                        <label class="text-xs text-muted mb-1">จำนวนเงิน <span class="text-red-500">*</span></label>
                         <input
                             type="text"
                             class="form-control form-control-sm"
@@ -30,7 +30,7 @@
                         />
                     </div>
                     <div class="col-6">
-                        <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
+                        <label class="text-xs text-muted mb-1">วันหมดอายุ <span class="text-red-500">*</span></label>
                         <div class="date-picker-cell">
                             <input
                                 type="text"
@@ -59,60 +59,7 @@
 
         <div class="guarantee-section">
           <FileUploader
-            label="เอกสารค้ำประกัน"
-            v-model="files.letterGuarantee"
-            :disabled="!isEditing"
-            multiple
-          />
-
-          <div v-if="files.letterGuarantee && files.letterGuarantee.length > 0" class="guarantee-details mt-2">
-             <div v-for="(file, index) in files.letterGuarantee" :key="index" class="guarantee-detail-card mb-2">
-                <div class="guarantee-file-name text-primary text-sm mb-1 font-semibold truncate" :title="file.name">
-                    {{ file.name }}
-                </div>
-                <div class="guarantee-inputs row g-2">
-                    <div class="col-6">
-                        <label class="text-xs text-muted mb-1">จำนวนเงิน</label>
-                        <input
-                            type="text"
-                            class="form-control form-control-sm"
-                            placeholder="เช่น 500,000"
-                            :value="formatGuaranteeAmount(getGuaranteeDetail('letterGuaranteeDetails', file.name, 'amount'))"
-                            @input="(e) => handleGuaranteeAmountInput('letterGuaranteeDetails', file.name, 'amount', e.target.value)"
-                            :disabled="!isEditing"
-                        />
-                    </div>
-                    <div class="col-6">
-                        <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
-                        <div class="date-picker-cell">
-                            <input
-                                type="text"
-                                :value="formatDateForDisplay(getGuaranteeDetail('letterGuaranteeDetails', file.name, 'expiryDate'))"
-                                :disabled="!isEditing"
-                                readonly
-                                @click="isEditing && openDatePicker('letterGuaranteeDetails', file.name)"
-                                class="form-control form-control-sm text-center date-text-input cursor-pointer"
-                                placeholder="dd/mm/yyyy"
-                            />
-                            <input
-                                type="date"
-                                :id="`date-letterGuaranteeDetails-${file.name}`"
-                                :value="getGuaranteeDetail('letterGuaranteeDetails', file.name, 'expiryDate')"
-                                @input="(e) => updateGuaranteeDetail('letterGuaranteeDetails', file.name, 'expiryDate', e.target.value)"
-                                class="hidden-date-input"
-                                lang="th-TH"
-                                :disabled="!isEditing"
-                            />
-                        </div>
-                    </div>
-                </div>
-             </div>
-          </div>
-        </div>
-
-        <div class="guarantee-section">
-          <FileUploader
-            label="หลักฐานเงินสดมัดจำ"
+            label="หลักฐานเงินค้ำประกัน"
             v-model="files.cashDeposit"
             :disabled="!isEditing"
             multiple
@@ -125,7 +72,7 @@
                 </div>
                 <div class="guarantee-inputs row g-2">
                     <div class="col-6">
-                        <label class="text-xs text-muted mb-1">จำนวนเงิน</label>
+                        <label class="text-xs text-muted mb-1">จำนวนเงิน <span class="text-red-500">*</span></label>
                         <input
                             type="text"
                             class="form-control form-control-sm"
@@ -136,7 +83,7 @@
                         />
                     </div>
                     <div class="col-6">
-                        <label class="text-xs text-muted mb-1">วันหมดอายุ</label>
+                        <label class="text-xs text-muted mb-1">วันหมดอายุ <span class="text-red-500">*</span></label>
                         <div class="date-picker-cell">
                             <input
                                 type="text"
@@ -161,6 +108,15 @@
                 </div>
              </div>
           </div>
+        </div>
+
+        <div class="guarantee-section">
+          <FileUploader
+            label="เอกสารค้ำประกัน"
+            v-model="files.letterGuarantee"
+            :disabled="!isEditing"
+            multiple
+          />
         </div>
     </div>
 
@@ -1312,7 +1268,7 @@ const analyzeFinancials = async () => {
   let totalGuaranteeSum = 0;
 
   // 1. General Tab Guarantees
-  const generalGuaranteeKeys = ['bankGuaranteeDetails', 'letterGuaranteeDetails', 'cashDepositDetails'];
+  const generalGuaranteeKeys = ['bankGuaranteeDetails', 'cashDepositDetails'];
   generalGuaranteeKeys.forEach(key => {
       const detailsMap = store.transactionData[key] || {};
       Object.values(detailsMap).forEach(detail => {

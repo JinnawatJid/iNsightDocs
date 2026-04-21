@@ -2,14 +2,12 @@
 FALSE,ข้อมูลคำขอ,เอกสารแนบ,เอกสารขอเปิดเครดิต,อัปโหลดไฟล์,มี,บังคับ,-,credit_application_doc
 FALSE,ข้อมูลคำขอ,เอกสารแนบ,ใบเสนอราคา,อัปโหลดไฟล์,ไม่มี,ไม่บังคับ,-,quotation
 FALSE,ข้อมูลคำขอ,เอกสารแนบ,Bank Guarantee,อัปโหลดไฟล์,ไม่มี,ไม่บังคับ,-,bank_guarantee_doc
-FALSE,ข้อมูลคำขอ,เอกสารแนบ,Bank Guarantee > จำนวนเงิน,Number,ไม่มี,ไม่บังคับ,ตัวเลขเท่านั้น,bankGuaranteeDetails.[filename].amount
-FALSE,ข้อมูลคำขอ,เอกสารแนบ,Bank Guarantee > วันหมดอายุ,Date (TH),ไม่มี,ไม่บังคับ,รูปแบบ dd/mm/yyyy,bankGuaranteeDetails.[filename].expiryDate
-FALSE,ข้อมูลคำขอ,เอกสารแนบ,หนังสือค้ำประกัน,อัปโหลดไฟล์,ไม่มี,ไม่บังคับ,-,letter_guarantee_doc
-FALSE,ข้อมูลคำขอ,เอกสารแนบ,หนังสือค้ำประกัน > จำนวนเงิน,Number,ไม่มี,ไม่บังคับ,ตัวเลขเท่านั้น,letterGuaranteeDetails.[filename].amount
-FALSE,ข้อมูลคำขอ,เอกสารแนบ,หนังสือค้ำประกัน > วันหมดอายุ,Date (TH),ไม่มี,ไม่บังคับ,รูปแบบ dd/mm/yyyy,letterGuaranteeDetails.[filename].expiryDate
-FALSE,ข้อมูลคำขอ,เอกสารแนบ,หลักฐานเงินสดมัดจำ,อัปโหลดไฟล์,ไม่มี,ไม่บังคับ,-,cash_deposit_doc
-FALSE,ข้อมูลคำขอ,เอกสารแนบ,หลักฐานเงินสดมัดจำ > จำนวนเงิน,Number,ไม่มี,ไม่บังคับ,ตัวเลขเท่านั้น,cashDepositDetails.[filename].amount
-FALSE,ข้อมูลคำขอ,เอกสารแนบ,หลักฐานเงินสดมัดจำ > วันหมดอายุ,Date (TH),ไม่มี,ไม่บังคับ,รูปแบบ dd/mm/yyyy,cashDepositDetails.[filename].expiryDate
+FALSE,ข้อมูลคำขอ,เอกสารแนบ,Bank Guarantee > จำนวนเงิน,Number,ไม่มี,บังคับ (เมื่อมีไฟล์),ตัวเลขเท่านั้น,bankGuaranteeDetails.[filename].amount
+FALSE,ข้อมูลคำขอ,เอกสารแนบ,Bank Guarantee > วันหมดอายุ,Date (TH),ไม่มี,บังคับ (เมื่อมีไฟล์),รูปแบบ dd/mm/yyyy,bankGuaranteeDetails.[filename].expiryDate
+FALSE,ข้อมูลคำขอ,เอกสารแนบ,เอกสารค้ำประกัน,อัปโหลดไฟล์,ไม่มี,ไม่บังคับ,-,letter_guarantee_doc
+FALSE,ข้อมูลคำขอ,เอกสารแนบ,หลักฐานเงินค้ำประกัน,อัปโหลดไฟล์,ไม่มี,ไม่บังคับ,-,cash_deposit_doc
+FALSE,ข้อมูลคำขอ,เอกสารแนบ,หลักฐานเงินค้ำประกัน > จำนวนเงิน,Number,ไม่มี,บังคับ (เมื่อมีไฟล์),ตัวเลขเท่านั้น,cashDepositDetails.[filename].amount
+FALSE,ข้อมูลคำขอ,เอกสารแนบ,หลักฐานเงินค้ำประกัน > วันหมดอายุ,Date (TH),ไม่มี,บังคับ (เมื่อมีไฟล์),รูปแบบ dd/mm/yyyy,cashDepositDetails.[filename].expiryDate
 FALSE,ข้อมูลคำขอ,ข้อมูลผู้ติดต่อ,ชื่อผู้ติดต่อ,ข้อความ,มี,บังคับ,ตัวอักษรและตัวเลข,contact_person
 FALSE,ข้อมูลคำขอ,ข้อมูลผู้ติดต่อ,ตำแหน่ง,ข้อความ,มี,บังคับ,ตัวอักษรเท่านั้น,contact_position
 FALSE,ข้อมูลคำขอ,ข้อมูลผู้ติดต่อ,แผนก,ข้อความ,ไม่มี,ไม่บังคับ,ตัวอักษรและตัวเลข,contact_department
