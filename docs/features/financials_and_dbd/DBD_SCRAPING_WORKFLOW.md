@@ -102,3 +102,75 @@ Once files are secured on the local disk, the system extracts structural data.
 * The `.xlsx` files are read into a Node.js `Buffer` using `fs.readFileSync(filePath)`. This specific approach prevents ZIP corruption errors (`end of central directory record signature not found`) that occur when the `xlsx` library attempts to stream raw paths on certain OS environments.
 * **Dynamic Header Resolution:** The parser converts the sheet to a JSON array. It scans the first 15 rows using a Regex pattern (`/(25\d{2}|20\d{2})/`) to find the row containing the years (e.g., 2564, 2565).
 * **Data Mapping:** It iterates through the subsequent rows. It uses the first column (`row[0]`) or second column (`row[1]`) to determine the "Metric Name" (e.g., "สินทรัพย์รวม"). It then maps the values in adjacent columns back to the years identified in the header row.
+
+---
+
+## 3. Interrupt & Cancellation Behavior
+
+### 3.1 Overview
+
+There are two distinct ways a scraping operation can be interrupted:
+
+| Trigger | Where | Effect |
+|---|---|---|
+| User clicks **"หยุด"** in Batch Automation | `BatchAutomation.vue` → `stopBatch()` | Prevents the *next* item from starting; does **not** abort the currently running task |
+| SSE connection is closed (`evtSource.close()`) | Frontend → Server `req.on('close')` | Immediately closes the Puppeteer browser and deletes the temp directory |
+
+### 3.2 Sequence Diagram: Client Cancel / Disconnect Path
+
+```mermaid
+sequenceDiagram
+    participant UI as Frontend (Vue)
+    participant API as API / Local Bridge
+    participant Browser as Puppeteer
+    participant FS as Temp Directory
+
+    UI->>API: 1. Request Download (SSE opens)
+    API-->>UI: 2. Status: "กำลังเปิดเบราว์เซอร์..."
+    API->>Browser: 3. Puppeteer launched, tmpDir created
+
+    Note over UI: User clicks Cancel / page is closed
+
+    UI->>API: 4. evtSource.close() — SSE connection closed
+    Note over API: Node.js fires req.on('close') event
+    API->>Browser: 5. browser.close() [async, .catch(() => {})]
+    API->>FS: 6. fs.remove(tmpDir) [async, .catch(() => {})]
+    Note over API: Main try/catch continues concurrently<br/>(may attempt sendSSE on already-closed socket)
+```
+
+### 3.3 `stopBatch` in Batch Automation
+
+`stopBatch()` in `BatchAutomation.vue` is a **soft stop**:
+
+```js
+const stopBatch = () => {
+  shouldStop.value = true;
+  isProcessing.value = false;
+};
+```
+
+The worker loop (`processNextItem`) checks `shouldStop.value` at the **top of each iteration**. This means:
+* The **current customer's scrape** will run to completion (or error) before stopping.
+* Only the **next pending item** in the queue is prevented from starting.
+* To cancel the active scrape mid-flight, the user must navigate away or close the tab, which triggers the `req.on('close')` path described above.
+
+### 3.4 `activeDownloads` Deduplication (Bridge Server Only)
+
+The Local Bridge (`bridge-server/server.js`) maintains a module-level `Map` to prevent launching duplicate Puppeteer sessions for the same search query:
+
+```
+const activeDownloads = new Map();  // key: query string, value: Promise<resultData>
+```
+
+**Execution flow when a duplicate request arrives:**
+
+1. **First request** — no entry in the map → a new `Promise` is created, stored in `activeDownloads`, and the browser session begins.
+2. **Second request for the same query** — entry exists → the second SSE client waits (`await activeDownloads.get(query)`) for the first browser session to resolve.
+3. **First request completes** → `resolveDownload(resultData)` is called → the second client immediately receives the same result data without launching a second browser.
+4. **`finally` block** → `activeDownloads.delete(query)` cleans up the entry so the next independent request starts fresh.
+
+> **Note:** This deduplication is only implemented in the Local Bridge (`bridge-server/server.js`). The Server-Side `externalController.js` does not have this mechanism and will launch a new browser session for every concurrent request.
+
+### 3.5 Known Race Condition
+
+Because `req.on('close')` fires asynchronously and concurrently with the main `try/catch` block, `sendSSE()` may attempt to write to the response after the connection has already been closed. In the current implementation this does not crash the process (Node.js silently ignores writes to a closed socket), but it does generate benign write errors. A future improvement would be to introduce a shared `isCancelled` flag that the main flow checks before each `sendSSE` call.
