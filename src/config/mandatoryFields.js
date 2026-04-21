@@ -21,6 +21,7 @@ export const mandatoryStoreKeys = {
         'business_type',
         'main_products',
         'years_in_business',
+        'has_tungnam_relationship',
 
         // Residence & Store
         'address', // houseAddress
