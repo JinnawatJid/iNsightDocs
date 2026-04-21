@@ -40,7 +40,6 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       reason: "",
       requestType: "เครดิตใหม่",
       noFinancialData: false,
-      draftComment: "",
       bankGuaranteeDetails: {},
       letterGuaranteeDetails: {},
       cashDepositDetails: {},
@@ -360,7 +359,6 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           requestType: data.request_type || "เครดิตใหม่",
           noFinancialData:
             parsedSnapshot.transaction_data?.noFinancialData || false,
-          draftComment: parsedSnapshot.transaction_data?.draftComment || "",
           bankGuaranteeDetails:
             parsedSnapshot.transaction_data?.bankGuaranteeDetails || {},
           letterGuaranteeDetails:
@@ -1152,8 +1150,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         reason: "",
         requestType: "เครดิตใหม่",
         noFinancialData: false,
-        draftComment: "",
-        bankGuaranteeDetails: {},
+          bankGuaranteeDetails: {},
         letterGuaranteeDetails: {},
         cashDepositDetails: {},
         mainContractorName: "",
@@ -1198,8 +1195,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         reason: "",
         requestType: "เครดิตใหม่",
         noFinancialData: false,
-        draftComment: "",
-        bankGuaranteeDetails: {},
+          bankGuaranteeDetails: {},
         letterGuaranteeDetails: {},
         cashDepositDetails: {},
         mainContractorName: "",

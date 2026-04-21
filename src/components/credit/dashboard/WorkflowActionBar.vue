@@ -95,8 +95,8 @@ const handleAction = async (action) => {
   let commentText = props.comment || '';
 
   const clearDraft = () => {
-      if (store.transactionData) {
-          store.transactionData.draftComment = '';
+      if (store.requestId) {
+          localStorage.removeItem(`draftComment_${store.requestId}`);
       }
       emit('update:comment', '');
   };

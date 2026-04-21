@@ -75,33 +75,26 @@ const authStore = useAuthStore();
 onMounted(() => {
     store.resetState();
 });
-const newComment = ref(store.transactionData?.draftComment || '');
+const newComment = ref('');
 
-let commentSaveTimeout;
 watch(newComment, (newVal) => {
-    // If the comment is cleared programmatically (e.g. after approval), cancel any pending saves
-    if (newVal === '') {
-        clearTimeout(commentSaveTimeout);
-    }
-
-    if (store.transactionData && store.transactionData.draftComment !== newVal) {
-        store.transactionData.draftComment = newVal;
-        clearTimeout(commentSaveTimeout);
-
-        // Only save if it's an actual comment (not just cleared after submission)
-        if (newVal !== '') {
-            commentSaveTimeout = setTimeout(() => {
-                if(store.requestId) {
-                   store.saveTransactionData(false);
-                }
-            }, 1000);
+    if (store.requestId) {
+        if (newVal === '') {
+            localStorage.removeItem(`draftComment_${store.requestId}`);
+        } else {
+            localStorage.setItem(`draftComment_${store.requestId}`, newVal);
         }
     }
 });
 
 // Watch for request ID changes to reset comment box
-watch(() => store.requestId, () => {
-    newComment.value = store.transactionData?.draftComment || '';
+watch(() => store.requestId, (newId) => {
+    if (newId) {
+        const savedDraft = localStorage.getItem(`draftComment_${newId}`);
+        newComment.value = savedDraft || '';
+    } else {
+        newComment.value = '';
+    }
 });
 
 const handleRecalculateScore = async (payload) => {
