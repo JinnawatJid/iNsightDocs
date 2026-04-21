@@ -732,6 +732,8 @@ watch(() => store.showValidationErrors, (val) => {
     position: relative;
     max-width: 400px;
     margin-bottom: 20px;
+  z-index: 30;
+  overflow: visible;
 }
 
 .search-group {
@@ -739,6 +741,8 @@ watch(() => store.showValidationErrors, (val) => {
     align-items: center;
     position: relative;
     margin-top: 0;
+  z-index: 31;
+  overflow: visible;
 }
 
 /* Override padding for search input to align vertically with standard form inputs */
@@ -791,7 +795,7 @@ watch(() => store.showValidationErrors, (val) => {
     border: 1px solid #ccc;
     border-radius: 0 0 8px 8px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    z-index: 1000;
+    z-index: 3500;
     max-height: 250px;
     overflow-y: auto;
     margin-top: 2px;

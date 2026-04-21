@@ -10,7 +10,7 @@
 
     <div v-if="hasData" :key="store.customer.id" class="form-content-wrapper">
     <!-- Application Tabs (Customer Info) -->
-    <div class="unified-card" :class="{ 'collapsed-card': isProjectCredit && !isCustomerInfoExpanded }">
+    <div class="unified-card customer-info-card" :class="{ 'collapsed-card': isProjectCredit && !isCustomerInfoExpanded }">
       <div class="card-header">
         <h3>เอกสารประกอบการพิจารณา</h3>
         <div class="header-actions">
@@ -720,6 +720,10 @@ const submitTransaction = async (btn) => {
   border-radius: 8px;
   border: 1px solid #e0e0e0;
   overflow: hidden;
+}
+
+.customer-info-card {
+    overflow: visible;
 }
 
 .card-header {
