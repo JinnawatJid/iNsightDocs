@@ -75,3 +75,7 @@ An interface to manage the State Machine:
 
 ## 6. Implementation Scope and Effort
 Implementing this architecture is a major structural change. It involves rewriting significant portions of the backend authorization logic and frontend rendering logic (conditionally showing buttons/tabs based on permissions rather than roles). It should be treated as a dedicated, large-scale feature phase.
+
+**Current Interim Implementation:**
+As of the current phase, an interim solution for the **Roles & Permissions Matrix UI** has been implemented on the System Configuration page (`/configuration`).
+Instead of fully migrating to the relational database schema proposed above immediately, the system utilizes a JSON configuration object (`RBAC_MATRIX_CONFIG`) stored in the `Configurations` table. This allows administrators to visually toggle and save permissions for roles via the `RoleManagementTab.vue` component. The next phase will involve hooking this JSON configuration (or migrating it to the proposed relational schema) into the backend middleware and frontend routing to fully enforce these dynamic permissions.
