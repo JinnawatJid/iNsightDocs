@@ -809,6 +809,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         formData.append("snapshot_data", JSON.stringify(this.getSnapshot()));
 
         formData.append("is_submit", "true");
+        if (this.requestStatus) {
+            formData.append("status", this.requestStatus);
+        }
 
         if (this.requestId) {
           formData.append("tx_id", this.requestId);
