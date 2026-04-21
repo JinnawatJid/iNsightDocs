@@ -1,6 +1,20 @@
 const db = require('../db');
 const logger = require('../utils/logger');
 
+// GET /api/config/features
+// Returns active feature flags from environment variables
+exports.getFeatures = (req, res) => {
+    try {
+        const features = {
+            enableBatchDurationLogging: process.env.ENABLE_BATCH_DURATION_LOGGING === 'true'
+        };
+        res.json({ success: true, features });
+    } catch (error) {
+        logger.error('Error fetching feature flags:', error);
+        res.status(500).json({ success: false, message: 'Internal server error fetching feature flags' });
+    }
+};
+
 // GET /api/config
 // Returns all configurations grouped by category
 exports.getConfig = async (req, res) => {
