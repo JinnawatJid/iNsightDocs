@@ -499,6 +499,20 @@ const isExportDropdownOpen = ref(false); // State for dropdown
 // Modal State
 const isUploadModalOpen = ref(false);
 const uploadTargetItem = ref(null);
+
+// Feature Flags
+const isDurationLoggingEnabled = ref(false);
+
+onMounted(async () => {
+  try {
+    const res = await axios.get('/api/config/features');
+    if (res.data && res.data.success && res.data.features) {
+      isDurationLoggingEnabled.value = res.data.features.enableBatchDurationLogging === true;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch feature flags, defaulting to false', error);
+  }
+});
 const uploadForm = ref({
   isNoFinancialData: false,
   profile: null,
@@ -1655,8 +1669,6 @@ const stopBatch = () => {
 
 // Worker function to process items one by one from the shared queue
 const processNextItem = async () => {
-  const isDurationLoggingEnabled = import.meta.env.VITE_ENABLE_BATCH_DURATION_LOGGING === 'true';
-
   while (!shouldStop.value) {
     const index = queue.value.findIndex((i) => i.status === "Pending");
     if (index === -1) {
@@ -2031,7 +2043,7 @@ const processNextItem = async () => {
       item.log = err.message;
       console.error(err);
     } finally {
-      if (isDurationLoggingEnabled) {
+      if (isDurationLoggingEnabled.value) {
         const durationSec = Math.round((Date.now() - startTime) / 1000);
         item.log = `${item.log} (${durationSec}s)`;
       }
