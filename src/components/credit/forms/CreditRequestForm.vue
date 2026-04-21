@@ -315,8 +315,8 @@ const handleAction = async (btn) => {
 
     // If it is a submit action, we run full validation
     if (isSubmit) {
-        // If status is Draft -> Opened (Submit action), make financial docs mandatory
-        const isFinancialMandatory = (requestStatus.value === 'Draft' || !requestStatus.value);
+        // Financial documents are always mandatory on submit (across all statuses)
+        const isFinancialMandatory = true;
 
         const validation = store.validateRequest(true, isFinancialMandatory); // true = check files too
         if (!validation.valid) {
