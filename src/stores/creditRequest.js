@@ -977,7 +977,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       }
 
       const missingFiles = [];
-      if (isSubmit) {
+      if (isSubmit || isFinancialMandatory) {
         if (isFinancialMandatory && this.isCompany) {
           let financialFiles = [
             "company_profile_doc",
