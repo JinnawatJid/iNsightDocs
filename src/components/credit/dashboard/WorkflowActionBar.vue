@@ -34,6 +34,7 @@ const props = defineProps({
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const emit = defineEmits(['update:comment']);
 
 const currentStatus = computed(() => store.requestStatus);
 
@@ -93,6 +94,13 @@ const availableActions = computed(() => {
 const handleAction = async (action) => {
   let commentText = props.comment || '';
 
+  const clearDraft = () => {
+      if (store.transactionData) {
+          store.transactionData.draftComment = '';
+      }
+      emit('update:comment', '');
+  };
+
   // Case 1: Comment Required AND Box is Empty -> Use Popup
   if (action.requireComment && !commentText.trim()) {
     const { value: text, isConfirmed } = await Swal.fire({
@@ -116,6 +124,7 @@ const handleAction = async (action) => {
     if (isConfirmed && text) {
       const ok = await store.updateStatus(action.targetStatus, text);
       if (ok) {
+        clearDraft();
         Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');
       }
     }
@@ -139,6 +148,7 @@ const handleAction = async (action) => {
 
       const ok = await store.updateStatus(action.targetStatus, commentText);
       if (ok) {
+        clearDraft();
         Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');
       }
     }

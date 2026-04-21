@@ -37,7 +37,7 @@
                </div>
 
                <!-- Action Bar (Sticky at Bottom of Center Col) -->
-               <WorkflowActionBar :comment="newComment" />
+               <WorkflowActionBar :comment="newComment" @update:comment="newComment = $event" />
            </div>
         </div>
 
@@ -75,11 +75,24 @@ const authStore = useAuthStore();
 onMounted(() => {
     store.resetState();
 });
-const newComment = ref('');
+const newComment = ref(store.transactionData?.draftComment || '');
+
+let commentSaveTimeout;
+watch(newComment, (newVal) => {
+    if (store.transactionData && store.transactionData.draftComment !== newVal) {
+        store.transactionData.draftComment = newVal;
+        clearTimeout(commentSaveTimeout);
+        commentSaveTimeout = setTimeout(() => {
+            if(store.requestId) {
+               store.saveTransactionData();
+            }
+        }, 1000);
+    }
+});
 
 // Watch for request ID changes to reset comment box
 watch(() => store.requestId, () => {
-    newComment.value = '';
+    newComment.value = store.transactionData?.draftComment || '';
 });
 
 const handleRecalculateScore = async (payload) => {
