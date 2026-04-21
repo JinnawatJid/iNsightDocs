@@ -92,7 +92,7 @@ watch(newComment, (newVal) => {
         if (newVal !== '') {
             commentSaveTimeout = setTimeout(() => {
                 if(store.requestId) {
-                   store.saveTransactionData();
+                   store.saveTransactionData(false);
                 }
             }, 1000);
         }

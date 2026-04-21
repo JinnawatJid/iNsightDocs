@@ -786,7 +786,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
      * Handles inserting/updating complex transaction fields, snapshot data,
      * and file attachments simultaneously.
      */
-    async saveTransactionData() {
+    async saveTransactionData(isSubmit = true) {
       if (!this.customer || !this.customer.id) return;
       try {
         const formData = new FormData();
@@ -808,7 +808,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
         formData.append("snapshot_data", JSON.stringify(this.getSnapshot()));
 
-        formData.append("is_submit", "true");
+        formData.append("is_submit", isSubmit ? "true" : "false");
         if (this.requestStatus) {
             formData.append("status", this.requestStatus);
         }
@@ -819,7 +819,11 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
         await CreditRequestService.createCreditRequest(formData);
       } catch (e) {
-        console.error("Failed to save transaction data", e);
+        console.error("Failed to save transaction data:", e);
+        if (e.response && e.response.status === 409) {
+            console.error("409 Conflict Details:", e.response.data);
+            // Optionally dispatch to UI or Swal, but user requested logs.
+        }
       }
     },
 
