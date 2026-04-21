@@ -219,7 +219,7 @@ const documents = computed(() => {
 
   allKeys.forEach(key => {
       if (key.startsWith('other_')) {
-          const file = store.files[key];
+          const file = store.files?.[key];
           const hasLocalFile = file && (!Array.isArray(file) || file.length > 0);
           const hasFile = hasLocalFile || !!store.uploadedDocuments[key];
 
