@@ -124,6 +124,9 @@ const handleAction = async (action) => {
     if (isConfirmed && text) {
       const ok = await store.updateStatus(action.targetStatus, text);
       if (ok) {
+        if (text) {
+          await store.saveCommentToDB(text);
+        }
         clearDraft();
         Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');
       }
@@ -148,6 +151,9 @@ const handleAction = async (action) => {
 
       const ok = await store.updateStatus(action.targetStatus, commentText);
       if (ok) {
+        if (commentText) {
+          await store.saveCommentToDB(commentText);
+        }
         clearDraft();
         Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');
       }

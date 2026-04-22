@@ -77,21 +77,34 @@ onMounted(() => {
 });
 const newComment = ref('');
 
+let commentSaveTimeout;
 watch(newComment, (newVal) => {
     if (store.requestId) {
         if (newVal === '') {
             localStorage.removeItem(`draftComment_${store.requestId}`);
+            clearTimeout(commentSaveTimeout);
         } else {
             localStorage.setItem(`draftComment_${store.requestId}`, newVal);
+            // Auto-save to database after 1 second of inactivity to ensure cross-device persistence
+            clearTimeout(commentSaveTimeout);
+            commentSaveTimeout = setTimeout(() => {
+                store.saveDraftCommentToDB(newVal);
+            }, 1000);
         }
     }
 });
 
 // Watch for request ID changes to reset comment box
-watch(() => store.requestId, (newId) => {
+watch(() => store.requestId, async (newId) => {
     if (newId) {
         const savedDraft = localStorage.getItem(`draftComment_${newId}`);
-        newComment.value = savedDraft || '';
+        if (savedDraft) {
+            newComment.value = savedDraft;
+        } else {
+            // Fallback to fetch from DB if no local storage draft exists
+            const dbDraft = await store.fetchDraftCommentFromDB(newId);
+            newComment.value = dbDraft || '';
+        }
     } else {
         newComment.value = '';
     }

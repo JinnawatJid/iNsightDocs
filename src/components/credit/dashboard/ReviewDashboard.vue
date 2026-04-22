@@ -43,6 +43,14 @@
         <div class="card-header">
             <h3>สถานะเอกสาร</h3>
             <div class="doc-header-actions" style="display: flex; align-items: center; gap: 15px;">
+                <label style="display: flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer; background: #f0f0f0; padding: 4px 8px; border-radius: 4px;">
+                    <input type="checkbox" v-model="useNewDesign" />
+                    ใช้ดีไซน์ใหม่ (2 คอลัมน์)
+                </label>
+                <label style="display: flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer; background: #f0f0f0; padding: 4px 8px; border-radius: 4px;">
+                    <input type="checkbox" v-model="useNewDesign" />
+                    ใช้ดีไซน์ใหม่ (2 คอลัมน์)
+                </label>
                 <span class="doc-count" :class="{ 'text-success': uploadedCount === documents.length, 'text-warning': uploadedCount < documents.length }">
                     {{ uploadedCount === documents.length ? `เอกสารครบถ้วน (${uploadedCount}/${documents.length} รายการ)` : `เอกสารยังไม่ครบ (${uploadedCount}/${documents.length} รายการ)` }}
                 </span>
@@ -52,7 +60,7 @@
             </div>
         </div>
 
-        <div class="documents-grid">
+        <div :class="useNewDesign ? 'documents-grid' : 'documents-grid-old'">
             <div
                 v-for="(doc, index) in documents"
                 :key="index"
@@ -60,6 +68,14 @@
                 :class="{ 'uploaded': doc.isUploaded, 'missing': !doc.isUploaded }"
             >
 
+                <div class="doc-icon" v-if="!useNewDesign">
+                    <svg v-if="doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
+                <div class="doc-icon" v-if="!useNewDesign">
+                    <svg v-if="doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
                 <div class="doc-meta">
                     <span class="doc-name">{{ doc.label }}</span>
                     <span class="doc-status">{{ doc.isUploaded ? 'พร้อมตรวจสอบ' : 'ยังไม่แนบ' }}</span>
@@ -78,30 +94,42 @@
             </button>
         </div>
 
-        <div class="dbd-grid">
+        <div :class="useNewDesign ? 'dbd-grid' : 'dbd-grid-old'">
                         <div class="doc-card" :class="{ 'uploaded': dbdStatus.profile, 'missing': !dbdStatus.profile }">
-
+                <div class="doc-icon" v-if="!useNewDesign">
+                    <svg v-if="dbdStatus.profile" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
                 <div class="doc-meta">
                     <span class="doc-name">ข้อมูลนิติบุคคล</span>
                     <span class="doc-status">{{ dbdStatus.profile ? 'มีข้อมูล' : 'ไม่มีข้อมูล' }}</span>
                 </div>
             </div>
             <div class="doc-card" :class="{ 'uploaded': dbdStatus.position, 'missing': !dbdStatus.position }">
-
+                <div class="doc-icon" v-if="!useNewDesign">
+                    <svg v-if="dbdStatus.position" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
                 <div class="doc-meta">
                     <span class="doc-name">งบแสดงฐานะการเงิน</span>
                     <span class="doc-status">{{ dbdStatus.position ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
                 </div>
             </div>
             <div class="doc-card" :class="{ 'uploaded': dbdStatus.income, 'missing': !dbdStatus.income }">
-
+                <div class="doc-icon" v-if="!useNewDesign">
+                    <svg v-if="dbdStatus.income" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
                 <div class="doc-meta">
                     <span class="doc-name">งบกำไรขาดทุน</span>
                     <span class="doc-status">{{ dbdStatus.income ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
                 </div>
             </div>
             <div class="doc-card" :class="{ 'uploaded': dbdStatus.ratios, 'missing': !dbdStatus.ratios }">
-
+                <div class="doc-icon" v-if="!useNewDesign">
+                    <svg v-if="dbdStatus.ratios" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
                 <div class="doc-meta">
                     <span class="doc-name">อัตราส่วนทางการเงิน</span>
                     <span class="doc-status">{{ dbdStatus.ratios ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
@@ -162,6 +190,8 @@ import axios from '../../../utils/axios.js';
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
 const showFullDetails = ref(false);
+const useNewDesign = ref(true);
+const useNewDesign = ref(true);
 
 const formatNumber = (num) => {
     if (!num) return '0';
@@ -577,4 +607,46 @@ const openFinancialModal = async () => {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+</style>
+
+<style scoped>
+.documents-grid-old {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+.dbd-grid-old {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+.doc-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.doc-card.uploaded .doc-icon { color: #28a745; }
+.doc-card.missing .doc-icon { color: #ffc107; }
+</style>
+
+<style scoped>
+.documents-grid-old {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+.dbd-grid-old {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+.doc-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.doc-card.uploaded .doc-icon { color: #28a745; }
+.doc-card.missing .doc-icon { color: #ffc107; }
 </style>

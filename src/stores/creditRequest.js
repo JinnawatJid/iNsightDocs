@@ -385,6 +385,58 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       }
     },
 
+    async saveCommentToDB(commentText) {
+      if (!this.requestId || !commentText) return;
+      const authStore = (await import('./auth')).useAuthStore();
+      const role = authStore.userRole || 'System';
+      try {
+        const { default: axios } = await import('axios');
+        await axios.post(`/api/credit-requests/${this.requestId}/comments`, {
+          comment: commentText,
+          actor_role: role
+        });
+        await this.fetchComments();
+      } catch (e) {
+        console.error('Failed to save comment to DB:', e);
+      }
+    },
+
+    async saveDraftCommentToDB(commentText) {
+      if (!this.requestId) return;
+      try {
+        const { default: axios } = await import('axios');
+        // Using existing /api/credit-requests/ endpoint, assuming backend supports updating draft comment
+        // Actually, we can just save it into the snapshot data to avoid schema changes.
+        // But doing so requires a full saveTransactionData call.
+        // Let's implement a specific lightweight mechanism. For now we will append it to transactionData and call saveTransactionData(false)
+        // Which is what caused the 409 issue, but we fixed the 409 issue!
+
+        this.transactionData.draftComment = commentText;
+        await this.saveTransactionData(false);
+
+      } catch (e) {
+        console.error('Failed to auto-save draft comment to DB:', e);
+      }
+    },
+
+    async fetchDraftCommentFromDB(txId) {
+      if (!txId) return "";
+      try {
+        const { default: axios } = await import('axios');
+        const response = await axios.get(`/api/credit-requests/${txId}/detail`);
+        if (response.data && response.data.data) {
+           const snapshot = response.data.data.snapshot_data;
+           if (snapshot) {
+               let parsed = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
+               return parsed.transaction_data?.draftComment || "";
+           }
+        }
+      } catch (e) {
+         console.error('Failed to fetch draft comment from DB', e);
+      }
+      return "";
+    },
+
     async fetchComments() {
       if (!this.requestId) return;
       try {
