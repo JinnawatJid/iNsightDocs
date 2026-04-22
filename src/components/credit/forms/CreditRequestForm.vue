@@ -292,8 +292,21 @@ const handleNextTab = () => {
 };
 
 const newComment = computed({
-    get: () => store.transactionData.draftComment || '',
-    set: (val) => { store.transactionData.draftComment = val; }
+    get: () => {
+        if (store.requestId) {
+            return localStorage.getItem(`draftComment_${store.requestId}`) || '';
+        }
+        return '';
+    },
+    set: (val) => {
+        if (store.requestId) {
+            if (val === '') {
+                localStorage.removeItem(`draftComment_${store.requestId}`);
+            } else {
+                localStorage.setItem(`draftComment_${store.requestId}`, val);
+            }
+        }
+    }
 });
 
 // Button Styling Map
@@ -603,29 +616,25 @@ const submitTransaction = async (btn) => {
         formData.append('is_submit', btn.action === 'saveDraft' ? 'false' : 'true');
 
         // Handle Comment Logic
-        let originalDraftComment = '';
         if (newComment.value.trim()) {
             if (btn.action !== 'saveDraft') {
                 // For actual submission, send as a permanent comment
                 formData.append('comment', newComment.value.trim());
                 formData.append('actor_role', currentRoleLabel.value);
 
-                // Temporarily clear it from snapshot so it doesn't linger
-                originalDraftComment = store.transactionData.draftComment;
-                store.transactionData.draftComment = '';
+                if (store.requestId) {
+                    localStorage.removeItem(`draftComment_${store.requestId}`);
+                    store.saveDraftCommentToDB('');
+                }
+            } else {
+                if (store.requestId) {
+                    store.saveDraftCommentToDB(newComment.value.trim());
+                }
             }
-            // For saveDraft, we do NOT append 'comment' to formData.
-            // It will naturally be saved within 'snapshot_data' since it's in transactionData.draftComment
         }
 
-        // Snapshot MUST be taken AFTER modifying draftComment (if we cleared it)
         const snapshot = store.getSnapshot();
         formData.append('snapshot_data', JSON.stringify(snapshot));
-
-        // Restore draftComment so the UI doesn't jump before the page reloads
-        if (originalDraftComment) {
-            store.transactionData.draftComment = originalDraftComment;
-        }
 
         // Files
         for (const [key, file] of Object.entries(store.files)) {
