@@ -83,6 +83,11 @@ watch(newComment, (newVal) => {
         if (newVal === '') {
             localStorage.removeItem(`draftComment_${store.requestId}`);
             clearTimeout(commentSaveTimeout);
+
+            // Only clear the DB draft if the active store draft wasn't ALREADY empty to avoid infinite loops
+            if (store.transactionData?.draftComment) {
+                 store.saveDraftCommentToDB('');
+            }
         } else {
             localStorage.setItem(`draftComment_${store.requestId}`, newVal);
             // Auto-save to database after 1 second of inactivity to ensure cross-device persistence
