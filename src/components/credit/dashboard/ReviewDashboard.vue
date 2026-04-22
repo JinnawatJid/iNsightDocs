@@ -43,10 +43,6 @@
         <div class="card-header">
             <h3>สถานะเอกสาร</h3>
             <div class="doc-header-actions" style="display: flex; align-items: center; gap: 15px;">
-                <label style="display: flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer; background: #f0f0f0; padding: 4px 8px; border-radius: 4px;">
-                    <input type="checkbox" v-model="useNewDesign" />
-                    ใช้ดีไซน์ใหม่ (2 คอลัมน์)
-                </label>
                 <span class="doc-count" :class="{ 'text-success': uploadedCount === documents.length, 'text-warning': uploadedCount < documents.length }">
                     {{ uploadedCount === documents.length ? `เอกสารครบถ้วน (${uploadedCount}/${documents.length} รายการ)` : `เอกสารยังไม่ครบ (${uploadedCount}/${documents.length} รายการ)` }}
                 </span>
@@ -56,20 +52,13 @@
             </div>
         </div>
 
-        <div :class="useNewDesign ? 'documents-grid' : 'documents-grid-old'">
+        <div class="documents-grid">
             <div
                 v-for="(doc, index) in documents"
                 :key="index"
-                class="doc-card"
-                :class="[
-                    useNewDesign ? 'list-item-style' : '',
-                    { 'uploaded': doc.isUploaded, 'missing': !doc.isUploaded }
-                ]"
+                class="doc-card list-item-style"
+                :class="{ 'uploaded': doc.isUploaded, 'missing': !doc.isUploaded }"
             >
-                <div class="doc-icon" v-if="!useNewDesign">
-                    <svg v-if="doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                </div>
                 <div class="doc-meta">
                     <span class="doc-name">{{ doc.label }}</span>
                     <span class="doc-status">{{ doc.isUploaded ? 'พร้อมตรวจสอบ' : 'ยังไม่แนบ' }}</span>
@@ -88,42 +77,26 @@
             </button>
         </div>
 
-        <div :class="useNewDesign ? 'dbd-grid' : 'dbd-grid-old'">
-                        <div class="doc-card" :class="[useNewDesign ? 'list-item-style' : '', { 'uploaded': dbdStatus.profile, 'missing': !dbdStatus.profile }]">
-                <div class="doc-icon" v-if="!useNewDesign">
-                    <svg v-if="dbdStatus.profile" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                </div>
+        <div class="dbd-grid">
+            <div class="doc-card list-item-style" :class="{ 'uploaded': dbdStatus.profile, 'missing': !dbdStatus.profile }">
                 <div class="doc-meta">
                     <span class="doc-name">ข้อมูลนิติบุคคล</span>
                     <span class="doc-status">{{ dbdStatus.profile ? 'มีข้อมูล' : 'ไม่มีข้อมูล' }}</span>
                 </div>
             </div>
-            <div class="doc-card" :class="[useNewDesign ? 'list-item-style' : '', { 'uploaded': dbdStatus.position, 'missing': !dbdStatus.position }]">
-                <div class="doc-icon" v-if="!useNewDesign">
-                    <svg v-if="dbdStatus.position" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                </div>
+            <div class="doc-card list-item-style" :class="{ 'uploaded': dbdStatus.position, 'missing': !dbdStatus.position }">
                 <div class="doc-meta">
                     <span class="doc-name">งบแสดงฐานะการเงิน</span>
                     <span class="doc-status">{{ dbdStatus.position ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
                 </div>
             </div>
-            <div class="doc-card" :class="[useNewDesign ? 'list-item-style' : '', { 'uploaded': dbdStatus.income, 'missing': !dbdStatus.income }]">
-                <div class="doc-icon" v-if="!useNewDesign">
-                    <svg v-if="dbdStatus.income" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                </div>
+            <div class="doc-card list-item-style" :class="{ 'uploaded': dbdStatus.income, 'missing': !dbdStatus.income }">
                 <div class="doc-meta">
                     <span class="doc-name">งบกำไรขาดทุน</span>
                     <span class="doc-status">{{ dbdStatus.income ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
                 </div>
             </div>
-            <div class="doc-card" :class="[useNewDesign ? 'list-item-style' : '', { 'uploaded': dbdStatus.ratios, 'missing': !dbdStatus.ratios }]">
-                <div class="doc-icon" v-if="!useNewDesign">
-                    <svg v-if="dbdStatus.ratios" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                </div>
+            <div class="doc-card list-item-style" :class="{ 'uploaded': dbdStatus.ratios, 'missing': !dbdStatus.ratios }">
                 <div class="doc-meta">
                     <span class="doc-name">อัตราส่วนทางการเงิน</span>
                     <span class="doc-status">{{ dbdStatus.ratios ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
@@ -184,7 +157,6 @@ import axios from '../../../utils/axios.js';
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
 const showFullDetails = ref(false);
-const useNewDesign = ref(true);
 
 const formatNumber = (num) => {
     if (!num) return '0';
@@ -221,15 +193,36 @@ const DOC_LABELS = {
 };
 
 const documents = computed(() => {
-  const { files } = getMandatoryKeys(store.isCompany);
-  return files.map(key => {
+  // Combine all keys from files and uploadedDocuments
+  const allKeys = new Set([
+    ...Object.keys(store.files || {}),
+    ...Object.keys(store.uploadedDocuments || {})
+  ]);
+
+  // Ensure mandatory keys are included even if not uploaded
+  const { files: mandatoryKeys } = getMandatoryKeys(store.isCompany);
+  mandatoryKeys.forEach(k => allKeys.add(k));
+
+  // Remove DBD specific keys as they have their own section
+  const dbdKeys = ['company_profile_doc', 'balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc'];
+  dbdKeys.forEach(k => allKeys.delete(k));
+
+  return Array.from(allKeys).map(key => {
     const file = store.files[key];
     const hasLocalFile = file && (!Array.isArray(file) || file.length > 0);
     const hasFile = hasLocalFile || !!store.uploadedDocuments[key];
 
+    let label = DOC_LABELS[key] || key;
+    if (key.startsWith('other_')) {
+      const parts = key.split(':');
+      if (parts.length > 1) {
+        label = parts[1];
+      }
+    }
+
     return {
       key,
-      label: DOC_LABELS[key] || key,
+      label,
       isUploaded: hasFile
     };
   });

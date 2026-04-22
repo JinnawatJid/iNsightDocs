@@ -357,6 +357,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           termAE: data.term_ae,
           termYC: data.term_yc,
           requestType: data.request_type || "เครดิตใหม่",
+          draftComment: parsedSnapshot.transaction_data?.draftComment || "",
           noFinancialData:
             parsedSnapshot.transaction_data?.noFinancialData || false,
           bankGuaranteeDetails:
@@ -728,6 +729,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               termYC: resData.term_yc || "",
               reason: resData.request_reason || "",
               requestType: resData.request_type || "เครดิตใหม่",
+              draftComment: parsedSnapshotTransactionData.draftComment || "",
               noFinancialData: resData.snapshot_data
                 ? typeof resData.snapshot_data === "string"
                   ? JSON.parse(resData.snapshot_data).transaction_data
@@ -1199,6 +1201,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         termYC: "",
         reason: "",
         requestType: "เครดิตใหม่",
+        draftComment: "",
         noFinancialData: false,
           bankGuaranteeDetails: {},
         letterGuaranteeDetails: {},
@@ -1244,6 +1247,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         termYC: "",
         reason: "",
         requestType: "เครดิตใหม่",
+        draftComment: "",
         noFinancialData: false,
           bankGuaranteeDetails: {},
         letterGuaranteeDetails: {},
