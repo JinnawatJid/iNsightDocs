@@ -61,7 +61,10 @@
                 v-for="(doc, index) in documents"
                 :key="index"
                 class="doc-card"
-                :class="{ 'uploaded': doc.isUploaded, 'missing': !doc.isUploaded }"
+                :class="[
+                    useNewDesign ? 'list-item-style' : '',
+                    { 'uploaded': doc.isUploaded, 'missing': !doc.isUploaded }
+                ]"
             >
                 <div class="doc-icon" v-if="!useNewDesign">
                     <svg v-if="doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
@@ -86,7 +89,7 @@
         </div>
 
         <div :class="useNewDesign ? 'dbd-grid' : 'dbd-grid-old'">
-                        <div class="doc-card" :class="{ 'uploaded': dbdStatus.profile, 'missing': !dbdStatus.profile }">
+                        <div class="doc-card" :class="[useNewDesign ? 'list-item-style' : '', { 'uploaded': dbdStatus.profile, 'missing': !dbdStatus.profile }]">
                 <div class="doc-icon" v-if="!useNewDesign">
                     <svg v-if="dbdStatus.profile" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
@@ -96,7 +99,7 @@
                     <span class="doc-status">{{ dbdStatus.profile ? 'มีข้อมูล' : 'ไม่มีข้อมูล' }}</span>
                 </div>
             </div>
-            <div class="doc-card" :class="{ 'uploaded': dbdStatus.position, 'missing': !dbdStatus.position }">
+            <div class="doc-card" :class="[useNewDesign ? 'list-item-style' : '', { 'uploaded': dbdStatus.position, 'missing': !dbdStatus.position }]">
                 <div class="doc-icon" v-if="!useNewDesign">
                     <svg v-if="dbdStatus.position" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
@@ -106,7 +109,7 @@
                     <span class="doc-status">{{ dbdStatus.position ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
                 </div>
             </div>
-            <div class="doc-card" :class="{ 'uploaded': dbdStatus.income, 'missing': !dbdStatus.income }">
+            <div class="doc-card" :class="[useNewDesign ? 'list-item-style' : '', { 'uploaded': dbdStatus.income, 'missing': !dbdStatus.income }]">
                 <div class="doc-icon" v-if="!useNewDesign">
                     <svg v-if="dbdStatus.income" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
@@ -116,7 +119,7 @@
                     <span class="doc-status">{{ dbdStatus.income ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
                 </div>
             </div>
-            <div class="doc-card" :class="{ 'uploaded': dbdStatus.ratios, 'missing': !dbdStatus.ratios }">
+            <div class="doc-card" :class="[useNewDesign ? 'list-item-style' : '', { 'uploaded': dbdStatus.ratios, 'missing': !dbdStatus.ratios }]">
                 <div class="doc-icon" v-if="!useNewDesign">
                     <svg v-if="dbdStatus.ratios" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
@@ -432,8 +435,8 @@ const openFinancialModal = async () => {
 /* DBD Section Styles */
 .dbd-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
 }
 .btn-view-financials, .btn-view-all-docs {
     background: #e3f2fd;
@@ -467,8 +470,8 @@ const openFinancialModal = async () => {
 
 .documents-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
 }
 
 .doc-card {
@@ -589,4 +592,77 @@ const openFinancialModal = async () => {
 }
 .doc-card.uploaded .doc-icon { color: #28a745; }
 .doc-card.missing .doc-icon { color: #ffc107; }
+</style>
+
+<style scoped>
+/* New List Style Overrides */
+.documents-grid .doc-card.list-item-style,
+.dbd-grid .doc-card.list-item-style {
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #eaeaea;
+    border-radius: 0;
+    gap: 12px;
+}
+
+.documents-grid .doc-card.list-item-style:last-child,
+.dbd-grid .doc-card.list-item-style:last-child {
+    border-bottom: none;
+}
+
+/* Bullet points instead of icons */
+.documents-grid .doc-card.list-item-style::before,
+.dbd-grid .doc-card.list-item-style::before {
+    content: "•";
+    color: #888;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.documents-grid .doc-card.list-item-style.uploaded::before,
+.dbd-grid .doc-card.list-item-style.uploaded::before {
+    color: #28a745;
+}
+
+.documents-grid .doc-card.list-item-style.missing::before,
+.dbd-grid .doc-card.list-item-style.missing::before {
+    color: #dc3545;
+}
+
+.documents-grid .doc-card.list-item-style .doc-meta,
+.dbd-grid .doc-card.list-item-style .doc-meta {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.documents-grid .doc-card.list-item-style .doc-name,
+.dbd-grid .doc-card.list-item-style .doc-name {
+    font-size: 14px;
+    flex-grow: 1;
+}
+
+.documents-grid .doc-card.list-item-style .doc-status,
+.dbd-grid .doc-card.list-item-style .doc-status {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: #f0f0f0;
+    color: #555;
+    font-weight: 500;
+}
+
+.documents-grid .doc-card.list-item-style.uploaded .doc-status,
+.dbd-grid .doc-card.list-item-style.uploaded .doc-status {
+    background: #e6f4ea;
+    color: #28a745;
+}
+
+.documents-grid .doc-card.list-item-style.missing .doc-status,
+.dbd-grid .doc-card.list-item-style.missing .doc-status {
+    background: #fde8e8;
+    color: #dc3545;
+}
 </style>
