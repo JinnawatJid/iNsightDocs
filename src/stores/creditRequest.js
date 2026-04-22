@@ -406,7 +406,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       try {
         const { default: axios } = await import('axios');
 
-        await axios.post(`/api/credit-requests/${this.requestId}/draft-comment`, {
+        await axios.post(`/api/credit-requests/${encodeURIComponent(this.requestId)}/draft-comment`, {
            draft_comment: commentText
         });
 
@@ -421,7 +421,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       if (!txId) return "";
       try {
         const { default: axios } = await import('axios');
-        const response = await axios.get(`/api/credit-requests/${txId}/detail`);
+        const response = await axios.get(`/api/credit-requests/${encodeURIComponent(txId)}/detail`);
         if (response.data && response.data.data) {
            const snapshot = response.data.data.snapshot_data;
            if (snapshot) {
