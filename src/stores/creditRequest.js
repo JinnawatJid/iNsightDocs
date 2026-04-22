@@ -405,14 +405,12 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       if (!this.requestId) return;
       try {
         const { default: axios } = await import('axios');
-        // Using existing /api/credit-requests/ endpoint, assuming backend supports updating draft comment
-        // Actually, we can just save it into the snapshot data to avoid schema changes.
-        // But doing so requires a full saveTransactionData call.
-        // Let's implement a specific lightweight mechanism. For now we will append it to transactionData and call saveTransactionData(false)
-        // Which is what caused the 409 issue, but we fixed the 409 issue!
+
+        await axios.post(`/api/credit-requests/${this.requestId}/draft-comment`, {
+           draft_comment: commentText
+        });
 
         this.transactionData.draftComment = commentText;
-        await this.saveTransactionData(false);
 
       } catch (e) {
         console.error('Failed to auto-save draft comment to DB:', e);

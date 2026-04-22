@@ -91,8 +91,12 @@
 
         <div :class="useNewDesign ? 'dbd-grid' : 'dbd-grid-old'">
                         <div class="doc-card" :class="{ 'uploaded': dbdStatus.profile, 'missing': !dbdStatus.profile }">
-                <div class="doc-icon" v-if="!useNewDesign">
+                <div class="doc-icon">
                     <svg v-if="dbdStatus.profile" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
+                <div class="doc-icon" v-if="!useNewDesign">
+                    <svg v-if="doc && doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <div class="doc-meta">
@@ -101,8 +105,12 @@
                 </div>
             </div>
             <div class="doc-card" :class="{ 'uploaded': dbdStatus.position, 'missing': !dbdStatus.position }">
-                <div class="doc-icon" v-if="!useNewDesign">
+                <div class="doc-icon">
                     <svg v-if="dbdStatus.position" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
+                <div class="doc-icon" v-if="!useNewDesign">
+                    <svg v-if="doc && doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <div class="doc-meta">
@@ -111,8 +119,12 @@
                 </div>
             </div>
             <div class="doc-card" :class="{ 'uploaded': dbdStatus.income, 'missing': !dbdStatus.income }">
-                <div class="doc-icon" v-if="!useNewDesign">
+                <div class="doc-icon">
                     <svg v-if="dbdStatus.income" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
+                <div class="doc-icon" v-if="!useNewDesign">
+                    <svg v-if="doc && doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <div class="doc-meta">
@@ -121,8 +133,12 @@
                 </div>
             </div>
             <div class="doc-card" :class="{ 'uploaded': dbdStatus.ratios, 'missing': !dbdStatus.ratios }">
-                <div class="doc-icon" v-if="!useNewDesign">
+                <div class="doc-icon">
                     <svg v-if="dbdStatus.ratios" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
+                <div class="doc-icon" v-if="!useNewDesign">
+                    <svg v-if="doc && doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <div class="doc-meta">
@@ -209,25 +225,22 @@ const formatTerms = (data) => {
 
 // Document Logic (Reused from DocumentChecklist)
 const DOC_LABELS = {
-  "credit_application_doc": "ใบขอเปิดเครดิต",
-  "id_card": "สำเนาบัตรประชาชน",
-  "home_reg": "สำเนาทะเบียนบ้าน",
-  "home_photo": "รูปถ่ายที่อยู่อาศัย",
-  "store_photo": "รูปถ่ายหน้าร้าน",
-  "map": "แผนที่ร้านค้า",
-  "bank_statement": "รายการเดินบัญชี (Statement)",
-  "legal_entity_certificate": "หนังสือรับรองบริษัท",
-  "vat_document": "ใบทะเบียนภาษีมูลค่าเพิ่ม (ภพ.20)",
-  "company_photo": "รูปถ่ายบริษัท",
-  "commercial_registration": "ใบทะเบียนพาณิชย์",
-  "rent_contract": "สัญญาเช่า",
-  "project_contract": "สัญญาจ้างงาน"
+  'credit_application_doc': 'เอกสารคำขอ',
+  'id_card': 'บัตรประชาชน',
+  'home_reg': 'ทะเบียนบ้าน',
+  'home_photo': 'รูปที่อยู่',
+  'store_photo': 'รูปหน้าร้าน',
+  'map': 'แผนที่',
+  'bank_statement': 'Statement',
+  'legal_entity_certificate': 'หนังสือรับรอง',
+  'vat_document': 'ภพ.20',
+  'company_photo': 'รูปบริษัท'
 };
 
 const documents = computed(() => {
   const { files } = getMandatoryKeys(store.isCompany);
-  const docs = files.map(key => {
-    const file = store.files?.[key];
+  return files.map(key => {
+    const file = store.files[key];
     const hasLocalFile = file && (!Array.isArray(file) || file.length > 0);
     const hasFile = hasLocalFile || !!store.uploadedDocuments[key];
 
@@ -237,32 +250,6 @@ const documents = computed(() => {
       isUploaded: hasFile
     };
   });
-
-  // Add other documents dynamically from both files and uploadedDocuments
-  const allKeys = new Set([
-      ...(store.files ? Object.keys(store.files) : []),
-      ...(store.uploadedDocuments ? Object.keys(store.uploadedDocuments) : [])
-  ]);
-
-  allKeys.forEach(key => {
-      if (key.startsWith('other_')) {
-          const file = store.files?.[key];
-          const hasLocalFile = file && (!Array.isArray(file) || file.length > 0);
-          const hasFile = hasLocalFile || !!store.uploadedDocuments[key];
-
-          // Extract label: "other_tabName:LabelName" -> "LabelName"
-          const parts = key.split(':');
-          const label = parts.length > 1 ? parts.slice(1).join(':') : key;
-
-          docs.push({
-              key,
-              label: label,
-              isUploaded: hasFile
-          });
-      }
-  });
-
-  return docs;
 });
 
 const uploadedCount = computed(() => documents.value.filter(d => d.isUploaded).length);
@@ -465,7 +452,7 @@ const openFinancialModal = async () => {
 /* DBD Section Styles */
 .dbd-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 15px;
 }
 .btn-view-financials, .btn-view-all-docs {
@@ -500,7 +487,7 @@ const openFinancialModal = async () => {
 
 .documents-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 15px;
 }
 
@@ -614,4 +601,12 @@ const openFinancialModal = async () => {
     grid-template-columns: repeat(4, 1fr);
     gap: 15px;
 }
+.doc-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.doc-card.uploaded .doc-icon { color: #28a745; }
+.doc-card.missing .doc-icon { color: #ffc107; }
 </style>

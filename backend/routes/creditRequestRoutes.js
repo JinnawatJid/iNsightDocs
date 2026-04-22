@@ -19,6 +19,7 @@ router.get(
 router.patch("/:id/cancel", creditRequestController.cancelCreditRequest);
 router.get("/:id/comments", creditRequestController.getComments);
 router.post("/:id/comments", creditRequestController.addComment);
+router.post("/:id/draft-comment", creditRequestController.saveDraftComment);
 router.post("/:id/revise", creditRequestController.reviseRequest);
 router.post(
   "/:id/additional-documents",
