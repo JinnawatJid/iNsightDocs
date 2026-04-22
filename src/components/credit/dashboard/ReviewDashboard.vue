@@ -47,10 +47,6 @@
                     <input type="checkbox" v-model="useNewDesign" />
                     ใช้ดีไซน์ใหม่ (2 คอลัมน์)
                 </label>
-                <label style="display: flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer; background: #f0f0f0; padding: 4px 8px; border-radius: 4px;">
-                    <input type="checkbox" v-model="useNewDesign" />
-                    ใช้ดีไซน์ใหม่ (2 คอลัมน์)
-                </label>
                 <span class="doc-count" :class="{ 'text-success': uploadedCount === documents.length, 'text-warning': uploadedCount < documents.length }">
                     {{ uploadedCount === documents.length ? `เอกสารครบถ้วน (${uploadedCount}/${documents.length} รายการ)` : `เอกสารยังไม่ครบ (${uploadedCount}/${documents.length} รายการ)` }}
                 </span>
@@ -67,13 +63,12 @@
                 class="doc-card"
                 :class="{ 'uploaded': doc.isUploaded, 'missing': !doc.isUploaded }"
             >
-
-                <div class="doc-icon" v-if="!useNewDesign">
+                <div class="doc-icon">
                     <svg v-if="doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <div class="doc-icon" v-if="!useNewDesign">
-                    <svg v-if="doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <svg v-if="doc && doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                     <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <div class="doc-meta">
@@ -190,7 +185,6 @@ import axios from '../../../utils/axios.js';
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
 const showFullDetails = ref(false);
-const useNewDesign = ref(true);
 const useNewDesign = ref(true);
 
 const formatNumber = (num) => {
@@ -620,33 +614,4 @@ const openFinancialModal = async () => {
     grid-template-columns: repeat(4, 1fr);
     gap: 15px;
 }
-.doc-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-.doc-card.uploaded .doc-icon { color: #28a745; }
-.doc-card.missing .doc-icon { color: #ffc107; }
-</style>
-
-<style scoped>
-.documents-grid-old {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
-}
-.dbd-grid-old {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-}
-.doc-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-.doc-card.uploaded .doc-icon { color: #28a745; }
-.doc-card.missing .doc-icon { color: #ffc107; }
 </style>
