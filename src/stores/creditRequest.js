@@ -729,7 +729,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               termYC: resData.term_yc || "",
               reason: resData.request_reason || "",
               requestType: resData.request_type || "เครดิตใหม่",
-              draftComment: parsedSnapshotTransactionData.draftComment || "",
+              draftComment: parsedSnapshotTransactionData?.draftComment || "",
               noFinancialData: resData.snapshot_data
                 ? typeof resData.snapshot_data === "string"
                   ? JSON.parse(resData.snapshot_data).transaction_data

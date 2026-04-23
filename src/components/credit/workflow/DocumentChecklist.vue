@@ -81,12 +81,12 @@ const DOC_CONFIG = {
   'credit_application_doc': { label: 'ใบขอเปิดเครดิต', tab: 'requestInfo' },
   'id_card': { label: 'สำเนาบัตรประชาชน', tab: 'general' },
   'home_reg': { label: 'สำเนาทะเบียนบ้าน', tab: 'general' },
-  'home_photo': { label: 'รูปถ่ายที่อยู่อาศัย', tab: 'residence' },
+  'home_photo': { label: 'รูปถ่าย', tab: 'residence' },
   'store_photo': { label: 'รูปร้านค้า', tab: 'store' },
-  'map': { label: 'แผนที่ร้านค้า', tab: 'store' },
-  'bank_statement': { label: 'รายการเดินบัญชี (Statement)', tab: 'financial' },
-  'legal_entity_certificate': { label: 'หนังสือรับรองบริษัท', tab: 'store' },
-  'vat_document': { label: 'ใบทะเบียนภาษีมูลค่าเพิ่ม (ภพ.20)', tab: 'store' },
+  'map': { label: 'แผนที่', tab: 'store' },
+  'bank_statement': { label: 'รายการเดินบัญชี (Bank Statement)', tab: 'financial' },
+  'legal_entity_certificate': { label: 'หนังสือรับรองนิติบุคคล', tab: 'store' },
+  'vat_document': { label: 'เอกสารภพ.20', tab: 'store' },
   'company_photo': { label: 'รูปถ่ายบริษัท', tab: 'store' }
 };
 
