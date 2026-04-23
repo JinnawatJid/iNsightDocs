@@ -184,7 +184,7 @@ const DOC_LABELS = {
   'id_card': 'บัตรประชาชน',
   'home_reg': 'ทะเบียนบ้าน',
   'home_photo': 'รูปที่อยู่',
-  'store_photo': 'รูปหน้าร้าน',
+  'store_photo': 'รูปร้านค้า',
   'map': 'แผนที่',
   'bank_statement': 'Statement',
   'legal_entity_certificate': 'หนังสือรับรอง',

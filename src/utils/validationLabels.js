@@ -57,7 +57,7 @@ export const docLabels = {
     'id_card': { label: 'บัตรประชาชน', tab: 'ข้อมูลผู้มีอำนาจ' },
     'home_reg': { label: 'ทะเบียนบ้าน', tab: 'ข้อมูลผู้มีอำนาจ' },
     'home_photo': { label: 'รูปที่อยู่', tab: 'ที่อยู่อาศัย' },
-    'store_photo': { label: 'รูปหน้าร้าน', tab: 'ข้อมูลบริษัท' },
+    'store_photo': { label: 'รูปร้านค้า', tab: 'ข้อมูลบริษัท' },
     'map': { label: 'แผนที่', tab: 'ข้อมูลบริษัท' },
     'bank_statement': { label: 'Statement', tab: 'เอกสารการเงิน' },
     'legal_entity_certificate': { label: 'หนังสือรับรอง', tab: 'ข้อมูลผู้มีอำนาจ' },

@@ -82,7 +82,7 @@ const DOC_CONFIG = {
   'id_card': { label: 'สำเนาบัตรประชาชน', tab: 'general' },
   'home_reg': { label: 'สำเนาทะเบียนบ้าน', tab: 'general' },
   'home_photo': { label: 'รูปถ่ายที่อยู่อาศัย', tab: 'residence' },
-  'store_photo': { label: 'รูปถ่ายหน้าร้าน', tab: 'store' },
+  'store_photo': { label: 'รูปร้านค้า', tab: 'store' },
   'map': { label: 'แผนที่ร้านค้า', tab: 'store' },
   'bank_statement': { label: 'รายการเดินบัญชี (Statement)', tab: 'financial' },
   'legal_entity_certificate': { label: 'หนังสือรับรองบริษัท', tab: 'store' },
