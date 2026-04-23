@@ -1361,3 +1361,46 @@ exports.addComment = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+exports.saveDraftComment = async (req, res) => {
+  const id = decodeURIComponent(req.params.id); // tx_id
+  const { draft_comment } = req.body;
+
+  try {
+    // 1. Fetch current snapshot
+    let selectSql = db.dbType === 'mssql'
+      ? `SELECT TOP 1 snapshot_data FROM CreditRequests WHERE tx_id = ?`
+      : `SELECT snapshot_data FROM CreditRequests WHERE tx_id = ? LIMIT 1`;
+
+    const { rows } = await db.query(selectSql, [id]);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    let snapshotData = rows[0].snapshot_data;
+    if (typeof snapshotData === 'string') {
+        try {
+            snapshotData = JSON.parse(snapshotData);
+        } catch (e) {
+            logger.error("Error parsing snapshot for draft comment", e);
+            snapshotData = {};
+        }
+    }
+
+    // 2. Safely inject draftComment
+    if (!snapshotData.transaction_data) {
+        snapshotData.transaction_data = {};
+    }
+    snapshotData.transaction_data.draftComment = draft_comment;
+
+    // 3. Update database WITHOUT modifying updated_at or status to prevent conflicts
+    let updateSql = `UPDATE CreditRequests SET snapshot_data = ? WHERE tx_id = ?`;
+    await db.query(updateSql, [JSON.stringify(snapshotData), id]);
+
+    res.status(200).json({ message: 'Draft comment saved' });
+  } catch (error) {
+    logger.error('Error saving draft comment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

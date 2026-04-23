@@ -40,7 +40,6 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       reason: "",
       requestType: "เครดิตใหม่",
       noFinancialData: false,
-      draftComment: "",
       bankGuaranteeDetails: {},
       letterGuaranteeDetails: {},
       cashDepositDetails: {},
@@ -358,9 +357,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           termAE: data.term_ae,
           termYC: data.term_yc,
           requestType: data.request_type || "เครดิตใหม่",
+          draftComment: parsedSnapshot.transaction_data?.draftComment || "",
           noFinancialData:
             parsedSnapshot.transaction_data?.noFinancialData || false,
-          draftComment: parsedSnapshot.transaction_data?.draftComment || "",
           bankGuaranteeDetails:
             parsedSnapshot.transaction_data?.bankGuaranteeDetails || {},
           letterGuaranteeDetails:
@@ -385,6 +384,56 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       } finally {
         this.loading = false;
       }
+    },
+
+    async saveCommentToDB(commentText) {
+      if (!this.requestId || !commentText) return;
+      const authStore = (await import('./auth')).useAuthStore();
+      const role = authStore.userRole || 'System';
+      try {
+        const { default: axios } = await import('axios');
+        await axios.post(`/api/credit-requests/${this.requestId}/comments`, {
+          comment: commentText,
+          actor_role: role
+        });
+        await this.fetchComments();
+      } catch (e) {
+        console.error('Failed to save comment to DB:', e);
+      }
+    },
+
+    async saveDraftCommentToDB(commentText) {
+      if (!this.requestId) return;
+      try {
+        const { default: axios } = await import('axios');
+
+        await axios.post(`/api/credit-requests/${encodeURIComponent(this.requestId)}/draft-comment`, {
+           draft_comment: commentText
+        });
+
+        this.transactionData.draftComment = commentText;
+
+      } catch (e) {
+        console.error('Failed to auto-save draft comment to DB:', e);
+      }
+    },
+
+    async fetchDraftCommentFromDB(txId) {
+      if (!txId) return "";
+      try {
+        const { default: axios } = await import('axios');
+        const response = await axios.get(`/api/credit-requests/${encodeURIComponent(txId)}/detail`);
+        if (response.data && response.data.data) {
+           const snapshot = response.data.data.snapshot_data;
+           if (snapshot) {
+               let parsed = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
+               return parsed.transaction_data?.draftComment || "";
+           }
+        }
+      } catch (e) {
+         console.error('Failed to fetch draft comment from DB', e);
+      }
+      return "";
     },
 
     async fetchComments() {
@@ -680,6 +729,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               termYC: resData.term_yc || "",
               reason: resData.request_reason || "",
               requestType: resData.request_type || "เครดิตใหม่",
+              draftComment: parsedSnapshotTransactionData?.draftComment || "",
               noFinancialData: resData.snapshot_data
                 ? typeof resData.snapshot_data === "string"
                   ? JSON.parse(resData.snapshot_data).transaction_data
@@ -786,7 +836,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
      * Handles inserting/updating complex transaction fields, snapshot data,
      * and file attachments simultaneously.
      */
-    async saveTransactionData() {
+    async saveTransactionData(isSubmit = true) {
       if (!this.customer || !this.customer.id) return;
       try {
         const formData = new FormData();
@@ -808,7 +858,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
         formData.append("snapshot_data", JSON.stringify(this.getSnapshot()));
 
-        formData.append("is_submit", "true");
+        formData.append("is_submit", isSubmit ? "true" : "false");
+        if (this.requestStatus) {
+            formData.append("status", this.requestStatus);
+        }
 
         if (this.requestId) {
           formData.append("tx_id", this.requestId);
@@ -816,7 +869,11 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
         await CreditRequestService.createCreditRequest(formData);
       } catch (e) {
-        console.error("Failed to save transaction data", e);
+        console.error("Failed to save transaction data:", e);
+        if (e.response && e.response.status === 409) {
+            console.error("409 Conflict Details:", e.response.data);
+            // Optionally dispatch to UI or Swal, but user requested logs.
+        }
       }
     },
 
@@ -1144,9 +1201,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         termYC: "",
         reason: "",
         requestType: "เครดิตใหม่",
-        noFinancialData: false,
         draftComment: "",
-        bankGuaranteeDetails: {},
+        noFinancialData: false,
+          bankGuaranteeDetails: {},
         letterGuaranteeDetails: {},
         cashDepositDetails: {},
         mainContractorName: "",
@@ -1190,9 +1247,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         termYC: "",
         reason: "",
         requestType: "เครดิตใหม่",
-        noFinancialData: false,
         draftComment: "",
-        bankGuaranteeDetails: {},
+        noFinancialData: false,
+          bankGuaranteeDetails: {},
         letterGuaranteeDetails: {},
         cashDepositDetails: {},
         mainContractorName: "",

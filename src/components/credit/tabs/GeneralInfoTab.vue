@@ -256,7 +256,12 @@
 
         <!-- Summary Section -->
         <div class="summary-section" v-if="summaryData">
-            <h4 class="summary-title">ข้อมูลสรุป ({{ summaryData.name }})</h4>
+            <h4 class="summary-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>ข้อมูลสรุป ({{ summaryData.name }})</span>
+                <button type="button" @click="openCustomerProfile" class="btn-link" style="font-size: 0.9rem; color: #0056FF; background: none; border: none; cursor: pointer; text-decoration: underline;">
+                    ดูรายละเอียดแบบเต็ม
+                </button>
+            </h4>
             <div class="summary-grid">
                 <div class="summary-item">
                     <span class="summary-label">วงเงินเครดิต</span>
@@ -483,6 +488,11 @@ const searchQuery = ref('');
 const suggestions = ref([]);
 const showDropdown = ref(false);
 const summaryData = ref(null);
+const openCustomerProfile = () => {
+    if (store.customer.tungnam_relationship_customer_id) {
+        window.open(`/create-credit-request?search=${store.customer.tungnam_relationship_customer_id}`, '_blank');
+    }
+};
 const searchContainer = ref(null);
 
 const localErrors = computed(() => {

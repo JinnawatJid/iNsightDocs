@@ -42,7 +42,10 @@ const count = Object.entries(state.files)
   .length;
 ```
 
-## 3. Backend Integration
+## 3. UI Display (Review Dashboard)
+In the Review Dashboard, standard documents display their generic labels. For custom "Other Documents", the system dynamically extracts the label by stripping the `other_{tabName}:` prefix. This allows reviewers to see the exact custom name the user provided (e.g., seeing "รูปถ่ายโกดัง" instead of a generic system field).
+
+## 4. Backend Integration
 The Express backend is largely agnostic to the specific frontend keys used for uploaded files. It iterates over the `FormData` entries dynamically and saves the files mapping their `file_type` to whatever key the frontend provided (e.g., `other_general:รูปถ่ายหน้างาน`).
 
 There are no hardcoded checks in the backend for the `other:` or `other_` prefix that would prevent these files from being saved correctly.

@@ -37,7 +37,7 @@
                </div>
 
                <!-- Action Bar (Sticky at Bottom of Center Col) -->
-               <WorkflowActionBar :comment="newComment" />
+               <WorkflowActionBar :comment="newComment" @update:comment="newComment = $event" />
            </div>
         </div>
 
@@ -77,9 +77,42 @@ onMounted(() => {
 });
 const newComment = ref('');
 
+let commentSaveTimeout;
+watch(newComment, (newVal) => {
+    if (store.requestId) {
+        if (newVal === '') {
+            localStorage.removeItem(`draftComment_${store.requestId}`);
+            clearTimeout(commentSaveTimeout);
+
+            // Only clear the DB draft if the active store draft wasn't ALREADY empty to avoid infinite loops
+            if (store.transactionData?.draftComment) {
+                 store.saveDraftCommentToDB('');
+            }
+        } else {
+            localStorage.setItem(`draftComment_${store.requestId}`, newVal);
+            // Auto-save to database after 1 second of inactivity to ensure cross-device persistence
+            clearTimeout(commentSaveTimeout);
+            commentSaveTimeout = setTimeout(() => {
+                store.saveDraftCommentToDB(newVal);
+            }, 1000);
+        }
+    }
+});
+
 // Watch for request ID changes to reset comment box
-watch(() => store.requestId, () => {
-    newComment.value = '';
+watch(() => store.requestId, async (newId) => {
+    if (newId) {
+        const savedDraft = localStorage.getItem(`draftComment_${newId}`);
+        if (savedDraft) {
+            newComment.value = savedDraft;
+        } else {
+            // Fallback to fetch from DB if no local storage draft exists
+            const dbDraft = await store.fetchDraftCommentFromDB(newId);
+            newComment.value = dbDraft || '';
+        }
+    } else {
+        newComment.value = '';
+    }
 });
 
 const handleRecalculateScore = async (payload) => {

@@ -56,13 +56,9 @@
             <div
                 v-for="(doc, index) in documents"
                 :key="index"
-                class="doc-card"
+                class="doc-card list-item-style"
                 :class="{ 'uploaded': doc.isUploaded, 'missing': !doc.isUploaded }"
             >
-                <div class="doc-icon">
-                    <svg v-if="doc.isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                </div>
                 <div class="doc-meta">
                     <span class="doc-name">{{ doc.label }}</span>
                     <span class="doc-status">{{ doc.isUploaded ? 'พร้อมตรวจสอบ' : 'ยังไม่แนบ' }}</span>
@@ -82,41 +78,25 @@
         </div>
 
         <div class="dbd-grid">
-                        <div class="doc-card" :class="{ 'uploaded': dbdStatus.profile, 'missing': !dbdStatus.profile }">
-                <div class="doc-icon">
-                    <svg v-if="dbdStatus.profile" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                </div>
+            <div class="doc-card list-item-style" :class="{ 'uploaded': dbdStatus.profile, 'missing': !dbdStatus.profile }">
                 <div class="doc-meta">
                     <span class="doc-name">ข้อมูลนิติบุคคล</span>
                     <span class="doc-status">{{ dbdStatus.profile ? 'มีข้อมูล' : 'ไม่มีข้อมูล' }}</span>
                 </div>
             </div>
-            <div class="doc-card" :class="{ 'uploaded': dbdStatus.position, 'missing': !dbdStatus.position }">
-                <div class="doc-icon">
-                    <svg v-if="dbdStatus.position" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                </div>
+            <div class="doc-card list-item-style" :class="{ 'uploaded': dbdStatus.position, 'missing': !dbdStatus.position }">
                 <div class="doc-meta">
                     <span class="doc-name">งบแสดงฐานะการเงิน</span>
                     <span class="doc-status">{{ dbdStatus.position ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
                 </div>
             </div>
-            <div class="doc-card" :class="{ 'uploaded': dbdStatus.income, 'missing': !dbdStatus.income }">
-                <div class="doc-icon">
-                    <svg v-if="dbdStatus.income" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                </div>
+            <div class="doc-card list-item-style" :class="{ 'uploaded': dbdStatus.income, 'missing': !dbdStatus.income }">
                 <div class="doc-meta">
                     <span class="doc-name">งบกำไรขาดทุน</span>
                     <span class="doc-status">{{ dbdStatus.income ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
                 </div>
             </div>
-            <div class="doc-card" :class="{ 'uploaded': dbdStatus.ratios, 'missing': !dbdStatus.ratios }">
-                <div class="doc-icon">
-                    <svg v-if="dbdStatus.ratios" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                </div>
+            <div class="doc-card list-item-style" :class="{ 'uploaded': dbdStatus.ratios, 'missing': !dbdStatus.ratios }">
                 <div class="doc-meta">
                     <span class="doc-name">อัตราส่วนทางการเงิน</span>
                     <span class="doc-status">{{ dbdStatus.ratios ? 'มีข้อมูล' : (dbdStatus.isNoDataFlag ? 'ลูกค้าไม่ส่งงบ' : 'ไม่มีข้อมูล') }}</span>
@@ -200,28 +180,49 @@ const formatTerms = (data) => {
 
 // Document Logic (Reused from DocumentChecklist)
 const DOC_LABELS = {
-  'credit_application_doc': 'เอกสารคำขอ',
-  'id_card': 'บัตรประชาชน',
-  'home_reg': 'ทะเบียนบ้าน',
-  'home_photo': 'รูปที่อยู่',
-  'store_photo': 'รูปหน้าร้าน',
+  'credit_application_doc': 'ใบขอเปิดเครดิต',
+  'id_card': 'สำเนาบัตรประชาชน',
+  'home_reg': 'สำเนาทะเบียนบ้าน',
+  'home_photo': 'รูปถ่าย',
+  'store_photo': 'รูปร้านค้า',
   'map': 'แผนที่',
-  'bank_statement': 'Statement',
-  'legal_entity_certificate': 'หนังสือรับรอง',
-  'vat_document': 'ภพ.20',
-  'company_photo': 'รูปบริษัท'
+  'bank_statement': 'รายการเดินบัญชี (Bank Statement)',
+  'legal_entity_certificate': 'หนังสือรับรองนิติบุคคล',
+  'vat_document': 'เอกสารภพ.20',
+  'company_photo': 'รูปถ่ายบริษัท'
 };
 
 const documents = computed(() => {
-  const { files } = getMandatoryKeys(store.isCompany);
-  return files.map(key => {
+  // Combine all keys from files and uploadedDocuments
+  const allKeys = new Set([
+    ...Object.keys(store.files || {}),
+    ...Object.keys(store.uploadedDocuments || {})
+  ]);
+
+  // Ensure mandatory keys are included even if not uploaded
+  const { files: mandatoryKeys } = getMandatoryKeys(store.isCompany);
+  mandatoryKeys.forEach(k => allKeys.add(k));
+
+  // Remove DBD specific keys as they have their own section
+  const dbdKeys = ['company_profile_doc', 'balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc'];
+  dbdKeys.forEach(k => allKeys.delete(k));
+
+  return Array.from(allKeys).map(key => {
     const file = store.files[key];
     const hasLocalFile = file && (!Array.isArray(file) || file.length > 0);
     const hasFile = hasLocalFile || !!store.uploadedDocuments[key];
 
+    let label = DOC_LABELS[key] || key;
+    if (key.startsWith('other_')) {
+      const parts = key.split(':');
+      if (parts.length > 1) {
+        label = parts[1];
+      }
+    }
+
     return {
       key,
-      label: DOC_LABELS[key] || key,
+      label,
       isUploaded: hasFile
     };
   });
@@ -427,8 +428,8 @@ const openFinancialModal = async () => {
 /* DBD Section Styles */
 .dbd-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
 }
 .btn-view-financials, .btn-view-all-docs {
     background: #e3f2fd;
@@ -462,8 +463,8 @@ const openFinancialModal = async () => {
 
 .documents-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
 }
 
 .doc-card {
@@ -562,5 +563,99 @@ const openFinancialModal = async () => {
 @keyframes slideDown {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<style scoped>
+.documents-grid-old {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+.dbd-grid-old {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+.doc-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.doc-card.uploaded .doc-icon { color: #28a745; }
+.doc-card.missing .doc-icon { color: #ffc107; }
+</style>
+
+<style scoped>
+/* New List Style Overrides */
+.documents-grid .doc-card.list-item-style,
+.dbd-grid .doc-card.list-item-style {
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #eaeaea;
+    border-radius: 0;
+    gap: 12px;
+}
+
+.documents-grid .doc-card.list-item-style:last-child,
+.dbd-grid .doc-card.list-item-style:last-child {
+    border-bottom: none;
+}
+
+/* Bullet points instead of icons */
+.documents-grid .doc-card.list-item-style::before,
+.dbd-grid .doc-card.list-item-style::before {
+    content: "•";
+    color: #888;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.documents-grid .doc-card.list-item-style.uploaded::before,
+.dbd-grid .doc-card.list-item-style.uploaded::before {
+    color: #28a745;
+}
+
+.documents-grid .doc-card.list-item-style.missing::before,
+.dbd-grid .doc-card.list-item-style.missing::before {
+    color: #dc3545;
+}
+
+.documents-grid .doc-card.list-item-style .doc-meta,
+.dbd-grid .doc-card.list-item-style .doc-meta {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.documents-grid .doc-card.list-item-style .doc-name,
+.dbd-grid .doc-card.list-item-style .doc-name {
+    font-size: 14px;
+    flex-grow: 1;
+}
+
+.documents-grid .doc-card.list-item-style .doc-status,
+.dbd-grid .doc-card.list-item-style .doc-status {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: #f0f0f0;
+    color: #555;
+    font-weight: 500;
+}
+
+.documents-grid .doc-card.list-item-style.uploaded .doc-status,
+.dbd-grid .doc-card.list-item-style.uploaded .doc-status {
+    background: #e6f4ea;
+    color: #28a745;
+}
+
+.documents-grid .doc-card.list-item-style.missing .doc-status,
+.dbd-grid .doc-card.list-item-style.missing .doc-status {
+    background: #fde8e8;
+    color: #dc3545;
 }
 </style>

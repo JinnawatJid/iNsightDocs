@@ -116,70 +116,90 @@ const store = useCreditRequestStore();
 const selectedFile = ref(null);
 
 const DOC_CONFIG = {
-  'credit_application_doc': { label: 'เอกสารคำขอเปิดเครดิต' },
-  'id_card': { label: 'สำเนาบัตรประชาชน' },
-  'home_reg': { label: 'สำเนาทะเบียนบ้าน' },
-  'home_photo': { label: 'รูปถ่ายที่อยู่อาศัย' },
-  'store_photo': { label: 'รูปถ่ายหน้าร้าน' },
-  'map': { label: 'แผนที่ร้านค้า' },
-  'bank_statement': { label: 'รายการเดินบัญชี (Statement)' },
-  'legal_entity_certificate': { label: 'หนังสือรับรองบริษัท' },
-  'vat_document': { label: 'ใบทะเบียนภาษีมูลค่าเพิ่ม (ภพ.20)' },
-  'company_photo': { label: 'รูปถ่ายบริษัท' }
+  'credit_application_doc': { label: 'ใบขอเปิดเครดิต', tab: 'requestInfo' },
+  'id_card': { label: 'สำเนาบัตรประชาชน', tab: 'general' },
+  'home_reg': { label: 'สำเนาทะเบียนบ้าน', tab: 'general' },
+  'home_photo': { label: 'รูปถ่าย', tab: 'residence' },
+  'store_photo': { label: 'รูปร้านค้า', tab: 'store' },
+  'map': { label: 'แผนที่', tab: 'store' },
+  'bank_statement': { label: 'รายการเดินบัญชี (Bank Statement)', tab: 'financial' },
+  'legal_entity_certificate': { label: 'หนังสือรับรองนิติบุคคล', tab: 'store' },
+  'vat_document': { label: 'เอกสารภพ.20', tab: 'store' },
+  'company_photo': { label: 'รูปถ่ายบริษัท', tab: 'store' }
 };
 
 const documentGroups = computed(() => {
   const groups = [];
 
-  // Group 1: Mandatory Documents
-  const { files: mandatoryKeys } = getMandatoryKeys(store.isCompany);
-  const mandatoryItems = [];
+  // Combine all keys from files and uploadedDocuments
+  const allKeys = new Set([
+    ...Object.keys(store.files || {}),
+    ...Object.keys(store.uploadedDocuments || {})
+  ]);
 
-  mandatoryKeys.forEach(key => {
+  // Ensure mandatory keys are included even if not uploaded
+  const { files: mandatoryKeys } = getMandatoryKeys(store.isCompany);
+  mandatoryKeys.forEach(k => allKeys.add(k));
+
+  // Remove DBD specific keys
+  const dbdKeys = ['company_profile_doc', 'balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc'];
+  dbdKeys.forEach(k => allKeys.delete(k));
+
+  const standardItems = [];
+  const otherItems = [];
+
+  Array.from(allKeys).forEach(key => {
     const fileData = store.files[key];
     const isArray = Array.isArray(fileData);
     const hasLocalFile = fileData && (!isArray || fileData.length > 0);
     const uploadedMetadata = store.uploadedDocuments[key];
     const hasFile = hasLocalFile || !!uploadedMetadata;
-    const config = DOC_CONFIG[key] || { label: key };
 
-    // Handle multiple files under the same key
+    const isOther = key.startsWith('other_');
+    const targetArray = isOther ? otherItems : standardItems;
+
+    let label = key;
+    if (isOther) {
+      const parts = key.split(':');
+      label = parts.length > 1 ? parts[1] : key;
+    } else {
+      label = DOC_CONFIG[key]?.label || key;
+    }
+
     if (hasFile) {
         if (isArray && fileData.length > 0) {
             fileData.forEach((f, index) => {
-                mandatoryItems.push({
+                targetArray.push({
                     key: `${key}_${index}`,
-                    displayName: `${config.label} (${index + 1})`,
+                    displayName: `${label} (${index + 1})`,
                     hasFile: true,
                     fileData: f,
                     remoteMetadata: null
                 });
             });
         } else if (hasLocalFile) {
-             mandatoryItems.push({
+             targetArray.push({
                 key,
-                displayName: config.label,
+                displayName: label,
                 hasFile: true,
                 fileData: fileData,
                 remoteMetadata: null
             });
         } else if (uploadedMetadata) {
-             // Remote file (metadata is often just 'true' in uploadedDocuments map,
-             // but file array might hold the actual RemoteFile objects. If not, fallback to fileKey)
              const remoteFallback = { id: key, fileKey: key, name: key };
-             mandatoryItems.push({
+             targetArray.push({
                 key,
-                displayName: config.label,
+                displayName: label,
                 hasFile: true,
                 fileData: null,
                 remoteMetadata: typeof uploadedMetadata === 'object' ? { ...uploadedMetadata, fileKey: key } : remoteFallback
             });
         }
     } else {
-        // Missing
-        mandatoryItems.push({
+        // Missing (only standard items will typically be missing, other_ are only added if uploaded)
+        targetArray.push({
             key,
-            displayName: config.label,
+            displayName: label,
             hasFile: false,
             fileData: null,
             remoteMetadata: null
@@ -187,62 +207,9 @@ const documentGroups = computed(() => {
     }
   });
 
-  groups.push({ title: 'เอกสารหลัก', items: mandatoryItems });
-
-  // Group 2: Other Documents
-  const otherItems = [];
-  if (store.files) {
-    Object.keys(store.files).forEach(key => {
-      if (key.startsWith('other_')) {
-        const fileData = store.files[key];
-        const isArray = Array.isArray(fileData);
-        if (fileData && (!isArray || fileData.length > 0)) {
-            // "other_tabName:LabelName"
-            const parts = key.split(':');
-            const labelName = parts.length > 1 ? parts[1] : key;
-
-            if (isArray) {
-                fileData.forEach((f, index) => {
-                    otherItems.push({
-                        key: `${key}_${index}`,
-                        displayName: `${labelName} (${index + 1})`,
-                        hasFile: true,
-                        fileData: f,
-                        remoteMetadata: null
-                    });
-                });
-            } else {
-                otherItems.push({
-                    key,
-                    displayName: labelName,
-                    hasFile: true,
-                    fileData: fileData,
-                    remoteMetadata: null
-                });
-            }
-        }
-      }
-    });
+  if (standardItems.length > 0) {
+      groups.push({ title: 'เอกสารหลัก', items: standardItems });
   }
-
-  if (store.uploadedDocuments) {
-       Object.keys(store.uploadedDocuments).forEach(key => {
-           if (key.startsWith('other_') && !otherItems.some(i => i.key === key)) {
-               const parts = key.split(':');
-               const labelName = parts.length > 1 ? parts[1] : key;
-               const uploadedMeta = store.uploadedDocuments[key];
-               const remoteFallback = { id: key, fileKey: key, name: key };
-               otherItems.push({
-                    key,
-                    displayName: labelName,
-                    hasFile: true,
-                    fileData: null,
-                    remoteMetadata: typeof uploadedMeta === 'object' ? { ...uploadedMeta, fileKey: key } : remoteFallback
-                });
-           }
-       });
-  }
-
   if (otherItems.length > 0) {
       groups.push({ title: 'เอกสารอื่นๆ', items: otherItems });
   }
