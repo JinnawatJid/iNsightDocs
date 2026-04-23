@@ -15,6 +15,10 @@ For the Credit Request form, the application relies on two query parameters to r
 If a user manually refreshes the page (`F5`), the `onMounted` lifecycle hook in `CreateCreditRequest.vue` intercepts these URL parameters to restore the exact state they were looking at, preventing data loss or kicking the user back to an empty search screen.
 
 ## 2. Draft Saving & Validation Bypasses
+### 2.1 State Hydration from Database Snapshots
+When the frontend loads an existing request, it maps data from the backend `snapshot_data` into the Pinia `transactionData` object. It is strictly required that any field actively used by the frontend (such as `draftComment`) is explicitly extracted during hydration.
+Failure to map a field during the load phase will cause the Pinia store to assume the field is empty, which will subsequently overwrite and erase the database value upon the next background state sync.
+
 
 When a user initiates a "Save Draft" action on a Credit Request, two rules apply to improve the user experience:
 

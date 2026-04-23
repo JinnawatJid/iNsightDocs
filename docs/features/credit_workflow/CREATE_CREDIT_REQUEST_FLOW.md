@@ -61,7 +61,15 @@ Specific request types trigger dynamic UI and validation behavior in the `Credit
 - **Collision Scenario:** If database rows were manually deleted in the past but upload folders were left on disk, the destination folder for the new transaction ID may already exist.
 - **Safeguard:** The backend finalization logic now skips colliding transaction running numbers and selects the next available folder/transaction ID, preventing `dest already exists` failures during submission.
 
-## 3. Reviewer Workflow & Draft Comments
+## 8. Reviewer Workflow & Draft Comments
 When a request is processed by a reviewer in the `/pending-requests` view, they can write comments regarding the approval or rejection.
-- **Auto-Save Drafts:** To prevent data loss and avoid heavy backend polling that triggers concurrency (`409 Conflict`) errors, reviewer comments are instantly saved as a draft via **browser LocalStorage** (keyed by `draftComment_${requestId}`).
-- **Clearing Drafts:** Once a formal workflow action (e.g., Approve, Send to Committee) is successfully processed, the LocalStorage draft is immediately deleted.
+- **Dual-Save Architecture for Draft Comments:** To prevent data loss while maintaining high UI performance, draft comments utilize a dual-save strategy:
+  1. **Instant Local Storage:** As the reviewer types, the comment is instantly saved to the browser's `LocalStorage` (keyed by `draftComment_${requestId}`), keeping the UI responsive without network latency.
+  2. **Debounced Database Sync:** After 1 second of inactivity, the UI silently fires a background request to a dedicated backend endpoint (`/api/credit-requests/:id/draft-comment`). This saves the comment directly into the `snapshot_data.transaction_data.draftComment` JSON structure. This dedicated endpoint explicitly bypasses the standard full-form save route to avoid `409 Conflict` concurrency errors.
+- **Hydration:** When a request is loaded or refreshed, the frontend Pinia store extracts the `draftComment` from the database snapshot and hydrates the state, ensuring the comment survives across devices and page reloads.
+- **Clearing Drafts:** Once a formal workflow action (e.g., Approve, Reject, Send to Committee) is successfully processed, the draft is wiped from both the backend database and the browser's LocalStorage.
+
+## 9. Review Dashboard UI & Document Status
+When a reviewer views a request via the `ReviewDashboard.vue` component, the system dynamically renders the uploaded documents.
+- **2-Column Layout:** The document status list strictly enforces a clean 2-column horizontal bulleted layout (without legacy SVG icons or toggle buttons) for improved readability.
+- **Document Filtering & Display:** The main document list dynamically aggregates all attached documents (combining both mandatory system files and custom user-uploaded `other_` documents). It explicitly filters out the standard DBD financial documents (`company_profile_doc`, `balance_sheet_doc`, etc.), as those are rendered separately in a dedicated financial analysis section lower on the page.
