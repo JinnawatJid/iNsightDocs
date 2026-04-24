@@ -233,6 +233,11 @@ const isReadOnly = computed(() => {
         }
     }
 
+    // If Finance Officer is viewing a request they already forwarded (waiting for Approver <300k)
+    if (authStore.isFinanceOfficer && store.requestStatus === 'FinanceReviewed') {
+        return true;
+    }
+
     const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled'];
     return finalStatuses.includes(store.requestStatus);
 });

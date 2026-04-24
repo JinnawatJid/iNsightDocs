@@ -1440,7 +1440,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               allowedStatuses.push("RegionalSubmitted");
             }
             if (authStore.isFinanceOfficer) {
-              allowedStatuses.push("SalesSubmitted");
+              allowedStatuses.push("SalesSubmitted", "FinanceReviewed");
             }
             if (authStore.isFinanceManager) {
               allowedStatuses.push("FinanceReviewed");

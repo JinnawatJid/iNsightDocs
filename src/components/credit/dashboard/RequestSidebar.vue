@@ -130,7 +130,9 @@ const fetchData = () => {
       allowedStatuses.push('RegionalSubmitted');
     }
     if (authStore.isFinanceOfficer) {
-      allowedStatuses.push('SalesSubmitted');
+      // P'Joy (Finance Officer / Document Reviewer) should see active requests she needs to review (SalesSubmitted),
+      // as well as requests she already forwarded that are waiting for the Finance Manager (FinanceReviewed)
+      allowedStatuses.push('SalesSubmitted', 'FinanceReviewed');
     }
     if (authStore.isFinanceManager) {
       allowedStatuses.push('FinanceReviewed');
