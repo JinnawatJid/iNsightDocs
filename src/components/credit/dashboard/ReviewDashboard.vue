@@ -505,7 +505,7 @@ const openFinancialModal = async () => {
     font-weight: bold;
     color: #0056FF;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 8px;
     flex-wrap: wrap;
 }
