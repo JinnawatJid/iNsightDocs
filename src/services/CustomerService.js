@@ -48,4 +48,14 @@ export default {
       throw error;
     }
   },
+
+  async getRecentApprovedRequest(customerNo) {
+    try {
+      const response = await axios.get(`/api/credit-requests/customer/${customerNo}/recent-approved`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching recent approved request:', error);
+      throw error;
+    }
+  },
 };

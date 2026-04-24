@@ -643,10 +643,16 @@ const submitTransaction = async (btn) => {
                     file.forEach(f => {
                         if (!f.isRemote) {
                             formData.append(key, f);
+                        } else if (f.fromPrevious) {
+                            formData.append('previous_files', JSON.stringify({ key, ...f }));
                         }
                     });
-                } else if (!file.isRemote) { // Only append actual File objects, not remote placeholders
-                    formData.append(key, file);
+                } else {
+                    if (!file.isRemote) { // Only append actual File objects, not remote placeholders
+                        formData.append(key, file);
+                    } else if (file.fromPrevious) {
+                        formData.append('previous_files', JSON.stringify({ key, ...file }));
+                    }
                 }
             }
         }
