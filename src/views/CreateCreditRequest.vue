@@ -187,6 +187,21 @@ watch(
   },
 );
 
+// Watch for loaded from previous request notification
+watch(
+  () => store.loadedFromPrevious,
+  (newVal) => {
+    if (newVal) {
+      Swal.fire({
+        icon: "info",
+        title: "แจ้งเตือน",
+        text: "ระบบได้ทำการดึงข้อมูลและเอกสารจากคำขอที่ถูกอนุมัติล่าสุดของลูกค้ารายนี้มาให้แล้ว",
+        confirmButtonText: "ตกลง"
+      });
+    }
+  }
+);
+
 // Watch for Blacklist Alert
 watch(
   () => store.blacklistAlert,

@@ -56,6 +56,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
     showValidationErrors: false,
 
     blacklistAlert: null,
+    loadedFromPrevious: false,
 
     activeTab: "requestInfo",
     activeProjectTab: "projectInfo",
@@ -588,6 +589,85 @@ export const useCreditRequestStore = defineStore("creditRequest", {
             }
           }
 
+          // Fetch previous approved request data
+          try {
+            const previousRequest = await CustomerService.getRecentApprovedRequest(data.customer.id || data.customer.No_);
+            if (previousRequest && previousRequest.data && previousRequest.data.snapshot_data) {
+              const prevSnapshot = previousRequest.data.snapshot_data;
+              const prevAttachments = previousRequest.data.attachments || [];
+
+              // Merge fields from previous snapshot into customer
+              const fieldsToMerge = [
+                'contact_person', 'contact_phone_number', 'payment_method', 'payment_condition',
+                'payment_bank_name', 'payment_bank_branch', 'payment_account_no',
+                'billing_requirement', 'billing_requirement_note', 'billing_method', 'billing_method_note',
+                'billing_schedule', 'billing_contact', 'billing_department', 'billing_phone',
+                'billing_mobile', 'billing_email', 'sales_billing_condition',
+                'registered_capital', 'years_in_business', 'has_tungnam_relationship',
+                'tungnam_relationship_customer_id', 'tungnam_relationship_note', 'billing_terms_code',
+                'store_address', 'store_subdistrict', 'store_zipcode', 'store_district', 'store_province',
+                'store_phone', 'store_fax', 'store_email', 'store_map_code', 'store_landmark', 'store_note'
+              ];
+
+              fieldsToMerge.forEach(field => {
+                if (prevSnapshot[field] !== undefined && prevSnapshot[field] !== null) {
+                  this.customer[field] = prevSnapshot[field];
+                }
+              });
+
+              // Merge transactionData fields
+              if (prevSnapshot.transaction_data) {
+                const txDataToMerge = [
+                  'has_tungnam_relationship', 'tungnam_relationship_customer_id', 'tungnam_relationship_note',
+                  'bankGuaranteeDetails', 'letterGuaranteeDetails', 'cashDepositDetails', 'mainContractorName'
+                ];
+                txDataToMerge.forEach(field => {
+                  if (prevSnapshot.transaction_data[field] !== undefined) {
+                    this.transactionData[field] = prevSnapshot.transaction_data[field];
+                  }
+                });
+              }
+
+              // Preload files from previous request
+              if (prevAttachments.length > 0) {
+                prevAttachments.forEach((att) => {
+                  const fileObj = {
+                    name: att.original_name,
+                    original_name: att.original_name,
+                    file_path: att.file_path,
+                    id: att.id,
+                    txId: att.tx_id,
+                    isRemote: true,
+                    uploaded_by: att.uploaded_by,
+                    created_at: att.created_at,
+                    fromPrevious: true // Mark as from previous
+                  };
+
+                  if (this.files[att.file_type]) {
+                    if (Array.isArray(this.files[att.file_type])) {
+                      this.files[att.file_type].push(fileObj);
+                    } else {
+                      this.files[att.file_type] = [
+                        this.files[att.file_type],
+                        fileObj,
+                      ];
+                    }
+                  } else {
+                    this.files[att.file_type] = fileObj;
+                  }
+                  this.uploadedDocuments[att.file_type] = true;
+                });
+              }
+
+              this.loadedFromPrevious = true;
+            }
+          } catch (prevErr) {
+            // It's okay if there's no previous request
+            if (prevErr.response && prevErr.response.status !== 404) {
+                console.error("Error fetching previous request:", prevErr);
+            }
+          }
+
           await this.fetchComments();
 
           Swal.close();
@@ -627,6 +707,11 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         // Provide the txId if we have one so backend can verify concurrency
         if (this.requestId) {
           payload.tx_id = this.requestId;
+        }
+
+        // If we loaded data from a previous request, we should include that snapshot
+        if (this.loadedFromPrevious) {
+          payload.snapshot_data = JSON.stringify(this.getSnapshot());
         }
 
         const result = await CreditRequestService.createCreditRequest(payload);
@@ -1193,6 +1278,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       this.viewingHistory = false;
       this.showValidationErrors = false;
       this.blacklistAlert = null;
+      this.loadedFromPrevious = false;
       this.transactionData = {
         amount: "",
         creditTerm: "",
@@ -1214,6 +1300,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
     },
 
     clearFormData() {
+      this.showValidationErrors = false;
+      this.blacklistAlert = null;
+      this.loadedFromPrevious = false;
       this.customer = {
         payment_method: "",
         billing_requirement: "",

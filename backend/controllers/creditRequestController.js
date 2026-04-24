@@ -695,7 +695,35 @@ exports.createCreditRequest = async (req, res) => {
       }
     }
 
-    if (req.files && req.files.length > 0) {
+    // Handle explicitly referenced previous files
+    let previousFiles = [];
+    if (req.body.previous_files) {
+      const parsedPreviousFiles = Array.isArray(req.body.previous_files)
+        ? req.body.previous_files.map(f => JSON.parse(f))
+        : [JSON.parse(req.body.previous_files)];
+
+      // Look up files securely from the DB
+      for (const prevFile of parsedPreviousFiles) {
+        let attSql = "SELECT * FROM CreditRequestAttachments WHERE id = ?";
+        let { rows: attRows } = await db.query(attSql, [prevFile.id]);
+        if (attRows && attRows.length > 0) {
+          const dbFile = attRows[0];
+          // Ensure it belongs to the same customer (via tx_id relation, roughly)
+          let reqSql = "SELECT customer_no FROM CreditRequests WHERE tx_id = ?";
+          let { rows: reqRows } = await db.query(reqSql, [dbFile.tx_id]);
+          if (reqRows && reqRows.length > 0 && reqRows[0].customer_no === (customer_no || existing?.customer_no)) {
+            previousFiles.push({
+              ...dbFile,
+              key: prevFile.key // override with the key the frontend requested it to be placed under
+            });
+          } else {
+            logger.warn(`Attempted to copy file from another customer: ${dbFile.id}`);
+          }
+        }
+      }
+    }
+
+    if ((req.files && req.files.length > 0) || previousFiles.length > 0) {
       // Construct relative path components based on customer code and transaction ID
       const activeCustomerNo = customer_no || existing?.customer_no;
       if (!activeCustomerNo) {
@@ -707,7 +735,8 @@ exports.createCreditRequest = async (req, res) => {
       const targetDir = path.join(UPLOAD_BASE, relativeDir);
       await fs.ensureDir(targetDir);
 
-      for (const file of req.files) {
+      // Handle newly uploaded files
+      for (const file of (req.files || [])) {
         // Fix for Thai characters in fieldname (similar to originalname fix in upload.js)
         // Browser sends UTF-8, but it might be interpreted as Latin-1 by the parser
         try {
@@ -802,6 +831,74 @@ exports.createCreditRequest = async (req, res) => {
           }
         }
       }
+
+      // Handle copied previous files securely based on DB results
+      for (const prevFile of previousFiles) {
+        const sourcePath = path.join(UPLOAD_BASE, prevFile.file_path);
+
+        if (await fs.pathExists(sourcePath)) {
+            const timestamp = `${yyyy}${mm}${dd}_${hh}${min}${ss}_${ms}`;
+            const parsedName = path.parse(prevFile.original_name);
+            const safeOriginalName = parsedName.name.replace(/[\/:*?"<>|]/g, "_");
+            const secureFileName = `${activeCustomerNo}_${safeOriginalName}_${timestamp}${parsedName.ext}`;
+            const finalPath = path.join(targetDir, secureFileName);
+
+            await fs.copy(sourcePath, finalPath, { overwrite: true });
+
+            const relativeFilePath = path
+              .relative(UPLOAD_BASE, finalPath)
+              .split(path.sep)
+              .join("/");
+
+            await db.runAsync(
+              "INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name, uploaded_by, updated_by) VALUES (?, ?, ?, ?, ?, ?)",
+              [
+                txId,
+                prevFile.key, // Ensure frontend requested key is used
+                relativeFilePath,
+                prevFile.original_name,
+                uploadedBy,
+                uploadedBy,
+              ]
+            );
+
+            // Sync copied file to financial cache if applicable
+            const financialFields = {
+              company_profile_doc: "DBD_Profile.pdf",
+              balance_sheet_doc: "DBD_BalanceSheet.xlsx",
+              profit_loss_doc: "DBD_IncomeStatement.xlsx",
+              financial_ratios_doc: "DBD_FinancialRatios.xlsx",
+            };
+
+            if (financialFields[prevFile.key]) {
+              try {
+                const dateFolder = `${yyyy}${mm}${dd}`;
+                const customerDir = path.join(
+                  projectRoot,
+                  "customers",
+                  activeCustomerNo,
+                  dateFolder,
+                );
+                await fs.ensureDir(customerDir);
+
+                const cachedFileName = financialFields[prevFile.key];
+                const cachedFilePath = path.join(customerDir, cachedFileName);
+
+                await fs.copy(finalPath, cachedFilePath, { overwrite: true });
+                logger.info(
+                  `[Financial Sync] Copied ${prevFile.key} (from previous) to ${cachedFilePath}`,
+                );
+              } catch (syncErr) {
+                logger.error(
+                  `[Financial Sync] Error copying ${prevFile.key} (from previous) to financial cache:`,
+                  syncErr,
+                );
+              }
+            }
+        } else {
+            logger.warn(`Source file not found for copying: ${sourcePath}`);
+        }
+      }
     }
 
     // Fetch attachments to return in response (essential for auto-resume flow)
@@ -842,6 +939,58 @@ exports.createCreditRequest = async (req, res) => {
     if (req.files) {
       req.files.forEach((f) => fs.remove(f.path).catch(() => {}));
     }
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.getRecentApprovedRequest = async (req, res) => {
+  const customerNo = req.params.customerNo;
+
+  try {
+    let sql;
+    if (db.dbType === "mssql") {
+      sql = "SELECT TOP 1 * FROM CreditRequests WHERE customer_no = ? AND status = 'Approved' ORDER BY updated_at DESC";
+    } else {
+      sql = "SELECT * FROM CreditRequests WHERE customer_no = ? AND status = 'Approved' ORDER BY updated_at DESC LIMIT 1";
+    }
+
+    const { rows } = await db.query(sql, [customerNo]);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "No recent approved request found" });
+    }
+
+    const request = rows[0];
+
+    // Fetch Attachments (excluding soft-deleted)
+    const attachmentsSql =
+      "SELECT * FROM CreditRequestAttachments WHERE tx_id = ? AND (is_deleted IS NULL OR is_deleted = 0)";
+    const { rows: attachments } = await db.query(attachmentsSql, [request.tx_id]);
+
+    // Parse snapshot data if string
+    let snapshotData = request.snapshot_data;
+    if (typeof snapshotData === "string") {
+      try {
+        snapshotData = JSON.parse(snapshotData);
+      } catch (e) {
+        logger.error("Error parsing snapshot JSON in getRecentApprovedRequest:", e);
+        snapshotData = {};
+      }
+    }
+
+    res.status(200).json({
+      data: {
+        id: request.id,
+        txId: request.tx_id,
+        status: request.status,
+        customer_no: request.customer_no,
+        customer_name: request.customer_name,
+        snapshot_data: snapshotData,
+        attachments: attachments || [],
+      },
+    });
+  } catch (error) {
+    logger.error("Error fetching recent approved request:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

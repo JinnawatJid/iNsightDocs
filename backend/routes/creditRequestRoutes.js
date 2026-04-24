@@ -10,6 +10,7 @@ const upload = require("../middleware/upload");
 router.post("/", upload.any(), creditRequestController.createCreditRequest);
 
 router.get("/", creditRequestController.getCreditRequests);
+router.get("/customer/:customerNo/recent-approved", creditRequestController.getRecentApprovedRequest);
 router.get("/:id/pdf", pdfController.generateCreditRequestPDF);
 router.get("/:id/detail", creditRequestController.getCreditRequestDetail);
 router.get(
