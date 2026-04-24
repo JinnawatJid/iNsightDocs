@@ -63,3 +63,72 @@ if (req.body.comment && req.body.actor_role) {
 }
 ```
 </details>
+
+---
+
+## 3. Feature: Historical Data Tracking & Comparison (Review Dashboard)
+
+**The Goal:** Show how the system compares requested changes against original customer baseline data or fallback ERP data so reviewers immediately see what is being altered.
+
+### 🎙️ Presentation Script: Review Dashboard Comparison
+"ในมุมของผู้อนุมัติ (Reviewer) เวลาดูข้อมูลคำขอในหน้า `ReviewDashboard` สิ่งสำคัญคือต้องรู้ว่าลูกค้า 'ขอเปลี่ยนจากอะไร เป็นอะไร' ครับ"
+
+**[เปิดรูป Sequence Diagram ด้านล่างให้ดู]**
+"ระบบของเรามีการทำ Snapshot เก็บข้อมูลเดิมตั้งแต่ตอนที่เซลส์ดึงข้อมูลลูกค้าขึ้นมาสร้างคำขอ (เก็บลงใน `snapshot_data.originalTransactionData`) เมื่อเข้ามาที่หน้าอนุมัติ UI จะเปรียบเทียบค่าที่ขอใหม่กับ Snapshot เดิมทันทีครับ ถ้าวงเงิน เครดิตเทอม หรือวิธีการชำระเงินไม่ตรงกัน ระบบจะแสดงป้าย 'เดิม: [ค่าเก่า]' ขึ้นมาให้เห็นชัดเจน"
+
+**[คลิกขยาย "View Source Code: ERP Fallback Logic"]**
+"และในกรณีที่เป็นเคสเก่าหรือไม่มี Snapshot Data ในระบบ (Legacy requests) เรามี Fallback Mechanism ที่จะไปดึงข้อมูลปัจจุบันจาก ERP โดยตรงมาเปรียบเทียบให้ด้วยครับ โดยจะแสดงผลเป็น 'เดิม (ERP): [ค่าเก่า]' เพื่อให้ผู้อนุมัติไม่ขาดข้อมูลในการตัดสินใจครับ"
+
+---
+
+### Sequence Diagram (Mermaid)
+
+```mermaid
+sequenceDiagram
+    participant Reviewer
+    participant VueComponent as ReviewDashboard.vue
+    participant Store as creditRequest.js
+    participant DB as SQLite (snapshot_data)
+    participant ERP as External ERP (CustomerService)
+
+    Reviewer->>VueComponent: Opens Pending Request
+    VueComponent->>Store: loadTransactionData(tx_id)
+    Store->>DB: Fetch CreditRequest (Includes snapshot_data)
+    DB-->>Store: Returns snapshot JSON
+    Store-->>VueComponent: Hydrates originalTransactionData & originalCustomer
+    VueComponent->>ERP: [Fallback] searchCustomers(customer_id)
+    ERP-->>VueComponent: Returns current ERP live data
+    Note over VueComponent: UI compares current form data against snapshot_data. <br/> If snapshot missing, compares against ERP data.
+    VueComponent-->>Reviewer: Renders "เดิม: X" or "เดิม (ERP): Y"
+```
+
+### Fallback Logic Implementation
+
+When rendering the requested amount or credit terms, the system gracefully falls back to ERP data if the original database snapshot is unavailable.
+
+<details>
+<summary><b>View Source Code: ERP Fallback Logic (Vue.js)</b></summary>
+
+```html
+<!-- src/components/credit/dashboard/ReviewDashboard.vue -->
+
+<div class="deal-item highlight">
+    <label>วงเงินที่ขอ</label>
+
+    <!-- Display requested amount -->
+    <div class="value amount">
+        {{ formatNumber(store.transactionData.amount) }} บาท
+    </div>
+
+    <!-- Primary: Compare with DB Snapshot -->
+    <div v-if="store.originalTransactionData?.amount && store.transactionData.amount != store.originalTransactionData.amount" class="original-value-label">
+        เดิม: {{ formatNumber(store.originalTransactionData.amount) }} บาท
+    </div>
+
+    <!-- Fallback: Compare with live ERP data -->
+    <div v-else-if="erpFallbackData?.current_credit_limit && store.transactionData.amount != erpFallbackData.current_credit_limit" class="original-value-label">
+        เดิม (ERP): {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
+    </div>
+</div>
+```
+</details>
