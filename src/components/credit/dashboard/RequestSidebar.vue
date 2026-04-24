@@ -61,15 +61,28 @@
         <div class="item-middle">
            <span class="customer-name">{{ req.customer_name }}</span>
            <div class="status-icon">
-              <!-- Active Statuses (Clock) -->
-              <img v-if="['Draft', 'Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'Submitted', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'].includes(req.status)" :src="iconClock" :alt="req.status" width="24" height="24" />
-              <!-- Negative Statuses (X) -->
-              <img v-else-if="['Rejected', 'Canceled'].includes(req.status)" :src="iconRejected" :alt="req.status" width="24" height="24" />
+              <!-- If Action Required, show warning clock or distinct icon -->
+              <template v-if="isActionable(req.status)">
+                  <img :src="iconClock" alt="Action Required" width="24" height="24" />
+              </template>
               <!-- Positive Statuses (Check) -->
-              <img v-else-if="['Approved', 'Closed'].includes(req.status)" :src="iconApproved" :alt="req.status" width="24" height="24" />
-              <!-- Default -->
-              <img v-else :src="iconClock" alt="Status" width="24" height="24" />
+              <template v-else-if="['Approved', 'Closed'].includes(req.status)">
+                  <img :src="iconApproved" :alt="req.status" width="24" height="24" />
+              </template>
+              <!-- Negative Statuses (X) -->
+              <template v-else-if="['Rejected', 'Canceled'].includes(req.status)">
+                  <img :src="iconRejected" :alt="req.status" width="24" height="24" />
+              </template>
+              <!-- Waiting on others (default clock or tracking state) -->
+              <template v-else>
+                  <img :src="iconClock" :alt="req.status" width="24" height="24" style="opacity: 0.5;" />
+              </template>
            </div>
+        </div>
+
+        <!-- Status Label (Actionable vs Waiting) -->
+        <div v-if="activeTab === 'pending'" class="status-label" :class="isActionable(req.status) ? 'actionable' : 'waiting'">
+           {{ getStatusLabel(req.status) }}
         </div>
 
         <!-- Bottom: TxID and Date -->
@@ -196,6 +209,37 @@ const getRequestTypeClass = (type) => {
     if (type.includes('เครดิตโครงการ')) return 'type-project';
     if (type.includes('เปลี่ยนแปลง')) return 'type-change';
     return 'type-new';
+};
+
+const isActionable = (status) => {
+    if (authStore.isInitiator && ['Draft', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'].includes(status)) return true;
+    if (authStore.isRegionalManager && status === 'Opened') return true;
+    if (authStore.isSalesManager && status === 'RegionalSubmitted') return true;
+    if (authStore.isFinanceOfficer && status === 'SalesSubmitted') return true;
+    if (authStore.isFinanceManager && status === 'FinanceReviewed') return true;
+    if (authStore.isCreditCommittee && status === 'Reviewed') return true;
+    return false;
+};
+
+const getStatusLabel = (status) => {
+    if (isActionable(status)) {
+        return "รอคุณดำเนินการ";
+    }
+    const roleLabels = {
+        'Draft': 'ผู้สร้างคำขอ',
+        'Opened': 'ผจก. สาขา',
+        'RegionalSubmitted': 'ผจก. ภาค',
+        'SalesSubmitted': 'ผู้ตรวจสอบเอกสาร',
+        'FinanceReviewed': 'ผู้อนุมัติ (<300k)',
+        'Reviewed': 'คณะกรรมการอนุมัติ (>300k)',
+        'PendingSales (ชั่วคราว)': 'ฝ่ายขาย',
+        'PendingFinance (ชั่วคราว)': 'ฝ่ายการเงิน',
+    };
+    const label = roleLabels[status];
+    if (label) {
+        return `รอ ${label}`;
+    }
+    return "กำลังดำเนินการ";
 };
 
 onMounted(() => {
@@ -353,6 +397,22 @@ onMounted(() => {
 
 .status-icon img {
     display: block;
+}
+
+.status-label {
+    font-size: 12px;
+    padding: 2px 0;
+    margin-top: 2px;
+    margin-bottom: 4px;
+}
+
+.status-label.actionable {
+    color: #d97706; /* Warning/Orange color */
+    font-weight: bold;
+}
+
+.status-label.waiting {
+    color: #6c757d; /* Muted grey */
 }
 
 .item-bottom {
