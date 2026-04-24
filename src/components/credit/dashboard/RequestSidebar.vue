@@ -404,6 +404,8 @@ onMounted(() => {
     padding: 2px 0;
     margin-top: 2px;
     margin-bottom: 4px;
+    text-align: left;
+    width: 100%;
 }
 
 .status-label.actionable {
