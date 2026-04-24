@@ -478,6 +478,8 @@ const openFinancialModal = async () => {
 .deal-item {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    text-align: center;
     gap: 5px;
 }
 
@@ -506,6 +508,8 @@ const openFinancialModal = async () => {
     color: #0056FF;
     display: flex;
     align-items: center;
+    justify-content: center;
+    text-align: center;
     gap: 8px;
     flex-wrap: wrap;
 }
