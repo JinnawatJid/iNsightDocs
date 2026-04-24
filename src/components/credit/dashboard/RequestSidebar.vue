@@ -80,15 +80,15 @@
            </div>
         </div>
 
-        <!-- Status Label (Actionable vs Waiting) -->
-        <div v-if="activeTab === 'pending'" class="status-label" :class="isActionable(req.status) ? 'actionable' : 'waiting'">
-           {{ getStatusLabel(req.status) }}
-        </div>
-
         <!-- Bottom: TxID and Date -->
         <div class="item-bottom">
            <span class="tx-id">{{ req.tx_id }}</span>
            <span class="date">{{ formatDate(req.updated_at || req.created_at) }}</span>
+        </div>
+
+        <!-- Status Label (Actionable vs Waiting) moved to bottom -->
+        <div v-if="activeTab === 'pending'" class="status-label" :class="isActionable(req.status) ? 'actionable' : 'waiting'">
+           {{ getStatusLabel(req.status) }}
         </div>
       </div>
     </div>
@@ -227,13 +227,13 @@ const getStatusLabel = (status) => {
     }
     const roleLabels = {
         'Draft': 'ผู้สร้างคำขอ',
-        'Opened': 'ผจก. สาขา',
-        'RegionalSubmitted': 'ผจก. ภาค',
-        'SalesSubmitted': 'ผู้ตรวจสอบเอกสาร',
-        'FinanceReviewed': 'ผู้อนุมัติ (<300k)',
-        'Reviewed': 'คณะกรรมการอนุมัติ (>300k)',
-        'PendingSales (ชั่วคราว)': 'ฝ่ายขาย',
-        'PendingFinance (ชั่วคราว)': 'ฝ่ายการเงิน',
+        'Opened': 'ผู้จัดการสาขา',
+        'RegionalSubmitted': 'ผู้จัดการภาค',
+        'SalesSubmitted': 'เจ้าหน้าที่ฝ่ายการเงิน',
+        'FinanceReviewed': 'ผู้จัดการฝ่ายการเงิน',
+        'Reviewed': 'กรรมการเครดิต',
+        'PendingSales (ชั่วคราว)': 'ผู้จัดการฝ่ายขาย',
+        'PendingFinance (ชั่วคราว)': 'เจ้าหน้าที่ฝ่ายการเงิน',
     };
     const label = roleLabels[status];
     if (label) {
