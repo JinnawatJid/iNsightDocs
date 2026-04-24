@@ -61,14 +61,22 @@
         <div class="item-middle">
            <span class="customer-name">{{ req.customer_name }}</span>
            <div class="status-icon">
-              <!-- Active Statuses (Clock) -->
-              <img v-if="['Draft', 'Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'Submitted', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'].includes(req.status)" :src="iconClock" :alt="req.status" width="24" height="24" />
-              <!-- Negative Statuses (X) -->
-              <img v-else-if="['Rejected', 'Canceled'].includes(req.status)" :src="iconRejected" :alt="req.status" width="24" height="24" />
+              <!-- If Action Required, show warning clock or distinct icon -->
+              <template v-if="isActionable(req.status)">
+                  <img :src="iconClock" alt="Action Required" width="24" height="24" />
+              </template>
               <!-- Positive Statuses (Check) -->
-              <img v-else-if="['Approved', 'Closed'].includes(req.status)" :src="iconApproved" :alt="req.status" width="24" height="24" />
-              <!-- Default -->
-              <img v-else :src="iconClock" alt="Status" width="24" height="24" />
+              <template v-else-if="['Approved', 'Closed'].includes(req.status)">
+                  <img :src="iconApproved" :alt="req.status" width="24" height="24" />
+              </template>
+              <!-- Negative Statuses (X) -->
+              <template v-else-if="['Rejected', 'Canceled'].includes(req.status)">
+                  <img :src="iconRejected" :alt="req.status" width="24" height="24" />
+              </template>
+              <!-- Waiting on others (default clock or tracking state) -->
+              <template v-else>
+                  <img :src="iconClock" :alt="req.status" width="24" height="24" style="opacity: 0.5;" />
+              </template>
            </div>
         </div>
 
@@ -76,6 +84,11 @@
         <div class="item-bottom">
            <span class="tx-id">{{ req.tx_id }}</span>
            <span class="date">{{ formatDate(req.updated_at || req.created_at) }}</span>
+        </div>
+
+        <!-- Status Label (Actionable vs Waiting) moved to bottom -->
+        <div v-if="activeTab === 'pending'" class="status-label" :class="isActionable(req.status) ? 'actionable' : 'waiting'">
+           {{ getStatusLabel(req.status) }}
         </div>
       </div>
     </div>
@@ -130,7 +143,9 @@ const fetchData = () => {
       allowedStatuses.push('RegionalSubmitted');
     }
     if (authStore.isFinanceOfficer) {
-      allowedStatuses.push('SalesSubmitted');
+      // P'Joy (Finance Officer / Document Reviewer) should see active requests she needs to review (SalesSubmitted),
+      // as well as requests she already forwarded that are waiting for the Finance Manager (FinanceReviewed)
+      allowedStatuses.push('SalesSubmitted', 'FinanceReviewed');
     }
     if (authStore.isFinanceManager) {
       allowedStatuses.push('FinanceReviewed');
@@ -194,6 +209,37 @@ const getRequestTypeClass = (type) => {
     if (type.includes('เครดิตโครงการ')) return 'type-project';
     if (type.includes('เปลี่ยนแปลง')) return 'type-change';
     return 'type-new';
+};
+
+const isActionable = (status) => {
+    if (authStore.isInitiator && ['Draft', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'].includes(status)) return true;
+    if (authStore.isRegionalManager && status === 'Opened') return true;
+    if (authStore.isSalesManager && status === 'RegionalSubmitted') return true;
+    if (authStore.isFinanceOfficer && status === 'SalesSubmitted') return true;
+    if (authStore.isFinanceManager && status === 'FinanceReviewed') return true;
+    if (authStore.isCreditCommittee && status === 'Reviewed') return true;
+    return false;
+};
+
+const getStatusLabel = (status) => {
+    if (isActionable(status)) {
+        return "รอคุณดำเนินการ";
+    }
+    const roleLabels = {
+        'Draft': 'ผู้สร้างคำขอ',
+        'Opened': 'ผู้จัดการสาขา',
+        'RegionalSubmitted': 'ผู้จัดการภาค',
+        'SalesSubmitted': 'เจ้าหน้าที่ฝ่ายการเงิน',
+        'FinanceReviewed': 'ผู้จัดการฝ่ายการเงิน',
+        'Reviewed': 'กรรมการเครดิต',
+        'PendingSales (ชั่วคราว)': 'ผู้จัดการฝ่ายขาย',
+        'PendingFinance (ชั่วคราว)': 'เจ้าหน้าที่ฝ่ายการเงิน',
+    };
+    const label = roleLabels[status];
+    if (label) {
+        return `รอ ${label}`;
+    }
+    return "กำลังดำเนินการ";
 };
 
 onMounted(() => {
@@ -351,6 +397,24 @@ onMounted(() => {
 
 .status-icon img {
     display: block;
+}
+
+.status-label {
+    font-size: 12px;
+    padding: 2px 0;
+    margin-top: 2px;
+    margin-bottom: 4px;
+    text-align: left;
+    width: 100%;
+}
+
+.status-label.actionable {
+    color: #d97706; /* Warning/Orange color */
+    font-weight: bold;
+}
+
+.status-label.waiting {
+    color: #6c757d; /* Muted grey */
 }
 
 .item-bottom {
