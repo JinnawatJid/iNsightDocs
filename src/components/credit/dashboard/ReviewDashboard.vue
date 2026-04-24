@@ -17,12 +17,18 @@
             <div v-if="store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null && store.transactionData.amount != store.originalTransactionData.amount" class="text-sm text-gray-500 mt-1">
                 เดิม: {{ formatNumber(store.originalTransactionData.amount) }} บาท
             </div>
+            <div v-else-if="erpFallbackData && erpFallbackData.current_credit_limit !== undefined && store.transactionData.amount != erpFallbackData.current_credit_limit" class="text-sm text-gray-500 mt-1">
+                เดิม (ERP): {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
+            </div>
         </div>
         <div class="deal-item highlight-terms">
             <label>เครดิตเทอม (GS/AE/YC)</label>
             <div class="value terms-amount">{{ formatTerms(store.transactionData) }}</div>
             <div v-if="store.originalTransactionData && hasTermsChanged" class="text-sm text-gray-500 mt-1">
                 เดิม: {{ formatTerms(store.originalTransactionData) }}
+            </div>
+            <div v-else-if="erpFallbackData && erpFallbackData.payment_terms_code && !isTermsEqual(store.transactionData, erpFallbackData.payment_terms_code)" class="text-sm text-gray-500 mt-1">
+                เดิม (ERP): {{ erpFallbackData.payment_terms_code }}
             </div>
         </div>
         <div class="deal-item">
@@ -35,6 +41,7 @@
             <div v-if="store.originalInitiatorCustomer?.payment_method !== undefined && store.originalInitiatorCustomer?.payment_method !== null && store.customer.payment_method !== store.originalInitiatorCustomer.payment_method" class="text-sm text-gray-500 mt-1">
                 เดิม: {{ store.originalInitiatorCustomer.payment_method || '-' }}
             </div>
+            <!-- NOTE: ERP API may not map payment method identically, so skipping ERP fallback here unless mapped -->
         </div>
         <div class="deal-item">
             <label>เงื่อนไขการวางบิล</label>
@@ -48,6 +55,9 @@
             <div class="value">{{ store.customer.payment_condition || '-' }}</div>
             <div v-if="store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null && store.customer.payment_condition !== store.originalInitiatorCustomer.payment_condition" class="text-sm text-gray-500 mt-1">
                 เดิม: {{ store.originalInitiatorCustomer.payment_condition || '-' }}
+            </div>
+            <div v-else-if="erpFallbackData && erpFallbackData.sales_billing_condition && store.customer.payment_condition !== erpFallbackData.sales_billing_condition" class="text-sm text-gray-500 mt-1">
+                เดิม (ERP): {{ erpFallbackData.sales_billing_condition }}
             </div>
         </div>
       </div>
@@ -168,6 +178,7 @@ import ApplicationTabs from '../forms/ApplicationTabs.vue';
 import FinancialStatementModal from '../modals/FinancialStatementModal.vue';
 import AllDocumentsModal from '../modals/AllDocumentsModal.vue';
 import axios from '../../../utils/axios.js';
+import CustomerService from '@/services/CustomerService';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
@@ -192,6 +203,20 @@ const formatTerms = (data) => {
     }
     return `${gs} / ${ae} / ${yc}`;
 };
+
+const isTermsEqual = (data, erpTermsCode) => {
+    if (!data) return false;
+    const gs = String(data.termGS || 0);
+    const ae = String(data.termAE || 0);
+    const yc = String(data.termYC || 0);
+    const code = String(erpTermsCode || 0).trim();
+
+    // Simplistic check: If the code is equal to all of them or equal to the formatted string.
+    if (gs === code && ae === code && yc === code) return true;
+    if (formatTerms(data) === code) return true;
+
+    return false;
+}
 
 const hasTermsChanged = computed(() => {
     if (!store.originalTransactionData) return false;
@@ -320,9 +345,33 @@ watch(() => store.customer?.id, (newVal) => {
     }
 });
 
+const erpFallbackData = ref(null);
+
+const fetchErpFallbackData = async () => {
+    if (!store.customer?.id) return;
+
+    try {
+        const result = await CustomerService.searchCustomers(store.customer.id);
+        if (Array.isArray(result) && result.length > 0 && result[0].customer) {
+            erpFallbackData.value = result[0].customer;
+        }
+    } catch (e) {
+        console.error('Failed to fetch ERP fallback data', e);
+    }
+};
+
 onMounted(() => {
-    if (store.customer?.id && store.isCompany) {
-        checkDbdStatus();
+    if (store.customer?.id) {
+        if (store.isCompany) {
+            checkDbdStatus();
+        }
+        fetchErpFallbackData();
+    }
+});
+
+watch(() => store.customer?.id, (newVal) => {
+    if (newVal) {
+        fetchErpFallbackData();
     }
 });
 
