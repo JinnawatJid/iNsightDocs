@@ -374,8 +374,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           customerTeam: parsedSnapshot.transaction_data?.customerTeam || "",
           projects: parsedSnapshot.transaction_data?.projects || [],
         };
-        this.originalTransactionData = JSON.parse(JSON.stringify(this.transactionData));
-        this.originalInitiatorCustomer = JSON.parse(JSON.stringify(this.customer));
+        this.originalTransactionData = parsedSnapshot.transaction_data ? JSON.parse(JSON.stringify(parsedSnapshot.transaction_data)) : JSON.parse(JSON.stringify(this.transactionData));
+        this.originalInitiatorCustomer = parsedSnapshot.customer ? JSON.parse(JSON.stringify(parsedSnapshot.customer)) : JSON.parse(JSON.stringify(this.customer));
 
 
         this.hasSearched = true;
@@ -801,11 +801,13 @@ export const useCreditRequestStore = defineStore("creditRequest", {
             resData.term_gs ||
             resData.request_type
           ) {
-            const parsedSnapshotTransactionData = resData.snapshot_data
-              ? typeof resData.snapshot_data === "string"
-                ? JSON.parse(resData.snapshot_data).transaction_data || {}
-                : resData.snapshot_data.transaction_data || {}
-              : {};
+            let parsedSnapshotData = {};
+            if (resData.snapshot_data) {
+                parsedSnapshotData = typeof resData.snapshot_data === "string" ? JSON.parse(resData.snapshot_data) : resData.snapshot_data;
+            }
+            const parsedSnapshotTransactionData = parsedSnapshotData.transaction_data || {};
+            const parsedSnapshotCustomerData = parsedSnapshotData.customer || {};
+
             this.transactionData = {
               amount: resData.request_amount || "",
               creditTerm: resData.request_credit_term || "",
@@ -815,13 +817,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               reason: resData.request_reason || "",
               requestType: resData.request_type || "เครดิตใหม่",
               draftComment: parsedSnapshotTransactionData?.draftComment || "",
-              noFinancialData: resData.snapshot_data
-                ? typeof resData.snapshot_data === "string"
-                  ? JSON.parse(resData.snapshot_data).transaction_data
-                      ?.noFinancialData || false
-                  : resData.snapshot_data.transaction_data?.noFinancialData ||
-                    false
-                : false,
+              noFinancialData: parsedSnapshotTransactionData?.noFinancialData || false,
               bankGuaranteeDetails:
                 parsedSnapshotTransactionData.bankGuaranteeDetails || {},
               letterGuaranteeDetails:
@@ -835,8 +831,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
               customerTeam: parsedSnapshotTransactionData.customerTeam || "",
               projects: parsedSnapshotTransactionData.projects || [],
             };
-            this.originalTransactionData = JSON.parse(JSON.stringify(this.transactionData));
-        this.originalInitiatorCustomer = JSON.parse(JSON.stringify(this.customer));
+            this.originalTransactionData = Object.keys(parsedSnapshotTransactionData).length > 0 ? JSON.parse(JSON.stringify(parsedSnapshotTransactionData)) : JSON.parse(JSON.stringify(this.transactionData));
+            this.originalInitiatorCustomer = Object.keys(parsedSnapshotCustomerData).length > 0 ? JSON.parse(JSON.stringify(parsedSnapshotCustomerData)) : JSON.parse(JSON.stringify(this.customer));
           }
         }
       } catch (err) {
