@@ -13,21 +13,26 @@
       <div class="deal-grid">
         <div class="deal-item highlight">
             <label>วงเงินที่ขอ</label>
-            <div class="value amount">{{ formatNumber(store.transactionData.amount) }} บาท</div>
-            <div v-if="store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null && store.transactionData.amount != store.originalTransactionData.amount" class="text-sm text-gray-500 mt-1">
+            <div v-if="isCreditIncrease" class="value amount">
+                {{ formatNumber(totalCreditAmount) }} บาท
+                <span class="increase-label">(ขอเพิ่ม {{ formatNumber(store.transactionData.amount) }})</span>
+            </div>
+            <div v-else class="value amount">{{ formatNumber(store.transactionData.amount) }} บาท</div>
+
+            <div v-if="store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null && store.transactionData.amount != store.originalTransactionData.amount" class="original-value-label">
                 เดิม: {{ formatNumber(store.originalTransactionData.amount) }} บาท
             </div>
-            <div v-else-if="erpFallbackData && erpFallbackData.current_credit_limit !== undefined && store.transactionData.amount != erpFallbackData.current_credit_limit" class="text-sm text-gray-500 mt-1">
+            <div v-else-if="erpFallbackData && erpFallbackData.current_credit_limit !== undefined && store.transactionData.amount != erpFallbackData.current_credit_limit" class="original-value-label">
                 เดิม (ERP): {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
             </div>
         </div>
         <div class="deal-item highlight-terms">
             <label>เครดิตเทอม (GS/AE/YC)</label>
             <div class="value terms-amount">{{ formatTerms(store.transactionData) }}</div>
-            <div v-if="store.originalTransactionData && hasTermsChanged" class="text-sm text-gray-500 mt-1">
+            <div v-if="store.originalTransactionData && hasTermsChanged" class="original-value-label">
                 เดิม: {{ formatTerms(store.originalTransactionData) }}
             </div>
-            <div v-else-if="erpFallbackData && erpFallbackData.payment_terms_code && !isTermsEqual(store.transactionData, erpFallbackData.payment_terms_code)" class="text-sm text-gray-500 mt-1">
+            <div v-else-if="erpFallbackData && erpFallbackData.payment_terms_code && !isTermsEqual(store.transactionData, erpFallbackData.payment_terms_code)" class="original-value-label">
                 เดิม (ERP): {{ erpFallbackData.payment_terms_code }}
             </div>
         </div>
@@ -38,7 +43,7 @@
         <div class="deal-item">
             <label>วิธีชำระเงิน</label>
             <div class="value">{{ store.customer.payment_method || '-' }}</div>
-            <div v-if="store.originalInitiatorCustomer?.payment_method !== undefined && store.originalInitiatorCustomer?.payment_method !== null && store.customer.payment_method !== store.originalInitiatorCustomer.payment_method" class="text-sm text-gray-500 mt-1">
+            <div v-if="store.originalInitiatorCustomer?.payment_method !== undefined && store.originalInitiatorCustomer?.payment_method !== null && store.customer.payment_method !== store.originalInitiatorCustomer.payment_method" class="original-value-label">
                 เดิม: {{ store.originalInitiatorCustomer.payment_method || '-' }}
             </div>
             <!-- NOTE: ERP API may not map payment method identically, so skipping ERP fallback here unless mapped -->
@@ -46,17 +51,17 @@
         <div class="deal-item">
             <label>เงื่อนไขการวางบิล</label>
             <div class="value">{{ store.customer.billing_schedule || '-' }}</div>
-            <div v-if="store.originalInitiatorCustomer?.billing_schedule !== undefined && store.originalInitiatorCustomer?.billing_schedule !== null && store.customer.billing_schedule !== store.originalInitiatorCustomer.billing_schedule" class="text-sm text-gray-500 mt-1">
+            <div v-if="store.originalInitiatorCustomer?.billing_schedule !== undefined && store.originalInitiatorCustomer?.billing_schedule !== null && store.customer.billing_schedule !== store.originalInitiatorCustomer.billing_schedule" class="original-value-label">
                 เดิม: {{ store.originalInitiatorCustomer.billing_schedule || '-' }}
             </div>
         </div>
         <div class="deal-item">
             <label>เงื่อนไขการชำระเงิน</label>
             <div class="value">{{ store.customer.payment_condition || '-' }}</div>
-            <div v-if="store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null && store.customer.payment_condition !== store.originalInitiatorCustomer.payment_condition" class="text-sm text-gray-500 mt-1">
+            <div v-if="store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null && store.customer.payment_condition !== store.originalInitiatorCustomer.payment_condition" class="original-value-label">
                 เดิม: {{ store.originalInitiatorCustomer.payment_condition || '-' }}
             </div>
-            <div v-else-if="erpFallbackData && erpFallbackData.sales_billing_condition && store.customer.payment_condition !== erpFallbackData.sales_billing_condition" class="text-sm text-gray-500 mt-1">
+            <div v-else-if="erpFallbackData && erpFallbackData.sales_billing_condition && store.customer.payment_condition !== erpFallbackData.sales_billing_condition" class="original-value-label">
                 เดิม (ERP): {{ erpFallbackData.sales_billing_condition }}
             </div>
         </div>
@@ -203,6 +208,23 @@ const formatTerms = (data) => {
     }
     return `${gs} / ${ae} / ${yc}`;
 };
+
+const isCreditIncrease = computed(() => {
+    return store.transactionData.requestType?.includes('เครดิตเพิ่ม') || false;
+});
+
+const totalCreditAmount = computed(() => {
+    const requestAmount = parseFloat(String(store.transactionData.amount || '0').replace(/,/g, ''));
+    let baseAmount = 0;
+
+    if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
+        baseAmount = parseFloat(String(store.originalTransactionData.amount).replace(/,/g, ''));
+    } else if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
+        baseAmount = parseFloat(String(erpFallbackData.value.current_credit_limit).replace(/,/g, ''));
+    }
+
+    return isNaN(requestAmount) ? baseAmount : (baseAmount + requestAmount);
+});
 
 const isTermsEqual = (data, erpTermsCode) => {
     if (!data) return false;
@@ -482,12 +504,33 @@ const openFinancialModal = async () => {
     font-size: 24px;
     font-weight: bold;
     color: #0056FF;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.increase-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #e65100; /* Subtle orange to denote an increase */
+    background: #fff3e0;
+    padding: 2px 8px;
+    border-radius: 4px;
 }
 
 .deal-item.highlight-terms .value.terms-amount {
     font-size: 20px;
     font-weight: bold;
     color: #333;
+}
+
+.original-value-label {
+    font-size: 13px;
+    color: #888;
+    margin-top: 4px;
+    line-height: 1.4;
+    font-style: italic;
 }
 
 .reason-text {
