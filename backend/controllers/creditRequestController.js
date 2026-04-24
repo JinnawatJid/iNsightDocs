@@ -944,6 +944,12 @@ exports.createCreditRequest = async (req, res) => {
 };
 
 exports.getRecentApprovedRequest = async (req, res) => {
+  const isAutoCarryoverEnabled = process.env.FEATURE_AUTO_CARRYOVER === 'true';
+
+  if (!isAutoCarryoverEnabled) {
+    return res.status(403).json({ error: "Auto carry-over feature is disabled" });
+  }
+
   const customerNo = req.params.customerNo;
 
   try {
