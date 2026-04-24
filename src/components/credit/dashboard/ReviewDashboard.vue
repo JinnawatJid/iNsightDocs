@@ -32,22 +32,22 @@
         <div class="deal-item">
             <label>วิธีชำระเงิน</label>
             <div class="value">{{ store.customer.payment_method || '-' }}</div>
-            <div v-if="store.originalInitiatorCustomer?.payment_method && store.customer.payment_method !== store.originalInitiatorCustomer.payment_method" class="text-sm text-gray-500 mt-1">
-                เดิม: {{ store.originalInitiatorCustomer.payment_method }}
+            <div v-if="store.originalInitiatorCustomer?.payment_method !== undefined && store.originalInitiatorCustomer?.payment_method !== null && store.customer.payment_method !== store.originalInitiatorCustomer.payment_method" class="text-sm text-gray-500 mt-1">
+                เดิม: {{ store.originalInitiatorCustomer.payment_method || '-' }}
             </div>
         </div>
         <div class="deal-item">
             <label>เงื่อนไขการวางบิล</label>
             <div class="value">{{ store.customer.billing_schedule || '-' }}</div>
-            <div v-if="store.originalInitiatorCustomer?.billing_schedule && store.customer.billing_schedule !== store.originalInitiatorCustomer.billing_schedule" class="text-sm text-gray-500 mt-1">
-                เดิม: {{ store.originalInitiatorCustomer.billing_schedule }}
+            <div v-if="store.originalInitiatorCustomer?.billing_schedule !== undefined && store.originalInitiatorCustomer?.billing_schedule !== null && store.customer.billing_schedule !== store.originalInitiatorCustomer.billing_schedule" class="text-sm text-gray-500 mt-1">
+                เดิม: {{ store.originalInitiatorCustomer.billing_schedule || '-' }}
             </div>
         </div>
         <div class="deal-item">
             <label>เงื่อนไขการชำระเงิน</label>
             <div class="value">{{ store.customer.payment_condition || '-' }}</div>
-            <div v-if="store.originalInitiatorCustomer?.payment_condition && store.customer.payment_condition !== store.originalInitiatorCustomer.payment_condition" class="text-sm text-gray-500 mt-1">
-                เดิม: {{ store.originalInitiatorCustomer.payment_condition }}
+            <div v-if="store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null && store.customer.payment_condition !== store.originalInitiatorCustomer.payment_condition" class="text-sm text-gray-500 mt-1">
+                เดิม: {{ store.originalInitiatorCustomer.payment_condition || '-' }}
             </div>
         </div>
       </div>
