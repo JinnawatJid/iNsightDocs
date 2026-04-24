@@ -3,14 +3,20 @@
     <!-- Section 1: Deal Summary -->
     <div class="dashboard-card deal-summary">
       <div class="card-header">
-        <h3>สรุปข้อมูลคำขอ</h3>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <h3>สรุปข้อมูลคำขอ</h3>
+            <button class="btn-toggle-design" @click="useNewDesign = !useNewDesign">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9m-9 9a9 9 0 0 1 9-9"/></svg>
+                สลับรูปแบบ
+            </button>
+        </div>
         <div class="request-meta">
             <span class="badge type">{{ store.transactionData.requestType }}</span>
             <span class="badge status">{{ store.requestStatus || 'ร่าง' }}</span>
         </div>
       </div>
 
-      <div class="deal-grid">
+      <div v-if="!useNewDesign" class="deal-grid">
         <div class="deal-item highlight">
             <label>วงเงินที่ขอ</label>
             <div v-if="isCreditIncrease" class="value amount">
@@ -66,8 +72,111 @@
             </div>
         </div>
       </div>
-    </div>
 
+      <div v-else class="deal-grid-new">
+        <div class="deal-col">
+            <div class="deal-header">วงเงิน</div>
+            <div class="deal-row">
+                <span class="label">เดิม:</span>
+                <span class="value">
+                    <template v-if="store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null">
+                        {{ formatNumber(store.originalTransactionData.amount) }} บาท
+                    </template>
+                    <template v-else-if="erpFallbackData && erpFallbackData.current_credit_limit !== undefined">
+                        {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
+                    </template>
+                    <template v-else>
+                        -
+                    </template>
+                </span>
+            </div>
+            <div class="deal-row">
+                <span class="label">ขอเพิ่ม:</span>
+                <span class="value amount-change">{{ formatNumber(store.transactionData.amount) }} บาท</span>
+            </div>
+            <div class="deal-row total">
+                <span class="label">รวม:</span>
+                <span class="value amount-total">{{ formatNumber(totalCreditAmount) }} บาท</span>
+            </div>
+        </div>
+
+        <div class="deal-col">
+            <div class="deal-header">เครดิตเทอม (GS/AE/YC)</div>
+            <div class="deal-row">
+                <span class="label">เดิม:</span>
+                <span class="value">
+                    <template v-if="store.originalTransactionData">
+                        {{ formatTerms(store.originalTransactionData) }}
+                    </template>
+                    <template v-else-if="erpFallbackData && erpFallbackData.payment_terms_code">
+                        {{ erpFallbackData.payment_terms_code }}
+                    </template>
+                    <template v-else>
+                        -
+                    </template>
+                </span>
+            </div>
+            <div class="deal-row">
+                <span class="label">ขอเปลี่ยนแปลง:</span>
+                <span class="value terms-change">{{ formatTerms(store.transactionData) }}</span>
+            </div>
+            <div class="deal-row empty"></div>
+        </div>
+
+        <div class="deal-col">
+            <div class="deal-header">ที่มาของเครดิต</div>
+            <div class="deal-row reason">
+                <span class="value">{{ store.transactionData.reason || '-' }}</span>
+            </div>
+        </div>
+
+        <div class="deal-col">
+            <div class="deal-header">วิธีชำระเงิน</div>
+            <div class="deal-row">
+                <span class="label">เดิม:</span>
+                <span class="value">{{ store.originalInitiatorCustomer?.payment_method || '-' }}</span>
+            </div>
+            <div class="deal-row">
+                <span class="label">ขอเปลี่ยนแปลง:</span>
+                <span class="value">{{ store.customer.payment_method || '-' }}</span>
+            </div>
+        </div>
+
+        <div class="deal-col">
+            <div class="deal-header">เงื่อนไขการวางบิล</div>
+            <div class="deal-row">
+                <span class="label">เดิม:</span>
+                <span class="value">{{ store.originalInitiatorCustomer?.billing_schedule || '-' }}</span>
+            </div>
+            <div class="deal-row">
+                <span class="label">ขอเปลี่ยนแปลง:</span>
+                <span class="value">{{ store.customer.billing_schedule || '-' }}</span>
+            </div>
+        </div>
+
+        <div class="deal-col">
+            <div class="deal-header">เงื่อนไขการชำระเงิน</div>
+            <div class="deal-row">
+                <span class="label">เดิม:</span>
+                <span class="value">
+                    <template v-if="store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null">
+                        {{ store.originalInitiatorCustomer.payment_condition }}
+                    </template>
+                    <template v-else-if="erpFallbackData && erpFallbackData.sales_billing_condition">
+                        {{ erpFallbackData.sales_billing_condition }}
+                    </template>
+                    <template v-else>
+                        -
+                    </template>
+                </span>
+            </div>
+            <div class="deal-row">
+                <span class="label">ขอเปลี่ยนแปลง:</span>
+                <span class="value">{{ store.customer.payment_condition || '-' }}</span>
+            </div>
+        </div>
+      </div>
+    </div>
     <!-- Section 2: Key Documents Snapshot -->
     <div class="dashboard-card documents-snapshot">
         <div class="card-header">
@@ -187,6 +296,7 @@ import CustomerService from '@/services/CustomerService';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const useNewDesign = ref(false);
 const showFullDetails = ref(false);
 
 const formatNumber = (num) => {
@@ -472,6 +582,107 @@ const openFinancialModal = async () => {
 
 .badge.type { background: #e3f2fd; color: #0d47a1; }
 .badge.status { background: #fff3cd; color: #856404; }
+
+
+.btn-toggle-design {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #f0f4f8;
+    color: #0056FF;
+    border: 1px solid #d1e0fc;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-toggle-design:hover {
+    background: #e1ebfa;
+    border-color: #b0c9f7;
+}
+
+.deal-grid-new {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    padding: 10px;
+}
+
+.deal-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.deal-header {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+    text-align: center;
+}
+
+.deal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 14px;
+}
+
+.deal-row.reason {
+    justify-content: center;
+    text-align: center;
+    font-style: italic;
+    color: #555;
+    margin-top: 10px;
+}
+
+.deal-row .label {
+    color: #666;
+    font-weight: 500;
+}
+
+.deal-row .value {
+    color: #333;
+    font-weight: 600;
+    text-align: right;
+    max-width: 65%;
+    word-break: break-word;
+}
+
+.deal-row.total {
+    border-top: 1px dashed #ccc;
+    padding-top: 8px;
+    margin-top: 4px;
+}
+
+.deal-row.total .label {
+    font-weight: bold;
+    color: #000;
+}
+
+.deal-row.total .value.amount-total {
+    font-size: 16px;
+    font-weight: bold;
+    color: #0056FF;
+}
+
+.deal-row .value.amount-change {
+    color: #e65100;
+}
+
+.deal-row .value.terms-change {
+    color: #e65100;
+}
+
+.deal-row.empty {
+    height: 10px;
+}
 
 /* Deal Grid */
 .deal-grid {
