@@ -6,7 +6,7 @@
         <div style="display: flex; align-items: center; gap: 10px;">
             <h3>สรุปข้อมูลคำขอ</h3>
             <button class="btn-toggle-design" @click="useNewDesign = !useNewDesign">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9m-9 9a9 9 0 0 1 9-9"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9m-9 9a9 9 0 0 1 9-9"/></svg>
                 สลับรูปแบบ
             </button>
         </div>
@@ -77,9 +77,19 @@
         <div class="deal-col">
             <div class="deal-header">วงเงิน</div>
             <div class="deal-row">
-                <span class="label">เดิม:</span>
+                <span class="label">
+                    <template v-if="store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null && store.transactionData.amount != store.originalTransactionData.amount">เดิม:</template>
+                    <template v-else-if="erpFallbackData && erpFallbackData.current_credit_limit !== undefined && store.transactionData.amount != erpFallbackData.current_credit_limit">เดิม (ERP):</template>
+                    <template v-else>เดิม:</template>
+                </span>
                 <span class="value">
-                    <template v-if="store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null">
+                    <template v-if="store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null && store.transactionData.amount != store.originalTransactionData.amount">
+                        {{ formatNumber(store.originalTransactionData.amount) }} บาท
+                    </template>
+                    <template v-else-if="erpFallbackData && erpFallbackData.current_credit_limit !== undefined && store.transactionData.amount != erpFallbackData.current_credit_limit">
+                        {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
+                    </template>
+                    <template v-else-if="store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null">
                         {{ formatNumber(store.originalTransactionData.amount) }} บาท
                     </template>
                     <template v-else-if="erpFallbackData && erpFallbackData.current_credit_limit !== undefined">
@@ -103,9 +113,19 @@
         <div class="deal-col">
             <div class="deal-header">เครดิตเทอม (GS/AE/YC)</div>
             <div class="deal-row">
-                <span class="label">เดิม:</span>
+                <span class="label">
+                    <template v-if="store.originalTransactionData && hasTermsChanged">เดิม:</template>
+                    <template v-else-if="erpFallbackData && erpFallbackData.payment_terms_code && !isTermsEqual(store.transactionData, erpFallbackData.payment_terms_code)">เดิม (ERP):</template>
+                    <template v-else>เดิม:</template>
+                </span>
                 <span class="value">
-                    <template v-if="store.originalTransactionData">
+                    <template v-if="store.originalTransactionData && hasTermsChanged">
+                        {{ formatTerms(store.originalTransactionData) }}
+                    </template>
+                    <template v-else-if="erpFallbackData && erpFallbackData.payment_terms_code && !isTermsEqual(store.transactionData, erpFallbackData.payment_terms_code)">
+                        {{ erpFallbackData.payment_terms_code }}
+                    </template>
+                    <template v-else-if="store.originalTransactionData">
                         {{ formatTerms(store.originalTransactionData) }}
                     </template>
                     <template v-else-if="erpFallbackData && erpFallbackData.payment_terms_code">
@@ -157,9 +177,19 @@
         <div class="deal-col">
             <div class="deal-header">เงื่อนไขการชำระเงิน</div>
             <div class="deal-row">
-                <span class="label">เดิม:</span>
+                <span class="label">
+                    <template v-if="store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null && store.customer.payment_condition !== store.originalInitiatorCustomer.payment_condition">เดิม:</template>
+                    <template v-else-if="erpFallbackData && erpFallbackData.sales_billing_condition && store.customer.payment_condition !== erpFallbackData.sales_billing_condition">เดิม (ERP):</template>
+                    <template v-else>เดิม:</template>
+                </span>
                 <span class="value">
-                    <template v-if="store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null">
+                    <template v-if="store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null && store.customer.payment_condition !== store.originalInitiatorCustomer.payment_condition">
+                        {{ store.originalInitiatorCustomer.payment_condition }}
+                    </template>
+                    <template v-else-if="erpFallbackData && erpFallbackData.sales_billing_condition && store.customer.payment_condition !== erpFallbackData.sales_billing_condition">
+                        {{ erpFallbackData.sales_billing_condition }}
+                    </template>
+                    <template v-else-if="store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null">
                         {{ store.originalInitiatorCustomer.payment_condition }}
                     </template>
                     <template v-else-if="erpFallbackData && erpFallbackData.sales_billing_condition">
@@ -587,13 +617,13 @@ const openFinancialModal = async () => {
 .btn-toggle-design {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
+    gap: 4px;
+    padding: 4px 8px;
     background: #f0f4f8;
     color: #0056FF;
     border: 1px solid #d1e0fc;
-    border-radius: 6px;
-    font-size: 13px;
+    border-radius: 4px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
