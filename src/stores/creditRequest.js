@@ -374,9 +374,17 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           customerTeam: parsedSnapshot.transaction_data?.customerTeam || "",
           projects: parsedSnapshot.transaction_data?.projects || [],
         };
-        this.originalTransactionData = JSON.parse(JSON.stringify(this.transactionData));
-        this.originalInitiatorCustomer = JSON.parse(JSON.stringify(this.customer));
+        this.originalTransactionData = parsedSnapshot.originalTransactionData
+            ? JSON.parse(JSON.stringify(parsedSnapshot.originalTransactionData))
+            : JSON.parse(JSON.stringify(this.transactionData));
 
+        this.originalInitiatorCustomer = parsedSnapshot.originalInitiatorCustomer
+            ? JSON.parse(JSON.stringify(parsedSnapshot.originalInitiatorCustomer))
+            : JSON.parse(JSON.stringify(this.customer));
+
+        this.originalCustomer = parsedSnapshot.originalCustomer
+            ? JSON.parse(JSON.stringify(parsedSnapshot.originalCustomer))
+            : JSON.parse(JSON.stringify(this.customer));
 
         this.hasSearched = true;
       } catch (err) {
@@ -911,6 +919,9 @@ export const useCreditRequestStore = defineStore("creditRequest", {
         financial_summary: this.financialSummary,
         credit_score: this.creditScore,
         transaction_data: this.transactionData,
+        originalCustomer: this.originalCustomer,
+        originalInitiatorCustomer: this.originalInitiatorCustomer,
+        originalTransactionData: this.originalTransactionData,
       };
 
       return snapshot;

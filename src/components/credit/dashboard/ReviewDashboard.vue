@@ -11,13 +11,31 @@
       </div>
 
       <div class="deal-grid">
-        <div class="deal-item highlight">
-            <label>วงเงินที่ขอ</label>
-            <div class="value amount">{{ formatNumber(store.transactionData.amount) }} บาท</div>
+        <div class="deal-item highlight" :class="{ 'increase-mode': isRequestIncrease }">
+            <label>{{ isRequestIncrease ? 'สรุปวงเงิน (บาท)' : 'วงเงินที่ขอ' }}</label>
+            <div v-if="!isRequestIncrease" class="value amount">{{ formatNumber(store.transactionData.amount) }} บาท</div>
+            <div v-else class="value amount-breakdown">
+                <div class="breakdown-row">
+                    <span class="label">วงเงินเดิม:</span>
+                    <span class="val">{{ formatNumber(store.originalCustomer.current_credit_limit) }}</span>
+                </div>
+                <div class="breakdown-row">
+                    <span class="label text-blue-600">ขอเพิ่ม:</span>
+                    <span class="val text-blue-600">+ {{ formatNumber(store.transactionData.amount) }}</span>
+                </div>
+                <div class="breakdown-divider"></div>
+                <div class="breakdown-row total">
+                    <span class="label">วงเงินรวมใหม่:</span>
+                    <span class="val">{{ formatNumber(totalLimit) }}</span>
+                </div>
+            </div>
         </div>
         <div class="deal-item highlight-terms">
             <label>เครดิตเทอม (GS/AE/YC)</label>
             <div class="value terms-amount">{{ formatTerms(store.transactionData) }}</div>
+            <div v-if="hasTermChanged" class="original-value">
+                เดิม: {{ store.originalCustomer.credit_term || '-' }} วัน
+            </div>
         </div>
         <div class="deal-item">
             <label>ที่มาของเครดิต</label>
@@ -26,14 +44,23 @@
         <div class="deal-item">
             <label>วิธีชำระเงิน</label>
             <div class="value">{{ store.customer.payment_method || '-' }}</div>
+            <div v-if="hasPaymentMethodChanged" class="original-value">
+                เดิม: {{ store.originalCustomer.payment_method || '-' }}
+            </div>
         </div>
         <div class="deal-item">
             <label>เงื่อนไขการวางบิล</label>
             <div class="value">{{ store.customer.billing_schedule || '-' }}</div>
+            <div v-if="hasBillingScheduleChanged" class="original-value">
+                เดิม: {{ store.originalCustomer.billing_schedule || '-' }}
+            </div>
         </div>
         <div class="deal-item">
             <label>เงื่อนไขการชำระเงิน</label>
             <div class="value">{{ store.customer.payment_condition || '-' }}</div>
+            <div v-if="hasPaymentConditionChanged" class="original-value">
+                เดิม: {{ store.originalCustomer.payment_condition || '-' }}
+            </div>
         </div>
       </div>
     </div>
@@ -157,6 +184,35 @@ import axios from '../../../utils/axios.js';
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
 const showFullDetails = ref(false);
+
+const isRequestIncrease = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตเพิ่ม'));
+
+const totalLimit = computed(() => {
+    const currentLimit = Number(String(store.originalCustomer?.current_credit_limit || 0).replace(/,/g, ''));
+    const requestedAmount = Number(String(store.transactionData.amount || 0).replace(/,/g, ''));
+    return currentLimit + requestedAmount;
+});
+
+const hasTermChanged = computed(() => {
+    const originalTerm = String(store.originalCustomer?.credit_term || '');
+    const proposedGS = String(store.transactionData.termGS || '');
+    const proposedAE = String(store.transactionData.termAE || '');
+    const proposedYC = String(store.transactionData.termYC || '');
+
+    return originalTerm !== proposedGS || originalTerm !== proposedAE || originalTerm !== proposedYC;
+});
+
+const hasPaymentMethodChanged = computed(() => {
+    return store.customer.payment_method !== store.originalCustomer?.payment_method;
+});
+
+const hasBillingScheduleChanged = computed(() => {
+    return store.customer.billing_schedule !== store.originalCustomer?.billing_schedule;
+});
+
+const hasPaymentConditionChanged = computed(() => {
+    return store.customer.payment_condition !== store.originalCustomer?.payment_condition;
+});
 
 const formatNumber = (num) => {
     if (!num) return '0';
@@ -417,6 +473,42 @@ const openFinancialModal = async () => {
     font-size: 20px;
     font-weight: bold;
     color: #333;
+}
+
+.original-value {
+    font-size: 12px;
+    color: #888;
+    display: block;
+    margin-top: 2px;
+}
+
+.amount-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: normal;
+}
+
+.breakdown-row.total {
+    font-size: 18px;
+    font-weight: bold;
+    color: #0056FF;
+}
+
+.breakdown-divider {
+    height: 1px;
+    background: #eee;
+    margin: 4px 0;
+}
+
+.text-blue-600 {
+    color: #2563eb;
 }
 
 .reason-text {

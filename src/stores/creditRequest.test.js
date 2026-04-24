@@ -61,4 +61,17 @@ describe('CreditRequest Store', () => {
         expect(validation.missingFiles).not.toContain('profit_loss_doc');
         expect(validation.missingFiles).not.toContain('financial_ratios_doc');
     });
+
+    it('should include original data in getSnapshot', () => {
+        const store = useCreditRequestStore();
+        store.originalCustomer = { id: 'orig_cust' };
+        store.originalInitiatorCustomer = { id: 'orig_init' };
+        store.originalTransactionData = { amount: '100' };
+
+        const snapshot = store.getSnapshot();
+
+        expect(snapshot.originalCustomer).toEqual(store.originalCustomer);
+        expect(snapshot.originalInitiatorCustomer).toEqual(store.originalInitiatorCustomer);
+        expect(snapshot.originalTransactionData).toEqual(store.originalTransactionData);
+    });
 });
