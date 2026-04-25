@@ -14,7 +14,7 @@ This README serves as an index and guide for where to find existing documents an
 ### `features/`
 **Detailed explanations, flows, and states of specific product features.**
 *   *What goes here:* Business logic, user flows, and how specific features (like authentication, Blacklist checks, or credit scoring logic) operate from a user or system perspective.
-*   *Examples:* `BLACKLIST_FEATURE.md`, `CREATE_CREDIT_REQUEST_FLOW.md`, `AUTHENTICATION_FLOW.md`
+*   *Examples:* `BLACKLIST_FEATURE.md`, `CREATE_CREDIT_REQUEST_FLOW.md`, `NOTIFICATION_SYSTEM.md`
 
 ### `guides/`
 **"How-to" guides, coding standards, and step-by-step instructions for developers.**
