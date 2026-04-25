@@ -19,10 +19,12 @@ export const useNotificationStore = defineStore('notification', {
       if (!authStore.isAuthenticated && authStore.authRequired) return;
 
       try {
+        console.log('[Notification Debug] Fetching notifications from server...');
         const response = await axios.get('/api/notifications');
         this.notifications = response.data?.data || [];
+        console.log('[Notification Debug] Received notifications:', this.notifications);
       } catch (error) {
-        console.error('Failed to fetch notifications:', error);
+        console.error('[Notification Debug] Failed to fetch notifications:', error);
       }
     },
     async markAsRead(id) {

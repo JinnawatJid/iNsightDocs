@@ -648,12 +648,20 @@ exports.createCreditRequest = async (req, res) => {
 
             // 2. Always notify the initiator of ANY status change (if they aren't the one making the change)
             const currentUser = req.user?.username;
-            if (existing.created_by && existing.created_by !== currentUser) {
+            logger.info(`[Notification Debug] Status changed from ${existing.status} to ${newStatus}`);
+            logger.info(`[Notification Debug] Created By: ${existing.created_by}, Current User: ${currentUser}`);
+
+            // Note: In DEV_MODE, everyone shares the username "DEV_MODE_USER".
+            // We bypass the strict currentUser check if the username is DEV_MODE_USER so testing works.
+            if (existing.created_by && (existing.created_by !== currentUser || currentUser === 'DEV_MODE_USER')) {
+                logger.info(`[Notification Debug] Sending notification to initiator: ${existing.created_by}`);
                 const initiatorMessage = `คำขอ ${txId} ถูกเปลี่ยนสถานะเป็น ${newStatus}`;
                 await db.runAsync(
                     "INSERT INTO Notifications (tx_id, target_role, target_username, message, created_at) VALUES (?, ?, ?, ?, ?)",
                     [txId, null, existing.created_by, initiatorMessage, statusEventAt]
                 );
+            } else {
+                logger.info(`[Notification Debug] Skipping notification to initiator because they made the change.`);
             }
         }
       } else {
