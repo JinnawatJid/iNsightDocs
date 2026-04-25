@@ -1066,6 +1066,8 @@ exports.getCreditRequests = async (req, res) => {
       const txData = snapshot.transaction_data || {};
 
       let billingTermCode = null;
+      let tempInitialCR = null;
+
       if (snapshot.billing_terms_code) {
         // e.g., "B00CR30" -> extract "B00"
         const match = snapshot.billing_terms_code.match(/^B\d+/);
@@ -1074,15 +1076,27 @@ exports.getCreditRequests = async (req, res) => {
         } else {
            billingTermCode = snapshot.billing_terms_code;
         }
+
+        // [TEMPORARY WORKAROUND]
+        // Industry Standard Note: For pending requests, baseline/original data (the initial credit terms)
+        // should be separated from requested data (the new terms being applied for). Since the current
+        // term_gs, term_ae, term_yc in transaction_data reflect the *new* request, we temporarily parse
+        // the initial CR term from the snapshot's billing_terms_code (e.g. CR30 -> 30) to display the
+        // initial state (e.g. CR30/30/30) in the list until final approval updates the main tables.
+        const crMatch = snapshot.billing_terms_code.match(/CR(\d+)/);
+        if (crMatch) {
+            tempInitialCR = crMatch[1]; // e.g. "30"
+        }
       }
 
       return {
         ...row,
         request_credit_term: row.request_credit_term !== null && row.request_credit_term !== undefined ? row.request_credit_term : txData.creditTerm,
         billing_terms_code: billingTermCode,
-        term_gs: row.term_gs !== null && row.term_gs !== undefined ? row.term_gs : txData.termGS,
-        term_ae: row.term_ae !== null && row.term_ae !== undefined ? row.term_ae : txData.termAE,
-        term_yc: row.term_yc !== null && row.term_yc !== undefined ? row.term_yc : txData.termYC,
+        // Override the terms with the temporary initial CR if found, otherwise fallback to transaction data
+        term_gs: tempInitialCR !== null ? tempInitialCR : (row.term_gs !== null && row.term_gs !== undefined ? row.term_gs : txData.termGS),
+        term_ae: tempInitialCR !== null ? tempInitialCR : (row.term_ae !== null && row.term_ae !== undefined ? row.term_ae : txData.termAE),
+        term_yc: tempInitialCR !== null ? tempInitialCR : (row.term_yc !== null && row.term_yc !== undefined ? row.term_yc : txData.termYC),
         snapshot_data: undefined // do not send massive snapshot data over the wire for the list view
       };
     });

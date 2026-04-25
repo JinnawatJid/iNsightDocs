@@ -465,6 +465,13 @@ onMounted(() => {
     color: #999;
 }
 
+.details {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1; /* Allow details to take remaining space but still trigger ellipsis */
+}
+
 .loading-state, .empty-state {
   text-align: center;
   padding: 30px 20px;
