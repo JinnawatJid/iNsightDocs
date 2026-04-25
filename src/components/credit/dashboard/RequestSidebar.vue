@@ -80,10 +80,9 @@
            </div>
         </div>
 
-        <!-- Bottom: TxID and Date -->
+        <!-- Bottom: TxID and Details -->
         <div class="item-bottom">
-           <span class="tx-id">{{ req.tx_id }}</span>
-           <span class="date">{{ formatDate(req.updated_at || req.created_at) }}</span>
+           <span class="tx-id">{{ req.tx_id }} {{ formatNumber(req.request_amount) }} บาท ({{ formatTerms(req) }})</span>
         </div>
 
         <!-- Status Label (Actionable vs Waiting) moved to bottom -->
@@ -180,6 +179,29 @@ const debouncedSearch = debounce(() => {
 watch(searchQuery, () => {
     debouncedSearch();
 });
+
+const formatNumber = (num) => {
+    if (num === null || num === undefined || num === '') return '0';
+    if (typeof num === 'string') {
+        const cleanNum = num.replace(/,/g, '');
+        if (isNaN(cleanNum)) return num;
+        num = Number(cleanNum);
+    }
+    return num.toLocaleString('th-TH');
+};
+
+const formatTerms = (data) => {
+    if (!data) return '-';
+    // Fallback to 0 if null/undefined
+    const gs = data.term_gs || 0;
+    const ae = data.term_ae || 0;
+    const yc = data.term_yc || 0;
+
+    if (gs === ae && ae === yc) {
+        return `B${gs}`;
+    }
+    return `CR${gs}/${ae}/${yc}`;
+};
 
 const formatDate = (dateString) => {
     if (!dateString) return '';
