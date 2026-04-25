@@ -423,12 +423,14 @@ const initDB = async () => {
         }
 
         // Seed default configuration if not exists
-        const initialRbacMatrix = {
+                const initialRbacMatrix = {
             roles: [
                 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)',
+                'ผู้พิจารณาของพื้นที่',
+                'ผู้พิจารณาฝ่ายขาย',
                 'ผู้ตรวจสอบเอกสาร',
-                'ผู้จัดการฝ่ายการเงิน',
-                'คณะกรรมการสินเชื่อ',
+                'ผู้อนุมัติ (วงเงิน <300K)',
+                'ผู้อนุมัติ (วงเงิน > 300K)',
                 'ผู้ดูแลระบบ'
             ],
             permissions: [
@@ -442,9 +444,11 @@ const initDB = async () => {
             ],
             matrix: {
                 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)': ['view_pending', 'view_history', 'edit_request'],
+                'ผู้พิจารณาของพื้นที่': ['view_pending', 'view_history'],
+                'ผู้พิจารณาฝ่ายขาย': ['view_pending', 'view_history'],
                 'ผู้ตรวจสอบเอกสาร': ['view_pending', 'view_history', 'approve_document'],
-                'ผู้จัดการฝ่ายการเงิน': ['view_pending', 'view_history', 'approve_credit_low'],
-                'คณะกรรมการสินเชื่อ': ['view_pending', 'view_history', 'approve_credit_low', 'approve_credit_high'],
+                'ผู้อนุมัติ (วงเงิน <300K)': ['view_pending', 'view_history', 'approve_credit_low'],
+                'ผู้อนุมัติ (วงเงิน > 300K)': ['view_pending', 'view_history', 'approve_credit_low', 'approve_credit_high'],
                 'ผู้ดูแลระบบ': ['manage_config']
             }
         };
@@ -471,6 +475,20 @@ const initDB = async () => {
                 // Update label for existing seed data if it's missing
                 await db.runAsync(`UPDATE Configurations SET label = ? WHERE config_key = ? AND label IS NULL`,
                     [config.label, config.key]);
+
+                // Force update RBAC matrix if it is missing the new roles
+                if (config.key === 'RBAC_MATRIX_CONFIG') {
+                    try {
+                        const currentVal = JSON.parse(checkConfig.rows[0].config_value);
+                        if (!currentVal.roles.includes('ผู้พิจารณาของพื้นที่')) {
+                            await db.runAsync(`UPDATE Configurations SET config_value = ? WHERE config_key = ?`,
+                                [config.value, config.key]);
+                            logger.info('Updated RBAC_MATRIX_CONFIG with new roles structure.');
+                        }
+                    } catch(e) {
+                        logger.error('Error migrating RBAC matrix config:', e);
+                    }
+                }
             }
         }
 
