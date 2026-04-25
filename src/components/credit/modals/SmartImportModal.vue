@@ -59,10 +59,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useAuthStore } from '../../../stores/auth';
 import axios from '../../../utils/axios.js';
 
 const emit = defineEmits(['close', 'data-extracted']);
+const authStore = useAuthStore();
+const maxFileUploadSizeMB = computed(() => authStore.maxFileUploadSizeMB || 20);
 
 const selectedFile = ref(null);
 const isLoading = ref(false);
@@ -94,8 +97,8 @@ const validateAndSetFile = (file) => {
     error.value = 'Invalid file type. Please upload a JPG, PNG, or PDF.';
     return;
   }
-  if (file.size > 5 * 1024 * 1024) {
-    error.value = 'File is too large. Max size is 5MB.';
+  if (file.size > maxFileUploadSizeMB.value * 1024 * 1024) {
+    error.value = `File is too large. Max size is ${maxFileUploadSizeMB.value}MB.`;
     return;
   }
   selectedFile.value = file;

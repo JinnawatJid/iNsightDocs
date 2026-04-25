@@ -8,6 +8,7 @@ const {
   normalizeBranchCode,
   getBranchCodeFromUser,
 } = require("../utils/branchCode");
+const { checkDynamicUploadLimit } = require("../utils/uploadLimitHelper");
 
 let projectRoot = path.resolve(__dirname, "../../../../");
 if (!fs.existsSync(path.join(projectRoot, "customers"))) {
@@ -250,6 +251,16 @@ exports.downloadCreditRequestFile = async (req, res) => {
  */
 exports.createCreditRequest = async (req, res) => {
   // When using multer, text fields are in req.body and files in req.files
+
+  // Dynamic file upload limit validation
+  const limitCheck = await checkDynamicUploadLimit(req.files || []);
+  if (!limitCheck.isValid) {
+      return res.status(400).json({
+          success: false,
+          message: `One or more files exceed the dynamic maximum limit of ${limitCheck.limitMB}MB. Rejected: ${limitCheck.rejectedFiles.join(', ')}`
+      });
+  }
+
   const {
     tx_id,
     customer_no,
@@ -1387,6 +1398,15 @@ exports.reviseRequest = async (req, res) => {
 exports.uploadAdditionalDocument = async (req, res) => {
   const txId = decodeURIComponent(req.params.id);
   const { documentType, documentDescription } = req.body;
+
+  const files = req.files || [];
+  const limitCheck = await checkDynamicUploadLimit(files);
+  if (!limitCheck.isValid) {
+      return res.status(400).json({
+          success: false,
+          message: `One or more files exceed the dynamic maximum limit of ${limitCheck.limitMB}MB. Rejected: ${limitCheck.rejectedFiles.join(', ')}`
+      });
+  }
 
   logger.info(`Uploading additional document for TX ID: ${txId}`, {
     documentType,

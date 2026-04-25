@@ -52,7 +52,7 @@ app.use('/api/external', externalRoutes);
 app.use('/api/downloads', express.static(path.join(__dirname, 'downloads')));
 
 // Configuration Endpoint (Public)
-app.get('/api/config/auth', (req, res) => {
+app.get('/api/config/auth', async (req, res) => {
     // Check if authentication is enabled via environment variable
     // Default to true for safety if the variable is not explicitly set to 'false'
     const isAuthEnabled = process.env.ENABLE_AUTH !== 'false';
@@ -60,11 +60,22 @@ app.get('/api/config/auth', (req, res) => {
     const additionalDocumentsEnabled = process.env.ENABLE_ADDITIONAL_DOCUMENTS === 'true';
     const hideCreditScoreEnabled = process.env.ENABLE_HIDE_CREDIT_SCORE === 'true';
 
+    let maxFileUploadSizeMB = 50; // Default to 50MB if DB fetch fails
+    try {
+        const result = await db.query('SELECT config_value FROM Configurations WHERE config_key = ?', ['MAX_FILE_UPLOAD_SIZE_MB']);
+        if (result && result.rows && result.rows.length > 0) {
+            maxFileUploadSizeMB = parseInt(result.rows[0].config_value, 10) || 50;
+        }
+    } catch (error) {
+        logger.error('Error fetching MAX_FILE_UPLOAD_SIZE_MB for public config endpoint:', error);
+    }
+
     res.status(200).json({
       authRequired: isAuthEnabled,
       projectCreditEnabled: projectCreditEnabled,
       additionalDocumentsEnabled: additionalDocumentsEnabled,
-      hideCreditScoreEnabled: hideCreditScoreEnabled
+      hideCreditScoreEnabled: hideCreditScoreEnabled,
+      maxFileUploadSizeMB: maxFileUploadSizeMB
     });
 });
 

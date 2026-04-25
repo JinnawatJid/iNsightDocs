@@ -6,7 +6,7 @@ const financialController = require('../controllers/financialController');
 // Configure multer for memory storage (we process buffers directly)
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB static bound; actual limit checked in controllers
 });
 
 // Define the file fields we expect

@@ -1,5 +1,6 @@
 const logger = require('../utils/logger');
 const ocrService = require('../services/ocrService');
+const { checkDynamicUploadLimit } = require('../utils/uploadLimitHelper');
 
 const ocrController = {
   async extractThaiID(req, res) {
@@ -7,6 +8,11 @@ const ocrController = {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No document uploaded' });
+      }
+
+      const limitCheck = await checkDynamicUploadLimit([req.file]);
+      if (!limitCheck.isValid) {
+          return res.status(400).json({ error: `File exceeds the dynamic maximum limit of ${limitCheck.limitMB}MB` });
       }
 
       // Fix for Thai characters (UTF-8 encoded by browser, interpreted as Latin-1 by multer/busboy)
@@ -31,6 +37,11 @@ const ocrController = {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No document uploaded' });
+      }
+
+      const limitCheck = await checkDynamicUploadLimit([req.file]);
+      if (!limitCheck.isValid) {
+          return res.status(400).json({ error: `File exceeds the dynamic maximum limit of ${limitCheck.limitMB}MB` });
       }
 
       if (req.file.originalname) {

@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', {
     projectCreditEnabled: false,
     additionalDocumentsEnabled: false,
     hideCreditScoreEnabled: false,
+    maxFileUploadSizeMB: 20,
   }),
 
   getters: {
@@ -58,6 +59,9 @@ export const useAuthStore = defineStore('auth', {
           this.projectCreditEnabled = data.projectCreditEnabled;
           this.additionalDocumentsEnabled = data.additionalDocumentsEnabled;
           this.hideCreditScoreEnabled = data.hideCreditScoreEnabled;
+          if (data.maxFileUploadSizeMB) {
+            this.maxFileUploadSizeMB = data.maxFileUploadSizeMB;
+          }
         }
       } catch (error) {
         console.error('Failed to fetch auth config:', error);

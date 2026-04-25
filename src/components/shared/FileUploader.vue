@@ -32,7 +32,7 @@
     </div>
 
     <div class="info-text" v-if="!disabled">
-        {{ multiple ? 'รองรับ JPG, PNG, PDF (สูงสุด 20MB / อัปโหลดได้สูงสุด 10 ไฟล์)' : 'รองรับ JPG, PNG, PDF (สูงสุด 20MB)' }}
+        {{ multiple ? `รองรับ JPG, PNG, PDF (สูงสุด ${maxFileUploadSizeMB}MB / อัปโหลดได้สูงสุด 10 ไฟล์)` : `รองรับ JPG, PNG, PDF (สูงสุด ${maxFileUploadSizeMB}MB)` }}
     </div>
 
     <!-- File List (Outside box, scrollable) -->
@@ -89,6 +89,7 @@
 import iconFileBlue from '@/assets/icons/file-blue.svg';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 import { computed } from 'vue';
 import Swal from 'sweetalert2';
 import DocumentPreviewModal from '@/components/shared/DocumentPreviewModal.vue';
@@ -109,6 +110,10 @@ export default {
   },
   setup(props) {
       const store = useCreditRequestStore();
+      const authStore = useAuthStore();
+
+      const maxFileUploadSizeMB = computed(() => authStore.maxFileUploadSizeMB || 20);
+
       const showError = computed(() => {
           if (props.required && store.showValidationErrors) {
               if (props.multiple) {
@@ -119,7 +124,7 @@ export default {
           }
           return false;
       });
-      return { showError };
+      return { showError, maxFileUploadSizeMB };
   },
   props: {
     label: {
@@ -179,8 +184,8 @@ export default {
       if (!files || files.length === 0) return;
 
       const validFiles = [];
-      const MAX_SIZE = 20 * 1024 * 1024; // 20MB
-      const MAX_SIZE_MB = 20;
+      const MAX_SIZE_MB = this.maxFileUploadSizeMB;
+      const MAX_SIZE = MAX_SIZE_MB * 1024 * 1024;
 
       console.log(`[FileUploader] Processing ${files.length} files. Max size allowed: ${MAX_SIZE_MB}MB`);
 

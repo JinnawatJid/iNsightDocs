@@ -8,6 +8,7 @@ const { calculateSlope, calculateTrendRatio, generateContinuousTimeline, findYea
 const ScoringEngine = require('../services/scoring/ScoringEngine');
 const { extractDBDData } = require('../utils/pdfExtractor');
 const pdf = require('pdf-parse');
+const { checkDynamicUploadLimit } = require('../utils/uploadLimitHelper');
 
 // Configuration
 const FINANCIAL_API_URL = "http://192.192.0.37:8280/sales-summary-6-months/1.0.0";
@@ -500,6 +501,15 @@ const findValue = (sheet, searchTerms, strategy = 'AMOUNT') => {
 exports.analyzeFinancials = async (req, res) => {
   try {
     const files = req.files || {};
+
+    const limitCheck = await checkDynamicUploadLimit(files);
+    if (!limitCheck.isValid) {
+        return res.status(400).json({
+            success: false,
+            message: `One or more files exceed the dynamic maximum limit of ${limitCheck.limitMB}MB. Rejected: ${limitCheck.rejectedFiles.join(', ')}`
+        });
+    }
+
     const {
       registered_capital,
       request_amount,
@@ -1419,6 +1429,14 @@ exports.uploadLocalFiles = async (req, res) => {
 
         if (!customer_no) {
             return res.status(400).json({ success: false, message: 'Customer No is required' });
+        }
+
+        const limitCheck = await checkDynamicUploadLimit(files);
+        if (!limitCheck.isValid) {
+            return res.status(400).json({
+                success: false,
+                message: `One or more files exceed the dynamic maximum limit of ${limitCheck.limitMB}MB. Rejected: ${limitCheck.rejectedFiles.join(', ')}`
+            });
         }
 
         // Determine Date Folder (YYYYMMDD)
