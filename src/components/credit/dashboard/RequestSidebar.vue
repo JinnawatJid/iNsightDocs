@@ -83,7 +83,7 @@
         <!-- Bottom: TxID and Date -->
         <div class="item-bottom">
            <span class="tx-id">{{ req.tx_id }}</span>
-           <span class="date">{{ formatDate(req.updated_at || req.created_at) }}</span>
+           <span class="details" :title="formatDetails(req)">{{ formatDetails(req) }}</span>
         </div>
 
         <!-- Status Label (Actionable vs Waiting) moved to bottom -->
@@ -115,6 +115,37 @@ const searchQuery = ref('');
 
 const requests = computed(() => store.requestsList);
 const loading = computed(() => store.loading);
+
+// Debugging requests hook
+watch(requests, (newVal) => {
+    if (newVal && newVal.length > 0) {
+        console.log('[DEBUG] RequestSidebar - Requests List fetched:', newVal);
+    }
+}, { deep: true, immediate: true });
+
+const formatCurrency = (val) => {
+    if (!val) return '0';
+    const num = Number(val);
+    if (isNaN(num)) return '0';
+    return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+};
+
+const formatDetails = (req) => {
+    const amount = formatCurrency(req.request_amount);
+
+    // Fallbacks to 0 if null/undefined
+    const termGS = req.term_gs || 0;
+    const termAE = req.term_ae || 0;
+    const termYC = req.term_yc || 0;
+
+    // Use the exact billing term code extracted from the snapshot (e.g., 'B00')
+    let billingTermStr = '';
+    if (req.billing_terms_code) {
+        billingTermStr = `${req.billing_terms_code}, `;
+    }
+
+    return `${amount} บาท (${billingTermStr}CR${termGS}/${termAE}/${termYC})`;
+};
 
 const pendingTabLabel = computed(() => {
   return authStore.isInitiator ? 'ติดตามคำขอ' : 'รออนุมัติ';
@@ -341,7 +372,7 @@ onMounted(() => {
 }
 
 .request-item {
-  padding: 15px 20px;
+  padding: 12px 12px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -419,9 +450,10 @@ onMounted(() => {
 
 .item-bottom {
     display: flex;
-    justify-content: flex-start;
-    gap: 10px;
-    font-size: 13px;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
     color: #888;
 }
 
@@ -430,8 +462,16 @@ onMounted(() => {
     color: #555;
 }
 
-.date {
+.date, .details {
     color: #999;
+}
+
+.details {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+    flex: 1; /* Allow details to take remaining space but still trigger ellipsis */
 }
 
 .loading-state, .empty-state {

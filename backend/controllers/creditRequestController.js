@@ -1011,7 +1011,7 @@ exports.getCreditRequests = async (req, res) => {
 
   try {
     let sql = `
-      SELECT id, tx_id, customer_no, customer_name, status, request_amount, request_type, created_at, updated_at
+      SELECT id, tx_id, customer_no, customer_name, status, request_amount, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data, created_at, updated_at
       FROM CreditRequests
     `;
     const params = [];
@@ -1052,8 +1052,57 @@ exports.getCreditRequests = async (req, res) => {
 
     const { rows } = await db.query(sql, params);
 
+    // Parse snapshot_data to extract transaction_data terms in case direct columns are null
+    const processedRows = rows.map(row => {
+      let snapshot = {};
+      if (row.snapshot_data) {
+        try {
+          snapshot = typeof row.snapshot_data === 'string' ? JSON.parse(row.snapshot_data) : row.snapshot_data;
+        } catch (e) {
+          logger.warn(`Failed to parse snapshot data for tx_id ${row.tx_id}`);
+        }
+      }
+
+      const txData = snapshot.transaction_data || {};
+
+      let billingTermCode = null;
+      let tempInitialCR = null;
+
+      if (snapshot.billing_terms_code) {
+        // e.g., "B00CR30" -> extract "B00"
+        const match = snapshot.billing_terms_code.match(/^B\d+/);
+        if (match) {
+           billingTermCode = match[0];
+        } else {
+           billingTermCode = snapshot.billing_terms_code;
+        }
+
+        // [TEMPORARY WORKAROUND]
+        // Industry Standard Note: For pending requests, baseline/original data (the initial credit terms)
+        // should be separated from requested data (the new terms being applied for). Since the current
+        // term_gs, term_ae, term_yc in transaction_data reflect the *new* request, we temporarily parse
+        // the initial CR term from the snapshot's billing_terms_code (e.g. CR30 -> 30) to display the
+        // initial state (e.g. CR30/30/30) in the list until final approval updates the main tables.
+        const crMatch = snapshot.billing_terms_code.match(/CR(\d+)/);
+        if (crMatch) {
+            tempInitialCR = crMatch[1]; // e.g. "30"
+        }
+      }
+
+      return {
+        ...row,
+        request_credit_term: row.request_credit_term !== null && row.request_credit_term !== undefined ? row.request_credit_term : txData.creditTerm,
+        billing_terms_code: billingTermCode,
+        // Override the terms with the temporary initial CR if found, otherwise fallback to transaction data
+        term_gs: tempInitialCR !== null ? tempInitialCR : (row.term_gs !== null && row.term_gs !== undefined ? row.term_gs : txData.termGS),
+        term_ae: tempInitialCR !== null ? tempInitialCR : (row.term_ae !== null && row.term_ae !== undefined ? row.term_ae : txData.termAE),
+        term_yc: tempInitialCR !== null ? tempInitialCR : (row.term_yc !== null && row.term_yc !== undefined ? row.term_yc : txData.termYC),
+        snapshot_data: undefined // do not send massive snapshot data over the wire for the list view
+      };
+    });
+
     res.status(200).json({
-      data: rows,
+      data: processedRows,
     });
   } catch (error) {
     logger.error("Error fetching credit requests:", error);
