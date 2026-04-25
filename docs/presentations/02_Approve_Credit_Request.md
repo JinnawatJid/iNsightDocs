@@ -1,5 +1,39 @@
 # Code Walkthrough Guide: Approve Credit Request
 
+## 1. Feature: Pending Requests List & Data Integrity
+
+**The Goal:** Demonstrate how the system lists pending requests, handles compact UI layouts, and strictly separates baseline data from requested data.
+
+### 🎙️ Presentation Script: Pending Requests List
+"ก่อนที่เราจะเข้าไปดูรายละเอียดคำขอ ลองดูที่หน้ารายการคำขอ (Pending Requests) ทางด้านซ้ายนี้ครับ จะเห็นว่ามีรหัสคำขอและรายละเอียดวงเงินกับเงื่อนไขแสดงอยู่บรรทัดเดียวกัน เช่น `300,000 บาท (B00, CR30/30/30)`"
+
+**[ชี้ไปที่แถบรายการคำขอทางด้านซ้าย]**
+"ในหน้าจอนี้ เราออกแบบ UI ให้ตอบโจทย์พื้นที่จำกัดครับ ถ้าหน้าจอเล็กเกินไป ข้อความจะถูกตัดเป็น `...` โดยอัตโนมัติ (Single-Line Truncation) แต่ผู้ใช้งานสามารถเอาเมาส์ไปชี้เพื่อดู Tooltip แบบเต็มได้ครับ"
+
+**[คลิกขยาย "View Source Code: Baseline Data Parsing"]**
+"และในมุมของ Data Integrity ตาม Industry Standard เราจะไม่นำ 'เงื่อนไขที่กำลังขอใหม่' มาแสดงในหน้านี้ครับ เพราะคำขอยังไม่อนุมัติ Backend จะไปดึง `snapshot_data` ที่เป็นข้อมูลดั้งเดิม (Baseline) ของลูกค้ามาแสดงแทน เพื่อให้ผู้อนุมัติเห็นสถานะตั้งต้นที่ถูกต้อง ไม่สับสนครับ"
+
+---
+
+### Sequence Diagram: Baseline Data Fetching
+
+```mermaid
+sequenceDiagram
+    participant Frontend as RequestSidebar.vue
+    participant API as /api/credit-requests
+    participant DB as CreditRequests Table
+
+    Frontend->>API: GET ?status=Pending...
+    API->>DB: SELECT tx_id, snapshot_data...
+    DB-->>API: Returns rows
+    Note over API: Parse snapshot_data.billing_terms_code<br/>Extract B00 and CR30 as Baseline
+    Note over API: Discard large snapshot JSON to save bandwidth
+    API-->>Frontend: JSON with baseline terms
+    Frontend-->>Frontend: Render with CSS ellipsis & tooltips
+```
+
+---
+
 ## 2. Feature: Approve Credit Request (Workflow Progression)
 
 **The Goal:** Demonstrate how role-based state changes and audit logging are handled using the unified update flow.
