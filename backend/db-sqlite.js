@@ -412,6 +412,18 @@ const initDB = async () => {
             updated_by TEXT
         )`);
 
+        // Create Notifications table
+        await db.runAsync(`CREATE TABLE IF NOT EXISTS Notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tx_id TEXT,
+            target_role TEXT,
+            target_username TEXT,
+            message TEXT,
+            is_read INTEGER DEFAULT 0,
+            read_by TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
         // Ensure new column exists in Configurations table (for existing DBs)
         try {
             await db.runAsync(`ALTER TABLE Configurations ADD COLUMN label TEXT`);

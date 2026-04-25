@@ -608,6 +608,51 @@ exports.createCreditRequest = async (req, res) => {
             ],
           );
         }
+
+        // --- Notification Logic ---
+        if (existing.status !== newStatus) {
+            let targetRole = null;
+            let targetUsername = null;
+            let message = '';
+
+            switch(newStatus) {
+                case 'Opened':
+                    targetRole = 'ผู้พิจารณาของพื้นที่';
+                    message = `คำขอ ${txId} รอการพิจารณาจากคุณ`;
+                    break;
+                case 'RegionalSubmitted':
+                    targetRole = 'ผู้พิจารณาฝ่ายขาย';
+                    message = `คำขอ ${txId} รอการพิจารณาจากคุณ`;
+                    break;
+                case 'SalesSubmitted':
+                    targetRole = 'ผู้ตรวจสอบเอกสาร';
+                    message = `คำขอ ${txId} รอการตรวจสอบเอกสาร`;
+                    break;
+                case 'FinanceReviewed':
+                    targetRole = 'ผู้อนุมัติ (วงเงิน < 300K)'; // Or ผู้จัดการฝ่ายการเงิน
+                    message = `คำขอ ${txId} รอการพิจารณาอนุมัติ`;
+                    break;
+                case 'Reviewed':
+                    targetRole = 'ผู้อนุมัติ (วงเงิน > 300K)'; // Or กรรมการเครดิต
+                    message = `คำขอ ${txId} รอการพิจารณาอนุมัติ`;
+                    break;
+                case 'PendingSales (ชั่วคราว)':
+                case 'PendingFinance (ชั่วคราว)':
+                case 'Approved':
+                case 'Rejected':
+                case 'Canceled':
+                    targetUsername = existing.created_by; // notify the initiator
+                    message = `คำขอ ${txId} ถูกเปลี่ยนสถานะเป็น ${newStatus}`;
+                    break;
+            }
+
+            if (targetRole || targetUsername) {
+                await db.runAsync(
+                    "INSERT INTO Notifications (tx_id, target_role, target_username, message, created_at) VALUES (?, ?, ?, ?, ?)",
+                    [txId, targetRole, targetUsername, message, statusEventAt]
+                );
+            }
+        }
       } else {
         // Just return existing request
         responseSnapshot = existing.snapshot_data;
