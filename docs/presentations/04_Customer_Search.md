@@ -52,11 +52,23 @@ sequenceDiagram
     CS-->>Store: Return Customer Results
 
     Store->>Store: Clear Existing Form Data
-    Store->>Store: Transform Result to Form Structure
-    Store->>Store: Map Payment Terms, Contact Details, Store Locations
-    Store->>Store: Save to Pinia Transaction Data
-    Store->>UI: Hydrate General Info Form & Close Loading
-    UI-->>User: Customer Details Displayed in Form Fields
+
+    %% New SCV Step
+    Store->>CS: checkCreditByVat(taxId)
+    CS->>API: Query all accounts with this VAT
+    API-->>Store: Returns existing accounts with credit
+
+    alt Existing Credit Found on Different Account
+        Store->>UI: Show Warning (Redirect to Primary Account)
+        UI-->>User: "พบข้อมูลเครดิตเดิม"
+        Store->>Store: searchCustomer(PrimaryAccountNo)
+    else No Existing Credit
+        Store->>Store: Transform Result to Form Structure
+        Store->>Store: Map Payment Terms, Contact Details, Store Locations
+        Store->>Store: Save to Pinia Transaction Data
+        Store->>UI: Hydrate General Info Form & Close Loading
+        UI-->>User: Customer Details Displayed in Form Fields
+    end
 ```
 
 ---
@@ -243,18 +255,56 @@ exports.searchCustomers = async (req, res) => {
 };
 ```
 
-### 6. Mapping the data to the Form (Frontend)
-The frontend receives this rich data package. It clears out any old data to start fresh. Then, it looks at the customer's name. If it contains words like "บริษัท" (Company) or "หจก." (Limited Partnership), it knows this is a corporate profile. Depending on whether it's a corporate or individual profile, it automatically maps the address, phone number, and other details into the correct input boxes in the "General Info" tab. The loading popup disappears, and the form is ready to use!
+### 6. Single Customer View (VAT Verification)
+Once the frontend receives the data, it performs a crucial check to prevent duplicate credit accounts. It takes the customer's VAT Registration Number and asks the backend if *any other account* (e.g., a different branch) already has an approved credit limit. If it finds one, it warns the user and automatically redirects the search to that primary account.
 
 ```mermaid
 sequenceDiagram
-    participant API as Backend Response
+    participant Store as Pinia Store
+    participant API as External ERP API
+    participant UI as Frontend Form
+
+    Store->>API: checkCreditByVat(taxId)
+    API-->>Store: Returns existing accounts with > 0 limit
+
+    alt Different account with same VAT has Credit
+        Store->>UI: Show Warning (Swal.fire)
+        UI-->>User: "พบข้อมูลเครดิตเดิม"
+        Store->>Store: Restart searchCustomer(Primary Account ID)
+    end
+```
+
+**Relevant File:** `src/stores/creditRequest.js`
+```javascript
+    const creditCheck = await CustomerService.checkCreditByVat(vatToCheck);
+    if (creditCheck && creditCheck.hasCredit) {
+        const account = creditCheck.accountWithCredit;
+
+        // If the account with credit is not the one currently being searched
+        if (account && account.No_ !== this.customer.id) {
+            Swal.close(); // close loading
+
+            await Swal.fire({
+                icon: "warning",
+                title: "พบข้อมูลเครดิตเดิม",
+                html: `ลูกค้าท่านนี้มีวงเงินอนุมัติอยู่แล้วภายใต้รหัส <b>${account.No_}</b><br/>ระบบจะทำการเปลี่ยนไปยังรหัสดังกล่าว เพื่อให้การขอเครดิตเชื่อมโยงกับบัญชีหลัก`,
+                confirmButtonText: "ตกลง"
+            });
+
+            // Trigger search for the correct account
+            return this.searchCustomer(account.No_);
+        }
+    }
+```
+
+### 7. Mapping the data to the Form (Frontend)
+If the VAT check passes, the frontend proceeds to map the data. It looks at the customer's name. If it contains words like "บริษัท" (Company) or "หจก." (Limited Partnership), it knows this is a corporate profile. Depending on whether it's a corporate or individual profile, it automatically maps the address, phone number, and other details into the correct input boxes in the "General Info" tab. The loading popup disappears, and the form is ready to use!
+
+```mermaid
+sequenceDiagram
     participant Store as Pinia Store
     participant UI as Frontend Form
     actor User
-
-    API-->>Store: Enriched Customer Array
-    Store->>Store: clearFormData()
 
     Store->>Store: Analyze Name keywords (e.g. "บริษัท")
     alt isCompany == false
@@ -270,27 +320,20 @@ sequenceDiagram
 
 **Relevant File:** `src/stores/creditRequest.js`
 ```javascript
-    const results = await CustomerService.searchCustomers(query);
+    // Check if Company or Individual
+    const name = data.customer.name || "";
+    const keywords = ["บริษัท", "ห้างหุ้นส่วนจำกัด", "บ.", "หจก."];
+    const isCompany = keywords.some((keyword) => name.includes(keyword));
 
-    if (results && results.length > 0) {
-        this.clearFormData(); // Clear old data
-        const data = results[0];
-
-        // Check if Company or Individual
-        const name = data.customer.name || "";
-        const keywords = ["บริษัท", "ห้างหุ้นส่วนจำกัด", "บ.", "หจก."];
-        const isCompany = keywords.some((keyword) => name.includes(keyword));
-
-        // Map data differently based on customer type
-        if (!isCompany) {
-            data.customer.store_address = data.customer.address;
-            data.customer.address = ""; // Clear main address to force store mapping
-            // ... map other fields
-        }
-
-        this.customer = data.customer;
-        // Map remaining fields to transaction data for the form inputs
-        this.transactionData.amount = String(this.customer.current_credit_limit || 0);
-        // ...
+    // Map data differently based on customer type
+    if (!isCompany) {
+        data.customer.store_address = data.customer.address;
+        data.customer.address = ""; // Clear main address to force store mapping
+        // ... map other fields
     }
+
+    this.customer = data.customer;
+    // Map remaining fields to transaction data for the form inputs
+    this.transactionData.amount = String(this.customer.current_credit_limit || 0);
+    // ...
 ```
