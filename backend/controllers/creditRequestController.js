@@ -615,6 +615,7 @@ exports.createCreditRequest = async (req, res) => {
             let targetUsername = null;
             let message = '';
 
+            // 1. Notify the next approver role (if applicable)
             switch(newStatus) {
                 case 'Opened':
                     targetRole = 'ผู้พิจารณาของพื้นที่';
@@ -636,20 +637,22 @@ exports.createCreditRequest = async (req, res) => {
                     targetRole = 'ผู้อนุมัติ (วงเงิน > 300K)'; // Or กรรมการเครดิต
                     message = `คำขอ ${txId} รอการพิจารณาอนุมัติ`;
                     break;
-                case 'PendingSales (ชั่วคราว)':
-                case 'PendingFinance (ชั่วคราว)':
-                case 'Approved':
-                case 'Rejected':
-                case 'Canceled':
-                    targetUsername = existing.created_by; // notify the initiator
-                    message = `คำขอ ${txId} ถูกเปลี่ยนสถานะเป็น ${newStatus}`;
-                    break;
             }
 
-            if (targetRole || targetUsername) {
+            if (targetRole) {
                 await db.runAsync(
                     "INSERT INTO Notifications (tx_id, target_role, target_username, message, created_at) VALUES (?, ?, ?, ?, ?)",
-                    [txId, targetRole, targetUsername, message, statusEventAt]
+                    [txId, targetRole, null, message, statusEventAt]
+                );
+            }
+
+            // 2. Always notify the initiator of ANY status change (if they aren't the one making the change)
+            const currentUser = req.user?.username;
+            if (existing.created_by && existing.created_by !== currentUser) {
+                const initiatorMessage = `คำขอ ${txId} ถูกเปลี่ยนสถานะเป็น ${newStatus}`;
+                await db.runAsync(
+                    "INSERT INTO Notifications (tx_id, target_role, target_username, message, created_at) VALUES (?, ?, ?, ?, ?)",
+                    [txId, null, existing.created_by, initiatorMessage, statusEventAt]
                 );
             }
         }

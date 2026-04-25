@@ -227,6 +227,7 @@ export default {
 .dropdown-body {
   max-height: 400px;
   overflow-y: auto;
+  text-align: left;
 }
 
 .empty-state {
