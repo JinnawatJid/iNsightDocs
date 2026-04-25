@@ -138,10 +138,13 @@ const formatDetails = (req) => {
     const termAE = req.term_ae || 0;
     const termYC = req.term_yc || 0;
 
-    // Only add billing term if available
-    const billingTerm = req.request_credit_term ? `${req.request_credit_term}, ` : '';
+    // Use the exact billing term code extracted from the snapshot (e.g., 'B00')
+    let billingTermStr = '';
+    if (req.billing_terms_code) {
+        billingTermStr = `${req.billing_terms_code}, `;
+    }
 
-    return `${amount} บาท (${billingTerm}CR${termGS}/${termAE}/${termYC})`;
+    return `${amount} บาท (${billingTermStr}CR${termGS}/${termAE}/${termYC})`;
 };
 
 const pendingTabLabel = computed(() => {

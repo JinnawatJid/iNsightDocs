@@ -1011,7 +1011,7 @@ exports.getCreditRequests = async (req, res) => {
 
   try {
     let sql = `
-      SELECT id, tx_id, customer_no, customer_name, status, request_amount, request_credit_term, term_gs, term_ae, term_yc, request_type, created_at, updated_at
+      SELECT id, tx_id, customer_no, customer_name, status, request_amount, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data, created_at, updated_at
       FROM CreditRequests
     `;
     const params = [];
@@ -1052,8 +1052,43 @@ exports.getCreditRequests = async (req, res) => {
 
     const { rows } = await db.query(sql, params);
 
+    // Parse snapshot_data to extract transaction_data terms in case direct columns are null
+    const processedRows = rows.map(row => {
+      let snapshot = {};
+      if (row.snapshot_data) {
+        try {
+          snapshot = typeof row.snapshot_data === 'string' ? JSON.parse(row.snapshot_data) : row.snapshot_data;
+        } catch (e) {
+          logger.warn(`Failed to parse snapshot data for tx_id ${row.tx_id}`);
+        }
+      }
+
+      const txData = snapshot.transaction_data || {};
+
+      let billingTermCode = null;
+      if (snapshot.billing_terms_code) {
+        // e.g., "B00CR30" -> extract "B00"
+        const match = snapshot.billing_terms_code.match(/^B\d+/);
+        if (match) {
+           billingTermCode = match[0];
+        } else {
+           billingTermCode = snapshot.billing_terms_code;
+        }
+      }
+
+      return {
+        ...row,
+        request_credit_term: row.request_credit_term !== null && row.request_credit_term !== undefined ? row.request_credit_term : txData.creditTerm,
+        billing_terms_code: billingTermCode,
+        term_gs: row.term_gs !== null && row.term_gs !== undefined ? row.term_gs : txData.termGS,
+        term_ae: row.term_ae !== null && row.term_ae !== undefined ? row.term_ae : txData.termAE,
+        term_yc: row.term_yc !== null && row.term_yc !== undefined ? row.term_yc : txData.termYC,
+        snapshot_data: undefined // do not send massive snapshot data over the wire for the list view
+      };
+    });
+
     res.status(200).json({
-      data: rows,
+      data: processedRows,
     });
   } catch (error) {
     logger.error("Error fetching credit requests:", error);
