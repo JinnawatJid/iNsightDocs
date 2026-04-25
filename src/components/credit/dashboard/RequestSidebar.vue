@@ -83,7 +83,7 @@
         <!-- Bottom: TxID and Date -->
         <div class="item-bottom">
            <span class="tx-id">{{ req.tx_id }}</span>
-           <span class="details">{{ formatDetails(req) }}</span>
+           <span class="details" :title="formatDetails(req)">{{ formatDetails(req) }}</span>
         </div>
 
         <!-- Status Label (Actionable vs Waiting) moved to bottom -->
@@ -372,7 +372,7 @@ onMounted(() => {
 }
 
 .request-item {
-  padding: 15px 20px;
+  padding: 12px 12px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -450,9 +450,10 @@ onMounted(() => {
 
 .item-bottom {
     display: flex;
-    justify-content: flex-start;
-    gap: 10px;
-    font-size: 13px;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
     color: #888;
 }
 
@@ -469,6 +470,7 @@ onMounted(() => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: right;
     flex: 1; /* Allow details to take remaining space but still trigger ellipsis */
 }
 
