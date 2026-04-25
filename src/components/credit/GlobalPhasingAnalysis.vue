@@ -45,6 +45,17 @@
             ⚠️ วงเงินปัจจุบันไม่เพียงพอต่อการเบิกของที่ซ้อนทับกันหลายโครงการ ระบบแนะนำให้ขออนุมัติวงเงินเพิ่ม
           </div>
 
+
+          <div class="chart-controls" style="display: flex; justify-content: flex-end; padding: 15px 20px 0; border-top: 1px solid #eee;">
+             <div style="display: flex; gap: 10px; align-items: center; margin-right: 20px;">
+               <label style="font-size: 14px; color: #555;">ช่วงเวลา (Period):</label>
+               <select v-model="chartPeriod" class="table-input" style="width: auto; padding: 4px 8px;">
+                 <option value="day">รายวัน (Days)</option>
+                 <option value="week">รายสัปดาห์ (Weeks)</option>
+               </select>
+             </div>
+          </div>
+
           <!-- Chart Container -->
           <div class="chart-wrapper">
              <VueChart v-if="chartData" type="line" :data="chartData" :options="chartOptions" />
@@ -76,6 +87,7 @@ import axios from 'axios';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
 import { Line, Chart as VueChart } from 'vue-chartjs';
+import { getPeriodTs, formatPeriodString } from '@/utils/periodFormatter';
 import {
   Chart as ChartJS,
   Title,
@@ -104,6 +116,7 @@ ChartJS.register(
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
 const showAnalysis = ref(false);
+const chartPeriod = ref('day');
 
 // Mock current trade debt
 const currentTradeDebt = ref(0);
@@ -180,9 +193,7 @@ const parseDate = (dateString) => {
   return d.getTime();
 };
 
-const formatDateString = (dateObj) => {
-    return `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
-};
+
 
 // Define accessible colors for up to 10 projects
 const projectColors = [
@@ -290,21 +301,21 @@ const chartData = computed(() => {
             const today = new Date();
             const startTs = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
             const offsetDays = billingTermsOffsetDays.value;
-            const labels = [formatDateString(new Date(startTs))];
+            const labels = [formatPeriodString(startTs, chartPeriod.value)];
             const data = [currentTradeDebt.value];
 
             if (offsetDays !== null) {
                 const dropDate = new Date(startTs);
                 dropDate.setDate(dropDate.getDate() + offsetDays);
-                labels.push(formatDateString(dropDate));
+                labels.push(formatPeriodString(dropDate.getTime(), chartPeriod.value));
                 data.push(currentTradeDebt.value);
                 const afterDate = new Date(dropDate.getTime() + 24 * 60 * 60 * 1000);
-                labels.push(formatDateString(afterDate));
+                labels.push(formatPeriodString(afterDate.getTime(), chartPeriod.value));
                 data.push(0);
             } else {
                 const nextMonth = new Date(startTs);
                 nextMonth.setMonth(nextMonth.getMonth() + 1);
-                labels.push(formatDateString(nextMonth));
+                labels.push(formatPeriodString(nextMonth.getTime(), chartPeriod.value));
                 data.push(currentTradeDebt.value);
             }
 
@@ -328,8 +339,7 @@ const chartData = computed(() => {
     // 1. Find all unique timeline dates across ALL projects
 
     let uniqueDates = Array.from(new Set(events.map(e => {
-        const d = new Date(e.time);
-        return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        return getPeriodTs(e.time, chartPeriod.value);
     }))).sort((a, b) => a - b);
 
     // Add padding dates (5 days before first, 5 days after last)
@@ -343,7 +353,7 @@ const chartData = computed(() => {
         uniqueDates = Array.from(new Set(uniqueDates)).sort((a, b) => a - b);
     }
 
-    const labels = uniqueDates.map(ts => formatDateString(new Date(ts)));
+    const labels = uniqueDates.map(ts => formatPeriodString(ts, chartPeriod.value));
 
     // 2. Track Running Balance PER Project
     const projects = store.transactionData.projects || [];
@@ -369,10 +379,9 @@ const chartData = computed(() => {
 
     // 3. Populate datasets at each unique date
     uniqueDates.forEach(ts => {
-        // Find all events that happen ON this exact date
+        // Find all events that happen ON this exact period
         const dayEvents = events.filter(e => {
-            const ed = new Date(e.time);
-            return new Date(ed.getFullYear(), ed.getMonth(), ed.getDate()).getTime() === ts;
+            return getPeriodTs(e.time, chartPeriod.value) === ts;
         });
 
         // Apply events to running balances
@@ -483,7 +492,7 @@ const comparisonChartData = computed(() => {
         uniqueDates = Array.from(new Set(uniqueDates)).sort((a, b) => a - b);
     }
 
-    const labels = uniqueDates.map(ts => formatDateString(new Date(ts)));
+    const labels = uniqueDates.map(ts => formatPeriodString(ts, chartPeriod.value));
 
     let plannedBalance = 0;
     let actualBalance = 0;
@@ -497,8 +506,7 @@ const comparisonChartData = computed(() => {
         const tradeDebt = getTradeDebtValueForDate(ts, uniqueDates[0]);
 
         const dayPEvents = pEvents.filter(e => {
-            const ed = new Date(e.time);
-            return new Date(ed.getFullYear(), ed.getMonth(), ed.getDate()).getTime() === ts;
+            return getPeriodTs(e.time, chartPeriod.value) === ts;
         });
         dayPEvents.forEach(ev => {
             if (ev.type === 'add') plannedBalance += ev.amount;
@@ -507,8 +515,7 @@ const comparisonChartData = computed(() => {
         plannedData.push(Math.max(0, plannedBalance) + tradeDebt);
 
         const dayAEvents = aEvents.filter(e => {
-            const ed = new Date(e.time);
-            return new Date(ed.getFullYear(), ed.getMonth(), ed.getDate()).getTime() === ts;
+            return getPeriodTs(e.time, chartPeriod.value) === ts;
         });
         dayAEvents.forEach(ev => {
             if (ev.type === 'add') actualBalance += ev.amount;
