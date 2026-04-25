@@ -126,6 +126,14 @@
         </div>
         <!-- Chart Control Section -->
         <div class="chart-controls" v-if="chartData" style="display: flex; justify-content: flex-end; padding: 15px 20px 0; border-top: 1px solid #eee;">
+
+             <div style="display: flex; gap: 10px; align-items: center; margin-right: 20px;">
+               <label style="font-size: 14px; color: #555;">ช่วงเวลา (Period):</label>
+               <select v-model="chartPeriod" class="table-input" style="width: auto; padding: 4px 8px;">
+                 <option value="day">รายวัน (Days)</option>
+                 <option value="week">รายสัปดาห์ (Weeks)</option>
+               </select>
+             </div>
            <div style="display: flex; gap: 10px; align-items: center;">
              <label style="font-size: 14px; color: #555;">รูปแบบกราฟ (Chart Type):</label>
              <select v-model="chartType" class="table-input" style="width: auto; padding: 4px 8px;">
@@ -150,6 +158,7 @@
 import { ref, computed, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { Line, Chart as VueChart } from 'vue-chartjs';
+import { getPeriodTs, formatPeriodString } from '@/utils/periodFormatter';
 import {
   Chart as ChartJS,
   Title,
@@ -181,6 +190,7 @@ ChartJS.register(
 
 const showAnalysis = ref(false);
 const chartType = ref('stepped');
+const chartPeriod = ref('day');
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
@@ -370,23 +380,18 @@ const chartData = computed(() => {
     return 0;
   });
 
-  const formatDateString = (dateObj) => {
-    return `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`;
-  };
-
-  // Group events by exact date to prevent horizontal stretching of the same day
+    // Group events dynamically based on period
   const groupedEvents = [];
   validEvents.forEach(ev => {
-    const dateObj = new Date(ev.time);
-    const dayStart = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()).getTime();
-    const labelDate = formatDateString(dateObj);
+    const periodStart = getPeriodTs(ev.time, chartPeriod.value);
+    const labelDate = formatPeriodString(periodStart, chartPeriod.value);
     const actionLabel = ev.type === 'add' ? `(เบิกรอบ ${ev.phase})` : `(รับเงินรอบ ${ev.phase})`;
 
     const lastGroup = groupedEvents.length > 0 ? groupedEvents[groupedEvents.length - 1] : null;
-    if (lastGroup && lastGroup.time === dayStart) {
+    if (lastGroup && lastGroup.time === periodStart) {
         lastGroup.events.push({ type: ev.type, amount: ev.amount, label: actionLabel });
     } else {
-        groupedEvents.push({ time: dayStart, date: labelDate, events: [{ type: ev.type, amount: ev.amount, label: actionLabel }] });
+        groupedEvents.push({ time: periodStart, date: labelDate, events: [{ type: ev.type, amount: ev.amount, label: actionLabel }] });
     }
   });
 
@@ -398,7 +403,7 @@ const chartData = computed(() => {
   if (groupedEvents.length > 0) {
       const firstEventDate = new Date(groupedEvents[0].time);
       firstEventDate.setDate(firstEventDate.getDate() - 5);
-      labels.push([formatDateString(firstEventDate), 'เริ่มต้นโครงการ']);
+      labels.push([formatPeriodString(firstEventDate.getTime(), 'day'), 'เริ่มต้นโครงการ']);
       exposureData.push(0);
   }
 
@@ -408,9 +413,15 @@ const chartData = computed(() => {
      group.events.forEach(ev => {
          if (ev.type === 'add') currentExposure += ev.amount;
          if (ev.type === 'sub') currentExposure -= ev.amount;
-         dayActionLabels.push(ev.label);
+         if (!dayActionLabels.includes(ev.label)) {
+             dayActionLabels.push(ev.label);
+         }
      });
-     labels.push([group.date, ...dayActionLabels]);
+     if (dayActionLabels.length > 2) {
+         labels.push([group.date, '(หลายรายการ)']);
+     } else {
+         labels.push([group.date, ...dayActionLabels]);
+     }
      exposureData.push(Math.max(0, currentExposure));
   });
 
@@ -418,7 +429,7 @@ const chartData = computed(() => {
   if (groupedEvents.length > 0) {
       const lastEventDate = new Date(groupedEvents[groupedEvents.length - 1].time);
       lastEventDate.setDate(lastEventDate.getDate() + 5);
-      labels.push([formatDateString(lastEventDate), 'สิ้นสุดโครงการ']);
+      labels.push([formatPeriodString(lastEventDate.getTime(), 'day'), 'สิ้นสุดโครงการ']);
       exposureData.push(Math.max(0, currentExposure));
   }
 
