@@ -83,7 +83,7 @@
         <!-- Bottom: TxID and Date -->
         <div class="item-bottom">
            <span class="tx-id">{{ req.tx_id }}</span>
-           <span class="date">{{ formatDate(req.updated_at || req.created_at) }}</span>
+           <span class="details">{{ formatDetails(req) }}</span>
         </div>
 
         <!-- Status Label (Actionable vs Waiting) moved to bottom -->
@@ -115,6 +115,34 @@ const searchQuery = ref('');
 
 const requests = computed(() => store.requestsList);
 const loading = computed(() => store.loading);
+
+// Debugging requests hook
+watch(requests, (newVal) => {
+    if (newVal && newVal.length > 0) {
+        console.log('[DEBUG] RequestSidebar - Requests List fetched:', newVal);
+    }
+}, { deep: true, immediate: true });
+
+const formatCurrency = (val) => {
+    if (!val) return '0';
+    const num = Number(val);
+    if (isNaN(num)) return '0';
+    return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+};
+
+const formatDetails = (req) => {
+    const amount = formatCurrency(req.request_amount);
+
+    // Fallbacks to 0 if null/undefined
+    const termGS = req.term_gs || 0;
+    const termAE = req.term_ae || 0;
+    const termYC = req.term_yc || 0;
+
+    // Only add billing term if available
+    const billingTerm = req.request_credit_term ? `${req.request_credit_term}, ` : '';
+
+    return `${amount} บาท (${billingTerm}CR${termGS}/${termAE}/${termYC})`;
+};
 
 const pendingTabLabel = computed(() => {
   return authStore.isInitiator ? 'ติดตามคำขอ' : 'รออนุมัติ';
@@ -430,7 +458,7 @@ onMounted(() => {
     color: #555;
 }
 
-.date {
+.date, .details {
     color: #999;
 }
 
