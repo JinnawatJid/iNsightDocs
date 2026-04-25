@@ -20,3 +20,8 @@ Please select the specific feature you would like to review:
    - Local Python Bridge
    - Server-Sent Events (SSE)
    - Resilient Polling
+4. **[Feature 4: Customer Search Process (External Systems Integration)](docs/presentations/04_Customer_Search.md)**
+   - External Systems Interaction & Resilience
+   - Asynchronous Parallel Search Strategy
+   - State Hydration Mechanism
+   - Fallback Strategy
