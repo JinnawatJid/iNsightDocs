@@ -42,7 +42,7 @@
             </div>
             <div v-for="notif in notificationStore.sortedNotifications" :key="notif.id"
                  class="notification-item" :class="{ unread: !notif.is_read }"
-                 @click="handleNotificationClick(notif)">
+                 @click.stop="handleNotificationClick(notif)">
               <div class="notif-message">{{ notif.message }}</div>
               <div class="notif-time">{{ formatTime(notif.created_at) }}</div>
             </div>
