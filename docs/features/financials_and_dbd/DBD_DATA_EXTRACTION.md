@@ -85,3 +85,7 @@ During the development of this feature, several critical edge cases and bugs wer
 * **Frontend UI Components:**
   * `src/components/credit/dashboard/ReviewDashboard.vue`
   * `src/components/credit/modals/FinancialStatementModal.vue`
+### 5. Prioritizing Actual Files over No Data Marker
+* **Symptom:** A user initially checks "ลูกค้าไม่ส่งงบ" (No financial data), which creates a `DBD_NoFinancialData.txt` file. Later, if actual financial files are uploaded or fetched, the UI still shows "ลูกค้าไม่ส่งงบ" and ignores the real files.
+* **Root Cause:** The `checkSingleCustomerFiles` logic previously prioritized the presence of `DBD_NoFinancialData.txt`. If the marker existed, it returned an "isNoFinancialData: true" status, completely ignoring any `.xlsx` or `.pdf` files in the directory.
+* **Resolution:** The logic has been updated to scan for required `.xlsx` files (`DBD_BalanceSheet.xlsx`, `DBD_IncomeStatement.xlsx`, `DBD_FinancialRatios.xlsx`) first. If any of these files are found, the system *ignores* the `DBD_NoFinancialData.txt` marker and correctly returns the actual financial documents.
