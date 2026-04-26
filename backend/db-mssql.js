@@ -711,6 +711,18 @@ const db = {
             }, '');
         }
 
+        // Auto-translate LIMIT syntax for MSSQL compatibility
+        const limitMatch = mssqlQuery.match(/LIMIT\s+(\d+)/i);
+        if (limitMatch) {
+            const limitVal = limitMatch[1];
+            mssqlQuery = mssqlQuery.replace(/LIMIT\s+\d+/i, '');
+            if (/ORDER\s+BY/i.test(mssqlQuery)) {
+                mssqlQuery += ` OFFSET 0 ROWS FETCH NEXT ${limitVal} ROWS ONLY`;
+            } else {
+                mssqlQuery = mssqlQuery.replace(/SELECT\s+/i, `SELECT TOP ${limitVal} `);
+            }
+        }
+
         try {
             const result = await request.query(mssqlQuery);
             // Normalize output to match { rows: [...] }
@@ -737,6 +749,18 @@ const db = {
                 }
                 return acc + part;
             }, '');
+        }
+
+        // Auto-translate LIMIT syntax for MSSQL compatibility
+        const limitMatch = mssqlQuery.match(/LIMIT\s+(\d+)/i);
+        if (limitMatch) {
+            const limitVal = limitMatch[1];
+            mssqlQuery = mssqlQuery.replace(/LIMIT\s+\d+/i, '');
+            if (/ORDER\s+BY/i.test(mssqlQuery)) {
+                mssqlQuery += ` OFFSET 0 ROWS FETCH NEXT ${limitVal} ROWS ONLY`;
+            } else {
+                mssqlQuery = mssqlQuery.replace(/SELECT\s+/i, `SELECT TOP ${limitVal} `);
+            }
         }
 
         // For INSERT, we need the ID. MSSQL doesn't return it automatically in run().

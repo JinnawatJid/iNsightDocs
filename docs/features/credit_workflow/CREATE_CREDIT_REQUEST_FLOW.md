@@ -43,9 +43,10 @@ To ensure the "Search First" pattern is preserved and no stale data persists acr
 ## 4. Request Type Business Logic
 Specific request types trigger dynamic UI and validation behavior in the `CreditRequestForm` (specifically within `RequestInfoTab.vue`):
 
-- **Change Term (เปลี่ยนแปลงระยะเวลาเครดิต) & Change Payment Conditions (เปลี่ยนแปลงเงื่อนไขการชำระเงิน):**
-  - **UI Display:** The "Requested Amount" (`amount`) field is re-labeled as "วงเงินปัจจุบัน (บาท)" (Current Limit). The input field becomes read-only and displays the customer's actual `current_credit_limit` instead of requiring new user input.
-  - **Validation Logic:** Because these request types do not involve requesting a new credit amount, the `amount` field is explicitly skipped during the `validateRequest` process in the Pinia store (`src/stores/creditRequest.js`), ensuring that submission is not blocked by a missing amount value.
+- **Multiple Selections Precedence:** When a user selects multiple request types, the system enforces a strict hierarchy for the `amount` field behavior. **"Credit Increase" (เครดิตเพิ่ม)** takes absolute precedence. If it is selected, the field will always be labeled "ต้องการวงเงินเพิ่ม" and remain editable, regardless of other selections.
+- **Change Term (เปลี่ยนแปลงระยะเวลาเครดิต) & Change Payment Conditions (เปลี่ยนแปลงเงื่อนไขการชำระเงิน) [Standalone]:**
+  - **UI Display:** If these are selected *without* "Credit Increase", the "Requested Amount" (`amount`) field is re-labeled as "วงเงินปัจจุบัน (บาท)" (Current Limit). The input field becomes read-only and displays the customer's actual `current_credit_limit` instead of requiring new user input.
+  - **Validation Logic:** Because these standalone request types do not involve requesting a new credit amount, the `amount` field is explicitly skipped during validation, ensuring submission is not blocked by a missing amount value.
 
 ## 5. Credit Increase Summaries
 - **Confirmation Modal Logic:** For "Credit Increase" (เครดิตเพิ่ม) requests, when the user submits or approves the form, a Change Summary confirmation modal is presented. The "New Limit" (วงเงินใหม่ที่ต้องการ) displayed in this modal must be calculated as the sum of the customer's current credit limit (`store.customer.current_credit_limit`) and the explicitly requested additional amount (`store.transactionData.amount`). The modal must not display only the requested amount, as that would misrepresent the final total credit line.

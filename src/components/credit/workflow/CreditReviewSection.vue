@@ -92,9 +92,10 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
 import RequestTimeline from './RequestTimeline.vue';
 import { commentPlaceholders } from '@/config/workflow';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
+import CustomerService from '@/services/CustomerService';
 
 const props = defineProps({
   readOnly: { type: Boolean, default: false },
@@ -173,17 +174,69 @@ const placeholderText = computed(() => {
     return commentPlaceholders[status] || 'ระบุพฤติกรรมลูกค้า, ประวัติโครงการ, การซื้อขายล่าสุด, หรือข้อมูลประกอบการพิจารณาอื่นๆ...';
 });
 
+const erpFallbackData = ref(null);
+const fetchErpFallbackData = async () => {
+    if (!store.customer?.id) return;
+    try {
+        const result = await CustomerService.searchCustomers(store.customer.id);
+        if (Array.isArray(result) && result.length > 0 && result[0].customer) {
+            erpFallbackData.value = result[0].customer;
+        }
+    } catch (e) {
+        console.error('Failed to fetch ERP fallback data', e);
+    }
+};
+
+onMounted(() => {
+    if (store.customer?.id) fetchErpFallbackData();
+});
+watch(() => store.customer?.id, (newVal) => {
+    if (newVal) fetchErpFallbackData();
+});
+
+const isCreditIncrease = computed(() => {
+    return store.transactionData.requestType?.includes('เครดิตเพิ่ม') || false;
+});
+
+const getBaseAmount = () => {
+    let base = 0;
+    if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
+        base = parseFloat(String(store.originalTransactionData.amount).replace(/,/g, ''));
+    } else if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
+        base = parseFloat(String(erpFallbackData.value.current_credit_limit).replace(/,/g, ''));
+    }
+    return isNaN(base) ? 0 : base;
+};
+
 const formattedAmount = computed({
     get: () => {
         if (store.transactionData.amount === null || store.transactionData.amount === undefined || store.transactionData.amount === '') return '';
-        const num = Number(store.transactionData.amount);
-        return isNaN(num) ? '' : num.toLocaleString('en-US');
+        const requestAmount = parseFloat(String(store.transactionData.amount).replace(/,/g, ''));
+        if (isNaN(requestAmount)) return '';
+        
+        if (isCreditIncrease.value) {
+            return (getBaseAmount() + requestAmount).toLocaleString('en-US');
+        } else {
+            return requestAmount.toLocaleString('en-US');
+        }
     },
     set: (val) => {
         let num = String(val).replace(/[^0-9.]/g, '');
         const parts = num.split('.');
         if (parts.length > 2) num = parts[0] + '.' + parts.slice(1).join('');
-        store.transactionData.amount = num;
+        
+        let totalInput = parseFloat(num);
+        if (isNaN(totalInput)) {
+            store.transactionData.amount = num;
+            return;
+        }
+
+        if (isCreditIncrease.value) {
+            const delta = totalInput - getBaseAmount();
+            store.transactionData.amount = delta.toString();
+        } else {
+            store.transactionData.amount = num;
+        }
     }
 });
 

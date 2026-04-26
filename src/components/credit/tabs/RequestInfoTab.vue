@@ -104,19 +104,20 @@
 
             <div class="form-group" v-if="isDraftMode">
               <label>
-                  <template v-if="isChangeTerm || isChangePayment">วงเงินปัจจุบัน (บาท)</template>
-                  <template v-else>{{ isRequestIncrease ? 'ต้องการวงเงินเพิ่ม' : 'วงเงินเครดิตที่ต้องการ (บาท)' }}</template>
+                  <template v-if="isRequestIncrease">ต้องการวงเงินเพิ่ม</template>
+                  <template v-else-if="isChangeTerm || isChangePayment">วงเงินปัจจุบัน (บาท)</template>
+                  <template v-else>วงเงินเครดิตที่ต้องการ (บาท)</template>
                   <span v-if="isRequired('amount')" class="text-red-500">*</span>
               </label>
               <!-- For Change Term / Change Payment, show current credit limit and disabled -->
               <input
-                v-if="isChangeTerm || isChangePayment"
+                v-if="!isRequestIncrease && (isChangeTerm || isChangePayment)"
                 type="text"
                 class="form-input disabled"
                 disabled
                 :value="formattedCurrentCreditLimit" :data-empty="!store.customer.current_credit_limit"
               />
-                            <!-- Default input for other types -->
+              <!-- Default input for other types -->
               <input
                 v-else
                 type="text"
@@ -130,7 +131,7 @@
               <div v-if="isFinanceOfficerReviewMode && store.originalTransactionData?.amount && formattedAmount?.replace(/,/g, '') != store.originalTransactionData.amount" class="text-sm text-gray-500 mt-1">
                  เดิม: {{ Number(store.originalTransactionData.amount).toLocaleString('en-US') }}
               </div>
-              <span v-if="errors.amount && !(isChangeTerm || isChangePayment)" class="error-text">กรุณาระบุข้อมูล</span>
+              <span v-if="errors.amount && (isRequestIncrease || !(isChangeTerm || isChangePayment))" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
 
             <div class="form-group" v-if="isRequestIncrease && isDraftMode">

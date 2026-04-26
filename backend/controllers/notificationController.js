@@ -15,7 +15,11 @@ exports.getNotifications = async (req, res) => {
       params.push(...roles);
     }
 
-    sql += ` ORDER BY created_at DESC LIMIT 50`;
+    if (db.dbType === 'mssql') {
+      sql += ` ORDER BY created_at DESC OFFSET 0 ROWS FETCH NEXT 50 ROWS ONLY`;
+    } else {
+      sql += ` ORDER BY created_at DESC LIMIT 50`;
+    }
 
     const { rows } = await db.query(sql, params);
 

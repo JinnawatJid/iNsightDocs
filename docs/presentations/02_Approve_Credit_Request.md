@@ -100,18 +100,18 @@ if (req.body.comment && req.body.actor_role) {
 
 ---
 
-## 3. Feature: Historical Data Tracking & Comparison (Review Dashboard)
+## 3. Feature: Focused Credit Display & Implicit Calculation (Review Dashboard)
 
-**The Goal:** Show how the system compares requested changes against original customer baseline data or fallback ERP data so reviewers immediately see what is being altered.
+**The Goal:** Show how the system prioritizes a clean, minimalist UI for reviewers by automatically calculating and displaying the final requested credit amount, eliminating the need to manually compare current and requested values on screen.
 
 ### 🎙️ Presentation Script: Review Dashboard Comparison
-"ในมุมของผู้อนุมัติ (Reviewer) เวลาดูข้อมูลคำขอในหน้า `ReviewDashboard` สิ่งสำคัญคือต้องรู้ว่าลูกค้า 'ขอเปลี่ยนจากอะไร เป็นอะไร' ครับ"
+"ในมุมของผู้อนุมัติ (Reviewer) เวลาดูข้อมูลคำขอในหน้า `ReviewDashboard` สิ่งสำคัญคือการเห็น 'ยอดรวมสุทธิ' ที่ลูกค้ากำลังขออนุมัติครับ"
 
 **[เปิดรูป Sequence Diagram ด้านล่างให้ดู]**
-"ระบบของเรามีการทำ Snapshot เก็บข้อมูลเดิมตั้งแต่ตอนที่เซลส์ดึงข้อมูลลูกค้าขึ้นมาสร้างคำขอ (เก็บลงใน `snapshot_data.originalTransactionData`) เมื่อเข้ามาที่หน้าอนุมัติ UI จะเปรียบเทียบค่าที่ขอใหม่กับ Snapshot เดิมทันทีครับ ถ้าวงเงิน เครดิตเทอม หรือวิธีการชำระเงินไม่ตรงกัน ระบบจะแสดงป้าย 'เดิม: [ค่าเก่า]' ขึ้นมาให้เห็นชัดเจน"
+"เพื่อให้หน้าจอสะอาดและดูง่ายที่สุดตามหลัก Minimalist UI เราได้นำข้อความเปรียบเทียบข้อมูลเดิม (ERP) ออกจากหน้า Summary Card ครับ และให้ระบบทำการคำนวณเบื้องหลังแทน โดยนำวงเงินตั้งต้น (Baseline) มารวมกับส่วนต่างที่ขอเพิ่ม (Delta) อัตโนมัติ ทำให้ผู้อนุมัติเห็น 'ยอดรวมสุทธิ' ตรงกลางจอได้อย่างชัดเจนและตัดสินใจได้ทันทีครับ"
 
-**[คลิกขยาย "View Source Code: ERP Fallback Logic"]**
-"และในกรณีที่เป็นเคสเก่าหรือไม่มี Snapshot Data ในระบบ (Legacy requests) เรามี Fallback Mechanism ที่จะไปดึงข้อมูลปัจจุบันจาก ERP โดยตรงมาเปรียบเทียบให้ด้วยครับ โดยจะแสดงผลเป็น 'เดิม (ERP): [ค่าเก่า]' เพื่อให้ผู้อนุมัติไม่ขาดข้อมูลในการตัดสินใจครับ"
+**[คลิกขยาย "View Source Code: Implicit Sum Calculation"]**
+"และในกรณีที่เป็นเคสการขอเครดิตเพิ่ม ระบบจะทำการคำนวณผลรวมของวงเงินปัจจุบันจาก ERP หรือ Snapshot กับวงเงินที่ขอเพิ่ม เพื่อนำมาแสดงผลเพียงค่าเดียว ลดความซ้ำซ้อนของข้อมูลบนหน้าจอครับ"
 
 ---
 
@@ -132,37 +132,48 @@ sequenceDiagram
     Store-->>VueComponent: Hydrates originalTransactionData & originalCustomer
     VueComponent->>ERP: [Fallback] searchCustomers(customer_id)
     ERP-->>VueComponent: Returns current ERP live data
-    Note over VueComponent: UI compares current form data against snapshot_data. <br/> If snapshot missing, compares against ERP data.
-    VueComponent-->>Reviewer: Renders "เดิม: X" or "เดิม (ERP): Y"
+    Note over VueComponent: UI dynamically calculates total limit <br/> (Baseline + Delta) for Credit Increase requests.
+    VueComponent-->>Reviewer: Renders single consolidated total amount
 ```
 
-### Fallback Logic Implementation
+### Sum Calculation Implementation
 
-When rendering the requested amount or credit terms, the system gracefully falls back to ERP data if the original database snapshot is unavailable.
+For credit increase requests, the system dynamically calculates the total requested limit by summing the original credit limit (or ERP fallback) with the requested increment, presenting a single, clear value to the reviewer.
 
 <details>
-<summary><b>View Source Code: ERP Fallback Logic (Vue.js)</b></summary>
+<summary><b>View Source Code: Implicit Sum Calculation (Vue.js)</b></summary>
 
 ```html
 <!-- src/components/credit/dashboard/ReviewDashboard.vue -->
 
 <div class="deal-item highlight">
     <label>วงเงินที่ขอ</label>
-
-    <!-- Display requested amount -->
-    <div class="value amount">
+    
+    <!-- Display calculated sum for credit increases -->
+    <div v-if="isCreditIncrease" class="value amount">
+        {{ formatNumber(totalCreditAmount) }} บาท
+    </div>
+    
+    <!-- Display standard amount otherwise -->
+    <div v-else class="value amount">
         {{ formatNumber(store.transactionData.amount) }} บาท
     </div>
-
-    <!-- Primary: Compare with DB Snapshot -->
-    <div v-if="store.originalTransactionData?.amount && store.transactionData.amount != store.originalTransactionData.amount" class="original-value-label">
-        เดิม: {{ formatNumber(store.originalTransactionData.amount) }} บาท
-    </div>
-
-    <!-- Fallback: Compare with live ERP data -->
-    <div v-else-if="erpFallbackData?.current_credit_limit && store.transactionData.amount != erpFallbackData.current_credit_limit" class="original-value-label">
-        เดิม (ERP): {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
-    </div>
 </div>
+```
+
+```javascript
+// Computed property dynamically aggregating baseline and delta
+const totalCreditAmount = computed(() => {
+    const requestAmount = parseFloat(String(store.transactionData.amount || '0').replace(/,/g, ''));
+    let baseAmount = 0;
+
+    if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
+        baseAmount = parseFloat(String(store.originalTransactionData.amount).replace(/,/g, ''));
+    } else if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
+        baseAmount = parseFloat(String(erpFallbackData.value.current_credit_limit).replace(/,/g, ''));
+    }
+
+    return isNaN(requestAmount) ? baseAmount : (baseAmount + requestAmount);
+});
 ```
 </details>
