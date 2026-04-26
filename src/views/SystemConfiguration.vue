@@ -36,6 +36,7 @@
           <div class="config-content">
             <ScorecardManagementTab v-if="activeCategory === 'Scorecards'" />
             <RoleManagementTab v-else-if="activeCategory === 'UserRoles'" />
+            <WorkflowManagementTab v-else-if="activeCategory === 'WorkflowMgmt'" />
             <div v-else class="config-items-container">
               <div class="content-header">
                 <div class="header-title">
@@ -113,6 +114,7 @@ import { useConfigStore } from '../stores/config';
 import { formatDateString } from '../utils/dateUtils';
 import ScorecardManagementTab from '../components/configuration/ScorecardManagementTab.vue';
 import RoleManagementTab from '../components/configuration/RoleManagementTab.vue';
+import WorkflowManagementTab from '../components/configuration/WorkflowManagementTab.vue';
 import Swal from 'sweetalert2';
 
 // State
@@ -125,7 +127,8 @@ const isSaving = ref(false);
 // Dictionaries
 const categoryLabels = {
   'System': 'การตั้งค่าระบบ',
-  'Workflow': 'การอนุมัติและขั้นตอน',
+  'Workflow': 'การตั้งค่าขั้นตอนอื่นๆ',
+  'WorkflowMgmt': 'จัดการ Workflow',
   'API': 'การเชื่อมต่อระบบ',
   'Business': 'กฎเกณฑ์ธุรกิจ',
   'Scorecards': 'โมเดลให้คะแนน',
@@ -138,9 +141,12 @@ const getCategoryLabel = (category) => {
 
 // Computed
 const categories = computed(() => {
-  if (!configStore.configurations) return ['Scorecards'];
+  if (!configStore.configurations) return ['Scorecards', 'WorkflowMgmt'];
   const dbCategories = Object.keys(configStore.configurations).sort();
-  return [...dbCategories, 'Scorecards'];
+  const allCategories = new Set(dbCategories);
+  allCategories.add('Scorecards');
+  allCategories.add('WorkflowMgmt');
+  return Array.from(allCategories).sort();
 });
 
 const currentCategoryConfigs = computed(() => {
