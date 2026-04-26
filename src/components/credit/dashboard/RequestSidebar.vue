@@ -53,7 +53,7 @@
             class="request-type-badge"
             :class="getRequestTypeClass(req.request_type)"
           >
-            {{ req.request_type || 'เครดิตใหม่' }}
+            {{ formatRequestType(req.request_type, authStore.combineRequestTypeEnabled) || 'เครดิตใหม่' }}
           </span>
         </div>
 
@@ -100,6 +100,7 @@ import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
+import { formatRequestType } from '@/utils/requestTypeFormatter';
 import { debounce } from 'lodash';
 
 // Import Icons
@@ -235,6 +236,7 @@ const selectRequest = (req) => {
 };
 
 const getRequestTypeClass = (type) => {
+    if (authStore.combineRequestTypeEnabled && type && (type.includes('เครดิตเพิ่ม') || type.includes('เปลี่ยนแปลง'))) return 'type-change';
     if (!type) return 'type-new';
     if (type.includes('เครดิตเพิ่ม')) return 'type-increase';
     if (type.includes('เครดิตโครงการ')) return 'type-project';

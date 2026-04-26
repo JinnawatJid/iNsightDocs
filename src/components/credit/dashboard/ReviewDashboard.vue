@@ -11,7 +11,7 @@
             </button>
         </div>
         <div class="request-meta">
-            <span class="badge type">{{ store.transactionData.requestType }}</span>
+            <span class="badge type" :class="{'type-change': authStore.combineRequestTypeEnabled && store.transactionData.requestType && (store.transactionData.requestType.includes('เครดิตเพิ่ม') || store.transactionData.requestType.includes('เปลี่ยนแปลง'))}">{{ formatRequestType(store.transactionData.requestType, authStore.combineRequestTypeEnabled) }}</span>
             <span class="badge status">{{ store.requestStatus || 'ร่าง' }}</span>
         </div>
       </div>
@@ -316,6 +316,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
+import { formatRequestType } from '@/utils/requestTypeFormatter';
 import ReviewerDocumentsSection from './ReviewerDocumentsSection.vue';
 import { getMandatoryKeys } from '@/config/mandatoryFields';
 import ApplicationTabs from '../forms/ApplicationTabs.vue';
@@ -611,6 +612,7 @@ const openFinancialModal = async () => {
 }
 
 .badge.type { background: #e3f2fd; color: #0d47a1; }
+.badge.type.type-change { background: #fff3cd; color: #856404; } /* Orange/Yellow for change */
 .badge.status { background: #fff3cd; color: #856404; }
 
 
