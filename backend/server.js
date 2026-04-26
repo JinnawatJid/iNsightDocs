@@ -15,6 +15,7 @@ const scorecardRoutes = require('./routes/scorecardRoutes');
 const externalRoutes = require('./routes/externalRoutes');
 const authRoutes = require('./routes/authRoutes');
 const configRoutes = require('./routes/configRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -44,6 +45,7 @@ app.use('/api/financials', authMiddleware, financialRoutes);
 app.use('/api/ocr', authMiddleware, ocrRoutes);
 app.use('/api/config', authMiddleware, configRoutes);
 app.use('/api/scorecard', authMiddleware, scorecardRoutes);
+app.use('/api/notifications', authMiddleware, notificationRoutes);
 
 // External Routes (Should typically have their own API key protection, not user JWT)
 app.use('/api/external', externalRoutes);

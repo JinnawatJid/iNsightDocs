@@ -547,6 +547,21 @@ const initDB = async () => {
         `;
         await pool.request().query(createConfigurationsSQL);
 
+        const createNotificationsSQL = `
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Notifications' and xtype='U')
+            CREATE TABLE Notifications (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                tx_id NVARCHAR(255),
+                target_role NVARCHAR(255),
+                target_username NVARCHAR(255),
+                message NVARCHAR(MAX),
+                is_read BIT DEFAULT 0,
+                read_by NVARCHAR(MAX) DEFAULT '',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+        await pool.request().query(createNotificationsSQL);
+
         // Ensure new column exists in Configurations table (for existing DBs)
         try {
             await pool.request().query(`
