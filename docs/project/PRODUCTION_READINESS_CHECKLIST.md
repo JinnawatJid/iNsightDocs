@@ -22,7 +22,11 @@ This document outlines the critical readiness checks required before launching t
 - [ ] **Directory Permissions:** Restrict NTFS permissions on the application folder and specifically the `.env` file so only the service account and authorized server administrators can read or modify them.
 - [ ] **Data Protection:** Ensure the persistent storage directory (`SP682/customers/`) is secured with strict access controls, as it contains sensitive financial profiles and Excel data downloaded from the DBD.
 
-## 5. Testing & Verification
+## 5. Training & Handover
+- [ ] **Handover Session:** Verify that the handover session with the IT Support and Operations team has been completed using `docs/presentations/05_IT_Support_Handover.md`.
+- [ ] **Project Library Accessibility:** Ensure the `docs/` folder (Project Library) and runbooks are accessible to the IT Support team.
+
+## 6. Testing & Verification
 - [ ] **Health Check Endpoint:** Ping the application's base URL and specific backend health check API endpoints to verify the server is actively responding to requests.
 - [ ] **Customer Route Startup & MSSQL Compatibility Check:** Verify backend startup has no route binding errors (for example, `Route.get() requires a callback function`). Then smoke-test customer endpoints against MSSQL (`/api/customers/search`, `/api/customers/suggestions`, `/api/customers/by-branch`) to confirm no schema mismatch errors such as `Invalid column name 'District'`.
 - [ ] **Core Workflow Validation:** Perform an end-to-end smoke test on the production environment:
