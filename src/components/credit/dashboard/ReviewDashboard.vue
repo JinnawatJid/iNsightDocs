@@ -5,42 +5,29 @@
       <div class="card-header">
         <div style="display: flex; align-items: center; gap: 10px;">
             <h3>สรุปข้อมูลคำขอ</h3>
-            <button class="btn-toggle-design" @click="useNewDesign = !useNewDesign">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9m-9 9a9 9 0 0 1 9-9"/></svg>
-                สลับรูปแบบ
-            </button>
-        </div>
+            </div>
         <div class="request-meta">
             <span class="badge type" :class="{'type-change': authStore.combineRequestTypeEnabled && store.transactionData.requestType && (store.transactionData.requestType.includes('เครดิตเพิ่ม') || store.transactionData.requestType.includes('เปลี่ยนแปลง'))}">{{ formatRequestType(store.transactionData.requestType, authStore.combineRequestTypeEnabled) }}</span>
             <span class="badge status">{{ store.requestStatus || 'ร่าง' }}</span>
         </div>
       </div>
 
-      <div v-if="!useNewDesign" class="deal-grid">
+      <div class="deal-grid">
         <div class="deal-item highlight">
             <label>วงเงินที่ขอ</label>
             <div v-if="isCreditIncrease" class="value amount">
                 {{ formatNumber(totalCreditAmount) }} บาท
-                <span class="increase-label">(ขอเพิ่ม {{ formatNumber(store.transactionData.amount) }})</span>
-            </div>
+                </div>
             <div v-else class="value amount">{{ formatNumber(store.transactionData.amount) }} บาท</div>
 
-            <div v-if="showOriginalValues && store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null && store.transactionData.amount != store.originalTransactionData.amount" class="original-value-label">
-                เดิม: {{ formatNumber(store.originalTransactionData.amount) }} บาท
-            </div>
-            <div v-else-if="showOriginalValues && erpFallbackData && erpFallbackData.current_credit_limit !== undefined && store.transactionData.amount != erpFallbackData.current_credit_limit" class="original-value-label">
-                เดิม (ERP): {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
-            </div>
+
+
         </div>
         <div class="deal-item highlight-terms">
             <label>เครดิตเทอม (GS/AE/YC)</label>
             <div class="value terms-amount">{{ formatTerms(store.transactionData) }}</div>
-            <div v-if="showOriginalValues && store.originalTransactionData && hasTermsChanged" class="original-value-label">
-                เดิม: {{ formatTerms(store.originalTransactionData) }}
-            </div>
-            <div v-else-if="showOriginalValues && erpFallbackData && erpFallbackData.payment_terms_code && !isTermsEqual(store.transactionData, erpFallbackData.payment_terms_code)" class="original-value-label">
-                เดิม (ERP): {{ erpFallbackData.payment_terms_code }}
-            </div>
+
+
         </div>
         <div class="deal-item">
             <label>ที่มาของเครดิต</label>
@@ -49,164 +36,23 @@
         <div class="deal-item">
             <label>วิธีชำระเงิน</label>
             <div class="value">{{ store.customer.payment_method || '-' }}</div>
-            <div v-if="showOriginalValues && store.originalInitiatorCustomer?.payment_method !== undefined && store.originalInitiatorCustomer?.payment_method !== null && store.customer.payment_method !== store.originalInitiatorCustomer.payment_method" class="original-value-label">
-                เดิม: {{ store.originalInitiatorCustomer.payment_method || '-' }}
-            </div>
+
             <!-- NOTE: ERP API may not map payment method identically, so skipping ERP fallback here unless mapped -->
         </div>
         <div class="deal-item">
             <label>เงื่อนไขการวางบิล</label>
             <div class="value">{{ store.customer.billing_schedule || '-' }}</div>
-            <div v-if="showOriginalValues && store.originalInitiatorCustomer?.billing_schedule !== undefined && store.originalInitiatorCustomer?.billing_schedule !== null && store.customer.billing_schedule !== store.originalInitiatorCustomer.billing_schedule" class="original-value-label">
-                เดิม: {{ store.originalInitiatorCustomer.billing_schedule || '-' }}
-            </div>
+
         </div>
         <div class="deal-item">
             <label>เงื่อนไขการชำระเงิน</label>
             <div class="value">{{ store.customer.payment_condition || '-' }}</div>
-            <div v-if="showOriginalValues && store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null && store.customer.payment_condition !== store.originalInitiatorCustomer.payment_condition" class="original-value-label">
-                เดิม: {{ store.originalInitiatorCustomer.payment_condition || '-' }}
-            </div>
-            <div v-else-if="showOriginalValues && erpFallbackData && erpFallbackData.sales_billing_condition && store.customer.payment_condition !== erpFallbackData.sales_billing_condition" class="original-value-label">
-                เดิม (ERP): {{ erpFallbackData.sales_billing_condition }}
-            </div>
+
+
         </div>
       </div>
 
-      <div v-else class="deal-grid-new">
-        <div class="deal-col">
-            <div class="deal-header">วงเงิน</div>
-            <div class="deal-row">
-                <span class="label">
-                    <template v-if="store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null && store.transactionData.amount != store.originalTransactionData.amount">เดิม:</template>
-                    <template v-else-if="erpFallbackData && erpFallbackData.current_credit_limit !== undefined && store.transactionData.amount != erpFallbackData.current_credit_limit">เดิม (ERP):</template>
-                    <template v-else>เดิม:</template>
-                </span>
-                <span class="value">
-                    <template v-if="store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null && store.transactionData.amount != store.originalTransactionData.amount">
-                        {{ formatNumber(store.originalTransactionData.amount) }} บาท
-                    </template>
-                    <template v-else-if="erpFallbackData && erpFallbackData.current_credit_limit !== undefined && store.transactionData.amount != erpFallbackData.current_credit_limit">
-                        {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
-                    </template>
-                    <template v-else-if="store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null">
-                        {{ formatNumber(store.originalTransactionData.amount) }} บาท
-                    </template>
-                    <template v-else-if="erpFallbackData && erpFallbackData.current_credit_limit !== undefined">
-                        {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
-                    </template>
-                    <template v-else>
-                        -
-                    </template>
-                </span>
-            </div>
-            <div class="deal-row">
-                <span class="label">ขอเพิ่ม:</span>
-                <span class="value amount-change">{{ formatNumber(store.transactionData.amount) }} บาท</span>
-            </div>
-            <div class="deal-row total">
-                <span class="label">รวม:</span>
-                <span class="value amount-total">{{ formatNumber(totalCreditAmount) }} บาท</span>
-            </div>
-        </div>
-
-        <div class="deal-col">
-            <div class="deal-header">เครดิตเทอม (GS/AE/YC)</div>
-            <div class="deal-row">
-                <span class="label">
-                    <template v-if="store.originalTransactionData && hasTermsChanged">เดิม:</template>
-                    <template v-else-if="erpFallbackData && erpFallbackData.payment_terms_code && !isTermsEqual(store.transactionData, erpFallbackData.payment_terms_code)">เดิม (ERP):</template>
-                    <template v-else>เดิม:</template>
-                </span>
-                <span class="value">
-                    <template v-if="store.originalTransactionData && hasTermsChanged">
-                        {{ formatTerms(store.originalTransactionData) }}
-                    </template>
-                    <template v-else-if="erpFallbackData && erpFallbackData.payment_terms_code && !isTermsEqual(store.transactionData, erpFallbackData.payment_terms_code)">
-                        {{ erpFallbackData.payment_terms_code }}
-                    </template>
-                    <template v-else-if="store.originalTransactionData">
-                        {{ formatTerms(store.originalTransactionData) }}
-                    </template>
-                    <template v-else-if="erpFallbackData && erpFallbackData.payment_terms_code">
-                        {{ erpFallbackData.payment_terms_code }}
-                    </template>
-                    <template v-else>
-                        -
-                    </template>
-                </span>
-            </div>
-            <div class="deal-row">
-                <span class="label">ขอเปลี่ยนแปลง:</span>
-                <span class="value terms-change">{{ formatTerms(store.transactionData) }}</span>
-            </div>
-            <div class="deal-row empty"></div>
-        </div>
-
-        <div class="deal-col">
-            <div class="deal-header">ที่มาของเครดิต</div>
-            <div class="deal-row reason">
-                <span class="value">{{ store.transactionData.reason || '-' }}</span>
-            </div>
-        </div>
-
-        <div class="deal-col">
-            <div class="deal-header">วิธีชำระเงิน</div>
-            <div class="deal-row">
-                <span class="label">เดิม:</span>
-                <span class="value">{{ store.originalInitiatorCustomer?.payment_method || '-' }}</span>
-            </div>
-            <div class="deal-row">
-                <span class="label">ขอเปลี่ยนแปลง:</span>
-                <span class="value">{{ store.customer.payment_method || '-' }}</span>
-            </div>
-        </div>
-
-        <div class="deal-col">
-            <div class="deal-header">เงื่อนไขการวางบิล</div>
-            <div class="deal-row">
-                <span class="label">เดิม:</span>
-                <span class="value">{{ store.originalInitiatorCustomer?.billing_schedule || '-' }}</span>
-            </div>
-            <div class="deal-row">
-                <span class="label">ขอเปลี่ยนแปลง:</span>
-                <span class="value">{{ store.customer.billing_schedule || '-' }}</span>
-            </div>
-        </div>
-
-        <div class="deal-col">
-            <div class="deal-header">เงื่อนไขการชำระเงิน</div>
-            <div class="deal-row">
-                <span class="label">
-                    <template v-if="store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null && store.customer.payment_condition !== store.originalInitiatorCustomer.payment_condition">เดิม:</template>
-                    <template v-else-if="erpFallbackData && erpFallbackData.sales_billing_condition && store.customer.payment_condition !== erpFallbackData.sales_billing_condition">เดิม (ERP):</template>
-                    <template v-else>เดิม:</template>
-                </span>
-                <span class="value">
-                    <template v-if="store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null && store.customer.payment_condition !== store.originalInitiatorCustomer.payment_condition">
-                        {{ store.originalInitiatorCustomer.payment_condition }}
-                    </template>
-                    <template v-else-if="erpFallbackData && erpFallbackData.sales_billing_condition && store.customer.payment_condition !== erpFallbackData.sales_billing_condition">
-                        {{ erpFallbackData.sales_billing_condition }}
-                    </template>
-                    <template v-else-if="store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null">
-                        {{ store.originalInitiatorCustomer.payment_condition }}
-                    </template>
-                    <template v-else-if="erpFallbackData && erpFallbackData.sales_billing_condition">
-                        {{ erpFallbackData.sales_billing_condition }}
-                    </template>
-                    <template v-else>
-                        -
-                    </template>
-                </span>
-            </div>
-            <div class="deal-row">
-                <span class="label">ขอเปลี่ยนแปลง:</span>
-                <span class="value">{{ store.customer.payment_condition || '-' }}</span>
-            </div>
-        </div>
-      </div>
-    </div>
+          </div>
     <!-- Section 2: Key Documents Snapshot -->
     <div class="dashboard-card documents-snapshot">
         <div class="card-header">
@@ -327,7 +173,6 @@ import CustomerService from '@/services/CustomerService';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
-const useNewDesign = ref(false);
 const showFullDetails = ref(false);
 
 const formatNumber = (num) => {
@@ -354,10 +199,6 @@ const isCreditIncrease = computed(() => {
     return store.transactionData.requestType?.includes('เครดิตเพิ่ม') || false;
 });
 
-const showOriginalValues = computed(() => {
-    const type = store.transactionData.requestType || '';
-    return !type.includes('เครดิตใหม่') && !type.includes('เครดิตโครงการ');
-});
 
 const totalCreditAmount = computed(() => {
     const requestAmount = parseFloat(String(store.transactionData.amount || '0').replace(/,/g, ''));
@@ -372,26 +213,7 @@ const totalCreditAmount = computed(() => {
     return isNaN(requestAmount) ? baseAmount : (baseAmount + requestAmount);
 });
 
-const isTermsEqual = (data, erpTermsCode) => {
-    if (!data) return false;
-    const gs = String(data.termGS || 0);
-    const ae = String(data.termAE || 0);
-    const yc = String(data.termYC || 0);
-    const code = String(erpTermsCode || 0).trim();
 
-    // Simplistic check: If the code is equal to all of them or equal to the formatted string.
-    if (gs === code && ae === code && yc === code) return true;
-    if (formatTerms(data) === code) return true;
-
-    return false;
-}
-
-const hasTermsChanged = computed(() => {
-    if (!store.originalTransactionData) return false;
-    return store.transactionData.termGS != store.originalTransactionData.termGS ||
-           store.transactionData.termAE != store.originalTransactionData.termAE ||
-           store.transactionData.termYC != store.originalTransactionData.termYC;
-});
 
 // Document Logic (Reused from DocumentChecklist)
 const DOC_LABELS = {
@@ -612,105 +434,7 @@ const openFinancialModal = async () => {
 .badge.status { background: #fff3cd; color: #856404; }
 
 
-.btn-toggle-design {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    background: #f0f4f8;
-    color: #0056FF;
-    border: 1px solid #d1e0fc;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
 
-.btn-toggle-design:hover {
-    background: #e1ebfa;
-    border-color: #b0c9f7;
-}
-
-.deal-grid-new {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 30px;
-    padding: 10px;
-}
-
-.deal-col {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.deal-header {
-    font-size: 14px;
-    font-weight: bold;
-    color: #333;
-    border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 5px;
-    margin-bottom: 5px;
-    text-align: center;
-}
-
-.deal-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-size: 14px;
-}
-
-.deal-row.reason {
-    justify-content: center;
-    text-align: center;
-    font-style: italic;
-    color: #555;
-    margin-top: 10px;
-}
-
-.deal-row .label {
-    color: #666;
-    font-weight: 500;
-}
-
-.deal-row .value {
-    color: #333;
-    font-weight: 600;
-    text-align: right;
-    max-width: 65%;
-    word-break: break-word;
-}
-
-.deal-row.total {
-    border-top: 1px dashed #ccc;
-    padding-top: 8px;
-    margin-top: 4px;
-}
-
-.deal-row.total .label {
-    font-weight: bold;
-    color: #000;
-}
-
-.deal-row.total .value.amount-total {
-    font-size: 16px;
-    font-weight: bold;
-    color: #0056FF;
-}
-
-.deal-row .value.amount-change {
-    color: #e65100;
-}
-
-.deal-row .value.terms-change {
-    color: #e65100;
-}
-
-.deal-row.empty {
-    height: 10px;
-}
 
 /* Deal Grid */
 .deal-grid {
@@ -758,14 +482,6 @@ const openFinancialModal = async () => {
     flex-wrap: wrap;
 }
 
-.increase-label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #e65100; /* Subtle orange to denote an increase */
-    background: #fff3e0;
-    padding: 2px 8px;
-    border-radius: 4px;
-}
 
 .deal-item.highlight-terms .value.terms-amount {
     font-size: 20px;
@@ -773,13 +489,6 @@ const openFinancialModal = async () => {
     color: #333;
 }
 
-.original-value-label {
-    font-size: 13px;
-    color: #888;
-    margin-top: 4px;
-    line-height: 1.4;
-    font-style: italic;
-}
 
 .reason-text {
     font-style: italic;
