@@ -117,7 +117,9 @@ const fetchConfig = async () => {
   error.value = null;
 
   try {
-    await configStore.fetchConfigurations();
+    if (!configStore.configurations || Object.keys(configStore.configurations).length === 0) {
+      await configStore.fetchConfigurations();
+    }
 
     // Extract available roles from RBAC
     let rbacConfig = null;
