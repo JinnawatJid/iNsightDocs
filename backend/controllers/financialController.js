@@ -1075,17 +1075,6 @@ const checkSingleCustomerFiles = async (customer_no) => {
         let hasNoDataMarker = false;
         let primaryFolder = dateFolders[0]; // defaults to newest folder
 
-        // Search for marker first
-        for (const folder of dateFolders) {
-            const currentPath = path.join(customerRoot, folder);
-            const markerPath = path.join(currentPath, 'DBD_NoFinancialData.txt');
-            if (await fs.pathExists(markerPath)) {
-                hasNoDataMarker = true;
-                primaryFolder = folder;
-                break;
-            }
-        }
-
         // Search for required files across all folders (newest first)
         for (const file of requiredFiles) {
             for (const folder of dateFolders) {
@@ -1120,6 +1109,35 @@ const checkSingleCustomerFiles = async (customer_no) => {
                     // Found the newest version of this file, break inner loop to check next file
                     break;
                 }
+            }
+        }
+
+        // Update primary folder based on the newest found file (if any)
+        const foundFolders = Object.values(fileDetails).map(f => f.folderDate).sort().reverse();
+        if (foundFolders.length > 0) {
+            primaryFolder = foundFolders[0];
+        }
+
+        // Check if actual financial data files (balanceSheet, incomeStatement, financialRatios) exist
+        const hasFinancialFiles = fileDetails.balanceSheet || fileDetails.incomeStatement || fileDetails.financialRatios;
+
+        // Search for marker
+        for (const folder of dateFolders) {
+            const currentPath = path.join(customerRoot, folder);
+            const markerPath = path.join(currentPath, 'DBD_NoFinancialData.txt');
+            if (await fs.pathExists(markerPath)) {
+                // If we found actual financial files, we ignore the marker.
+                if (!hasFinancialFiles) {
+                    hasNoDataMarker = true;
+                    // If we don't have ANY files (not even profile), update primaryFolder
+                    // If we have profile but no financial files, we keep the profile's folder as primary
+                    if (Object.keys(fileDetails).length === 0) {
+                        primaryFolder = folder;
+                    }
+                } else {
+                    logger.info(`[DEBUG] Found DBD_NoFinancialData.txt at ${markerPath} but ignoring it because actual financial files exist.`);
+                }
+                break;
             }
         }
 
