@@ -414,10 +414,6 @@ const documents = computed(() => {
     ...Object.keys(store.uploadedDocuments || {})
   ]);
 
-  // Ensure mandatory keys are included even if not uploaded
-  const { files: mandatoryKeys } = getMandatoryKeys(store.isCompany);
-  mandatoryKeys.forEach(k => allKeys.add(k));
-
   // Remove DBD specific keys as they have their own section
   const dbdKeys = ['company_profile_doc', 'balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc'];
   dbdKeys.forEach(k => allKeys.delete(k));

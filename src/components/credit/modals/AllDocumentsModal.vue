@@ -137,10 +137,6 @@ const documentGroups = computed(() => {
     ...Object.keys(store.uploadedDocuments || {})
   ]);
 
-  // Ensure mandatory keys are included even if not uploaded
-  const { files: mandatoryKeys } = getMandatoryKeys(store.isCompany);
-  mandatoryKeys.forEach(k => allKeys.add(k));
-
   // Remove DBD specific keys
   const dbdKeys = ['company_profile_doc', 'balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc'];
   dbdKeys.forEach(k => allKeys.delete(k));
@@ -195,15 +191,6 @@ const documentGroups = computed(() => {
                 remoteMetadata: typeof uploadedMetadata === 'object' ? { ...uploadedMetadata, fileKey: key } : remoteFallback
             });
         }
-    } else {
-        // Missing (only standard items will typically be missing, other_ are only added if uploaded)
-        targetArray.push({
-            key,
-            displayName: label,
-            hasFile: false,
-            fileData: null,
-            remoteMetadata: null
-        });
     }
   });
 
