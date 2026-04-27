@@ -69,16 +69,16 @@ flowchart LR
 **[Visual]**:
 ```mermaid
 flowchart LR
-    Init(["ทีม Sales (Initiator)"]) -->|"1. สร้างคำขอและกรอกข้อมูล"| Sys["ระบบ (System)"]
-    Sys <-->|"2. ดึงข้อมูลอัตโนมัติ"| Ext[("Navision/DBD")]
-    Sys -->|"3. ส่งต่อตาม Workflow"| Mgr(["ผู้จัดการ (Reviewer/Approver)"])
+    Init(["ผู้จัดการสาขา (Initiator)"]) -->|"1. สร้างคำขอและกรอกข้อมูล"| Sys["ระบบ (System)"]
+    Sys <-->|"2. ดึงข้อมูลอัตโนมัติ"| Ext[("ฐานข้อมูล และระบบ ERP")]
+    Sys -->|"3. ส่งต่อตาม Workflow"| Mgr(["ผู้อนุมัติคำขอ (Reviewer/Approver)"])
     Mgr -->|"4. ตรวจสอบและอนุมัติ"| Done(["เสร็จสิ้น (Approved)"])
 ```
 **[Slide Text]**:
-- **1. Initiation:** Sales team inputs customer data.
-- **2. Validation:** System fetches external data (Navision/DBD).
-- **3. Review & Approval:** Managers verify and approve via dynamic workflows.
-**[Speaker Notes]**: "หากเรามองเจาะลงมาในฝั่งของ User Journey กระบวนการหลักจะเริ่มจากทีม Sales ที่เป็นผู้กรอกข้อมูลลูกค้า จากนั้นระบบจะไปดึงข้อมูลประกอบจาก Navision และ DBD เมื่อข้อมูลครบถ้วน คำขอจะถูกส่งต่อให้หัวหน้า (Reviewers/Approvers) ทำการอนุมัติตามสายงานครับ"
+- **1. Initiation:** ผู้จัดการสาขาสร้างคำขอและกรอกข้อมูล.
+- **2. Validation:** ระบบดึงข้อมูลอัตโนมัติจากฐานข้อมูล และระบบ ERP.
+- **3. Review & Approval:** ผู้อนุมัติคำขอตรวจสอบและอนุมัติตาม Workflow.
+**[Speaker Notes]**: "หากเรามองเจาะลงมาในฝั่งของ User Journey กระบวนการหลักจะเริ่มจากผู้จัดการสาขาที่เป็นผู้ริเริ่มสร้างคำขอ จากนั้นระบบจะไปดึงข้อมูลประกอบจากฐานข้อมูลและ ERP เมื่อข้อมูลครบถ้วน คำขอจะถูกส่งต่อให้ผู้อนุมัติตามสายงานครับ"
 
 ### Slide 6: Core System Mechanics (How We Implement It)
 **[Visual]**: Data Flow Diagram showing API interactions and Database Storage.
