@@ -66,7 +66,14 @@ flowchart LR
 **[Speaker Notes]**: "เพื่อปูพื้นฐาน ภาพรวมของระบบนี้คือการทำ Digital Transformation ให้กระบวนการขออนุมัติวงเงินเครดิตครับ ระบบเราแบ่งเป็น 2-Tier ชัดเจน คือ Frontend ที่พัฒนาด้วย Vue.js รับผิดชอบหน้าจอ และ Backend ที่พัฒนาด้วย Node.js ควบคุม Logic ทั้งหมด โดยเก็บข้อมูลลงบน MSSQL ครับ"
 
 ### Slide 5: The User Journey (What Users Do)
-**[Visual]**: Flowchart of the User Journey (Initiator -> Reviewer -> Approver).
+**[Visual]**:
+```mermaid
+flowchart LR
+    Init(["ทีม Sales (Initiator)"]) -->|"1. สร้างคำขอและกรอกข้อมูล"| Sys["ระบบ (System)"]
+    Sys -->|"2. ดึงข้อมูลอัตโนมัติ (Navision/DBD)"| Sys
+    Sys -->|"3. ส่งต่อตาม Workflow"| Mgr(["ผู้จัดการ (Reviewer/Approver)"])
+    Mgr -->|"4. ตรวจสอบและอนุมัติ"| Done(["เสร็จสิ้น (Approved)"])
+```
 **[Slide Text]**:
 - **1. Initiation:** Sales team inputs customer data.
 - **2. Validation:** System fetches external data (Navision/DBD).
