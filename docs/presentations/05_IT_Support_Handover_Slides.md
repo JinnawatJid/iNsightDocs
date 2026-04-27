@@ -19,10 +19,10 @@ This document serves as a slide storyboard for creating the presentation deck fo
 ### Slide 2: Objectives of this Session
 **[Visual]**: Target/Bullseye Icon.
 **[Slide Text]**:
-- Understand System Architecture & Components
-- Locate and Utilize Project Documentation
-- Grasp Deployment & Environment Setup
-- Handle L1/L2 Incident Responses Confidently
+- เข้าใจแนวคิดการออกแบบของระบบ และการทำงานเบื้องต้น
+- เข้าใจรูปแบบเอกสาร และที่มาของเอกสารในระบบ
+- เข้าใจโครงสร้างของระบบ และการจัดเก็บไฟล์ในระบบ
+- สามารถรับมือและแก้ไขปัญหาในการใช้งานได้อย่างมีประสิทธิภาพ
 **[Speaker Notes]**: "วัตถุประสงค์ (Objectives) หลักของ Session ในวันนี้มี 4 ข้อครับ: 1. เข้าใจ Architecture 2. รู้แหล่งเก็บ Document 3. เข้าใจขั้นตอน Deployment และ 4. สามารถรับมือกับ Incidents ระดับ L1/L2 ได้อย่างมีประสิทธิภาพครับ"
 
 ### Slide 3: Agenda
