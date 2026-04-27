@@ -97,7 +97,18 @@ flowchart LR
 **[Speaker Notes]**: "พอผู้ใช้งานกดต่อไป ระบบจะวิ่งมาทำงานเบื้องหลังใน Step ที่ 2 ครับ คือไปดึงข้อมูลจาก ERP และดึงงบการเงินจาก DBD จุดที่ IT ต้องระวังคือ ถ้า Navision หรือ DBD ล่ม หน้าจอนี้จะโหลดนานผิดปกติ ซึ่งเรามี Fallback Logic รองรับไว้แล้วครับ"
 
 ### Slide 8: User Journey Step 3 - ส่งต่อตาม Workflow
-**[Visual]**: Screenshot of the `Pending Requests` sidebar showing the item waiting for approval.
+**[Visual]**:
+```mermaid
+flowchart LR
+    A(["ผู้สร้างคำขอ (Draft)"]) -->|"เปิดคำขอ"| B(["ผู้จัดการสาขา (Opened)"])
+    B -->|"ส่งต่อ"| C(["ผู้จัดการภาค (RegionalSubmitted)"])
+    C -->|"ส่งต่อ"| D(["เจ้าหน้าที่ฝ่ายการเงิน (SalesSubmitted)"])
+    D -->|"ส่งต่อ"| E(["ผู้จัดการฝ่ายการเงิน (FinanceReviewed)"])
+    E -->|"ส่งต่อ (ถ้าวงเงินเกิน)"| F(["กรรมการเครดิต (Reviewed)"])
+
+    F -->|"Approved / Rejected"| G(["เสร็จสิ้น"])
+    E -->|"Approved / Rejected (ถ้าวงเงินไม่เกิน)"| G
+```
 **[Slide Text]**:
 - สร้าง Transaction ID (txId) ในระบบ
 - บันทึกข้อมูลลง Snapshot Data สำหรับทำ Audit Trail
