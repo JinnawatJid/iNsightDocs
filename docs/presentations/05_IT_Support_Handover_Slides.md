@@ -70,8 +70,8 @@ flowchart LR
 ```mermaid
 flowchart LR
     Init(["ทีม Sales (Initiator)"]) -->|"1. สร้างคำขอและกรอกข้อมูล"| Sys["ระบบ (System)"]
-    Sys -->|"2. ดึงข้อมูลอัตโนมัติ"| Ext[("Navision/DBD")]
-    Ext -->|"3. ส่งต่อตาม Workflow"| Mgr(["ผู้จัดการ (Reviewer/Approver)"])
+    Sys <-->|"2. ดึงข้อมูลอัตโนมัติ"| Ext[("Navision/DBD")]
+    Sys -->|"3. ส่งต่อตาม Workflow"| Mgr(["ผู้จัดการ (Reviewer/Approver)"])
     Mgr -->|"4. ตรวจสอบและอนุมัติ"| Done(["เสร็จสิ้น (Approved)"])
 ```
 **[Slide Text]**:
