@@ -99,7 +99,7 @@ flowchart LR
 ### Slide 8: User Journey Step 3 - ส่งต่อตาม Workflow
 **[Visual]**:
 ```mermaid
-flowchart LR
+flowchart TD
     A(["ผู้จัดการสาขา (Opened)"]) -->|"ส่งต่อ"| B(["ผู้จัดการภาค (RegionalSubmitted)"])
     B -->|"ส่งต่อ"| C(["ผู้จัดการฝ่ายขาย (PendingSales)"])
     C -->|"ส่งต่อ"| D(["เจ้าหน้าที่ฝ่ายการเงิน (SalesSubmitted)"])
