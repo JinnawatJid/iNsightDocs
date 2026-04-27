@@ -47,14 +47,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - **Core Process:** Data Entry -> Workflow Routing -> Final Approval.
 **[Speaker Notes]**: "เพื่อปูพื้นฐาน ระบบนี้สร้างขึ้นมาเพื่อทำ Digital Transformation ในกระบวนการขออนุมัติวงเงินเครดิตลูกค้าครับ โดย User จะมีตั้งแต่ฝั่ง Sales ผู้ริเริ่มคำขอ ไปจนถึง Approvers ผู้มีอำนาจอนุมัติ โดยระบบจะจัดการ Workflow Routing ให้อัตโนมัติ"
 
-### Slide 5: Full System Architecture Diagram
-**[Visual]**: Detailed Architecture Diagram (from `docs/presentations/01_Create_Credit_Request.md`).
-**[Slide Text]**:
-- 2-Tier Application Architecture.
-- Internal Network vs. External API Boundaries.
-**[Speaker Notes]**: "นี่คือ Architecture Diagram ตัวเต็มครับ ระบบเราเป็น 2-Tier Architecture แยก Frontend ออกจาก Backend ชัดเจน และเชื่อมต่อ Database ผ่าน Internal Network แต่ก็มีการคุยกับ External Services เช่น Navision และ DBD ซึ่งจุดรอยต่อ (Boundaries) เหล่านี้คือจุดที่มักจะเกิด Issue ครับ"
-
-### Slide 6: The Frontend Stack
+### Slide 5: The Frontend Stack
 **[Visual]**: Vue.js Logo, Pinia Logo.
 **[Slide Text]**:
 - **Framework:** Vue.js 3
@@ -63,7 +56,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - **Responsibility:** User Interface, Form Validations, Workflow Rendering.
 **[Speaker Notes]**: "เจาะลึกฝั่ง Frontend ครับ เราพัฒนาด้วย Vue.js 3 ใช้ Pinia สำหรับจัดการ State (ตัวแปรต่างๆ ในระบบ) และ Build ด้วย Vite หน้าที่หลักของส่วนนี้คือเรื่อง UI และการทำ Form Validation เบื้องต้นก่อนส่งข้อมูลไป Backend"
 
-### Slide 7: The Backend Stack
+### Slide 6: The Backend Stack
 **[Visual]**: Node.js Logo, Express Logo.
 **[Slide Text]**:
 - **Runtime:** Node.js
@@ -72,7 +65,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - **Responsibility:** Business Logic, RBAC Enforcement, DB Transactions.
 **[Speaker Notes]**: "ในส่วนของ Backend เราใช้ Node.js และ Express.js ครับ ทำหน้าที่เป็นตัวกลางควบคุม Business Logic ตรวจสอบสิทธิ์ (RBAC Enforcement) ก่อนทำ Database Transactions รวมถึงจัดการ File Upload ผ่าน Library ที่ชื่อ Multer ครับ"
 
-### Slide 8: Database & Storage Strategy
+### Slide 7: Database & Storage Strategy
 **[Visual]**: Database Icon, JSON Icon.
 **[Slide Text]**:
 - **Engines:** SQLite (Dev) / MSSQL (Prod).
@@ -80,7 +73,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - **Historical Tracking:** `snapshot_data` for audit trails.
 **[Speaker Notes]**: "Database ที่ใช้บน Production คือ MSSQL ครับ สถาปัตยกรรมข้อมูลของเราเป็นแบบลูกผสม (Hybrid) คือมี Table ปกติ และมีการเก็บ Configuration ซับซ้อนในรูปแบบ Semi-structured JSON นอกจากนี้เรายังเก็บ History เป็น `snapshot_data` เพื่อทำ Audit Trail ครับ"
 
-### Slide 9: External Integrations (The Bridge)
+### Slide 8: External Integrations (The Bridge)
 **[Visual]**: Server Icon -> Two-way arrow -> Cloud (API).
 **[Slide Text]**:
 - **Navision (ERP):** Customer Search, Sync base data.
@@ -92,7 +85,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 
 ## Part 3: Project Library & Documentation (10 Minutes)
 
-### Slide 10: Where is Everything?
+### Slide 9: Where is Everything?
 **[Visual]**: Screenshot of Git repository focusing on the `docs/` folder.
 **[Slide Text]**:
 - **The "Project Library"**
@@ -100,7 +93,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - Version-controlled documentation.
 **[Speaker Notes]**: "สำหรับ Documentation ทั้งหมดของระบบ เราเรียกมันว่า 'Project Library' ครับ ซึ่งจะถูกเก็บรวบรวมไว้ที่โฟลเดอร์ `docs/` ใน Repository เดียวกับ Source Code ข้อดีคือ Document จะถูก Version-control ไปพร้อมๆ กับการอัปเดตระบบครับ"
 
-### Slide 11: Production Readiness
+### Slide 10: Production Readiness
 **[Visual]**: Clipboard / Checklist icon.
 **[Slide Text]**:
 - **`PRODUCTION_READINESS_CHECKLIST.md`**
@@ -108,7 +101,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - Verifying Environment variables, DB connections, and Folder permissions.
 **[Speaker Notes]**: "เอกสารตัวแรกที่สำคัญคือ Checklist ก่อนขึ้นระบบครับ มันจะรวบรวมรายการตรวจเช็ค (Pre-flight checks) เช่น การตรวจสอบตัวแปร Environment, ทดสอบ DB Connection และการเช็ค Folder Permissions เพื่อป้องกันปัญหาตอน Go-live"
 
-### Slide 12: Release Processes
+### Slide 11: Release Processes
 **[Visual]**: Gear icon / Automation.
 **[Slide Text]**:
 - **`RELEASE_PROCESS.md`**
@@ -116,7 +109,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - Automation scripts (`create_release.bat`).
 **[Speaker Notes]**: "หากมี Patch หรือ Version ใหม่ ทีมสามารถอ้างอิงวิธี Build ระบบได้จาก `RELEASE_PROCESS.md` ครับ ในนั้นจะอธิบายขั้นตอนการใช้ Script อัตโนมัติที่เราเตรียมไว้ให้ ซึ่งจะลดข้อผิดพลาดจากการทำ Manual Build ได้มาก"
 
-### Slide 13: Managing Permissions (RACI)
+### Slide 12: Managing Permissions (RACI)
 **[Visual]**: Matrix table graphic.
 **[Slide Text]**:
 - **`RACI_MATRIX.md`**
@@ -124,7 +117,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - Base configurations for Dynamic RBAC Matrix.
 **[Speaker Notes]**: "เวลาที่ User ถามว่า 'ทำไมถึงไม่เห็นเมนูนี้' เอกสารที่คุณต้องเปิดคือ `RACI_MATRIX.md` ครับ เอกสารนี้คือ Reference มาตรฐาน (Base configurations) สำหรับตรวจสอบว่า Role ไหนมีสิทธิ์ในการทำ Action ใดในระบบบ้าง"
 
-### Slide 14: Keeping Docs Updated
+### Slide 13: Keeping Docs Updated
 **[Visual]**: Pen/Paper writing icon.
 **[Slide Text]**:
 - Documentation is a living entity.
@@ -136,7 +129,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 
 ## Part 4: Deployment & Environment (10 Minutes)
 
-### Slide 15: Deployment Strategy
+### Slide 14: Deployment Strategy
 **[Visual]**: Box icon (Standalone application).
 **[Slide Text]**:
 - **Zero-Dependency Deployment.**
@@ -144,7 +137,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - Everything packaged via `create_release.bat`.
 **[Speaker Notes]**: "เข้าสู่เรื่อง Deployment ครับ Strategy ที่เราใช้คือ 'Zero-Dependency' หมายความว่าทีมสามารถนำ Artifact ที่ถูก Build แพ็ครวมกันแล้วไปวางบน Windows Server ได้เลย โดยไม่จำเป็นต้อง Install Node.js ทิ้งไว้ในเครื่อง Server ให้ยุ่งยากครับ"
 
-### Slide 16: The `.env` File (The Brain)
+### Slide 15: The `.env` File (The Brain)
 **[Visual]**: Code snippet of `.env` file (masking passwords).
 **[Slide Text]**:
 - Application settings reside in `.env`.
@@ -152,7 +145,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - **Rule:** Never commit `.env` to Git.
 **[Speaker Notes]**: "ตัวควบคุมพฤติกรรมของแอป (The Brain) คือไฟล์ `.env` ครับ ค่าต่างๆ เช่น Database Credentials หรือ URL ของ API จะถูกตั้งค่าที่นี่ กฎเหล็ก (Golden Rule) ของเราคือห้ามนำไฟล์ .env ที่เป็น Production อัปโหลดเข้าสู่ Git Repository เด็ดขาดครับ"
 
-### Slide 17: Key Environment Variables
+### Slide 16: Key Environment Variables
 **[Visual]**: Table showing variable names and definitions.
 **[Slide Text]**:
 - `DB_USER` / `DB_PASSWORD`
@@ -160,7 +153,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - `MAX_FILE_UPLOAD_SIZE_MB`
 **[Speaker Notes]**: "ตัวแปรสำคัญในไฟล์ `.env` ที่ทีมควรทราบได้แก่ ชุดเชื่อมต่อ DB, Feature Toggles อย่าง `ISOLATE_INITIATOR_REQUESTS` ที่ใช้เปิด-ปิด Rule การมองเห็นข้อมูลของผู้สร้างคำขอ และการกำหนดขนาดไฟล์อัปโหลดครับ"
 
-### Slide 18: File System Structure on Server
+### Slide 17: File System Structure on Server
 **[Visual]**: Directory tree (`/release`, `/logs`, `/uploads`).
 **[Slide Text]**:
 - `/release` - The application binary.
@@ -168,7 +161,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - `/uploads` - Storage for attached documents.
 **[Speaker Notes]**: "เมื่อนำไปวางบน Server โฟลเดอร์จะถูกจัดสรรชัดเจนครับ ตัวแอปจะอยู่ในโฟลเดอร์ release ส่วน /logs จะเก็บประวัติการรัน และ /uploads คือที่เก็บไฟล์แนบ ซึ่งโฟลเดอร์นี้สำคัญมากในการสำรองข้อมูล (Backup)"
 
-### Slide 19: Starting & Restarting Services
+### Slide 18: Starting & Restarting Services
 **[Visual]**: Terminal / Command Prompt graphic.
 **[Slide Text]**:
 - Restart needed when `.env` changes.
@@ -179,21 +172,21 @@ This document serves as a slide storyboard for creating the presentation deck fo
 
 ## Part 5: Common L1/L2 Support Scenarios (20 Minutes)
 
-### Slide 20: Defining L1 vs L2
+### Slide 19: Defining L1 vs L2
 **[Visual]**: Pyramid or Two-tier escalation graphic.
 **[Slide Text]**:
 - **L1 (Helpdesk):** Basic usage queries, password resets, basic access issues.
 - **L2 (Application Support):** Log analysis, Database investigations, Configuration changes.
 **[Speaker Notes]**: "ในระบบเราแบ่งขอบเขตเป็น 2 ระดับครับ L1 คือหน้าด่าน ช่วยเหลือปัญหาการใช้งานทั่วไป ส่วน L2 คือ Application Support ที่ต้องลงลึกในการตรวจสอบ Logs (Log analysis), ตรวจสอบ Database หรือปรับแก้ค่า Configuration บนหน้า UI ขั้นสูงครับ"
 
-### Slide 21: Scenario A - UI Loading Freeze (Symptom)
+### Slide 20: Scenario A - UI Loading Freeze (Symptom)
 **[Visual]**: Spinner icon loading endlessly.
 **[Slide Text]**:
 - **Symptom:** User reports "The screen is spinning forever when searching for a customer."
 - **Context:** Happens during Search Customer or Fetching DBD.
 **[Speaker Notes]**: "มาดู Scenario แรกครับ User แจ้งว่ากดค้นหาลูกค้าแล้วหมุนค้าง (UI Freezes) ปัญหานี้มักจะเกิดในจังหวะที่มีการยิงคำขอออกไปยัง External API เช่น Navision หรือ DBD ครับ"
 
-### Slide 22: Scenario A - UI Loading Freeze (Resolution L2)
+### Slide 21: Scenario A - UI Loading Freeze (Resolution L2)
 **[Visual]**: Magnifying glass over a log file snippet showing "Timeout".
 **[Slide Text]**:
 - **L2 Action Plan:**
@@ -202,28 +195,28 @@ This document serves as a slide storyboard for creating the presentation deck fo
   3. Inform users that Fallback logic will eventually engage.
 **[Speaker Notes]**: "สำหรับทีม L2 วิธีแก้ปัญหา (Resolution) คือให้เปิด Backend Logs ทันทีครับ มองหาคำว่า Timeout หรือ Connection Refused หากเจอ แปลว่า Navision อาจจะล่ม ให้แจ้ง User ว่าระบบจะใช้ Fallback ไปค้นใน Local DB แทน ซึ่งอาจจะใช้เวลาสักครู่"
 
-### Slide 23: Scenario B - Missing Menu/Actions (Symptom)
+### Slide 22: Scenario B - Missing Menu/Actions (Symptom)
 **[Visual]**: UI mockup highlighting a missing "Approve" button.
 **[Slide Text]**:
 - **Symptom:** "I am an Approver, but I don't see the Approve button for this request."
 - **Context:** Workflows rely strictly on Roles.
 **[Speaker Notes]**: "Scenario B พบบ่อยมากครับ User เป็นหัวหน้า แต่ไม่เห็นปุ่ม 'Approve' ในระบบของเรา สิทธิ์การมองเห็นไม่ได้ผูกตายตัว แต่ถูกคุมด้วยระบบ Workflow และ Roles ครับ"
 
-### Slide 24: Scenario B - Missing Menu/Actions (Resolution L1/L2)
+### Slide 23: Scenario B - Missing Menu/Actions (Resolution L1/L2)
 **[Visual]**: Screenshot of the `System Configuration > Role Management` UI.
 **[Slide Text]**:
 - **L1 Action Plan:** Verify the user's username vs assigned groups.
 - **L2 Action Plan:** Access UI -> `System Configuration > Role Management`. Check the Dynamic RBAC Matrix matching.
 **[Speaker Notes]**: "ทางแก้คือ ทีม L1 เช็คก่อนว่า User คนนั้นอยู่ใน Group ที่ถูกต้องไหม ถ้าถูกต้อง ทีม L2 สามารถใช้สิทธิ์ Admin เข้าไปที่เมนู Configuration แล้วตรวจสอบ Role Management Matrix เพื่อเช็คว่า Role ดังกล่าวถูกตั้งค่าให้อนุมัติ State นี้ได้หรือไม่ (Dynamic RBAC Check)"
 
-### Slide 25: Scenario C - File Upload Failures (Symptom)
+### Slide 24: Scenario C - File Upload Failures (Symptom)
 **[Visual]**: Alert box showing file upload error.
 **[Slide Text]**:
 - **Symptom:** "I cannot attach the balance sheet Excel file."
 - **Context:** System enforces limits to prevent memory exhaustion.
 **[Speaker Notes]**: "Scenario C User โวยวายว่าแนบไฟล์ Excel งบการเงินไม่ได้ (Upload Failures) ปัญหานี้มักเกิดจากระบบเรามีการตั้ง Limits ป้องกันไฟล์ขนาดใหญ่เกินไปเพื่อไม่ให้ Server Memory เต็มครับ"
 
-### Slide 26: Scenario C - File Upload Failures (Resolution L2)
+### Slide 25: Scenario C - File Upload Failures (Resolution L2)
 **[Visual]**: Gear config icon and folder icon.
 **[Slide Text]**:
 - **L2 Action Plan:**
@@ -232,14 +225,14 @@ This document serves as a slide storyboard for creating the presentation deck fo
   3. Check Windows Server Disk Space.
 **[Speaker Notes]**: "L2 จะต้องทำ 3 อย่างครับ: 1. เช็คว่าไฟล์ใหญ่กว่าที่ Config ไว้ในระบบไหม 2. เช็คว่าโฟลเดอร์ /uploads บนเครื่อง Server มีพื้นที่เต็มหรือไม่ 3. เช็ค Permission ว่า Service Account ที่รันแอปมีสิทธิ์ Write ไฟล์หรือเปล่า"
 
-### Slide 27: Scenario D - Database Save Errors (Symptom)
+### Slide 26: Scenario D - Database Save Errors (Symptom)
 **[Visual]**: Error 500 graphic or SQL icon.
 **[Slide Text]**:
 - **Symptom:** "An error occurred while saving the draft."
 - **Context:** Often related to concurrent accesses or network interruptions to DB.
 **[Speaker Notes]**: "Scenario สุดท้าย เกิด Error 500 ระหว่างที่ User กดบันทึก Draft ครับ สาเหตุมักเกิดจากปัญหาคอขวดของ Database (Concurrent access) หรือ Network ระหว่าง App กับ Database ขาดหาย"
 
-### Slide 28: Scenario D - Database Save Errors (Resolution L2)
+### Slide 27: Scenario D - Database Save Errors (Resolution L2)
 **[Visual]**: Log snippet highlighting `SQL Deadlock`.
 **[Slide Text]**:
 - **L2 Action Plan:**
@@ -252,14 +245,14 @@ This document serves as a slide storyboard for creating the presentation deck fo
 
 ## Part 6: Wrap-up (5 Minutes)
 
-### Slide 29: Escalation Matrix
+### Slide 28: Escalation Matrix
 **[Visual]**: Arrow graphic pointing upwards (L1 -> L2 -> Dev).
 **[Slide Text]**:
 - Ensure all L2 checks (Logs, UI Configs) are done before escalating.
 - Include Transaction ID (`txId`) and Exact Error Logs when escalating to Development/Vendor.
 **[Speaker Notes]**: "ข้อควรระวังก่อนทำการ ส่งเรื่องต่อ (Escalate) ให้ทางทีม Developer หรือ Vendor ครับ ขอให้ชัวร์ว่าทีมทำ L2 Checks แล้ว และที่สำคัญที่สุด เวลาส่งเรื่อง โปรดแนบ Transaction ID (txId) พร้อม Error Logs เสมอ จะช่วยให้แก้ปัญหาได้ไวขึ้นมากครับ"
 
-### Slide 30: Q&A
+### Slide 29: Q&A
 **[Visual]**: Question mark graphic.
 **[Slide Text]**:
 - **Questions?**
