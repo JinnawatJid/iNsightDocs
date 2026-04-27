@@ -43,21 +43,20 @@ This document serves as a slide storyboard for creating the presentation deck fo
 **[Visual]**:
 ```mermaid
 flowchart LR
-    User([ผู้ใช้งานระบบ]) -->|เข้าใช้งานผ่านอินเทอร์เน็ต (HTTPS)| Frontend
+    User([ผู้ใช้งานระบบ]) -->|"เข้าใช้งานผ่าน ฺBrowser (HTTPS)"| Frontend
 
     subgraph "ส่วนหน้าจอแสดงผล (Frontend)"
-        Frontend[แอปพลิเคชันหน้าจอ (Vue.js)]
+        Frontend["แอปพลิเคชันหน้าจอ (Vue.js)"]
     end
 
-    Frontend <-->|รับ-ส่งข้อมูล (REST APIs)| Backend
+    Frontend <-->|"รับ-ส่งข้อมูล (REST APIs)"| Backend
 
     subgraph "ส่วนประมวลผลหลัก (Backend)"
-        Backend[ระบบหลังบ้าน (Node.js / Express)]
+        Backend["ระบบหลังบ้าน (Node.js)"]
     end
 
-    Backend <-->|บันทึก/อ่านข้อมูล| DB[(ฐานข้อมูล MSSQL / SQLite)]
-    Backend <-->|เชื่อมต่อข้อมูลลูกค้า| Ext1[ระบบ Navision ERP]
-    Backend <-->|ดึงข้อมูลจากกรมพัฒนาธุรกิจฯ| Ext2[บริการ DBD]
+    Backend <-->|บันทึก/อ่านข้อมูล| DB[("ฐานข้อมูล MSSQL")]
+    Backend <-->|เชื่อมต่อข้อมูลลูกค้า| Ext1["ระบบ ERP"]
 ```
 **[Slide Text]**:
 - **Purpose:** Digitize & streamline credit limit requests.
