@@ -28,11 +28,11 @@ This document serves as a slide storyboard for creating the presentation deck fo
 ### Slide 3: Agenda
 **[Visual]**: Bulleted list with distinct icons.
 **[Slide Text]**:
-1. System Overview & Architecture (10 mins)
-2. Project Library & Documentation (10 mins)
-3. Deployment & Environment (10 mins)
-4. Common L1/L2 Support Scenarios (20 mins)
-5. Q&A & Wrap-up (5 mins)
+- แนวคิดการออกแบบของระบบ และการทำงานเบื้องต้น
+- รูปแบบเอกสาร และที่มาของเอกสารในระบบ
+- โครงสร้างของระบบ และการจัดเก็บไฟล์ในระบบ
+- การรับมือและแก้ไขปัญหาในการใช้งานเบื้องต้น
+- Q&A ถามตอบ
 **[Speaker Notes]**: "สำหรับ Agenda 1 ชั่วโมงในวันนี้ เราจะแบ่งตามนี้ครับ: เริ่มจาก Overview, ตามด้วย Documentation, Deployment Process, และจะใช้เวลาส่วนใหญ่เจาะลึกที่ Troubleshooting Scenarios ก่อนจะปิดท้ายด้วย Q&A ครับ"
 
 ---
