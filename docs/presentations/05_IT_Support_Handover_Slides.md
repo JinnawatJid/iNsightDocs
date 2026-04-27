@@ -232,7 +232,15 @@ release/
 ## Part 5: Common L1/L2 Support Scenarios (20 Minutes)
 
 ### Slide 21: Defining L1 vs L2
-**[Visual]**: Pyramid or Two-tier escalation graphic.
+**[Visual]**:
+```mermaid
+flowchart LR
+    User(["ผู้ใช้งาน (User)"]) -->|"แจ้งปัญหา"| L1["Support Level 1<br>(Helpdesk)"]
+    L1 -->|"แก้ปัญหาพื้นฐาน"| Done1(["แก้ไขสำเร็จ"])
+    L1 -->|"ปัญหาซับซ้อน (Escalate)"| L2["Support Level 2<br>(IT Operations)"]
+    L2 -->|"ตรวจสอบ Logs / ฐานข้อมูล"| Done2(["แก้ไขสำเร็จ"])
+    L2 -->|"พบ Bug ระดับโค้ด"| Dev(["ทีมผู้พัฒนา (Developer)"])
+```
 **[Slide Text]**:
 - **L1 (Helpdesk):** Basic usage queries, password resets, basic access issues.
 - **L2 (Application Support):** Log analysis, Database investigations, Configuration changes.
