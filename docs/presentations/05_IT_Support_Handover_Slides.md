@@ -133,13 +133,24 @@ flowchart TD
 
 ## Part 3: Project Library & Documentation (10 Minutes)
 
-### Slide 11: Where is Everything?
-**[Visual]**: Screenshot of Git repository focusing on the `docs/` folder.
+### Slide 11: Release Directory Structure (Deployment Anatomy)
+**[Visual]**:
+```text
+release/
+├── backend/            # Source code ฝั่งประมวลผล (Node.js)
+├── dist/               # โค้ดส่วนหน้าจอที่ถูก Build แล้ว (Vue.js)
+├── logs/               # [สำคัญ] เก็บไฟล์ Log สำหรับตรวจสอบ Error
+├── uploads/            # [สำคัญ] พื้นที่จัดเก็บเอกสารแนบของผู้ใช้งาน
+├── node.exe            # Standalone Runtime
+├── server.js           # จุดเริ่มต้นการทำงานของระบบ
+└── .env                # ไฟล์ตั้งค่า Environment และ Database
+```
 **[Slide Text]**:
-- **The "Project Library"**
-- Hosted alongside source code in `docs/` directory.
-- Version-controlled documentation.
-**[Speaker Notes]**: "สำหรับ Documentation ทั้งหมดของระบบ เราเรียกมันว่า 'Project Library' ครับ ซึ่งจะถูกเก็บรวบรวมไว้ที่โฟลเดอร์ `docs/` ใน Repository เดียวกับ Source Code ข้อดีคือ Document จะถูก Version-control ไปพร้อมๆ กับการอัปเดตระบบครับ"
+- โครงสร้างโฟลเดอร์หลังจากรัน `create_release.bat`
+- **`logs/`**: จุดแรกที่ IT ต้องเข้ามาดูเมื่อเกิดปัญหา
+- **`uploads/`**: ต้องแน่ใจว่าโฟลเดอร์นี้มีพื้นที่ว่างและเขียนข้อมูลได้
+- **`.env`**: เก็บความลับของระบบ ห้ามส่งต่อให้บุคคลภายนอก
+**[Speaker Notes]**: "ใน Slide นี้คือหน้าตาของโฟลเดอร์ Release ที่ได้จากการรัน Script `create_release.bat` เพื่อนำไปขึ้นระบบครับ สำหรับทีม IT Support จุดที่ต้องโฟกัสคือโฟลเดอร์ `logs` ที่ใช้สำหรับวิเคราะห์ปัญหา (Inspect errors) และ `uploads` ซึ่งเก็บไฟล์ที่ผู้ใช้แนบเข้ามา ต้องคอยตรวจสอบไม่ให้พื้นที่เต็มครับ ส่วน `.env` คือหัวใจที่เก็บรหัสผ่านฐานข้อมูล ห้ามเผลอส่งให้ใครเด็ดขาดครับ"
 
 ### Slide 12: Production Readiness
 **[Visual]**: Clipboard / Checklist icon.
