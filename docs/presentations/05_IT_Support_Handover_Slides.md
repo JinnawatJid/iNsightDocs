@@ -100,8 +100,8 @@ flowchart LR
 **[Visual]**:
 ```mermaid
 flowchart LR
-    A(["ผู้สร้างคำขอ (Draft)"]) -->|"เปิดคำขอ"| B(["ผู้จัดการสาขา (Opened)"])
-    B -->|"ส่งต่อ"| C(["ผู้จัดการภาค (RegionalSubmitted)"])
+    A(["ผู้จัดการสาขา (Opened)"]) -->|"ส่งต่อ"| B(["ผู้จัดการภาค (RegionalSubmitted)"])
+    B -->|"ส่งต่อ"| C(["ผู้จัดการฝ่ายขาย (PendingSales)"])
     C -->|"ส่งต่อ"| D(["เจ้าหน้าที่ฝ่ายการเงิน (SalesSubmitted)"])
     D -->|"ส่งต่อ"| E(["ผู้จัดการฝ่ายการเงิน (FinanceReviewed)"])
     E -->|"ส่งต่อ (ถ้าวงเงินเกิน)"| F(["กรรมการเครดิต (Reviewed)"])
