@@ -17,23 +17,7 @@ This document serves as a slide storyboard for creating the presentation deck fo
 **[Speaker Notes]**: "สวัสดีครับทุกท่าน ยินดีต้อนรับเข้าสู่ช่วง IT Support & Operations Handover ของระบบ Credit Request Application ครับ วันนี้เป้าหมายของเราคือการส่งมอบความรู้ เพื่อให้ทีม Operation สามารถดูแลระบบได้อย่างมั่นใจครับ"
 
 ### Slide 2: Objectives of this Session
-**[Visual]**:
-```mermaid
-mindmap
-  root((Handover\nGoals))
-    Architecture
-      App Components
-      Data Flow
-    Documentation
-      Project Library
-      RACI Matrix
-    Deployment
-      Standalone Node.js
-      Environment Config
-    Support
-      L1 Triage
-      L2 Log Analysis
-```
+**[Visual]**: Target/Bullseye Icon.
 **[Slide Text]**:
 - Understand System Architecture & Components
 - Locate and Utilize Project Documentation
@@ -42,17 +26,7 @@ mindmap
 **[Speaker Notes]**: "วัตถุประสงค์ (Objectives) หลักของ Session ในวันนี้มี 4 ข้อครับ: 1. เข้าใจ Architecture 2. รู้แหล่งเก็บ Document 3. เข้าใจขั้นตอน Deployment และ 4. สามารถรับมือกับ Incidents ระดับ L1/L2 ได้อย่างมีประสิทธิภาพครับ"
 
 ### Slide 3: Agenda
-**[Visual]**:
-```mermaid
-timeline
-    title 60-Minute Handover Timeline
-    0-5 mins : Introduction & Objectives
-    5-15 mins : Architecture & User Journey
-    15-25 mins : Documentation & RACI
-    25-35 mins : Deployment Strategy
-    35-55 mins : Troubleshooting L1/L2 Scenarios
-    55-60 mins : Q&A
-```
+**[Visual]**: Bulleted list with distinct icons.
 **[Slide Text]**:
 1. System Overview & Architecture (10 mins)
 2. Project Library & Documentation (10 mins)
@@ -75,15 +49,7 @@ timeline
 **[Speaker Notes]**: "เพื่อปูพื้นฐาน ภาพรวมของระบบนี้คือการทำ Digital Transformation ให้กระบวนการขออนุมัติวงเงินเครดิตครับ ระบบเราแบ่งเป็น 2-Tier ชัดเจน คือ Frontend ที่พัฒนาด้วย Vue.js รับผิดชอบหน้าจอ และ Backend ที่พัฒนาด้วย Node.js ควบคุม Logic ทั้งหมด โดยเก็บข้อมูลลงบน MSSQL ครับ"
 
 ### Slide 5: The User Journey (What Users Do)
-**[Visual]**:
-```mermaid
-graph LR
-    A[Sales Initiator] -->|Input Data| B(System Validation)
-    B -->|Fetch External DB| C{Data Valid?}
-    C -->|Yes| D[Reviewer]
-    C -->|No| E[IT Support / Fallback]
-    D -->|Recommend| F[Final Approver]
-```
+**[Visual]**: Flowchart of the User Journey (Initiator -> Reviewer -> Approver).
 **[Slide Text]**:
 - **1. Initiation:** Sales team inputs customer data.
 - **2. Validation:** System fetches external data (Navision/DBD).
