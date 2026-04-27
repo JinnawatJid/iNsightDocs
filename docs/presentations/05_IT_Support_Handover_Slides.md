@@ -40,7 +40,25 @@ This document serves as a slide storyboard for creating the presentation deck fo
 ## Part 2: System Overview & Architecture (10 Minutes)
 
 ### Slide 4: High-Level Architecture & Tech Stack
-**[Visual]**: Simple 3-tier diagram combined with Tech Stack Logos (Vue.js, Node.js, MSSQL).
+**[Visual]**:
+```mermaid
+flowchart LR
+    User([Business User]) -->|HTTPS| Frontend
+
+    subgraph "Frontend Tier"
+        Frontend[Vue.js UI]
+    end
+
+    Frontend <-->|REST APIs| Backend
+
+    subgraph "Backend Tier"
+        Backend[Node.js / Express]
+    end
+
+    Backend <-->|SQL| DB[(MSSQL / SQLite)]
+    Backend <-->|API Calls| Ext1[Navision ERP]
+    Backend <-->|API Calls| Ext2[DBD Services]
+```
 **[Slide Text]**:
 - **Purpose:** Digitize & streamline credit limit requests.
 - **Frontend:** Vue.js (UI & Validation)
