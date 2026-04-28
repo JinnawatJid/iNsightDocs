@@ -49,18 +49,12 @@ timeline
 ### Slide 4: System Infrastructure Topology
 **[Visual]**:
 ```mermaid
-flowchart TD
-    User([ผู้ใช้งานระบบ]) -->|"HTTPS (Port 443/80)"| WebServer[Web Server / Reverse Proxy]
+flowchart LR
+    User([ผู้ใช้งานระบบ]) -->|"เข้าใช้งานผ่าน Browser"| App["Application Server<br/>(Node.js / Vue.js)"]
 
-    subgraph "Application Server (Windows/Linux VM)"
-        WebServer -->|"Forward Port 3000"| Node[Node.js Runtime (Standalone)]
-        Node -->|"Serve Static Files"| Dist[Frontend Assets (Vue.js)]
-        Node -->|"File System"| Uploads[(/uploads Folder)]
-    end
-
-    Node <-->|"ODBC / TCP 1433"| DB[(Database Server - MSSQL)]
-    Node <-->|"REST API"| ERP[Navision ERP System]
-    Node <-->|"REST API"| DBD[DBD External Services]
+    App <-->|"ดึง/บันทึกข้อมูล"| DB[("Database Server<br/>(MSSQL)")]
+    App <-->|"ดึงข้อมูลลูกค้า"| ERP["ระบบ ERP<br/>(Navision)"]
+    App <-->|"ดึงข้อมูลงบการเงิน"| DBD["บริการภายนอก<br/>(DBD)"]
 ```
 **[Slide Text]**:
 - **Application Server:** Node.js Standalone รันแอปพลิเคชันและ Serve หน้าเว็บ
