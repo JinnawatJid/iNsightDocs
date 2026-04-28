@@ -253,7 +253,7 @@ flowchart LR
 
 ---
 
-## Part 5: Wrap-up (5 Minutes)
+## Part 4: Wrap-up (5 Minutes)
 
 ### Slide 25: Escalation Matrix
 **[Visual]**: Arrow graphic pointing upwards (L1 -> L2 -> Dev).

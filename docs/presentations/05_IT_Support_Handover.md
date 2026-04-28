@@ -6,10 +6,9 @@ This document provides the Agenda and Presentation Script for the official proje
 
 ## 📅 Agenda (วาระการประชุม)
 1. **System Overview & Architecture:** ภาพรวมของระบบและสถาปัตยกรรม (Frontend, Backend, Database)
-2. **Project Library & Documentation:** แนะนำเอกสารคู่มือต่างๆ ที่จำเป็นสำหรับการดูแลระบบ
-3. **Deployment & Environment:** ขั้นตอนการ Deploy และการจัดการ Environment Variables
-4. **Common L1/L2 Support Scenarios:** แนวทางการแก้ไขปัญหาเบื้องต้นและปัญหาที่พบบ่อย (Industry Standard)
-5. **Q&A:** ถาม-ตอบ
+2. **Deployment & Environment:** ขั้นตอนการ Deploy และการจัดการ Environment Variables
+3. **Common L1/L2 Support Scenarios:** แนวทางการแก้ไขปัญหาเบื้องต้นและปัญหาที่พบบ่อย (Industry Standard)
+4. **Q&A:** ถาม-ตอบ
 
 ---
 
@@ -28,21 +27,12 @@ This document provides the Agenda and Presentation Script for the official proje
 
 จุดที่สำคัญสำหรับทีม Support คือการเชื่อมต่อเหล่านี้ครับ หากผู้ใช้งานแจ้งว่า 'ดึงข้อมูลลูกค้าไม่ได้' ปัญหาอาจจะไม่ได้อยู่ที่แอปของเรา แต่อาจเกิดจาก External API Timeout ซึ่งทางทีมสามารถตรวจสอบได้จาก Logs ของ Backend ครับ"
 
-**[2. Project Library & Documentation (10 นาที)]**
-"เพื่อสนับสนุนการทำงานของทีม เราได้เตรียม **Project Library** ไว้ในโฟลเดอร์ `docs/` ใน Repository ของโปรเจกต์ครับ เอกสารสำคัญที่ทีม Support ควรทราบได้แก่:
-
-*   **`PRODUCTION_READINESS_CHECKLIST.md`:** รายการตรวจสอบก่อนขึ้นระบบจริง
-*   **`RELEASE_PROCESS.md`:** คู่มือการสร้าง Release Build อัตโนมัติด้วย Script
-*   **`RACI_MATRIX.md`:** ตารางแสดงสิทธิ์การเข้าถึงและการอนุมัติของแต่ละ Role ซึ่งจะมีประโยชน์มากเวลาผู้ใช้สอบถามว่า 'ทำไมถึงมองไม่เห็นปุ่มอนุมัติ'
-
-เอกสารเหล่านี้คือ 'Single Source of Truth' สำหรับการ Operation ระบบนี้ครับ"
-
-**[3. Deployment & Environment (10 นาที)]**
+**[2. Deployment & Environment (10 นาที)]**
 "สำหรับการนำระบบขึ้น Production เรามี Script `create_release.bat` ที่จะรวมโค้ด Frontend และ Backend เข้าด้วยกัน รวมถึงดาวน์โหลด Node.js Binary มาไว้ในโฟลเดอร์ `release/` ทำให้แอปพลิเคชันของเราเป็น Standalone และสามารถนำไปรันบน Windows Server ได้ทันทีโดยไม่ต้องลง Node.js เพิ่มเติมครับ (Zero-dependency deployment)
 
 จุดที่ต้องระวังคือไฟล์ `.env` ครับ ค่าต่างๆ เช่น Database Connection String (`DB_USER`, `DB_PASSWORD`) และ API URLs จะถูกเก็บไว้ที่นี่ หากมีการเปลี่ยนรหัสผ่าน Database ต้องมาอัปเดตที่ไฟล์นี้และ Restart Backend Service ครับ"
 
-**[4. Common L1/L2 Support Scenarios (20 นาที)]**
+**[3. Common L1/L2 Support Scenarios (20 นาที)]**
 "ทีนี้มาดู Use Case จริงที่ทีม Support ระดับ L1/L2 มักจะเจอตามมาตรฐานอุตสาหกรรม (Industry Standard) ของระบบประเภทนี้กันครับ:
 
 **Scenario A: ระบบทำงานช้า หรือ หน้าเว็บโหลดข้อมูลไม่ขึ้น (Performance/Connectivity Issues)**
@@ -72,7 +62,7 @@ This document provides the Agenda and Presentation Script for the official proje
     1. ดู Logs ว่ามีข้อความเกี่ยวกับ `SQL Deadlock` หรือ `Timeout` หรือไม่
     2. ตรวจสอบการเชื่อมต่อ VPN ระหว่าง Server กับ Database (เนื่องจากเป็น Air-gapped environment)
 
-**[5. Q&A & Wrap up (5 นาที)]**
+**[4. Q&A & Wrap up (5 นาที)]**
 "นี่คือภาพรวมทั้งหมดของการดูแลรักษาระบบครับ มีท่านใดมีข้อสงสัยเกี่ยวกับส่วนไหน หรืออยากให้เจาะลึกเรื่องการดู Logs เพิ่มเติมไหมครับ?"
 
 ---
