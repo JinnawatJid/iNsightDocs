@@ -1,12 +1,12 @@
-# IT Support & Operations Handover - Slide Storyboard
+# IT Support & Operations Handover - Slide Storyboard (I&O Focus)
 
 This document serves as a slide storyboard for creating the presentation deck for the IT Support and Operations Handover Session. It outlines the visual elements, text to be displayed on each slide, and the speaker notes (using English technical terms with Thai explanations).
 
-*Note: This presentation is designed for a 60-minute session, assuming approximately 2 minutes per slide.*
+*Note: This presentation is designed for a 60-minute Infrastructure & Operations (I&O) session, focusing strictly on deployment, maintenance, and troubleshooting.*
 
 ---
 
-## Part 1: Introduction (5 Minutes)
+## Part 1: Introduction & System Components (10 Minutes)
 
 ### Slide 1: Title Slide
 **[Visual]**: Company Logo / Project Logo on a clean background.
@@ -14,167 +14,149 @@ This document serves as a slide storyboard for creating the presentation deck fo
 - **IT Support & Operations Handover**
 - Credit Request Application System
 - Presenter Name | Date
-**[Speaker Notes]**: "สวัสดีครับทุกท่าน ยินดีต้อนรับเข้าสู่ช่วง IT Support & Operations Handover ของระบบ Credit Request Application ครับ วันนี้เป้าหมายของเราคือการส่งมอบความรู้ เพื่อให้ทีม Operation สามารถดูแลระบบได้อย่างมั่นใจครับ"
+**[Speaker Notes]**: "สวัสดีครับทุกท่าน ยินดีต้อนรับเข้าสู่ช่วง IT Support & Operations Handover ของระบบ Credit Request Application ครับ วันนี้เป้าหมายของเราคือการส่งมอบความรู้ เพื่อให้ทีม Operation สามารถดูแล ติดตั้ง และบำรุงรักษาระบบได้อย่างมั่นใจครับ"
 
 ### Slide 2: Objectives of this Session
 **[Visual]**: Target/Bullseye Icon.
 **[Slide Text]**:
-- เข้าใจแนวคิดการออกแบบของระบบ และการทำงานเบื้องต้น
-- เข้าใจโครงสร้างของระบบ และการจัดเก็บไฟล์ในระบบ
-- สามารถรับมือและแก้ไขปัญหาในการใช้งานได้อย่างมีประสิทธิภาพ
-**[Speaker Notes]**: "วัตถุประสงค์ (Objectives) หลักของ Session ในวันนี้มี 4 ข้อครับ: 1. เข้าใจ Architecture 2. เข้าใจขั้นตอน Deployment และ 3. สามารถรับมือกับ Incidents ระดับ L1/L2 ได้อย่างมีประสิทธิภาพครับ"
+- เข้าใจโครงสร้าง Infrastructure และองค์ประกอบของระบบ
+- เข้าใจขั้นตอนการ Deployment และการ Migration ระบบไปยัง Server ใหม่
+- สามารถตั้งค่า Environment และจัดการ Services ของระบบได้
+- สามารถรับมือและวิเคราะห์ปัญหาเบื้องต้น (Log Analysis) เพื่อแก้ไขปัญหาได้อย่างรวดเร็ว
+**[Speaker Notes]**: "วัตถุประสงค์หลักในวันนี้คือเพื่อให้ทีม IT เข้าใจ Infrastructure, สามารถ Deploy และ Migrate ระบบได้, จัดการ Service ต่างๆ ได้ และที่สำคัญคือสามารถวิเคราะห์ Logs เพื่อแก้ปัญหา (Troubleshooting) ให้ User ได้ครับ"
 
 ### Slide 3: Agenda
-**[Visual]**: Bulleted list with distinct icons.
+**[Visual]**:
+```mermaid
+timeline
+    title 60-Minute Handover Timeline
+    0-10 mins : Introduction & System Components
+    10-20 mins : Prerequisites & Environment
+    20-35 mins : Deployment & Migration Procedures
+    35-45 mins : Service Management & Maintenance
+    45-55 mins : Operational Troubleshooting (L1/L2)
+    55-60 mins : Q&A
+```
 **[Slide Text]**:
-- แนวคิดการออกแบบของระบบ และการทำงานเบื้องต้น
-- โครงสร้างของระบบ และการจัดเก็บไฟล์ในระบบ
-- การรับมือและแก้ไขปัญหาในการใช้งานเบื้องต้น
+- โครงสร้าง Infrastructure และองค์ประกอบของระบบ (System Components)
+- การเตรียมความพร้อมของ Server (Prerequisites & Environment)
+- ขั้นตอนการติดตั้งและย้ายระบบ (Deployment & Migration Procedures)
+- การจัดการ Service และบำรุงรักษา (Service Management & Maintenance)
+- การรับมือและการแก้ปัญหาการใช้งาน (Operational Troubleshooting)
 - Q&A ถามตอบ
-**[Speaker Notes]**: "สำหรับ Agenda 1 ชั่วโมงในวันนี้ เราจะแบ่งตามนี้ครับ: เริ่มจาก Overview, ตามด้วย Deployment Process, และจะใช้เวลาส่วนใหญ่เจาะลึกที่ Troubleshooting Scenarios ก่อนจะปิดท้ายด้วย Q&A ครับ"
+**[Speaker Notes]**: "สำหรับ Agenda วันนี้เราจะเน้นไปที่งานของ Operation ล้วนๆ ครับ เริ่มตั้งแต่ Infrastructure Topology, การตั้งค่า Environment, การทำ Deployment, งาน Maintenance รายวัน ไปจนถึงการแก้ปัญหา L1/L2 ครับ"
 
----
-
-## Part 2: System Overview & Architecture (10 Minutes)
-
-### Slide 4: High-Level Architecture & Tech Stack
-**[Visual]**:
-```mermaid
-flowchart LR
-    User([ผู้ใช้งานระบบ]) -->|"เข้าใช้งานผ่าน ฺBrowser (HTTPS)"| Frontend
-
-    subgraph "ส่วนหน้าจอแสดงผล (Frontend)"
-        Frontend["แอปพลิเคชันหน้าจอ (Vue.js)"]
-    end
-
-    Frontend <-->|"รับ-ส่งข้อมูล (REST APIs)"| Backend
-
-    subgraph "ส่วนประมวลผลหลัก (Backend)"
-        Backend["ระบบหลังบ้าน (Node.js)"]
-    end
-
-    Backend <-->|บันทึก/อ่านข้อมูล| DB[("ฐานข้อมูล MSSQL")]
-    Backend <-->|เชื่อมต่อข้อมูลลูกค้า| Ext1["ระบบ ERP"]
-```
-**[Slide Text]**:
-- **Purpose:** Digitize & streamline credit limit requests.
-- **Frontend:** Vue.js (UI & Validation)
-- **Backend:** Node.js / Express (Business Logic & External APIs)
-- **Database:** MSSQL / SQLite
-**[Speaker Notes]**: "เพื่อปูพื้นฐาน ภาพรวมของระบบนี้คือการทำ Digital Transformation ให้กระบวนการขออนุมัติวงเงินเครดิตครับ ระบบเราแบ่งเป็น 2-Tier ชัดเจน คือ Frontend ที่พัฒนาด้วย Vue.js รับผิดชอบหน้าจอ และ Backend ที่พัฒนาด้วย Node.js ควบคุม Logic ทั้งหมด โดยเก็บข้อมูลลงบน MSSQL ครับ"
-
-### Slide 5: The User Journey (What Users Do)
-**[Visual]**:
-```mermaid
-flowchart LR
-    Init(["ผู้จัดการสาขา (Initiator)"]) -->|"1. สร้างคำขอและกรอกข้อมูล"| Sys["ระบบ (System)"]
-    Sys <-->|"2. ดึงข้อมูลอัตโนมัติ"| Ext[("ฐานข้อมูล และระบบ ERP")]
-    Sys -->|"3. ส่งต่อตาม Workflow"| Mgr(["ผู้อนุมัติคำขอ (Reviewer/Approver)"])
-    Mgr -->|"4. ตรวจสอบและอนุมัติ"| Done(["เสร็จสิ้น (Approved)"])
-```
-**[Slide Text]**:
-- **1. Initiation:** ผู้จัดการสาขาสร้างคำขอและกรอกข้อมูล.
-- **2. Validation:** ระบบดึงข้อมูลอัตโนมัติจากฐานข้อมูล และระบบ ERP.
-- **3. Review & Approval:** ผู้อนุมัติคำขอตรวจสอบและอนุมัติตาม Workflow.
-**[Speaker Notes]**: "หากเรามองเจาะลงมาในฝั่งของ User Journey กระบวนการหลักจะเริ่มจากผู้จัดการสาขาที่เป็นผู้ริเริ่มสร้างคำขอ จากนั้นระบบจะไปดึงข้อมูลประกอบจากฐานข้อมูลและ ERP เมื่อข้อมูลครบถ้วน คำขอจะถูกส่งต่อให้ผู้อนุมัติตามสายงานครับ"
-
-### Slide 6: User Journey Step 1 - สร้างคำขอและกรอกข้อมูล
-**[Visual]**: Screenshot of the `/create-credit-request` form (Search Customer & Input Data).
-**[Slide Text]**:
-- ผู้จัดการสาขาทำการค้นหาลูกค้าจากฐานข้อมูล
-- กรอกข้อมูลวงเงินและเครดิตเทอมที่ต้องการขอ
-- แนบเอกสารประกอบการพิจารณาเบื้องต้น
-**[Speaker Notes]**: "ขั้นตอนแรกสุดเลย ผู้จัดการสาขาจะเข้ามาที่หน้านี้ครับ เพื่อค้นหาชื่อลูกค้าแล้วระบบจะดึง Baseline Data มาให้ หลังจากนั้นก็กรอกวงเงินใหม่ที่ต้องการขอ แล้วก็แนบเอกสารครับ จุดนี้ L1/L2 มักจะเจอคำถามเรื่องอัปโหลดไฟล์ไม่ผ่านบ่อยที่สุด"
-
-### Slide 7: User Journey Step 2 - ดึงข้อมูลอัตโนมัติ
-**[Visual]**: Screenshot of the UI showing loading indicators or the populated financial documents section.
-**[Slide Text]**:
-- ระบบเชื่อมต่อ API ไปยังระบบ ERP (Navision)
-- ดึงข้อมูลงบการเงินจากกรมพัฒนาธุรกิจฯ (DBD Services)
-- ระบบตรวจสอบความถูกต้องของ VAT Number
-**[Speaker Notes]**: "พอผู้ใช้งานกดต่อไป ระบบจะวิ่งมาทำงานเบื้องหลังใน Step ที่ 2 ครับ คือไปดึงข้อมูลจาก ERP และดึงงบการเงินจาก DBD จุดที่ IT ต้องระวังคือ ถ้า Navision หรือ DBD ล่ม หน้าจอนี้จะโหลดนานผิดปกติ ซึ่งเรามี Fallback Logic รองรับไว้แล้วครับ"
-
-### Slide 8: User Journey Step 3 - ส่งต่อตาม Workflow
+### Slide 4: System Infrastructure Topology
 **[Visual]**:
 ```mermaid
 flowchart TD
-    A(["ผู้จัดการสาขา (Opened)"]) -->|"ส่งต่อ"| B(["ผู้จัดการภาค (RegionalSubmitted)"])
-    B -->|"ส่งต่อ"| C(["ผู้จัดการฝ่ายขาย (PendingSales)"])
-    C -->|"ส่งต่อ"| D(["เจ้าหน้าที่ฝ่ายการเงิน (SalesSubmitted)"])
-    D -->|"ส่งต่อ"| E(["ผู้จัดการฝ่ายการเงิน (FinanceReviewed)"])
-    E -->|"ส่งต่อ (ถ้าวงเงินเกิน)"| F(["กรรมการเครดิต (Reviewed)"])
+    User([ผู้ใช้งานระบบ]) -->|"HTTPS (Port 443/80)"| WebServer[Web Server / Reverse Proxy]
 
-    F -->|"Approved / Rejected"| G(["เสร็จสิ้น"])
-    E -->|"Approved / Rejected (ถ้าวงเงินไม่เกิน)"| G
+    subgraph "Application Server (Windows/Linux VM)"
+        WebServer -->|"Forward Port 3000"| Node[Node.js Runtime (Standalone)]
+        Node -->|"Serve Static Files"| Dist[Frontend Assets (Vue.js)]
+        Node -->|"File System"| Uploads[(/uploads Folder)]
+    end
+
+    Node <-->|"ODBC / TCP 1433"| DB[(Database Server - MSSQL)]
+    Node <-->|"REST API"| ERP[Navision ERP System]
+    Node <-->|"REST API"| DBD[DBD External Services]
 ```
 **[Slide Text]**:
-- สร้าง Transaction ID (txId) ในระบบ
-- บันทึกข้อมูลลง Snapshot Data สำหรับทำ Audit Trail
-- คำขอไปปรากฏในคิวรออนุมัติของหัวหน้า
-**[Speaker Notes]**: "เมื่อส่งคำขอสำเร็จ ระบบจะสร้างเลข Transaction (txId) และบันทึก Snapshot ไว้ แล้วคำขอนี้ก็จะเด้งไปอยู่ในคิว Pending Requests ของผู้ที่มีสิทธิ์อนุมัติครับ ถ้าผู้จัดการบอกว่าไม่เห็นคำขอ ทีม IT ต้องมาเช็คเรื่อง Role Management ในขั้นตอนนี้ครับ"
-
-### Slide 9: User Journey Step 4 - ตรวจสอบและอนุมัติ
-**[Visual]**: Screenshot of the `Review Dashboard` showing the Approve/Reject buttons and original vs requested comparison.
-**[Slide Text]**:
-- ผู้อนุมัติเข้าดูข้อมูลทั้งหมดแบบ Read-only
-- ดูข้อมูลเปรียบเทียบวงเงินเดิม และวงเงินที่ขอใหม่
-- ทำการอนุมัติ (Approve) หรือ ปฏิเสธ (Reject)
-**[Speaker Notes]**: "และขั้นตอนสุดท้าย ผู้อนุมัติจะเข้ามาที่หน้า Review Dashboard ซึ่งจะเป็นโหมด Read-only ครับ เพื่อดูวงเงินเดิมเทียบกับวงเงินที่ขอใหม่ แล้วกด Approve ระบบก็จะแจ้งเตือนสถานะกลับไปยังคนขอ ถือว่าจบ Flow การทำงานหลักครับ"
-
-### Slide 10: IT Operations Role (How IT Supports Users)
-**[Visual]**: IT Support Icon overlooking logs and UI dashboards.
-**[Slide Text]**:
-- **Monitoring:** Checking Application Logs for external API timeouts.
-- **Configuration:** Adjusting Dynamic RBAC (Role permissions) via UI.
-- **Intervention:** Fallback activations & resolving file upload constraints.
-**[Speaker Notes]**: "และจุดที่สำคัญที่สุดสำหรับทีม IT Operations ในกระบวนการนี้คือ การ Monitor ครับ เมื่อ User Journey สะดุด เช่นค้นหาลูกค้าไม่เจอ ทีม IT ต้องเข้ามาดู Logs ว่าเกิด API Timeout หรือไม่ หรือหากผู้ใช้งานติดปัญหาเรื่องสิทธิ์ ทีมก็ต้องเข้ามาช่วยปรับ Role Management ผ่านหน้า UI ครับ"
-
-## Part 3: Deployment & Environment (10 Minutes)
-
-### Slide 11: Deployment Strategy
-**[Visual]**: Box icon (Standalone application).
-**[Slide Text]**:
-- **Zero-Dependency Deployment.**
-- No need to globally install Node.js on Production Servers.
-- Everything packaged via `create_release.bat`.
-**[Speaker Notes]**: "เข้าสู่เรื่อง Deployment ครับ Strategy ที่เราใช้คือ 'Zero-Dependency' หมายความว่าทีมสามารถนำ Artifact ที่ถูก Build แพ็ครวมกันแล้วไปวางบน Windows Server ได้เลย โดยไม่จำเป็นต้อง Install Node.js ทิ้งไว้ในเครื่อง Server ให้ยุ่งยากครับ"
-
-### Slide 12: The `.env` File (The Brain)
-**[Visual]**: Code snippet of `.env` file (masking passwords).
-**[Slide Text]**:
-- Application settings reside in `.env`.
-- Database Strings, API Endpoints, Feature Toggles.
-- **Rule:** Never commit `.env` to Git.
-**[Speaker Notes]**: "ตัวควบคุมพฤติกรรมของแอป (The Brain) คือไฟล์ `.env` ครับ ค่าต่างๆ เช่น Database Credentials หรือ URL ของ API จะถูกตั้งค่าที่นี่ กฎเหล็ก (Golden Rule) ของเราคือห้ามนำไฟล์ .env ที่เป็น Production อัปโหลดเข้าสู่ Git Repository เด็ดขาดครับ"
-
-### Slide 13: Key Environment Variables
-**[Visual]**: Table showing variable names and definitions.
-**[Slide Text]**:
-- `DB_USER` / `DB_PASSWORD`
-- `FEATURE_ISOLATE_INITIATOR_REQUESTS` (Toggles data visibility rules).
-- `MAX_FILE_UPLOAD_SIZE_MB`
-**[Speaker Notes]**: "ตัวแปรสำคัญในไฟล์ `.env` ที่ทีมควรทราบได้แก่ ชุดเชื่อมต่อ DB, Feature Toggles อย่าง `ISOLATE_INITIATOR_REQUESTS` ที่ใช้เปิด-ปิด Rule การมองเห็นข้อมูลของผู้สร้างคำขอ และการกำหนดขนาดไฟล์อัปโหลดครับ"
-
-### Slide 14: File System Structure on Server
-**[Visual]**: Directory tree (`/release`, `/logs`, `/uploads`).
-**[Slide Text]**:
-- `/release` - The application binary.
-- `/logs` - PM2 / Application run logs.
-- `/uploads` - Storage for attached documents.
-**[Speaker Notes]**: "เมื่อนำไปวางบน Server โฟลเดอร์จะถูกจัดสรรชัดเจนครับ ตัวแอปจะอยู่ในโฟลเดอร์ release ส่วน /logs จะเก็บประวัติการรัน และ /uploads คือที่เก็บไฟล์แนบ ซึ่งโฟลเดอร์นี้สำคัญมากในการสำรองข้อมูล (Backup)"
-
-### Slide 15: Starting & Restarting Services
-**[Visual]**: Terminal / Command Prompt graphic.
-**[Slide Text]**:
-- Restart needed when `.env` changes.
-- Using Process Managers (e.g., PM2 or Windows Services).
-**[Speaker Notes]**: "ข้อควรจำคือ หากมีการแก้ไขไฟล์ `.env` ทีมจะต้องทำการ Restart Application เสมอเพื่อให้ระบบโหลด Configuration ใหม่ ใน Production เราแนะนำให้รันผ่าน Process Managers เช่น PM2 หรือผูกเป็น Windows Services เพื่อให้แอป Restart ตัวเองได้ถ้าเครื่องรีบูทครับ"
+- **Application Server:** Node.js Standalone รันแอปพลิเคชันและ Serve หน้าเว็บ
+- **Database Server:** ฐานข้อมูลหลัก (MSSQL)
+- **External Connections:** ต้องการ Network/Firewall Rule เพื่อออกไปยัง ERP และ DBD
+**[Speaker Notes]**: "ในมุมของ Infrastructure ระบบเราเป็น Standalone Application รันด้วย Node.js ครับ ตัวมันเองจะทำหน้าที่เป็น Web Server ส่งหน้าเว็บ (Frontend Assets) ให้ User และคุยกับ Database (MSSQL) ผ่าน Port 1433 สิ่งที่ IT ต้องระวังคือ Network Firewall ครับ Server ตัวนี้ต้องสามารถออกเน็ตเพื่อคุยกับ API ของ Navision และ DBD ได้"
 
 ---
 
-## Part 4: Common L1/L2 Support Scenarios (20 Minutes)
+## Part 2: Server Prerequisites & Environments (10 Minutes)
 
-### Slide 16: Defining L1 vs L2
+### Slide 5: Server Prerequisites
+**[Visual]**: Checkbox icon with Server graphic.
+**[Slide Text]**:
+- **OS:** Windows Server 2019+ หรือ Linux
+- **Runtime:** ไม่ต้องติดตั้ง Node.js (Zero-dependency deployment)
+- **Network Ports:** ต้องเปิด Port 3000 (Application) และ 1433 (Database)
+- **Storage:** ต้องการพื้นที่ว่างอย่างน้อย 50GB สำหรับโฟลเดอร์ `uploads/`
+**[Speaker Notes]**: "ก่อนที่เราจะ Deploy สิ่งที่ต้องเตรียมบน Server คือ OS จะเป็น Windows หรือ Linux ก็ได้ครับ ที่น่าสนใจคือระบบเราเป็น Zero-dependency คือไม่ต้องลง Node.js ในเครื่อง Server เพราะเรา Build ตัว Runtime แนบไปให้เลย สิ่งสำคัญคือการเปิด Port 3000 และการเตรียม Disk Space เผื่อไว้สำหรับการอัปโหลดไฟล์ครับ"
+
+### Slide 6: The `.env` Configuration File
+**[Visual]**: Code snippet of `.env` file (masking passwords).
+**[Slide Text]**:
+- **ไฟล์สำคัญที่สุด:** ใช้ควบคุมพฤติกรรมทั้งหมดของระบบ
+- **Database Credentials:** `DB_USER`, `DB_PASSWORD`, `DB_SERVER`, `DB_NAME`
+- **Application Settings:** `PORT`, `NODE_ENV` (ต้องเป็น `production`)
+- **Upload Limits:** `MAX_FILE_UPLOAD_SIZE_MB`
+**[Speaker Notes]**: "หัวใจของระบบอยู่ที่ไฟล์ `.env` ครับ ค่าต่างๆ เช่น Database Connection String, พอร์ตที่แอปจะรัน, หรือขีดจำกัดขนาดไฟล์ จะถูกกำหนดที่นี่ หากมีการเปลี่ยนรหัสผ่าน Database ทีม IT ต้องเข้ามาแก้ไฟล์นี้และ Restart Service ครับ"
+
+---
+
+## Part 3: Deployment & Migration Procedures (15 Minutes)
+
+### Slide 7: Release Generation Process
+**[Visual]**: Gear icon / Automation pipeline graphic.
+**[Slide Text]**:
+- **Script:** `create_release.bat` (ฝั่งทีม Development)
+- รวบรวม Source Code (Backend) และ Compiled Assets (Frontend)
+- ดาวน์โหลด Standalone Node.js Binary
+- แพ็คทุกอย่างรวมเป็นโฟลเดอร์เดียว (`release/`) เตรียมพร้อม Deploy
+**[Speaker Notes]**: "ฝั่งทีมพัฒนา เวลาที่จะปล่อยเวอร์ชันใหม่ เขาจะรัน script `create_release.bat` ครับ สคริปต์นี้จะจัดการ Build หน้าเว็บ, เอาโค้ดหลังบ้านมารวมกัน, และดาวน์โหลด Node.exe มาใส่ให้เบ็ดเสร็จ ได้ออกมาเป็นโฟลเดอร์ที่ชื่อว่า release พร้อมส่งให้ทีม IT นำไปใช้งานต่อครับ"
+
+### Slide 8: Release Directory Structure (Deployment Anatomy)
+**[Visual]**:
+```text
+release/
+├── backend/            # โค้ดส่วนประมวลผลทางธุรกิจ
+├── dist/               # ไฟล์หน้าเว็บที่ Build แล้ว (HTML/JS/CSS)
+├── node.exe            # Standalone Runtime (บน Windows)
+├── server.js           # จุดเริ่มต้นของแอปพลิเคชัน
+├── logs/               # [สำคัญ] เก็บไฟล์ Log ของระบบ
+├── uploads/            # [สำคัญ] ที่เก็บไฟล์เอกสารแนบของผู้ใช้
+└── .env                # [สำคัญ] ไฟล์ตั้งค่าระบบ
+```
+**[Slide Text]**:
+- โครงสร้างของโฟลเดอร์ `release/`
+- **`logs/`**: ใช้สำหรับวิเคราะห์ปัญหา (Troubleshooting)
+- **`uploads/`**: โฟลเดอร์ที่เก็บ State ของไฟล์ (ต้อง Backup)
+**[Speaker Notes]**: "นี่คือหน้าตาของโฟลเดอร์ Release ครับ ทีม IT จะสนใจโฟลเดอร์ logs เอาไว้อ่านเวลาโปรแกรมมีปัญหา และโฟลเดอร์ uploads ซึ่งจะเป็นที่เก็บไฟล์ที่ User อัปโหลดเข้ามา โฟลเดอร์ uploads นี้สำคัญมากในกรณีที่มีการย้ายเครื่องครับ"
+
+### Slide 9: Server Migration Guide (ย้าย Server)
+**[Visual]**: Server A pointing an arrow to Server B, highlighting `uploads` and `.env`.
+**[Slide Text]**:
+- **ขั้นตอนการย้าย Server (Migration):**
+  1. Copy โฟลเดอร์ `release/` ทั้งหมดไปยัง Server ใหม่
+  2. **[Critical]** ตรวจสอบให้แน่ใจว่าโฟลเดอร์ `uploads/` ถูกย้ายมาครบถ้วน
+  3. แก้ไขไฟล์ `.env` ให้ชี้ไปยัง Database ตัวใหม่ (ถ้ามีการย้าย DB)
+  4. ตั้งค่า Service Manager ใหม่
+**[Speaker Notes]**: "คำถามยอดฮิตคือ ถ้า VM เก่าพังหรือต้องย้าย Server ทำอย่างไร? ง่ายมากครับ ให้ Copy โฟลเดอร์ release ไปทั้งก้อนเลย แต่จุดชี้เป็นชี้ตาย (Critical) คือโฟลเดอร์ uploads ต้องมาครบ ไม่งั้นไฟล์แนบคำขอเครดิตจะหายหมดครับ จากนั้นก็แก้ .env ให้ตรงกับเครื่องใหม่ แล้วรันระบบได้เลย"
+
+---
+
+## Part 4: Service Management & Maintenance (10 Minutes)
+
+### Slide 10: Service Management
+**[Visual]**: Terminal / Process Manager Icon (PM2 / NSSM).
+**[Slide Text]**:
+- **Windows:** แนะนำให้ใช้ NSSM (Non-Sucking Service Manager) ผูกเป็น Windows Service
+- **Linux:** แนะนำให้ใช้ PM2 หรือ Systemd
+- **Command พื้นฐาน:** `node server.js`
+- **การอัปเดตระบบ:** เมื่อนำโค้ดเวอร์ชันใหม่มาลง ต้อง Stop Service -> ทับไฟล์ -> Start Service เสมอ
+**[Speaker Notes]**: "ในการรันระบบบน Production เราจะไม่กด Double Click รันดื้อๆ ครับ แนะนำให้ทีม IT ใช้ NSSM เพื่อสร้างให้ระบบกลายเป็น Windows Service เพื่อให้มัน Auto-start เวลารีสตาร์ทเครื่องได้ และทุกครั้งที่มีการอัปเดตไฟล์ .env หรืออัปเดตเวอร์ชัน ต้อง Restart Service เสมอครับ"
+
+### Slide 11: Routine Maintenance
+**[Visual]**: Hard drive icon with a broom/cleaning symbol.
+**[Slide Text]**:
+- **Storage Monitoring:** ตรวจสอบพื้นที่ว่างของ Drive ที่เก็บ `uploads/`
+- **Log Rotation:** ระบบไม่ได้ลบ Log เก่าทิ้งอัตโนมัติ ทีม IT อาจต้องพิจารณาลบ Log ที่เก่ากว่า 30 วัน
+- **Backup:** หมั่นทำ Snapshot ของ VM หรือ Backup โฟลเดอร์ `uploads/`
+**[Speaker Notes]**: "สำหรับงาน Maintenance ประจำวัน (Routine) สิ่งที่ต้องทำคือการมอนิเตอร์พื้นที่ Disk ครับ เพราะ User มีการอัปโหลดไฟล์ PDF/Excel เข้ามาเรื่อยๆ พื้นที่อาจจะเต็มได้ นอกจากนี้ทีมควรพิจารณาทำ Log Rotation หรือลบ Log เก่าๆ ทิ้งเพื่อประหยัดพื้นที่ และหมั่น Backup โฟลเดอร์ uploads ไว้นะครับ"
+
+---
+
+## Part 5: Operational Troubleshooting (10 Minutes)
+
+### Slide 12: Defining L1 vs L2 Support
 **[Visual]**:
 ```mermaid
 flowchart LR
@@ -185,86 +167,54 @@ flowchart LR
     L2 -->|"พบ Bug ระดับโค้ด"| Dev(["ทีมผู้พัฒนา (Developer)"])
 ```
 **[Slide Text]**:
-- **L1 (Helpdesk):** Basic usage queries, password resets, basic access issues.
-- **L2 (Application Support):** Log analysis, Database investigations, Configuration changes.
-**[Speaker Notes]**: "ในระบบเราแบ่งขอบเขตเป็น 2 ระดับครับ L1 คือหน้าด่าน ช่วยเหลือปัญหาการใช้งานทั่วไป ส่วน L2 คือ Application Support ที่ต้องลงลึกในการตรวจสอบ Logs (Log analysis), ตรวจสอบ Database หรือปรับแก้ค่า Configuration บนหน้า UI ขั้นสูงครับ"
+- **L1 (Helpdesk):** ปัญหาการใช้งานทั่วไป (ลืมรหัสผ่าน, ไม่เห็นเมนู) -> แก้โดยเช็ค Permission UI
+- **L2 (IT Operations):** ปัญหาระบบทำงานผิดพลาด (เว็บหมุนค้าง, อัปโหลดไฟล์ไม่ผ่าน) -> วิเคราะห์ Logs
+**[Speaker Notes]**: "ในระบบเราแบ่งการ Support เป็น 2 ระดับครับ L1 คือ Helpdesk ช่วยเหลือปัญหาหน้าจอทั่วไป เช่น ไม่เห็นปุ่มอนุมัติ ซึ่งแก้ได้ผ่านหน้าจอตั้งค่าสิทธิ์ (Role Management) ส่วนทีม L2 คือพวกเราในห้องนี้ครับ จะลงลึกเรื่องการอ่าน Logs เช็ค Database หากพบว่าเป็น Bug ของโค้ด ค่อย Escalate ไปให้ทีม Developer ครับ"
 
-### Slide 17: Scenario A - UI Loading Freeze (Symptom)
-**[Visual]**: Spinner icon loading endlessly.
+### Slide 13: Scenario A - UI Loading Freeze (API Timeout)
+**[Visual]**: Magnifying glass over a log file snippet showing `ETIMEDOUT` or `ECONNREFUSED`.
 **[Slide Text]**:
-- **Symptom:** User reports "The screen is spinning forever when searching for a customer."
-- **Context:** Happens during Search Customer or Fetching DBD.
-**[Speaker Notes]**: "มาดู Scenario แรกครับ User แจ้งว่ากดค้นหาลูกค้าแล้วหมุนค้าง (UI Freezes) ปัญหานี้มักจะเกิดในจังหวะที่มีการยิงคำขอออกไปยัง External API เช่น Navision หรือ DBD ครับ"
-
-### Slide 18: Scenario A - UI Loading Freeze (Resolution L2)
-**[Visual]**: Magnifying glass over a log file snippet showing "Timeout".
-**[Slide Text]**:
+- **Symptom:** ผู้ใช้แจ้งว่ากดค้นหาลูกค้าแล้วหน้าจอหมุนค้างนาน
 - **L2 Action Plan:**
-  1. Check Backend Application Logs for `Timeout` or `ECONNREFUSED`.
-  2. Verify external API status (Is Navision down?).
-  3. Inform users that Fallback logic will eventually engage.
-**[Speaker Notes]**: "สำหรับทีม L2 วิธีแก้ปัญหา (Resolution) คือให้เปิด Backend Logs ทันทีครับ มองหาคำว่า Timeout หรือ Connection Refused หากเจอ แปลว่า Navision อาจจะล่ม ให้แจ้ง User ว่าระบบจะใช้ Fallback ไปค้นใน Local DB แทน ซึ่งอาจจะใช้เวลาสักครู่"
+  1. เข้า Server ตรวจสอบ Backend Application Logs (โฟลเดอร์ `logs/`)
+  2. ค้นหาคำว่า `Timeout` หรือ `ECONNREFUSED`
+  3. ตรวจสอบสถานะการเชื่อมต่อ (Ping/Telnet) ไปยัง Navision ERP หรือเว็บ DBD
+**[Speaker Notes]**: "มาดู Scenario แรกครับ User แจ้งว่ากดค้นหาลูกค้าแล้วหมุนค้าง ปัญหานี้มักเกิดจากการที่แอปเราไปดึงข้อมูลจากระบบอื่น (ERP/DBD) แล้วเชื่อมต่อไม่ได้ วิธีแก้ของ L2 คือเปิดไฟล์ Log ดูครับ ถ้าเจอคำว่า Timeout ให้ลอง Ping ไปที่ Server ของ ERP ดูว่าระบบล่มอยู่หรือไม่"
 
-### Slide 19: Scenario B - Missing Menu/Actions (Symptom)
-**[Visual]**: UI mockup highlighting a missing "Approve" button.
+### Slide 14: Scenario B - File Upload Failures
+**[Visual]**: Folder write-permission icon or disk space gauge.
 **[Slide Text]**:
-- **Symptom:** "I am an Approver, but I don't see the Approve button for this request."
-- **Context:** Workflows rely strictly on Roles.
-**[Speaker Notes]**: "Scenario B พบบ่อยมากครับ User เป็นหัวหน้า แต่ไม่เห็นปุ่ม 'Approve' ในระบบของเรา สิทธิ์การมองเห็นไม่ได้ผูกตายตัว แต่ถูกคุมด้วยระบบ Workflow และ Roles ครับ"
-
-### Slide 20: Scenario B - Missing Menu/Actions (Resolution L1/L2)
-**[Visual]**: Screenshot of the `System Configuration > Role Management` UI.
-**[Slide Text]**:
-- **L1 Action Plan:** Verify the user's username vs assigned groups.
-- **L2 Action Plan:** Access UI -> `System Configuration > Role Management`. Check the Dynamic RBAC Matrix matching.
-**[Speaker Notes]**: "ทางแก้คือ ทีม L1 เช็คก่อนว่า User คนนั้นอยู่ใน Group ที่ถูกต้องไหม ถ้าถูกต้อง ทีม L2 สามารถใช้สิทธิ์ Admin เข้าไปที่เมนู Configuration แล้วตรวจสอบ Role Management Matrix เพื่อเช็คว่า Role ดังกล่าวถูกตั้งค่าให้อนุมัติ State นี้ได้หรือไม่ (Dynamic RBAC Check)"
-
-### Slide 21: Scenario C - File Upload Failures (Symptom)
-**[Visual]**: Alert box showing file upload error.
-**[Slide Text]**:
-- **Symptom:** "I cannot attach the balance sheet Excel file."
-- **Context:** System enforces limits to prevent memory exhaustion.
-**[Speaker Notes]**: "Scenario C User โวยวายว่าแนบไฟล์ Excel งบการเงินไม่ได้ (Upload Failures) ปัญหานี้มักเกิดจากระบบเรามีการตั้ง Limits ป้องกันไฟล์ขนาดใหญ่เกินไปเพื่อไม่ให้ Server Memory เต็มครับ"
-
-### Slide 22: Scenario C - File Upload Failures (Resolution L2)
-**[Visual]**: Gear config icon and folder icon.
-**[Slide Text]**:
+- **Symptom:** ระบบแจ้งเตือน "เกิดข้อผิดพลาดขณะอัปโหลดไฟล์"
 - **L2 Action Plan:**
-  1. Check Dynamic Upload Limit in DB Config UI (`MAX_FILE_UPLOAD_SIZE_MB`).
-  2. Verify Service Account Write Permissions on `/uploads`.
-  3. Check Windows Server Disk Space.
-**[Speaker Notes]**: "L2 จะต้องทำ 3 อย่างครับ: 1. เช็คว่าไฟล์ใหญ่กว่าที่ Config ไว้ในระบบไหม 2. เช็คว่าโฟลเดอร์ /uploads บนเครื่อง Server มีพื้นที่เต็มหรือไม่ 3. เช็ค Permission ว่า Service Account ที่รันแอปมีสิทธิ์ Write ไฟล์หรือเปล่า"
+  1. ตรวจสอบพื้นที่ว่างของฮาร์ดดิสก์บน Server
+  2. ตรวจสอบ Max File Size Limit ในการตั้งค่า
+  3. ตรวจสอบ Write Permission ของ Service Account บนโฟลเดอร์ `uploads/`
+**[Speaker Notes]**: "Scenario B: User อัปโหลดไฟล์ไม่ได้ ให้ L2 เช็ค 3 อย่างครับ: 1. Disk เต็มไหม 2. ไฟล์ใหญ่เกิน Limit ของระบบไหม และ 3. บัญชีที่รัน Service (เช่น Local System) มีสิทธิ์ Write ลงโฟลเดอร์ uploads หรือไม่"
 
-### Slide 23: Scenario D - Database Save Errors (Symptom)
-**[Visual]**: Error 500 graphic or SQL icon.
+### Slide 15: Scenario C - Database Save Errors
+**[Visual]**: Log snippet highlighting `SQL Deadlock` or `Connection Closed`.
 **[Slide Text]**:
 - **Symptom:** "An error occurred while saving the draft."
-- **Context:** Often related to concurrent accesses or network interruptions to DB.
-**[Speaker Notes]**: "Scenario สุดท้าย เกิด Error 500 ระหว่างที่ User กดบันทึก Draft ครับ สาเหตุมักเกิดจากปัญหาคอขวดของ Database (Concurrent access) หรือ Network ระหว่าง App กับ Database ขาดหาย"
-
-### Slide 24: Scenario D - Database Save Errors (Resolution L2)
-**[Visual]**: Log snippet highlighting `SQL Deadlock`.
-**[Slide Text]**:
 - **L2 Action Plan:**
-  1. Read backend logs for `SQL Deadlock` or `Connection Closed`.
-  2. Verify VPN/Network between App Server and DB Server (Air-gapped env).
-  3. Restart Application Service to clear connection pools.
-**[Speaker Notes]**: "ในกรณีนี้ L2 ต้องเช็ค Logs เพื่อหา `SQL Deadlock` ครับ ถ้าระบบค้างหนัก วิธีแก้เบื้องต้นที่เร็วที่สุดคือ Restart Application Service เพื่อเคลียร์ Connection Pool กลับคืนมา และเช็ค VPN Connectivity ระหว่าง App Server และ DB Server ครับ"
+  1. อ่าน Logs หาคำว่า `SQL Deadlock`, `Timeout`, หรือ `Connection Closed`
+  2. ตรวจสอบ Network/VPN ระหว่าง App Server และ DB Server
+  3. Restart Application Service เพื่อเคลียร์ Connection Pool
+**[Speaker Notes]**: "Scenario สุดท้าย เกิด Error ระหว่างบันทึกข้อมูล ให้ L2 เช็ค Logs ก่อนครับ หากเจอ SQL Deadlock หรือ Connection Closed แสดงว่ามีปัญหาการสับรางของฐานข้อมูล หรือ Network กระตุก วิธีแก้ปัญหาเฉพาะหน้าที่ไวที่สุดคือการ Restart Service เพื่อสร้าง Connection Pool ขึ้นมาใหม่ครับ"
 
 ---
 
-## Part 5: Wrap-up (5 Minutes)
+## Part 6: Wrap-up (5 Minutes)
 
-### Slide 25: Escalation Matrix
+### Slide 16: Escalation Matrix
 **[Visual]**: Arrow graphic pointing upwards (L1 -> L2 -> Dev).
 **[Slide Text]**:
-- Ensure all L2 checks (Logs, UI Configs) are done before escalating.
-- Include Transaction ID (`txId`) and Exact Error Logs when escalating to Development/Vendor.
-**[Speaker Notes]**: "ข้อควรระวังก่อนทำการ ส่งเรื่องต่อ (Escalate) ให้ทางทีม Developer หรือ Vendor ครับ ขอให้ชัวร์ว่าทีมทำ L2 Checks แล้ว และที่สำคัญที่สุด เวลาส่งเรื่อง โปรดแนบ Transaction ID (txId) พร้อม Error Logs เสมอ จะช่วยให้แก้ปัญหาได้ไวขึ้นมากครับ"
+- โปรดตรวจสอบ Logs (L2 Checks) ก่อนทำการ Escalate เสมอ
+- ข้อมูลที่ต้องแนบให้ Developer: Transaction ID (`txId`), เวลาที่เกิดปัญหา, และไฟล์ Log
+**[Speaker Notes]**: "ก่อนส่งเรื่องต่อให้ Developer รบกวนทีม L2 ช่วยวิเคราะห์ Log เบื้องต้นก่อนนะครับ และเวลาส่งเรื่อง ควรแนบ Transaction ID และไฟล์ Log ให้ด้วย จะช่วยให้แก้ปัญหาได้ไวขึ้นมากครับ"
 
-### Slide 26: Q&A
+### Slide 17: Q&A
 **[Visual]**: Question mark graphic.
 **[Slide Text]**:
 - **Questions?**
 - Open Floor.
-**[Speaker Notes]**: "จบเนื้อหาสำหรับ Session วันนี้ครับ มีท่านใดมีข้อสงสัย หรืออยากให้ผม Demo ขั้นตอนการเข้าถึงหน้า System Configuration เพื่อตรวจสอบ Logs หรือ Roles ไหมครับ?"
+**[Speaker Notes]**: "จบเนื้อหาสำหรับ Session วันนี้ครับ มีทีมไหนมีข้อสงสัย หรืออยากให้ผม Demo ขั้นตอนการตั้งค่าในไฟล์ `.env` ประกอบไหมครับ? ช่วงเวลานี้เชิญสอบถามได้เลยครับ"
