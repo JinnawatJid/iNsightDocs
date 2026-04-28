@@ -67,7 +67,7 @@ flowchart LR
 ## Part 2: Server Prerequisites & Environments (10 Minutes)
 
 ### Slide 5: Server Prerequisites
-**[Visual]**: Checkbox icon with Server graphic.
+**[Visual]**: Clean, structured bullet points or table highlighting the three main prerequisite categories.
 **[Slide Text]**:
 - **OS:** Windows Server 2019+ หรือ Linux
 - **Runtime:** ไม่ต้องติดตั้ง Node.js (Zero-dependency deployment)
