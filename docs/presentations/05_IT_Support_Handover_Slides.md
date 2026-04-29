@@ -197,18 +197,102 @@ flowchart LR
   3. Restart Application Service เพื่อเคลียร์ Connection Pool
 **[Speaker Notes]**: "Scenario สุดท้าย เกิด Error ระหว่างบันทึกข้อมูล ให้ L2 เช็ค Logs ก่อนครับ หากเจอ SQL Deadlock หรือ Connection Closed แสดงว่ามีปัญหาการสับรางของฐานข้อมูล หรือ Network กระตุก วิธีแก้ปัญหาเฉพาะหน้าที่ไวที่สุดคือการ Restart Service เพื่อสร้าง Connection Pool ขึ้นมาใหม่ครับ"
 
+### Slide 16: Common HTTP Error Codes & L2 Debugging
+**[Visual]**: Table mapping HTTP status codes to meanings and actions.
+**[Slide Text]**:
+- **200 / 201 OK / Created:** ระบบทำงานปกติ หรือสร้างข้อมูลสำเร็จ -> ไม่ต้องดำเนินการใดๆ
+- **304 Not Modified:** ข้อมูลไม่มีการเปลี่ยนแปลง ระบบโหลดจาก Cache สำเร็จ -> ไม่ต้องดำเนินการใดๆ
+- **400 Bad Request:** ข้อมูลส่งมาไม่ครบถ้วน (เช่น ขาด Branch Code, VAT No) -> L2 ตรวจสอบว่าระบบส่งข้อมูลมาผิดปกติหรือไม่
+- **401 Unauthorized:** Session หมดอายุ หรือ Token ไม่ถูกต้อง -> แนะนำให้ User ทำการ Login ใหม่
+- **403 Forbidden:** ฟีเจอร์ถูกปิด (เช่น Auto carry-over) หรือไม่มีสิทธิ์เข้าถึง -> L2 ตรวจสอบการตั้งค่าสิทธิ์หรือ Config ของระบบ
+- **404 Not Found:** ไม่พบลูกค้าหรือเอกสาร -> L2 ตรวจสอบข้อมูลใน Database หรือโฟลเดอร์ `uploads/` ว่ามีไฟล์จริงหรือไม่
+- **409 Conflict:** ข้อมูลขัดแย้งกัน (เช่น การสร้างคำขอซ้ำ) -> แจ้ง User ว่าข้อมูลอาจซ้ำซ้อน
+- **500 Internal Server Error:** ข้อผิดพลาดของเซิร์ฟเวอร์ -> L2 ต้องอ่าน Log หา Error Stack Trace
+- **502 / 503 Bad Gateway / Service Unavailable:** เชื่อมต่อ API ภายนอกล้มเหลว (Navision, DBD) -> L2 ตรวจสอบ Network และระบบปลายทาง
+**[Speaker Notes]**: "และนี่คือ Error Codes ที่พบบ่อยในระบบครับ หากพบ 200, 201 หรือ 304 ถือว่าระบบปกติ หากเป็น 401 แนะนำให้ผู้ใช้ล็อกอินใหม่ หากเป็น 400 มักเกิดจากข้อมูลส่งมาไม่ครบ ให้เช็คว่า Payload ผิดปกติไหม ส่วน 404 มักจะเกี่ยวกับการหาไฟล์เอกสารไม่เจอ ให้ไปเช็คในโฟลเดอร์ uploads ครับ สำหรับ 500 คือ Error ฝั่งเซิร์ฟเวอร์ ต้องเข้าไปดู Log โดยตรง และถ้าเจอ 502 หรือ 503 แสดงว่าระบบของเราติดต่อกับ Navision หรือ DBD ไม่ได้ ให้ทีม IT รีบเช็ค Network หรือระบบปลายทางทันทีครับ"
+
 ---
 
-## Part 6: Wrap-up (5 Minutes)
+## Part 6: Database Schema & Reporting (10 Minutes)
 
-### Slide 16: Escalation Matrix
+### Slide 17: High-Level ERD (Entity-Relationship Diagram)
+**[Visual]**:
+```mermaid
+erDiagram
+    CreditRequests ||--o{ CreditRequestAttachments : "มีไฟล์แนบ"
+    CreditRequests ||--o{ RequestComments : "มีความคิดเห็น"
+    CreditRequests {
+        int id PK
+        string status
+        string created_by
+        json snapshot_data
+    }
+    CreditRequestAttachments {
+        int id PK
+        int request_id FK
+        string file_path
+    }
+    RequestComments {
+        int id PK
+        int request_id FK
+        string comment
+    }
+    Configurations {
+        string config_key PK
+        json config_value
+    }
+    Notifications {
+        int id PK
+        string type
+        string read_by
+    }
+```
+**[Slide Text]**:
+- **ตารางหลัก (Core Table):** `CreditRequests` เก็บข้อมูลคำขอและสถานะ
+- **ตารางรอง (Related Tables):** `CreditRequestAttachments` (ไฟล์แนบ) และ `RequestComments` (คอมเมนต์)
+- **ตารางระบบ (System Tables):** `Configurations` (ตั้งค่าระบบ) และ `Notifications` (การแจ้งเตือน)
+**[Speaker Notes]**: "ในอนาคตหากทีม IT ต้องเขียน Query เพื่อทำรายงาน นี่คือโครงสร้างฐานข้อมูล (ERD) ของเราครับ ศูนย์กลางของระบบคือตาราง CreditRequests ซึ่งจะผูกกับไฟล์แนบและคอมเมนต์ของคำขอนั้นๆ ส่วนตาราง Configurations และ Notifications จะเป็นตารางที่ใช้จัดการการทำงานของระบบครับ"
+
+### Slide 18: Data Dictionary (พจนานุกรมข้อมูลสำหรับทำรายงาน)
+**[Visual]**: Table showing key columns in `CreditRequests`.
+**[Slide Text]**:
+- **ตารางที่สำคัญที่สุดสำหรับการทำ Report:** `CreditRequests`
+  - `id`: รหัสอ้างอิงคำขอ (Transaction ID)
+  - `customer_no`: รหัสลูกค้า (อ้างอิงกับ Navision)
+  - `status`: สถานะปัจจุบัน (เช่น Draft, Approved, Rejected)
+  - `created_by` / `created_at`: ผู้สร้างคำขอ และวันที่สร้าง
+  - `snapshot_data`: **[สำคัญ]** เก็บข้อมูลรายละเอียดทั้งหมดในรูปแบบ JSON
+**[Speaker Notes]**: "หากต้องดึงรายงานคำขอสินเชื่อ ให้ดึงจากตาราง CreditRequests เป็นหลักครับ คอลัมน์ที่สำคัญจะมี id, รหัสลูกค้า, สถานะ, และผู้สร้าง แต่จุดที่อยากให้สังเกตคือ คอลัมน์ snapshot_data ซึ่งเราใช้เก็บรายละเอียดของคำขอทั้งหมดในรูปแบบ JSON เพื่อความยืดหยุ่นของระบบครับ"
+
+### Slide 19: JSON Querying Guide (การคิวรีข้อมูลแบบ JSON)
+**[Visual]**: Code snippet showing SQL JSON extraction.
+**[Slide Text]**:
+- เนื่องจากระบบใช้ **Semi-structured JSON** ในการเก็บข้อมูล (เช่น วงเงินที่ขอเพิ่ม)
+- **ตัวอย่างการดึงข้อมูลใน MSSQL:**
+  ```sql
+  SELECT
+      id,
+      customer_no,
+      status,
+      JSON_VALUE(snapshot_data, '$.transaction_data.creditLimit') AS RequestedLimit
+  FROM CreditRequests
+  WHERE status = 'Approved';
+  ```
+- **ข้อควรระวัง:** `JSON_VALUE` ดึงค่าออกมาเป็น Text หากต้องการใช้คำนวณต้อง CAST เป็นตัวเลข
+**[Speaker Notes]**: "เนื่องจากข้อมูลหลายส่วนถูกเก็บเป็น JSON ในคอลัมน์ snapshot_data เวลาที่ทีม IT จะทำ Report ดึงข้อมูลวงเงินที่ขอเพิ่ม จะไม่สามารถ Select คอลัมน์ตรงๆ ได้ครับ ใน MSSQL เราจะต้องใช้ฟังก์ชัน JSON_VALUE เพื่อเจาะเข้าไปดึงข้อมูลออกมาตามตัวอย่างบนจอครับ และอย่าลืมว่าค่าที่ได้ออกมาจะเป็น Text ถ้าจะเอาไปซัมยอด ต้อง CAST เป็นตัวเลขก่อนเสมอครับ"
+
+---
+
+## Part 7: Wrap-up (5 Minutes)
+
+### Slide 20: Escalation Matrix
 **[Visual]**: Arrow graphic pointing upwards (L1 -> L2 -> Dev).
 **[Slide Text]**:
 - โปรดตรวจสอบ Logs (L2 Checks) ก่อนทำการ Escalate เสมอ
 - ข้อมูลที่ต้องแนบให้ Developer: Transaction ID (`txId`), เวลาที่เกิดปัญหา, และไฟล์ Log
 **[Speaker Notes]**: "ก่อนส่งเรื่องต่อให้ Developer รบกวนทีม L2 ช่วยวิเคราะห์ Log เบื้องต้นก่อนนะครับ และเวลาส่งเรื่อง ควรแนบ Transaction ID และไฟล์ Log ให้ด้วย จะช่วยให้แก้ปัญหาได้ไวขึ้นมากครับ"
 
-### Slide 17: Q&A
+### Slide 21: Q&A
 **[Visual]**: Question mark graphic.
 **[Slide Text]**:
 - **Questions?**
