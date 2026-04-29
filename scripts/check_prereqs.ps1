@@ -58,7 +58,6 @@ if (Test-Path $NodePath) {
 # ---------------------------------------------------------
 $EnvPath = Join-Path $ReleaseRoot "backend\.env"
 $DbServer = $null
-$UploadPathRelative = $null
 $LogDirRelative = $null
 
 if (Test-Path $EnvPath) {
@@ -147,12 +146,10 @@ function Test-DirPermissions {
     }
 }
 
-if ($UploadPathRelative) {
-    Test-DirPermissions $UploadPathRelative "Upload (customers)"
-} else {
-    Write-Result "Uploads Directory" $false "UPLOAD_PATH not found in .env"
-    $AllPassed = $false
-}
+# Hardcoded checks for specific directories relative to backend/
+Test-DirPermissions "../../customers" "Customers"
+Test-DirPermissions "../../uploads" "Uploads"
+
 
 if ($LogDirRelative) {
     Test-DirPermissions $LogDirRelative "Logs"
