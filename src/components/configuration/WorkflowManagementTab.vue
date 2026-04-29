@@ -11,66 +11,103 @@
     </div>
 
     <div v-else class="workflow-content">
-      <div class="header-actions">
-        <h3>การจัดการ Workflow State Machine</h3>
-        <button class="btn btn-primary" :disabled="!hasChanges || isSaving" @click="handleSave">
-          {{ isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
-        </button>
+      <div class="header-actions text-start">
+        <div class="header-titles">
+          <h3>การจัดการ Workflow State Machine</h3>
+          <p class="subtitle">คลิกที่การ์ดเพื่อขยายและตั้งค่าสิทธิ์การเข้าถึงในแต่ละขั้นตอนการอนุมัติ</p>
+        </div>
+        <div class="action-buttons">
+          <button class="btn btn-primary" @click="addNewState">
+            + สร้างสถานะใหม่
+          </button>
+          <button class="btn btn-primary" :disabled="!hasChanges || isSaving" @click="handleSave">
+            {{ isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
+          </button>
+        </div>
       </div>
 
-      <p class="subtitle">ตั้งค่าสถานะและสิทธิ์การเข้าถึงในแต่ละขั้นตอนการอนุมัติ</p>
+      <div class="accordion-container">
+        <div v-if="statesList.length === 0" class="empty-state">
+          ไม่มีข้อมูลสถานะ
+        </div>
 
-      <div class="states-list">
-        <div v-for="(stateData, stateKey) in workflowConfig.states" :key="stateKey" class="state-card">
-          <div class="state-header">
-            <div class="state-title">
-              <span class="status-badge" :class="stateData.type">{{ stateData.type }}</span>
-              <h4>{{ stateData.label }}</h4>
-              <span class="state-key">({{ stateKey }})</span>
+        <div 
+          v-for="state in statesList" 
+          :key="state.key"
+          class="accordion-card"
+          :class="{ 'expanded': expandedStateKey === state.key }"
+        >
+          <!-- Card Header (Summary) -->
+          <div class="accordion-header" @click="toggleExpand(state.key)">
+            <div class="header-left">
+              <span class="status-badge" :class="state.type">{{ state.type }}</span>
+              <div class="state-info">
+                <span class="state-label">{{ state.label }}</span>
+                <span class="system-key">{{ state.key }}</span>
+              </div>
+            </div>
+            
+            <div class="header-right">
+              <div class="summary-info">
+                <span class="summary-text" v-if="state.roles.length > 0">
+                  {{ state.roles.length }} Role(s)
+                </span>
+                <span class="summary-text" v-if="state.transitions.length > 0">
+                  {{ state.transitions.length }} Next Step(s)
+                </span>
+              </div>
+              <span class="chevron" :class="{ 'open': expandedStateKey === state.key }">▼</span>
             </div>
           </div>
 
-          <div class="state-body">
-            <div class="config-row">
-              <label>ผู้ที่มีสิทธิ์จัดการ (Roles)</label>
-              <div class="tags-input-container">
-                <div class="tags-list">
-                  <span v-for="(role, index) in stateData.actionableByRoles" :key="index" class="tag role-tag">
-                    {{ role }}
-                    <button class="remove-tag" @click="removeRole(stateKey, index)">&times;</button>
-                  </span>
-                </div>
-                <div class="add-tag-form">
-                  <select v-model="newRoles[stateKey]" class="form-select">
-                    <option value="" disabled>เพิ่ม Role...</option>
-                    <option v-for="role in availableRoles" :key="role" :value="role" :disabled="stateData.actionableByRoles.includes(role)">
-                      {{ role }}
-                    </option>
-                  </select>
-                  <button class="btn btn-sm btn-outline-primary" @click="addRole(stateKey)" :disabled="!newRoles[stateKey]">เพิ่ม</button>
-                </div>
+          <div class="accordion-body" v-if="expandedStateKey === state.key">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>รหัสอ้างอิงสถานะ</label>
+                <input type="text" class="form-control" :value="state.key" disabled />
+              </div>
+
+              <div class="form-group">
+                <label>ชื่อแสดงผล</label>
+                <input type="text" class="form-control" v-model="state.label" @input="markAsChanged" />
+              </div>
+
+              <div class="form-group">
+                <label>ประเภทสถานะ</label>
+                <select class="form-select" v-model="state.type" @change="markAsChanged">
+                  <option value="initial">เริ่มต้น</option>
+                  <option value="active">ระหว่างดำเนินการ</option>
+                  <option value="final">สิ้นสุด</option>
+                </select>
               </div>
             </div>
 
-            <div class="config-row">
-              <label>สถานะถัดไปที่อนุญาต (Allowed Transitions)</label>
-              <div class="tags-input-container">
-                <div class="tags-list">
-                  <span v-for="(transition, index) in stateData.allowedTransitions" :key="index" class="tag transition-tag">
-                    {{ getStatusLabel(transition) }}
-                    <button class="remove-tag" @click="removeTransition(stateKey, index)">&times;</button>
-                  </span>
-                </div>
-                <div class="add-tag-form">
-                  <select v-model="newTransitions[stateKey]" class="form-select">
-                    <option value="" disabled>เพิ่ม สถานะถัดไป...</option>
-                    <option v-for="status in availableStatuses" :key="status" :value="status" :disabled="stateData.allowedTransitions.includes(status) || status === stateKey">
-                      {{ getStatusLabel(status) }}
-                    </option>
-                  </select>
-                  <button class="btn btn-sm btn-outline-primary" @click="addTransition(stateKey)" :disabled="!newTransitions[stateKey]">เพิ่ม</button>
-                </div>
+            <div class="form-row mt-4">
+              <div class="form-group flex-1">
+                <label>ผู้ที่มีสิทธิ์จัดการ</label>
+                <MultiSelectTag 
+                  v-model="state.roles" 
+                  :options="availableRoles" 
+                  placeholder="พิมพ์เพื่อค้นหา..."
+                  @update:modelValue="markAsChanged"
+                />
               </div>
+
+              <div class="form-group flex-1">
+                <label>สถานะถัดไป</label>
+                <MultiSelectTag 
+                  v-model="state.transitions" 
+                  :options="availableStatuses.filter(s => s !== state.key)" 
+                  placeholder="เลือกสถานะถัดไป..."
+                  @update:modelValue="markAsChanged"
+                />
+              </div>
+            </div>
+            
+            <div class="action-footer mt-5">
+              <button class="btn btn-outline-danger btn-sm custom-danger-btn" @click="deleteState(state.key)">
+                ลบสถานะนี้
+              </button>
             </div>
           </div>
         </div>
@@ -84,6 +121,8 @@ import { ref, onMounted, computed } from 'vue';
 import { useConfigStore } from '../../stores/config';
 import Swal from 'sweetalert2';
 
+import MultiSelectTag from '../shared/MultiSelectTag.vue';
+
 const configStore = useConfigStore();
 const configKey = 'WORKFLOW_CONFIG';
 const rbacKey = 'RBAC_MATRIX_CONFIG';
@@ -93,25 +132,18 @@ const error = ref(null);
 const isSaving = ref(false);
 const hasChanges = ref(false);
 
-const workflowConfig = ref({ states: {} });
 const originalConfigStr = ref('');
-
-const newRoles = ref({});
-const newTransitions = ref({});
-
 const availableRoles = ref([]);
 
+// State List
+const statesList = ref([]);
+const expandedStateKey = ref(null);
+
 const availableStatuses = computed(() => {
-  return Object.keys(workflowConfig.value.states || {});
+  return statesList.value.map(s => s.key);
 });
 
-const getStatusLabel = (statusKey) => {
-  if (workflowConfig.value.states && workflowConfig.value.states[statusKey]) {
-    return workflowConfig.value.states[statusKey].label;
-  }
-  return statusKey;
-};
-
+// Initialization
 const fetchConfig = async () => {
   loading.value = true;
   error.value = null;
@@ -121,7 +153,6 @@ const fetchConfig = async () => {
       await configStore.fetchConfigurations();
     }
 
-    // Extract available roles from RBAC
     let rbacConfig = null;
     if (configStore.configurations['UserRoles']) {
       const rbacObj = configStore.configurations['UserRoles'].find(c => c.config_key === rbacKey);
@@ -133,12 +164,10 @@ const fetchConfig = async () => {
       }
     }
 
-    // Extract workflow config
     let wfConfigObj = null;
-    if (configStore.configurations['Workflow']) {
-       wfConfigObj = configStore.configurations['Workflow'].find(c => c.config_key === configKey);
+    if (configStore.configurations['WorkflowMgmt']) {
+       wfConfigObj = configStore.configurations['WorkflowMgmt'].find(c => c.config_key === configKey);
     }
-    // Check other categories if not found in Workflow directly
     if (!wfConfigObj) {
        for (const cat in configStore.configurations) {
           const found = configStore.configurations[cat].find(c => c.config_key === configKey);
@@ -151,14 +180,8 @@ const fetchConfig = async () => {
 
     if (wfConfigObj) {
       const parsed = JSON.parse(wfConfigObj.config_value);
-      workflowConfig.value = parsed;
       originalConfigStr.value = JSON.stringify(parsed);
-
-      // Initialize temp inputs
-      Object.keys(parsed.states).forEach(key => {
-        newRoles.value[key] = '';
-        newTransitions.value[key] = '';
-      });
+      buildListFromConfig(parsed);
     } else {
       error.value = `ไม่พบการตั้งค่า ${configKey} ในระบบ`;
     }
@@ -170,51 +193,120 @@ const fetchConfig = async () => {
   }
 };
 
+const buildListFromConfig = (config) => {
+  const newList = [];
+  Object.entries(config.states).forEach(([key, stateData]) => {
+    newList.push({
+      key: key,
+      label: stateData.label,
+      type: stateData.type,
+      roles: [...stateData.actionableByRoles],
+      transitions: [...stateData.allowedTransitions]
+    });
+  });
+  
+  // Custom sort: Initial -> Active -> Final
+  const typeOrder = { 'initial': 1, 'active': 2, 'final': 3 };
+  statesList.value = newList.sort((a, b) => typeOrder[a.type] - typeOrder[b.type]);
+};
+
+// Export to JSON Format
+const exportListToConfig = () => {
+  const states = {};
+  statesList.value.forEach(state => {
+    states[state.key] = {
+      label: state.label,
+      type: state.type,
+      actionableByRoles: [...state.roles],
+      allowedTransitions: [...state.transitions]
+    };
+  });
+  return { states };
+};
+
 const markAsChanged = () => {
-  hasChanges.value = JSON.stringify(workflowConfig.value) !== originalConfigStr.value;
+  const currentConfigStr = JSON.stringify(exportListToConfig());
+  hasChanges.value = currentConfigStr !== originalConfigStr.value;
 };
 
-const addRole = (stateKey) => {
-  const role = newRoles.value[stateKey];
-  if (role && !workflowConfig.value.states[stateKey].actionableByRoles.includes(role)) {
-    workflowConfig.value.states[stateKey].actionableByRoles.push(role);
-    newRoles.value[stateKey] = '';
+// Accordion Logic
+const toggleExpand = (key) => {
+  if (expandedStateKey.value === key) {
+    expandedStateKey.value = null; // Close if already open
+  } else {
+    expandedStateKey.value = key; // Open the clicked one
+  }
+};
+
+// Dynamic State Management
+const addNewState = async () => {
+  const { value: stateKey } = await Swal.fire({
+    title: 'สร้างสถานะใหม่',
+    input: 'text',
+    inputLabel: 'ระบุ System Key (ภาษาอังกฤษ ตัวติดกัน เช่น PendingApproval)',
+    inputPlaceholder: 'NewStateKey...',
+    showCancelButton: true,
+    inputValidator: (value) => {
+      if (!value) return 'กรุณาระบุ System Key!';
+      if (!/^[a-zA-Z0-9_]+$/.test(value)) return 'ใช้ได้เฉพาะตัวอักษร ตัวเลข และ _ เท่านั้น';
+      if (statesList.value.find(s => s.key === value)) return 'Key นี้มีอยู่แล้ว!';
+    }
+  });
+
+  if (stateKey) {
+    statesList.value.push({
+      key: stateKey,
+      label: 'สถานะใหม่',
+      type: 'active',
+      roles: [],
+      transitions: []
+    });
+    
+    expandedStateKey.value = stateKey;
     markAsChanged();
   }
 };
 
-const removeRole = (stateKey, index) => {
-  workflowConfig.value.states[stateKey].actionableByRoles.splice(index, 1);
-  markAsChanged();
-};
+const deleteState = async (key) => {
+  const result = await Swal.fire({
+    title: 'ยืนยันการลบ?',
+    text: `คุณต้องการลบสถานะ ${key} ใช่หรือไม่? สถานะอื่นๆ ที่อ้างอิงถึงจะถูกลบการเชื่อมต่อด้วย`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    confirmButtonText: 'ลบเลย',
+    cancelButtonText: 'ยกเลิก'
+  });
 
-const addTransition = (stateKey) => {
-  const transition = newTransitions.value[stateKey];
-  if (transition && !workflowConfig.value.states[stateKey].allowedTransitions.includes(transition)) {
-    workflowConfig.value.states[stateKey].allowedTransitions.push(transition);
-    newTransitions.value[stateKey] = '';
+  if (result.isConfirmed) {
+    statesList.value = statesList.value.filter(s => s.key !== key);
+    
+    // Remove from other states' allowedTransitions
+    statesList.value.forEach(state => {
+      state.transitions = state.transitions.filter(t => t !== key);
+    });
+
+    if (expandedStateKey.value === key) {
+      expandedStateKey.value = null;
+    }
     markAsChanged();
   }
 };
 
-const removeTransition = (stateKey, index) => {
-  workflowConfig.value.states[stateKey].allowedTransitions.splice(index, 1);
-  markAsChanged();
-};
-
+// Save
 const handleSave = async () => {
   isSaving.value = true;
-
   try {
+    const currentConfig = exportListToConfig();
     const payload = [{
       config_key: configKey,
-      config_value: JSON.stringify(workflowConfig.value)
+      config_value: JSON.stringify(currentConfig)
     }];
 
     const success = await configStore.updateConfigurations(payload);
 
     if (success) {
-      originalConfigStr.value = JSON.stringify(workflowConfig.value);
+      originalConfigStr.value = JSON.stringify(currentConfig);
       hasChanges.value = false;
       Swal.mixin({
         toast: true, position: 'top-end', timer: 2000, showConfirmButton: false
@@ -236,184 +328,235 @@ onMounted(() => {
 
 <style scoped>
 .workflow-management-tab {
-  padding: 10px;
+  display: flex;
+  flex-direction: column;
 }
 
 .header-actions {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 5px;
+  align-items: flex-start;
+  margin-bottom: 24px;
 }
 
-.header-actions h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #2c3e50;
-}
-
-.subtitle {
-  color: #6c757d;
-  font-size: 14px;
-  margin-bottom: 20px;
+.text-start {
   text-align: left;
 }
 
-.states-list {
+.header-titles {
+  text-align: left;
+}
+
+.action-buttons {
   display: flex;
-  flex-direction: column;
   gap: 16px;
 }
 
-.state-card {
-  border: 1px solid #eaeaea;
+.action-buttons .btn-primary {
+  color: #ffffff;
+}
+
+.action-buttons .btn-outline-primary {
+  color: #0d6efd;
+}
+
+.header-actions h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  color: inherit;
+}
+
+.subtitle {
+  color: #adb5bd;
+  font-size: 14px;
+  margin: 0;
+}
+
+.accordion-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 40px;
+}
+
+.accordion-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  background-color: #fcfcfc;
   overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-.state-header {
-  padding: 12px 16px;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #eaeaea;
+.accordion-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
 }
 
-.state-title {
+.accordion-card.expanded {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 1px #0d6efd, 0 4px 12px rgba(13, 110, 253, 0.08);
+}
+
+.accordion-header {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
 }
 
-.state-title h4 {
-  margin: 0;
+.state-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  align-items: flex-start;
+}
+
+.state-label {
   font-size: 16px;
-  color: #2c3e50;
+  font-weight: 600;
+  color: #1e293b;
 }
 
-.state-key {
-  color: #adb5bd;
-  font-size: 12px;
+.system-key {
   font-family: monospace;
+  font-size: 12px;
+  color: #64748b;
 }
 
 .status-badge {
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-badge.initial { background-color: #e3f2fd; color: #1976d2; }
-.status-badge.active { background-color: #fff3e0; color: #f57c00; }
-.status-badge.final { background-color: #e8f5e9; color: #388e3c; }
-
-.state-body {
-  padding: 16px;
-}
-
-.config-row {
-  margin-bottom: 16px;
-  text-align: left;
-}
-
-.config-row:last-child {
-  margin-bottom: 0;
-}
-
-.config-row label {
-  display: block;
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 8px;
-  font-size: 14px;
-}
-
-.tags-input-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.tags-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-height: 28px;
-}
-
-.tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 16px;
-  font-size: 13px;
-  background-color: #e9ecef;
-  color: #495057;
-}
-
-.tag.role-tag {
-  background-color: #e3f2fd;
-  color: #0d47a1;
-  border: 1px solid #bbdefb;
-}
-
-.tag.transition-tag {
-  background-color: #f3e5f5;
-  color: #4a148c;
-  border: 1px solid #e1bee7;
-}
-
-.remove-tag {
-  background: none;
-  border: none;
-  color: inherit;
-  font-size: 16px;
-  line-height: 1;
-  margin-left: 6px;
-  cursor: pointer;
-  padding: 0 2px;
-  opacity: 0.6;
-}
-
-.remove-tag:hover {
-  opacity: 1;
-}
-
-.add-tag-form {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  max-width: 400px;
-}
-
-.form-select {
-  flex: 1;
   padding: 6px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* Premium Light-mode badges */
+.status-badge.initial { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.status-badge.active { background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+.status-badge.final { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.summary-info {
+  display: flex;
+  gap: 16px;
+}
+
+.summary-text {
   font-size: 13px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.btn-sm {
-  padding: 4px 12px;
+.chevron {
+  font-size: 12px;
+  color: #adb5bd;
+  transition: transform 0.3s ease;
+}
+
+.chevron.open {
+  transform: rotate(180deg);
+}
+
+.accordion-body {
+  padding: 24px;
+  border-top: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 32px;
+}
+
+.form-row {
+  display: flex;
+  gap: 32px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.mt-3 { margin-top: 20px; }
+.mt-4 { margin-top: 32px; }
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
   font-size: 13px;
+  font-weight: 600;
+  color: #475569;
 }
 
-.btn-outline-primary {
-  color: #0d6efd;
-  border: 1px solid #0d6efd;
-  background: transparent;
+.form-control, .form-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #ffffff;
+  color: #1e293b;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.btn-outline-primary:hover:not(:disabled) {
-  background-color: #0d6efd;
-  color: white;
-}
-
-.btn-outline-primary:disabled {
-  opacity: 0.5;
+.form-control:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
+}
+
+.form-control:focus, .form-select:focus {
+  outline: none;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+}
+
+.action-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 24px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.custom-danger-btn {
+  color: #dc3545 !important;
+  background-color: transparent !important;
+  border-color: #dc3545 !important;
+}
+
+.custom-danger-btn:hover {
+  background-color: #dc3545 !important;
+  color: #ffffff !important;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background-color: #f8fafc;
 }
 
 .loading-state, .error-state {
@@ -421,6 +564,6 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 200px;
+  padding: 60px 0;
 }
 </style>
