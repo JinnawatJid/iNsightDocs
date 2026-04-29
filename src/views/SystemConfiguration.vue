@@ -1,104 +1,107 @@
 <template>
-  <div class="system-configuration">
-    <div class="config-container">
-      <div class="config-header">
-        <h2>การตั้งค่าระบบ</h2>
-        <p>จัดการการตั้งค่าและกฎเกณฑ์ต่างๆ ของระบบ</p>
-      </div>
-
-      <div class="config-body">
-        <div v-if="configStore.isLoading" class="loading-state">
-          <div class="spinner"></div>
-          <p>กำลังโหลดการตั้งค่า...</p>
+  <div>
+    <Navbar />
+    <div class="system-configuration">
+      <div class="config-container">
+        <div class="config-header">
+          <h2>การตั้งค่าระบบ</h2>
+          <p>จัดการการตั้งค่าและกฎเกณฑ์ต่างๆ ของระบบ</p>
         </div>
 
-        <div v-else-if="configStore.error" class="error-state">
-          <p class="error-text">{{ configStore.error }}</p>
-          <button class="btn btn-secondary" @click="fetchConfigs">ลองใหม่</button>
-        </div>
-
-        <div v-else class="layout-wrapper">
-          <!-- Sidebar: Categories -->
-          <div class="config-sidebar">
-            <ul>
-              <li
-                v-for="category in categories"
-                :key="category"
-                :class="{ active: activeCategory === category }"
-                @click="activeCategory = category"
-              >
-                {{ getCategoryLabel(category) }}
-              </li>
-            </ul>
+        <div class="config-body">
+          <div v-if="configStore.isLoading" class="loading-state">
+            <div class="spinner"></div>
+            <p>กำลังโหลดการตั้งค่า...</p>
           </div>
 
-          <!-- Content Pane: Configuration Inputs -->
-          <div class="config-content">
-            <ScorecardManagementTab v-if="activeCategory === 'Scorecards'" />
-            <RoleManagementTab v-else-if="activeCategory === 'UserRoles'" />
-            <WorkflowManagementTab v-else-if="activeCategory === 'WorkflowMgmt'" />
-            <div v-else class="config-items-container">
-              <div class="content-header">
-                <div class="header-title">
-                  <span class="icon-sliders">⚙️</span>
-                  <h3>หมวดหมู่: {{ getCategoryLabel(activeCategory) }}</h3>
-                </div>
-                <button
-                  class="btn btn-primary"
-                  @click="handleSave"
-                  :disabled="!hasChanges || isSaving"
+          <div v-else-if="configStore.error" class="error-state">
+            <p class="error-text">{{ configStore.error }}</p>
+            <button class="btn btn-secondary" @click="fetchConfigs">ลองใหม่</button>
+          </div>
+
+          <div v-else class="layout-wrapper">
+            <!-- Sidebar: Categories -->
+            <div class="config-sidebar">
+              <ul>
+                <li
+                  v-for="category in categories"
+                  :key="category"
+                  :class="{ active: activeCategory === category }"
+                  @click="activeCategory = category"
                 >
-                  {{ isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
-                </button>
-              </div>
+                  {{ getCategoryLabel(category) }}
+                </li>
+              </ul>
+            </div>
 
-              <div class="config-items">
-              <div
-                v-for="item in currentCategoryConfigs"
-                :key="item.config_key"
-                class="config-card"
-              >
-                <div class="config-info">
-                  <label :for="item.config_key">{{ item.label || item.config_key }}</label>
-                  <p class="config-key-subtitle">{{ item.config_key }}</p>
-                  <p class="description">{{ item.description }}</p>
-                  <p class="audit-info">
-                    แก้ไขล่าสุดเมื่อ: {{ formatDateString(item.updated_at).toLocaleString('th-TH') }} โดย {{ item.updated_by }}
-                  </p>
-                </div>
-
-                <div class="config-input">
-                  <input
-                    v-if="item.data_type === 'number'"
-                    :id="item.config_key"
-                    type="number"
-                    v-model="editState[item.config_key]"
-                    @input="markAsChanged"
-                    class="form-control"
-                  />
-                  <div v-else-if="item.data_type === 'boolean'" class="toggle-switch">
-                    <input
-                      :id="item.config_key"
-                      type="checkbox"
-                      :checked="editState[item.config_key] === 'true' || editState[item.config_key] === true"
-                      @change="(e) => handleBooleanChange(item.config_key, e.target.checked)"
-                    />
-                    <label :for="item.config_key" class="slider round"></label>
+            <!-- Content Pane: Configuration Inputs -->
+            <div class="config-content">
+              <ScorecardManagementTab v-if="activeCategory === 'Scorecards'" />
+              <RoleManagementTab v-else-if="activeCategory === 'UserRoles'" />
+              <WorkflowManagementTab v-else-if="activeCategory === 'WorkflowMgmt'" />
+              <div v-else class="config-items-container">
+                <div class="content-header">
+                  <div class="header-title">
+                    <span class="icon-sliders">⚙️</span>
+                    <h3>หมวดหมู่: {{ getCategoryLabel(activeCategory) }}</h3>
                   </div>
-                  <input
-                    v-else
-                    :id="item.config_key"
-                    type="text"
-                    v-model="editState[item.config_key]"
-                    @input="markAsChanged"
-                    class="form-control"
-                  />
+                  <button
+                    class="btn btn-primary"
+                    @click="handleSave"
+                    :disabled="!hasChanges || isSaving"
+                  >
+                    {{ isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
+                  </button>
                 </div>
-              </div>
 
-              <div v-if="currentCategoryConfigs.length === 0" class="empty-state">
-                ไม่พบการตั้งค่าในหมวดหมู่นี้
-              </div>
+                <div class="config-items">
+                <div
+                  v-for="item in currentCategoryConfigs"
+                  :key="item.config_key"
+                  class="config-card"
+                >
+                  <div class="config-info">
+                    <label :for="item.config_key">{{ item.label || item.config_key }}</label>
+                    <p class="config-key-subtitle">{{ item.config_key }}</p>
+                    <p class="description">{{ item.description }}</p>
+                    <p class="audit-info">
+                      แก้ไขล่าสุดเมื่อ: {{ formatDateString(item.updated_at).toLocaleString('th-TH') }} โดย {{ item.updated_by }}
+                    </p>
+                  </div>
+
+                  <div class="config-input">
+                    <input
+                      v-if="item.data_type === 'number'"
+                      :id="item.config_key"
+                      type="number"
+                      v-model="editState[item.config_key]"
+                      @input="markAsChanged"
+                      class="form-control"
+                    />
+                    <div v-else-if="item.data_type === 'boolean'" class="toggle-switch">
+                      <input
+                        :id="item.config_key"
+                        type="checkbox"
+                        :checked="editState[item.config_key] === 'true' || editState[item.config_key] === true"
+                        @change="(e) => handleBooleanChange(item.config_key, e.target.checked)"
+                      />
+                      <label :for="item.config_key" class="slider round"></label>
+                    </div>
+                    <input
+                      v-else
+                      :id="item.config_key"
+                      type="text"
+                      v-model="editState[item.config_key]"
+                      @input="markAsChanged"
+                      class="form-control"
+                    />
+                  </div>
+                </div>
+
+                <div v-if="currentCategoryConfigs.length === 0" class="empty-state">
+                  ไม่พบการตั้งค่าในหมวดหมู่นี้
+                </div>
+                </div>
               </div>
             </div>
           </div>
@@ -115,6 +118,7 @@ import { formatDateString } from '../utils/dateUtils';
 import ScorecardManagementTab from '../components/configuration/ScorecardManagementTab.vue';
 import RoleManagementTab from '../components/configuration/RoleManagementTab.vue';
 import WorkflowManagementTab from '../components/configuration/WorkflowManagementTab.vue';
+import Navbar from '@/components/shared/Navbar.vue';
 import Swal from 'sweetalert2';
 
 // State
@@ -141,19 +145,51 @@ const getCategoryLabel = (category) => {
 
 // Computed
 const categories = computed(() => {
-  if (!configStore.configurations) return ['Scorecards', 'WorkflowMgmt'];
-  const dbCategories = Object.keys(configStore.configurations).sort();
+  const order = ['System', 'UserRoles', 'WorkflowMgmt', 'Scorecards'];
+  
+  if (!configStore.configurations) return order;
+  
+  const dbCategories = Object.keys(configStore.configurations);
   const allCategories = new Set(dbCategories);
   allCategories.add('Scorecards');
   allCategories.add('WorkflowMgmt');
-  return Array.from(allCategories).sort();
+  allCategories.add('UserRoles');
+  allCategories.add('System');
+  
+  // Hide Workflow category (การตั้งค่าขั้นตอนอื่นๆ)
+  allCategories.delete('Workflow');
+  
+  return Array.from(allCategories).sort((a, b) => {
+    const indexA = order.indexOf(a);
+    const indexB = order.indexOf(b);
+    
+    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+    return a.localeCompare(b);
+  });
 });
 
 const currentCategoryConfigs = computed(() => {
   if (!activeCategory.value || !configStore.configurations[activeCategory.value]) {
     return [];
   }
-  return configStore.configurations[activeCategory.value].filter(c => c.data_type !== 'json');
+  
+  const hiddenSettings = [
+    'ระยะเวลาจัดเก็บประวัติระบบ (วัน)',
+    'โหมดปิดปรับปรุงระบบ',
+    'จำนวนรายการต่อหน้า (ค่าเริ่มต้น)',
+    'เปิดใช้งานระบบประมวลผลอัตโนมัติ (Batch)'
+  ];
+
+  return configStore.configurations[activeCategory.value].filter(c => {
+    if (c.data_type === 'json') return false;
+    
+    const displayLabel = c.label || c.config_key;
+    if (hiddenSettings.includes(displayLabel)) return false;
+    
+    return true;
+  });
 });
 
 // Methods
@@ -172,8 +208,8 @@ const fetchConfigs = async () => {
     hasChanges.value = false;
 
     // Set default active category if none selected
-    if (!activeCategory.value && Object.keys(configStore.configurations).length > 0) {
-      activeCategory.value = Object.keys(configStore.configurations).sort()[0];
+    if (!activeCategory.value && categories.value.length > 0) {
+      activeCategory.value = categories.value[0];
     }
   }
 };

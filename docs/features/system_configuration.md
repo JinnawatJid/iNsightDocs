@@ -6,23 +6,21 @@ The System Configuration Page (Admin Panel) is designed to allow administrators 
 *Note: For deep modifications to the Credit Scoring rules (factors, weights, and thresholds), the system provides a dedicated **"Scorecard Management"** UI. Please refer to `docs/specs/CREDIT_SCORING_CONFIG_GUIDE.md` for details on scorecard modification.*
 
 ## 2. Scope & Categories (What to Configure)
-The configuration settings are logically grouped into categories. The UI will use a vertical tabbed interface (sidebar on the left, content on the right) to organize these.
+The configuration settings are logically grouped into categories. The UI enforces a specific vertical tabbed interface (sidebar on the left) with the following ordered categories:
 
-### Categories
-1. **System & General Settings**
-   - **Data Freshness Limits:** e.g., `DBD_FILE_FRESHNESS_DAYS` (default 180 days).
-   - **Data Retention:** Policies for temporary requests or logs.
-2. **Workflow & Approval Rules**
-   - **Approval Thresholds:** e.g., requiring senior approval for requests > 1,000,000 THB.
-   - **SLA / Timeouts:** Overdue thresholds for pending requests.
-3. **Business & Financial Rules**
-   - **Scoring Parameters:** Weights used in financial analysis to calculate `finalGrade` or `recommendedLimit`.
-   - **Risk Tolerance:** Score thresholds that trigger automatic rejection vs. manual review.
-4. **Integrations & APIs**
-   - **API Keys & Endpoints:** WSO2 API Gateway, OCR API, and DBD integrations.
-   - **Timeouts & Retries:** Wait limits for external APIs.
-5. **User & Role Management (Optional/Future)**
-   - **Role Mapping:** Mapping SSO group claims to internal system roles.
+### Categories (UI Display Order)
+1. **System (การตั้งค่าระบบ)**
+   - **Data Freshness Limits:** e.g., `DBD_FILE_FRESHNESS_DAYS`.
+   - **General Rules:** Global parameters like max file upload sizes.
+2. **UserRoles (จัดการสิทธิ์ผู้ใช้งาน)**
+   - **Role Mapping:** Managing SSO group claims and mapping to internal system roles.
+3. **WorkflowMgmt (จัดการ Workflow)**
+   - **Approval Routes:** Customizing the steps and logic for credit request approvals.
+4. **Scorecards (โมเดลให้คะแนน)**
+   - **Scoring Parameters:** Weights and factors used in financial analysis to calculate grades and recommended limits.
+
+> [!NOTE]
+> Other system categories (like `API` or `Business`) and the legacy `Workflow` (การตั้งค่าขั้นตอนอื่นๆ) category are intentionally **hidden** from the current UI to prevent user confusion and maintain a clean interface.
 
 ## 3. Implementation Approach (How to Implement)
 
@@ -40,7 +38,10 @@ A generic `Configurations` table will be created to store settings dynamically u
 - `updated_by` (String) - Username for audit trail.
 
 **Initial Seed Data:**
-The system automatically seeds the following baseline configurations upon database initialization if they do not exist:
+The system automatically seeds the following baseline configurations upon database initialization if they do not exist. 
+
+> [!WARNING]
+> While these configurations exist in the database, several are explicitly **filtered out and hidden from the UI** (e.g., `AUDIT_LOG_RETENTION_DAYS`, `SYSTEM_MAINTENANCE_MODE`, `DEFAULT_PAGE_SIZE`, `ENABLE_BATCH_PROCESSING`) to prevent unauthorized or accidental modifications by standard admins.
 - `DBD_FILE_FRESHNESS_DAYS` (180, System, number)
 - `AUDIT_LOG_RETENTION_DAYS` (14, System, number)
 - `MAX_FILE_UPLOAD_SIZE_MB` (50, System, number)
