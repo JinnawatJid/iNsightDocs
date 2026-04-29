@@ -71,9 +71,11 @@ flowchart LR
 **[Slide Text]**:
 - **OS:** Windows Server 2019+ หรือ Linux
 - **Runtime:** ไม่ต้องติดตั้ง Node.js (Zero-dependency deployment)
-- **Network Ports:** ต้องเปิด Port 3000 (Application) และ 1433 (Database)
+- **Network / Firewall:**
+  - **Inbound:** อนุญาต Port 3000 (เพื่อให้ User เข้าเว็บได้)
+  - **Outbound:** อนุญาตเชื่อมต่อไปยัง Port 1433 (Database), 80/443 (DBD API และ ERP)
 - **Storage:** ต้องการพื้นที่ว่างอย่างน้อย 50GB สำหรับโฟลเดอร์ `uploads/`
-**[Speaker Notes]**: "ก่อนที่เราจะ Deploy สิ่งที่ต้องเตรียมบน Server คือ OS จะเป็น Windows หรือ Linux ก็ได้ครับ ที่น่าสนใจคือระบบเราเป็น Zero-dependency คือไม่ต้องลง Node.js ในเครื่อง Server เพราะเรา Build ตัว Runtime แนบไปให้เลย สิ่งสำคัญคือการเปิด Port 3000 และการเตรียม Disk Space เผื่อไว้สำหรับการอัปโหลดไฟล์ครับ"
+**[Speaker Notes]**: "ก่อนที่เราจะ Deploy สิ่งที่ต้องเตรียมบน Server คือ OS จะเป็น Windows หรือ Linux ก็ได้ครับ และระบบเราเป็น Zero-dependency คือไม่ต้องลง Node.js เอง สิ่งสำคัญคือเรื่อง Firewall ครับ เครื่องนี้ต้องเปิดพอร์ต 3000 ขาเข้าเพื่อรับ User ส่วนขาออก ต้องตั้งค่าให้เครื่องนี้สามารถทะลุไปคุยกับ Database ผ่านพอร์ต 1433 และเชื่อมต่อไปยัง API ภายนอกอย่าง DBD หรือ ERP ผ่านพอร์ต 80/443 ได้ครับ"
 
 ### Slide 6: The `.env` Configuration File
 **[Visual]**: Code snippet of `.env` file (masking passwords).
