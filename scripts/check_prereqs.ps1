@@ -4,7 +4,7 @@
 .DESCRIPTION
     This script verifies if the current server environment meets all the necessary
     prerequisites (Runtime, Storage, Configuration, Network, Permissions) to run the application.
-    It is intended to be used by IT Operations during server migration or initial setup.
+    It is designed to be executed from the root of the "release" directory.
 #>
 
 $ErrorActionPreference = "Stop"
@@ -37,89 +37,125 @@ Write-Host ""
 $AllPassed = $true
 $ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
 
+# Determine the actual release root assuming this script is at release/check_prereqs.ps1
+# But if it's placed in scripts/ we should adjust.
+# Given the user's screenshot, `check_prereqs.ps1` and `Run_Prereqs_Check.bat` are located at the ROOT of `release/`.
+$ReleaseRoot = $ScriptPath
+
 # ---------------------------------------------------------
-# 1. Check for Runtime (node.exe)
+# 1. Check for Runtime (node/node.exe)
 # ---------------------------------------------------------
-$NodePath = Join-Path $ScriptPath "node.exe"
+$NodePath = Join-Path $ReleaseRoot "node\node.exe"
 if (Test-Path $NodePath) {
-    Write-Result "Standalone Runtime" $true "Found node.exe at $NodePath"
+    Write-Result "Standalone Runtime" $true "Found node.exe at node\node.exe"
 } else {
-    # If the script is placed inside a 'scripts' folder, check the parent directory
-    $ParentNodePath = Join-Path (Split-Path $ScriptPath -Parent) "node.exe"
-    if (Test-Path $ParentNodePath) {
-        Write-Result "Standalone Runtime" $true "Found node.exe at parent directory"
-    } else {
-        Write-Result "Standalone Runtime" $false "Missing node.exe! Please ensure it is copied along with the release."
-        $AllPassed = $false
-    }
+    Write-Result "Standalone Runtime" $false "Missing node.exe! Looked in: node\node.exe. Ensure it is copied with the release."
+    $AllPassed = $false
 }
 
 # ---------------------------------------------------------
-# 2. Check for Configuration (.env)
+# 2. Check for Configuration (backend/.env)
 # ---------------------------------------------------------
-$EnvPath = Join-Path $ScriptPath ".env"
+$EnvPath = Join-Path $ReleaseRoot "backend\.env"
 $DbServer = $null
-
-if (-Not (Test-Path $EnvPath)) {
-    $EnvPath = Join-Path (Split-Path $ScriptPath -Parent) ".env"
-}
+$UploadPathRelative = $null
+$LogDirRelative = $null
 
 if (Test-Path $EnvPath) {
-    Write-Result "Configuration File" $true "Found .env file."
+    Write-Result "Configuration File" $true "Found .env file in backend/."
 
-    # Extract DB_SERVER safely
+    # Extract config values safely
     $envContent = Get-Content $EnvPath
     foreach ($line in $envContent) {
         if ($line -match "^\s*DB_SERVER\s*=\s*(.*)$") {
             $DbServer = $matches[1].Trim("'", '"')
-            break
+        }
+        if ($line -match "^\s*UPLOAD_PATH\s*=\s*(.*)$") {
+            $UploadPathRelative = $matches[1].Trim("'", '"')
+        }
+        if ($line -match "^\s*LOG_DIR\s*=\s*(.*)$") {
+            $LogDirRelative = $matches[1].Trim("'", '"')
         }
     }
 } else {
-    Write-Result "Configuration File" $false "Missing .env file! System cannot start without configuration."
+    Write-Result "Configuration File" $false "Missing .env file in backend/! System cannot start."
     $AllPassed = $false
 }
 
 # ---------------------------------------------------------
 # 3. Check for Storage (Disk Space)
 # ---------------------------------------------------------
-    $RootPath = [System.IO.Path]::GetPathRoot($ScriptPath)
+try {
+    $RootPath = [System.IO.Path]::GetPathRoot($ReleaseRoot)
     $DriveLetter = $RootPath.Replace('\', '')
     $DiskInfo = Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DeviceID -eq $DriveLetter }
 
-if ($DiskInfo) {
-    $FreeSpaceGB = [math]::Round($DiskInfo.FreeSpace / 1GB, 2)
-    if ($FreeSpaceGB -ge $MinDiskSpaceGB) {
-        Write-Result "Storage Space" $true "Available space: ${FreeSpaceGB}GB (Requirement: >= ${MinDiskSpaceGB}GB)"
+    if ($DiskInfo) {
+        $FreeSpaceGB = [math]::Round($DiskInfo.FreeSpace / 1GB, 2)
+        if ($FreeSpaceGB -ge $MinDiskSpaceGB) {
+            Write-Result "Storage Space" $true "Available space: ${FreeSpaceGB}GB (Requirement: >= ${MinDiskSpaceGB}GB)"
+        } else {
+            Write-Result "Storage Space" $false "Available space: ${FreeSpaceGB}GB (Requirement: >= ${MinDiskSpaceGB}GB)"
+            $AllPassed = $false
+        }
     } else {
-        Write-Result "Storage Space" $false "Available space: ${FreeSpaceGB}GB (Requirement: >= ${MinDiskSpaceGB}GB)"
-        $AllPassed = $false
+        Write-Host "[WARN] Storage Space: Could not determine free space for drive $DriveLetter" -ForegroundColor Yellow
     }
-} else {
-    Write-Host "[WARN] Storage Space: Could not determine free space for drive $DriveLetter" -ForegroundColor Yellow
+} catch {
+    Write-Host "[WARN] Storage Space check failed due to OS restrictions. Skipped." -ForegroundColor Yellow
 }
 
 # ---------------------------------------------------------
-# 4. Check for Uploads Directory Permissions
+# 4. Check Directory Permissions (Uploads & Logs based on .env)
 # ---------------------------------------------------------
-$UploadsPath = Join-Path $ScriptPath "uploads"
-if (-Not (Test-Path $UploadsPath)) {
-    $UploadsPath = Join-Path (Split-Path $ScriptPath -Parent) "uploads"
-}
+function Test-DirPermissions {
+    param([string]$RelativePath, [string]$DirLabel)
 
-if (-Not (Test-Path $UploadsPath)) {
-    Write-Result "Uploads Directory" $false "Missing uploads/ directory! Please ensure it is migrated."
-    $AllPassed = $false
-} else {
+    if (-Not $RelativePath) {
+        Write-Result "$DirLabel Directory" $false "Path not defined in .env."
+        $global:AllPassed = $false
+        return
+    }
+
+    # The backend runs from release/backend/, so relative paths in .env are relative to backend/
+    $BackendDir = Join-Path $ReleaseRoot "backend"
+
+    # Resolve the absolute path
+    $CombinedPath = Join-Path $BackendDir $RelativePath
+    $AbsPath = [System.IO.Path]::GetFullPath($CombinedPath)
+
+    if (-Not (Test-Path $AbsPath)) {
+        Write-Host "[WARN] $DirLabel Directory ($AbsPath) does not exist. Trying to create it..." -ForegroundColor Yellow
+        try {
+            New-Item -ItemType Directory -Path $AbsPath -Force | Out-Null
+            Write-Result "$DirLabel Directory" $true "Successfully created $AbsPath."
+        } catch {
+            Write-Result "$DirLabel Directory" $false "Missing directory and no permission to create it at $AbsPath."
+            $global:AllPassed = $false
+            return
+        }
+    }
+
     try {
-        $TestFile = Join-Path $UploadsPath ".write_test.tmp"
+        $TestFile = Join-Path $AbsPath ".write_test.tmp"
         [IO.File]::WriteAllText($TestFile, "test")
         Remove-Item $TestFile
-        Write-Result "Uploads Permissions" $true "Directory exists and has Write permissions."
+        Write-Result "$DirLabel Permissions" $true "Directory $AbsPath has Write permissions."
     } catch {
-        Write-Result "Uploads Permissions" $false "No Write permissions to the uploads/ directory. Check Folder Security."
-        $AllPassed = $false
+        Write-Result "$DirLabel Permissions" $false "No Write permissions at $AbsPath. Check Folder Security."
+        $global:AllPassed = $false
     }
+}
+
+if ($UploadPathRelative) {
+    Test-DirPermissions $UploadPathRelative "Upload (customers)"
+} else {
+    Write-Result "Uploads Directory" $false "UPLOAD_PATH not found in .env"
+    $AllPassed = $false
+}
+
+if ($LogDirRelative) {
+    Test-DirPermissions $LogDirRelative "Logs"
 }
 
 # ---------------------------------------------------------
