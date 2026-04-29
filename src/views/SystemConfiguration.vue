@@ -1,5 +1,6 @@
 <template>
   <div class="system-configuration">
+    <Navbar />
     <div class="config-container">
       <div class="config-header">
         <h2>การตั้งค่าระบบ</h2>
@@ -115,11 +116,12 @@ import { formatDateString } from '../utils/dateUtils';
 import ScorecardManagementTab from '../components/configuration/ScorecardManagementTab.vue';
 import RoleManagementTab from '../components/configuration/RoleManagementTab.vue';
 import WorkflowManagementTab from '../components/configuration/WorkflowManagementTab.vue';
+import Navbar from '../components/shared/Navbar.vue';
 import Swal from 'sweetalert2';
 
 // State
 const configStore = useConfigStore();
-const activeCategory = ref('');
+const activeCategory = ref('System');
 const editState = ref({});
 const hasChanges = ref(false);
 const isSaving = ref(false);
@@ -141,12 +143,31 @@ const getCategoryLabel = (category) => {
 
 // Computed
 const categories = computed(() => {
-  if (!configStore.configurations) return ['Scorecards', 'WorkflowMgmt'];
-  const dbCategories = Object.keys(configStore.configurations).sort();
+  const topCategories = ['System', 'UserRoles', 'WorkflowMgmt', 'Scorecards'];
+
+  if (!configStore.configurations) return topCategories;
+
+  const dbCategories = Object.keys(configStore.configurations);
   const allCategories = new Set(dbCategories);
-  allCategories.add('Scorecards');
-  allCategories.add('WorkflowMgmt');
-  return Array.from(allCategories).sort();
+
+  // Add the explicit ones
+  topCategories.forEach(cat => allCategories.add(cat));
+
+  // Remove Workflow
+  allCategories.delete('Workflow');
+
+  const categoriesArray = Array.from(allCategories);
+
+  // Sort so that the top categories appear first in order, followed by the rest
+  return categoriesArray.sort((a, b) => {
+    const indexA = topCategories.indexOf(a);
+    const indexB = topCategories.indexOf(b);
+
+    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+    return a.localeCompare(b);
+  });
 });
 
 const currentCategoryConfigs = computed(() => {
@@ -172,8 +193,8 @@ const fetchConfigs = async () => {
     hasChanges.value = false;
 
     // Set default active category if none selected
-    if (!activeCategory.value && Object.keys(configStore.configurations).length > 0) {
-      activeCategory.value = Object.keys(configStore.configurations).sort()[0];
+    if (!activeCategory.value) {
+      activeCategory.value = 'System';
     }
   }
 };
