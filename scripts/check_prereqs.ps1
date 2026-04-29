@@ -83,8 +83,9 @@ if (Test-Path $EnvPath) {
 # ---------------------------------------------------------
 # 3. Check for Storage (Disk Space)
 # ---------------------------------------------------------
-$DriveLetter = (Get-Item $ScriptPath).Root
-$DiskInfo = Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DeviceID -eq $DriveLetter.TrimEnd('\') }
+    $RootPath = [System.IO.Path]::GetPathRoot($ScriptPath)
+    $DriveLetter = $RootPath.Replace('\', '')
+    $DiskInfo = Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DeviceID -eq $DriveLetter }
 
 if ($DiskInfo) {
     $FreeSpaceGB = [math]::Round($DiskInfo.FreeSpace / 1GB, 2)
