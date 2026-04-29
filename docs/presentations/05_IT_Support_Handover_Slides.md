@@ -197,18 +197,29 @@ flowchart LR
   3. Restart Application Service เพื่อเคลียร์ Connection Pool
 **[Speaker Notes]**: "Scenario สุดท้าย เกิด Error ระหว่างบันทึกข้อมูล ให้ L2 เช็ค Logs ก่อนครับ หากเจอ SQL Deadlock หรือ Connection Closed แสดงว่ามีปัญหาการสับรางของฐานข้อมูล หรือ Network กระตุก วิธีแก้ปัญหาเฉพาะหน้าที่ไวที่สุดคือการ Restart Service เพื่อสร้าง Connection Pool ขึ้นมาใหม่ครับ"
 
+### Slide 16: Common HTTP Error Codes & L2 Debugging
+**[Visual]**: Table mapping HTTP status codes to meanings and actions.
+**[Slide Text]**:
+- **400 Bad Request:** ข้อมูลส่งมาไม่ครบถ้วน (เช่น ขาด Branch Code, VAT No) -> L2 ตรวจสอบว่าระบบส่งข้อมูลมาผิดปกติหรือไม่
+- **403 Forbidden:** ฟีเจอร์ถูกปิด (เช่น Auto carry-over) -> L2 ตรวจสอบการตั้งค่าสิทธิ์หรือ Config ของระบบ
+- **404 Not Found:** ไม่พบลูกค้าหรือเอกสาร -> L2 ตรวจสอบข้อมูลใน Database หรือโฟลเดอร์ `uploads/` ว่ามีไฟล์จริงหรือไม่
+- **409 Conflict:** ข้อมูลขัดแย้งกัน (เช่น การสร้างคำขอซ้ำ) -> แจ้ง User ว่าข้อมูลอาจซ้ำซ้อน
+- **500 Internal Server Error:** ข้อผิดพลาดของเซิร์ฟเวอร์ -> L2 ต้องอ่าน Log หา Error Stack Trace
+- **502 / 503 Bad Gateway / Service Unavailable:** เชื่อมต่อ API ภายนอกล้มเหลว (Navision, DBD) -> L2 ตรวจสอบ Network และระบบปลายทาง
+**[Speaker Notes]**: "และนี่คือ Error Codes ที่พบบ่อยในระบบครับ หากเป็น 400 มักเกิดจากข้อมูลส่งมาไม่ครบ ให้เช็คว่า Payload ผิดปกติไหม ส่วน 404 มักจะเกี่ยวกับการหาไฟล์เอกสารไม่เจอ ให้ไปเช็คในโฟลเดอร์ uploads ครับ สำหรับ 500 คือ Error ฝั่งเซิร์ฟเวอร์ ต้องเข้าไปดู Log โดยตรง และถ้าเจอ 502 หรือ 503 แสดงว่าระบบของเราติดต่อกับ Navision หรือ DBD ไม่ได้ ให้ทีม IT รีบเช็ค Network หรือระบบปลายทางทันทีครับ"
+
 ---
 
 ## Part 6: Wrap-up (5 Minutes)
 
-### Slide 16: Escalation Matrix
+### Slide 17: Escalation Matrix
 **[Visual]**: Arrow graphic pointing upwards (L1 -> L2 -> Dev).
 **[Slide Text]**:
 - โปรดตรวจสอบ Logs (L2 Checks) ก่อนทำการ Escalate เสมอ
 - ข้อมูลที่ต้องแนบให้ Developer: Transaction ID (`txId`), เวลาที่เกิดปัญหา, และไฟล์ Log
 **[Speaker Notes]**: "ก่อนส่งเรื่องต่อให้ Developer รบกวนทีม L2 ช่วยวิเคราะห์ Log เบื้องต้นก่อนนะครับ และเวลาส่งเรื่อง ควรแนบ Transaction ID และไฟล์ Log ให้ด้วย จะช่วยให้แก้ปัญหาได้ไวขึ้นมากครับ"
 
-### Slide 17: Q&A
+### Slide 18: Q&A
 **[Visual]**: Question mark graphic.
 **[Slide Text]**:
 - **Questions?**
