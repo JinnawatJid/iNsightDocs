@@ -579,7 +579,66 @@ const initDB = async () => {
         }
 
         // Seed default configuration if not exists
-                const initialRbacMatrix = {
+        const initialWorkflowConfig = {
+            states: {
+                Draft: {
+                    label: "ฉบับร่าง",
+                    type: "initial",
+                    actionableByRoles: ["ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)"],
+                    allowedTransitions: ["Opened", "Canceled"]
+                },
+                Opened: {
+                    label: "รอดำเนินการ",
+                    type: "active",
+                    actionableByRoles: ["ผู้พิจารณาของพื้นที่"],
+                    allowedTransitions: ["RegionalSubmitted", "Rejected"]
+                },
+                RegionalSubmitted: {
+                    label: "ผ่านการพิจารณาพื้นที่",
+                    type: "active",
+                    actionableByRoles: ["ผู้พิจารณาฝ่ายขาย"],
+                    allowedTransitions: ["SalesSubmitted", "Rejected"]
+                },
+                SalesSubmitted: {
+                    label: "ผ่านการพิจารณาฝ่ายขาย",
+                    type: "active",
+                    actionableByRoles: ["ผู้ตรวจสอบเอกสาร"],
+                    allowedTransitions: ["FinanceReviewed", "Rejected"]
+                },
+                FinanceReviewed: {
+                    label: "ผ่านการตรวจสอบเอกสาร",
+                    type: "active",
+                    actionableByRoles: ["ผู้อนุมัติ (วงเงิน <300K)"],
+                    allowedTransitions: ["Approved", "Reviewed", "Rejected"]
+                },
+                Reviewed: {
+                    label: "รอคณะกรรมการพิจารณา",
+                    type: "active",
+                    actionableByRoles: ["ผู้อนุมัติ (วงเงิน > 300K)"],
+                    allowedTransitions: ["Approved", "Rejected"]
+                },
+                Approved: {
+                    label: "อนุมัติแล้ว",
+                    type: "final",
+                    actionableByRoles: [],
+                    allowedTransitions: []
+                },
+                Rejected: {
+                    label: "ไม่อนุมัติ",
+                    type: "final",
+                    actionableByRoles: [],
+                    allowedTransitions: []
+                },
+                Canceled: {
+                    label: "ยกเลิก",
+                    type: "final",
+                    actionableByRoles: [],
+                    allowedTransitions: []
+                }
+            }
+        };
+
+        const initialRbacMatrix = {
             roles: [
                 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)',
                 'ผู้พิจารณาของพื้นที่',
@@ -617,7 +676,8 @@ const initDB = async () => {
             { key: 'DEFAULT_PAGE_SIZE', value: '20', type: 'number', category: 'System', desc: 'จำนวนรายการเริ่มต้นที่แสดงต่อหน้า', label: 'จำนวนรายการต่อหน้า (ค่าเริ่มต้น)' },
             { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation', label: 'เปิดใช้งานระบบประมวลผลอัตโนมัติ (Batch)' },
             { key: 'COMMITTEE_APPROVAL_THRESHOLD_THB', value: '300000', type: 'number', category: 'Workflow', desc: 'วงเงินที่ต้องได้รับการอนุมัติจากคณะกรรมการ (บาท)', label: 'วงเงินพิจารณาโดยคณะกรรมการ (บาท)' },
-            { key: 'RBAC_MATRIX_CONFIG', value: JSON.stringify(initialRbacMatrix), type: 'json', category: 'UserRoles', desc: 'การตั้งค่า Matrix การจัดการสิทธิ์', label: 'Role & Permission Matrix' }
+            { key: 'RBAC_MATRIX_CONFIG', value: JSON.stringify(initialRbacMatrix), type: 'json', category: 'UserRoles', desc: 'การตั้งค่า Matrix การจัดการสิทธิ์', label: 'Role & Permission Matrix' },
+            { key: 'WORKFLOW_CONFIG', value: JSON.stringify(initialWorkflowConfig), type: 'json', category: 'WorkflowMgmt', desc: 'การตั้งค่าสถานะ Workflow และการอนุมัติ', label: 'Workflow State Machine Configuration' }
         ];
 
         for (const config of defaultConfigs) {
