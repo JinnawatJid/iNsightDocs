@@ -139,7 +139,126 @@ async searchCustomer(query) {
 ```
 
 ### 3. The Backend connects to the External API (Navision/ERP)
-The backend doesn't just search the local database; it goes to the main external ERP system to get the most up-to-date data. It performs **4 parallel searches at the same time** using your text. It searches by ID, Name, Mobile Phone Number, and VAT Registration Number. This ensures that no matter what you typed, if there's a match, the system will find it quickly.
+The backend doesn't just search the local database; it goes to the main external ERP system to get the most up-to-date data. It performs **4 parallel searches at the same time** using your text. It searches by ID, Name, Mobile Phone Number, and VAT Registration Number. This is a real parallel HTTP pattern, not CPU multi-threading: the 4 requests are started together, then the backend waits for all of them to settle before merging the results.
+
+**[Presentation Script / What to Say]**
+"ตรงจุดนี้ backend จะไม่ยิงค้นหาแค่รูปแบบเดียวครับ แต่จะแตก query ออกเป็น 4 แบบแล้วส่งไปพร้อมกันที่ ERP เพื่อให้โอกาสเจอข้อมูลสูงขึ้นและเร็วขึ้นด้วยครับ"
+
+"สิ่งที่สำคัญคือการทำงานแบบนี้เป็นการส่ง HTTP request แบบขนานผ่าน Promise ไม่ใช่การใช้ thread ครับ ดังนั้นมันเร็วขึ้นเพราะรอ network พร้อมกัน ไม่ได้ทำให้ CPU ทำงานหนักเพิ่มแบบการประมวลผลพร้อมกันหลาย thread"
+
+```javascript
+const searchApiCustomers = async (query) => {
+    // Define fields for Split & Merge
+    const searchRequests = [
+        { label: "By ID",   payload: { "No_": { "$like": `%${query}%` } } },
+        { label: "By Name", payload: { "Name": { "$like": `%${query}%` } } },
+        { label: "By Mobile", payload: { "Mobile Phone No_": { "$like": `%${query}%` } } },
+        { label: "By VAT", payload: { "VAT Registration No_": { "$like": `%${query}%` } } }
+    ];
+
+    // Execute in parallel
+    const promises = searchRequests.map(reqData =>
+         axios.post(API_URL, {
+           page: 1,
+           size: 10,
+           ...reqData.payload
+         }, {
+          headers: {
+            "apikey": API_KEY,
+            "Content-Type": "application/json"
+          },
+          timeout: 5000 // 5s timeout for API to allow quick fallback
+        }).then(response => response.data.data || [])
+    );
+
+    // We need to know if ALL requests failed to trigger fallback
+    const resultsArrays = await Promise.allSettled(promises);
+
+    // Check if all failed (Network error, etc)
+    const allFailed = resultsArrays.every(r => r.status === 'rejected');
+    if (allFailed) {
+        const errors = resultsArrays.map(r => r.reason.message).join('; ');
+        throw new Error(`All API requests failed: ${errors}`);
+    }
+
+    // Collect successful results
+    const allCustomers = resultsArrays
+      .filter(r => r.status === 'fulfilled')
+      .map(r => r.value)
+      .flat();
+
+    // Deduplicate
+    const uniqueCustomers = [];
+    const seenIds = new Set();
+
+    for (const customer of allCustomers) {
+        if (!customer["No_"]) continue;
+        if (!seenIds.has(customer["No_"])) {
+            seenIds.add(customer["No_"]);
+            uniqueCustomers.push(customer);
+        }
+    }
+
+    return uniqueCustomers;
+};
+```
+
+**Line-by-Line Explanation**
+
+1. `const searchApiCustomers = async (query) => {`  
+   This defines the helper function that will search the ERP API using the text the user typed.
+
+2. `const searchRequests = [...]`  
+   This creates 4 separate search patterns. Each one targets a different field in ERP: customer code, name, mobile number, and VAT number.
+
+3. `"No_": { "$like": `%${query}%` }` and the other payloads  
+   The backend wraps the query in `%...%` so the ERP can perform a partial match instead of requiring an exact value.
+
+4. `const promises = searchRequests.map(reqData => ... )`  
+   This converts each search definition into a Promise. Because `map()` is used without `await` inside the loop, all 4 requests are created immediately.
+
+5. `axios.post(API_URL, { page: 1, size: 10, ...reqData.payload }, ...)`  
+   This sends one POST request to the ERP endpoint. The request includes pagination and the specific search field for that iteration.
+
+6. `headers: { "apikey": API_KEY, "Content-Type": "application/json" }`  
+   The ERP expects an API key and JSON body, so the backend sends both in the request headers.
+
+7. `timeout: 5000`  
+   Each request is allowed 5 seconds. If the ERP is slow, the backend does not wait forever and can move to fallback logic sooner.
+
+8. `.then(response => response.data.data || [])`  
+   After ERP responds, the code extracts only the actual customer rows. If the API returns no `data`, it uses an empty array instead.
+
+9. `const resultsArrays = await Promise.allSettled(promises);`  
+   This waits until all 4 requests finish. `Promise.allSettled()` is important because it keeps the successful responses even if one or more requests fail.
+
+10. `const allFailed = resultsArrays.every(r => r.status === 'rejected');`  
+    This checks whether every request failed. If all of them fail, the backend treats the external API as unavailable.
+
+11. `throw new Error(...)`  
+    If all requests failed, the function throws an error so the main search controller can switch to the local database fallback path.
+
+12. `.filter(r => r.status === 'fulfilled')`  
+    This keeps only the successful API responses.
+
+13. `.map(r => r.value).flat();`  
+    Each successful response contains its own array of customers. This step merges all of those arrays into one combined list.
+
+14. `const uniqueCustomers = []; const seenIds = new Set();`  
+    Because the same customer can match more than one search field, the code prepares a deduplication step.
+
+15. `if (!seenIds.has(customer["No_"])) { ... }`  
+    This prevents the same ERP customer code from appearing more than once in the final result.
+
+16. `return uniqueCustomers;`  
+    The function returns the final merged, cleaned, unique customer list back to the main search flow.
+
+**What this means in practice**
+
+- The backend asks ERP 4 questions at once instead of waiting one by one.
+- If one search finds the customer early, the other searches still continue, but the backend can merge everything together cleanly.
+- If ERP is unreachable, the code throws and the main controller can switch to local DB fallback.
+- Because duplicates are expected, deduplication by `No_` is required.
 
 ```mermaid
 sequenceDiagram
@@ -256,7 +375,11 @@ exports.searchCustomers = async (req, res) => {
 ```
 
 ### 6. Single Customer View (VAT Verification)
-Once the frontend receives the data, it performs a crucial check to prevent duplicate credit accounts. It takes the customer's VAT Registration Number and asks the backend if *any other account* (e.g., a different branch) already has an approved credit limit. If it finds one, it warns the user and automatically redirects the search to that primary account.
+Once the frontend receives the data, it performs a crucial check to prevent duplicate credit accounts. It takes the customer's VAT Registration Number and asks the backend if *any other account* (e.g., a different branch) already has an approved credit limit.
+
+In the current code, the term **primary account** is an implementation shortcut, not a formal ERP master-data rule. The backend simply returns the **first account in the API response** whose `Fixed Credit Limit` is greater than 0, and the frontend redirects to that returned account number. So when you present this, the safest wording is: **the system treats the first qualifying API result as the primary account for redirect purposes**.
+
+If it finds such an account, it warns the user and automatically redirects the search to that account so the credit request is linked to the existing approved-credit record instead of creating a duplicate.
 
 ```mermaid
 sequenceDiagram
