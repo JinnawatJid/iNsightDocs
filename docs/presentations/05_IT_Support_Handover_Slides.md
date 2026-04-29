@@ -213,16 +213,86 @@ flowchart LR
 
 ---
 
-## Part 6: Wrap-up (5 Minutes)
+## Part 6: Database Schema & Reporting (10 Minutes)
 
-### Slide 17: Escalation Matrix
+### Slide 17: High-Level ERD (Entity-Relationship Diagram)
+**[Visual]**:
+```mermaid
+erDiagram
+    CreditRequests ||--o{ CreditRequestAttachments : "มีไฟล์แนบ"
+    CreditRequests ||--o{ RequestComments : "มีความคิดเห็น"
+    CreditRequests {
+        int id PK
+        string status
+        string created_by
+        json snapshot_data
+    }
+    CreditRequestAttachments {
+        int id PK
+        int request_id FK
+        string file_path
+    }
+    RequestComments {
+        int id PK
+        int request_id FK
+        string comment
+    }
+    Configurations {
+        string config_key PK
+        json config_value
+    }
+    Notifications {
+        int id PK
+        string type
+        string read_by
+    }
+```
+**[Slide Text]**:
+- **ตารางหลัก (Core Table):** `CreditRequests` เก็บข้อมูลคำขอและสถานะ
+- **ตารางรอง (Related Tables):** `CreditRequestAttachments` (ไฟล์แนบ) และ `RequestComments` (คอมเมนต์)
+- **ตารางระบบ (System Tables):** `Configurations` (ตั้งค่าระบบ) และ `Notifications` (การแจ้งเตือน)
+**[Speaker Notes]**: "ในอนาคตหากทีม IT ต้องเขียน Query เพื่อทำรายงาน นี่คือโครงสร้างฐานข้อมูล (ERD) ของเราครับ ศูนย์กลางของระบบคือตาราง CreditRequests ซึ่งจะผูกกับไฟล์แนบและคอมเมนต์ของคำขอนั้นๆ ส่วนตาราง Configurations และ Notifications จะเป็นตารางที่ใช้จัดการการทำงานของระบบครับ"
+
+### Slide 18: Data Dictionary (พจนานุกรมข้อมูลสำหรับทำรายงาน)
+**[Visual]**: Table showing key columns in `CreditRequests`.
+**[Slide Text]**:
+- **ตารางที่สำคัญที่สุดสำหรับการทำ Report:** `CreditRequests`
+  - `id`: รหัสอ้างอิงคำขอ (Transaction ID)
+  - `customer_no`: รหัสลูกค้า (อ้างอิงกับ Navision)
+  - `status`: สถานะปัจจุบัน (เช่น Draft, Approved, Rejected)
+  - `created_by` / `created_at`: ผู้สร้างคำขอ และวันที่สร้าง
+  - `snapshot_data`: **[สำคัญ]** เก็บข้อมูลรายละเอียดทั้งหมดในรูปแบบ JSON
+**[Speaker Notes]**: "หากต้องดึงรายงานคำขอสินเชื่อ ให้ดึงจากตาราง CreditRequests เป็นหลักครับ คอลัมน์ที่สำคัญจะมี id, รหัสลูกค้า, สถานะ, และผู้สร้าง แต่จุดที่อยากให้สังเกตคือ คอลัมน์ snapshot_data ซึ่งเราใช้เก็บรายละเอียดของคำขอทั้งหมดในรูปแบบ JSON เพื่อความยืดหยุ่นของระบบครับ"
+
+### Slide 19: JSON Querying Guide (การคิวรีข้อมูลแบบ JSON)
+**[Visual]**: Code snippet showing SQL JSON extraction.
+**[Slide Text]**:
+- เนื่องจากระบบใช้ **Semi-structured JSON** ในการเก็บข้อมูล (เช่น วงเงินที่ขอเพิ่ม)
+- **ตัวอย่างการดึงข้อมูลใน MSSQL:**
+  ```sql
+  SELECT
+      id,
+      customer_no,
+      status,
+      JSON_VALUE(snapshot_data, '$.transaction_data.creditLimit') AS RequestedLimit
+  FROM CreditRequests
+  WHERE status = 'Approved';
+  ```
+- **ข้อควรระวัง:** `JSON_VALUE` ดึงค่าออกมาเป็น Text หากต้องการใช้คำนวณต้อง CAST เป็นตัวเลข
+**[Speaker Notes]**: "เนื่องจากข้อมูลหลายส่วนถูกเก็บเป็น JSON ในคอลัมน์ snapshot_data เวลาที่ทีม IT จะทำ Report ดึงข้อมูลวงเงินที่ขอเพิ่ม จะไม่สามารถ Select คอลัมน์ตรงๆ ได้ครับ ใน MSSQL เราจะต้องใช้ฟังก์ชัน JSON_VALUE เพื่อเจาะเข้าไปดึงข้อมูลออกมาตามตัวอย่างบนจอครับ และอย่าลืมว่าค่าที่ได้ออกมาจะเป็น Text ถ้าจะเอาไปซัมยอด ต้อง CAST เป็นตัวเลขก่อนเสมอครับ"
+
+---
+
+## Part 7: Wrap-up (5 Minutes)
+
+### Slide 20: Escalation Matrix
 **[Visual]**: Arrow graphic pointing upwards (L1 -> L2 -> Dev).
 **[Slide Text]**:
 - โปรดตรวจสอบ Logs (L2 Checks) ก่อนทำการ Escalate เสมอ
 - ข้อมูลที่ต้องแนบให้ Developer: Transaction ID (`txId`), เวลาที่เกิดปัญหา, และไฟล์ Log
 **[Speaker Notes]**: "ก่อนส่งเรื่องต่อให้ Developer รบกวนทีม L2 ช่วยวิเคราะห์ Log เบื้องต้นก่อนนะครับ และเวลาส่งเรื่อง ควรแนบ Transaction ID และไฟล์ Log ให้ด้วย จะช่วยให้แก้ปัญหาได้ไวขึ้นมากครับ"
 
-### Slide 18: Q&A
+### Slide 21: Q&A
 **[Visual]**: Question mark graphic.
 **[Slide Text]**:
 - **Questions?**
