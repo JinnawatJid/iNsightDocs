@@ -96,29 +96,24 @@ const availableActions = computed(() => {
       const rejectTransitions = allTransitions.filter(t => requiresComment(t));
 
       if (amount <= 300000 && approveTransition) {
-        const targetLabel = workflowStates.value[approveTransition]?.label || approveTransition;
-        actions.push({ key: 'approve', label: `อนุมัติ (${targetLabel})`, targetStatus: approveTransition, class: 'btn-success' });
+        actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: approveTransition, class: 'btn-success' });
       } else if (amount > 300000 && committeeTransition) {
-        const targetLabel = workflowStates.value[committeeTransition]?.label || committeeTransition;
-        actions.push({ key: 'submit', label: `ส่งต่อให้กรรมการ (${targetLabel})`, targetStatus: committeeTransition, class: 'btn-primary' });
+        actions.push({ key: 'submit', label: 'ส่งต่อ (Send to Committee)', targetStatus: committeeTransition, class: 'btn-primary' });
       }
 
       rejectTransitions.forEach(t => {
-        const targetLabel = workflowStates.value[t]?.label || t;
-        actions.push({ key: 'reject', label: `ไม่อนุมัติ (${targetLabel})`, targetStatus: t, class: 'btn-danger', requireComment: true });
+        actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: t, class: 'btn-danger', requireComment: true });
       });
 
       return actions;
     }
 
-    // --- General dynamic path: map each allowed transition to a button ---
+    // --- General dynamic path ---
     return (stateData.allowedTransitions || []).map(targetKey => {
-      const targetState = workflowStates.value[targetKey];
-      const targetLabel = targetState?.label || targetKey;
       const isReject = requiresComment(targetKey);
       return {
         key: targetKey,
-        label: isReject ? `ไม่อนุมัติ (${targetLabel})` : `อนุมัติ / ส่งต่อ (${targetLabel})`,
+        label: isReject ? 'ไม่อนุมัติ (Reject)' : 'อนุมัติ (Approve)',
         targetStatus: targetKey,
         class: getActionClass(targetKey),
         requireComment: isReject,
