@@ -23,6 +23,9 @@
 import { computed } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
+import { getWorkflowConfig } from '@/utils/workflowUtils';
+import { useConfigStore } from '@/stores/config';
+
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -46,48 +49,61 @@ const availableActions = computed(() => {
 
   if (!status) return [];
 
+  const config = getWorkflowConfig();
+  if (!config || !config.states || !config.states[status]) return [];
+
+  const stateData = config.states[status];
+  const userRoles = authStore.user?.roles?.map(r => r.role) || [];
+
+  // Check if current user is allowed to act on this status
+  const isActionable = stateData.actionableByRoles?.some(role => userRoles.includes(role));
+
+  if (!isActionable) return [];
+
   const amount = Number(store.transactionData.amount || 0);
 
-  // Note: /pending-requests shouldn't show Draft requests, so Initiators shouldn't have actions here.
-  // Draft submission is handled entirely within /create-credit-request.
+  // Dynamically map allowed transitions
+  if (stateData.allowedTransitions) {
+      stateData.allowedTransitions.forEach(targetStatus => {
+          // Special Logic for amount threshold
+          // In a fully dynamic system, this threshold logic should ideally also be in the config (e.g. conditions).
+          // For now, we will honor the 300k rule for the Finance Manager transition by filtering allowedTransitions dynamically.
+          // If the status is FinanceReviewed, we enforce the split:
+          if (status === 'FinanceReviewed') {
+              if (amount <= 300000 && targetStatus === 'Reviewed') return; // Skip Send to Committee
+              if (amount > 300000 && targetStatus === 'Approved') return; // Skip Final Approve directly
+          }
+          if (status === 'Reviewed') {
+              // Wait, Reviewed requires amount > 300k to even get here naturally, but just in case:
+              if (amount <= 300000 && targetStatus === 'Approved') return;
+          }
 
-  // 1. Regional Manager (Opened -> RegionalSubmitted)
-  if (status === 'Opened' && authStore.isRegionalManager) {
-    actions.push({ key: 'approve', label: 'อนุมัติ (Approve)', targetStatus: 'RegionalSubmitted', class: 'btn-success' });
-    actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
+          let btnClass = 'btn-primary';
+          let requireComment = false;
+          let label = `ดำเนินการ (${targetStatus})`;
+
+          // Determine aesthetic properties based on target status semantics
+          if (targetStatus === 'Approved' || targetStatus.includes('Submitted') || targetStatus.includes('Reviewed')) {
+              btnClass = 'btn-success';
+              label = targetStatus === 'Approved' ? 'อนุมัติ (Approve)' :
+                      targetStatus.includes('Reviewed') ? 'ตรวจสอบ (Verify)' : 'ส่งต่อ (Submit)';
+          }
+          if (targetStatus === 'Rejected' || targetStatus === 'Returned') {
+              btnClass = 'btn-danger';
+              requireComment = true;
+              label = targetStatus === 'Rejected' ? 'ไม่อนุมัติ (Reject)' : 'ส่งกลับแก้ไข (Return)';
+          }
+
+          actions.push({
+              key: targetStatus,
+              label: label,
+              targetStatus: targetStatus,
+              class: btnClass,
+              requireComment: requireComment
+          });
+      });
   }
 
-  // 2. Sales Manager (RegionalSubmitted -> SalesSubmitted)
-  if (status === 'RegionalSubmitted' && authStore.isSalesManager) {
-    actions.push({ key: 'approve', label: 'อนุมัติ (Approve)', targetStatus: 'SalesSubmitted', class: 'btn-success' });
-    actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
-  }
-
-  // 3. Finance Officer (SalesSubmitted -> FinanceReviewed)
-  if (status === 'SalesSubmitted' && authStore.isFinanceOfficer) {
-    actions.push({ key: 'review', label: 'ตรวจสอบ (Verify)', targetStatus: 'FinanceReviewed', class: 'btn-success' });
-    actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
-  }
-
-  // 4. Finance Manager (FinanceReviewed -> Approved if <= 300k, or Reviewed if > 300k)
-  if (status === 'FinanceReviewed' && authStore.isFinanceManager) {
-    if (amount <= 300000) {
-        actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
-    } else {
-        actions.push({ key: 'submit', label: 'ส่งต่อ (Send to Committee)', targetStatus: 'Reviewed', class: 'btn-primary' });
-    }
-    actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
-  }
-
-  // 5. Credit Committee (Reviewed -> Approved if > 300k)
-  if (status === 'Reviewed' && authStore.isCreditCommittee) {
-    if (amount > 300000) {
-        actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
-        actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
-    }
-  }
-
-  // 7. Approved/Rejected/Canceled (No Actions)
   return actions;
 });
 

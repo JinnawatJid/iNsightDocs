@@ -102,6 +102,9 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
 import { formatRequestType } from '@/utils/requestTypeFormatter';
 import { debounce } from 'lodash';
+import { getAllowedStatusesForUser, isStatusActionableForUser } from '@/utils/workflowUtils';
+import { useConfigStore } from '@/stores/config';
+
 
 // Import Icons
 import iconSearch from '@/assets/icons/search.svg';
@@ -130,41 +133,23 @@ const fetchData = () => {
   const query = searchQuery.value;
 
   if (activeTab.value === 'pending') {
-    let allowedStatuses = [];
-
-    // Determine allowed statuses based on the user's role
-    if (authStore.isInitiator) {
-      // Initiator (Branch Manager) should see all active requests they submitted
-      allowedStatuses.push('Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
-    }
-    if (authStore.isRegionalManager) {
-      allowedStatuses.push('Opened');
-    }
-    if (authStore.isSalesManager) {
-      allowedStatuses.push('RegionalSubmitted');
-    }
-    if (authStore.isFinanceOfficer) {
-      // P'Joy (Finance Officer / Document Reviewer) should see active requests she needs to review (SalesSubmitted),
-      // as well as requests she already forwarded that are waiting for the Finance Manager (FinanceReviewed)
-      allowedStatuses.push('SalesSubmitted', 'FinanceReviewed');
-    }
-    if (authStore.isFinanceManager) {
-      allowedStatuses.push('FinanceReviewed');
-    }
-    if (authStore.isCreditCommittee) {
-      allowedStatuses.push('Reviewed');
+    const configStore = useConfigStore();
+    if (!configStore.configurations || Object.keys(configStore.configurations).length === 0) {
+        await configStore.fetchConfigurations();
     }
 
-    // If no roles match or array is empty, fallback to a safe default so it doesn't break,
-    // though in a perfect RBAC system, they might just see nothing.
-    const statusQuery = allowedStatuses.length > 0
-      ? allowedStatuses.join(',')
+    const allowedStatuses = getAllowedStatusesForUser();
+
+    // Specifically filter out 'Draft' for the pending sidebar because Drafts shouldn't clutter this view
+    const filteredStatuses = allowedStatuses.filter(s => s !== 'Draft');
+
+    const statusQuery = filteredStatuses.length > 0
+      ? filteredStatuses.join(',')
       : '';
 
     if (statusQuery) {
         store.fetchRequests(statusQuery, query);
     } else {
-        // If there are no allowed statuses, don't fetch and clear the list
         store.requestsList = [];
     }
   } else {
@@ -214,19 +199,35 @@ const getRequestTypeClass = (type) => {
 };
 
 const isActionable = (status) => {
-    if (authStore.isInitiator && ['Draft', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'].includes(status)) return true;
-    if (authStore.isRegionalManager && status === 'Opened') return true;
-    if (authStore.isSalesManager && status === 'RegionalSubmitted') return true;
-    if (authStore.isFinanceOfficer && status === 'SalesSubmitted') return true;
-    if (authStore.isFinanceManager && status === 'FinanceReviewed') return true;
-    if (authStore.isCreditCommittee && status === 'Reviewed') return true;
-    return false;
+    return isStatusActionableForUser(status);
 };
 
 const getStatusLabel = (status) => {
     if (isActionable(status)) {
         return "รอคุณดำเนินการ";
     }
+
+    // Dynamic Role Parsing from Config
+    const configStore = useConfigStore();
+    const configKey = 'WORKFLOW_CONFIG';
+    let configObj = null;
+    if (configStore.configurations && configStore.configurations['WorkflowMgmt']) {
+        configObj = configStore.configurations['WorkflowMgmt'].find(c => c.config_key === configKey);
+    }
+
+    if (configObj && configObj.config_value) {
+        try {
+            const parsedConfig = JSON.parse(configObj.config_value);
+            const stateData = parsedConfig.states[status];
+            if (stateData && stateData.actionableByRoles && stateData.actionableByRoles.length > 0) {
+                // If it's a specific role waiting, just use the first role as the main label, or join them
+                // We'll prefer a shorter name or just use the first role mapping
+                return `รอ ${stateData.actionableByRoles[0]}`;
+            }
+        } catch(e) {}
+    }
+
+    // Fallback if config isn't loaded or parsing fails
     const roleLabels = {
         'Draft': 'ผู้สร้างคำขอ',
         'Opened': 'ผู้จัดการสาขา',

@@ -4,6 +4,9 @@ import CreditRequestService from "@/services/CreditRequestService";
 import Swal from "sweetalert2";
 import { getMandatoryKeys } from "@/config/mandatoryFields";
 import { useAuthStore } from "@/stores/auth";
+import { getAllowedStatusesForUser } from "@/utils/workflowUtils";
+import { useConfigStore } from "@/stores/config";
+
 
 export const useCreditRequestStore = defineStore("creditRequest", {
   state: () => ({
@@ -1416,37 +1419,18 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           let listStatus = "Approved,Rejected,Closed,Canceled";
           if (this.activeTab !== "history") {
             const authStore = useAuthStore();
-            let allowedStatuses = [];
-
-            if (authStore.isInitiator) {
-              allowedStatuses.push(
-                "Opened",
-                "RegionalSubmitted",
-                "SalesSubmitted",
-                "FinanceReviewed",
-                "Reviewed",
-                "PendingSales (ชั่วคราว)",
-                "PendingFinance (ชั่วคราว)",
-              );
-            }
-            if (authStore.isRegionalManager) {
-              allowedStatuses.push("Opened");
-            }
-            if (authStore.isSalesManager) {
-              allowedStatuses.push("RegionalSubmitted");
-            }
-            if (authStore.isFinanceOfficer) {
-              allowedStatuses.push("SalesSubmitted", "FinanceReviewed");
-            }
-            if (authStore.isFinanceManager) {
-              allowedStatuses.push("FinanceReviewed");
-            }
-            if (authStore.isCreditCommittee) {
-              allowedStatuses.push("Reviewed");
+            const configStore = useConfigStore();
+            if (!configStore.configurations || Object.keys(configStore.configurations).length === 0) {
+                await configStore.fetchConfigurations();
             }
 
-            if (allowedStatuses.length > 0) {
-              listStatus = allowedStatuses.join(",");
+            const allowedStatuses = getAllowedStatusesForUser();
+
+            // To ensure initiator isn't accidentally pulling "Draft" into the pending list when they shouldn't in this specific fetch context
+            const filteredStatuses = allowedStatuses.filter(s => s !== 'Draft');
+
+            if (filteredStatuses.length > 0) {
+              listStatus = filteredStatuses.join(",");
             } else {
               listStatus = "";
             }
