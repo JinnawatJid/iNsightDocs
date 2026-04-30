@@ -129,7 +129,7 @@ const switchTab = (tab) => {
   fetchData();
 };
 
-const fetchData = () => {
+const fetchData = async () => {
   const query = searchQuery.value;
 
   if (activeTab.value === 'pending') {
