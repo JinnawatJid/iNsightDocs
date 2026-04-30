@@ -87,41 +87,50 @@ const availableActions = computed(() => {
     if (!canAct) return [];
 
     // --- 300k Special Case: retained for FinanceReviewed state ---
-    // When a user at the FinanceReviewed stage is deciding, only show the
-    // contextually correct approval path based on the credit amount.
     if (status === 'FinanceReviewed') {
       const actions = [];
       const allTransitions = stateData.allowedTransitions || [];
 
-      // Identify transitions: find 'Approved' (final approve) vs 'Reviewed' (send to committee)
       const approveTransition = allTransitions.find(t => t.toLowerCase().includes('approv') && !t.toLowerCase().includes('review'));
       const committeeTransition = allTransitions.find(t => t === 'Reviewed' || (t !== 'Rejected' && !t.toLowerCase().includes('approv')));
       const rejectTransitions = allTransitions.filter(t => requiresComment(t));
 
       if (amount <= 300000 && approveTransition) {
-        const targetLabel = workflowStates.value[approveTransition]?.label || approveTransition;
-        actions.push({ key: 'approve', label: `อนุมัติ (${targetLabel})`, targetStatus: approveTransition, class: 'btn-success' });
+        actions.push({ key: 'approve', label: 'อนุมัติ', targetStatus: approveTransition, class: 'btn-success' });
       } else if (amount > 300000 && committeeTransition) {
         const targetLabel = workflowStates.value[committeeTransition]?.label || committeeTransition;
-        actions.push({ key: 'submit', label: `ส่งต่อให้กรรมการ (${targetLabel})`, targetStatus: committeeTransition, class: 'btn-primary' });
+        actions.push({ key: 'submit', label: `ส่งต่อกรรมการ → ${targetLabel}`, targetStatus: committeeTransition, class: 'btn-primary' });
       }
 
       rejectTransitions.forEach(t => {
-        const targetLabel = workflowStates.value[t]?.label || t;
-        actions.push({ key: 'reject', label: `ไม่อนุมัติ (${targetLabel})`, targetStatus: t, class: 'btn-danger', requireComment: true });
+        actions.push({ key: 'reject', label: 'ไม่อนุมัติ', targetStatus: t, class: 'btn-danger', requireComment: true });
       });
 
       return actions;
     }
 
-    // --- General dynamic path: map each allowed transition to a button ---
+    // --- General dynamic path: map each allowed transition to a smart label ---
     return (stateData.allowedTransitions || []).map(targetKey => {
       const targetState = workflowStates.value[targetKey];
       const targetLabel = targetState?.label || targetKey;
+      const targetType = targetState?.type || 'active';
       const isReject = requiresComment(targetKey);
+
+      let label;
+      if (isReject) {
+        // Rejection: just "ไม่อนุมัติ" — no need to repeat the target state name
+        label = 'ไม่อนุมัติ';
+      } else if (targetType === 'final') {
+        // Final approval state (e.g. Approved)
+        label = 'อนุมัติ';
+      } else {
+        // Forwarding to next active step: show WHERE it's going
+        label = `ส่งต่อ → ${targetLabel}`;
+      }
+
       return {
         key: targetKey,
-        label: isReject ? `ไม่อนุมัติ (${targetLabel})` : `อนุมัติ / ส่งต่อ (${targetLabel})`,
+        label,
         targetStatus: targetKey,
         class: getActionClass(targetKey),
         requireComment: isReject,
