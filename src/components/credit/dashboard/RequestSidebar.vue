@@ -100,6 +100,7 @@ import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
+import { useConfigStore } from '@/stores/config';
 import { formatRequestType } from '@/utils/requestTypeFormatter';
 import { debounce } from 'lodash';
 
@@ -111,11 +112,39 @@ import iconRejected from '@/assets/icons/x-circle-red.svg';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const configStore = useConfigStore();
 const activeTab = ref('pending');
 const searchQuery = ref('');
 
 const requests = computed(() => store.requestsList);
 const loading = computed(() => store.loading);
+
+// --- Dynamic Workflow Config ---
+const workflowStates = computed(() => {
+  const WORKFLOW_CONFIG_KEY = 'WORKFLOW_CONFIG';
+  const configs = configStore.configurations;
+  if (!configs) return null;
+  for (const cat in configs) {
+    const found = configs[cat].find(c => c.config_key === WORKFLOW_CONFIG_KEY);
+    if (found) {
+      try {
+        return JSON.parse(found.config_value).states;
+      } catch (e) {
+        return null;
+      }
+    }
+  }
+  return null;
+});
+
+// Returns all state keys from WORKFLOW_CONFIG where the current user has an actionable role
+const dynamicActionableStatuses = computed(() => {
+  if (!workflowStates.value) return [];
+  const myRoles = (authStore.user?.roles || []).map(r => r.role);
+  return Object.entries(workflowStates.value)
+    .filter(([, stateData]) => stateData.actionableByRoles.some(r => myRoles.includes(r)))
+    .map(([key]) => key);
+});
 
 const pendingTabLabel = computed(() => {
   return authStore.isInitiator ? 'ติดตามคำขอ' : 'รออนุมัติ';
@@ -132,40 +161,43 @@ const fetchData = () => {
   if (activeTab.value === 'pending') {
     let allowedStatuses = [];
 
-    // Determine allowed statuses based on the user's role
-    if (authStore.isInitiator) {
-      // Initiator (Branch Manager) should see all active requests they submitted
-      allowedStatuses.push('Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
-    }
-    if (authStore.isRegionalManager) {
-      allowedStatuses.push('Opened');
-    }
-    if (authStore.isSalesManager) {
-      allowedStatuses.push('RegionalSubmitted');
-    }
-    if (authStore.isFinanceOfficer) {
-      // P'Joy (Finance Officer / Document Reviewer) should see active requests she needs to review (SalesSubmitted),
-      // as well as requests she already forwarded that are waiting for the Finance Manager (FinanceReviewed)
-      allowedStatuses.push('SalesSubmitted', 'FinanceReviewed');
-    }
-    if (authStore.isFinanceManager) {
-      allowedStatuses.push('FinanceReviewed');
-    }
-    if (authStore.isCreditCommittee) {
-      allowedStatuses.push('Reviewed');
+    // --- Dynamic: Derive visible statuses from WORKFLOW_CONFIG ---
+    if (workflowStates.value) {
+      const myRoles = (authStore.user?.roles || []).map(r => r.role);
+
+      if (authStore.isInitiator) {
+        // Initiators track all non-final states for requests they submitted
+        allowedStatuses = Object.entries(workflowStates.value)
+          .filter(([, s]) => s.type !== 'final')
+          .map(([key]) => key);
+        // Also include legacy transient statuses not in WORKFLOW_CONFIG
+        allowedStatuses.push('PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
+      } else {
+        // For all other roles: show statuses where their role is actionable
+        allowedStatuses = Object.entries(workflowStates.value)
+          .filter(([, stateData]) => stateData.actionableByRoles.some(r => myRoles.includes(r)))
+          .map(([key]) => key);
+      }
+    } else {
+      // --- Fallback to hardcoded logic if WORKFLOW_CONFIG is unavailable ---
+      if (authStore.isInitiator) {
+        allowedStatuses.push('Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
+      }
+      if (authStore.isRegionalManager) allowedStatuses.push('Opened');
+      if (authStore.isSalesManager) allowedStatuses.push('RegionalSubmitted');
+      if (authStore.isFinanceOfficer) allowedStatuses.push('SalesSubmitted', 'FinanceReviewed');
+      if (authStore.isFinanceManager) allowedStatuses.push('FinanceReviewed');
+      if (authStore.isCreditCommittee) allowedStatuses.push('Reviewed');
     }
 
-    // If no roles match or array is empty, fallback to a safe default so it doesn't break,
-    // though in a perfect RBAC system, they might just see nothing.
-    const statusQuery = allowedStatuses.length > 0
-      ? allowedStatuses.join(',')
-      : '';
+    // De-duplicate
+    const uniqueStatuses = [...new Set(allowedStatuses)];
+    const statusQuery = uniqueStatuses.length > 0 ? uniqueStatuses.join(',') : '';
 
     if (statusQuery) {
-        store.fetchRequests(statusQuery, query);
+      store.fetchRequests(statusQuery, query);
     } else {
-        // If there are no allowed statuses, don't fetch and clear the list
-        store.requestsList = [];
+      store.requestsList = [];
     }
   } else {
     // History tab: everyone can see final statuses
@@ -214,7 +246,16 @@ const getRequestTypeClass = (type) => {
 };
 
 const isActionable = (status) => {
+    // Initiator's special transient statuses
     if (authStore.isInitiator && ['Draft', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'].includes(status)) return true;
+
+    // Dynamic: check if current user's roles can act on this status via WORKFLOW_CONFIG
+    if (workflowStates.value && workflowStates.value[status]) {
+        const myRoles = (authStore.user?.roles || []).map(r => r.role);
+        return workflowStates.value[status].actionableByRoles.some(r => myRoles.includes(r));
+    }
+
+    // Fallback to hardcoded checks
     if (authStore.isRegionalManager && status === 'Opened') return true;
     if (authStore.isSalesManager && status === 'RegionalSubmitted') return true;
     if (authStore.isFinanceOfficer && status === 'SalesSubmitted') return true;
@@ -227,6 +268,18 @@ const getStatusLabel = (status) => {
     if (isActionable(status)) {
         return "รอคุณดำเนินการ";
     }
+
+    // Dynamic: use label from WORKFLOW_CONFIG if available
+    if (workflowStates.value && workflowStates.value[status]) {
+        const stateData = workflowStates.value[status];
+        // Build a label from the roles that can act on this state
+        if (stateData.actionableByRoles.length > 0) {
+            return `รอ ${stateData.actionableByRoles[0]}`;
+        }
+        return stateData.label || 'กำลังดำเนินการ';
+    }
+
+    // Fallback to hardcoded labels
     const roleLabels = {
         'Draft': 'ผู้สร้างคำขอ',
         'Opened': 'ผู้จัดการสาขา',
@@ -238,13 +291,15 @@ const getStatusLabel = (status) => {
         'PendingFinance (ชั่วคราว)': 'เจ้าหน้าที่ฝ่ายการเงิน',
     };
     const label = roleLabels[status];
-    if (label) {
-        return `รอ ${label}`;
-    }
-    return "กำลังดำเนินการ";
+    if (label) return `รอ ${label}`;
+    return 'กำลังดำเนินการ';
 };
 
-onMounted(() => {
+onMounted(async () => {
+  // Ensure workflow configuration is loaded before rendering the list
+  if (!configStore.configurations || Object.keys(configStore.configurations).length === 0) {
+    await configStore.fetchConfigurations();
+  }
   fetchData();
 });
 </script>

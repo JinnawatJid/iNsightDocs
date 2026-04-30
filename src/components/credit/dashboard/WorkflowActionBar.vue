@@ -23,6 +23,7 @@
 import { computed } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
+import { useConfigStore } from '@/stores/config';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -34,22 +35,114 @@ const props = defineProps({
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const configStore = useConfigStore();
 const emit = defineEmits(['update:comment']);
 
 const currentStatus = computed(() => store.requestStatus);
+
+// --- Dynamic Workflow Config ---
+const workflowStates = computed(() => {
+  const WORKFLOW_CONFIG_KEY = 'WORKFLOW_CONFIG';
+  const configs = configStore.configurations;
+  if (!configs) return null;
+  for (const cat in configs) {
+    const found = configs[cat].find(c => c.config_key === WORKFLOW_CONFIG_KEY);
+    if (found) {
+      try { return JSON.parse(found.config_value).states; }
+      catch (e) { return null; }
+    }
+  }
+  return null;
+});
+
+// Helper: derive button style class from a target state key
+const getActionClass = (targetKey) => {
+  if (!targetKey) return 'btn-primary';
+  const lower = targetKey.toLowerCase();
+  if (lower.includes('reject') || lower.includes('cancel')) return 'btn-danger';
+  if (lower.includes('approv')) return 'btn-success';
+  // Use the target state's type from config if possible
+  if (workflowStates.value && workflowStates.value[targetKey]) {
+    const t = workflowStates.value[targetKey].type;
+    if (t === 'final') {
+      // Check if it's a positive or negative final by label content
+      const label = (workflowStates.value[targetKey].label || '').toLowerCase();
+      if (label.includes('ไม่อนุมัติ') || label.includes('reject')) return 'btn-danger';
+      return 'btn-success';
+    }
+  }
+  return 'btn-primary';
+};
+
+// Helper: whether a transition requires a comment (i.e., it's a rejection-type action)
+const requiresComment = (targetKey) => {
+  const lower = (targetKey || '').toLowerCase();
+  return lower.includes('reject') || lower.includes('cancel');
+};
 
 
 // Workflow Logic
 const availableActions = computed(() => {
   const status = currentStatus.value;
-  const actions = [];
-
   if (!status) return [];
 
-  const amount = Number(store.transactionData.amount || 0);
+  const myRoles = (authStore.user?.roles || []).map(r => r.role);
+  const amount = Number(store.transactionData?.amount || 0);
 
+  // --- Dynamic path: read from WORKFLOW_CONFIG ---
+  if (workflowStates.value && workflowStates.value[status]) {
+    const stateData = workflowStates.value[status];
+
+    // Check if the current user's roles allow them to act on this state
+    const canAct = stateData.actionableByRoles.some(r => myRoles.includes(r));
+    if (!canAct) return [];
+
+    // --- 300k Special Case: retained for FinanceReviewed state ---
+    // When a user at the FinanceReviewed stage is deciding, only show the
+    // contextually correct approval path based on the credit amount.
+    if (status === 'FinanceReviewed') {
+      const actions = [];
+      const allTransitions = stateData.allowedTransitions || [];
+
+      // Identify transitions: find 'Approved' (final approve) vs 'Reviewed' (send to committee)
+      const approveTransition = allTransitions.find(t => t.toLowerCase().includes('approv') && !t.toLowerCase().includes('review'));
+      const committeeTransition = allTransitions.find(t => t === 'Reviewed' || (t !== 'Rejected' && !t.toLowerCase().includes('approv')));
+      const rejectTransitions = allTransitions.filter(t => requiresComment(t));
+
+      if (amount <= 300000 && approveTransition) {
+        const targetLabel = workflowStates.value[approveTransition]?.label || approveTransition;
+        actions.push({ key: 'approve', label: `อนุมัติ (${targetLabel})`, targetStatus: approveTransition, class: 'btn-success' });
+      } else if (amount > 300000 && committeeTransition) {
+        const targetLabel = workflowStates.value[committeeTransition]?.label || committeeTransition;
+        actions.push({ key: 'submit', label: `ส่งต่อให้กรรมการ (${targetLabel})`, targetStatus: committeeTransition, class: 'btn-primary' });
+      }
+
+      rejectTransitions.forEach(t => {
+        const targetLabel = workflowStates.value[t]?.label || t;
+        actions.push({ key: 'reject', label: `ไม่อนุมัติ (${targetLabel})`, targetStatus: t, class: 'btn-danger', requireComment: true });
+      });
+
+      return actions;
+    }
+
+    // --- General dynamic path: map each allowed transition to a button ---
+    return (stateData.allowedTransitions || []).map(targetKey => {
+      const targetState = workflowStates.value[targetKey];
+      const targetLabel = targetState?.label || targetKey;
+      const isReject = requiresComment(targetKey);
+      return {
+        key: targetKey,
+        label: isReject ? `ไม่อนุมัติ (${targetLabel})` : `อนุมัติ / ส่งต่อ (${targetLabel})`,
+        targetStatus: targetKey,
+        class: getActionClass(targetKey),
+        requireComment: isReject,
+      };
+    });
+  }
+
+  // --- Fallback to hardcoded logic if WORKFLOW_CONFIG is not available ---
+  const actions = [];
   // Note: /pending-requests shouldn't show Draft requests, so Initiators shouldn't have actions here.
-  // Draft submission is handled entirely within /create-credit-request.
 
   // 1. Regional Manager (Opened -> RegionalSubmitted)
   if (status === 'Opened' && authStore.isRegionalManager) {
@@ -72,9 +165,9 @@ const availableActions = computed(() => {
   // 4. Finance Manager (FinanceReviewed -> Approved if <= 300k, or Reviewed if > 300k)
   if (status === 'FinanceReviewed' && authStore.isFinanceManager) {
     if (amount <= 300000) {
-        actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
+      actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
     } else {
-        actions.push({ key: 'submit', label: 'ส่งต่อ (Send to Committee)', targetStatus: 'Reviewed', class: 'btn-primary' });
+      actions.push({ key: 'submit', label: 'ส่งต่อ (Send to Committee)', targetStatus: 'Reviewed', class: 'btn-primary' });
     }
     actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
   }
@@ -82,12 +175,11 @@ const availableActions = computed(() => {
   // 5. Credit Committee (Reviewed -> Approved if > 300k)
   if (status === 'Reviewed' && authStore.isCreditCommittee) {
     if (amount > 300000) {
-        actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
-        actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
+      actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
+      actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
     }
   }
 
-  // 7. Approved/Rejected/Canceled (No Actions)
   return actions;
 });
 
