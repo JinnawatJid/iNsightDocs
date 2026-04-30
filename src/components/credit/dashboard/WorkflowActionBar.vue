@@ -96,41 +96,29 @@ const availableActions = computed(() => {
       const rejectTransitions = allTransitions.filter(t => requiresComment(t));
 
       if (amount <= 300000 && approveTransition) {
-        actions.push({ key: 'approve', label: 'อนุมัติ', targetStatus: approveTransition, class: 'btn-success' });
+        const targetLabel = workflowStates.value[approveTransition]?.label || approveTransition;
+        actions.push({ key: 'approve', label: `อนุมัติ (${targetLabel})`, targetStatus: approveTransition, class: 'btn-success' });
       } else if (amount > 300000 && committeeTransition) {
         const targetLabel = workflowStates.value[committeeTransition]?.label || committeeTransition;
-        actions.push({ key: 'submit', label: `ส่งต่อกรรมการ → ${targetLabel}`, targetStatus: committeeTransition, class: 'btn-primary' });
+        actions.push({ key: 'submit', label: `ส่งต่อให้กรรมการ (${targetLabel})`, targetStatus: committeeTransition, class: 'btn-primary' });
       }
 
       rejectTransitions.forEach(t => {
-        actions.push({ key: 'reject', label: 'ไม่อนุมัติ', targetStatus: t, class: 'btn-danger', requireComment: true });
+        const targetLabel = workflowStates.value[t]?.label || t;
+        actions.push({ key: 'reject', label: `ไม่อนุมัติ (${targetLabel})`, targetStatus: t, class: 'btn-danger', requireComment: true });
       });
 
       return actions;
     }
 
-    // --- General dynamic path: map each allowed transition to a smart label ---
+    // --- General dynamic path: map each allowed transition to a button ---
     return (stateData.allowedTransitions || []).map(targetKey => {
       const targetState = workflowStates.value[targetKey];
       const targetLabel = targetState?.label || targetKey;
-      const targetType = targetState?.type || 'active';
       const isReject = requiresComment(targetKey);
-
-      let label;
-      if (isReject) {
-        // Rejection: just "ไม่อนุมัติ" — no need to repeat the target state name
-        label = 'ไม่อนุมัติ';
-      } else if (targetType === 'final') {
-        // Final approval state (e.g. Approved)
-        label = 'อนุมัติ';
-      } else {
-        // Forwarding to next active step: show WHERE it's going
-        label = `ส่งต่อ → ${targetLabel}`;
-      }
-
       return {
         key: targetKey,
-        label,
+        label: isReject ? `ไม่อนุมัติ (${targetLabel})` : `อนุมัติ / ส่งต่อ (${targetLabel})`,
         targetStatus: targetKey,
         class: getActionClass(targetKey),
         requireComment: isReject,
