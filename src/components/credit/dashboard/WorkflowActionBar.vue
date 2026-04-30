@@ -20,10 +20,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
-import { useConfigStore } from '@/stores/config';
+import { useWorkflowConfig } from '@/composables/useWorkflowConfig';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -35,24 +35,13 @@ const props = defineProps({
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
-const configStore = useConfigStore();
+const { workflowStates, fetchWorkflowConfig } = useWorkflowConfig();
 const emit = defineEmits(['update:comment']);
 
 const currentStatus = computed(() => store.requestStatus);
 
-// --- Dynamic Workflow Config ---
-const workflowStates = computed(() => {
-  const WORKFLOW_CONFIG_KEY = 'WORKFLOW_CONFIG';
-  const configs = configStore.configurations;
-  if (!configs) return null;
-  for (const cat in configs) {
-    const found = configs[cat].find(c => c.config_key === WORKFLOW_CONFIG_KEY);
-    if (found) {
-      try { return JSON.parse(found.config_value).states; }
-      catch (e) { return null; }
-    }
-  }
-  return null;
+onMounted(() => {
+  fetchWorkflowConfig();
 });
 
 // Helper: derive button style class from a target state key

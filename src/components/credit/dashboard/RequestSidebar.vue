@@ -100,6 +100,7 @@ import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
+import { useWorkflowConfig } from '@/composables/useWorkflowConfig';
 import { formatRequestType } from '@/utils/requestTypeFormatter';
 import { debounce } from 'lodash';
 
@@ -111,31 +112,13 @@ import iconRejected from '@/assets/icons/x-circle-red.svg';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const { workflowStates, fetchWorkflowConfig } = useWorkflowConfig();
 const activeTab = ref('pending');
 const searchQuery = ref('');
 
 const requests = computed(() => store.requestsList);
 const loading = computed(() => store.loading);
 
-// --- Dynamic Workflow Config ---
-// Fetched from /api/config/workflow (public endpoint, no admin required)
-const workflowStates = ref(null);
-
-const fetchWorkflowConfig = async () => {
-  try {
-    const res = await fetch('/api/config/workflow');
-    if (!res.ok) {
-      console.warn('[RequestSidebar] Could not load WORKFLOW_CONFIG — status:', res.status);
-      return;
-    }
-    const json = await res.json();
-    if (json.success && json.data?.states) {
-      workflowStates.value = json.data.states;
-    }
-  } catch (e) {
-    console.warn('[RequestSidebar] WORKFLOW_CONFIG fetch failed:', e);
-  }
-};
 
 const pendingTabLabel = computed(() => {
   return authStore.isInitiator ? 'ติดตามคำขอ' : 'รออนุมัติ';
