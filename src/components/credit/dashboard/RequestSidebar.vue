@@ -100,7 +100,6 @@ import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
-import { useConfigStore } from '@/stores/config';
 import { formatRequestType } from '@/utils/requestTypeFormatter';
 import { debounce } from 'lodash';
 
@@ -112,7 +111,6 @@ import iconRejected from '@/assets/icons/x-circle-red.svg';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
-const configStore = useConfigStore();
 const activeTab = ref('pending');
 const searchQuery = ref('');
 
@@ -120,31 +118,24 @@ const requests = computed(() => store.requestsList);
 const loading = computed(() => store.loading);
 
 // --- Dynamic Workflow Config ---
-const workflowStates = computed(() => {
-  const WORKFLOW_CONFIG_KEY = 'WORKFLOW_CONFIG';
-  const configs = configStore.configurations;
-  if (!configs) return null;
-  for (const cat in configs) {
-    const found = configs[cat].find(c => c.config_key === WORKFLOW_CONFIG_KEY);
-    if (found) {
-      try {
-        return JSON.parse(found.config_value).states;
-      } catch (e) {
-        return null;
-      }
-    }
-  }
-  return null;
-});
+// Fetched from /api/config/workflow (public endpoint, no admin required)
+const workflowStates = ref(null);
 
-// Returns all state keys from WORKFLOW_CONFIG where the current user has an actionable role
-const dynamicActionableStatuses = computed(() => {
-  if (!workflowStates.value) return [];
-  const myRoles = (authStore.user?.roles || []).map(r => r.role);
-  return Object.entries(workflowStates.value)
-    .filter(([, stateData]) => stateData.actionableByRoles.some(r => myRoles.includes(r)))
-    .map(([key]) => key);
-});
+const fetchWorkflowConfig = async () => {
+  try {
+    const res = await fetch('/api/config/workflow');
+    if (!res.ok) {
+      console.warn('[RequestSidebar] Could not load WORKFLOW_CONFIG — status:', res.status);
+      return;
+    }
+    const json = await res.json();
+    if (json.success && json.data?.states) {
+      workflowStates.value = json.data.states;
+    }
+  } catch (e) {
+    console.warn('[RequestSidebar] WORKFLOW_CONFIG fetch failed:', e);
+  }
+};
 
 const pendingTabLabel = computed(() => {
   return authStore.isInitiator ? 'ติดตามคำขอ' : 'รออนุมัติ';
@@ -160,11 +151,10 @@ const fetchData = () => {
 
   if (activeTab.value === 'pending') {
     let allowedStatuses = [];
+    const myRoles = (authStore.user?.roles || []).map(r => r.role);
 
     // --- Dynamic: Derive visible statuses from WORKFLOW_CONFIG ---
     if (workflowStates.value) {
-      const myRoles = (authStore.user?.roles || []).map(r => r.role);
-
       if (authStore.isInitiator) {
         // Initiators track all non-final states for requests they submitted
         allowedStatuses = Object.entries(workflowStates.value)
@@ -296,12 +286,11 @@ const getStatusLabel = (status) => {
 };
 
 onMounted(async () => {
-  // Always fetch fresh config to ensure WORKFLOW_CONFIG reflects latest saved state
-  await configStore.fetchConfigurations();
+  await fetchWorkflowConfig();
   fetchData();
 });
 
-// Re-run fetchData when the workflow config becomes available (handles async load timing)
+// Re-run fetchData when the workflow config becomes available
 watch(workflowStates, (newVal) => {
   if (newVal && activeTab.value === 'pending') {
     fetchData();

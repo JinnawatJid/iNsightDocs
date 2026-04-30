@@ -15,6 +15,30 @@ exports.getFeatures = (req, res) => {
     }
 };
 
+// GET /api/config/workflow
+// Returns only the WORKFLOW_CONFIG — accessible by all authenticated users
+// (needed so the sidebar and action bar can render correctly for non-admin roles)
+exports.getWorkflowConfig = async (req, res) => {
+    try {
+        const result = await db.query("SELECT config_value FROM Configurations WHERE config_key = 'WORKFLOW_CONFIG'");
+        const rows = result.rows || [];
+
+        if (!rows.length) {
+            return res.status(404).json({ success: false, message: 'WORKFLOW_CONFIG not found' });
+        }
+
+        let configValue = rows[0].config_value;
+        if (typeof configValue === 'string') {
+            try { configValue = JSON.parse(configValue); } catch (e) { /* already object */ }
+        }
+
+        res.json({ success: true, data: configValue });
+    } catch (error) {
+        logger.error('Error fetching workflow config:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+
 // GET /api/config
 // Returns all configurations grouped by category
 exports.getConfig = async (req, res) => {
