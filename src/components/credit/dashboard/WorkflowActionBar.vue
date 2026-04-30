@@ -115,7 +115,7 @@ const availableActions = computed(() => {
         key: targetKey,
         label: isReject ? 'ไม่อนุมัติ (Reject)' : 'อนุมัติ (Approve)',
         targetStatus: targetKey,
-        class: getActionClass(targetKey),
+        class: isReject ? 'btn-danger' : 'btn-success',
         requireComment: isReject,
       };
     });
