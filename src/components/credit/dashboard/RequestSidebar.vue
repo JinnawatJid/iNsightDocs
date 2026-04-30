@@ -296,11 +296,16 @@ const getStatusLabel = (status) => {
 };
 
 onMounted(async () => {
-  // Ensure workflow configuration is loaded before rendering the list
-  if (!configStore.configurations || Object.keys(configStore.configurations).length === 0) {
-    await configStore.fetchConfigurations();
-  }
+  // Always fetch fresh config to ensure WORKFLOW_CONFIG reflects latest saved state
+  await configStore.fetchConfigurations();
   fetchData();
+});
+
+// Re-run fetchData when the workflow config becomes available (handles async load timing)
+watch(workflowStates, (newVal) => {
+  if (newVal && activeTab.value === 'pending') {
+    fetchData();
+  }
 });
 </script>
 
