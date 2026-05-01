@@ -83,4 +83,14 @@ Instead of fully migrating to the relational database schema proposed above imme
 *   `RBAC_MATRIX_CONFIG`: Allows administrators to visually toggle and save permissions for roles via the `RoleManagementTab.vue` component.
 *   `WORKFLOW_CONFIG`: Allows administrators to define workflow states, types, actionable roles, and allowed transitions via an Expandable Accordion List in the `WorkflowManagementTab.vue` component. Both SQLite and MSSQL database seeds have been updated to ensure this configuration is initialized automatically on startup.
 
-The next phase will involve hooking these JSON configurations into the backend middleware and frontend routing to fully enforce these dynamic permissions and workflow transitions.
+The next phase (Backend Enforcements & Full RBAC Middleware) is still pending, but significant progress has been made on the frontend:
+
+### 6.1 Phase 1 (Completed): Frontend Workflow Integration
+The `WORKFLOW_CONFIG` is now actively driving the frontend dashboard (`/pending-requests`).
+*   **Public Configuration API:** A new endpoint (`GET /api/config/workflow`) was created to allow all authenticated users (non-admins) to read the workflow configuration securely.
+*   **Dynamic Sidebar Visibility:** `RequestSidebar.vue` now uses the configured `actionableByRoles` from the state machine to determine which requests a user can see based on their roles.
+*   **Dynamic Action Bar:** `WorkflowActionBar.vue` reads `allowedTransitions` from the configuration to render context-aware action buttons (e.g., Approve, Reject, Send to Committee) automatically.
+*(Note: A few specific business rules, like the >300k approval threshold, remain hardcoded as safeguards).*
+
+### 6.2 Phase 2 (Pending): Backend Middleware & RBAC
+The system still needs to hook these JSON configurations into the backend middleware to fully enforce these dynamic permissions securely at the API level.
