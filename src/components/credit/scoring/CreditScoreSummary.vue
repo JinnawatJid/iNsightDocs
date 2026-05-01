@@ -46,7 +46,7 @@
                     </div>
                 </div>
             </template>
-            <template v-else>
+            <template>
                 <div class="limit-value">{{ formatNumber(creditScore.recommendedLimit) }} บาท</div>
             </template>
         </div>
@@ -100,7 +100,7 @@
           </div>
       </div>
 
-      <template v-else>
+      <template>
         <div class="stat-item">
           <div class="stat-icon-row">
             <div class="stat-icon">
