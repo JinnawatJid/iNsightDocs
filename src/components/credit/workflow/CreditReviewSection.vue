@@ -78,7 +78,7 @@
 
       <!-- Revision Button for Maker on Rejected Requests -->
       <div v-if="showReviseButton" class="revision-action-wrapper">
-        <button class="btn btn-secondary revise-btn" @click="handleReviseRequest" :disabled="isRevising">
+        <button class="btn revise-btn" @click="handleReviseRequest" :disabled="isRevising">
             <span v-if="isRevising" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
             สร้างคำขอใหม่ (แก้ไข)
         </button>
@@ -257,18 +257,18 @@ function restrictNumber(field, e) {
 }
 
 .revise-btn {
-  background-color: #f8f9fa;
-  color: #333;
-  border: 1px solid #ced4da;
+  background-color: transparent;
+  color: #0056FF;
+  border: 1px solid #0056FF;
   padding: 0.5rem 1rem;
   border-radius: 4px;
   font-weight: 500;
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .revise-btn:hover:not(:disabled) {
-  background-color: #e2e6ea;
-  border-color: #dae0e5;
+  background-color: #f0f5ff;
 }
 
 .revise-btn:disabled {

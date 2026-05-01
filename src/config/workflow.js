@@ -6,7 +6,7 @@ export const workflowConfig = {
         {
             label: 'Save',
             action: 'saveDraft',
-            variant: 'secondary', // Grey button
+            variant: 'outline-primary', // Blue outline button
             targetStatus: 'Draft',
             confirmMessage: 'บันทึกสำเร็จ'
         },

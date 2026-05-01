@@ -317,6 +317,7 @@ const getButtonClass = (variant) => {
         case 'submit': return 'btn-submit'; // Blue
         case 'approve': return 'btn-approve'; // Green
         case 'reject': return 'btn-reject'; // Red
+        case 'outline-primary': return 'btn-outline-primary'; // Blue Outline
         default: return 'btn-secondary';
     }
 };
@@ -845,6 +846,20 @@ const submitTransaction = async (btn) => {
 }
 .btn-secondary:hover {
   background-color: #888;
+}
+
+.btn-outline-primary {
+  padding: 12px 30px;
+  background-color: transparent;
+  color: #0056FF; /* Blue Text */
+  border: 1px solid #0056FF; /* Blue Border */
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-outline-primary:hover {
+  background-color: #f0f5ff; /* Light Blue Background */
 }
 
 .btn-primary, .btn-submit {
