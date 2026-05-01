@@ -1597,3 +1597,22 @@ exports.checkCreditByVat = async (req, res) => {
         return res.status(502).json({ error: "Failed to check credit from API", details: error.message });
     }
 };
+
+// Add proxy for fetching projects
+exports.getCustomerProjects = async (req, res) => {
+    try {
+        const { customerNo } = req.params;
+        if (!customerNo) {
+            return res.status(400).json({ error: 'Customer No is required' });
+        }
+
+        logger.info(`[Customer Projects] Fetching projects for customer: ${customerNo}`);
+        const response = await axios.get(`http://192.192.0.37:8000/api/project-prices/customer/${encodeURIComponent(customerNo)}/all`);
+
+        return res.status(200).json(response.data);
+    } catch (error) {
+        logger.error(`[Customer Projects] Error fetching projects for ${req.params.customerNo}:`, error.message);
+        // It could be a 404 or other error from the upstream, just return empty list or error
+        return res.status(500).json({ error: 'Failed to fetch customer projects' });
+    }
+};

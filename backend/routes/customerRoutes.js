@@ -24,6 +24,7 @@ bindRoute('get', '/search', 'searchCustomers');
 bindRoute('get', '/by-branch', 'searchCustomersByBranch');
 bindRoute('get', '/suggestions', 'getSuggestions');
 bindRoute('get', '/check-credit-by-vat', 'checkCreditByVat');
+bindRoute('get', '/:customerNo/projects', 'getCustomerProjects');
 bindRoute('patch', '/:id', 'updateCustomer');
 
 module.exports = router;

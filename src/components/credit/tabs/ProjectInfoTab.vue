@@ -377,6 +377,7 @@ import { ref, computed, reactive, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import OtherDocumentsSection from '../forms/OtherDocumentsSection.vue';
 import FileUploader from '@/components/shared/FileUploader.vue';
+import CustomerService from '@/services/CustomerService';
 
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
@@ -649,14 +650,44 @@ const handleProjectSearch = async () => {
     projectSearchMsg.value = '';
 
     try {
-        // Mock external API call
-        const results = await mockFetchProjects(projectSearchQuery.value);
+        const customerNo = store.customer?.id || store.customer?.No_;
+        if (!customerNo) {
+            projectSearchMsg.value = 'ไม่พบรหัสลูกค้า กรุณาเลือกลูกค้าก่อนค้นหาโครงการ';
+            return;
+        }
+
+        const response = await CustomerService.getCustomerProjects(customerNo);
+        let results = response || [];
+
+        // Map API response to expected frontend structure
+        results = results.map(proj => ({
+            id: proj.project_code,
+            name: proj.project_name,
+            customerCode: proj.customer_code,
+            customerName: proj.customer_name,
+            branch: proj.branch_code,
+            projectManager: proj.request_by,
+            value: 0,
+            status: 'Active',
+            remark: proj.remark
+        }));
+
+        // Filter by query if provided
+        const query = projectSearchQuery.value.toLowerCase().trim();
+        if (query) {
+            results = results.filter(p =>
+                (p.id && p.id.toLowerCase().includes(query)) ||
+                (p.name && p.name.toLowerCase().includes(query))
+            );
+        }
+
         if (results.length > 0) {
             projectSearchResults.value = results;
         } else {
             projectSearchMsg.value = 'ไม่พบโครงการที่ค้นหา';
         }
     } catch (e) {
+        console.error("Project search error:", e);
         projectSearchMsg.value = 'เกิดข้อผิดพลาดในการค้นหา';
     } finally {
         isSearchingProject.value = false;
@@ -705,68 +736,6 @@ const clearProject = () => {
     store.transactionData.amount = '';
 };
 
-// Mock API for external Sales System
-const mockFetchProjects = async (query) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const db = [
-                {
-                    id: 'PRJ-2023-001',
-                    name: 'ก่อสร้างคอนโดหรู ใจกลางเมือง',
-                    customerCode: 'CUST-001',
-                    customerName: 'บริษัท แสนสิริ จำกัด (มหาชน)',
-                    branch: 'สาขาสำนักงานใหญ่',
-                    projectManager: 'นายสมชาย ขายเก่ง',
-                    startDate: '01/06/2023',
-                    expectedEndDate: '31/12/2024',
-                    productList: [
-                        { name: 'กระจกใส 6 มม.', price: '5,000,000' },
-                        { name: 'กระจกเงา', price: '2,000,000' }
-                    ],
-                    value: 15000000,
-                    status: 'Active'
-                },
-                {
-                    id: 'PRJ-2023-002',
-                    name: 'ปรับปรุงอาคารสำนักงาน กฟผ.',
-                    customerCode: 'CUST-002',
-                    customerName: 'การไฟฟ้าฝ่ายผลิตแห่งประเทศไทย',
-                    branch: 'สาขานนทบุรี',
-                    projectManager: 'นางสาวสุดสวย ปิดยอดไว',
-                    startDate: '15/08/2023',
-                    expectedEndDate: '15/05/2024',
-                    productList: [
-                        { name: 'อลูมิเนียมเส้น', price: '3,500,000' }
-                    ],
-                    value: 8500000,
-                    status: 'Active'
-                },
-                {
-                    id: 'PRJ-2024-003',
-                    name: 'หมู่บ้านจัดสรร เฟส 3',
-                    customerCode: 'CUST-003',
-                    customerName: 'บริษัท แลนด์แอนด์เฮ้าส์ จำกัด',
-                    branch: 'สาขารังสิต',
-                    projectManager: 'นายยอดเยี่ยม ทะลุเป้า',
-                    startDate: '10/01/2024',
-                    expectedEndDate: '30/11/2025',
-                    productList: [
-                        { name: 'ซิลิโคน', price: '500,000' },
-                        { name: 'อุปกรณ์ฟิตติ้ง', price: '1,200,000' }
-                    ],
-                    value: 25000000,
-                    status: 'Planning'
-                }
-            ];
-            if (!query.trim()) {
-                 resolve(db);
-                 return;
-            }
-            const q = query.toLowerCase();
-            resolve(db.filter(p => p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)));
-        }, 500);
-    });
-};
 </script>
 
 <style scoped>
