@@ -1105,8 +1105,9 @@ exports.getCreditRequests = async (req, res) => {
               regionConfig = regionBranchConfigCache;
           } else {
               const configRes = await db.query("SELECT config_value FROM Configurations WHERE config_key = 'REGION_BRANCH_CONFIG'");
-              if (configRes.rows && configRes.rows.length > 0) {
-                  let configVal = configRes.rows[0].config_value;
+              const rows = configRes.rows || configRes.recordset || configRes; // Handle different DB wrapper return formats (Postgres, MSSQL, raw array)
+              if (rows && rows.length > 0) {
+                  let configVal = rows[0].config_value;
                   if (typeof configVal === 'string') {
                       configVal = JSON.parse(configVal);
                   }
@@ -1131,9 +1132,11 @@ exports.getCreditRequests = async (req, res) => {
             }
 
             if (allowedBranches.length > 0) {
+              // As requested by user, don't rely on the '00' prefix.
+              // tx_id format is e.g. 00TRCA6903/01. We can use __TR% or %TR%
               const branchConditions = allowedBranches.map(() => `tx_id LIKE ?`).join(" OR ");
               conditions.push(`(${branchConditions})`);
-              allowedBranches.forEach(code => params.push(`00${code}%`));
+              allowedBranches.forEach(code => params.push(`__${code}%`));
             } else {
               // If branch not found in any region config, show nothing or fallback gracefully.
               // To restrict to nothing, we could enforce an impossible condition.
