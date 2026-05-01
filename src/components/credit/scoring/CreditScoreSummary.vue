@@ -100,67 +100,65 @@
           </div>
       </div>
 
-      <template v-else>
-        <div class="stat-item">
-          <div class="stat-icon-row">
-            <div class="stat-icon">
-              <img :src="iconShoppingCart" alt="Cart" width="20" height="20" />
-              <span>ยอดซื้อรวม 3 เดือน</span>
-            </div>
-            <button class="toggle-btn" @click="toggleMonthlyDetails" v-if="financial.monthly_history && financial.monthly_history.length > 0">
-              {{ showMonthlyDetails ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด' }}
-            </button>
-          </div>
-          <div class="stat-value highlight">{{ formatDecimal(financial.total_purchase_3_months) }} บาท</div>
-          <div class="stat-trend" :class="getTrendClass(financial.total_purchase_growth)" v-if="financial.total_purchase_growth">
-              {{ financial.total_purchase_growth }}
-          </div>
-
-          <div v-if="showMonthlyDetails" class="monthly-breakdown">
-            <div v-for="(month, index) in financial.monthly_history" :key="index" class="month-row">
-              <span class="month-label">{{ month.label }}</span>
-              <span class="month-value">{{ formatDecimal(month.value) }} บาท</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="stat-item">
+      <div class="stat-item">
+        <div class="stat-icon-row">
           <div class="stat-icon">
-            <span class="currency-symbol">฿</span>
-            <span>ค่าเฉลี่ยต่อรอบการจ่ายเงิน</span>
+            <img :src="iconShoppingCart" alt="Cart" width="20" height="20" />
+            <span>ยอดซื้อรวม 3 เดือน</span>
           </div>
-          <div class="stat-value blue">{{ formatDecimal(financial.avg_monthly) }} บาท</div>
-          <div class="stat-trend" :class="getTrendClass(financial.avg_monthly_trend)" v-if="financial.avg_monthly_trend">
-              {{ financial.avg_monthly_trend }}
-          </div>
+          <button class="toggle-btn" @click="toggleMonthlyDetails" v-if="financial.monthly_history && financial.monthly_history.length > 0">
+            {{ showMonthlyDetails ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด' }}
+          </button>
+        </div>
+        <div class="stat-value highlight">{{ formatDecimal(financial.total_purchase_3_months) }} บาท</div>
+        <div class="stat-trend" :class="getTrendClass(financial.total_purchase_growth)" v-if="financial.total_purchase_growth">
+            {{ financial.total_purchase_growth }}
         </div>
 
-        <!-- Category Breakdown -->
-        <div class="stat-item" v-if="financial.category_breakdown && financial.category_breakdown.length > 0">
-           <div class="stat-icon">
-              <span class="currency-symbol">📊</span> <!-- You can replace with an SVG icon if preferred -->
-              <span>สัดส่วนสินค้าที่ซื้อ {{ financial.category_months_used || 6 }} เดือน</span>
-           </div>
-
-           <div class="category-list">
-              <div v-for="(cat, idx) in visibleCategories" :key="idx" class="category-row">
-                  <div class="cat-info">
-                      <span class="cat-label">{{ cat.label }}</span>
-                      <span class="cat-value">{{ formatDecimal(cat.value) }} บาท</span>
-                  </div>
-                  <div class="progress-bar-bg">
-                      <div class="progress-bar-fill" :style="{ width: cat.percentage + '%' }"></div>
-                  </div>
-              </div>
-
-              <div v-if="financial.category_breakdown.length > 3" class="cat-toggle-container">
-                  <button class="toggle-link" @click="showAllCategories = !showAllCategories">
-                      {{ showAllCategories ? 'แสดงน้อยลง' : 'ดูทั้งหมด' }}
-                  </button>
-              </div>
-           </div>
+        <div v-if="showMonthlyDetails" class="monthly-breakdown">
+          <div v-for="(month, index) in financial.monthly_history" :key="index" class="month-row">
+            <span class="month-label">{{ month.label }}</span>
+            <span class="month-value">{{ formatDecimal(month.value) }} บาท</span>
+          </div>
         </div>
-      </template>
+      </div>
+
+      <div class="stat-item">
+        <div class="stat-icon">
+          <span class="currency-symbol">฿</span>
+          <span>ค่าเฉลี่ยต่อรอบการจ่ายเงิน</span>
+        </div>
+        <div class="stat-value blue">{{ formatDecimal(financial.avg_monthly) }} บาท</div>
+        <div class="stat-trend" :class="getTrendClass(financial.avg_monthly_trend)" v-if="financial.avg_monthly_trend">
+            {{ financial.avg_monthly_trend }}
+        </div>
+      </div>
+
+      <!-- Category Breakdown -->
+      <div class="stat-item" v-if="financial.category_breakdown && financial.category_breakdown.length > 0">
+         <div class="stat-icon">
+            <span class="currency-symbol">📊</span> <!-- You can replace with an SVG icon if preferred -->
+            <span>สัดส่วนสินค้าที่ซื้อ {{ financial.category_months_used || 6 }} เดือน</span>
+         </div>
+
+         <div class="category-list">
+            <div v-for="(cat, idx) in visibleCategories" :key="idx" class="category-row">
+                <div class="cat-info">
+                    <span class="cat-label">{{ cat.label }}</span>
+                    <span class="cat-value">{{ formatDecimal(cat.value) }} บาท</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" :style="{ width: cat.percentage + '%' }"></div>
+                </div>
+            </div>
+
+            <div v-if="financial.category_breakdown.length > 3" class="cat-toggle-container">
+                <button class="toggle-link" @click="showAllCategories = !showAllCategories">
+                    {{ showAllCategories ? 'แสดงน้อยลง' : 'ดูทั้งหมด' }}
+                </button>
+            </div>
+         </div>
+      </div>
     </div>
 
     <div class="suggestion-section">

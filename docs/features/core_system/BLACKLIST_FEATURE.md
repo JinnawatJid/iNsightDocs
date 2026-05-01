@@ -59,8 +59,8 @@ A blocking modal (SweetAlert2) appears immediately after the search.
     *   **"ยกเลิก" (Cancel):** Clears the search result.
     *   **"ดำเนินการต่อ" (Proceed):** Allows proceeding (typically for "Warning" or manual override).
 
-### B. Persistent Warning Panel
-If the user chooses to "Proceed", a yellow warning panel remains visible in the **Purchase Behavior (พฤติกรรมการซื้อ)** section.
+### B. Persistent Warning Panel & Purchase Behavior Display
+If the user chooses to "Proceed", a yellow warning panel remains visible at the top of the **Purchase Behavior (พฤติกรรมการซื้อ)** section. **Importantly**, the purchase behavior data (total purchase amount over 3 months, monthly history breakdown, average payment per cycle, and product category breakdown) is **always displayed** below the warning panel, regardless of blacklist status. This ensures complete financial context is available for decision-making while maintaining the NPL risk alert.
 
 ## 6. Technical Implementation Details
 
