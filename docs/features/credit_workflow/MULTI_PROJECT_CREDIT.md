@@ -56,7 +56,7 @@ Each project card utilizes the `ProjectApplicationTabs.vue` component, which pro
 - Required fields are visually marked with the existing red `*` style to match the application’s form validation conventions.
 
 ### `AddProjectTab.vue`
-Located at the bottom of the project list, this component provides an interface to query the external Sales System (mocked locally) via Project ID or Name. Upon selection, a new project object is initialized and pushed into the `transactionData.projects` array, instantly rendering a new project card.
+Located at the bottom of the project list, this component provides an interface to query the external Sales System via Project ID or Name. The search utilizes a backend proxy endpoint (`/api/customers/:customerNo/projects`) to safely fetch real data from the external API while avoiding CORS issues. Upon selection, a new project object is initialized and pushed into the `transactionData.projects` array, instantly rendering a new project card.
 
 ## Global Analytics & Charting
 A key advantage of the multi-project architecture is the ability to aggregate data.
