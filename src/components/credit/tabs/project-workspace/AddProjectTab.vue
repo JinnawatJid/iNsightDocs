@@ -42,6 +42,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import CustomerService from '@/services/CustomerService';
 
 const store = useCreditRequestStore();
 
@@ -62,14 +63,44 @@ const handleProjectSearch = async () => {
     projectSearchMsg.value = '';
 
     try {
-        // Mock external API call
-        const results = await mockFetchProjects(projectSearchQuery.value);
+        const customerNo = store.customer?.id || store.customer?.No_;
+        if (!customerNo) {
+            projectSearchMsg.value = 'ไม่พบรหัสลูกค้า กรุณาเลือกลูกค้าก่อนค้นหาโครงการ';
+            return;
+        }
+
+        const response = await CustomerService.getCustomerProjects(customerNo);
+        let results = response || [];
+
+        // Map API response to expected frontend structure
+        results = results.map(proj => ({
+            id: proj.project_code,
+            name: proj.project_name,
+            customerCode: proj.customer_code,
+            customerName: proj.customer_name,
+            branch: proj.branch_code,
+            projectManager: proj.request_by,
+            value: 0,
+            status: 'Active',
+            remark: proj.remark
+        }));
+
+        // Filter by query if provided
+        const query = projectSearchQuery.value.toLowerCase().trim();
+        if (query) {
+            results = results.filter(p =>
+                (p.id && p.id.toLowerCase().includes(query)) ||
+                (p.name && p.name.toLowerCase().includes(query))
+            );
+        }
+
         if (results.length > 0) {
             projectSearchResults.value = results;
         } else {
             projectSearchMsg.value = 'ไม่พบโครงการที่ค้นหา';
         }
     } catch (e) {
+        console.error("Project search error:", e);
         projectSearchMsg.value = 'เกิดข้อผิดพลาดในการค้นหา';
     } finally {
         isSearchingProject.value = false;
@@ -126,81 +157,6 @@ const addProject = (proj) => {
     projectSearchMsg.value = '';
 };
 
-// Mock API for external Sales System
-const mockFetchProjects = async (query) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const db = [
-                {
-                    id: 'PJ6904001',
-                    name: 'โรงพยาบาลเกษมราษฏร์ จังหวัดระยอง',
-                    customerCode: '693026RY',
-                    customerName: 'บริษัท เอ็กซ์คอน คอนสตรัคชั่น จำกัด',
-                    branch: 'ระยอง',
-                    projectManager: 'นายพีระพัฒน์ สีแจจันทร์',
-                    startDate: '01/08/2025',
-                    expectedEndDate: '31/07/2027',
-                    productList: [],
-                    value: 0,
-                    status: 'Active'
-                },
-                {
-                    id: 'PJ6904002',
-                    name: 'คอนโดมิเนียมออริจิน สาทร',
-                    customerCode: '01131TS',
-                    customerName: 'บริษัท แสนสิริ จำกัด (มหาชน)',
-                    branch: 'พระราม 2',
-                    projectManager: 'นางสาวทิพวัลย์ ริ้วงาม',
-                    startDate: '01/07/2024',
-                    expectedEndDate: '28/06/2026',
-                    productList: [
-                        { name: 'กระจกใส 6 มม.', price: '5,000,000' },
-                        { name: 'กระจกเงา', price: '2,000,000' }
-                    ],
-                    value: 15000000,
-                    status: 'Active'
-                },
-                {
-                    id: 'PJ6904003',
-                    name: 'ปรับปรุงอาคารสำนักงานการไฟฟ้าฝ่ายผลิต อยุธยา',
-                    customerCode: '01013AY',
-                    customerName: 'ร้านกระจกอำนวย',
-                    branch: 'อยุธยา',
-                    projectManager: 'ว่าที่ ร.ต.จุไรรัตน์ ชนะประโคน',
-                    startDate: '15/08/2023',
-                    expectedEndDate: '15/05/2024',
-                    productList: [
-                        { name: 'อลูมิเนียมเส้น', price: '3,500,000' }
-                    ],
-                    value: 8500000,
-                    status: 'Active'
-                },
-                {
-                    id: 'PJ6904004',
-                    name: 'หมู่บ้านจัดสรร ชลบุรี',
-                    customerCode: '10001CB',
-                    customerName: 'บริษัท โชคชัย 2 กระจกพัทยา จำกัด',
-                    branch: 'ชลบุรี',
-                    projectManager: 'นายธวัชชัย  อุทัย',
-                    startDate: '10/01/2024',
-                    expectedEndDate: '30/11/2025',
-                    productList: [
-                        { name: 'ซิลิโคน', price: '500,000' },
-                        { name: 'อุปกรณ์ฟิตติ้ง', price: '1,200,000' }
-                    ],
-                    value: 25000000,
-                    status: 'Planning'
-                }
-            ];
-            if (!query.trim()) {
-                 resolve(db);
-                 return;
-            }
-            const q = query.toLowerCase();
-            resolve(db.filter(p => p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)));
-        }, 500);
-    });
-};
 </script>
 
 <style scoped>

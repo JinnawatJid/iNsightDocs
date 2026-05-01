@@ -58,4 +58,14 @@ export default {
       throw error;
     }
   },
+
+  async getCustomerProjects(customerNo) {
+    try {
+      const response = await axios.get(`${API_URL}/${encodeURIComponent(customerNo)}/projects`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching customer projects:', error);
+      throw error;
+    }
+  },
 };
