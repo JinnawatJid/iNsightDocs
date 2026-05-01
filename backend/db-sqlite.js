@@ -524,6 +524,64 @@ const initDB = async () => {
             }
         };
 
+
+        const initialRegionBranchConfig = [
+            {
+                region: "กทม (Metro)",
+                zones: [
+                    { code: "TJ", name: "ตรอกจันทน์" },
+                    { code: "TR", name: "พระราม 2" },
+                    { code: "TS", name: "สุขาภิบาล 3" },
+                    { code: "TP", name: "บางขุนเทียน" },
+                    { code: "TL", name: "ลำลูกกา" }
+                ]
+            },
+            {
+                region: "กลาง (Central)",
+                zones: [
+                    { code: "BS", name: "บางไทร" },
+                    { code: "RB", name: "ราชบุรี" },
+                    { code: "AY", name: "อยุธยา" },
+                    { code: "PC", name: "ประจวบ" },
+                    { code: "SB", name: "สระบุรี" }
+                ]
+            },
+            {
+                region: "เหนือ (North)",
+                zones: [
+                    { code: "CM", name: "เชียงใหม่" },
+                    { code: "CR", name: "เชียงราย" },
+                    { code: "NS", name: "นครสวรรค์" },
+                    { code: "PL", name: "พิษณุโลก" }
+                ]
+            },
+            {
+                region: "ตะวันออก (East)",
+                zones: [
+                    { code: "RY", name: "ระยอง" },
+                    { code: "CB", name: "ชลบุรี" }
+                ]
+            },
+            {
+                region: "อีสาน (Northeast)",
+                zones: [
+                    { code: "KK", name: "ขอนแก่น" },
+                    { code: "SK", name: "สกลนคร" },
+                    { code: "UB", name: "อุบลราชธานี" },
+                    { code: "UD", name: "อุดรธานี" },
+                    { code: "NR", name: "นครราชสีมา" }
+                ]
+            },
+            {
+                region: "ใต้ (South)",
+                zones: [
+                    { code: "SR", name: "สุราษฎร์ธานี" },
+                    { code: "HY", name: "หาดใหญ่" },
+                    { code: "PK", name: "ภูเก็ต" }
+                ]
+            }
+        ];
+
         const defaultConfigs = [
             { key: 'DBD_FILE_FRESHNESS_DAYS', value: '180', type: 'number', category: 'System', desc: 'จำนวนวันสูงสุดที่ยอมรับได้สำหรับความใหม่ของไฟล์ DBD (Days)', label: 'อายุไฟล์ข้อมูล DBD (วัน)' },
             { key: 'AUDIT_LOG_RETENTION_DAYS', value: '14', type: 'number', category: 'System', desc: 'ระยะเวลาจัดเก็บไฟล์ Log ของระบบ (Days)', label: 'ระยะเวลาจัดเก็บประวัติระบบ (วัน)' },
@@ -533,6 +591,7 @@ const initDB = async () => {
             { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation', label: 'เปิดใช้งานระบบประมวลผลอัตโนมัติ (Batch)' },
             { key: 'COMMITTEE_APPROVAL_THRESHOLD_THB', value: '300000', type: 'number', category: 'Workflow', desc: 'วงเงินที่ต้องได้รับการอนุมัติจากคณะกรรมการ (บาท)', label: 'วงเงินพิจารณาโดยคณะกรรมการ (บาท)' },
             { key: 'RBAC_MATRIX_CONFIG', value: JSON.stringify(initialRbacMatrix), type: 'json', category: 'UserRoles', desc: 'การตั้งค่า Matrix การจัดการสิทธิ์', label: 'Role & Permission Matrix' },
+                        { key: 'REGION_BRANCH_CONFIG', value: JSON.stringify(initialRegionBranchConfig), type: 'json', category: 'System', desc: 'การตั้งค่าสาขาตามพื้นที่', label: 'Region and Branch Configuration' },
             { key: 'WORKFLOW_CONFIG', value: JSON.stringify(initialWorkflowConfig), type: 'json', category: 'WorkflowMgmt', desc: 'การตั้งค่าสถานะ Workflow และการอนุมัติ', label: 'Workflow State Machine Configuration' }
         ];
 
