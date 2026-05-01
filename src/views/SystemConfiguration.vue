@@ -39,6 +39,7 @@
               <ScorecardManagementTab v-if="activeCategory === 'Scorecards'" />
               <RoleManagementTab v-else-if="activeCategory === 'UserRoles'" />
               <WorkflowManagementTab v-else-if="activeCategory === 'WorkflowMgmt'" />
+              <RegionManagementTab v-else-if="activeCategory === 'RegionMgmt'" />
               <div v-else class="config-items-container">
                 <div class="content-header">
                   <div class="header-title">
@@ -118,6 +119,7 @@ import { formatDateString } from '../utils/dateUtils';
 import ScorecardManagementTab from '../components/configuration/ScorecardManagementTab.vue';
 import RoleManagementTab from '../components/configuration/RoleManagementTab.vue';
 import WorkflowManagementTab from '../components/configuration/WorkflowManagementTab.vue';
+import RegionManagementTab from '../components/configuration/RegionManagementTab.vue';
 import Navbar from '@/components/shared/Navbar.vue';
 import Swal from 'sweetalert2';
 
@@ -133,6 +135,7 @@ const categoryLabels = {
   'System': 'การตั้งค่าระบบ',
   'Workflow': 'การตั้งค่าขั้นตอนอื่นๆ',
   'WorkflowMgmt': 'จัดการ Workflow',
+  'RegionMgmt': 'จัดการพื้นที่และสาขา',
   'API': 'การเชื่อมต่อระบบ',
   'Business': 'กฎเกณฑ์ธุรกิจ',
   'Scorecards': 'โมเดลให้คะแนน',
@@ -145,7 +148,7 @@ const getCategoryLabel = (category) => {
 
 // Computed
 const categories = computed(() => {
-  const order = ['System', 'UserRoles', 'WorkflowMgmt', 'Scorecards'];
+  const order = ['System', 'UserRoles', 'WorkflowMgmt', 'RegionMgmt', 'Scorecards'];
   
   if (!configStore.configurations) return order;
   
@@ -153,6 +156,7 @@ const categories = computed(() => {
   const allCategories = new Set(dbCategories);
   allCategories.add('Scorecards');
   allCategories.add('WorkflowMgmt');
+  allCategories.add('RegionMgmt');
   allCategories.add('UserRoles');
   allCategories.add('System');
   
