@@ -2,8 +2,9 @@
   <div class="region-management">
     <div class="content-header">
       <div class="header-title">
-        <span class="icon-map">🗺️</span>
-        <h3>จัดการสาขาตามพื้นที่ (Region Management)</h3>
+        <div class="header-content">
+          <h3>จัดการสาขาตามพื้นที่ (Region Management)</h3>
+        </div>
       </div>
       <button class="btn btn-primary" @click="handleSave" :disabled="!hasChanges || isSaving">
         {{ isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง' }}
@@ -189,16 +190,16 @@ const handleSave = async () => {
 
 <style scoped>
 .region-management {
-  padding: 1rem;
+  width: 100%;
 }
 
 .content-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .header-title {
@@ -212,34 +213,62 @@ const handleSave = async () => {
 }
 
 .header-title h3 {
-  margin: 0;
-  font-size: 1.25rem;
+  margin: 0 0 4px 0;
+  font-size: 20px;
+  color: #2c3e50;
   font-weight: 600;
-  color: #1e293b;
+  text-align: left;
+}
+
+.action-bar {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .region-card {
-  background-color: #fff;
-  border-color: #e2e8f0 !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
 .region-card h4 {
-  font-size: 1.1rem;
+  margin: 0;
+  font-size: 18px;
   font-weight: 600;
-  white-space: nowrap;
+  color: #1e293b;
+  min-width: 60px;
 }
 
 .zones-container {
   background-color: #f8fafc;
-  padding: 1rem;
+  padding: 16px;
   border-radius: 6px;
   border: 1px solid #e2e8f0;
+  margin-top: 16px;
 }
 
 .zones-container h5 {
-  font-size: 0.95rem;
+  font-size: 16px;
   font-weight: 600;
   color: #475569;
+  margin-bottom: 12px;
+}
+
+.table {
+  background: white;
+  margin-bottom: 0;
+}
+
+.table th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  color: #475569;
+  border-bottom-width: 1px;
+}
+
+.table td {
+  vertical-align: middle;
 }
 </style>
