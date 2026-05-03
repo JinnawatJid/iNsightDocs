@@ -509,13 +509,14 @@ const initDB = async () => {
                 { key: 'approve_document', label: 'ตรวจสอบเอกสาร' },
                 { key: 'approve_credit_low', label: 'อนุมัติวงเงินต่ำกว่าเกณฑ์' },
                 { key: 'approve_credit_high', label: 'อนุมัติวงเงินสูงกว่าเกณฑ์' },
-                { key: 'manage_config', label: 'จัดการการตั้งค่าระบบ' }
+                { key: 'manage_config', label: 'จัดการการตั้งค่าระบบ' },
+                { key: 'manage_blacklist', label: 'จัดการรายการ NPL (Blacklist)' }
             ],
             matrix: {
                 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)': ['view_pending', 'view_history', 'edit_request'],
                 'ผู้พิจารณาของพื้นที่': ['view_pending', 'view_history'],
                 'ผู้พิจารณาฝ่ายขาย': ['view_pending', 'view_history'],
-                'ผู้ตรวจสอบเอกสาร': ['view_pending', 'view_history', 'approve_document'],
+                'ผู้ตรวจสอบเอกสาร': ['view_pending', 'view_history', 'approve_document', 'manage_blacklist'],
                 'ผู้อนุมัติ (วงเงิน <300K)': ['view_pending', 'view_history', 'approve_credit_low'],
                 'ผู้อนุมัติ (วงเงิน > 300K)': ['view_pending', 'view_history', 'approve_credit_low', 'approve_credit_high'],
                 'ผู้ดูแลระบบ': ['manage_config']
@@ -609,7 +610,7 @@ const initDB = async () => {
                 if (config.key === 'RBAC_MATRIX_CONFIG') {
                     try {
                         const currentVal = JSON.parse(checkConfig.rows[0].config_value);
-                        if (!currentVal.roles.includes('ผู้พิจารณาของพื้นที่')) {
+                        if (!currentVal.permissions.find(p => p.key === 'manage_blacklist') || !currentVal.roles.includes('ผู้พิจารณาของพื้นที่')) {
                             await db.runAsync(`UPDATE Configurations SET config_value = ? WHERE config_key = ?`,
                                 [config.value, config.key]);
                             logger.info('Updated RBAC_MATRIX_CONFIG with new roles structure.');

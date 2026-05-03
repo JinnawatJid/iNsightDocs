@@ -5,7 +5,7 @@
       <div class="card-header">
         <h3 class="card-title">ข้อมูลลูกค้า</h3>
         <div class="header-actions-group">
-          <div class="blacklist-toggle-group">
+          <div class="blacklist-toggle-group" v-if="canManageBlacklist">
              <span class="toggle-label" :class="{ 'is-active': isBlacklisted }">สถานะ NPL</span>
              <label class="switch">
                 <input type="checkbox" :checked="isBlacklisted" @change="toggleBlacklistStatus">
@@ -94,6 +94,7 @@
 
 <script>
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useAuthStore } from '@/stores/auth';
 import { computed } from 'vue';
 import Swal from 'sweetalert2';
 import CustomerService from '@/services/CustomerService';
@@ -102,8 +103,13 @@ export default {
   name: 'CustomerProfileDashboard',
   setup() {
     const store = useCreditRequestStore();
+    const authStore = useAuthStore();
 
     const customer = computed(() => store.customer || {});
+
+    const canManageBlacklist = computed(() => {
+      return authStore.hasPermission('manage_blacklist');
+    });
 
     const isBlacklisted = computed(() => store.financialSummary?.is_blacklisted || false);
 
@@ -257,6 +263,7 @@ export default {
       customerSinceYear,
       formatCurrency,
       isBlacklisted,
+      canManageBlacklist,
       toggleBlacklistStatus
     };
   }
