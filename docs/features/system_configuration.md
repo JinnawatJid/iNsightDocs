@@ -16,7 +16,9 @@ The configuration settings are logically grouped into categories. The UI enforce
    - **Role Mapping:** Managing SSO group claims and mapping to internal system roles.
 3. **WorkflowMgmt (จัดการ Workflow)**
    - **Approval Routes:** Customizing the steps and logic for credit request approvals.
-4. **Scorecards (โมเดลให้คะแนน)**
+4. **RegionMgmt (จัดการพื้นที่และสาขา)**
+   - **Region Mapping:** Configuring the mapping between regions and specific branch codes/zones.
+5. **Scorecards (โมเดลให้คะแนน)**
    - **Scoring Parameters:** Weights and factors used in financial analysis to calculate grades and recommended limits.
 
 > [!NOTE]
