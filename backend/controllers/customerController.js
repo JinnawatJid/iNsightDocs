@@ -1633,6 +1633,14 @@ exports.upsertBlacklist = async (req, res) => {
                 if (result && result.rows && result.rows.length > 0) exists = true;
             }
 
+            if (!exists && normalized_shop) {
+                const query = db.dbType === 'mssql'
+                    ? `SELECT TOP 1 * FROM CustomerBlacklist WHERE normalized_shop = ?`
+                    : `SELECT * FROM CustomerBlacklist WHERE normalized_shop = ? LIMIT 1`;
+                const result = await db.query(query, [normalized_shop]);
+                if (result && result.rows && result.rows.length > 0) exists = true;
+            }
+
             if (!exists) {
                 const insertQuery = `INSERT INTO CustomerBlacklist ([ที่], [สาขา], [ชื่อ - ร้าน], [ชื่อ - ลูกค้า], [เลขที่บัตรประชาชน], [สถานะ], [หมายเหตุ], [normalized_id], [normalized_name], [normalized_shop]) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
                 const params = ['', '', shopName || '', name || '', taxId || '', 'เพิ่มจากระบบ', '', normalized_id, normalized_name, normalized_shop];
@@ -1649,9 +1657,12 @@ exports.upsertBlacklist = async (req, res) => {
             if (normalized_id) {
                 deleteQuery = `DELETE FROM CustomerBlacklist WHERE normalized_id = ?`;
                 params = [normalized_id];
-            } else {
+            } else if (normalized_name) {
                 deleteQuery = `DELETE FROM CustomerBlacklist WHERE normalized_name = ?`;
                 params = [normalized_name];
+            } else if (normalized_shop) {
+                deleteQuery = `DELETE FROM CustomerBlacklist WHERE normalized_shop = ?`;
+                params = [normalized_shop];
             }
 
             if (deleteQuery) {
