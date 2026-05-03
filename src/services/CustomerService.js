@@ -3,7 +3,7 @@ import axios from '../utils/axios.js';
 const API_URL = '/api/customers';
 
 export default {
-  async upsertBlacklist(data) {
+  async toggleBlacklist(data) {
     try {
       const response = await axios.post(`${API_URL}/blacklist`, data);
       return response.data;

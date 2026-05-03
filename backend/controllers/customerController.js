@@ -1602,56 +1602,67 @@ exports.checkCreditByVat = async (req, res) => {
 
 exports.upsertBlacklist = async (req, res) => {
     try {
-        const { branch, shopName, name, taxId, status, remarks } = req.body;
-
+        const { is_blacklisted, name, taxId, shopName } = req.body;
+        const db = require('../db');
 
         // Normalize
         const normalized_id = taxId ? taxId.replace(/\D/g, '') : '';
         const normalized_name = name ? normalizeName(name) : '';
         const normalized_shop = shopName ? normalizeName(shopName) : '';
 
-        // Check if exists
-        let exists = false;
-        if (normalized_id) {
-            const query = db.dbType === 'mssql'
-                ? `SELECT TOP 1 * FROM CustomerBlacklist WHERE normalized_id = ?`
-                : `SELECT * FROM CustomerBlacklist WHERE normalized_id = ? LIMIT 1`;
-            const result = await db.query(query, [normalized_id]);
-            if (result && result.rows && result.rows.length > 0) exists = true;
+        if (!normalized_id && !normalized_name && !normalized_shop) {
+             return res.status(400).json({ error: "Missing required identification fields" });
         }
 
-        if (!exists && normalized_name) {
-            const query = db.dbType === 'mssql'
-                ? `SELECT TOP 1 * FROM CustomerBlacklist WHERE normalized_name = ?`
-                : `SELECT * FROM CustomerBlacklist WHERE normalized_name = ? LIMIT 1`;
-            const result = await db.query(query, [normalized_name]);
-            if (result && result.rows && result.rows.length > 0) exists = true;
-        }
-
-        if (exists) {
-            // Update
-            let updateQuery = '';
-            let params = [];
+        if (is_blacklisted) {
+            // Check if exists
+            let exists = false;
             if (normalized_id) {
-                updateQuery = `UPDATE CustomerBlacklist SET [สถานะ] = ?, [หมายเหตุ] = ?, [สาขา] = ? WHERE normalized_id = ?`;
-                params = [status || '', remarks || '', branch || '', normalized_id];
-            } else {
-                updateQuery = `UPDATE CustomerBlacklist SET [สถานะ] = ?, [หมายเหตุ] = ?, [สาขา] = ? WHERE normalized_name = ?`;
-                params = [status || '', remarks || '', branch || '', normalized_name];
+                const query = db.dbType === 'mssql'
+                    ? `SELECT TOP 1 * FROM CustomerBlacklist WHERE normalized_id = ?`
+                    : `SELECT * FROM CustomerBlacklist WHERE normalized_id = ? LIMIT 1`;
+                const result = await db.query(query, [normalized_id]);
+                if (result && result.rows && result.rows.length > 0) exists = true;
             }
-            await db.query(updateQuery, params);
-            logger.info(`[Blacklist] Updated NPL status for ${name || shopName}`);
-            return res.json({ success: true, message: "อัปเดตข้อมูล Blacklist สำเร็จ" });
-        } else {
-            // Insert
-            const insertQuery = `INSERT INTO CustomerBlacklist ([ที่], [สาขา], [ชื่อ - ร้าน], [ชื่อ - ลูกค้า], [เลขที่บัตรประชาชน], [สถานะ], [หมายเหตุ], [normalized_id], [normalized_name], [normalized_shop]) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-            const params = ['', branch || '', shopName || '', name || '', taxId || '', status || '', remarks || '', normalized_id, normalized_name, normalized_shop];
-            await db.query(insertQuery, params);
-            logger.info(`[Blacklist] Inserted NPL status for ${name || shopName}`);
+
+            if (!exists && normalized_name) {
+                const query = db.dbType === 'mssql'
+                    ? `SELECT TOP 1 * FROM CustomerBlacklist WHERE normalized_name = ?`
+                    : `SELECT * FROM CustomerBlacklist WHERE normalized_name = ? LIMIT 1`;
+                const result = await db.query(query, [normalized_name]);
+                if (result && result.rows && result.rows.length > 0) exists = true;
+            }
+
+            if (!exists) {
+                const insertQuery = `INSERT INTO CustomerBlacklist ([ที่], [สาขา], [ชื่อ - ร้าน], [ชื่อ - ลูกค้า], [เลขที่บัตรประชาชน], [สถานะ], [หมายเหตุ], [normalized_id], [normalized_name], [normalized_shop]) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                const params = ['', '', shopName || '', name || '', taxId || '', 'เพิ่มจากระบบ', '', normalized_id, normalized_name, normalized_shop];
+                await db.query(insertQuery, params);
+                logger.info(`[Blacklist] Inserted NPL status for ${name || shopName}`);
+            }
             return res.json({ success: true, message: "เพิ่มข้อมูล Blacklist สำเร็จ" });
+
+        } else {
+            // Remove from Blacklist
+            let deleteQuery = '';
+            let params = [];
+
+            if (normalized_id) {
+                deleteQuery = `DELETE FROM CustomerBlacklist WHERE normalized_id = ?`;
+                params = [normalized_id];
+            } else {
+                deleteQuery = `DELETE FROM CustomerBlacklist WHERE normalized_name = ?`;
+                params = [normalized_name];
+            }
+
+            if (deleteQuery) {
+                await db.query(deleteQuery, params);
+                logger.info(`[Blacklist] Removed NPL status for ${name || shopName}`);
+            }
+            return res.json({ success: true, message: "ลบข้อมูล Blacklist สำเร็จ" });
         }
+
     } catch (error) {
-        logger.error('[Blacklist] Upsert Error:', error);
+        logger.error('[Blacklist] Toggle Error:', error);
         return res.status(500).json({ error: "Failed to update Blacklist data", details: error.message });
     }
 };

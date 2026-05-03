@@ -4,8 +4,16 @@
     <div class="dashboard-card identity-card">
       <div class="card-header">
         <h3 class="card-title">ข้อมูลลูกค้า</h3>
-        <span class="badge-type" :class="customerTypeClass">{{ customerTypeLabel }}</span>
-        <button class="btn btn-outline-danger btn-sm" @click="openBlacklistModal" style="margin-left: 10px;">จัดการ NPL/Blacklist</button>
+        <div class="header-actions-group">
+          <div class="blacklist-toggle-group">
+             <span class="toggle-label" :class="{ 'is-active': isBlacklisted }">สถานะ NPL</span>
+             <label class="switch">
+                <input type="checkbox" :checked="isBlacklisted" @change="toggleBlacklistStatus">
+                <span class="slider round"></span>
+             </label>
+          </div>
+          <span class="badge-type" :class="customerTypeClass">{{ customerTypeLabel }}</span>
+        </div>
       </div>
       <div class="card-body">
         <div class="profile-main">
@@ -97,6 +105,8 @@ export default {
 
     const customer = computed(() => store.customer || {});
 
+    const isBlacklisted = computed(() => store.financialSummary?.is_blacklisted || false);
+
     const hasCredit = computed(() => {
       const limit = parseFloat(customer.value.current_credit_limit || 0);
       return limit > 0;
@@ -181,31 +191,59 @@ export default {
     };
 
 
-    const openBlacklistModal = async () => {
-      const { value: formValues } = await Swal.fire({
-        title: 'จัดการ NPL/Blacklist',
-        html: `
-          <div style="text-align: left; font-size: 14px;">
-            <div class="mb-3">
-              <label class="form-label" style="font-weight: bold;">สาขา (Branch)</label>
-              <input id="swal-bl-branch" class="form-control" placeholder="เช่น RB, PK">
-            </div>
-            <div class="mb-3">
-              <label class="form-label" style="font-weight: bold;">สถานะ</label>
-              <input id="swal-bl-status" class="form-control" placeholder="เช่น บังคับคดี ยึดทรัพย์">
-            </div>
-            <div class="mb-3">
-              <label class="form-label" style="font-weight: bold;">หมายเหตุ</label>
-              <textarea id="swal-bl-remarks" class="form-control" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม..."></textarea>
-            </div>
-          </div>
-        `,
-        focusConfirm: false,
+
+    const toggleBlacklistStatus = async (event) => {
+      const newValue = event.target.checked;
+      // Revert UI immediately until confirmed
+      event.target.checked = !newValue;
+
+      const confirmMsg = newValue
+        ? 'คุณต้องการเพิ่มลูกค้ารายนี้ลงในบัญชี NPL ใช่หรือไม่?'
+        : 'คุณต้องการปลดลูกค้ารายนี้ออกจากบัญชี NPL ใช่หรือไม่?';
+
+      const { isConfirmed } = await Swal.fire({
+        title: 'ยืนยันการเปลี่ยนแปลง',
+        text: confirmMsg,
+        icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'บันทึก',
+        confirmButtonText: 'ยืนยัน',
         cancelButtonText: 'ยกเลิก',
-        preConfirm: () => {
-          return {
+        confirmButtonColor: newValue ? '#dc3545' : '#28a745'
+      });
+
+      if (isConfirmed) {
+        try {
+          const payload = {
+            taxId: customer.value.tax_id || customer.value["VAT Registration No_"] || '',
+            name: customer.value.name || '',
+            shopName: customerTypeLabel.value === 'ลูกค้าบริษัท' ? customer.value.name || '' : '',
+            is_blacklisted: newValue
+          };
+
+          await CustomerService.toggleBlacklist(payload);
+
+          Swal.fire({
+            icon: 'success',
+            title: 'สำเร็จ',
+            text: 'อัปเดตข้อมูลสถานะ NPL เรียบร้อยแล้ว',
+            timer: 1500,
+            showConfirmButton: false
+          });
+
+          // Re-fetch customer to update UI
+          if (customer.value.id || customer.value.tax_id) {
+            await store.searchCustomer(customer.value.id || customer.value.tax_id);
+          }
+        } catch (error) {
+          Swal.fire({
+            icon: 'error',
+            title: 'ข้อผิดพลาด',
+            text: 'ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองใหม่อีกครั้ง'
+          });
+        }
+      }
+    };
+return {
             branch: document.getElementById('swal-bl-branch').value,
             status: document.getElementById('swal-bl-status').value,
             remarks: document.getElementById('swal-bl-remarks').value
@@ -260,7 +298,8 @@ export default {
       customerSinceLabel,
       customerSinceYear,
       formatCurrency,
-      openBlacklistModal
+      isBlacklisted,
+      toggleBlacklistStatus
     };
   }
 };
@@ -481,5 +520,92 @@ export default {
   .detail-item.full-width {
       grid-column: span 1;
   }
+}
+
+.header-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.blacklist-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-label {
+  font-size: 13px;
+  font-weight: bold;
+  color: #6c757d;
+  transition: color 0.3s ease;
+}
+
+.toggle-label.is-active {
+  color: #dc3545;
+}
+
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  margin: 0;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #dc3545;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #dc3545;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(18px);
+  -ms-transform: translateX(18px);
+  transform: translateX(18px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 22px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
 }
 </style>
