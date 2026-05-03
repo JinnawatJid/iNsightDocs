@@ -166,8 +166,6 @@ const initDB = async () => {
 
         // Initialize CustomerBlacklist
         // Drop table first to ensure schema update (adding normalized_id)
-        const dropBlacklistSQL = `IF EXISTS (SELECT * FROM sysobjects WHERE name='CustomerBlacklist' and xtype='U') DROP TABLE CustomerBlacklist`;
-        await pool.request().query(dropBlacklistSQL);
         await createTableFromCSV('CustomerBlacklist', path.resolve(__dirname, 'CustomerBlacklist_rows.csv'), 'เลขที่บัตรประชาชน');
 
         // Ensure Coordinate and Landmark columns exist in Customers table

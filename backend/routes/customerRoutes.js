@@ -26,5 +26,6 @@ bindRoute('get', '/suggestions', 'getSuggestions');
 bindRoute('get', '/check-credit-by-vat', 'checkCreditByVat');
 bindRoute('get', '/:customerNo/projects', 'getCustomerProjects');
 bindRoute('patch', '/:id', 'updateCustomer');
+bindRoute('post', '/blacklist', 'upsertBlacklist');
 
 module.exports = router;

@@ -3,6 +3,16 @@ import axios from '../utils/axios.js';
 const API_URL = '/api/customers';
 
 export default {
+  async upsertBlacklist(data) {
+    try {
+      const response = await axios.post(`${API_URL}/blacklist`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error upserting blacklist:', error);
+      throw error;
+    }
+  },
+
   async searchCustomers(query, fetchBy = 'vat') {
     try {
       const response = await axios.get(`${API_URL}/search`, {

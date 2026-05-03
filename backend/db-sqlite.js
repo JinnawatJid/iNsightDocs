@@ -125,7 +125,6 @@ const initDB = async () => {
 
         // Initialize CustomerBlacklist
         // Drop table first to ensure schema update (adding normalized_id)
-        await db.runAsync('DROP TABLE IF EXISTS CustomerBlacklist');
         await createTableFromCSV('CustomerBlacklist', path.resolve(__dirname, 'CustomerBlacklist_rows.csv'), 'เลขที่บัตรประชาชน');
 
         // Ensure Coordinate and Landmark columns exist in Customers table

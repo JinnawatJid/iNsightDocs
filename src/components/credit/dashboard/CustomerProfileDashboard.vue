@@ -5,6 +5,7 @@
       <div class="card-header">
         <h3 class="card-title">ข้อมูลลูกค้า</h3>
         <span class="badge-type" :class="customerTypeClass">{{ customerTypeLabel }}</span>
+        <button class="btn btn-outline-danger btn-sm" @click="openBlacklistModal" style="margin-left: 10px;">จัดการ NPL/Blacklist</button>
       </div>
       <div class="card-body">
         <div class="profile-main">
@@ -86,6 +87,8 @@
 <script>
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { computed } from 'vue';
+import Swal from 'sweetalert2';
+import CustomerService from '@/services/CustomerService';
 
 export default {
   name: 'CustomerProfileDashboard',
@@ -177,6 +180,74 @@ export default {
       }).format(val);
     };
 
+
+    const openBlacklistModal = async () => {
+      const { value: formValues } = await Swal.fire({
+        title: 'จัดการ NPL/Blacklist',
+        html: `
+          <div style="text-align: left; font-size: 14px;">
+            <div class="mb-3">
+              <label class="form-label" style="font-weight: bold;">สาขา (Branch)</label>
+              <input id="swal-bl-branch" class="form-control" placeholder="เช่น RB, PK">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" style="font-weight: bold;">สถานะ</label>
+              <input id="swal-bl-status" class="form-control" placeholder="เช่น บังคับคดี ยึดทรัพย์">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" style="font-weight: bold;">หมายเหตุ</label>
+              <textarea id="swal-bl-remarks" class="form-control" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม..."></textarea>
+            </div>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'บันทึก',
+        cancelButtonText: 'ยกเลิก',
+        preConfirm: () => {
+          return {
+            branch: document.getElementById('swal-bl-branch').value,
+            status: document.getElementById('swal-bl-status').value,
+            remarks: document.getElementById('swal-bl-remarks').value
+          };
+        }
+      });
+
+      if (formValues) {
+        try {
+          const payload = {
+            taxId: customer.value.tax_id || customer.value["VAT Registration No_"] || '',
+            name: customer.value.name || '',
+            shopName: customerTypeLabel.value === 'ลูกค้าบริษัท' ? customer.value.name || '' : '',
+            branch: formValues.branch,
+            status: formValues.status,
+            remarks: formValues.remarks
+          };
+
+          await CustomerService.upsertBlacklist(payload);
+
+          Swal.fire({
+            icon: 'success',
+            title: 'สำเร็จ',
+            text: 'อัปเดตข้อมูล Blacklist เรียบร้อยแล้ว',
+            timer: 1500,
+            showConfirmButton: false
+          });
+
+          // Re-fetch customer to update UI
+          if (customer.value.id || customer.value.tax_id) {
+            await store.searchCustomer(customer.value.id || customer.value.tax_id);
+          }
+        } catch (error) {
+          Swal.fire({
+            icon: 'error',
+            title: 'ข้อผิดพลาด',
+            text: 'ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองใหม่อีกครั้ง'
+          });
+        }
+      }
+    };
+
     return {
       customer,
       hasCredit,
@@ -188,7 +259,8 @@ export default {
       paymentTermsLabel,
       customerSinceLabel,
       customerSinceYear,
-      formatCurrency
+      formatCurrency,
+      openBlacklistModal
     };
   }
 };
