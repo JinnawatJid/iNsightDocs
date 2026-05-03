@@ -124,8 +124,7 @@ const initDB = async () => {
         await createTableFromCSV('AY_ACCUM', path.resolve(__dirname, 'AY_ACCUM_rows.csv'), 'custcode');
 
         // Initialize CustomerBlacklist
-        // Drop table first to ensure schema update (adding normalized_id)
-        await createTableFromCSV('CustomerBlacklist', path.resolve(__dirname, 'CustomerBlacklist_rows.csv'), 'เลขที่บัตรประชาชน');
+                await createTableFromCSV('CustomerBlacklist', path.resolve(__dirname, 'CustomerBlacklist_rows.csv'), 'เลขที่บัตรประชาชน');
 
         // Ensure Coordinate and Landmark columns exist in Customers table
         const coordinateColumns = [

@@ -1633,10 +1633,10 @@ exports.upsertBlacklist = async (req, res) => {
             let updateQuery = '';
             let params = [];
             if (normalized_id) {
-                updateQuery = `UPDATE CustomerBlacklist SET "สถานะ" = ?, "หมายเหตุ" = ?, "สาขา" = ? WHERE normalized_id = ?`;
+                updateQuery = `UPDATE CustomerBlacklist SET [สถานะ] = ?, [หมายเหตุ] = ?, [สาขา] = ? WHERE normalized_id = ?`;
                 params = [status || '', remarks || '', branch || '', normalized_id];
             } else {
-                updateQuery = `UPDATE CustomerBlacklist SET "สถานะ" = ?, "หมายเหตุ" = ?, "สาขา" = ? WHERE normalized_name = ?`;
+                updateQuery = `UPDATE CustomerBlacklist SET [สถานะ] = ?, [หมายเหตุ] = ?, [สาขา] = ? WHERE normalized_name = ?`;
                 params = [status || '', remarks || '', branch || '', normalized_name];
             }
             await db.query(updateQuery, params);
@@ -1644,7 +1644,7 @@ exports.upsertBlacklist = async (req, res) => {
             return res.json({ success: true, message: "อัปเดตข้อมูล Blacklist สำเร็จ" });
         } else {
             // Insert
-            const insertQuery = `INSERT INTO CustomerBlacklist ("ที่", "สาขา", "ชื่อ - ร้าน", "ชื่อ - ลูกค้า", "เลขที่บัตรประชาชน", "สถานะ", "หมายเหตุ", "normalized_id", "normalized_name", "normalized_shop") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            const insertQuery = `INSERT INTO CustomerBlacklist ([ที่], [สาขา], [ชื่อ - ร้าน], [ชื่อ - ลูกค้า], [เลขที่บัตรประชาชน], [สถานะ], [หมายเหตุ], [normalized_id], [normalized_name], [normalized_shop]) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
             const params = ['', branch || '', shopName || '', name || '', taxId || '', status || '', remarks || '', normalized_id, normalized_name, normalized_shop];
             await db.query(insertQuery, params);
             logger.info(`[Blacklist] Inserted NPL status for ${name || shopName}`);
