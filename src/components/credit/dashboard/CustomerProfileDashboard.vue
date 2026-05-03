@@ -108,7 +108,7 @@ export default {
     const customer = computed(() => store.customer || {});
 
     const canManageBlacklist = computed(() => {
-      return authStore.hasPermission('manage_blacklist');
+      return authStore.isFinanceOfficer;
     });
 
     const isBlacklisted = computed(() => store.financialSummary?.is_blacklisted || false);
