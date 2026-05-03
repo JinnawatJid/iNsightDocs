@@ -1057,7 +1057,14 @@ exports.getRecentApprovedRequest = async (req, res) => {
   }
 };
 
+
+// Cache for REGION_BRANCH_CONFIG to avoid excessive DB queries
+let regionBranchConfigCache = null;
+let regionBranchConfigCacheTime = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 exports.getCreditRequests = async (req, res) => {
+
   const { status, search } = req.query;
 
   // Determine user info and roles from req.user
@@ -1086,6 +1093,62 @@ exports.getCreditRequests = async (req, res) => {
       if (isInitiator && !hasFinalStatuses && restrictToOwner) {
         conditions.push(`created_by = ?`);
         params.push(username);
+      }
+
+      // Regional Managers should only see requests from their assigned branches
+      const isRegionalManager = roles.some((r) => r.role === 'ผู้พิจารณาของพื้นที่');
+      if (isRegionalManager && !hasFinalStatuses) {
+        try {
+          let regionConfig = null;
+          const now = Date.now();
+          if (regionBranchConfigCache && (now - regionBranchConfigCacheTime < CACHE_TTL)) {
+              regionConfig = regionBranchConfigCache;
+          } else {
+              const configRes = await db.query("SELECT config_value FROM Configurations WHERE config_key = 'REGION_BRANCH_CONFIG'");
+              const rows = configRes.rows || configRes.recordset || configRes; // Handle different DB wrapper return formats (Postgres, MSSQL, raw array)
+              if (rows && rows.length > 0) {
+                  let configVal = rows[0].config_value;
+                  if (typeof configVal === 'string') {
+                      configVal = JSON.parse(configVal);
+                  }
+                  regionConfig = configVal;
+                  regionBranchConfigCache = regionConfig;
+                  regionBranchConfigCacheTime = now;
+              }
+          }
+
+          if (regionConfig) {
+
+            const userBranchCode = req.user?.branchCode || "";
+            let allowedBranches = [];
+
+            // Find which region the user belongs to
+            for (const region of regionConfig) {
+              const hasBranch = region.zones.some(z => z.code === userBranchCode);
+              if (hasBranch) {
+                allowedBranches = region.zones.map(z => z.code);
+                break;
+              }
+            }
+
+            if (allowedBranches.length > 0) {
+              // As requested by user, don't rely on the '00' prefix.
+              // tx_id format is e.g. 00TRCA6903/01. We can use __TR% or %TR%
+              const branchConditions = allowedBranches.map(() => `tx_id LIKE ?`).join(" OR ");
+              conditions.push(`(${branchConditions})`);
+              allowedBranches.forEach(code => params.push(`__${code}%`));
+            } else {
+              // If branch not found in any region config, show nothing or fallback gracefully.
+              // To restrict to nothing, we could enforce an impossible condition.
+              conditions.push(`1 = 0`);
+            }
+          } else {
+             conditions.push(`1 = 0`);
+          }
+        } catch (e) {
+            logger.error("Error applying regional manager branch filter:", e);
+            conditions.push(`1 = 0`); // Fail-closed on error
+        }
       }
 
       if (statusList.length > 0) {
