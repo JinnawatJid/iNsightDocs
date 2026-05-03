@@ -787,7 +787,8 @@ const initDB = async () => {
                 if (config.key === 'RBAC_MATRIX_CONFIG') {
                     try {
                         const currentVal = JSON.parse(checkConfigRes.recordset[0].config_value);
-                        if (!currentVal.permissions.find(p => p.key === 'manage_blacklist') || !currentVal.roles.includes('ผู้พิจารณาของพื้นที่')) {
+
+                        if (!currentVal.permissions || !currentVal.permissions.find(p => p.key === 'manage_blacklist') || !currentVal.roles || !currentVal.roles.includes('ผู้พิจารณาของพื้นที่')) {
                             const updateMatrixSQL = `
                                 UPDATE Configurations
                                 SET config_value = @v

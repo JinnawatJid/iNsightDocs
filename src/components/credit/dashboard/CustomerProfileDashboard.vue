@@ -95,7 +95,8 @@
 <script>
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
+import axios from '@/utils/axios';
 import Swal from 'sweetalert2';
 import CustomerService from '@/services/CustomerService';
 
@@ -107,8 +108,25 @@ export default {
 
     const customer = computed(() => store.customer || {});
 
-    const canManageBlacklist = computed(() => {
-      return authStore.isFinanceOfficer;
+
+    const canManageBlacklist = ref(false);
+
+    onMounted(async () => {
+      try {
+        const res = await axios.get('/api/config/RBAC_MATRIX_CONFIG');
+        if (res.data && res.data.config_value) {
+          const rbacMatrix = JSON.parse(res.data.config_value);
+          const manageBlacklistRoles = rbacMatrix.permissions
+            ?.filter(p => p.key === 'manage_blacklist')
+            ?.map(p => p.roles)
+            ?.flat() || [];
+
+          const myRoles = (authStore.userRoles || authStore.user?.roles || []).map(r => r.role);
+          canManageBlacklist.value = myRoles.some(role => manageBlacklistRoles.includes(role));
+        }
+      } catch (err) {
+        console.error('Failed to load RBAC matrix for blacklist permission:', err);
+      }
     });
 
     const isBlacklisted = computed(() => store.financialSummary?.is_blacklisted || false);

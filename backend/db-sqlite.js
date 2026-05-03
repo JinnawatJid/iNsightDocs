@@ -89,7 +89,7 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
 
                         db.get(`SELECT count(*) as count FROM ${tableName}`, (err, row) => {
                             if (err) return reject(err);
-                            if (rows.length > 0) {
+                            if (row.count === 0 && rows.length > 0) {
                                 // Insert data
                                 const placeholders = columns.map(() => '?').join(',');
                                 // Use INSERT OR IGNORE to handle duplicate keys gracefully
@@ -611,7 +611,8 @@ const initDB = async () => {
                 if (config.key === 'RBAC_MATRIX_CONFIG') {
                     try {
                         const currentVal = JSON.parse(checkConfig.rows[0].config_value);
-                        if (!currentVal.permissions.find(p => p.key === 'manage_blacklist') || !currentVal.roles.includes('ผู้พิจารณาของพื้นที่')) {
+
+                        if (!currentVal.permissions || !currentVal.permissions.find(p => p.key === 'manage_blacklist') || !currentVal.roles || !currentVal.roles.includes('ผู้พิจารณาของพื้นที่')) {
                             await db.runAsync(`UPDATE Configurations SET config_value = ? WHERE config_key = ?`,
                                 [config.value, config.key]);
                             logger.info('Updated RBAC_MATRIX_CONFIG with new roles structure.');
