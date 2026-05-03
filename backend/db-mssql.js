@@ -115,6 +115,8 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
 
                     // Check if data exists
                     const countResult = await pool.request().query(`SELECT COUNT(*) as count FROM ${tableName}`);
+
+
                     if (countResult.recordset[0].count === 0 && rows.length > 0) {
                         logger.info(`Importing ${rows.length} rows into ${tableName}...`);
 
@@ -133,7 +135,18 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                                     request.input(`p${i}`, sql.NVarChar(sql.MAX), row[col]);
                                 });
 
-                                await request.query(`INSERT INTO ${tableName} (${cols}) VALUES (${params})`);
+
+                                // Avoid Duplicate PK Error on insert
+                                let insertQuery = `INSERT INTO ${tableName} (${cols}) VALUES (${params})`;
+                                if (primaryKey && columns.includes(primaryKey)) {
+                                    insertQuery = `
+                                        IF NOT EXISTS (SELECT 1 FROM ${tableName} WHERE "${primaryKey}" = @p${columns.indexOf(primaryKey)})
+                                        BEGIN
+                                            INSERT INTO ${tableName} (${cols}) VALUES (${params})
+                                        END
+                                    `;
+                                }
+                                await request.query(insertQuery);
                             }
 
                             await transaction.commit();

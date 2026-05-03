@@ -86,9 +86,10 @@ const createTableFromCSV = (tableName, csvFilePath, primaryKey = null) => {
                         logger.info(`Table ${tableName} ensured.`);
 
                         // Check if data exists
+
                         db.get(`SELECT count(*) as count FROM ${tableName}`, (err, row) => {
                             if (err) return reject(err);
-                            if (row.count === 0 && rows.length > 0) {
+                            if (rows.length > 0) {
                                 // Insert data
                                 const placeholders = columns.map(() => '?').join(',');
                                 // Use INSERT OR IGNORE to handle duplicate keys gracefully
