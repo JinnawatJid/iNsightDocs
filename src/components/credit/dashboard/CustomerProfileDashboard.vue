@@ -243,48 +243,6 @@ export default {
         }
       }
     };
-return {
-            branch: document.getElementById('swal-bl-branch').value,
-            status: document.getElementById('swal-bl-status').value,
-            remarks: document.getElementById('swal-bl-remarks').value
-          };
-        }
-      });
-
-      if (formValues) {
-        try {
-          const payload = {
-            taxId: customer.value.tax_id || customer.value["VAT Registration No_"] || '',
-            name: customer.value.name || '',
-            shopName: customerTypeLabel.value === 'ลูกค้าบริษัท' ? customer.value.name || '' : '',
-            branch: formValues.branch,
-            status: formValues.status,
-            remarks: formValues.remarks
-          };
-
-          await CustomerService.upsertBlacklist(payload);
-
-          Swal.fire({
-            icon: 'success',
-            title: 'สำเร็จ',
-            text: 'อัปเดตข้อมูล Blacklist เรียบร้อยแล้ว',
-            timer: 1500,
-            showConfirmButton: false
-          });
-
-          // Re-fetch customer to update UI
-          if (customer.value.id || customer.value.tax_id) {
-            await store.searchCustomer(customer.value.id || customer.value.tax_id);
-          }
-        } catch (error) {
-          Swal.fire({
-            icon: 'error',
-            title: 'ข้อผิดพลาด',
-            text: 'ไม่สามารถอัปเดตข้อมูลได้ กรุณาลองใหม่อีกครั้ง'
-          });
-        }
-      }
-    };
 
     return {
       customer,
