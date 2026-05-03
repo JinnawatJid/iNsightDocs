@@ -3,8 +3,8 @@
     <div class="content-header">
       <div class="header-title">
         <div class="header-content">
-          <h3>จัดการสาขาตามพื้นที่ (Region Management)</h3>
-          <p>กำหนดการจับคู่ระหว่างพื้นที่ (Region) และรหัสสาขา/โซน (Branches/Zones)</p>
+          <h3>จัดการสาขาตามพื้นที่</h3>
+          <p>กำหนดการจับคู่ระหว่างพื้นที่และรหัสสาขา</p>
         </div>
       </div>
       <div class="header-actions">
@@ -38,18 +38,18 @@
     <div v-else class="content-body">
       <div class="action-bar mb-3">
          <button class="btn btn-primary btn-sm" @click="addRegion">
-            + เพิ่มพื้นที่ใหม่ (Add Region)
+            + เพิ่มพื้นที่ใหม่
          </button>
       </div>
 
       <div v-for="(region, rIndex) in regionsData" :key="rIndex" class="region-card">
         <div class="region-header">
           <div class="region-title-input">
-            <label class="form-label mb-0 fw-bold">ชื่อพื้นที่ (Region Name):</label>
+            <label class="form-label mb-0 fw-bold">ชื่อพื้นที่:</label>
             <input
               v-model="region.region"
               class="form-control"
-              placeholder="เช่น กทม (Metro)"
+              placeholder="เช่น กทม"
               @input="markAsChanged"
             />
           </div>
@@ -59,13 +59,13 @@
         </div>
 
         <div class="zones-container">
-          <p class="section-subtitle">สาขาที่อยู่ภายใต้พื้นที่นี้ (Branches/Zones):</p>
+          <p class="section-subtitle">สาขาที่อยู่ภายใต้พื้นที่นี้:</p>
           <div class="table-responsive">
             <table class="table zones-table">
               <thead>
                 <tr>
-                  <th style="width: 30%">รหัสสาขา (Code)</th>
-                  <th style="width: 50%">ชื่อสาขา (Name)</th>
+                  <th style="width: 30%">รหัสสาขา</th>
+                  <th style="width: 50%">ชื่อสาขา</th>
                   <th style="width: 20%" class="text-center">จัดการ</th>
                 </tr>
               </thead>
