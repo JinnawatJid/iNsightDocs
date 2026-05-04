@@ -116,10 +116,11 @@ export default {
         const res = await axios.get('/api/config/RBAC_MATRIX_CONFIG');
         if (res.data && res.data.config_value) {
           const rbacMatrix = JSON.parse(res.data.config_value);
-          const manageBlacklistRoles = rbacMatrix.permissions
-            ?.filter(p => p.key === 'manage_blacklist')
-            ?.map(p => p.roles)
-            ?.flat() || [];
+          
+          // The roles are defined as keys in the matrix object, mapping to arrays of permission keys
+          const manageBlacklistRoles = Object.keys(rbacMatrix.matrix || {}).filter(role => 
+            (rbacMatrix.matrix[role] || []).includes('manage_blacklist')
+          );
 
           const myRoles = (authStore.userRoles || authStore.user?.roles || []).map(r => r.role);
           canManageBlacklist.value = myRoles.some(role => manageBlacklistRoles.includes(role));
