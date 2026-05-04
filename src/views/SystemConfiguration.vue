@@ -79,6 +79,9 @@
                       @input="markAsChanged"
                       class="form-control"
                     />
+                    <p v-if="item.data_type === 'number' && item.config_key === 'COMMITTEE_APPROVAL_THRESHOLD_THB'" class="formatted-helper">
+                      รูปแบบตัวเลข: {{ Number(String(editState[item.config_key] || '0').replace(/,/g, '')).toLocaleString('th-TH') }} บาท
+                    </p>
                     <div v-else-if="item.data_type === 'boolean'" class="toggle-switch">
                       <input
                         :id="item.config_key"
@@ -594,5 +597,12 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
+}
+
+.formatted-helper {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #495057;
+  text-align: center;
 }
 </style>
