@@ -76,9 +76,8 @@
                         v-if="item.config_key === 'COMMITTEE_APPROVAL_THRESHOLD_THB'"
                         :id="item.config_key"
                         type="text"
-                        :value="formatConfigNumber(editState[item.config_key])"
-                        @input="(e) => handleNumberInput(item.config_key, e.target.value)"
-                        class="form-control"
+                        v-model="formattedCommitteeThreshold"
+                        class="form-control number-input"
                       />
                       <input
                         v-else
@@ -296,21 +295,21 @@ onMounted(async () => {
   await fetchConfigs();
 });
 
-// Helpers for formatted numeric inputs
-const formatConfigNumber = (raw) => {
-  if (raw === null || raw === undefined || raw === '') return '';
-  const parsed = String(raw).replace(/,/g, '');
-  const n = Number(parsed);
-  if (!Number.isFinite(n)) return raw;
-  return n.toLocaleString('th-TH');
-};
-
-const handleNumberInput = (key, val) => {
-  // keep only digits
-  const onlyDigits = String(val).replace(/[^0-9]/g, '');
-  editState.value[key] = onlyDigits;
-  markAsChanged();
-};
+// Computed model for the committee threshold (formats with commas but stores raw digits)
+const formattedCommitteeThreshold = computed({
+  get: () => {
+    const raw = editState.value['COMMITTEE_APPROVAL_THRESHOLD_THB'];
+    if (raw === null || raw === undefined || raw === '') return '';
+    const parsed = Number(String(raw).replace(/,/g, ''));
+    if (!Number.isFinite(parsed)) return raw;
+    return parsed.toLocaleString('th-TH');
+  },
+  set: (val) => {
+    const onlyDigits = String(val).replace(/[^0-9]/g, '');
+    editState.value['COMMITTEE_APPROVAL_THRESHOLD_THB'] = onlyDigits;
+    markAsChanged();
+  }
+});
 </script>
 
 <style scoped>
@@ -500,6 +499,13 @@ const handleNumberInput = (key, val) => {
 }
 
 .form-control[type="number"] {
+  text-align: center;
+  font-family: monospace;
+  font-size: 15px;
+  letter-spacing: 1px;
+}
+
+.form-control.number-input {
   text-align: center;
   font-family: monospace;
   font-size: 15px;
