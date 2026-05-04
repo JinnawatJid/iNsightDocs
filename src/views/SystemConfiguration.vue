@@ -71,17 +71,24 @@
                   </div>
 
                   <div class="config-input">
-                    <input
-                      v-if="item.data_type === 'number'"
-                      :id="item.config_key"
-                      type="number"
-                      v-model="editState[item.config_key]"
-                      @input="markAsChanged"
-                      class="form-control"
-                    />
-                    <p v-if="item.data_type === 'number' && item.config_key === 'COMMITTEE_APPROVAL_THRESHOLD_THB'" class="formatted-helper">
-                      รูปแบบตัวเลข: {{ Number(String(editState[item.config_key] || '0').replace(/,/g, '')).toLocaleString('th-TH') }} บาท
-                    </p>
+                    <div v-if="item.data_type === 'number'">
+                      <input
+                        v-if="item.config_key === 'COMMITTEE_APPROVAL_THRESHOLD_THB'"
+                        :id="item.config_key"
+                        type="text"
+                        :value="formatConfigNumber(editState[item.config_key])"
+                        @input="(e) => handleNumberInput(item.config_key, e.target.value)"
+                        class="form-control"
+                      />
+                      <input
+                        v-else
+                        :id="item.config_key"
+                        type="number"
+                        v-model="editState[item.config_key]"
+                        @input="markAsChanged"
+                        class="form-control"
+                      />
+                    </div>
                     <div v-else-if="item.data_type === 'boolean'" class="toggle-switch">
                       <input
                         :id="item.config_key"
@@ -288,6 +295,22 @@ const handleSave = async () => {
 onMounted(async () => {
   await fetchConfigs();
 });
+
+// Helpers for formatted numeric inputs
+const formatConfigNumber = (raw) => {
+  if (raw === null || raw === undefined || raw === '') return '';
+  const parsed = String(raw).replace(/,/g, '');
+  const n = Number(parsed);
+  if (!Number.isFinite(n)) return raw;
+  return n.toLocaleString('th-TH');
+};
+
+const handleNumberInput = (key, val) => {
+  // keep only digits
+  const onlyDigits = String(val).replace(/[^0-9]/g, '');
+  editState.value[key] = onlyDigits;
+  markAsChanged();
+};
 </script>
 
 <style scoped>
