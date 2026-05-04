@@ -421,14 +421,25 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
         const historyRes = await db.query(historySql, [customerNo]);
         const rows = historyRes.rows || [];
 
-        history = rows.map(h => ({
-            id: h.id,
-            date: new Date(h.created_at).toLocaleDateString('th-TH'),
-            txId: h.tx_id,
-            requestAmount: h.request_amount,
-            status: h.status,
-            requestType: h.request_type || 'เครดิตใหม่'
-        }));
+        history = rows.map(h => {
+            let originalAmount = h.request_amount;
+            if (h.snapshot_data) {
+                try {
+                    const parsed = typeof h.snapshot_data === 'string' ? JSON.parse(h.snapshot_data) : h.snapshot_data;
+                    if (parsed && parsed.transaction_data && parsed.transaction_data.amount !== undefined) {
+                        originalAmount = parsed.transaction_data.amount;
+                    }
+                } catch(e) {}
+            }
+            return {
+                id: h.id,
+                date: new Date(h.created_at).toLocaleDateString('th-TH'),
+                txId: h.tx_id,
+                requestAmount: originalAmount,
+                status: h.status,
+                requestType: h.request_type || 'เครดิตใหม่'
+            };
+        });
     } catch (histErr) {
         logger.error(`Error fetching history for ${customerNo}:`, histErr);
     }

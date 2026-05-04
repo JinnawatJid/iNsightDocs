@@ -352,11 +352,12 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           });
         }
 
-        this.originalRequestedAmount = data.request_amount;
+        // Use the frozen snapshot data as the true original request values, falling back to db columns
+        this.originalRequestedAmount = parsedSnapshot.transaction_data?.amount || data.request_amount;
         this.originalRequestedTerms = {
-            termGS: data.term_gs,
-            termAE: data.term_ae,
-            termYC: data.term_yc
+            termGS: parsedSnapshot.transaction_data?.termGS || data.term_gs,
+            termAE: parsedSnapshot.transaction_data?.termAE || data.term_ae,
+            termYC: parsedSnapshot.transaction_data?.termYC || data.term_yc
         };
 
         this.transactionData = {
@@ -817,11 +818,11 @@ export const useCreditRequestStore = defineStore("creditRequest", {
             const parsedSnapshotTransactionData = parsedSnapshotData.transaction_data || {};
             const parsedSnapshotCustomerData = parsedSnapshotData.customer || {};
 
-            this.originalRequestedAmount = resData.request_amount || "";
+            this.originalRequestedAmount = parsedSnapshotTransactionData?.amount || resData.request_amount || "";
             this.originalRequestedTerms = {
-                termGS: resData.term_gs || "",
-                termAE: resData.term_ae || "",
-                termYC: resData.term_yc || ""
+                termGS: parsedSnapshotTransactionData?.termGS || resData.term_gs || "",
+                termAE: parsedSnapshotTransactionData?.termAE || resData.term_ae || "",
+                termYC: parsedSnapshotTransactionData?.termYC || resData.term_yc || ""
             };
 
             this.transactionData = {

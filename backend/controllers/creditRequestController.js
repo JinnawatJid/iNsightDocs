@@ -1210,6 +1210,7 @@ exports.getCreditRequests = async (req, res) => {
 
       return {
         ...row,
+        request_amount: txData.amount !== undefined ? txData.amount : row.request_amount,
         request_credit_term: row.request_credit_term !== null && row.request_credit_term !== undefined ? row.request_credit_term : txData.creditTerm,
         billing_terms_code: billingTermCode,
         // Override the terms with the temporary initial CR if found, otherwise fallback to transaction data

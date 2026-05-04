@@ -24,12 +24,20 @@
           </div>
           <div class="step-body" v-if="step.completed || step.rejected">
             <div v-if="step.comment" class="comment-text-wrapper">
-              <template v-for="(line, lIndex) in step.comment.split('\n')" :key="lIndex">
-                <div v-if="line.startsWith('ปรับวงเงินจาก') || line.startsWith('ปรับเครดิตเทอมจาก')" class="audit-trail-line">
-                  <i class="fas fa-history audit-icon"></i> {{ line }}
-                </div>
-                <div v-else class="comment-text-line">{{ line === '' ? '&nbsp;' : line }}</div>
+              <template v-for="(line, lIndex) in step.comment.split('\n').filter(l => !l.startsWith('ปรับวงเงินจาก') && !l.startsWith('ปรับเครดิตเทอมจาก'))" :key="'text-'+lIndex">
+                <div class="comment-text-line">{{ line === '' ? '&nbsp;' : line }}</div>
               </template>
+              <div class="audit-logs-container" v-if="step.comment.split('\n').some(l => l.startsWith('ปรับวงเงินจาก') || l.startsWith('ปรับเครดิตเทอมจาก'))">
+                <template v-for="(line, lIndex) in step.comment.split('\n').filter(l => l.startsWith('ปรับวงเงินจาก') || l.startsWith('ปรับเครดิตเทอมจาก'))" :key="'audit-'+lIndex">
+                  <div class="audit-trail-line">
+                    <div class="audit-icon-wrapper"><i class="fas fa-history audit-icon"></i></div>
+                    <div class="audit-content">
+                      <span class="audit-label">{{ line.split('จาก')[0] }}</span>
+                      <span class="audit-values">จาก <span class="audit-highlight">{{ line.split('จาก')[1].split('เป็น')[0].trim() }}</span> เป็น <span class="audit-highlight">{{ line.split('เป็น')[1].trim() }}</span></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
             </div>
             <div v-else class="comment-text empty-comment">- ไม่มีข้อความ -</div>
             <div class="step-action-badge" :class="step.actionType" v-if="step.actionLabel">
@@ -351,13 +359,30 @@ export default {
 .audit-trail-line {
   font-size: 13px;
   color: #64748b;
-  background-color: #f1f5f9;
-  padding: 4px 8px;
-  border-radius: 4px;
-  display: inline-flex;
+  background-color: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  width: fit-content;
+  gap: 8px;
+  margin-top: 4px;
+  border: 1px solid #e2e8f0;
+}
+.audit-content {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+.audit-label {
+  font-weight: 500;
+  color: #475569;
+}
+.audit-values {
+  color: #64748b;
+}
+.audit-highlight {
+  font-weight: 600;
+  color: #0f172a;
 }
 .audit-icon {
   font-size: 12px;
@@ -439,4 +464,12 @@ export default {
 
 /* Pending State is default styling */
 
+</style>
+
+<style scoped>
+.audit-logs-container {
+  margin-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 8px;
+}
 </style>
