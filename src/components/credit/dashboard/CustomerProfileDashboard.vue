@@ -108,6 +108,7 @@ export default {
     const authStore = useAuthStore();
 
     const configStore = useConfigStore();
+    const customer = computed(() => store.customer || {});
 
     onMounted(async () => {
       if (!configStore.configurations || Object.keys(configStore.configurations).length === 0) {
