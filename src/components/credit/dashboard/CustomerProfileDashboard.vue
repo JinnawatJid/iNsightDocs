@@ -95,7 +95,6 @@
 <script>
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
-import { useConfigStore } from '@/stores/config';
 import { computed, ref, onMounted } from 'vue';
 import axios from '@/utils/axios';
 import Swal from 'sweetalert2';
@@ -107,29 +106,23 @@ export default {
     const store = useCreditRequestStore();
     const authStore = useAuthStore();
 
-    const configStore = useConfigStore();
+    const allowedBlacklistRoles = ref([]);
     const customer = computed(() => store.customer || {});
 
     onMounted(async () => {
-      if (!configStore.configurations || Object.keys(configStore.configurations).length === 0) {
-        await configStore.fetchConfigurations();
-      }
-    });
-
-    const allowedBlacklistRoles = computed(() => {
-      const userRolesConfigs = configStore.configurations['UserRoles'] || [];
-      const rbacConfig = userRolesConfigs.find(c => c.config_key === 'RBAC_MATRIX_CONFIG');
-      if (rbacConfig && rbacConfig.config_value) {
-        try {
-          const rbacMatrix = JSON.parse(rbacConfig.config_value);
-          return Object.keys(rbacMatrix.matrix || {}).filter(role => 
+      try {
+        const res = await axios.get('/api/config/rbac');
+        if (res.data && res.data.data) {
+          // The backend returns the parsed JSON directly in res.data.data
+          const rbacMatrix = res.data.data;
+          allowedBlacklistRoles.value = Object.keys(rbacMatrix.matrix || {}).filter(role => 
             (rbacMatrix.matrix[role] || []).includes('manage_blacklist')
           );
-        } catch (e) {
-          console.error('Failed to parse RBAC matrix', e);
+          console.log('[DEBUG NPL] onMounted fetched roles that can manage blacklist:', allowedBlacklistRoles.value);
         }
+      } catch (err) {
+        console.error('Failed to load RBAC matrix for blacklist permission:', err);
       }
-      return [];
     });
 
     const canManageBlacklist = computed(() => {

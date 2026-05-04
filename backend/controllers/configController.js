@@ -21,7 +21,7 @@ exports.getFeatures = (req, res) => {
 exports.getWorkflowConfig = async (req, res) => {
     try {
         const result = await db.query("SELECT config_value FROM Configurations WHERE config_key = 'WORKFLOW_CONFIG'");
-        const rows = result.rows || [];
+        const rows = result.rows || result.recordset || [];
 
         if (!rows.length) {
             return res.status(404).json({ success: false, message: 'WORKFLOW_CONFIG not found' });
@@ -35,6 +35,30 @@ exports.getWorkflowConfig = async (req, res) => {
         res.json({ success: true, data: configValue });
     } catch (error) {
         logger.error('Error fetching workflow config:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+
+// GET /api/config/rbac
+// Returns only the RBAC_MATRIX_CONFIG — accessible by all authenticated users
+// (needed so the UI can conditionally render features based on matrix permissions)
+exports.getRbacConfig = async (req, res) => {
+    try {
+        const result = await db.query("SELECT config_value FROM Configurations WHERE config_key = 'RBAC_MATRIX_CONFIG'");
+        const rows = result.rows || result.recordset || [];
+
+        if (!rows.length) {
+            return res.status(404).json({ success: false, message: 'RBAC_MATRIX_CONFIG not found' });
+        }
+
+        let configValue = rows[0].config_value;
+        if (typeof configValue === 'string') {
+            try { configValue = JSON.parse(configValue); } catch (e) { /* already object */ }
+        }
+
+        res.json({ success: true, data: configValue });
+    } catch (error) {
+        logger.error('Error fetching RBAC config:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
