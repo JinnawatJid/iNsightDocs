@@ -8,6 +8,7 @@ const { calculateSlope, calculateTrendRatio, generateContinuousTimeline, findYea
 const ScoringEngine = require('../services/scoring/ScoringEngine');
 const { extractDBDData } = require('../utils/pdfExtractor');
 const pdf = require('pdf-parse');
+const { getCustomerBaseDir } = require('../utils/storagePaths');
 
 // Configuration
 const FINANCIAL_API_URL = "http://192.192.0.37:8280/sales-summary-6-months/1.0.0";
@@ -568,13 +569,7 @@ if (custom_weights) {
 
     if (req.body.use_local === 'true' && customer_no) {
         try {
-             let projectRoot = path.resolve(__dirname, '../../../../');
-             // Fallback for dev/sandbox environment (2 levels up)
-             if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
-                 projectRoot = path.resolve(__dirname, '../../');
-             }
-
-             const customerRoot = path.join(projectRoot, 'customers', customer_no);
+             const customerRoot = path.join(getCustomerBaseDir(), customer_no);
         logger.info(`[DEBUG] Checking local files for ${customer_no} at path: ${customerRoot}`);
 
              // Find latest folder logic again (safety)
@@ -648,16 +643,7 @@ if (custom_weights) {
             const dd = String(now.getDate()).padStart(2, '0');
             const dateFolder = `${yyyy}${mm}${dd}`;
 
-            // Determine Root Path (SP682/customers)
-            // Current: .../SP682_v_x/release/backend/controllers
-            // Target:  .../customers
-            let projectRoot = path.resolve(__dirname, '../../../../');
-            // Fallback for dev/sandbox environment (2 levels up)
-            if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
-                projectRoot = path.resolve(__dirname, '../../');
-            }
-
-            const customerDir = path.join(projectRoot, 'customers', customer_no, dateFolder);
+            const customerDir = path.join(getCustomerBaseDir(), customer_no, dateFolder);
 
             await fs.ensureDir(customerDir);
             logger.info(`[Financial Persistent] Saving files to: ${customerDir}`);
@@ -1037,12 +1023,7 @@ const checkSingleCustomerFiles = async (customer_no) => {
 
         logger.info(`[DEBUG-CHECK] Starting check for ${customer_no}`);
 
-        let projectRoot = path.resolve(__dirname, '../../../../');
-        if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
-            projectRoot = path.resolve(__dirname, '../../');
-        }
-
-        const customerRoot = path.join(projectRoot, 'customers', customer_no);
+        const customerRoot = path.join(getCustomerBaseDir(), customer_no);
         logger.info(`[DEBUG-CHECK] Resolved customerRoot: ${customerRoot}`);
 
         if (!await fs.pathExists(customerRoot)) {
@@ -1304,12 +1285,7 @@ exports.downloadLocalFile = async (req, res) => {
         if (!filename) return res.status(400).send('Invalid file key');
 
         // Locate Folder
-        let projectRoot = path.resolve(__dirname, '../../../../');
-        if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
-            projectRoot = path.resolve(__dirname, '../../');
-        }
-
-        const customerRoot = path.join(projectRoot, 'customers', customer_no);
+        const customerRoot = path.join(getCustomerBaseDir(), customer_no);
         if (!await fs.pathExists(customerRoot)) return res.status(404).send('Customer folder not found');
 
         const subdirs = await fs.readdir(customerRoot);
@@ -1446,12 +1422,7 @@ exports.uploadLocalFiles = async (req, res) => {
         const dd = String(now.getDate()).padStart(2, '0');
         const dateFolder = `${yyyy}${mm}${dd}`;
 
-        let projectRoot = path.resolve(__dirname, '../../../../');
-        if (!await fs.pathExists(path.join(projectRoot, 'customers'))) {
-            projectRoot = path.resolve(__dirname, '../../');
-        }
-
-        const customerDir = path.join(projectRoot, 'customers', customer_no, dateFolder);
+        const customerDir = path.join(getCustomerBaseDir(), customer_no, dateFolder);
         await fs.ensureDir(customerDir);
         logger.info(`[Financial Upload] Saving files to: ${customerDir}`);
 

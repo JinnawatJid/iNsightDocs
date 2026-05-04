@@ -5,6 +5,7 @@ const path = require('path');
 const db = require('../db');
 const dbdParser = require('../utils/dbdExcelParser');
 const { extractDBDData } = require('../utils/pdfExtractor');
+const { getCustomerBaseDir } = require('../utils/storagePaths');
 
 // Define fonts
 const fonts = {
@@ -361,15 +362,10 @@ const generateCreditRequestPDF = async (req, res) => {
 
     try {
         // Find the correct base customer directory
-        const baseProfileDir = path.resolve(__dirname, `../../../../customers/${customerNoClean}`);
-        const fallbackBaseDir = path.resolve(__dirname, `../../customers/${customerNoClean}`);
-
-        let activeBaseDir = null;
-        if (fs.existsSync(baseProfileDir)) activeBaseDir = baseProfileDir;
-        else if (fs.existsSync(fallbackBaseDir)) activeBaseDir = fallbackBaseDir;
+        const activeBaseDir = path.join(getCustomerBaseDir(), customerNoClean);
 
         let targetPath = null;
-        if (activeBaseDir) {
+        if (fs.existsSync(activeBaseDir)) {
             // Read date folders, e.g., 20260310
             const items = fs.readdirSync(activeBaseDir);
             const dateFolders = items.filter(i => fs.statSync(path.join(activeBaseDir, i)).isDirectory() && /^\d+$/.test(i));

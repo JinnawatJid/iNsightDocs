@@ -6,6 +6,7 @@ const path = require('path');
 const os = require('os');
 const pdf = require('pdf-parse');
 const db = require('../db');
+const { getCustomerBaseDir } = require('../utils/storagePaths');
 
 // Helper to send SSE messages
 const sendSSE = (res, data) => {
@@ -665,8 +666,7 @@ exports.streamDBDProfile = async (req, res) => {
                 // Determine Root Path (SP682/customers)
                 // Current: .../SP682_v_x/release/backend/controllers
                 // Target:  .../customers
-                const projectRoot = path.resolve(__dirname, '../../../../');
-                const customerDir = path.join(projectRoot, 'customers', customerCode, dateFolder);
+                const customerDir = path.join(getCustomerBaseDir(), customerCode, dateFolder);
 
                 await fs.ensureDir(customerDir);
                 logger.info(`[DBD Persistent] Saving files to: ${customerDir}`);

@@ -2,6 +2,7 @@ const logger = require('./logger.js');
 const path = require('path');
 const xlsx = require('xlsx');
 const fs = require('fs');
+const { getCustomerBaseDir } = require('./storagePaths');
 
 /**
  * Parses a single DBD Excel file and extracts the rows/columns.
@@ -158,13 +159,7 @@ function parseExcelFile(filePath) {
 function getCustomerFinancialData(customerNo) {
     const sanitizedCustomerNo = require('path').basename(customerNo);
 
-    // Replicate same path logic as financialController.js to support production structure
-    let projectRoot = path.resolve(__dirname, '../../../../');
-    if (!fs.existsSync(path.join(projectRoot, 'customers'))) {
-        projectRoot = path.resolve(__dirname, '../../');
-    }
-
-    const customerDir = path.join(projectRoot, 'customers', sanitizedCustomerNo);
+    const customerDir = path.join(getCustomerBaseDir(), sanitizedCustomerNo);
     logger.info(`[DEBUG-PARSER] Reading customer directory for parsing: ${customerDir}`);
 
     if (!fs.existsSync(customerDir)) {

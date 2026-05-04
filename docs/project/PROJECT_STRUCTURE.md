@@ -46,7 +46,7 @@ SP682/
 ```
 
 ## Key Rules
-1.  **Persistence:** All user-uploaded documents (`customers/`) and system logs (`logs/`) must survive when `SP682_x_x_x` version folders are deleted. The backend must map uploads dynamically to `../../customers` and logs to `../../logs` (via `.env`) to ensure state is decoupled from the current release folder.
+1.  **Persistence:** All user-uploaded documents (`customers/`) and system logs (`logs/`) must survive when `SP682_x_x_x` version folders are deleted. The backend must map uploads dynamically to `UPLOAD_PATH=../../uploads`, customer DBD storage to `CUSTOMERS_PATH=../../customers`, and logs to `../../logs` (via `.env`) to ensure state is decoupled from the current release folder.
 2.  **Identifier:** Always use **Customer Code** for the root folder name. Do not fallback to Tax ID or Name.
 3.  **Transaction Structure:** For user uploads, any slashes (`/`) in the Transaction ID (e.g., `AYCA2603/06`) must be converted to underscores (`_`) before creating the folder (`AYCA2603_06`) to ensure OS compatibility.
 4.  **Date Format (DBD):** `YYYYMMDD` (Compact format).

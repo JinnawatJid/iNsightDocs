@@ -266,7 +266,8 @@ const downloadFile = async (url, destPath) => {
       'DB_SERVER=localhost',
       'DB_PORT=1433',
       'DB_NAME=CreditRequestDB',
-      'UPLOAD_PATH=../../customers',
+      'UPLOAD_PATH=../../uploads',
+      'CUSTOMERS_PATH=../../customers',
       'LOG_DIR=../../logs',
       '# Number of days before downloaded DBD financial files are considered expired',
       'DBD_FILE_FRESHNESS_DAYS=180'

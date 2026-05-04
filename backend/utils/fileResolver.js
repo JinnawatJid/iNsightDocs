@@ -1,6 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const logger = require('./logger');
+const { getUploadBaseDir, getCustomerBaseDir } = require('./storagePaths');
 
 /**
  * Robustly resolves a file path given a normalized DB path.
@@ -11,11 +12,13 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot) {
     logger.debug(`[FileResolver] Attempting to resolve path: ${normalizedDbPath}`);
 
     // Candidate base directories to search within
-    const baseDirs = [
+    const baseDirs = Array.from(new Set([
         uploadBase,
+        getUploadBaseDir(),
+        getCustomerBaseDir(),
         path.join(projectRoot, 'uploads'),
         path.join(projectRoot, 'customers')
-    ];
+    ].filter(Boolean)));
 
     // 1. Try exact match first
     if (path.isAbsolute(normalizedDbPath) && await fs.pathExists(normalizedDbPath)) {
