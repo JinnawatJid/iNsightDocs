@@ -659,14 +659,14 @@ const initDB = async () => {
                 'ผู้ดูแลระบบ'
             ],
             permissions: [
-                { key: 'create_request', label: 'สร้างคำขอสินเชื่อ' },
-                { key: 'approve_credit_low', label: 'อนุมัติวงเงินต่ำกว่าเกณฑ์' },
-                { key: 'approve_credit_high', label: 'อนุมัติวงเงินสูงกว่าเกณฑ์' },
-                { key: 'manage_blacklist', label: 'จัดการรายการ NPL (Blacklist)' },
                 { key: 'page:create-credit', label: 'เข้าถึงหน้า: สร้างคำขอ / ค้นหาลูกค้า' },
                 { key: 'page:pending-requests', label: 'เข้าถึงหน้า: คำขอทั้งหมด' },
                 { key: 'page:batch-automation', label: 'เข้าถึงหน้า: ระบบอัตโนมัติ' },
-                { key: 'page:system-configuration', label: 'เข้าถึงหน้า: ตั้งค่าระบบ' }
+                { key: 'page:system-configuration', label: 'เข้าถึงหน้า: ตั้งค่าระบบ' },
+                { key: 'create_request', label: 'สร้างคำขอสินเชื่อ' },
+                { key: 'approve_credit_low', label: 'อนุมัติวงเงินต่ำกว่าเกณฑ์' },
+                { key: 'approve_credit_high', label: 'อนุมัติวงเงินสูงกว่าเกณฑ์' },
+                { key: 'manage_blacklist', label: 'จัดการรายการ NPL (Blacklist)' }
             ],
             matrix: {
                 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)': ['create_request', 'page:create-credit', 'page:pending-requests'],
@@ -782,12 +782,12 @@ const initialRegionBranchConfig = [
                 updateReq.input('l', sql.NVarChar, config.label);
                 await updateReq.query(updateLabelSQL);
 
-                // Force update RBAC matrix if it is missing the new roles
+                // Force update RBAC matrix if it is missing the new roles or page permissions
                 if (config.key === 'RBAC_MATRIX_CONFIG') {
                     try {
                         const currentVal = JSON.parse(checkConfigRes.recordset[0].config_value);
 
-                        if (!currentVal.permissions || !currentVal.permissions.find(p => p.key === 'manage_blacklist') || !currentVal.roles || !currentVal.roles.includes('ผู้พิจารณาของพื้นที่')) {
+                        if (!currentVal.permissions || !currentVal.permissions.find(p => p.key === 'manage_blacklist') || !currentVal.permissions.find(p => p.key === 'page:create-credit') || currentVal.permissions[0]?.key !== 'page:create-credit' || !currentVal.roles || !currentVal.roles.includes('ผู้พิจารณาของพื้นที่')) {
                             const updateMatrixSQL = `
                                 UPDATE Configurations
                                 SET config_value = @v
@@ -797,7 +797,7 @@ const initialRegionBranchConfig = [
                             updateMatrixReq.input('k', sql.NVarChar, config.key);
                             updateMatrixReq.input('v', sql.NVarChar, config.value);
                             await updateMatrixReq.query(updateMatrixSQL);
-                            logger.info('Updated RBAC_MATRIX_CONFIG with new roles structure.');
+                            logger.info('Updated RBAC_MATRIX_CONFIG with new roles structure and page permissions.');
                         }
                     } catch(e) {
                         logger.error('Error migrating RBAC matrix config:', e);

@@ -68,5 +68,5 @@ The system automatically seeds the following baseline configurations upon databa
 
 ### 3.4 Access Control (RBAC Implementation)
 - **Backend Protection:** A dedicated `checkIsAdmin` middleware (`backend/middleware/checkIsAdmin.js`) parses the JWT/Mock role and guarantees that `GET` and `PUT` endpoints (`/api/config`) are restricted to users with the `"ผู้ดูแลระบบ"` role.
-- **Frontend Router Guard:** A global `beforeEach` navigation guard in `src/router/index.js` intercepts access to the `/configuration` route and redirects non-admins.
-- **UI Visibility:** The `Navbar.vue` conditionally renders the navigation link based on the `authStore.isAdmin` computed property.
+- **Frontend Router Guard:** A global `beforeEach` navigation guard in `src/router/index.js` evaluates the `meta.requiredPermission` tag (e.g., `page:system-configuration`) against the dynamic matrix in the `rbacStore`, blocking unauthorized access to the `/configuration` route.
+- **UI Visibility:** The `Navbar.vue` conditionally renders the navigation link based on the dynamic `rbacStore.hasPermission('page:system-configuration')` check (with an admin fallback).
