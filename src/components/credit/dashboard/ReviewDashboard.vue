@@ -268,9 +268,9 @@ const isTermsEqual = (data, erpTermsCode) => {
 
 const hasTermsChanged = computed(() => {
     if (!store.originalTransactionData) return false;
-    return store.transactionData.termGS != store.originalTransactionData.termGS ||
-           store.transactionData.termAE != store.originalTransactionData.termAE ||
-           store.transactionData.termYC != store.originalTransactionData.termYC;
+    return requestedTermsData.value.termGS != store.originalTransactionData.termGS ||
+           requestedTermsData.value.termAE != store.originalTransactionData.termAE ||
+           requestedTermsData.value.termYC != store.originalTransactionData.termYC;
 });
 
 // Document Logic (Reused from DocumentChecklist)

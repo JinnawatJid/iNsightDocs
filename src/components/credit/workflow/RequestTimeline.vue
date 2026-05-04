@@ -28,7 +28,7 @@
                 <div v-if="line.startsWith('ปรับวงเงินจาก') || line.startsWith('ปรับเครดิตเทอมจาก')" class="audit-trail-line">
                   <i class="fas fa-history audit-icon"></i> {{ line }}
                 </div>
-                <div v-else class="comment-text-line">{{ line }}</div>
+                <div v-else class="comment-text-line">{{ line === '' ? '&nbsp;' : line }}</div>
               </template>
             </div>
             <div v-else class="comment-text empty-comment">- ไม่มีข้อความ -</div>
