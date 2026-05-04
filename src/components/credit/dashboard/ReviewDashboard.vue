@@ -236,6 +236,15 @@ const totalCreditAmount = computed(() => {
 
 const requestedAmount = computed(() => {
     if (store.requestStatus !== 'Draft' && store.originalRequestedAmount !== null) {
+        // Try to find the original amount from the first limit change comment
+        const comments = store.comments || [];
+        const firstLimitChange = comments.find(c => c.comment_text && c.comment_text.includes('ปรับวงเงินจาก'));
+        if (firstLimitChange) {
+            const match = firstLimitChange.comment_text.match(/ปรับวงเงินจาก\s+([\d,]+)\s+เป็น/);
+            if (match && match[1]) {
+                return match[1].replace(/,/g, '');
+            }
+        }
         return store.originalRequestedAmount;
     }
     return store.transactionData.amount;
@@ -243,6 +252,19 @@ const requestedAmount = computed(() => {
 
 const requestedTermsData = computed(() => {
     if (store.requestStatus !== 'Draft' && store.originalRequestedTerms !== null) {
+        // Try to find the original terms from the first term change comment
+        const comments = store.comments || [];
+        const firstTermChange = comments.find(c => c.comment_text && c.comment_text.includes('ปรับเครดิตเทอมจาก'));
+        if (firstTermChange) {
+            const match = firstTermChange.comment_text.match(/ปรับเครดิตเทอมจาก\s+([\d]+)\/([\d]+)\/([\d]+)\s+เป็น/);
+            if (match && match.length === 4) {
+                return {
+                    termGS: match[1],
+                    termAE: match[2],
+                    termYC: match[3]
+                };
+            }
+        }
         return store.originalRequestedTerms;
     }
     return store.transactionData;

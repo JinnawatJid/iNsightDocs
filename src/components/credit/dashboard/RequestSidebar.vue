@@ -139,9 +139,9 @@ const fetchData = () => {
     // --- Dynamic: Derive visible statuses from WORKFLOW_CONFIG ---
     if (workflowStates.value) {
       if (authStore.isInitiator) {
-        // Initiators track all non-final states for requests they submitted
+        // Initiators track all non-final states for requests they submitted, excluding Drafts
         allowedStatuses = Object.entries(workflowStates.value)
-          .filter(([, s]) => s.type !== 'final')
+          .filter(([key, s]) => s.type !== 'final' && key !== 'Draft')
           .map(([key]) => key);
         // Also include legacy transient statuses not in WORKFLOW_CONFIG
         allowedStatuses.push('PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');

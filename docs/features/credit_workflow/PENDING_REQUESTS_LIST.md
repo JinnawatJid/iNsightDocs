@@ -26,3 +26,9 @@ Because the sidebar is a compact UI element, strict layout rules are enforced to
 
 ## API Endpoint Considerations
 The `/api/credit-requests` endpoint is highly optimized for list views. It explicitly selects only the necessary columns in its SQL query. To prevent massive data payloads over the network, after parsing the `snapshot_data` to extract the baseline terms, the `snapshot_data` property is explicitly set to `undefined` before sending the JSON response.
+
+## Status Filtering and Visibility
+The sidebar dynamically determines which requests a user can see based on their roles and the `WORKFLOW_CONFIG` matrix:
+1. **Initiator (Tracking)**: By default, Initiators see all non-final states for requests they submitted to track progress. However, **`Draft` requests are explicitly excluded** from the pending tracking list to prevent clutter. 
+2. **Reviewers/Approvers**: Users with actionable roles will only see requests that currently reside in a state requiring their attention (as defined by `actionableByRoles` in the workflow config).
+3. **Final States**: Final states (`Approved`, `Rejected`, `Closed`, `Canceled`) are strictly separated and only available within the "History" (ประวัติ) tab.
