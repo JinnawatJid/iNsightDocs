@@ -484,7 +484,6 @@ const formattedCommitteeThreshold = computed({
 .config-input {
   flex: 0 0 240px;
   display: flex;
-  justify-content: flex-end;
   align-items: center;
 }
 
