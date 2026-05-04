@@ -91,7 +91,7 @@ The `WORKFLOW_CONFIG` and `RBAC_MATRIX_CONFIG` are now actively driving the fron
 *   **Dynamic Page Navigation & Routing:** The frontend router (`src/router/index.js`) and navigation bar (`Navbar.vue`) now read page-level permissions (e.g., `page:create-credit`, `page:system-configuration`) from the centralized `rbacStore` to dynamically restrict route access and toggle menu visibility based on the configured matrix.
 *   **Dynamic Sidebar Visibility:** `RequestSidebar.vue` now uses the configured `actionableByRoles` from the state machine to determine which requests a user can see based on their roles.
 *   **Dynamic Action Bar:** `WorkflowActionBar.vue` reads `allowedTransitions` from the configuration to render context-aware action buttons (e.g., Approve, Reject, Send to Committee) automatically.
-*(Note: A few specific business rules, like the >300k approval threshold, remain hardcoded as safeguards).*
+*   **Configurable Approval Threshold:** The committee-routing cutover now uses `COMMITTEE_APPROVAL_THRESHOLD_THB` from System Configuration (default `300000`) instead of a hardcoded 300k check.
 
 ### 6.2 Phase 2 (Pending): Backend Middleware & RBAC
 The system still needs to hook these JSON configurations into the backend middleware to fully enforce these dynamic permissions securely at the API level.
