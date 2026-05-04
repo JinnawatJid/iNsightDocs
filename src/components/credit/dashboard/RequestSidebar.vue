@@ -260,8 +260,8 @@ const getStatusLabel = (status) => {
         'Opened': 'ผู้จัดการสาขา',
         'RegionalSubmitted': 'ผู้จัดการภาค',
         'SalesSubmitted': 'เจ้าหน้าที่ฝ่ายการเงิน',
-        'FinanceReviewed': 'ผู้จัดการฝ่ายการเงิน',
-        'Reviewed': 'กรรมการเครดิต',
+        'FinanceReviewed': 'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)',
+        'Reviewed': 'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)',
         'PendingSales (ชั่วคราว)': 'ผู้จัดการฝ่ายขาย',
         'PendingFinance (ชั่วคราว)': 'เจ้าหน้าที่ฝ่ายการเงิน',
     };

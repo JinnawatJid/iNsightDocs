@@ -71,14 +71,23 @@
                   </div>
 
                   <div class="config-input">
-                    <input
-                      v-if="item.data_type === 'number'"
-                      :id="item.config_key"
-                      type="number"
-                      v-model="editState[item.config_key]"
-                      @input="markAsChanged"
-                      class="form-control"
-                    />
+                    <div v-if="item.data_type === 'number'">
+                      <input
+                        v-if="item.config_key === 'COMMITTEE_APPROVAL_THRESHOLD_THB'"
+                        :id="item.config_key"
+                        type="text"
+                        v-model="formattedCommitteeThreshold"
+                        class="form-control number-input"
+                      />
+                      <input
+                        v-else
+                        :id="item.config_key"
+                        type="number"
+                        v-model="editState[item.config_key]"
+                        @input="markAsChanged"
+                        class="form-control"
+                      />
+                    </div>
                     <div v-else-if="item.data_type === 'boolean'" class="toggle-switch">
                       <input
                         :id="item.config_key"
@@ -285,6 +294,22 @@ const handleSave = async () => {
 onMounted(async () => {
   await fetchConfigs();
 });
+
+// Computed model for the committee threshold (formats with commas but stores raw digits)
+const formattedCommitteeThreshold = computed({
+  get: () => {
+    const raw = editState.value['COMMITTEE_APPROVAL_THRESHOLD_THB'];
+    if (raw === null || raw === undefined || raw === '') return '';
+    const parsed = Number(String(raw).replace(/,/g, ''));
+    if (!Number.isFinite(parsed)) return raw;
+    return parsed.toLocaleString('th-TH');
+  },
+  set: (val) => {
+    const onlyDigits = String(val).replace(/[^0-9]/g, '');
+    editState.value['COMMITTEE_APPROVAL_THRESHOLD_THB'] = onlyDigits;
+    markAsChanged();
+  }
+});
 </script>
 
 <style scoped>
@@ -459,7 +484,6 @@ onMounted(async () => {
 .config-input {
   flex: 0 0 240px;
   display: flex;
-  justify-content: flex-end;
   align-items: center;
 }
 
@@ -474,6 +498,13 @@ onMounted(async () => {
 }
 
 .form-control[type="number"] {
+  text-align: center;
+  font-family: monospace;
+  font-size: 15px;
+  letter-spacing: 1px;
+}
+
+.form-control.number-input {
   text-align: center;
   font-family: monospace;
   font-size: 15px;
@@ -594,5 +625,12 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
+}
+
+.formatted-helper {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #495057;
+  text-align: center;
 }
 </style>

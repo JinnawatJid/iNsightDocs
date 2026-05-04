@@ -2,6 +2,13 @@ import { defineStore } from 'pinia';
 import axiosInstance from '../utils/axios';
 import { useAuthStore } from './auth';
 
+const APPROVAL_ROLE_ALIASES = {
+  'ผู้อนุมัติ (วงเงิน <300K)': 'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)',
+  'ผู้อนุมัติ (วงเงิน > 300K)': 'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)'
+};
+
+const normalizeRoleName = (roleName) => APPROVAL_ROLE_ALIASES[roleName] || roleName;
+
 export const useRbacStore = defineStore('rbac', {
   state: () => ({
     matrixConfig: null,
@@ -20,7 +27,7 @@ export const useRbacStore = defineStore('rbac', {
 
         // Check if any of the user's roles has the requested permission
         return authStore.user.roles.some((userRoleObj) => {
-          const roleName = userRoleObj.role;
+          const roleName = normalizeRoleName(userRoleObj.role);
           const rolePermissions = state.matrixConfig.matrix[roleName] || [];
           return rolePermissions.includes(permissionKey);
         });

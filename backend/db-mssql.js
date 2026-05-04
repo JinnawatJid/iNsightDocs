@@ -20,6 +20,50 @@ const config = {
 
 let pool;
 
+const LEGACY_APPROVAL_ROLE_MAP = {
+    'ผู้อนุมัติ (วงเงิน <300K)': 'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)',
+    'ผู้อนุมัติ (วงเงิน > 300K)': 'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)'
+};
+
+const normalizeApprovalRole = (role) => LEGACY_APPROVAL_ROLE_MAP[role] || role;
+
+const migrateApprovalRoles = (configValue) => {
+    if (!configValue) return configValue;
+
+    const clone = JSON.parse(JSON.stringify(configValue));
+
+    if (Array.isArray(clone.roles)) {
+        clone.roles = clone.roles.map(normalizeApprovalRole);
+    }
+
+    if (clone.matrix && typeof clone.matrix === 'object') {
+        const migratedMatrix = {};
+        Object.entries(clone.matrix).forEach(([role, permissions]) => {
+            const normalizedRole = normalizeApprovalRole(role);
+            if (!migratedMatrix[normalizedRole]) {
+                migratedMatrix[normalizedRole] = [];
+            }
+            migratedMatrix[normalizedRole] = Array.from(new Set([...(migratedMatrix[normalizedRole] || []), ...(permissions || [])]));
+        });
+        clone.matrix = migratedMatrix;
+    }
+
+    return clone;
+};
+
+const migrateWorkflowApprovalRoles = (configValue) => {
+    if (!configValue || !configValue.states) return configValue;
+
+    const clone = JSON.parse(JSON.stringify(configValue));
+    Object.values(clone.states).forEach((state) => {
+        if (Array.isArray(state.actionableByRoles)) {
+            state.actionableByRoles = state.actionableByRoles.map(normalizeApprovalRole);
+        }
+    });
+
+    return clone;
+};
+
 const connectDB = async () => {
     try {
         pool = await sql.connect(config);
@@ -618,13 +662,13 @@ const initDB = async () => {
                 FinanceReviewed: {
                     label: "ผ่านการตรวจสอบเอกสาร",
                     type: "active",
-                    actionableByRoles: ["ผู้อนุมัติ (วงเงิน <300K)"],
+                    actionableByRoles: ["ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)"],
                     allowedTransitions: ["Approved", "Reviewed", "Rejected"]
                 },
                 Reviewed: {
                     label: "รอคณะกรรมการพิจารณา",
                     type: "active",
-                    actionableByRoles: ["ผู้อนุมัติ (วงเงิน > 300K)"],
+                    actionableByRoles: ["ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)"],
                     allowedTransitions: ["Approved", "Rejected"]
                 },
                 Approved: {
@@ -654,8 +698,8 @@ const initDB = async () => {
                 'ผู้พิจารณาของพื้นที่',
                 'ผู้พิจารณาฝ่ายขาย',
                 'ผู้ตรวจสอบเอกสาร',
-                'ผู้อนุมัติ (วงเงิน <300K)',
-                'ผู้อนุมัติ (วงเงิน > 300K)',
+                'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)',
+                'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)',
                 'ผู้ดูแลระบบ'
             ],
             permissions: [
@@ -673,8 +717,8 @@ const initDB = async () => {
                 'ผู้พิจารณาของพื้นที่': ['page:create-credit', 'page:pending-requests'],
                 'ผู้พิจารณาฝ่ายขาย': ['page:create-credit', 'page:pending-requests'],
                 'ผู้ตรวจสอบเอกสาร': ['page:create-credit', 'page:pending-requests', 'page:batch-automation'],
-                'ผู้อนุมัติ (วงเงิน <300K)': ['approve_credit_low', 'page:create-credit', 'page:pending-requests'],
-                'ผู้อนุมัติ (วงเงิน > 300K)': ['approve_credit_high', 'page:create-credit', 'page:pending-requests'],
+                'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)': ['approve_credit_low', 'page:create-credit', 'page:pending-requests'],
+                'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)': ['approve_credit_high', 'page:create-credit', 'page:pending-requests'],
                 'ผู้ดูแลระบบ': ['manage_blacklist', 'page:create-credit', 'page:pending-requests', 'page:system-configuration']
             }
         };
@@ -743,7 +787,7 @@ const initialRegionBranchConfig = [
             { key: 'SYSTEM_MAINTENANCE_MODE', value: 'false', type: 'boolean', category: 'System', desc: 'เปิดโหมดปิดปรับปรุงระบบ', label: 'โหมดปิดปรับปรุงระบบ' },
             { key: 'DEFAULT_PAGE_SIZE', value: '20', type: 'number', category: 'System', desc: 'จำนวนรายการเริ่มต้นที่แสดงต่อหน้า', label: 'จำนวนรายการต่อหน้า (ค่าเริ่มต้น)' },
             { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation', label: 'เปิดใช้งานระบบประมวลผลอัตโนมัติ (Batch)' },
-            { key: 'COMMITTEE_APPROVAL_THRESHOLD_THB', value: '300000', type: 'number', category: 'Workflow', desc: 'วงเงินที่ต้องได้รับการอนุมัติจากคณะกรรมการ (บาท)', label: 'วงเงินพิจารณาโดยคณะกรรมการ (บาท)' },
+            { key: 'COMMITTEE_APPROVAL_THRESHOLD_THB', value: '300000', type: 'number', category: 'System', desc: 'วงเงินที่ใช้แยกการอนุมัติระหว่างผู้อนุมัติระดับต้นและระดับสูง (บาท)', label: 'วงเงินพิจารณาโดยผู้อนุมัติระดับสูง (บาท)' },
             { key: 'RBAC_MATRIX_CONFIG', value: JSON.stringify(initialRbacMatrix), type: 'json', category: 'UserRoles', desc: 'การตั้งค่า Matrix การจัดการสิทธิ์', label: 'Role & Permission Matrix' },
                         { key: 'REGION_BRANCH_CONFIG', value: JSON.stringify(initialRegionBranchConfig), type: 'json', category: 'System', desc: 'การตั้งค่าสาขาตามพื้นที่', label: 'Region and Branch Configuration' },
             { key: 'WORKFLOW_CONFIG', value: JSON.stringify(initialWorkflowConfig), type: 'json', category: 'WorkflowMgmt', desc: 'การตั้งค่าสถานะ Workflow และการอนุมัติ', label: 'Workflow State Machine Configuration' }
@@ -782,12 +826,27 @@ const initialRegionBranchConfig = [
                 updateReq.input('l', sql.NVarChar, config.label);
                 await updateReq.query(updateLabelSQL);
 
+                if (config.key === 'COMMITTEE_APPROVAL_THRESHOLD_THB') {
+                    const updateCategorySQL = `
+                        UPDATE Configurations
+                        SET category = @c
+                        WHERE config_key = @k AND ISNULL(category, '') <> @c
+                    `;
+                    const updateCategoryReq = pool.request();
+                    updateCategoryReq.input('k', sql.NVarChar, config.key);
+                    updateCategoryReq.input('c', sql.NVarChar, 'System');
+                    await updateCategoryReq.query(updateCategorySQL);
+                }
+
                 // Force update RBAC matrix if it is missing the new roles or page permissions
                 if (config.key === 'RBAC_MATRIX_CONFIG') {
                     try {
                         const currentVal = JSON.parse(checkConfigRes.recordset[0].config_value);
 
-                        if (!currentVal.permissions || !currentVal.permissions.find(p => p.key === 'manage_blacklist') || !currentVal.permissions.find(p => p.key === 'page:create-credit') || currentVal.permissions[0]?.key !== 'page:create-credit' || !currentVal.roles || !currentVal.roles.includes('ผู้พิจารณาของพื้นที่')) {
+                        const migratedVal = migrateApprovalRoles(currentVal);
+                        const needsMigration = JSON.stringify(migratedVal) !== JSON.stringify(currentVal);
+
+                        if (!currentVal.permissions || !currentVal.permissions.find(p => p.key === 'manage_blacklist') || !currentVal.permissions.find(p => p.key === 'page:create-credit') || currentVal.permissions[0]?.key !== 'page:create-credit' || !currentVal.roles || !currentVal.roles.includes('ผู้พิจารณาของพื้นที่') || needsMigration) {
                             const updateMatrixSQL = `
                                 UPDATE Configurations
                                 SET config_value = @v
@@ -795,12 +854,33 @@ const initialRegionBranchConfig = [
                             `;
                             const updateMatrixReq = pool.request();
                             updateMatrixReq.input('k', sql.NVarChar, config.key);
-                            updateMatrixReq.input('v', sql.NVarChar, config.value);
+                            updateMatrixReq.input('v', sql.NVarChar, JSON.stringify(migratedVal));
                             await updateMatrixReq.query(updateMatrixSQL);
                             logger.info('Updated RBAC_MATRIX_CONFIG with new roles structure and page permissions.');
                         }
                     } catch(e) {
                         logger.error('Error migrating RBAC matrix config:', e);
+                    }
+                }
+
+                if (config.key === 'WORKFLOW_CONFIG') {
+                    try {
+                        const currentVal = JSON.parse(checkConfigRes.recordset[0].config_value);
+                        const migratedVal = migrateWorkflowApprovalRoles(currentVal);
+                        if (JSON.stringify(migratedVal) !== JSON.stringify(currentVal)) {
+                            const updateWorkflowSQL = `
+                                UPDATE Configurations
+                                SET config_value = @v
+                                WHERE config_key = @k
+                            `;
+                            const updateWorkflowReq = pool.request();
+                            updateWorkflowReq.input('k', sql.NVarChar, config.key);
+                            updateWorkflowReq.input('v', sql.NVarChar, JSON.stringify(migratedVal));
+                            await updateWorkflowReq.query(updateWorkflowSQL);
+                            logger.info('Updated WORKFLOW_CONFIG with normalized approval role names.');
+                        }
+                    } catch(e) {
+                        logger.error('Error migrating WORKFLOW_CONFIG roles:', e);
                     }
                 }
             }
