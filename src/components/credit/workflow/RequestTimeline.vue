@@ -23,7 +23,14 @@
             <span class="step-date" v-if="step.completed || step.rejected">{{ formatDate(step.date) }}</span>
           </div>
           <div class="step-body" v-if="step.completed || step.rejected">
-            <div v-if="step.comment" class="comment-text">{{ step.comment }}</div>
+            <div v-if="step.comment" class="comment-text-wrapper">
+              <template v-for="(line, lIndex) in step.comment.split('\n')" :key="lIndex">
+                <div v-if="line.startsWith('ปรับวงเงินจาก') || line.startsWith('ปรับเครดิตเทอมจาก')" class="audit-trail-line">
+                  <i class="fas fa-history audit-icon"></i> {{ line }}
+                </div>
+                <div v-else class="comment-text-line">{{ line }}</div>
+              </template>
+            </div>
             <div v-else class="comment-text empty-comment">- ไม่มีข้อความ -</div>
             <div class="step-action-badge" :class="step.actionType" v-if="step.actionLabel">
               {{ step.actionLabel }}
@@ -330,11 +337,31 @@ export default {
   position: relative;
 }
 
-.comment-text {
+.comment-text-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.comment-text-line {
   font-size: 14px;
   color: #334155;
   white-space: pre-wrap;
   line-height: 1.5;
+}
+.audit-trail-line {
+  font-size: 13px;
+  color: #64748b;
+  background-color: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}
+.audit-icon {
+  font-size: 12px;
+  color: #94a3b8;
 }
 
 .empty-comment {
