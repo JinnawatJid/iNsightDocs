@@ -89,6 +89,7 @@
 
 <script setup>
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useRbacStore } from '@/stores/rbac';
 import { useAuthStore } from '@/stores/auth';
 import RequestTimeline from './RequestTimeline.vue';
 import { commentPlaceholders } from '@/config/workflow';
@@ -109,13 +110,14 @@ const emit = defineEmits(['update:modelValue']);
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const rbacStore = useRbacStore();
 const router = useRouter();
 
 const isRevising = ref(false);
 
 const showReviseButton = computed(() => {
     const isRejected = store.requestStatus === 'Rejected';
-    const isMaker = authStore.isInitiator;
+    const isMaker = rbacStore.hasPermission('create_request');
     return isRejected && isMaker;
 });
 

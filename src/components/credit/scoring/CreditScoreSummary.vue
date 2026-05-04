@@ -267,6 +267,7 @@
 import iconCheckCircle from '@/assets/icons/check-circle-green.svg';
 import iconShoppingCart from '@/assets/icons/shopping-cart.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useRbacStore } from '@/stores/rbac';
 import { useAuthStore } from '@/stores/auth';
 import { computed } from 'vue';
 
@@ -354,10 +355,11 @@ export default {
   setup() {
       const store = useCreditRequestStore();
       const authStore = useAuthStore();
+const rbacStore = useRbacStore();
       const creditScore = computed(() => store.creditScore);
 
       const shouldHideValues = computed(() => {
-          return authStore.hideCreditScoreEnabled && authStore.isInitiator && store.requestStatus !== 'Approved';
+          return authStore.hideCreditScoreEnabled && rbacStore.hasPermission('create_request') && store.requestStatus !== 'Approved';
       });
 
       const canOverrideScore = computed(() => {

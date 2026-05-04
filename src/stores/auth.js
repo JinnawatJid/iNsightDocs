@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import Cookies from 'js-cookie';
+import { useRbacStore } from './rbac';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -81,6 +82,10 @@ export const useAuthStore = defineStore('auth', {
           branchCode: "00TR"
         };
         this.isAuthenticated = true;
+
+        const rbacStore = useRbacStore();
+        await rbacStore.fetchRbacConfig();
+
         return;
       }
 
@@ -103,6 +108,10 @@ export const useAuthStore = defineStore('auth', {
           };
           this.token = null;
           this.isAuthenticated = true;
+
+          // Fetch RBAC config so router has it before proceeding
+          const rbacStore = useRbacStore();
+          await rbacStore.fetchRbacConfig();
         } else {
           console.warn('Authentication failed:', response.status);
           this.clearAuth();

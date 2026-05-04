@@ -39,7 +39,7 @@
     </div>
 
     <!-- Section 2: Action (Right Side) -->
-    <div class="header-section" v-if="authStore.isInitiator">
+    <div class="header-section" v-if="rbacStore.hasPermission('create_request')">
 
       <!-- State 1: Before Search (Placeholder) -->
       <div v-if="!hasSearched" class="placeholder-wrapper">
@@ -121,6 +121,7 @@ import { computed, ref, onMounted, onUnmounted } from 'vue';
 import CustomerService from '@/services/CustomerService';
 import iconSearchBi from '@/assets/icons/search-bi.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useRbacStore } from '@/stores/rbac';
 import { useAuthStore } from '@/stores/auth';
 import MultiSelectDropdown from '@/components/shared/MultiSelectDropdown.vue';
 
@@ -138,6 +139,7 @@ export default {
   setup(props, { emit }) {
     const creditStore = useCreditRequestStore();
     const authStore = useAuthStore();
+const rbacStore = useRbacStore();
     const showMenu = ref(false);
     const menuContainer = ref(null);
 
@@ -183,6 +185,7 @@ export default {
     });
 
     return {
+      rbacStore,
         creditStore,
         authStore,
         hasSearched,

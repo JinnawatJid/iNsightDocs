@@ -648,7 +648,7 @@ const initDB = async () => {
             }
         };
 
-        const initialRbacMatrix = {
+                const initialRbacMatrix = {
             roles: [
                 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)',
                 'ผู้พิจารณาของพื้นที่',
@@ -659,28 +659,27 @@ const initDB = async () => {
                 'ผู้ดูแลระบบ'
             ],
             permissions: [
-                { key: 'view_pending', label: 'ดูรายการรออนุมัติ' },
-                { key: 'view_history', label: 'ดูประวัติรายการ' },
-                { key: 'edit_request', label: 'แก้ไขคำขอสินเชื่อ' },
-                { key: 'approve_document', label: 'ตรวจสอบเอกสาร' },
+                { key: 'create_request', label: 'สร้างคำขอสินเชื่อ' },
                 { key: 'approve_credit_low', label: 'อนุมัติวงเงินต่ำกว่าเกณฑ์' },
                 { key: 'approve_credit_high', label: 'อนุมัติวงเงินสูงกว่าเกณฑ์' },
-                { key: 'manage_config', label: 'จัดการการตั้งค่าระบบ' },
-                { key: 'manage_blacklist', label: 'จัดการรายการ NPL (Blacklist)' }
+                { key: 'manage_blacklist', label: 'จัดการรายการ NPL (Blacklist)' },
+                { key: 'page:create-credit', label: 'เข้าถึงหน้า: สร้างคำขอ / ค้นหาลูกค้า' },
+                { key: 'page:pending-requests', label: 'เข้าถึงหน้า: คำขอทั้งหมด' },
+                { key: 'page:batch-automation', label: 'เข้าถึงหน้า: ระบบอัตโนมัติ' },
+                { key: 'page:system-configuration', label: 'เข้าถึงหน้า: ตั้งค่าระบบ' }
             ],
             matrix: {
-                'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)': ['view_pending', 'view_history', 'edit_request'],
-                'ผู้พิจารณาของพื้นที่': ['view_pending', 'view_history'],
-                'ผู้พิจารณาฝ่ายขาย': ['view_pending', 'view_history'],
-                'ผู้ตรวจสอบเอกสาร': ['view_pending', 'view_history', 'approve_document', 'manage_blacklist'],
-                'ผู้อนุมัติ (วงเงิน <300K)': ['view_pending', 'view_history', 'approve_credit_low'],
-                'ผู้อนุมัติ (วงเงิน > 300K)': ['view_pending', 'view_history', 'approve_credit_low', 'approve_credit_high'],
-                'ผู้ดูแลระบบ': ['manage_config']
+                'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)': ['create_request', 'page:create-credit', 'page:pending-requests'],
+                'ผู้พิจารณาของพื้นที่': ['page:create-credit', 'page:pending-requests'],
+                'ผู้พิจารณาฝ่ายขาย': ['page:create-credit', 'page:pending-requests'],
+                'ผู้ตรวจสอบเอกสาร': ['page:create-credit', 'page:pending-requests', 'page:batch-automation'],
+                'ผู้อนุมัติ (วงเงิน <300K)': ['approve_credit_low', 'page:create-credit', 'page:pending-requests'],
+                'ผู้อนุมัติ (วงเงิน > 300K)': ['approve_credit_high', 'page:create-credit', 'page:pending-requests'],
+                'ผู้ดูแลระบบ': ['manage_blacklist', 'page:create-credit', 'page:pending-requests', 'page:system-configuration']
             }
         };
 
-
-        const initialRegionBranchConfig = [
+const initialRegionBranchConfig = [
             {
                 region: "กทม (Metro)",
                 zones: [

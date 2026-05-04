@@ -3,6 +3,7 @@ import CustomerService from "@/services/CustomerService";
 import CreditRequestService from "@/services/CreditRequestService";
 import Swal from "sweetalert2";
 import { getMandatoryKeys } from "@/config/mandatoryFields";
+import { useRbacStore } from '@/stores/rbac';
 import { useAuthStore } from "@/stores/auth";
 
 export const useCreditRequestStore = defineStore("creditRequest", {
@@ -125,7 +126,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       if (!state.requestStatus) return false;
       if (state.requestStatus === "Draft") {
         const authStore = useAuthStore();
-        return !authStore.isInitiator;
+const rbacStore = useRbacStore();
+        return !rbacStore.hasPermission('create_request');
       }
       return true;
     },
@@ -1434,9 +1436,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           let listStatus = "Approved,Rejected,Closed,Canceled";
           if (this.activeTab !== "history") {
             const authStore = useAuthStore();
+            const rbacStore = useRbacStore();
             let allowedStatuses = [];
 
-            if (authStore.isInitiator) {
+            if (rbacStore.hasPermission('create_request')) {
               allowedStatuses.push(
                 "Opened",
                 "RegionalSubmitted",

@@ -18,7 +18,7 @@
         </div>
         <div class="grid-col center">
           <div
-            v-if="isOcrEnabled && authStore.isInitiator"
+            v-if="isOcrEnabled && rbacStore.hasPermission('create_request')"
             class="smart-import-wrapper"
           >
             <button class="btn-smart-import" @click="showSmartImport = true">
@@ -57,7 +57,7 @@
               <img :src="iconSearchLarge" alt="Search" width="64" height="64" />
               <h3>
                 {{
-                  authStore.isInitiator
+                  rbacStore.hasPermission('create_request')
                     ? "ค้นหาลูกค้า เพื่อเริ่มสร้างคำขอเครดิต"
                     : "ค้นหาลูกค้า เพื่อดูข้อมูล"
                 }}
@@ -106,6 +106,7 @@ import DocumentChecklist from "@/components/credit/workflow/DocumentChecklist.vu
 import SmartImportModal from "@/components/credit/modals/SmartImportModal.vue";
 import { useCreditRequestStore } from "@/stores/creditRequest";
 import { useFeatureFlag } from "@/composables/useFeatureFlag";
+import { useRbacStore } from '@/stores/rbac';
 import { useAuthStore } from "@/stores/auth";
 import { useRoute } from "vue-router";
 import iconSearchLarge from "@/assets/icons/search-large.svg";
@@ -114,6 +115,7 @@ import Swal from "sweetalert2";
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const rbacStore = useRbacStore();
 const route = useRoute();
 const { isOcrEnabled } = useFeatureFlag();
 const showSmartImport = ref(false);

@@ -2,18 +2,18 @@
   <nav class="nav-bar">
     <div class="nav-left">
       <img src="@/assets/images/logo.png" alt="Company Logo" class="logo" />
-      <router-link to="/create-credit-request" class="nav-link">
-        {{ authStore.isInitiator ? 'สร้างคำขอ' : 'ค้นหาลูกค้า' }}
+      <router-link v-if="rbacStore.hasPermission('page:create-credit')" to="/create-credit-request" class="nav-link">
+        {{ rbacStore.hasPermission('create_request') ? 'สร้างคำขอ' : 'ค้นหาลูกค้า' }}
       </router-link>
-      <router-link to="/pending-requests" class="nav-link">คำขอทั้งหมด</router-link>
+      <router-link v-if="rbacStore.hasPermission('page:pending-requests')" to="/pending-requests" class="nav-link">คำขอทั้งหมด</router-link>
       <router-link
-        v-if="authStore.isFinanceOfficer"
+        v-if="rbacStore.hasPermission('page:batch-automation')"
         to="/batch-automation"
         class="nav-link">
         ระบบอัตโนมัติ
       </router-link>
       <router-link
-        v-if="authStore.isAdmin"
+        v-if="rbacStore.hasPermission('page:system-configuration') || authStore.isAdmin"
         to="/configuration"
         class="nav-link">
         ตั้งค่าระบบ
@@ -60,6 +60,7 @@
 <script>
 import iconBell from '@/assets/icons/bell.svg';
 import { useAuthStore } from '@/stores/auth';
+import { useRbacStore } from '@/stores/rbac';
 import { useNotificationStore } from '@/stores/notification';
 
 export default {
@@ -82,6 +83,9 @@ export default {
   computed: {
     authStore() {
       return useAuthStore();
+    },
+    rbacStore() {
+      return useRbacStore();
     },
     notificationStore() {
       return useNotificationStore();

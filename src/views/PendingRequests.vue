@@ -67,10 +67,12 @@ import WorkflowActionBar from '@/components/credit/dashboard/WorkflowActionBar.v
 import CreditReviewSection from '@/components/credit/workflow/CreditReviewSection.vue';
 import ReviewDashboard from '@/components/credit/dashboard/ReviewDashboard.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useRbacStore } from '@/stores/rbac';
 import { useAuthStore } from '@/stores/auth';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const rbacStore = useRbacStore();
 
 onMounted(() => {
     store.resetState();
@@ -224,7 +226,7 @@ const isReadOnly = computed(() => {
     // We can use authStore to check if the current logged-in user is an Initiator.
 
     // If they are an initiator tracking progress, and the request is past Draft
-    if (authStore.isInitiator && store.requestStatus && store.requestStatus !== 'Draft') {
+    if (rbacStore.hasPermission('create_request') && store.requestStatus && store.requestStatus !== 'Draft') {
         // Technically Initiators might have actions if it's "PendingSales (ชั่วคราว)" etc.
         // But normally if it's Opened, RegionalSubmitted etc., it's read-only for them.
         const trackingStatuses = ['Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed'];

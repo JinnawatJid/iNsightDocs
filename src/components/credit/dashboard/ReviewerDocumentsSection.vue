@@ -77,12 +77,14 @@
 import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 import { ref, computed, inject } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useRbacStore } from '@/stores/rbac';
 import { useAuthStore } from '@/stores/auth';
 import Swal from 'sweetalert2';
 import DocumentPreviewModal from '@/components/shared/DocumentPreviewModal.vue';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const rbacStore = useRbacStore();
 const openPreviewModal = inject('openPreviewModal', null);
 
 const isPreviewOpen = ref(false);
@@ -92,7 +94,7 @@ const previewFile = ref(null);
 const canUpload = computed(() => {
   if (store.requestStatus === 'Draft') return false;
 
-  if (authStore.isInitiator) return true;
+  if (rbacStore.hasPermission('create_request')) return true;
 
   const roles = authStore.userRoles || [];
   const isApprover = roles.some(r => r.role !== 'ผู้สร้างคำขอ (เครดิตใหม่/ปรับปรุง)');

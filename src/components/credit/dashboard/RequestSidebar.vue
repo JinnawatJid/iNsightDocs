@@ -99,6 +99,7 @@
 import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useRbacStore } from '@/stores/rbac';
 import { useAuthStore } from '@/stores/auth';
 import { useWorkflowConfig } from '@/composables/useWorkflowConfig';
 import { formatRequestType } from '@/utils/requestTypeFormatter';
@@ -112,6 +113,7 @@ import iconRejected from '@/assets/icons/x-circle-red.svg';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const rbacStore = useRbacStore();
 const { workflowStates, fetchWorkflowConfig } = useWorkflowConfig();
 const activeTab = ref('pending');
 const searchQuery = ref('');
@@ -121,7 +123,7 @@ const loading = computed(() => store.loading);
 
 
 const pendingTabLabel = computed(() => {
-  return authStore.isInitiator ? 'ติดตามคำขอ' : 'รออนุมัติ';
+  return rbacStore.hasPermission('create_request') ? 'ติดตามคำขอ' : 'รออนุมัติ';
 });
 
 const switchTab = (tab) => {
@@ -138,7 +140,7 @@ const fetchData = () => {
 
     // --- Dynamic: Derive visible statuses from WORKFLOW_CONFIG ---
     if (workflowStates.value) {
-      if (authStore.isInitiator) {
+      if (rbacStore.hasPermission('create_request')) {
         // Initiators track all non-final states for requests they submitted, excluding Drafts
         allowedStatuses = Object.entries(workflowStates.value)
           .filter(([key, s]) => s.type !== 'final' && key !== 'Draft')
@@ -153,7 +155,7 @@ const fetchData = () => {
       }
     } else {
       // --- Fallback to hardcoded logic if WORKFLOW_CONFIG is unavailable ---
-      if (authStore.isInitiator) {
+      if (rbacStore.hasPermission('create_request')) {
         allowedStatuses.push('Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
       }
       if (authStore.isRegionalManager) allowedStatuses.push('Opened');
@@ -220,7 +222,7 @@ const getRequestTypeClass = (type) => {
 
 const isActionable = (status) => {
     // Initiator's special transient statuses
-    if (authStore.isInitiator && ['Draft', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'].includes(status)) return true;
+    if (rbacStore.hasPermission('create_request') && ['Draft', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)'].includes(status)) return true;
 
     // Dynamic: check if current user's roles can act on this status via WORKFLOW_CONFIG
     if (workflowStates.value && workflowStates.value[status]) {

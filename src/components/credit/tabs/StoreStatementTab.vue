@@ -479,6 +479,7 @@ import { useRoute, useRouter } from 'vue-router';
 import FileUploader from '@/components/shared/FileUploader.vue';
 import OtherDocumentsSection from '../forms/OtherDocumentsSection.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { useRbacStore } from '@/stores/rbac';
 import { useAuthStore } from '@/stores/auth';
 import iconUploadMulti from '@/assets/icons/upload-multi.svg';
 import CreditScoreSheet from '../scoring/CreditScoreSheet.vue';
@@ -490,9 +491,10 @@ import { fieldLabels, docLabels } from '@/utils/validationLabels';
 const props = defineProps(['readOnly']);
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const rbacStore = useRbacStore();
 
 const shouldHideValues = computed(() => {
-    return authStore.hideCreditScoreEnabled && authStore.isInitiator && store.requestStatus !== 'Approved';
+    return authStore.hideCreditScoreEnabled && rbacStore.hasPermission('create_request') && store.requestStatus !== 'Approved';
 });
 const route = useRoute();
 const router = useRouter();
