@@ -19,6 +19,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
     originalCustomer: {},
     originalInitiatorCustomer: {},
     originalTransactionData: {},
+    originalRequestedAmount: null,
+    originalRequestedTerms: null,
     displayCustomer: {},
     history: [],
     financialSummary: {},
@@ -349,6 +351,13 @@ export const useCreditRequestStore = defineStore("creditRequest", {
             this.uploadedDocuments[att.file_type] = true;
           });
         }
+
+        this.originalRequestedAmount = data.request_amount;
+        this.originalRequestedTerms = {
+            termGS: data.term_gs,
+            termAE: data.term_ae,
+            termYC: data.term_yc
+        };
 
         this.transactionData = {
           amount: data.request_amount,
@@ -808,6 +817,13 @@ export const useCreditRequestStore = defineStore("creditRequest", {
             const parsedSnapshotTransactionData = parsedSnapshotData.transaction_data || {};
             const parsedSnapshotCustomerData = parsedSnapshotData.customer || {};
 
+            this.originalRequestedAmount = resData.request_amount || "";
+            this.originalRequestedTerms = {
+                termGS: resData.term_gs || "",
+                termAE: resData.term_ae || "",
+                termYC: resData.term_yc || ""
+            };
+
             this.transactionData = {
               amount: resData.request_amount || "",
               creditTerm: resData.request_credit_term || "",
@@ -1261,6 +1277,8 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       this.originalCustomer = {};
       this.originalInitiatorCustomer = {};
       this.originalTransactionData = {};
+      this.originalRequestedAmount = null;
+      this.originalRequestedTerms = null;
       this.history = [];
       this.financialSummary = {};
       this.creditScore = {};

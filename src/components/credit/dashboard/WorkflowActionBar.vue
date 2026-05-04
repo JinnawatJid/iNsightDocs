@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
 import { useWorkflowConfig } from '@/composables/useWorkflowConfig';
@@ -39,6 +39,20 @@ const { workflowStates, fetchWorkflowConfig } = useWorkflowConfig();
 const emit = defineEmits(['update:comment']);
 
 const currentStatus = computed(() => store.requestStatus);
+
+const sessionInitialState = ref({});
+
+
+watch(() => store.transactionData, (newVal) => {
+    if (newVal && newVal.amount !== undefined && Object.keys(sessionInitialState.value).length === 0) {
+        sessionInitialState.value = {
+            amount: newVal.amount,
+            termGS: newVal.termGS,
+            termAE: newVal.termAE,
+            termYC: newVal.termYC
+        };
+    }
+}, { immediate: true, deep: true });
 
 onMounted(() => {
   fetchWorkflowConfig();
@@ -164,6 +178,40 @@ const availableActions = computed(() => {
   return actions;
 });
 
+
+  const generateAuditTrailMessage = () => {
+      let msg = '';
+      if (sessionInitialState.value && Object.keys(sessionInitialState.value).length > 0) {
+          const formatNum = (v) => {
+              if (v === null || v === undefined || v === '') return '0';
+              const val = parseFloat(String(v).replace(/,/g, ''));
+              if (isNaN(val)) return '0';
+              return val.toLocaleString('th-TH');
+          };
+
+          const origAmt = formatNum(sessionInitialState.value.amount);
+          const newAmt = formatNum(store.transactionData.amount);
+
+          if (origAmt !== newAmt) {
+              msg += `ปรับวงเงินจาก ${origAmt} เป็น ${newAmt} บาท\n`;
+          }
+
+          const origGS = sessionInitialState.value.termGS || 0;
+          const origAE = sessionInitialState.value.termAE || 0;
+          const origYC = sessionInitialState.value.termYC || 0;
+
+          const newGS = store.transactionData.termGS || 0;
+          const newAE = store.transactionData.termAE || 0;
+          const newYC = store.transactionData.termYC || 0;
+
+          if (origGS != newGS || origAE != newAE || origYC != newYC) {
+              msg += `ปรับเครดิตเทอมจาก ${origGS}/${origAE}/${origYC} เป็น ${newGS}/${newAE}/${newYC}\n`;
+          }
+      }
+      return msg;
+  };
+
+
 const handleAction = async (action) => {
   let commentText = props.comment || '';
 
@@ -174,7 +222,8 @@ const handleAction = async (action) => {
       emit('update:comment', '');
   };
 
-  // Case 1: Comment Required AND Box is Empty -> Use Popup
+
+    // Case 1: Comment Required AND Box is Empty -> Use Popup
   if (action.requireComment && !commentText.trim()) {
     const { value: text, isConfirmed } = await Swal.fire({
       title: action.label,
@@ -195,10 +244,17 @@ const handleAction = async (action) => {
     });
 
     if (isConfirmed && text) {
-      const ok = await store.updateStatus(action.targetStatus, text);
+
+      // For popup text, default comment is 'text' variable
+      let commentText = text;
+
+      const auditTrailMsg = generateAuditTrailMessage();
+      const finalActionCommentText = auditTrailMsg ? (commentText ? `${auditTrailMsg}\n${commentText}` : auditTrailMsg.trim()) : commentText;
+
+      const ok = await store.updateStatus(action.targetStatus, finalActionCommentText);
       if (ok) {
-        if (text) {
-          await store.saveCommentToDB(text);
+        if (finalActionCommentText) {
+          await store.saveCommentToDB(finalActionCommentText);
         }
         clearDraft();
         Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');
@@ -222,10 +278,15 @@ const handleAction = async (action) => {
           commentText = 'Approved/Verified';
       }
 
-      const ok = await store.updateStatus(action.targetStatus, commentText);
+
+      const auditTrailMsg = generateAuditTrailMessage();
+      const finalActionCommentText = auditTrailMsg ? (commentText ? `${auditTrailMsg}\n${commentText}` : auditTrailMsg.trim()) : commentText;
+
+
+      const ok = await store.updateStatus(action.targetStatus, finalActionCommentText);
       if (ok) {
-        if (commentText) {
-          await store.saveCommentToDB(commentText);
+        if (finalActionCommentText) {
+          await store.saveCommentToDB(finalActionCommentText);
         }
         clearDraft();
         Swal.fire('Success', 'ดำเนินการเรียบร้อยแล้ว', 'success');

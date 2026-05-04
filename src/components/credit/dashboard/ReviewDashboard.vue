@@ -17,20 +17,20 @@
             <label>วงเงินที่ขอ</label>
             <div v-if="isCreditIncrease" class="value amount">
                 {{ formatNumber(totalCreditAmount) }} บาท
-                <span class="increase-label">(ขอเพิ่ม {{ formatNumber(store.transactionData.amount) }})</span>
+                <span class="increase-label">(ขอเพิ่ม {{ requestedAmountFormatted }})</span>
             </div>
-            <div v-else class="value amount">{{ formatNumber(store.transactionData.amount) }} บาท</div>
+            <div v-else class="value amount">{{ requestedAmountFormatted }} บาท</div>
 
-            <div v-if="showOriginalValues && store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null && store.transactionData.amount != store.originalTransactionData.amount" class="original-value-label">
+            <div v-if="showOriginalValues && store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null && requestedAmount != store.originalTransactionData.amount" class="original-value-label">
                 เดิม: {{ formatNumber(store.originalTransactionData.amount) }} บาท
             </div>
-            <div v-else-if="showOriginalValues && erpFallbackData && erpFallbackData.current_credit_limit !== undefined && store.transactionData.amount != erpFallbackData.current_credit_limit" class="original-value-label">
+            <div v-else-if="showOriginalValues && erpFallbackData && erpFallbackData.current_credit_limit !== undefined && requestedAmount != erpFallbackData.current_credit_limit" class="original-value-label">
                 เดิม: {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
             </div>
         </div>
         <div class="deal-item highlight-terms">
             <label>เครดิตเทอม (GS/AE/YC)</label>
-            <div class="value terms-amount">{{ formatTerms(store.transactionData) }}</div>
+            <div class="value terms-amount">{{ formatTerms(requestedTermsData) }}</div>
             <div v-if="showOriginalValues && store.originalTransactionData && hasTermsChanged" class="original-value-label">
                 เดิม: {{ formatTerms(store.originalTransactionData) }}
             </div>
@@ -222,7 +222,7 @@ const showOriginalValues = computed(() => {
 });
 
 const totalCreditAmount = computed(() => {
-    const requestAmount = parseFloat(String(store.transactionData.amount || '0').replace(/,/g, ''));
+    const requestAmount = parseFloat(String(requestedAmount.value || '0').replace(/,/g, ''));
     let baseAmount = 0;
 
     if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
@@ -232,6 +232,24 @@ const totalCreditAmount = computed(() => {
     }
 
     return isNaN(requestAmount) ? baseAmount : (baseAmount + requestAmount);
+});
+
+const requestedAmount = computed(() => {
+    if (store.requestStatus !== 'Draft' && store.originalRequestedAmount !== null) {
+        return store.originalRequestedAmount;
+    }
+    return store.transactionData.amount;
+});
+
+const requestedTermsData = computed(() => {
+    if (store.requestStatus !== 'Draft' && store.originalRequestedTerms !== null) {
+        return store.originalRequestedTerms;
+    }
+    return store.transactionData;
+});
+
+const requestedAmountFormatted = computed(() => {
+    return formatNumber(requestedAmount.value);
 });
 
 const isTermsEqual = (data, erpTermsCode) => {
