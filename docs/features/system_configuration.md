@@ -53,9 +53,11 @@ The system automatically seeds the following baseline configurations upon databa
 - `COMMITTEE_APPROVAL_THRESHOLD_THB` (300000, Workflow, number)
 
 ### 3.2 API Endpoints & Dynamic Reconfiguration (Backend)
-- `GET /api/config`: Fetches all configurations, grouped by `category`.
-- `PUT /api/config`: Accepts an array of modified configurations to perform bulk updates.
+- `GET /api/config`: Fetches all configurations, grouped by `category` (Admin-only).
+- `PUT /api/config`: Accepts an array of modified configurations to perform bulk updates (Admin-only).
   - *Note on Dynamic Reconfiguration:* Certain system-level configurations (e.g., `AUDIT_LOG_RETENTION_DAYS` governing the Winston logger) are applied immediately during the `PUT` request via exposed utility functions (e.g., `logger.updateLogRetention`) to avoid requiring server restarts.
+- `GET /api/config/workflow`: Public read-only endpoint for authenticated users to fetch the workflow state machine configuration.
+- `GET /api/config/rbac`: Public read-only endpoint for authenticated users to fetch the RBAC matrix configuration (used by UI components, like the NPL toggle, to determine visibility based on user permissions).
 
 ### 3.3 Frontend Architecture (Vue 3 + Pinia)
 - **State:** A Pinia store (`src/stores/config.js`) will manage the configuration state.

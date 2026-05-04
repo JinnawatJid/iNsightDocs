@@ -85,9 +85,9 @@ Instead of fully migrating to the relational database schema proposed above imme
 
 The next phase (Backend Enforcements & Full RBAC Middleware) is still pending, but significant progress has been made on the frontend:
 
-### 6.1 Phase 1 (Completed): Frontend Workflow Integration
-The `WORKFLOW_CONFIG` is now actively driving the frontend dashboard (`/pending-requests`).
-*   **Public Configuration API:** A new endpoint (`GET /api/config/workflow`) was created to allow all authenticated users (non-admins) to read the workflow configuration securely.
+### 6.1 Phase 1 (Completed): Frontend Workflow & Permissions Integration
+The `WORKFLOW_CONFIG` and `RBAC_MATRIX_CONFIG` are now actively driving the frontend dashboard (`/pending-requests`) and UI visibility (e.g., NPL Toggles).
+*   **Public Configuration APIs:** Two new endpoints (`GET /api/config/workflow` and `GET /api/config/rbac`) were created to allow all authenticated users (non-admins) to read the workflow configuration and their own permission mappings securely, without requiring full administrative access to all system configs.
 *   **Dynamic Sidebar Visibility:** `RequestSidebar.vue` now uses the configured `actionableByRoles` from the state machine to determine which requests a user can see based on their roles.
 *   **Dynamic Action Bar:** `WorkflowActionBar.vue` reads `allowedTransitions` from the configuration to render context-aware action buttons (e.g., Approve, Reject, Send to Committee) automatically.
 *(Note: A few specific business rules, like the >300k approval threshold, remain hardcoded as safeguards).*
