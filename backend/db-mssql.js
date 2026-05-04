@@ -787,7 +787,7 @@ const initialRegionBranchConfig = [
             { key: 'SYSTEM_MAINTENANCE_MODE', value: 'false', type: 'boolean', category: 'System', desc: 'เปิดโหมดปิดปรับปรุงระบบ', label: 'โหมดปิดปรับปรุงระบบ' },
             { key: 'DEFAULT_PAGE_SIZE', value: '20', type: 'number', category: 'System', desc: 'จำนวนรายการเริ่มต้นที่แสดงต่อหน้า', label: 'จำนวนรายการต่อหน้า (ค่าเริ่มต้น)' },
             { key: 'ENABLE_BATCH_PROCESSING', value: 'true', type: 'boolean', category: 'System', desc: 'เปิดใช้งานการประมวลผล Batch Automation', label: 'เปิดใช้งานระบบประมวลผลอัตโนมัติ (Batch)' },
-            { key: 'COMMITTEE_APPROVAL_THRESHOLD_THB', value: '300000', type: 'number', category: 'Workflow', desc: 'วงเงินที่ต้องได้รับการอนุมัติจากผู้อนุมัติระดับสูง (บาท)', label: 'วงเงินพิจารณาโดยผู้อนุมัติระดับสูง (บาท)' },
+            { key: 'COMMITTEE_APPROVAL_THRESHOLD_THB', value: '300000', type: 'number', category: 'System', desc: 'วงเงินที่ใช้แยกการอนุมัติระหว่างผู้อนุมัติระดับต้นและระดับสูง (บาท)', label: 'วงเงินพิจารณาโดยผู้อนุมัติระดับสูง (บาท)' },
             { key: 'RBAC_MATRIX_CONFIG', value: JSON.stringify(initialRbacMatrix), type: 'json', category: 'UserRoles', desc: 'การตั้งค่า Matrix การจัดการสิทธิ์', label: 'Role & Permission Matrix' },
                         { key: 'REGION_BRANCH_CONFIG', value: JSON.stringify(initialRegionBranchConfig), type: 'json', category: 'System', desc: 'การตั้งค่าสาขาตามพื้นที่', label: 'Region and Branch Configuration' },
             { key: 'WORKFLOW_CONFIG', value: JSON.stringify(initialWorkflowConfig), type: 'json', category: 'WorkflowMgmt', desc: 'การตั้งค่าสถานะ Workflow และการอนุมัติ', label: 'Workflow State Machine Configuration' }
@@ -825,6 +825,18 @@ const initialRegionBranchConfig = [
                 updateReq.input('k', sql.NVarChar, config.key);
                 updateReq.input('l', sql.NVarChar, config.label);
                 await updateReq.query(updateLabelSQL);
+
+                if (config.key === 'COMMITTEE_APPROVAL_THRESHOLD_THB') {
+                    const updateCategorySQL = `
+                        UPDATE Configurations
+                        SET category = @c
+                        WHERE config_key = @k AND ISNULL(category, '') <> @c
+                    `;
+                    const updateCategoryReq = pool.request();
+                    updateCategoryReq.input('k', sql.NVarChar, config.key);
+                    updateCategoryReq.input('c', sql.NVarChar, 'System');
+                    await updateCategoryReq.query(updateCategorySQL);
+                }
 
                 // Force update RBAC matrix if it is missing the new roles or page permissions
                 if (config.key === 'RBAC_MATRIX_CONFIG') {
