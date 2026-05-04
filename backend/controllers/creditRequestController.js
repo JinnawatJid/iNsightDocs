@@ -103,7 +103,7 @@ exports.deleteAdditionalDocument = async (req, res) => {
     const file = files[0];
 
     // Check permissions: only the original uploader or someone bypassing it (e.g., higher role like credit committee)
-    if (file.uploaded_by !== username && actor_role !== "กรรมการเครดิต") {
+    if (file.uploaded_by !== username && !['กรรมการเครดิต', 'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)', 'ผู้อนุมัติ (วงเงิน > 300K)'].includes(actor_role)) {
       return res
         .status(403)
         .json({
@@ -630,11 +630,11 @@ exports.createCreditRequest = async (req, res) => {
                     message = `คำขอ ${txId} รอการตรวจสอบเอกสาร`;
                     break;
                 case 'FinanceReviewed':
-                    targetRole = 'ผู้อนุมัติ (วงเงิน < 300K)'; // Or ผู้จัดการฝ่ายการเงิน
+                  targetRole = 'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)';
                     message = `คำขอ ${txId} รอการพิจารณาอนุมัติ`;
                     break;
                 case 'Reviewed':
-                    targetRole = 'ผู้อนุมัติ (วงเงิน > 300K)'; // Or กรรมการเครดิต
+                  targetRole = 'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)';
                     message = `คำขอ ${txId} รอการพิจารณาอนุมัติ`;
                     break;
             }

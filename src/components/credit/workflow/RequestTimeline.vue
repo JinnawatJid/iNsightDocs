@@ -49,7 +49,9 @@
   </div>
   </template>
 <script>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
+import { useConfigStore } from '@/stores/config';
+import { useApprovalThreshold } from '@/composables/useApprovalThreshold';
 import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 
 // Define the static 5-step workflow
@@ -59,8 +61,8 @@ const WORKFLOW_STEPS = [
   { id: 'step-2', roleKeys: ['ผู้จัดการภาค'], label: 'ผู้จัดการภาค' },
   { id: 'step-3', roleKeys: ['ผู้จัดการฝ่ายขาย', 'ผู้จัดการฝ่ายขาย (Legacy)'], label: 'ผู้จัดการฝ่ายขาย' },
   { id: 'step-4', roleKeys: ['เจ้าหน้าที่ฝ่ายการเงิน', 'เจ้าหน้าที่ฝ่ายการเงิน (Legacy)'], label: 'เจ้าหน้าที่ฝ่ายการเงิน' },
-  { id: 'step-5', roleKeys: ['ผู้อนุมัติ (วงเงิน <300K)', 'ผู้จัดการฝ่ายการเงิน'], label: 'ผู้จัดการฝ่ายการเงิน' },
-  { id: 'step-6', roleKeys: ['ผู้อนุมัติ (วงเงิน > 300K)', 'กรรมการเครดิต', 'กรรมการเครดิต (Legacy)'], label: 'กรรมการเครดิต' }
+  { id: 'step-5', roleKeys: ['ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)', 'ผู้อนุมัติ (วงเงิน <300K)', 'ผู้จัดการฝ่ายการเงิน'], label: 'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)' },
+  { id: 'step-6', roleKeys: ['ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)', 'ผู้อนุมัติ (วงเงิน > 300K)', 'กรรมการเครดิต', 'กรรมการเครดิต (Legacy)'], label: 'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)' }
 ];
 
 export default {
@@ -80,6 +82,9 @@ export default {
     }
   },
   setup(props) {
+    const configStore = useConfigStore();
+    const { approvalThreshold } = useApprovalThreshold();
+
     const formatDate = (value) => {
       if (!value) return '';
 
@@ -104,8 +109,8 @@ export default {
       'Opened': 1,            // 1: ผู้จัดการภาค
       'RegionalSubmitted': 2, // 2: ผู้จัดการฝ่ายขาย
       'SalesSubmitted': 3,    // 3: เจ้าหน้าที่ฝ่ายการเงิน
-      'FinanceReviewed': 4,   // 4: ผู้อนุมัติ (วงเงิน <300K)
-      'Reviewed': 5,          // 5: ผู้อนุมัติ (วงเงิน > 300K)
+      'FinanceReviewed': 4,   // 4: ผู้อนุมัติระดับต้น
+      'Reviewed': 5,          // 5: ผู้อนุมัติระดับสูง
       'Approved': 6,          // 6: Done (all 0-5 are completed)
       'Closed': 6,            // 6: Done
       // Legacy Support
@@ -125,7 +130,7 @@ export default {
         return dateA.getTime() - dateB.getTime();
       });
 
-      // Filter out Committee step if amount <= 300,000
+      // Filter out the higher-approval step if the amount does not exceed the configured threshold
       let amount = 0;
       if (typeof props.requestAmount === 'string') {
         amount = Number(props.requestAmount.replace(/,/g, ''));
@@ -133,9 +138,10 @@ export default {
         amount = Number(props.requestAmount || 0);
       }
 
-      let activeSteps = WORKFLOW_STEPS;
-      // We hide the 6th step if the amount is explicitly <= 300,000 OR if it's 0 (default empty state)
-      if (amount <= 300000) {
+        let activeSteps = WORKFLOW_STEPS;
+        const threshold = approvalThreshold.value;
+        // We hide the 6th step if the amount is explicitly <= threshold OR if it's 0 (default empty state)
+        if (amount <= threshold) {
           activeSteps = WORKFLOW_STEPS.filter(step => step.id !== 'step-6');
       }
 
@@ -227,6 +233,12 @@ export default {
 
       // Hide hidden steps
       return steps.filter(s => !s.hidden);
+    });
+
+    onMounted(async () => {
+      if (!configStore.configurations || Object.keys(configStore.configurations).length === 0) {
+        await configStore.fetchConfigurations();
+      }
     });
 
     return {

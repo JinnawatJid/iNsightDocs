@@ -24,6 +24,8 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
 import { useWorkflowConfig } from '@/composables/useWorkflowConfig';
+import { useApprovalThreshold } from '@/composables/useApprovalThreshold';
+import { useConfigStore } from '@/stores/config';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -35,7 +37,9 @@ const props = defineProps({
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+const configStore = useConfigStore();
 const { workflowStates, fetchWorkflowConfig } = useWorkflowConfig();
+const { approvalThreshold } = useApprovalThreshold();
 const emit = defineEmits(['update:comment']);
 
 const currentStatus = computed(() => store.requestStatus);
@@ -54,8 +58,11 @@ watch(() => store.transactionData, (newVal) => {
     }
 }, { immediate: true, deep: true });
 
-onMounted(() => {
-  fetchWorkflowConfig();
+onMounted(async () => {
+  await Promise.all([
+    fetchWorkflowConfig(),
+    configStore.configurations && Object.keys(configStore.configurations).length > 0 ? Promise.resolve() : configStore.fetchConfigurations(),
+  ]);
 });
 
 // Helper: derive button style class from a target state key
@@ -91,6 +98,7 @@ const availableActions = computed(() => {
 
   const myRoles = (authStore.user?.roles || []).map(r => r.role);
   const amount = Number(store.transactionData?.amount || 0);
+  const threshold = approvalThreshold.value;
 
   // --- Dynamic path: read from WORKFLOW_CONFIG ---
   if (workflowStates.value && workflowStates.value[status]) {
@@ -100,7 +108,7 @@ const availableActions = computed(() => {
     const canAct = stateData.actionableByRoles.some(r => myRoles.includes(r));
     if (!canAct) return [];
 
-    // --- 300k Special Case: retained for FinanceReviewed state ---
+    // --- Threshold-based special case for FinanceReviewed state ---
     if (status === 'FinanceReviewed') {
       const actions = [];
       const allTransitions = stateData.allowedTransitions || [];
@@ -109,9 +117,9 @@ const availableActions = computed(() => {
       const committeeTransition = allTransitions.find(t => t === 'Reviewed' || (t !== 'Rejected' && !t.toLowerCase().includes('approv')));
       const rejectTransitions = allTransitions.filter(t => requiresComment(t));
 
-      if (amount <= 300000 && approveTransition) {
+      if (amount <= threshold && approveTransition) {
         actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: approveTransition, class: 'btn-success' });
-      } else if (amount > 300000 && committeeTransition) {
+      } else if (amount > threshold && committeeTransition) {
         actions.push({ key: 'submit', label: 'ส่งต่อ (Send to Committee)', targetStatus: committeeTransition, class: 'btn-primary' });
       }
 
@@ -157,9 +165,9 @@ const availableActions = computed(() => {
     actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
   }
 
-  // 4. Finance Manager (FinanceReviewed -> Approved if <= 300k, or Reviewed if > 300k)
+  // 4. Finance Manager (FinanceReviewed -> Approved if <= threshold, or Reviewed if > threshold)
   if (status === 'FinanceReviewed' && authStore.isFinanceManager) {
-    if (amount <= 300000) {
+    if (amount <= threshold) {
       actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
     } else {
       actions.push({ key: 'submit', label: 'ส่งต่อ (Send to Committee)', targetStatus: 'Reviewed', class: 'btn-primary' });
@@ -167,9 +175,9 @@ const availableActions = computed(() => {
     actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
   }
 
-  // 5. Credit Committee (Reviewed -> Approved if > 300k)
+  // 5. Credit Committee (Reviewed -> Approved if > threshold)
   if (status === 'Reviewed' && authStore.isCreditCommittee) {
-    if (amount > 300000) {
+    if (amount > threshold) {
       actions.push({ key: 'approve', label: 'อนุมัติ (Final Approve)', targetStatus: 'Approved', class: 'btn-success' });
       actions.push({ key: 'reject', label: 'ไม่อนุมัติ (Reject)', targetStatus: 'Rejected', class: 'btn-danger', requireComment: true });
     }

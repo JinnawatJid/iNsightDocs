@@ -26,6 +26,32 @@
         </div>
       </div>
 
+      <div class="threshold-card">
+        <div class="threshold-copy">
+          <h4>เกณฑ์ส่งต่อผู้อนุมัติระดับสูง</h4>
+          <p>
+            กำหนดวงเงินที่ใช้แยกคำขอระหว่างผู้อนุมัติระดับต้นและผู้อนุมัติระดับสูง
+            ระบบจะส่งคำขอที่มีวงเงินมากกว่าเกณฑ์นี้ไปยังผู้อนุมัติวงเงินสูงกว่าเกณฑ์
+          </p>
+        </div>
+
+        <div class="threshold-form">
+          <label for="committee-threshold">วงเงินเกณฑ์ (บาท)</label>
+          <input
+            id="committee-threshold"
+            v-model="committeeThresholdValue"
+            type="number"
+            min="1"
+            step="1"
+            class="form-control"
+            @input="markAsChanged"
+          />
+          <small class="threshold-hint">
+            คำขอที่มีวงเงินมากกว่า {{ formattedCommitteeThreshold }} บาท จะถูกส่งต่อไปยังผู้อนุมัติระดับสูง
+          </small>
+        </div>
+      </div>
+
       <div class="accordion-container">
         <div v-if="statesList.length === 0" class="empty-state">
           ไม่มีข้อมูลสถานะ
@@ -120,12 +146,18 @@
 import { ref, onMounted, computed } from 'vue';
 import { useConfigStore } from '../../stores/config';
 import Swal from 'sweetalert2';
+import {
+  APPROVAL_THRESHOLD_CONFIG_KEY,
+  DEFAULT_APPROVAL_THRESHOLD_THB,
+  normalizeApprovalThreshold,
+} from '@/composables/useApprovalThreshold';
 
 import MultiSelectTag from '../shared/MultiSelectTag.vue';
 
 const configStore = useConfigStore();
 const configKey = 'WORKFLOW_CONFIG';
 const rbacKey = 'RBAC_MATRIX_CONFIG';
+const committeeThresholdKey = APPROVAL_THRESHOLD_CONFIG_KEY;
 
 const loading = ref(true);
 const error = ref(null);
@@ -133,6 +165,8 @@ const isSaving = ref(false);
 const hasChanges = ref(false);
 
 const originalConfigStr = ref('');
+const originalCommitteeThreshold = ref(String(DEFAULT_APPROVAL_THRESHOLD_THB));
+const committeeThresholdValue = ref(String(DEFAULT_APPROVAL_THRESHOLD_THB));
 const availableRoles = ref([]);
 
 // State List
@@ -142,6 +176,20 @@ const expandedStateKey = ref(null);
 const availableStatuses = computed(() => {
   return statesList.value.map(s => s.key);
 });
+
+const formattedCommitteeThreshold = computed(() => {
+  const normalized = normalizeApprovalThreshold(committeeThresholdValue.value) ?? DEFAULT_APPROVAL_THRESHOLD_THB;
+  return normalized.toLocaleString('th-TH');
+});
+
+const findConfigByKey = (key) => {
+  for (const categoryGroup of Object.values(configStore.configurations || {})) {
+    const found = (categoryGroup || []).find((config) => config.config_key === key);
+    if (found) return found;
+  }
+
+  return null;
+};
 
 // Initialization
 const fetchConfig = async () => {
@@ -177,6 +225,11 @@ const fetchConfig = async () => {
           }
        }
     }
+
+     const thresholdObj = findConfigByKey(committeeThresholdKey);
+     const normalizedThreshold = normalizeApprovalThreshold(thresholdObj?.config_value) ?? DEFAULT_APPROVAL_THRESHOLD_THB;
+     committeeThresholdValue.value = String(normalizedThreshold);
+     originalCommitteeThreshold.value = String(normalizedThreshold);
 
     if (wfConfigObj) {
       const parsed = JSON.parse(wfConfigObj.config_value);
@@ -226,7 +279,9 @@ const exportListToConfig = () => {
 
 const markAsChanged = () => {
   const currentConfigStr = JSON.stringify(exportListToConfig());
-  hasChanges.value = currentConfigStr !== originalConfigStr.value;
+  const currentThreshold = normalizeApprovalThreshold(committeeThresholdValue.value);
+  const originalThreshold = normalizeApprovalThreshold(originalCommitteeThreshold.value);
+  hasChanges.value = currentConfigStr !== originalConfigStr.value || currentThreshold !== originalThreshold;
 };
 
 // Accordion Logic
@@ -297,16 +352,29 @@ const deleteState = async (key) => {
 const handleSave = async () => {
   isSaving.value = true;
   try {
+    const normalizedThreshold = normalizeApprovalThreshold(committeeThresholdValue.value);
+    if (normalizedThreshold === null) {
+      throw new Error('invalid-threshold');
+    }
+
     const currentConfig = exportListToConfig();
-    const payload = [{
-      config_key: configKey,
-      config_value: JSON.stringify(currentConfig)
-    }];
+    const payload = [
+      {
+        config_key: configKey,
+        config_value: JSON.stringify(currentConfig)
+      },
+      {
+        config_key: committeeThresholdKey,
+        config_value: String(normalizedThreshold)
+      }
+    ];
 
     const success = await configStore.updateConfigurations(payload);
 
     if (success) {
       originalConfigStr.value = JSON.stringify(currentConfig);
+      originalCommitteeThreshold.value = String(normalizedThreshold);
+      committeeThresholdValue.value = String(normalizedThreshold);
       hasChanges.value = false;
       Swal.mixin({
         toast: true, position: 'top-end', timer: 2000, showConfirmButton: false
@@ -315,7 +383,7 @@ const handleSave = async () => {
       throw new Error("Update failed");
     }
   } catch (err) {
-    Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกข้อมูลได้', 'error');
+    Swal.fire('ข้อผิดพลาด', err.message === 'invalid-threshold' ? 'กรุณากรอกวงเงินเกณฑ์เป็นตัวเลขที่มากกว่า 0' : 'ไม่สามารถบันทึกข้อมูลได้', 'error');
   } finally {
     isSaving.value = false;
   }
@@ -358,6 +426,52 @@ onMounted(() => {
 
 .action-buttons .btn-outline-primary {
   color: #0d6efd;
+}
+
+.threshold-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.threshold-copy {
+  flex: 1 1 60%;
+  text-align: left;
+}
+
+.threshold-copy h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.threshold-copy p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.55;
+}
+
+.threshold-form {
+  flex: 0 0 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.threshold-form label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.threshold-hint {
+  color: #6b7280;
+  line-height: 1.45;
 }
 
 .header-actions h3 {

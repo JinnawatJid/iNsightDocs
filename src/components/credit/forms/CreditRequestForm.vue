@@ -147,15 +147,19 @@ import CreditReviewSection from '../workflow/CreditReviewSection.vue';
 import ChangeSummaryModal from '../modals/ChangeSummaryModal.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { workflowConfig, roleLabels } from '@/config/workflow';
+import { useConfigStore } from '@/stores/config';
+import { useApprovalThreshold } from '@/composables/useApprovalThreshold';
 import Swal from 'sweetalert2';
 import axios from '@/utils/axios';
 import { fieldLabels, docLabels } from '@/utils/validationLabels';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 
 const store = useCreditRequestStore();
+const configStore = useConfigStore();
 const router = useRouter();
 const route = useRoute();
+const { approvalThreshold } = useApprovalThreshold();
 
 // Local State for View Mode
 const showAllDetails = ref(false);
@@ -194,11 +198,11 @@ const requestStatus = computed(() => store.requestStatus || 'Draft'); // Default
 const currentRoleLabel = computed(() => roleLabels[requestStatus.value] || store.currentRole);
 const hasData = computed(() => !!store.customer && !!store.customer.id);
 
-// Logic for High Value > 300k
+// Logic for High Value > threshold
 const isHighValue = computed(() => {
     const amtStr = store.transactionData.amount || '0';
     const amt = parseFloat(String(amtStr).replace(/,/g, ''));
-    return amt > 300000;
+    return amt > approvalThreshold.value;
 });
 
 // Check if current request type is one of the special types
@@ -212,6 +216,12 @@ const isSpecialRequestType = computed(() => {
 const isProjectCredit = computed(() => {
     const type = store.transactionData.requestType;
     return type && type.includes('เครดิตโครงการ');
+});
+
+onMounted(async () => {
+    if (!configStore.configurations || Object.keys(configStore.configurations).length === 0) {
+        await configStore.fetchConfigurations();
+    }
 });
 
 watch(isProjectCredit, (newVal) => {

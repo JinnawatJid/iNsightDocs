@@ -72,13 +72,13 @@ export const useCreditRequestStore = defineStore("creditRequest", {
       if (s === "Opened") return "ผู้จัดการภาค";
       if (s === "RegionalSubmitted") return "ผู้จัดการฝ่ายขาย";
       if (s === "SalesSubmitted") return "เจ้าหน้าที่ฝ่ายการเงิน";
-      if (s === "FinanceReviewed") return "ผู้จัดการฝ่ายการเงิน";
-      if (s === "Reviewed") return "กรรมการเครดิต";
+      if (s === "FinanceReviewed") return "ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)";
+      if (s === "Reviewed") return "ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)";
 
       // Legacy support
       if (s === "Submitted") return "ผู้จัดการฝ่ายขาย (HO)";
       if (s === "PendingSales (ชั่วคราว)") return "เจ้าหน้าที่ฝ่ายการเงิน";
-      if (s === "PendingFinance (ชั่วคราว)") return "กรรมการเครดิต";
+      if (s === "PendingFinance (ชั่วคราว)") return "ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)";
       return "";
     },
 
