@@ -92,7 +92,7 @@
       </div>
       <div class="form-grid-three-columns">
             <!-- Field 1: Current Limit (Read Only) - Only for Credit Increase -->
-            <div class="form-group" v-if="isRequestIncrease && isDraftMode">
+            <div class="form-group" v-if="isRequestIncrease">
               <label>วงเงินปัจจุบัน</label>
               <input
                 type="text"
@@ -102,7 +102,7 @@
               />
             </div>
 
-            <div class="form-group" v-if="isDraftMode">
+            <div class="form-group">
               <label>
                   <template v-if="isRequestIncrease">ต้องการวงเงินเพิ่ม</template>
                   <template v-else-if="isChangeTerm || isChangePayment">วงเงินปัจจุบัน (บาท)</template>
@@ -134,7 +134,7 @@
               <span v-if="errors.amount && (isRequestIncrease || !(isChangeTerm || isChangePayment))" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
 
-            <div class="form-group" v-if="isRequestIncrease && isDraftMode">
+            <div class="form-group" v-if="isRequestIncrease">
               <label>วงเงินรวมทั้งหมด</label>
               <input
                 type="text"
@@ -145,7 +145,7 @@
             </div>
 
             <!-- New Split Terms for Draft Mode -->
-            <template v-if="isDraftMode && isTermsVisible">
+            <template v-if="isTermsVisible">
               <div class="form-group">
                 <label>
                     ระยะเวลาเครดิต (กระจก, กาว) <span class="text-red-500">*</span>
