@@ -102,13 +102,9 @@ exports.deleteAdditionalDocument = async (req, res) => {
 
     const file = files[0];
 
-    // Check permissions: only the original uploader or someone bypassing it (e.g., higher role like credit committee)
-    if (file.uploaded_by !== username && !['กรรมการเครดิต', 'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)', 'ผู้อนุมัติ (วงเงิน > 300K)'].includes(actor_role)) {
-      return res
-        .status(403)
-        .json({
-          error: "Permission denied. You can only delete your own documents.",
-        });
+    // Check permissions: only the original uploader may delete the document.
+    if (file.uploaded_by !== username) {
+      return res.status(403).json({ error: "Permission denied. You can only delete your own documents." });
     }
 
     if (!file.file_path) {
