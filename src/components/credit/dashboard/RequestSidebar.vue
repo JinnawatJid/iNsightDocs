@@ -104,6 +104,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useWorkflowConfig } from '@/composables/useWorkflowConfig';
 import { formatRequestType } from '@/utils/requestTypeFormatter';
 import { debounce } from 'lodash';
+import { isBroadPendingVisibilityRole } from '@/config/workflow';
 
 // Import Icons
 import iconSearch from '@/assets/icons/search.svg';
@@ -137,6 +138,7 @@ const fetchData = () => {
   if (activeTab.value === 'pending') {
     let allowedStatuses = [];
     const myRoles = (authStore.user?.roles || []).map(r => r.role);
+    const canSeeAllPending = isBroadPendingVisibilityRole(myRoles);
 
     // --- Dynamic: Derive visible statuses from WORKFLOW_CONFIG ---
     if (workflowStates.value) {
@@ -147,6 +149,13 @@ const fetchData = () => {
           .map(([key]) => key);
         // Also include legacy transient statuses not in WORKFLOW_CONFIG
         allowedStatuses.push('PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
+      } else if (canSeeAllPending) {
+        // Approver-chain roles need queue visibility across the full open workflow,
+        // but actionability is still governed by each state's actionableByRoles.
+        allowedStatuses = Object.entries(workflowStates.value)
+          .filter(([key, s]) => s.type !== 'final' && key !== 'Draft')
+          .map(([key]) => key);
+        allowedStatuses.push('PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
       } else {
         // For all other roles: show statuses where their role is actionable
         allowedStatuses = Object.entries(workflowStates.value)
@@ -156,6 +165,8 @@ const fetchData = () => {
     } else {
       // --- Fallback to hardcoded logic if WORKFLOW_CONFIG is unavailable ---
       if (rbacStore.hasPermission('create_request')) {
+        allowedStatuses.push('Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
+      } else if (canSeeAllPending) {
         allowedStatuses.push('Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
       }
       if (authStore.isRegionalManager) allowedStatuses.push('Opened');

@@ -142,3 +142,14 @@ export const commentPlaceholders = {
     'FinanceReviewed': 'วิเคราะห์ความเสี่ยง, ประวัติการชำระเงิน, และข้อเสนอแนะทางการเงิน...',
     'Reviewed': 'ความเห็นของกรรมการเครดิต...'
 };
+
+export const broadPendingVisibilityRoles = [
+    'ผู้พิจารณาฝ่ายขาย',
+    'ผู้ตรวจสอบเอกสาร',
+    'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)',
+    'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)',
+];
+
+export const isBroadPendingVisibilityRole = (roleNames = []) => {
+    return roleNames.some((roleName) => broadPendingVisibilityRoles.includes(roleName));
+};
