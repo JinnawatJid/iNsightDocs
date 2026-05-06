@@ -56,7 +56,11 @@ The application implements Frontend Role-Based Access Control (RBAC) driven by t
 2. **View-Based Access**: These getters control UI visibility across the application.
    - **Navigation**: The primary CTA in `Navbar.vue` dynamically displays "สร้างคำขอ" (Create Request) for Initiators, but "ค้นหาลูกค้า" (Search Customer) for other roles.
    - **Action Menus**: The "+ เพิ่มคำขอเครดิตใหม่" button on the `/create-credit-request` page is completely hidden from non-initiators to prevent unauthorized request creation.
-   - **Dashboard Filtering**: In the `/pending-requests` dashboard, the `RequestSidebar.vue` automatically filters the API query for the "Pending" tab so users only see requests in statuses relevant to their approval level (e.g., `Opened` for Regional Managers, while Initiators track their submitted requests).
+    - **Dashboard Filtering**: In the `/pending-requests` dashboard, the `RequestSidebar.vue` uses role-aware filtering from workflow configuration:
+       - Initiators track their non-final submitted requests (excluding `Draft`).
+       - Regional Managers still see their actionable queue (e.g., `Opened`, with branch/region constraints).
+       - Approver-chain roles (`ผู้พิจารณาฝ่ายขาย`, `ผู้ตรวจสอบเอกสาร`, `ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)`, `ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)`) can see the broader non-final queue for monitoring.
+       - Editability remains state-scoped: only requests in states where the user role appears in `actionableByRoles` are editable/approvable; all others are read-only.
 3. **Dynamic Identifiers**: The `branchCode` payload from the JWT (`req.user.branchCode`) is actively used by the backend `creditRequestController.js` to dynamically generate localized Transaction IDs. Note that the year used in the Transaction ID follows the Buddhist Era (B.E.) format (e.g., `00TRCA6903/01` for the year 2569 / 2026). Also note that the running number is strictly 2 digits, allowing a maximum of 99 requests per month per branch.
 
 ## 5. Future Security Roadmap
