@@ -69,12 +69,15 @@ import ReviewDashboard from '@/components/credit/dashboard/ReviewDashboard.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useRbacStore } from '@/stores/rbac';
 import { useAuthStore } from '@/stores/auth';
+import { useWorkflowConfig } from '@/composables/useWorkflowConfig';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
 const rbacStore = useRbacStore();
+const { workflowStates, fetchWorkflowConfig } = useWorkflowConfig();
 
 onMounted(() => {
+    fetchWorkflowConfig();
     store.resetState();
 });
 const newComment = ref('');
@@ -213,63 +216,65 @@ const handleRecalculateScore = async (payload) => {
     }
 };
 
+const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled'];
+
 const isReadOnly = computed(() => {
-    // Pending requests are read-only for the Application Tabs (customer data),
-    // but the Review Section (terms/comments) might be editable depending on role.
-    // However, CreditReviewSection's 'readOnly' prop controls the INPUTS.
-    // If the user is an approver, they should be able to edit Terms/Comment.
-    // If the request is truly final (Approved/Rejected/Closed/Canceled), then it's read-only.
+    const status = store.requestStatus;
 
-    // NEW: If the user is just tracking the request (Initiator) and the request is not in Draft
-    // or pending their specific action, it should be entirely read-only.
-    // The current userRole logic in store evaluates to the role that *should* be acting.
-    // We can use authStore to check if the current logged-in user is an Initiator.
+    if (!status) return true;
+    if (finalStatuses.includes(status)) return true;
 
-    // If they are an initiator tracking progress, and the request is past Draft
-    if (rbacStore.hasPermission('create_request') && store.requestStatus && store.requestStatus !== 'Draft') {
-        // Technically Initiators might have actions if it's "PendingSales (ชั่วคราว)" etc.
-        // But normally if it's Opened, RegionalSubmitted etc., it's read-only for them.
+    if (rbacStore.hasPermission('create_request') && status !== 'Draft') {
         const trackingStatuses = ['Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed'];
-        if (trackingStatuses.includes(store.requestStatus)) {
-             return true;
+        if (trackingStatuses.includes(status)) {
+            return true;
         }
     }
 
-    // If Finance Officer is viewing a request they already forwarded (waiting for Approver <300k)
-    if (authStore.isFinanceOfficer && store.requestStatus === 'FinanceReviewed') {
-        return true;
+    const currentState = workflowStates.value?.[status];
+    if (currentState) {
+        const myRoles = (authStore.user?.roles || []).map(r => r.role);
+        const canAct = (currentState.actionableByRoles || []).some(role => myRoles.includes(role));
+        return !canAct;
     }
 
-    const finalStatuses = ['Approved', 'Rejected', 'Closed', 'Canceled'];
-    return finalStatuses.includes(store.requestStatus);
+    if (authStore.isRegionalManager && status === 'Opened') return false;
+    if (authStore.isSalesManager && status === 'RegionalSubmitted') return false;
+    if (authStore.isFinanceOfficer && ['SalesSubmitted', 'FinanceReviewed', 'PendingFinance (ชั่วคราว)'].includes(status)) return false;
+    if (authStore.isFinanceManager && status === 'FinanceReviewed') return false;
+    if (authStore.isCreditCommittee && ['Reviewed', 'PendingSales (ชั่วคราว)'].includes(status)) return false;
+
+    return true;
 });
 
 const showTerms = computed(() => {
-    // Show terms if not Draft (meaning it's in the approval flow)
-    return store.requestStatus && store.requestStatus !== 'Draft';
+    const status = store.requestStatus;
+
+    if (!status) return true;
+    return status !== 'Draft';
 });
 </script>
 
 <style scoped>
 .pending-requests {
-  padding-top: 80px; /* Navbar height */
-  min-height: 100vh;
-  background-color: #F5F5F5;
+    padding-top: 80px; /* Navbar height */
+    min-height: 100vh;
+    background-color: #F5F5F5;
 }
 
 .page-content {
-  padding: 20px 40px;
-  max-width: 1600px;
-  margin: 0 auto;
-  position: relative;
+    padding: 20px 40px;
+    max-width: 1600px;
+    margin: 0 auto;
+    position: relative;
 }
 
 .main-grid {
-  display: grid;
-  grid-template-columns: 300px 1fr 300px; /* Adjusted left column width for the list */
-  gap: 20px;
-  align-items: stretch;
-  height: calc(100vh - 120px); /* Fill remaining height */
+    display: grid;
+    grid-template-columns: 300px 1fr 300px; /* Adjusted left column width for the list */
+    gap: 20px;
+    align-items: stretch;
+    height: calc(100vh - 120px); /* Fill remaining height */
 }
 
 /* Responsive adjustments */

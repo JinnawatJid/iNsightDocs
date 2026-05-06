@@ -30,5 +30,8 @@ The `/api/credit-requests` endpoint is highly optimized for list views. It expli
 ## Status Filtering and Visibility
 The sidebar dynamically determines which requests a user can see based on their roles and the `WORKFLOW_CONFIG` matrix:
 1. **Initiator (Tracking)**: By default, Initiators see all non-final states for requests they submitted to track progress. However, **`Draft` requests are explicitly excluded** from the pending tracking list to prevent clutter. 
-2. **Reviewers/Approvers**: Users with actionable roles will only see requests that currently reside in a state requiring their attention (as defined by `actionableByRoles` in the workflow config).
+2. **Reviewers/Approvers**: The approver-chain roles (`ผู้พิจารณาฝ่ายขาย`, `ผู้ตรวจสอบเอกสาร`, `ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)`, `ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)`) can see the full non-final queue, but only the request state assigned to their role remains editable. All other states render read-only.
 3. **Final States**: Final states (`Approved`, `Rejected`, `Closed`, `Canceled`) are strictly separated and only available within the "History" (ประวัติ) tab.
+
+## Related Reference
+- See `PENDING_REQUESTS_VISIBILITY_POLICY.md` for the canonical queue visibility/editability policy used by implementation and UAT.

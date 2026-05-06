@@ -89,7 +89,7 @@ The next phase (Backend Enforcements & Full RBAC Middleware) is still pending, b
 The `WORKFLOW_CONFIG` and `RBAC_MATRIX_CONFIG` are now actively driving the frontend dashboard (`/pending-requests`) and UI visibility (e.g., NPL Toggles).
 *   **Public Configuration APIs:** Two new endpoints (`GET /api/config/workflow` and `GET /api/config/rbac`) were created to allow all authenticated users (non-admins) to read the workflow configuration and their own permission mappings securely, without requiring full administrative access to all system configs.
 *   **Dynamic Page Navigation & Routing:** The frontend router (`src/router/index.js`) and navigation bar (`Navbar.vue`) now read page-level permissions (e.g., `page:create-credit`, `page:system-configuration`) from the centralized `rbacStore` to dynamically restrict route access and toggle menu visibility based on the configured matrix.
-*   **Dynamic Sidebar Visibility:** `RequestSidebar.vue` now uses the configured `actionableByRoles` from the state machine to determine which requests a user can see based on their roles.
+*   **Dynamic Sidebar Visibility:** `RequestSidebar.vue` now uses the configured workflow state machine to show initiators their tracked queue and the approver chain a broader non-final queue, while `actionableByRoles` still controls which request state can actually be edited.
 *   **Dynamic Action Bar:** `WorkflowActionBar.vue` reads `allowedTransitions` from the configuration to render context-aware action buttons (e.g., Approve, Reject, Send to Committee) automatically.
 *   **Configurable Approval Threshold:** The committee-routing cutover now uses `COMMITTEE_APPROVAL_THRESHOLD_THB` from System Configuration (default `300000`) instead of a hardcoded 300k check.
 
