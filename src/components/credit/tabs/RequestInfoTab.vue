@@ -92,7 +92,7 @@
       </div>
       <div class="form-grid-three-columns">
             <!-- Field 1: Current Limit (Read Only) - Only for Credit Increase -->
-            <div class="form-group" v-if="isRequestIncrease && isDraftMode">
+            <div class="form-group" v-if="isRequestIncrease">
               <label>วงเงินปัจจุบัน</label>
               <input
                 type="text"
@@ -102,7 +102,7 @@
               />
             </div>
 
-            <div class="form-group" v-if="isDraftMode">
+            <div class="form-group">
               <label>
                   <template v-if="isRequestIncrease">ต้องการวงเงินเพิ่ม</template>
                   <template v-else-if="isChangeTerm || isChangePayment">วงเงินปัจจุบัน (บาท)</template>
@@ -134,7 +134,7 @@
               <span v-if="errors.amount && (isRequestIncrease || !(isChangeTerm || isChangePayment))" class="error-text">กรุณาระบุข้อมูล</span>
             </div>
 
-            <div class="form-group" v-if="isRequestIncrease && isDraftMode">
+            <div class="form-group" v-if="isRequestIncrease">
               <label>วงเงินรวมทั้งหมด</label>
               <input
                 type="text"
@@ -145,7 +145,7 @@
             </div>
 
             <!-- New Split Terms for Draft Mode -->
-            <template v-if="isDraftMode && isTermsVisible">
+            <template v-if="isTermsVisible">
               <div class="form-group">
                 <label>
                     ระยะเวลาเครดิต (กระจก, กาว) <span class="text-red-500">*</span>
@@ -157,10 +157,10 @@
                                                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'disabled': !canEditTerms, 'border-red-500': store.showValidationErrors && !store.transactionData.termGS }"
+                  :class="{ 'disabled': !canEditTerms, 'border-red-500': store.showValidationErrors && !displayTermGS }"
                   :disabled="!canEditTerms"
                   placeholder="ระบุระยะเวลาเครดิต (กระจก, กาว)"
-                  v-model="store.transactionData.termGS" :data-empty="!store.transactionData.termGS"
+                  v-model="displayTermGS" :data-empty="!displayTermGS"
                   @input="(e) => handleNumericInput(e, 'termGS', true)"
                 />
                 <div v-if="isFinanceOfficerReviewMode && store.originalTransactionData?.termGS && store.transactionData.termGS != store.originalTransactionData.termGS" class="text-sm text-gray-500 mt-1">
@@ -177,10 +177,10 @@
                                                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'disabled': !canEditTerms, 'border-red-500': store.showValidationErrors && !store.transactionData.termAE }"
+                  :class="{ 'disabled': !canEditTerms, 'border-red-500': store.showValidationErrors && !displayTermAE }"
                   :disabled="!canEditTerms"
                   placeholder="ระบุระยะเวลาเครดิต (อลูมิเนียม, Acc)"
-                  v-model="store.transactionData.termAE" :data-empty="!store.transactionData.termAE"
+                  v-model="displayTermAE" :data-empty="!displayTermAE"
                   @input="(e) => handleNumericInput(e, 'termAE', true)"
                 />
                 <div v-if="isFinanceOfficerReviewMode && store.originalTransactionData?.termAE && store.transactionData.termAE != store.originalTransactionData.termAE" class="text-sm text-gray-500 mt-1">
@@ -197,10 +197,10 @@
                                                 <input
                   type="text"
                   class="form-input"
-                  :class="{ 'disabled': !canEditTerms, 'border-red-500': store.showValidationErrors && !store.transactionData.termYC }"
+                  :class="{ 'disabled': !canEditTerms, 'border-red-500': store.showValidationErrors && !displayTermYC }"
                   :disabled="!canEditTerms"
                   placeholder="ระบุระยะเวลาเครดิต (ยิปซั่ม, ซีลาย)"
-                  v-model="store.transactionData.termYC" :data-empty="!store.transactionData.termYC"
+                  v-model="displayTermYC" :data-empty="!displayTermYC"
                   @input="(e) => handleNumericInput(e, 'termYC', true)"
                 />
                 <div v-if="isFinanceOfficerReviewMode && store.originalTransactionData?.termYC && store.transactionData.termYC != store.originalTransactionData.termYC" class="text-sm text-gray-500 mt-1">
@@ -752,7 +752,8 @@ const totalLimit = computed(() => {
     if (!isRequestIncrease.value) return 'N/A';
 
     const currentLimit = Number(store.customer.current_credit_limit || 0);
-    const requestedAmount = Number(store.transactionData.amount || 0);
+    const amountStr = (!canEditAmount.value && store.originalTransactionData?.amount !== undefined) ? store.originalTransactionData.amount : store.transactionData.amount;
+    const requestedAmount = Number(amountStr || 0);
 
     const sum = currentLimit + requestedAmount;
 
@@ -760,11 +761,39 @@ const totalLimit = computed(() => {
 });
 
 const formattedAmount = computed({
-    get: () => store.transactionData.amount ? Number(store.transactionData.amount).toLocaleString('en-US') : '',
+    get: () => {
+        const val = (!canEditAmount.value && store.originalTransactionData?.amount !== undefined) ? store.originalTransactionData.amount : store.transactionData.amount;
+        return val ? Number(val).toLocaleString('en-US') : '';
+    },
     set: (val) => {
         const num = val.replace(/[^0-9]/g, '');
         store.transactionData.amount = num;
     }
+});
+
+
+const displayTermGS = computed({
+    get: () => {
+        if (!canEditTerms.value && store.originalTransactionData?.termGS !== undefined) return store.originalTransactionData.termGS;
+        return store.transactionData.termGS;
+    },
+    set: (val) => { store.transactionData.termGS = val; }
+});
+
+const displayTermAE = computed({
+    get: () => {
+        if (!canEditTerms.value && store.originalTransactionData?.termAE !== undefined) return store.originalTransactionData.termAE;
+        return store.transactionData.termAE;
+    },
+    set: (val) => { store.transactionData.termAE = val; }
+});
+
+const displayTermYC = computed({
+    get: () => {
+        if (!canEditTerms.value && store.originalTransactionData?.termYC !== undefined) return store.originalTransactionData.termYC;
+        return store.transactionData.termYC;
+    },
+    set: (val) => { store.transactionData.termYC = val; }
 });
 
 const handleAmountInput = (event) => {
