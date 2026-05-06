@@ -106,10 +106,9 @@ const canUpload = computed(() => {
 
 const canDelete = (doc) => {
   const currentUser = authStore.user?.empname || authStore.user?.username;
-  const isCreditCommittee = authStore.isCreditCommittee;
 
-  // You can only delete your own documents unless you are high level approval
-  return doc.uploaded_by === currentUser || isCreditCommittee;
+  // Only the original uploader may delete the document. Others can view only.
+  return doc.uploaded_by === currentUser;
 };
 
 const openUploadModal = () => {
