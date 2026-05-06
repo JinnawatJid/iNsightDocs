@@ -206,6 +206,12 @@ const rbacStore = useRbacStore();
           await CreditRequestService.getCreditRequestDetail(txId);
         const data = response.data.data;
 
+        // DEBUG: Log received response values
+        console.log('[Store Debug] getCreditRequestDetail response for', txId);
+        console.log('[Store Debug] request_amount:', data.request_amount, 'request_reason:', data.request_reason, 'request_credit_term:', data.request_credit_term);
+        console.log('[Store Debug] term_gs:', data.term_gs, 'term_ae:', data.term_ae, 'term_yc:', data.term_yc);
+        console.log('[Store Debug] Full data snapshot:', JSON.stringify(data.snapshot_data?.transaction_data || {}, null, 2));
+
         this.requestId = data.txId; // tx_id
         this.requestStatus = data.status;
 
@@ -354,21 +360,24 @@ const rbacStore = useRbacStore();
           });
         }
 
-        this.originalRequestedAmount = data.request_amount;
+        // Use snapshot fallback for original values too
+        const snapshotTxData = parsedSnapshot.transaction_data || {};
+        this.originalRequestedAmount = data.request_amount || snapshotTxData.amount;
         this.originalRequestedTerms = {
-            termGS: data.term_gs,
-            termAE: data.term_ae,
-            termYC: data.term_yc
+          termGS: data.term_gs || snapshotTxData.termGS,
+          termAE: data.term_ae || snapshotTxData.termAE,
+          termYC: data.term_yc || snapshotTxData.termYC
         };
 
+        // Use snapshot fallback for transaction data (same pattern as backend detail endpoint)
         this.transactionData = {
-          amount: data.request_amount,
-          reason: data.request_reason,
-          creditTerm: data.request_credit_term,
-          termGS: data.term_gs,
-          termAE: data.term_ae,
-          termYC: data.term_yc,
-          requestType: data.request_type || "เครดิตใหม่",
+          amount: data.request_amount || snapshotTxData.amount || "",
+          reason: data.request_reason || snapshotTxData.reason || "",
+          creditTerm: data.request_credit_term || snapshotTxData.creditTerm || "",
+          termGS: data.term_gs || snapshotTxData.termGS || "",
+          termAE: data.term_ae || snapshotTxData.termAE || "",
+          termYC: data.term_yc || snapshotTxData.termYC || "",
+          requestType: data.request_type || snapshotTxData.requestType || "เครดิตใหม่",
           draftComment: parsedSnapshot.transaction_data?.draftComment || "",
           noFinancialData:
             parsedSnapshot.transaction_data?.noFinancialData || false,
@@ -938,6 +947,16 @@ const rbacStore = useRbacStore();
     async saveTransactionData(isSubmit = true) {
       if (!this.customer || !this.customer.id) return;
       try {
+        // GUARD: Don  't overwrite DB with empty transaction data
+        // This prevents clearing legitimate data during auto-save flows
+        const hasValidAmount = (this.transactionData?.amount && String(this.transactionData.amount).trim() !== '');
+        const hasValidCreditTerm = (this.transactionData?.creditTerm && String(this.transactionData.creditTerm).trim() !== '');
+        
+        if (!hasValidAmount && !hasValidCreditTerm && isSubmit === true) {
+          console.warn('[SaveTransactionData] Skipping save: no valid amount or creditTerm found. Preventing data loss.');
+          return;
+        }
+
         const formData = new FormData();
         formData.append("customer_no", this.customer.id);
         formData.append("customer_name", this.customer.name);

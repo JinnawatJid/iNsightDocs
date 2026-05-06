@@ -19,6 +19,10 @@ If a user manually refreshes the page (`F5`), the `onMounted` lifecycle hook in 
 When the frontend loads an existing request, it maps data from the backend `snapshot_data` into the Pinia `transactionData` object. It is strictly required that any field actively used by the frontend (such as `draftComment`) is explicitly extracted during hydration.
 Failure to map a field during the load phase will cause the Pinia store to assume the field is empty, which will subsequently overwrite and erase the database value upon the next background state sync.
 
+For legacy requests, hydration must also fall back to `snapshot_data.transaction_data` when the top-level `CreditRequests` columns are blank or zero. This is required for `request_amount`, `request_credit_term`, `term_gs`, `term_ae`, `term_yc`, and `request_type`, because those values may exist only in the snapshot even when the relational columns were never backfilled.
+
+When the store performs a background save or a score refresh, it must never push an empty `transactionData` object back to the server. Any auto-save flow should verify that the hydrated request already contains a valid amount and credit term before calling the full submit route.
+
 
 When a user initiates a "Save Draft" action on a Credit Request, two rules apply to improve the user experience:
 
@@ -60,13 +64,16 @@ This approach provides a seamless experience:
 *   The URL updates from `/create-credit-request?search=CUST` to `/create-credit-request?search=CUST&txId=TX_123`.
 *   If the user subsequently hits refresh, they are brought right back to their saved draft.
 
-## 3. When to Use `window.location.reload()`
+## 3. Review Dashboard Hydration
+The same hydration rule applies when the frontend opens a request from `/pending-requests`. The store must preserve the submitted values from `snapshot_data` so the review dashboard can render the original amount and terms even when the SQL columns were initially empty. This prevents the dashboard from showing `0` and `-` for requests that were later resaved or backfilled.
+
+## 4. When to Use `window.location.reload()`
 
 Hard page reloads should be avoided during active data entry. They are generally only acceptable in the following scenarios:
 *   **Final Form Submission:** When a user officially submits a Credit Request (moving it from `Draft` to `Opened`), they are finished with that task. Reloading the page clears out all Pinia store state and returns them to a clean "Search" screen, preventing accidental duplicate submissions.
 *   **Authentication Expiration:** If the `HttpOnly` cookie expires or the user logs out.
 
-## 4. Concurrency Control (Optimistic Locking)
+## 5. Concurrency Control (Optimistic Locking)
 
 To prevent multiple users from accidentally overwriting or duplicating a credit request when working on the same customer simultaneously, the application utilizes an Optimistic Locking pattern based on the `tx_id`.
 

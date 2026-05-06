@@ -245,8 +245,10 @@ const requestedAmount = computed(() => {
                 return match[1].replace(/,/g, '');
             }
         }
+        console.log('[ReviewDashboard Debug] requestedAmount from originalRequestedAmount:', store.originalRequestedAmount);
         return store.originalRequestedAmount;
     }
+    console.log('[ReviewDashboard Debug] requestedAmount from transactionData.amount:', store.transactionData.amount);
     return store.transactionData.amount;
 });
 
@@ -265,8 +267,10 @@ const requestedTermsData = computed(() => {
                 };
             }
         }
+        console.log('[ReviewDashboard Debug] requestedTermsData from originalRequestedTerms:', store.originalRequestedTerms);
         return store.originalRequestedTerms;
     }
+    console.log('[ReviewDashboard Debug] requestedTermsData from transactionData:', store.transactionData);
     return store.transactionData;
 });
 

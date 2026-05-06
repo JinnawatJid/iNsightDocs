@@ -59,25 +59,56 @@ exports.getCreditRequestDetail = async (req, res) => {
       }
     }
 
+    const snapshotTransactionData = snapshotData?.transaction_data || {};
+
+    // DEBUG: Log DB columns and snapshot fallback values
+    logger.info(`[DetailEndpoint Debug] tx_id: ${request.tx_id}`);
+    logger.info(`[DetailEndpoint Debug] DB columns - amount: ${request.request_amount}, reason: ${request.request_reason}, creditTerm: ${request.request_credit_term}, term_gs: ${request.term_gs}, term_ae: ${request.term_ae}, term_yc: ${request.term_yc}`);
+    logger.info(`[DetailEndpoint Debug] Snapshot transaction_data - amount: ${snapshotTransactionData.amount}, reason: ${snapshotTransactionData.reason}, creditTerm: ${snapshotTransactionData.creditTerm}, termGS: ${snapshotTransactionData.termGS}, termAE: ${snapshotTransactionData.termAE}, termYC: ${snapshotTransactionData.termYC}`);
+
     const responseData = {
       id: request.id,
       txId: request.tx_id,
       status: request.status,
       customer_no: request.customer_no,
       customer_name: request.customer_name,
-      request_amount: request.request_amount,
-      request_reason: request.request_reason,
-      request_credit_term: request.request_credit_term,
-      term_gs: request.term_gs,
-      term_ae: request.term_ae,
-      term_yc: request.term_yc,
-      request_type: request.request_type,
+      request_amount:
+        request.request_amount !== null && request.request_amount !== undefined
+          ? request.request_amount
+          : snapshotTransactionData.amount,
+      request_reason:
+        request.request_reason !== null && request.request_reason !== undefined
+          ? request.request_reason
+          : snapshotTransactionData.reason,
+      request_credit_term:
+        request.request_credit_term !== null && request.request_credit_term !== undefined
+          ? request.request_credit_term
+          : snapshotTransactionData.creditTerm,
+      term_gs:
+        request.term_gs !== null && request.term_gs !== undefined
+          ? request.term_gs
+          : snapshotTransactionData.termGS,
+      term_ae:
+        request.term_ae !== null && request.term_ae !== undefined
+          ? request.term_ae
+          : snapshotTransactionData.termAE,
+      term_yc:
+        request.term_yc !== null && request.term_yc !== undefined
+          ? request.term_yc
+          : snapshotTransactionData.termYC,
+      request_type:
+        request.request_type !== null && request.request_type !== undefined
+          ? request.request_type
+          : snapshotTransactionData.requestType,
       created_at: request.created_at,
       updated_at: request.updated_at,
       snapshot_data: snapshotData,
       attachments: attachments || [],
       comments: comments || [],
     };
+
+    // DEBUG: Log final response values
+    logger.info(`[DetailEndpoint Debug] Final response - amount: ${responseData.request_amount}, reason: ${responseData.request_reason}, creditTerm: ${responseData.request_credit_term}, term_gs: ${responseData.term_gs}, term_ae: ${responseData.term_ae}, term_yc: ${responseData.term_yc}`);
 
     res.status(200).json({ data: responseData });
   } catch (error) {

@@ -10,6 +10,7 @@ The `CreateCreditRequest` feature STRICTLY enforces a **"Search First"** pattern
    - The main content area shows a generic search prompt.
    - **Single Customer View (SCV) Enforcement:** When a user searches for a customer, the system queries the external API using the customer's 13-digit VAT Registration Number (`vatNo`). If another branch account with the same VAT ID already has an active credit limit (`Fixed Credit Limit > 0`), the UI displays a SweetAlert2 warning ("พบข้อมูลเครดิตเดิม") and automatically redirects the search context to the account holding the credit line. This prevents "limit stacking" across multiple duplicate accounts.
    - **Auto Carry-over:** If the customer has a previously approved request, the system automatically fetches its `snapshot_data` and file attachments. The store merges this data (contact person, billing info, documents) into the current form context and notifies the user via a SweetAlert banner. This behavior is toggleable via the `FEATURE_AUTO_CARRYOVER` backend environment variable.
+  - **Hydration Rule:** When the store loads an existing request, it must prefer the snapshot values for request amount and credit terms if the relational columns are blank. This keeps the form, scoring flow, and review dashboard consistent for older records that were saved before the columns were fully populated.
 
 2. **Context Mode (Dashboard State)**:
    - Triggered when `store.hasSearched = true` AND `!isRequestStarted`.

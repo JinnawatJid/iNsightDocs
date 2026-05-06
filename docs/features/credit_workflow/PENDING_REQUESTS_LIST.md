@@ -27,6 +27,11 @@ Because the sidebar is a compact UI element, strict layout rules are enforced to
 ## API Endpoint Considerations
 The `/api/credit-requests` endpoint is highly optimized for list views. It explicitly selects only the necessary columns in its SQL query. To prevent massive data payloads over the network, after parsing the `snapshot_data` to extract the baseline terms, the `snapshot_data` property is explicitly set to `undefined` before sending the JSON response.
 
+The detail endpoint used by the review dashboard must follow the same snapshot-first rule. If the top-level `CreditRequests` columns are blank or zero for a legacy request, the UI should hydrate from `snapshot_data.transaction_data` instead of treating the record as empty. This keeps the reviewer view aligned with the request that was originally submitted.
+
+## Auto-Score Safeguards
+When the Pending Requests page auto-triggers score calculation for an active request, it must only do so after the request has been hydrated with real amount and credit-term values. If those fields are missing, the score flow should stop instead of calling the full save route, because that route can overwrite valid snapshot data with empty form state.
+
 ## Status Filtering and Visibility
 The sidebar dynamically determines which requests a user can see based on their roles and the `WORKFLOW_CONFIG` matrix:
 1. **Initiator (Tracking)**: By default, Initiators see all non-final states for requests they submitted to track progress. However, **`Draft` requests are explicitly excluded** from the pending tracking list to prevent clutter. 

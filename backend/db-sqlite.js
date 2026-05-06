@@ -324,6 +324,78 @@ const initDB = async () => {
             logger.error('Error migrating legacy credit terms:', e);
         }
 
+        // Migration: Backfill legacy request fields from snapshot_data.transaction_data
+        try {
+            const { rows: creditRequests } = await db.query(`
+                SELECT id, snapshot_data, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type
+                FROM CreditRequests
+            `);
+
+            for (const row of creditRequests || []) {
+                let snapshotData = row.snapshot_data;
+                if (typeof snapshotData === 'string') {
+                    try {
+                        snapshotData = JSON.parse(snapshotData);
+                    } catch (parseErr) {
+                        snapshotData = {};
+                    }
+                }
+
+                const txData = snapshotData?.transaction_data || {};
+                const updates = [];
+                const params = [];
+
+                const pushUpdate = (column, value) => {
+                    updates.push(`${column} = ?`);
+                    params.push(value);
+                };
+
+                const amountMissing = row.request_amount === null || row.request_amount === undefined || row.request_amount === '' || Number(row.request_amount) === 0;
+                if (amountMissing && txData.amount !== undefined && txData.amount !== null && txData.amount !== '') {
+                    pushUpdate('request_amount', txData.amount);
+                }
+
+                const reasonMissing = row.request_reason === null || row.request_reason === undefined || String(row.request_reason).trim() === '';
+                if (reasonMissing && txData.reason !== undefined && txData.reason !== null && txData.reason !== '') {
+                    pushUpdate('request_reason', txData.reason);
+                }
+
+                const creditTermMissing = row.request_credit_term === null || row.request_credit_term === undefined || row.request_credit_term === '' || Number(row.request_credit_term) === 0;
+                if (creditTermMissing && txData.creditTerm !== undefined && txData.creditTerm !== null && txData.creditTerm !== '') {
+                    pushUpdate('request_credit_term', txData.creditTerm);
+                }
+
+                const termGsMissing = row.term_gs === null || row.term_gs === undefined || row.term_gs === '' || Number(row.term_gs) === 0;
+                if (termGsMissing && txData.termGS !== undefined && txData.termGS !== null && txData.termGS !== '') {
+                    pushUpdate('term_gs', txData.termGS);
+                }
+
+                const termAeMissing = row.term_ae === null || row.term_ae === undefined || row.term_ae === '' || Number(row.term_ae) === 0;
+                if (termAeMissing && txData.termAE !== undefined && txData.termAE !== null && txData.termAE !== '') {
+                    pushUpdate('term_ae', txData.termAE);
+                }
+
+                const termYcMissing = row.term_yc === null || row.term_yc === undefined || row.term_yc === '' || Number(row.term_yc) === 0;
+                if (termYcMissing && txData.termYC !== undefined && txData.termYC !== null && txData.termYC !== '') {
+                    pushUpdate('term_yc', txData.termYC);
+                }
+
+                const requestTypeMissing = row.request_type === null || row.request_type === undefined || String(row.request_type).trim() === '';
+                if (requestTypeMissing && txData.requestType !== undefined && txData.requestType !== null && txData.requestType !== '') {
+                    pushUpdate('request_type', txData.requestType);
+                }
+
+                if (updates.length > 0) {
+                    params.push(row.id);
+                    await db.runAsync(`UPDATE CreditRequests SET ${updates.join(', ')} WHERE id = ?`, params);
+                }
+            }
+
+            logger.info('Backfilled legacy CreditRequests fields from snapshot_data.');
+        } catch (e) {
+            logger.error('Error backfilling CreditRequests fields from snapshot_data:', e);
+        }
+
         // Create CreditRequestAttachments table
         await db.runAsync(`CREATE TABLE IF NOT EXISTS CreditRequestAttachments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

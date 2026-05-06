@@ -58,7 +58,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import Navbar from '@/components/shared/Navbar.vue';
 import RequestSidebar from '@/components/credit/dashboard/RequestSidebar.vue';
 import CustomerTitleCard from '@/components/credit/dashboard/CustomerTitleCard.vue';
@@ -73,6 +73,7 @@ import { useAuthStore } from '@/stores/auth';
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
 const rbacStore = useRbacStore();
+const autoScoreAttemptedForRequest = ref(null);
 
 onMounted(() => {
     store.resetState();
@@ -212,6 +213,63 @@ const handleRecalculateScore = async (payload) => {
         throw error;
     }
 };
+
+const ensureScoreForActiveRequest = async () => {
+    const requestId = store.requestId;
+    const requestStatus = store.requestStatus;
+
+    const activeStatuses = new Set([
+        'Opened',
+        'RegionalSubmitted',
+        'SalesSubmitted',
+        'FinanceReviewed',
+        'Reviewed',
+    ]);
+
+    if (!requestId || !requestStatus || !activeStatuses.has(requestStatus)) {
+        return;
+    }
+
+    // GUARD: Don't auto-score if request data is missing or empty
+    // This prevents overwriting legitimate data with empty values
+    const hasValidData = 
+        (store.transactionData?.amount || store.originalRequestedAmount) && 
+        (store.transactionData?.creditTerm || store.originalRequestedTerms);
+    
+    if (!hasValidData) {
+        console.warn('[AutoScore] Skipping auto-score: request data is missing or empty', {
+            amount: store.transactionData?.amount,
+            originalRequestedAmount: store.originalRequestedAmount,
+            creditTerm: store.transactionData?.creditTerm,
+            originalRequestedTerms: store.originalRequestedTerms
+        });
+        return;
+    }
+
+    if (store.creditScore?.totalScore !== undefined) {
+        return;
+    }
+
+    if (autoScoreAttemptedForRequest.value === requestId) {
+        return;
+    }
+
+    autoScoreAttemptedForRequest.value = requestId;
+    await nextTick();
+    await handleRecalculateScore({});
+};
+
+watch(
+    () => [store.requestId, store.requestStatus, store.creditScore?.totalScore],
+    async () => {
+        try {
+            await ensureScoreForActiveRequest();
+        } catch (error) {
+            console.error('Auto score evaluation failed:', error);
+        }
+    },
+    { immediate: true },
+);
 
 const isReadOnly = computed(() => {
     // Pending requests are read-only for the Application Tabs (customer data),
