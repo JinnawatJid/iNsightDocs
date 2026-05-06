@@ -256,6 +256,27 @@ const showTerms = computed(() => {
 </script>
 
 <style scoped>
+.pending-requests {
+    padding-top: 80px; /* Navbar height */
+    min-height: 100vh;
+    background-color: #F5F5F5;
+}
+
+.page-content {
+    padding: 20px 40px;
+    max-width: 1600px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.main-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr 300px; /* Adjusted left column width for the list */
+    gap: 20px;
+    align-items: stretch;
+    height: calc(100vh - 120px); /* Fill remaining height */
+}
+
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .main-grid {
