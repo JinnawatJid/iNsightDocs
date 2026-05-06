@@ -15,8 +15,8 @@ This document defines the Roles and Responsibilities for the Credit Request Appl
 *   **RM**: Regional Manager (ผู้จัดการภาค) - First Level Approver (`ผู้พิจารณาของพื้นที่`)
 *   **SM**: Sales Manager (ผู้จัดการฝ่ายขาย) - Sales Reviewer (`ผู้พิจารณาฝ่ายขาย`)
 *   **FO**: Finance Officer (เจ้าหน้าที่ฝ่ายการเงิน) - Document Screener (`ผู้ตรวจสอบเอกสาร`)
-*   **FM**: Finance Manager / Lower Approval (`ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)`)
-*   **CC**: Credit Committee / Higher Approval (`ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)`)
+*   **FM**: Finance Manager / Lower Approval (UI: `ผู้จัดการฝ่ายการเงิน`, System Role: `ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)`)
+*   **CC**: Credit Committee / Higher Approval (UI: `กรรมการเครดิต`, System Role: `ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)`)
 
 ---
 

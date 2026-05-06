@@ -41,8 +41,8 @@ When a request advances to a new status, a notification is sent to the **Role** 
 *   `Opened` -> Notifies `ผู้พิจารณาของพื้นที่`
 *   `RegionalSubmitted` -> Notifies `ผู้พิจารณาฝ่ายขาย`
 *   `SalesSubmitted` -> Notifies `ผู้ตรวจสอบเอกสาร`
-*   `FinanceReviewed` -> Notifies `ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)`
-*   `Reviewed` -> Notifies `ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)`
+*   `FinanceReviewed` -> Notifies `ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)` (Displayed as `ผู้จัดการฝ่ายการเงิน`)
+*   `Reviewed` -> Notifies `ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)` (Displayed as `กรรมการเครดิต`)
 
 The cutover between lower/higher approval routing is controlled by `COMMITTEE_APPROVAL_THRESHOLD_THB` in System Configuration (default `300000`).
 

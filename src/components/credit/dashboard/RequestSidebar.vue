@@ -249,7 +249,10 @@ const getStatusLabel = (status) => {
         const stateData = workflowStates.value[status];
         // Build a label from the roles that can act on this state
         if (stateData.actionableByRoles.length > 0) {
-            return `รอ ${stateData.actionableByRoles[0]}`;
+            let roleName = stateData.actionableByRoles[0];
+            if (roleName === 'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)') roleName = 'ผู้จัดการฝ่ายการเงิน';
+            else if (roleName === 'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)') roleName = 'กรรมการเครดิต';
+            return `รอ ${roleName}`;
         }
         return stateData.label || 'กำลังดำเนินการ';
     }
@@ -260,8 +263,8 @@ const getStatusLabel = (status) => {
         'Opened': 'ผู้จัดการสาขา',
         'RegionalSubmitted': 'ผู้จัดการภาค',
         'SalesSubmitted': 'เจ้าหน้าที่ฝ่ายการเงิน',
-        'FinanceReviewed': 'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)',
-        'Reviewed': 'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)',
+        'FinanceReviewed': 'ผู้จัดการฝ่ายการเงิน',
+        'Reviewed': 'กรรมการเครดิต',
         'PendingSales (ชั่วคราว)': 'ผู้จัดการฝ่ายขาย',
         'PendingFinance (ชั่วคราว)': 'เจ้าหน้าที่ฝ่ายการเงิน',
     };
