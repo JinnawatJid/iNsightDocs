@@ -20,7 +20,7 @@ The `CreditRequestAttachments` table includes:
 
 ### Soft-Delete & Audit Trail
 When a user "deletes" an additional document:
-1.  **Verification:** The backend endpoint (`DELETE /api/credit-requests/:id/additional-documents/:fileId`) checks if the user deleting the file is the original uploader (via `req.user.empname` or `req.user.username`), or if they possess a high-level role (e.g., "กรรมการเครดิต").
+1.  **Verification:** The backend endpoint (`DELETE /api/credit-requests/:id/additional-documents/:fileId`) checks that the user deleting the file is the **original uploader** (via `req.user.empname` or `req.user.username`). High-role bypass (e.g., "กรรมการเครดิต") has been removed from the normal delete flow. For exceptional admin overrides, use a separate explicit admin flow that requires justification and creates a dedicated audit record.
 2.  **Soft Delete:** The database record is updated to `is_deleted = 1` rather than being dropped. Main queries exclude records where `is_deleted = 1`.
 3.  **Audit Log:** An automated system comment is inserted into the `RequestComments` table (e.g., "เอกสาร [Filename] ถูกลบโดย [Username]").
 4.  **Physical Deletion:** A best-effort `fs.unlinkSync` removes the physical file from the disk to save space. If physical deletion fails, the soft-delete still applies.
@@ -47,4 +47,10 @@ The dedicated `ReviewerDocumentsSection.vue` component handles the display, uplo
 -   **Upload Flow:** Utilizes a `SweetAlert2` modal prompting for a mandatory "Document Name" and file selection.
 -   **Display:** Renders a list of attached documents using a left-aligned card layout. Displays the custom name, original physical filename, upload date, and the uploader's initials/name.
 -   **Preview:** Triggers the native `DocumentPreviewModal.vue` inline using the injected `openPreviewModal` function, ensuring URLs are safely URI encoded (`encodeURIComponent(txId)`).
--   **Access Control:** Computes a `canDelete` boolean. A user is only permitted to delete a file if they are the uploader or a Credit Committee member. Initiators and approvers can both upload, provided the request is not in a 'Draft' state.
+-   **Access Control:** Computes a `canDelete` boolean. A user is only permitted to delete a file if they are the **original uploader**. Initiators and approvers can both upload, provided the request is not in a 'Draft' state.
+
+## Change log / Notes
+
+- 2026-05-06: Enforced uploader-only deletion in both frontend and backend. Branch: `feature/restrict-delete-uploader`. Commit: "Restrict additional-document deletion to original uploader (frontend + backend)".
+
+	- Rationale: Align with product requirement that "คนแนบเอกสารควรสามารถลบได้แค่คนเดียว" (only the uploader can delete attachments). High-role deletion was removed from the normal delete endpoint to avoid accidental or unauthorized removals; admins should use a separate, auditable override process.
