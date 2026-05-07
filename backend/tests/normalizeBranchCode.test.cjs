@@ -31,6 +31,40 @@ const runTests = () => {
     { user: null, expected: '' },
   ];
 
+  const regionBranchCases = [
+    {
+      userBranchCode: '00TR',
+      regionZones: ['TJ', 'TR', 'TS'],
+      expected: ['TJ', 'TR', 'TS'],
+    },
+    {
+      userBranchCode: 'TR',
+      regionZones: ['00TR', '00TS'],
+      expected: ['TR', 'TS'],
+    },
+    {
+      userBranchCode: '00XX',
+      regionZones: ['TJ', 'TR'],
+      expected: [],
+    },
+  ];
+
+  regionBranchCases.forEach(({ userBranchCode, regionZones, expected }) => {
+    const normalizedUserBranchCode = normalizeBranchCode(userBranchCode);
+    const normalizedZones = regionZones
+      .map((code) => normalizeBranchCode(code))
+      .filter((code) => code !== 'XX');
+    const actual = normalizedZones.includes(normalizedUserBranchCode)
+      ? [...new Set(normalizedZones)]
+      : [];
+
+    assert.deepStrictEqual(
+      actual,
+      expected,
+      `normalized branch mapping for ${JSON.stringify(userBranchCode)} and ${JSON.stringify(regionZones)} should be ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
+  });
+
   branchUserCases.forEach(({ user, expected }) => {
     const actual = getBranchCodeFromUser(user);
     assert.strictEqual(
