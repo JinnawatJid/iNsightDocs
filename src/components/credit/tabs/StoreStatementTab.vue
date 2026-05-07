@@ -303,7 +303,7 @@
             {{ analyzing ? 'กำลังวิเคราะห์...' : 'วิเคราะห์และคำนวณคะแนน' }}
           </button>
                     <div
-                        v-if="isEditing && !store.transactionData.noFinancialData && !store.isScoreCalculated"
+                        v-if="isEditing && store.showScoreCalculationWarning"
                         class="text-danger mt-2"
                         style="font-size: 0.85rem; font-weight: 500;"
                     >

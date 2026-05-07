@@ -58,6 +58,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
     showValidationErrors: false,
     isScoreCalculated: false, // Track if financial analysis button was clicked
+    showScoreCalculationWarning: false,
 
     blacklistAlert: null,
     loadedFromPrevious: false,
@@ -1238,12 +1239,19 @@ const rbacStore = useRbacStore();
       }
 
       // Check if financial analysis has been completed (when submitting)
-      if (isSubmit && isFinancialMandatory) {
-        // Enforce for both individual and company customers unless the request
-        // is explicitly marked as having no financial data.
-        if (!this.transactionData.noFinancialData && !this.isScoreCalculated) {
-          missingFields.push('score_calculation');
-        }
+      const missingScoreCalculation =
+        isSubmit &&
+        isFinancialMandatory &&
+        !this.transactionData.noFinancialData &&
+        !this.isScoreCalculated;
+
+      if (missingScoreCalculation) {
+        missingFields.push("score_calculation");
+      }
+
+      // Show inline warning only after submit-attempt validation detects this exact issue.
+      if (isSubmit) {
+        this.showScoreCalculationWarning = missingScoreCalculation;
       }
 
       if (missingFields.length > 0 || missingFiles.length > 0) {
@@ -1303,6 +1311,7 @@ const rbacStore = useRbacStore();
       this.comments = [];
       this.viewingHistory = false;
       this.showValidationErrors = false;
+      this.showScoreCalculationWarning = false;
       this.blacklistAlert = null;
       this.loadedFromPrevious = false;
       this.transactionData = {
@@ -1327,6 +1336,7 @@ const rbacStore = useRbacStore();
 
     clearFormData() {
       this.showValidationErrors = false;
+      this.showScoreCalculationWarning = false;
       this.blacklistAlert = null;
       this.loadedFromPrevious = false;
       this.customer = {
@@ -1380,14 +1390,19 @@ const rbacStore = useRbacStore();
 
     clearValidation() {
       this.showValidationErrors = false;
+      this.showScoreCalculationWarning = false;
     },
 
     setScoreCalculated(isCalculated) {
       this.isScoreCalculated = isCalculated;
+      if (isCalculated) {
+        this.showScoreCalculationWarning = false;
+      }
     },
 
     resetScoreCalculation() {
       this.isScoreCalculated = false;
+      this.showScoreCalculationWarning = false;
     },
 
     setActiveTab(tabId) {
