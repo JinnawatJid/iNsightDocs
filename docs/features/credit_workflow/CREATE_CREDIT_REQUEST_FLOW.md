@@ -83,3 +83,9 @@ When a reviewer views a request via the `ReviewDashboard.vue` component, the sys
 - If missing, validation returns `score_calculation` and the UI must:
   - include this item in the grouped missing-field SweetAlert
   - show the inline red helper text under the analyze button only after the failed submit attempt
+
+## 11. Action Buttons Behavior Across Tabs
+- In `/create-credit-request`, the **Save Draft** action must be visible at the bottom of **every tab** while the form is editable (non-readonly).
+- Forward workflow actions (for example Submit/Approve) remain visible only on the final step where workflow progression is intended.
+- For non-final steps, the **Next** button is used for tab navigation.
+- This rule prevents users from being forced to navigate to the final tab just to save partial progress.
