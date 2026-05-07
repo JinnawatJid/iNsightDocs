@@ -302,6 +302,13 @@
           >
             {{ analyzing ? 'กำลังวิเคราะห์...' : 'วิเคราะห์และคำนวณคะแนน' }}
           </button>
+                    <div
+                        v-if="isEditing && !store.transactionData.noFinancialData && !store.isScoreCalculated"
+                        class="text-danger mt-2"
+                        style="font-size: 0.85rem; font-weight: 500;"
+                    >
+                        กรุณากดปุ่มวิเคราะห์และคำนวณคะแนนก่อนส่งคำขอ
+                    </div>
         </div>
       </div>
 
