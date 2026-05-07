@@ -1078,6 +1078,17 @@ exports.getCreditRequests = async (req, res) => {
     
     // Determine if user is a regional manager (needed for debug logging scope)
     const isRegionalManager = roles.some((r) => r.role === 'ผู้พิจารณาของพื้นที่');
+    
+    // Determine if user is a board member (support committee member)
+    const hasBoardAccess = roles.some((r) => [
+      'ผู้พิจารณาฝ่ายขาย',
+      'ผู้ตรวจสอบเอกสาร',
+      'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)',
+      'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)'
+    ].includes(r.role));
+
+    // Log user roles for debugging access issues
+    logger.info(`[DEBUG] User "${username}" roles: ${roles.map(r => r.role).join(', ') || 'none'}`);
 
     if (status) {
       // Split status by comma if multiple statuses are provided (e.g. ?status=Submitted,Reviewed)
@@ -1095,7 +1106,7 @@ exports.getCreditRequests = async (req, res) => {
       }
 
       // Regional Managers should only see requests from their assigned branches
-      logger.info(`[DEBUG] isRegionalManager: ${isRegionalManager}, hasFinalStatuses: ${hasFinalStatuses}, username: ${username}`);
+      logger.info(`[DEBUG] isRegionalManager: ${isRegionalManager}, hasBoardAccess: ${hasBoardAccess}, hasFinalStatuses: ${hasFinalStatuses}, username: ${username}`);
       
       if (isRegionalManager && !hasFinalStatuses) {
         try {
