@@ -1084,7 +1084,8 @@ exports.getCreditRequests = async (req, res) => {
       'ผู้พิจารณาฝ่ายขาย',
       'ผู้ตรวจสอบเอกสาร',
       'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)',
-      'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)'
+      'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)',
+      'ผ่านการตรวจสอบ'  // Add this if it's a valid board role on your server
     ].includes(r.role));
     
     logger.info(`[DEBUG] Board Access Check - Found roles matching board: ${hasBoardAccess}`);
