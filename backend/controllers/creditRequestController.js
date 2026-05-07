@@ -1075,6 +1075,9 @@ exports.getCreditRequests = async (req, res) => {
     `;
     const params = [];
     const conditions = [];
+    
+    // Determine if user is a regional manager (needed for debug logging scope)
+    const isRegionalManager = roles.some((r) => r.role === 'ผู้พิจารณาของพื้นที่');
 
     if (status) {
       // Split status by comma if multiple statuses are provided (e.g. ?status=Submitted,Reviewed)
@@ -1092,16 +1095,20 @@ exports.getCreditRequests = async (req, res) => {
       }
 
       // Regional Managers should only see requests from their assigned branches
-      const isRegionalManager = roles.some((r) => r.role === 'ผู้พิจารณาของพื้นที่');
+      logger.info(`[DEBUG] isRegionalManager: ${isRegionalManager}, hasFinalStatuses: ${hasFinalStatuses}, username: ${username}`);
+      
       if (isRegionalManager && !hasFinalStatuses) {
         try {
           let regionConfig = null;
           const now = Date.now();
           if (regionBranchConfigCache && (now - regionBranchConfigCacheTime < CACHE_TTL)) {
               regionConfig = regionBranchConfigCache;
+              logger.info(`[DEBUG] Using cached regionBranchConfig`);
           } else {
+              logger.info(`[DEBUG] Fetching regionBranchConfig from DB...`);
               const configRes = await db.query("SELECT config_value FROM Configurations WHERE config_key = 'REGION_BRANCH_CONFIG'");
               const rows = configRes.rows || configRes.recordset || configRes; // Handle different DB wrapper return formats (Postgres, MSSQL, raw array)
+              logger.info(`[DEBUG] Config query returned ${rows ? rows.length : 0} rows`);
               if (rows && rows.length > 0) {
                   let configVal = rows[0].config_value;
                   if (typeof configVal === 'string') {
@@ -1110,35 +1117,58 @@ exports.getCreditRequests = async (req, res) => {
                   regionConfig = configVal;
                   regionBranchConfigCache = regionConfig;
                   regionBranchConfigCacheTime = now;
+                  logger.info(`[DEBUG] regionConfig loaded: ${JSON.stringify(regionConfig)}`);
               }
           }
 
           if (regionConfig) {
-
-            const userBranchCode = req.user?.branchCode || "";
+            const rawBranchCode = getBranchCodeFromUser(req.user);
+            const userBranchCode = normalizeBranchCode(rawBranchCode);
+            logger.info(`[DEBUG] Raw branch: "${rawBranchCode}", Normalized: "${userBranchCode}"`);
+            
             let allowedBranches = [];
 
-            // Find which region the user belongs to
+            // Find which region the user belongs to using normalized branch codes.
             for (const region of regionConfig) {
-              const hasBranch = region.zones.some(z => z.code === userBranchCode);
+              logger.info(`[DEBUG] Checking region: ${region.region}`);
+              const normalizedZones = (region.zones || [])
+                .map((zone) => ({
+                  ...zone,
+                  normalizedCode: normalizeBranchCode(zone.code),
+                }))
+                .filter((zone) => zone.normalizedCode !== "XX");
+
+              logger.info(`[DEBUG] Normalized zones in region: ${JSON.stringify(normalizedZones.map(z => ({ code: z.code, normalizedCode: z.normalizedCode })))}`);
+
+              const hasBranch = normalizedZones.some(
+                (zone) => zone.normalizedCode === userBranchCode,
+              );
+
+              logger.info(`[DEBUG] Does region contain user branch "${userBranchCode}"? ${hasBranch}`);
+
               if (hasBranch) {
-                allowedBranches = region.zones.map(z => z.code);
+                allowedBranches = [...new Set(normalizedZones.map((zone) => zone.normalizedCode))];
+                logger.info(`[DEBUG] Found matching region! allowedBranches: ${JSON.stringify(allowedBranches)}`);
                 break;
               }
             }
 
             if (allowedBranches.length > 0) {
-              // As requested by user, don't rely on the '00' prefix.
-              // tx_id format is e.g. 00TRCA6903/01. We can use __TR% or %TR%
+              // tx_id format is e.g. TRCA6905/01 or 00TRCA6905/01, so match on the branch code directly.
+              // Use a simpler pattern: just the branch code followed by anything
               const branchConditions = allowedBranches.map(() => `tx_id LIKE ?`).join(" OR ");
+              const branchParams = allowedBranches.map((code) => `${code}%`);
+              logger.info(`[DEBUG] Branch filter: (${branchConditions}) with params: ${JSON.stringify(branchParams)}`);
               conditions.push(`(${branchConditions})`);
-              allowedBranches.forEach(code => params.push(`__${code}%`));
+              allowedBranches.forEach((code) => params.push(`${code}%`));
             } else {
+              logger.warn(`[DEBUG] No allowedBranches found for user with branch "${userBranchCode}"`);
               // If branch not found in any region config, show nothing or fallback gracefully.
               // To restrict to nothing, we could enforce an impossible condition.
               conditions.push(`1 = 0`);
             }
           } else {
+             logger.warn(`[DEBUG] regionConfig is null or empty`);
              conditions.push(`1 = 0`);
           }
         } catch (e) {
@@ -1165,7 +1195,26 @@ exports.getCreditRequests = async (req, res) => {
 
     sql += ` ORDER BY updated_at DESC`;
 
+    logger.info(`[DEBUG] Final SQL: ${sql}`);
+    logger.info(`[DEBUG] SQL params: ${JSON.stringify(params)}`);
+
     const { rows } = await db.query(sql, params);
+    
+    logger.info(`[DEBUG] Query returned ${rows ? rows.length : 0} total rows`);
+    
+    // DEBUG: Check what requests exist in the database for this branch
+    if (rows.length === 0 && isRegionalManager) {
+      logger.info(`[DEBUG] Query returned 0 rows. Checking what requests exist for branch TR...`);
+      let debugSql = `SELECT tx_id, customer_no, status FROM CreditRequests WHERE tx_id LIKE ? OR tx_id LIKE ? ORDER BY updated_at DESC LIMIT 10`;
+      let { rows: debugRows } = await db.query(debugSql, [`%TR%`, `%00TR%`]);
+      logger.info(`[DEBUG] Requests with TR in tx_id: ${JSON.stringify(debugRows)}`);
+      
+      // Also check all requests with status Opened or FinanceReviewed
+      let debugStatusSql = `SELECT tx_id, customer_no, status FROM CreditRequests WHERE status IN (?, ?) ORDER BY updated_at DESC LIMIT 10`;
+      let { rows: debugStatusRows } = await db.query(debugStatusSql, [`Opened`, `FinanceReviewed`]);
+      logger.info(`[DEBUG] All requests with status Opened/FinanceReviewed: ${JSON.stringify(debugStatusRows)}`);
+    }
+
 
     // Parse snapshot_data to extract transaction_data terms in case direct columns are null
     const processedRows = rows.map(row => {
