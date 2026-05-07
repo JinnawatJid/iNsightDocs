@@ -346,6 +346,7 @@ const handleAction = async (btn) => {
         if (!validation.valid) {
              console.log('Validation Failed:', validation);
              store.triggerValidation();
+             const needsScoreCalculation = validation.missingFields?.includes('score_calculation');
 
              const groupByTab = (items, dict) => {
                  const grouped = {};
@@ -377,6 +378,9 @@ const handleAction = async (btn) => {
              if (hasMissingFields || hasMissingDocs) {
                  htmlText = `<div style="text-align: left; background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 6px; font-size: 14px; margin-top: 10px; border: 1px solid #ffeeba;">`;
                  htmlText += `<p style="margin-bottom: 10px;"><strong>กรุณากลับไปตรวจสอบและระบุข้อมูลดังต่อไปนี้:</strong></p>`;
+                 if (needsScoreCalculation) {
+                     htmlText += `<p style="margin-bottom: 10px;"><strong>หมายเหตุ:</strong> กรุณากดปุ่ม <strong>วิเคราะห์และคำนวณคะแนน</strong> ในหน้า <strong>เอกสารการเงิน</strong> ก่อนส่งคำขอ</p>`;
+                 }
 
                  if (hasMissingFields) {
                      htmlText += `<p style="margin-bottom: 5px;">📝 <strong>ข้อมูลที่ต้องระบุ:</strong></p>`;
