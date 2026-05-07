@@ -48,7 +48,10 @@ export const fieldLabels = {
     'bank_guarantee_amount': { label: 'จำนวนเงิน (Bank Guarantee)', tab: 'เอกสารการเงิน' },
     'bank_guarantee_expiry_date': { label: 'วันหมดอายุ (Bank Guarantee)', tab: 'เอกสารการเงิน' },
     'cash_guarantee_amount': { label: 'จำนวนเงิน (หลักฐานเงินค้ำประกัน)', tab: 'เอกสารการเงิน' },
-    'cash_guarantee_expiry_date': { label: 'วันหมดอายุ (หลักฐานเงินค้ำประกัน)', tab: 'เอกสารการเงิน' }
+    'cash_guarantee_expiry_date': { label: 'วันหมดอายุ (หลักฐานเงินค้ำประกัน)', tab: 'เอกสารการเงิน' },
+
+    // Score Calculation requirement
+    'score_calculation': { label: 'วิเคราะห์และคำนวณคะแนน', tab: 'เอกสารการเงิน' }
 };
 
 export const docLabels = {

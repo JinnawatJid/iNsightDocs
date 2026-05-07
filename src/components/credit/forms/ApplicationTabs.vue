@@ -9,6 +9,8 @@
           @click="handleTabClick(tab.id)"
         >
           {{ tab.label }}
+          <!-- Visual indicator for pending score calculation -->
+          <span v-if="tab.id === 'financial' && needsScoreCalculation" class="tab-indicator" title="วิเคราะห์และคำนวณคะแนนจำเป็น">⚠️</span>
         </div>
       </div>
     </div>
@@ -36,6 +38,17 @@ const store = useCreditRequestStore();
 const currentTab = computed({
   get: () => store.activeTab,
   set: (val) => store.setActiveTab(val)
+});
+
+// Check if score calculation is needed (for visual indicator)
+const needsScoreCalculation = computed(() => {
+  // Only show indicator if:
+  // - It's a company customer
+  // - Financial analysis hasn't been calculated yet
+  // - "No financial data" is not marked as true
+  return store.isCompany && 
+         !store.isScoreCalculated && 
+         !store.transactionData.noFinancialData;
 });
 
 const tabs = computed(() => {
@@ -122,6 +135,17 @@ const currentTabComponent = computed(() => {
   position: relative;
   transition: all 0.2s;
   border-radius: 50px;
+}
+
+.tab-item .tab-indicator {
+  margin-left: 4px;
+  font-size: 1.2em;
+  animation: pulse-indicator 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-indicator {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .tab-item:hover {

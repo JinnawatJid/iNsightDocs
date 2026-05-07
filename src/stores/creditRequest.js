@@ -57,6 +57,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
     comments: [],
 
     showValidationErrors: false,
+    isScoreCalculated: false, // Track if financial analysis button was clicked
 
     blacklistAlert: null,
     loadedFromPrevious: false,
@@ -1236,6 +1237,14 @@ const rbacStore = useRbacStore();
         }
       }
 
+      // Check if financial analysis has been completed (when submitting)
+      if (isSubmit && isFinancialMandatory && this.isCompany) {
+        // Only enforce if noFinancialData is NOT marked as true
+        if (!this.transactionData.noFinancialData && !this.isScoreCalculated) {
+          missingFields.push('score_calculation');
+        }
+      }
+
       if (missingFields.length > 0 || missingFiles.length > 0) {
         this.showValidationErrors = true;
         return { valid: false, missingFields, missingFiles };
@@ -1370,6 +1379,14 @@ const rbacStore = useRbacStore();
 
     clearValidation() {
       this.showValidationErrors = false;
+    },
+
+    setScoreCalculated(isCalculated) {
+      this.isScoreCalculated = isCalculated;
+    },
+
+    resetScoreCalculation() {
+      this.isScoreCalculated = false;
     },
 
     setActiveTab(tabId) {
