@@ -43,11 +43,9 @@ const currentTab = computed({
 // Check if score calculation is needed (for visual indicator)
 const needsScoreCalculation = computed(() => {
   // Only show indicator if:
-  // - It's a company customer
   // - Financial analysis hasn't been calculated yet
   // - "No financial data" is not marked as true
-  return store.isCompany && 
-         !store.isScoreCalculated && 
+  return !store.isScoreCalculated &&
          !store.transactionData.noFinancialData;
 });
 

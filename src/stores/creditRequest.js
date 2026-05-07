@@ -1238,8 +1238,9 @@ const rbacStore = useRbacStore();
       }
 
       // Check if financial analysis has been completed (when submitting)
-      if (isSubmit && isFinancialMandatory && this.isCompany) {
-        // Only enforce if noFinancialData is NOT marked as true
+      if (isSubmit && isFinancialMandatory) {
+        // Enforce for both individual and company customers unless the request
+        // is explicitly marked as having no financial data.
         if (!this.transactionData.noFinancialData && !this.isScoreCalculated) {
           missingFields.push('score_calculation');
         }
