@@ -259,13 +259,17 @@ const availableActions = computed(() => {
 
 // Group Actions
 const secondaryActions = computed(() => {
-    // Actions that are not submit or approve (e.g., Save, Reject)
-    return availableActions.value.filter(a => a.variant === 'secondary' || a.variant === 'reject');
+    // Actions that should be available on every tab (e.g., Save, Reject)
+    return availableActions.value.filter(a =>
+        a.action === 'saveDraft' || a.variant === 'secondary' || a.variant === 'reject'
+    );
 });
 
 const primaryActions = computed(() => {
     // Actions that push the workflow forward (e.g., Submit, Approve)
-    return availableActions.value.filter(a => a.variant !== 'secondary' && a.variant !== 'reject');
+    return availableActions.value.filter(a =>
+        a.action !== 'saveDraft' && a.variant !== 'secondary' && a.variant !== 'reject'
+    );
 });
 
 // Tab navigation logic
