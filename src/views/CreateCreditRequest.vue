@@ -17,14 +17,6 @@
           <RequestStatus v-if="store.hasSearched" />
         </div>
         <div class="grid-col center">
-          <div
-            v-if="isOcrEnabled && rbacStore.hasPermission('create_request')"
-            class="smart-import-wrapper"
-          >
-            <button class="btn-smart-import" @click="showSmartImport = true">
-              📷 Smart Import (Thai ID)
-            </button>
-          </div>
           <CreditRequestHeader
             @search="handleSearch"
             @start-request="handleStartRequest"
@@ -84,13 +76,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Smart Import Modal -->
-    <SmartImportModal
-      v-if="showSmartImport"
-      @close="showSmartImport = false"
-      @data-extracted="handleOcrData"
-    />
   </div>
 </template>
 
@@ -103,7 +88,6 @@ import CreditRequestForm from "@/components/credit/forms/CreditRequestForm.vue";
 import CustomerProfileDashboard from "@/components/credit/dashboard/CustomerProfileDashboard.vue";
 import CreditScoreSummary from "@/components/credit/scoring/CreditScoreSummary.vue";
 import DocumentChecklist from "@/components/credit/workflow/DocumentChecklist.vue";
-import SmartImportModal from "@/components/credit/modals/SmartImportModal.vue";
 import { useCreditRequestStore } from "@/stores/creditRequest";
 import { useFeatureFlag } from "@/composables/useFeatureFlag";
 import { useRbacStore } from '@/stores/rbac';
@@ -117,8 +101,7 @@ const store = useCreditRequestStore();
 const authStore = useAuthStore();
 const rbacStore = useRbacStore();
 const route = useRoute();
-const { isOcrEnabled } = useFeatureFlag();
-const showSmartImport = ref(false);
+useFeatureFlag();
 const isRequestStarted = ref(false);
 
 const closePreview = () => {
@@ -228,60 +211,6 @@ watch(
     }
   },
 );
-
-/**
- * Maps the extracted OCR data directly into the Pinia store's state,
- * automatically pre-filling the customer application fields.
- */
-const handleOcrData = (data) => {
-  // Map extracted data to store
-
-  // 1. Name
-  const fullName =
-    `${data.title || ""} ${data.firstName} ${data.lastName}`.trim();
-  store.customer.name = fullName;
-
-  // 2. ID Number
-  store.customer.tax_id = data.idNumber;
-  // Ensure we have a customer ID so the form renders (hasData check)
-  if (!store.customer.id) {
-    store.customer.id = "NEW";
-  }
-
-  // 3. Address Parsing
-  const fullAddr = data.address || "";
-
-  // Basic Regex for Thai Address Components
-  const zipMatch = fullAddr.match(/\d{5}$/);
-  const provinceMatch = fullAddr.match(/(?:จ\.|จังหวัด)\s*([^\s]+)/);
-  const districtMatch = fullAddr.match(/(?:อ\.|อำเภอ|เขต)\s*([^\s]+)/);
-  const subMatch = fullAddr.match(/(?:ต\.|ตำบล|แขวง)\s*([^\s]+)/);
-
-  if (zipMatch) store.customer.zipcode = zipMatch[0];
-  if (provinceMatch) store.customer.province = provinceMatch[1];
-  if (districtMatch) store.customer.district = districtMatch[1];
-  if (subMatch) store.customer.subdistrict = subMatch[1];
-
-  // Put full address in line 1
-  store.customer.address = fullAddr;
-
-  // Also update Residence keys
-  store.customer.residence_address = store.customer.address;
-  store.customer.residence_province = store.customer.province;
-  store.customer.residence_district = store.customer.district;
-  store.customer.residence_subdistrict = store.customer.subdistrict;
-  store.customer.residence_zipcode = store.customer.zipcode;
-
-  // 4. Force UI Update
-  store.displayCustomer = { ...store.customer };
-  store.hasSearched = true; // Unlock the form
-
-  // Note: OCR Flow mimics a "Search" result but for a NEW customer.
-  // We should decide if we auto-start request for OCR or show dashboard.
-  // Given OCR is for "New Credit", maybe we should let them confirm on Dashboard?
-  // Let's stick to Dashboard pattern for consistency.
-  isRequestStarted.value = false;
-};
 </script>
 
 <style scoped>

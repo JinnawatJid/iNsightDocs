@@ -1,7 +1,6 @@
 import { ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
-const isOcrEnabled = ref(false);
 const isFinancialDraftEnabled = ref(false);
 
 /**
@@ -9,7 +8,6 @@ const isFinancialDraftEnabled = ref(false);
  * Uses URL query parameters to enable hidden features and persists them in sessionStorage.
  *
  * Usage:
- * URL: http://.../page?feature=ocr_beta
  * URL: http://.../page?feature=financial_draft
  */
 export function useFeatureFlag() {
@@ -45,17 +43,6 @@ export function useFeatureFlag() {
 
     // console.log('[FeatureFlag] Checking... Param:', featureParam);
 
-    // --- OCR Feature ---
-    if (featureParam === 'ocr_beta') {
-      sessionStorage.setItem('OCR_ENABLED', 'true');
-      isOcrEnabled.value = true;
-    } else if (featureParam === 'ocr_off') {
-      sessionStorage.removeItem('OCR_ENABLED');
-      isOcrEnabled.value = false;
-    } else {
-      isOcrEnabled.value = sessionStorage.getItem('OCR_ENABLED') === 'true';
-    }
-
     // --- Financial Draft Feature ---
     if (featureParam === 'financial_draft') {
       // Transient flag: Enabled for this session/SPA lifecycle, but not persisted to storage
@@ -80,7 +67,6 @@ export function useFeatureFlag() {
   }
 
   return {
-    isOcrEnabled,
     isFinancialDraftEnabled
   };
 }
