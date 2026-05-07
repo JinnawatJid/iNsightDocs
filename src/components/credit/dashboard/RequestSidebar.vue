@@ -140,6 +140,11 @@ const fetchData = () => {
     const myRoles = (authStore.user?.roles || []).map(r => r.role);
     const canSeeAllPending = isBroadPendingVisibilityRole(myRoles);
 
+    // DEBUG: Log role detection
+    console.log('[DEBUG] RequestSidebar fetchData - myRoles:', myRoles);
+    console.log('[DEBUG] RequestSidebar fetchData - canSeeAllPending:', canSeeAllPending);
+    console.log('[DEBUG] RequestSidebar fetchData - workflowStates loaded:', !!workflowStates.value);
+
     // --- Dynamic: Derive visible statuses from WORKFLOW_CONFIG ---
     if (workflowStates.value) {
       if (rbacStore.hasPermission('create_request')) {
@@ -164,9 +169,11 @@ const fetchData = () => {
       }
     } else {
       // --- Fallback to hardcoded logic if WORKFLOW_CONFIG is unavailable ---
+      console.warn('[WARN] RequestSidebar fetchData - WORKFLOW_CONFIG not loaded, using fallback');
       if (rbacStore.hasPermission('create_request')) {
         allowedStatuses.push('Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
       } else if (canSeeAllPending) {
+        // Board access users should see all pending statuses
         allowedStatuses.push('Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)');
       }
       if (authStore.isRegionalManager) allowedStatuses.push('Opened');
@@ -179,6 +186,8 @@ const fetchData = () => {
     // De-duplicate
     const uniqueStatuses = [...new Set(allowedStatuses)];
     const statusQuery = uniqueStatuses.length > 0 ? uniqueStatuses.join(',') : '';
+
+    console.log('[DEBUG] RequestSidebar fetchData - Final uniqueStatuses:', uniqueStatuses);
 
     if (statusQuery) {
       store.fetchRequests(statusQuery, query);
