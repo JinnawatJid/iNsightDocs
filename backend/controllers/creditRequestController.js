@@ -1086,9 +1086,13 @@ exports.getCreditRequests = async (req, res) => {
       'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)',
       'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)'
     ].includes(r.role));
+    
+    logger.info(`[DEBUG] Board Access Check - Found roles matching board: ${hasBoardAccess}`);
 
     // Log user roles for debugging access issues
-    logger.info(`[DEBUG] User "${username}" roles: ${roles.map(r => r.role).join(', ') || 'none'}`);
+    logger.info(`[DEBUG] User "${username}" roles array: ${JSON.stringify(roles)}`);
+    logger.info(`[DEBUG] User "${username}" roles count: ${Array.isArray(roles) ? roles.length : 'NOT_AN_ARRAY'}`);
+    logger.info(`[DEBUG] User "${username}" full req.user: ${JSON.stringify(req.user)}`);
 
     if (status) {
       // Split status by comma if multiple statuses are provided (e.g. ?status=Submitted,Reviewed)

@@ -23,6 +23,8 @@ const authMiddleware = (req, res, next) => {
             ],
             branchCode: "00TR"
         };
+        
+        logger.info(`[DEBUG] Auth disabled - Using DEV_MODE_USER with role: ${devRole}`);
         return next();
     }
 
@@ -58,6 +60,9 @@ const authMiddleware = (req, res, next) => {
 
         // Attach decoded user info to the request
         req.user = decoded;
+        
+        // Log decoded user info for debugging
+        logger.info(`[DEBUG] JWT Decoded - username: ${decoded.username}, roles: ${JSON.stringify(decoded.roles)}, branchCode: ${decoded.branchCode}`);
 
         // Ensure user is associated with this specific app if needed
         const appRoles = decoded.roles || [];
