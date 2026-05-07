@@ -302,6 +302,13 @@
           >
             {{ analyzing ? 'กำลังวิเคราะห์...' : 'วิเคราะห์และคำนวณคะแนน' }}
           </button>
+                    <div
+                        v-if="isEditing && store.showScoreCalculationWarning"
+                        class="text-danger mt-2"
+                        style="font-size: 0.85rem; font-weight: 500;"
+                    >
+                        กรุณากดปุ่มวิเคราะห์และคำนวณคะแนนก่อนส่งคำขอ
+                    </div>
         </div>
       </div>
 
@@ -663,10 +670,31 @@ watch(() => files.bankStatement, (v) => store.updateFile('bank_statement', v));
 watch(() => files.bankGuarantee, (v) => store.updateFile('bank_guarantee_doc', v));
 watch(() => files.letterGuarantee, (v) => store.updateFile('letter_guarantee_doc', v));
 watch(() => files.cashDeposit, (v) => store.updateFile('cash_deposit_doc', v));
-watch(() => files.balanceSheet, (v) => store.updateFile('balance_sheet_doc', v));
-watch(() => files.profitLoss, (v) => store.updateFile('profit_loss_doc', v));
-watch(() => files.financialRatios, (v) => store.updateFile('financial_ratios_doc', v));
+watch(() => files.balanceSheet, (v) => {
+  store.updateFile('balance_sheet_doc', v);
+  store.resetScoreCalculation(); // Reset flag when balance sheet changes
+});
+watch(() => files.profitLoss, (v) => {
+  store.updateFile('profit_loss_doc', v);
+  store.resetScoreCalculation(); // Reset flag when profit & loss changes
+});
+watch(() => files.financialRatios, (v) => {
+  store.updateFile('financial_ratios_doc', v);
+  store.resetScoreCalculation(); // Reset flag when financial ratios change
+});
 watch(() => files.companyProfile, (v) => store.updateFile('company_profile_doc', v));
+
+// Reset flagwhen registered capital changes
+watch(() => store.customer.registered_capital, () => {
+  store.resetScoreCalculation();
+}, { immediate: false });
+
+// Reset flag when noFinancialData flag changes
+watch(() => store.transactionData.noFinancialData, () => {
+  if (!store.transactionData.noFinancialData) {
+    store.resetScoreCalculation();
+  }
+}, { immediate: false });
 
 // Helper to manage guarantee details in the store
 const getGuaranteeDetail = (storeKey, fileName, field) => {
@@ -1327,6 +1355,9 @@ const analyzeFinancials = async () => {
       
       // Auto-save transaction data (including analysis result & inputs)
       await store.saveTransactionData();
+      
+      // Mark that score has been calculated successfully
+      store.setScoreCalculated(true);
       
       // Success: Analysis results are now displayed inline in the component
       // Modal popup removed - results will show in the score-highlight section below

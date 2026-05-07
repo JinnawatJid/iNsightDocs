@@ -75,3 +75,11 @@ When a request is processed by a reviewer in the `/pending-requests` view, they 
 When a reviewer views a request via the `ReviewDashboard.vue` component, the system dynamically renders the uploaded documents.
 - **2-Column Layout:** The document status list strictly enforces a clean 2-column horizontal bulleted layout (without legacy SVG icons or toggle buttons) for improved readability.
 - **Document Filtering & Display:** The main document list dynamically aggregates all attached documents (combining both mandatory system files and custom user-uploaded `other_` documents). It explicitly filters out the standard DBD financial documents (`company_profile_doc`, `balance_sheet_doc`, etc.), as those are rendered separately in a dedicated financial analysis section lower on the page.
+
+## 10. Financial Submit Guard (Analyze Button Requirement)
+- Before any forward workflow action (Submit/Approve), the form validation must confirm that **"วิเคราะห์และคำนวณคะแนน"** was clicked at least once for the current financial input set.
+- This enforcement applies to both individual and company customers.
+- If `noFinancialData` is explicitly selected, this specific analyze requirement is skipped.
+- If missing, validation returns `score_calculation` and the UI must:
+  - include this item in the grouped missing-field SweetAlert
+  - show the inline red helper text under the analyze button only after the failed submit attempt
