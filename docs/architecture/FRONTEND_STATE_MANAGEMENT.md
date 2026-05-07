@@ -14,6 +14,17 @@ For the Credit Request form, the application relies on two query parameters to r
 
 If a user manually refreshes the page (`F5`), the `onMounted` lifecycle hook in `CreateCreditRequest.vue` intercepts these URL parameters to restore the exact state they were looking at, preventing data loss or kicking the user back to an empty search screen.
 
+### Model Type Selection for Analysis
+
+The frontend determines which scoring model to request (`model_type` = `new` | `existing`) when performing financial analysis. Historically this mapping used the request label alone. Current behavior:
+
+- If the request is explicitly `เครดิตใหม่`, the frontend always sends `model_type=new`.
+- For other request types (including `เครดิตโครงการ`), the frontend checks customer data and will send `model_type=existing` only when the customer has:
+    - non-empty `customer.existing_credits`, or
+    - a numeric, non-zero `customer.current_credit_limit` (or `Fixed_Credit_Limit`).
+
+This logic is implemented in `src/components/credit/tabs/StoreStatementTab.vue` and ensures the backend receives the correct model intent. The backend scoring flow (`backend/controllers/financialController.js` -> `backend/services/scoring/ScoringEngine.js`) then uses `model_type` to choose the `NewCustomerScorecard` or `ExistingCustomerScorecard`.
+
 ## 2. Draft Saving & Validation Bypasses
 ### 2.1 State Hydration from Database Snapshots
 When the frontend loads an existing request, it maps data from the backend `snapshot_data` into the Pinia `transactionData` object. It is strictly required that any field actively used by the frontend (such as `draftComment`) is explicitly extracted during hydration.
