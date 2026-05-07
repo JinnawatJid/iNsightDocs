@@ -19,6 +19,7 @@ This component manages:
 - File uploads for financial documents (Balance Sheet, Profit & Loss, Financial Ratios)
 - Manual input fields (Registered Capital, Customer Duration)
 - The **"วิเคราะห์และคำนวณคะแนน"** (Analyze and Calculate Score) button
+- Inline validation hint below the analyze button (shown only after submit-attempt validation fails due to missing score calculation)
 - Display of analysis results in three cards:
   1. **Credit Score Card** (Credit points: X/200)
   2. **Size & Grade Card** (Business Size + Credit Grade)
@@ -171,6 +172,26 @@ If analysis fails:
 - Error modal displayed with backend error message or default message
 - Result stored in `analysisResults.value = null`
 - User can retry
+
+### 4.6 Submit-Time Enforcement (Mandatory Analyze Click)
+
+To prevent sending requests without evaluated suggested credit, the submit flow now enforces a score-calculation checkpoint:
+
+- Validation key: `score_calculation`
+- Enforcement point: `validateRequest(isSubmit=true, isFinancialMandatory=true)`
+- Scope: **Both individual and company customers**
+- Exception: if `transactionData.noFinancialData === true`, score-calculation is not required
+
+Behavior details:
+1. User submits without clicking **"วิเคราะห์และคำนวณคะแนน"**
+2. Validation fails with `missingFields` containing `score_calculation`
+3. SweetAlert lists the missing item in the Financial tab group
+4. Inline red helper text appears below the analyze button, guiding the user to click it first
+5. After a successful analysis click, the warning is cleared and submit can proceed
+
+Important UX rule:
+- The inline red helper text is **not always visible**.
+- It is shown only after a submit attempt fails on missing score calculation (aligned with the existing form validation pattern used in other tabs).
 
 ## 5. Data Flow Diagram
 
