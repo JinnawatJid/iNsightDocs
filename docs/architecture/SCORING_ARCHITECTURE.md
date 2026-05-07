@@ -46,6 +46,8 @@ backend/services/scoring/
 ### 2. Existing Customer (`ExistingCustomerScorecard.js`)
 - **Trigger:** Request type implies an existing relationship, such as `เครดิตเพิ่ม`, `เปลี่ยนแปลงคำขอเครดิต`, `เปลี่ยนแปลงเงื่อนไขการชำระเงิน` (passed to backend as `model_type="existing"`).
 - **Focus:** Purchase behavior and Payment history.
+
+**NOTE (Frontend behavior update):** For project-credit flows (e.g., `เครดิตโครงการ`) the frontend now decides between `model_type="existing"` and `model_type="new"` based on the customer's actual data. It will select `existing` only when the customer has existing credits (`customer.existing_credits` non-empty) or a non-zero current credit limit (`customer.current_credit_limit` > 0). Otherwise the frontend will send `model_type="new"` so the NewCustomerScorecard is used. This prevents incorrectly applying the "increase credit" model to customers without prior limits.
 - **Output:**
   - Recommended Limit: **Current Limit * Adjustment Factor**.
   - **Adjustment Factors:**
