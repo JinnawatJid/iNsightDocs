@@ -51,6 +51,16 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    resolveBranchCode(user) {
+      if (!user || typeof user !== 'object') return '';
+
+      if (Array.isArray(user.branches) && user.branches.length > 0) {
+        return user.branches[0] || '';
+      }
+
+      return user.branchCode || user.branch_code || user.branch || user.office || user.officeCode || '';
+    },
+
     async fetchAuthConfig() {
       try {
         const response = await fetch('/api/config/auth');
@@ -73,6 +83,7 @@ export const useAuthStore = defineStore('auth', {
         this.user = {
           userId: 99999,
           username: "DEV_MODE_USER",
+          branches: ["00TR"],
           roles: [
             {
               app: "Smart Credit Application",
@@ -99,12 +110,18 @@ export const useAuthStore = defineStore('auth', {
 
         if (response.ok) {
           const data = await response.json();
+          const branchCode = this.resolveBranchCode(data.user);
           this.user = {
             userId: data.user.userId,
             username: data.user.username,
             empname: data.user.empname,
             roles: data.user.roles,
-            branchCode: data.user.branchCode
+            branches: data.user.branches,
+            branchCode,
+            branch_code: data.user.branch_code,
+            branch: data.user.branch,
+            office: data.user.office,
+            officeCode: data.user.officeCode
           };
           this.token = null;
           this.isAuthenticated = true;
