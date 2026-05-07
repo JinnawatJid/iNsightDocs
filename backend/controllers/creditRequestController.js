@@ -1084,8 +1084,7 @@ exports.getCreditRequests = async (req, res) => {
       'ผู้พิจารณาฝ่ายขาย',
       'ผู้ตรวจสอบเอกสาร',
       'ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)',
-      'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)',
-      'ผ่านการตรวจสอบ'  // Add this if it's a valid board role on your server
+      'ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)'
     ].includes(r.role));
     
     logger.info(`[DEBUG] Board Access Check - Found roles matching board: ${hasBoardAccess}`);
@@ -1217,6 +1216,7 @@ exports.getCreditRequests = async (req, res) => {
     const { rows } = await db.query(sql, params);
     
     logger.info(`[DEBUG] Query returned ${rows ? rows.length : 0} total rows`);
+    logger.info(`[DEBUG] Returned tx_ids: ${rows && rows.length > 0 ? rows.map(r => r.tx_id).join(', ') : 'NONE'}`);
     
     // DEBUG: Check what requests exist in the database for this branch
     if (rows.length === 0 && isRegionalManager) {
@@ -1229,6 +1229,14 @@ exports.getCreditRequests = async (req, res) => {
       let debugStatusSql = `SELECT tx_id, customer_no, status FROM CreditRequests WHERE status IN (?, ?) ORDER BY updated_at DESC LIMIT 10`;
       let { rows: debugStatusRows } = await db.query(debugStatusSql, [`Opened`, `FinanceReviewed`]);
       logger.info(`[DEBUG] All requests with status Opened/FinanceReviewed: ${JSON.stringify(debugStatusRows)}`);
+    }
+    
+    // DEBUG: If board user but only getting 2-3 items, check what's in the database
+    if (hasBoardAccess && rows.length < 5) {
+      logger.info(`[DEBUG] Board access user got only ${rows.length} rows. Checking all in-process requests...`);
+      let allRequestsSql = `SELECT tx_id, customer_no, status FROM CreditRequests WHERE status IN (?, ?, ?, ?, ?, ?, ?) ORDER BY updated_at DESC LIMIT 20`;
+      let { rows: allRows } = await db.query(allRequestsSql, ['Opened', 'RegionalSubmitted', 'SalesSubmitted', 'FinanceReviewed', 'Reviewed', 'PendingSales (ชั่วคราว)', 'PendingFinance (ชั่วคราว)']);
+      logger.info(`[DEBUG] ALL in-process requests in DB: ${JSON.stringify(allRows)}`);
     }
 
 
