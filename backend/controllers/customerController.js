@@ -759,8 +759,8 @@ const searchCustomersFallback = async (req, res, query) => {
         const taxIdForEnrich = row["VAT Registration No_"] ? row["VAT Registration No_"].trim() : null;
         const enriched = await enrichCustomerData(row["No_"], currentCreditLimit, taxIdForEnrich);
 
-        // Blacklist Check (Advanced)
-        const isCompanyRec = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
+        // Blacklist Check (Advanced) — use canonical name-based classification
+        const isCompanyRec = isCompanyByName(row["Name"]);
         const personNamesRec = [row["Contact"], row["authorized_person"], row["authorized_person_2"]];
         const companyNamesRec = [];
 

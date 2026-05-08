@@ -287,7 +287,7 @@ const rbacStore = useRbacStore();
                 if (needsAddressBackfill) {
                   // Canonical keyword list — aligned with backend nameNormalizer.js BUSINESS_KEYWORDS
                   const companyKeywords = [
-                    "บริษัท", "ห้างหุ้นส่วน", "หจก", "บจก", "จำกัด", "มหาชน"
+                    "บริษัท", "ห้างหุ้นส่วนจำกัด", "หจก.", "บจก.", "จำกัด", "มหาชน", "Company", "Limited", "Ltd.", "Inc.", "Corp.", "Co."
                   ];
                   const isCompany = companyKeywords.some((k) =>
                     (freshCustomer.name || "").includes(k),
@@ -483,7 +483,7 @@ const rbacStore = useRbacStore();
 
           const name = data.customer.name || "";
           // Canonical keyword list — aligned with backend nameNormalizer.js BUSINESS_KEYWORDS
-          const keywords = ["บริษัท", "ห้างหุ้นส่วน", "หจก", "บจก", "จำกัด", "มหาชน"];
+          const keywords = ["บริษัท", "ห้างหุ้นส่วนจำกัด", "หจก.", "บจก.", "จำกัด", "มหาชน", "Company", "Limited", "Ltd.", "Inc.", "Corp.", "Co."];
           const isCompany = keywords.some((keyword) => name.includes(keyword));
 
           if (!isCompany) {

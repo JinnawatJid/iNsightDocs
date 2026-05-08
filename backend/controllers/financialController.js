@@ -7,6 +7,7 @@ const path = require('path');
 const { calculateSlope, calculateTrendRatio, generateContinuousTimeline, findYearlySeries } = require('../services/financialCalculator');
 const ScoringEngine = require('../services/scoring/ScoringEngine');
 const { extractDBDData } = require('../utils/pdfExtractor');
+const { isCompanyByName } = require('../utils/nameNormalizer');
 const pdf = require('pdf-parse');
 
 // Configuration
@@ -903,14 +904,9 @@ if (custom_weights) {
 
     // --- 3. SCORING ENGINE INTEGRATION ---
 
-    // Determine if Company (Check Name)
+    // Determine if Company (Check Name) — use canonical shared function
     const finalName = customer_name || customerData.Name || "";
-    const isCompany = (name) => {
-        if (!name) return false;
-        const keywords = ['บริษัท', 'ห้างหุ้นส่วนจำกัด', 'บ.', 'หจก.'];
-        return keywords.some(keyword => name.includes(keyword));
-    };
-    const isCorp = isCompany(finalName);
+    const isCorp = isCompanyByName(finalName);
     const c2Inputs = { ...results, dscr: calculations.dscr };
 
     // Prepare Context
@@ -1224,7 +1220,6 @@ exports.checkLocalFilesBatch = async (req, res) => {
         return res.status(400).json({ success: false, message: 'customer_ids array required' });
     }
 
-    const corporateKeywords = ['บริษัท', 'ห้างหุ้นส่วน', 'บ.', 'หจก.', 'ltd', 'limited', 'co.', 'plc', 'corp', 'inc', 'company'];
     const results = [];
 
     // Fetch all customer infos in a single API call to avoid N+1 query problem
@@ -1236,9 +1231,9 @@ exports.checkLocalFilesBatch = async (req, res) => {
 
         let skipDBD = false;
         if (customerInfo) {
-            const nameLower = (customerInfo["Name"] || '').toLowerCase();
+            const customerName = customerInfo["Name"] || '';
             const taxId = customerInfo["VAT Registration No_"] || '';
-            const isCorporate = corporateKeywords.some(k => nameLower.includes(k));
+            const isCorporate = isCompanyByName(customerName);
 
             if (!taxId || taxId.length < 5) {
                 skipDBD = true;
