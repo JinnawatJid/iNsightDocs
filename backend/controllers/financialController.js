@@ -82,59 +82,14 @@ const formatThaiMonth = (yyyy_mm, isCurrent = false) => {
     return label;
 };
 
-// Helper: Sanitize Invoices (Handle 1753 Cleared Date & Future Check Dates & Duplicates)
-// DEDUPLICATION: When one payment has multiple check records (from JOIN), keep only the best one
+// Helper: Sanitize Invoices (Handle 1753 Cleared Date & Future Check Dates)
 const sanitizeInvoices = (invoices) => {
     if (!invoices || !Array.isArray(invoices)) return invoices;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Step 1: Deduplicate by Invoice+Payment combination
-    // When one payment has multiple checks, keep only the best one
-    const deduplicatedMap = new Map();
-    let duplicatesFound = 0;
-    
-    invoices.forEach(inv => {
-        const invoiceNo = inv['Invoice_No'] || inv.invoice_no || inv.Invoice_No;
-        const paymentDocNo = inv['Payment_Doc_No'] || inv.payment_doc_no || inv.Payment_Doc_No || 'NO_PAYMENT';
-        const uniqueKey = `${invoiceNo}|${paymentDocNo}`;
-        
-        if (!deduplicatedMap.has(uniqueKey)) {
-            deduplicatedMap.set(uniqueKey, inv);
-        } else {
-            // If duplicate exists, keep the one with cleared date or latest check date
-            duplicatesFound++;
-            const existing = deduplicatedMap.get(uniqueKey);
-            const existingCleared = (existing['Cleared Date'] || existing.cleared_date || existing.Cleared_Date || '');
-            const incomingCleared = (inv['Cleared Date'] || inv.cleared_date || inv.Cleared_Date || '');
-            
-            const existingCheckDate = new Date(existing['Check Date'] || existing.check_date || existing.Check_Date || '');
-            const incomingCheckDate = new Date(inv['Check Date'] || inv.check_date || inv.Check_Date || '');
-            
-            // Prefer record with valid cleared date
-            if (!existingCleared.startsWith('1753') && incomingCleared.startsWith('1753')) {
-                // Keep existing (has valid cleared date)
-            } else if (existingCleared.startsWith('1753') && !incomingCleared.startsWith('1753')) {
-                // Replace with incoming (has valid cleared date)
-                deduplicatedMap.set(uniqueKey, inv);
-            } else if (incomingCheckDate > existingCheckDate) {
-                // If both have same cleared status, keep latest check date
-                deduplicatedMap.set(uniqueKey, inv);
-            }
-            // Otherwise keep existing
-        }
-    });
-    
-    const deduplicatedInvoices = Array.from(deduplicatedMap.values());
-    
-    // Log deduplication results
-    if (duplicatesFound > 0) {
-        logger.info(`[Sanitize] Removed ${duplicatesFound} duplicate payment records. Original: ${invoices.length}, After dedup: ${deduplicatedInvoices.length}`);
-    }
-
-    // Step 2: Sanitize (Handle invalid dates)
-    return deduplicatedInvoices.map(inv => {
+    return invoices.map(inv => {
         // 1. Check for Invalid Cleared Date (1753-01-01 from SQL)
         const clearedDateStr = inv['Cleared Date'] || inv.cleared_date || inv.Cleared_Date;
         const checkDateStr = inv['Check Date'] || inv.check_date || inv.Check_Date;
