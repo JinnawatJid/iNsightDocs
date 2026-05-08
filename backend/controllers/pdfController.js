@@ -5,6 +5,7 @@ const path = require('path');
 const db = require('../db');
 const dbdParser = require('../utils/dbdExcelParser');
 const { extractDBDData } = require('../utils/pdfExtractor');
+const { isCompanyByName } = require('../utils/nameNormalizer');
 
 // Define fonts
 const fonts = {
@@ -106,9 +107,8 @@ const generateCreditRequestPDF = async (req, res) => {
       return Number(val).toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     };
 
-    // --- IDENTIFY CUSTOMER TYPE ---
-    const corporateKeywords = ['บริษัท', 'จำกัด', 'หจก', 'Company', 'Limited', 'Ltd'];
-    const isCompany = corporateKeywords.some(keyword => customerName.includes(keyword));
+    // --- IDENTIFY CUSTOMER TYPE --- (uses canonical name-based classification)
+    const isCompany = isCompanyByName(customerName);
 
     // --- ADDRESS EXTRACTION LOGIC ---
 
