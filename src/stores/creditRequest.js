@@ -386,7 +386,10 @@ const rbacStore = useRbacStore();
           customerTeam: parsedSnapshot.transaction_data?.customerTeam || "",
           projects: parsedSnapshot.transaction_data?.projects || [],
         };
-        this.originalTransactionData = parsedSnapshot.transaction_data ? JSON.parse(JSON.stringify(parsedSnapshot.transaction_data)) : JSON.parse(JSON.stringify(this.transactionData));
+        // Keep originalTransactionData immutable by only setting it on first load
+        if (!this.originalTransactionData || Object.keys(this.originalTransactionData).length === 0) {
+          this.originalTransactionData = parsedSnapshot.transaction_data ? JSON.parse(JSON.stringify(parsedSnapshot.transaction_data)) : JSON.parse(JSON.stringify(this.transactionData));
+        }
         this.originalInitiatorCustomer = parsedSnapshot.customer ? JSON.parse(JSON.stringify(parsedSnapshot.customer)) : JSON.parse(JSON.stringify(this.customer));
 
 
@@ -852,7 +855,10 @@ const rbacStore = useRbacStore();
               customerTeam: parsedSnapshotTransactionData.customerTeam || "",
               projects: parsedSnapshotTransactionData.projects || [],
             };
-            this.originalTransactionData = Object.keys(parsedSnapshotTransactionData).length > 0 ? JSON.parse(JSON.stringify(parsedSnapshotTransactionData)) : JSON.parse(JSON.stringify(this.transactionData));
+            // Keep originalTransactionData immutable by only setting it on first load
+            if (!this.originalTransactionData || Object.keys(this.originalTransactionData).length === 0) {
+              this.originalTransactionData = Object.keys(parsedSnapshotTransactionData).length > 0 ? JSON.parse(JSON.stringify(parsedSnapshotTransactionData)) : JSON.parse(JSON.stringify(this.transactionData));
+            }
             this.originalInitiatorCustomer = Object.keys(parsedSnapshotCustomerData).length > 0 ? JSON.parse(JSON.stringify(parsedSnapshotCustomerData)) : JSON.parse(JSON.stringify(this.customer));
           }
         }
