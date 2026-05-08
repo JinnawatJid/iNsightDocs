@@ -1462,6 +1462,17 @@ exports.reviseRequest = async (req, res) => {
           snapshotDataObj.regional_review_comment = "";
         if (snapshotDataObj.sales_review_comment)
           snapshotDataObj.sales_review_comment = "";
+
+        // Reset the transaction data back to the initial original requested values
+        if (snapshotDataObj.originalTransactionData && snapshotDataObj.transaction_data) {
+            snapshotDataObj.transaction_data = {
+                ...snapshotDataObj.transaction_data,
+                ...snapshotDataObj.originalTransactionData
+            };
+            if (snapshotDataObj.transaction_data.draftComment) {
+                snapshotDataObj.transaction_data.draftComment = "";
+            }
+        }
       } catch (e) {
         logger.error("Error parsing old snapshot data for revision", e);
       }
@@ -1487,12 +1498,12 @@ exports.reviseRequest = async (req, res) => {
         oldRequest.customer_no,
         oldRequest.customer_name,
         newTxId,
-        oldRequest.request_amount,
+        snapshotDataObj.originalTransactionData?.amount || oldRequest.request_amount,
         oldRequest.request_reason,
         oldRequest.request_credit_term,
-        oldRequest.term_gs,
-        oldRequest.term_ae,
-        oldRequest.term_yc,
+        snapshotDataObj.originalTransactionData?.termGS || oldRequest.term_gs,
+        snapshotDataObj.originalTransactionData?.termAE || oldRequest.term_ae,
+        snapshotDataObj.originalTransactionData?.termYC || oldRequest.term_yc,
         oldRequest.request_type,
         newSnapshotData,
         new Date().toISOString(),
@@ -1512,12 +1523,12 @@ exports.reviseRequest = async (req, res) => {
         oldRequest.customer_no,
         oldRequest.customer_name,
         newTxId,
-        oldRequest.request_amount,
+        snapshotDataObj.originalTransactionData?.amount || oldRequest.request_amount,
         oldRequest.request_reason,
         oldRequest.request_credit_term,
-        oldRequest.term_gs,
-        oldRequest.term_ae,
-        oldRequest.term_yc,
+        snapshotDataObj.originalTransactionData?.termGS || oldRequest.term_gs,
+        snapshotDataObj.originalTransactionData?.termAE || oldRequest.term_ae,
+        snapshotDataObj.originalTransactionData?.termYC || oldRequest.term_yc,
         oldRequest.request_type,
         newSnapshotData,
         new Date().toISOString(),

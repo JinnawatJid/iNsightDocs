@@ -89,3 +89,7 @@ When a reviewer views a request via the `ReviewDashboard.vue` component, the sys
 - Forward workflow actions (for example Submit/Approve) remain visible only on the final step where workflow progression is intended.
 - For non-final steps, the **Next** button is used for tab navigation.
 - This rule prevents users from being forced to navigate to the final tab just to save partial progress.
+
+## 12. Read-Only Full Details Snapshot
+- When users click "ดูรายละเอียดข้อมูลลูกค้าแบบเต็ม" (View Full Details), the `ApplicationTabs` component receives a frozen `baseline` snapshot of the original request and a `readOnly=true` prop.
+- **Enforcement:** Components like `RequestInfoTab.vue` must explicitly evaluate `props.readOnly` to immediately return `false` for computed edit states (e.g., `canEditAmount`, `canEditTerms`). This guarantees that the UI bypasses live transaction modifications and accurately renders the immutable baseline data regardless of the active reviewer's role (such as Area Managers or Finance Officers).
