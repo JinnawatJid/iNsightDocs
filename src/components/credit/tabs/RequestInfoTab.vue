@@ -812,6 +812,7 @@ const displayTermGS = computed({
         console.log('[RequestInfoTab displayTermGS SET]:', val);
         store.transactionData.termGS = val; 
     }
+});
 const displayTermAE = computed({
   get: () => {
         console.log('[RequestInfoTab displayTermAE GET]', {
@@ -831,6 +832,7 @@ const displayTermAE = computed({
         console.log('[RequestInfoTab displayTermAE SET]:', val);
         store.transactionData.termAE = val; 
     }
+});
 const displayTermYC = computed({
   get: () => {
         console.log('[RequestInfoTab displayTermYC GET]', {
@@ -848,6 +850,9 @@ const displayTermYC = computed({
     },
     set: (val) => { 
         console.log('[RequestInfoTab displayTermYC SET]:', val);
+        store.transactionData.termYC = val; 
+    }
+});
         store.transactionData.termYC = val; 
     }
 const handleAmountInput = (event) => {
