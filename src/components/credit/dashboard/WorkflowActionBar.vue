@@ -46,17 +46,46 @@ const currentStatus = computed(() => store.requestStatus);
 
 const sessionInitialState = ref({});
 
+const initializeSessionInitialState = () => {
+  if (!store.requestId) return;
+  if (Object.keys(sessionInitialState.value).length > 0) return;
 
-watch(() => store.transactionData, (newVal) => {
-    if (newVal && newVal.amount !== undefined && Object.keys(sessionInitialState.value).length === 0) {
-        sessionInitialState.value = {
-            amount: newVal.amount,
-            termGS: newVal.termGS,
-            termAE: newVal.termAE,
-            termYC: newVal.termYC
-        };
-    }
-}, { immediate: true, deep: true });
+  const hasLoadedRequestedAmount = store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined;
+  const hasLoadedRequestedTerms = store.originalRequestedTerms && (
+    store.originalRequestedTerms.termGS !== null ||
+    store.originalRequestedTerms.termAE !== null ||
+    store.originalRequestedTerms.termYC !== null
+  );
+
+  // Guard against capturing defaults before request detail is fully loaded.
+  if (!hasLoadedRequestedAmount && !hasLoadedRequestedTerms) return;
+
+  sessionInitialState.value = {
+    amount: hasLoadedRequestedAmount ? store.originalRequestedAmount : store.transactionData.amount,
+    termGS: hasLoadedRequestedTerms ? store.originalRequestedTerms.termGS : store.transactionData.termGS,
+    termAE: hasLoadedRequestedTerms ? store.originalRequestedTerms.termAE : store.transactionData.termAE,
+    termYC: hasLoadedRequestedTerms ? store.originalRequestedTerms.termYC : store.transactionData.termYC,
+  };
+};
+
+watch(() => store.requestId, () => {
+  // Reset baseline when switching requests.
+  sessionInitialState.value = {};
+  initializeSessionInitialState();
+}, { immediate: true });
+
+watch(() => [
+  store.originalRequestedAmount,
+  store.originalRequestedTerms?.termGS,
+  store.originalRequestedTerms?.termAE,
+  store.originalRequestedTerms?.termYC,
+  store.transactionData?.amount,
+  store.transactionData?.termGS,
+  store.transactionData?.termAE,
+  store.transactionData?.termYC,
+], () => {
+  initializeSessionInitialState();
+}, { immediate: true });
 
 onMounted(async () => {
   await Promise.all([
