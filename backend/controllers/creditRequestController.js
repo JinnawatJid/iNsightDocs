@@ -300,6 +300,23 @@ exports.createCreditRequest = async (req, res) => {
     }
   }
 
+  // Defense in depth: block forward submission when financial analysis was not completed.
+  // Frontend already validates this, but backend must enforce it to prevent bypasses.
+  const isSubmitAction = is_submit === "true" || is_submit === true;
+  const targetStatus = req.body.status;
+  const isForwardSubmission =
+    isSubmitAction && targetStatus && targetStatus !== "Draft";
+  const noFinancialData =
+    parsedSnapshot?.transaction_data?.noFinancialData === true;
+  const hasAnalysisResult = !!parsedSnapshot?.financial_summary?.analysis_result;
+
+  if (isForwardSubmission && !noFinancialData && !hasAnalysisResult) {
+    return res.status(400).json({
+      error:
+        "กรุณากดปุ่มวิเคราะห์และคำนวณคะแนนในหน้าเอกสารการเงินก่อนส่งคำขอ",
+    });
+  }
+
   try {
     let existing = null;
 

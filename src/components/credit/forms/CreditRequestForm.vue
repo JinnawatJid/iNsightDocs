@@ -716,7 +716,7 @@ const submitTransaction = async (btn) => {
         } else {
             Swal.fire({
                 title: 'เกิดข้อผิดพลาด',
-                text: 'เกิดข้อผิดพลาดในการส่งคำขอ',
+                text: error.response?.data?.error || 'เกิดข้อผิดพลาดในการส่งคำขอ',
                 icon: 'error'
             });
         }
