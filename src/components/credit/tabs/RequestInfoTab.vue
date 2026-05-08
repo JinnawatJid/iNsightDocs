@@ -762,57 +762,92 @@ const totalLimit = computed(() => {
 
 const formattedAmount = computed({
     get: () => {
-    // Prefer explicit baseline when provided (frozen snapshot for full-details view)
-    if (props.baseline && props.baseline.amount !== undefined && !canEditAmount.value) {
-        console.debug('[RequestInfoTab] using baseline.amount for formattedAmount:', props.baseline.amount, 'canEditAmount=', canEditAmount.value);
-        return props.baseline.amount ? Number(props.baseline.amount).toLocaleString('en-US') : '';
-    }
-    const val = (!canEditAmount.value && store.originalTransactionData?.amount !== undefined) ? store.originalTransactionData.amount : store.transactionData.amount;
+        const baseline = props.baseline;
+        const amt = store.transactionData.amount;
+        const origTxAmt = store.originalTransactionData?.amount;
+        const canEdit = canEditAmount.value;
+        
+        console.log('[RequestInfoTab formattedAmount GET]', {
+            'props.baseline': baseline,
+            'baseline?.amount': baseline?.amount,
+            'canEditAmount': canEdit,
+            'store.transactionData.amount': amt,
+            'store.originalTransactionData?.amount': origTxAmt
+        });
+        
+        // Prefer explicit baseline when provided (frozen snapshot for full-details view)
+        if (baseline && baseline.amount !== undefined && !canEdit) {
+            console.log('[RequestInfoTab formattedAmount GET] ✓ USING BASELINE.AMOUNT:', baseline.amount);
+            return baseline.amount ? Number(baseline.amount).toLocaleString('en-US') : '';
+        }
+        
+        const val = (!canEdit && origTxAmt !== undefined) ? origTxAmt : amt;
+        console.log('[RequestInfoTab formattedAmount GET] Using fallback value:', val);
         return val ? Number(val).toLocaleString('en-US') : '';
     },
     set: (val) => {
         const num = val.replace(/[^0-9]/g, '');
-        store.transactionData.amount = num;
-    }
+        console.log('[RequestInfoTab formattedAmount SET] Setting amount to:', num);
 });
 
 
 const displayTermGS = computed({
   get: () => {
-    if (props.baseline && props.baseline.termGS !== undefined && !canEditTerms.value) {
-      console.debug('[RequestInfoTab] displayTermGS using baseline.termGS:', props.baseline.termGS, 'canEditTerms=', canEditTerms.value);
-      return props.baseline.termGS;
+        console.log('[RequestInfoTab displayTermGS GET]', {
+            'props.baseline?.termGS': props.baseline?.termGS,
+            'canEditTerms': canEditTerms.value,
+            'store.originalTransactionData?.termGS': store.originalTransactionData?.termGS,
+            'store.transactionData.termGS': store.transactionData.termGS
+        });
+        if (props.baseline && props.baseline.termGS !== undefined && !canEditTerms.value) {
+            console.log('[RequestInfoTab displayTermGS GET] ✓ USING BASELINE.termGS:', props.baseline.termGS);
+            return props.baseline.termGS;
+        }
+        if (!canEditTerms.value && store.originalTransactionData?.termGS !== undefined) return store.originalTransactionData.termGS;
+        return store.transactionData.termGS;
+    },
+    set: (val) => { 
+        console.log('[RequestInfoTab displayTermGS SET]:', val);
+        store.transactionData.termGS = val; 
     }
-    if (!canEditTerms.value && store.originalTransactionData?.termGS !== undefined) return store.originalTransactionData.termGS;
-    return store.transactionData.termGS;
-  },
-  set: (val) => { store.transactionData.termGS = val; }
-});
-
 const displayTermAE = computed({
   get: () => {
-    if (props.baseline && props.baseline.termAE !== undefined && !canEditTerms.value) {
-      console.debug('[RequestInfoTab] displayTermAE using baseline.termAE:', props.baseline.termAE, 'canEditTerms=', canEditTerms.value);
-      return props.baseline.termAE;
+        console.log('[RequestInfoTab displayTermAE GET]', {
+            'props.baseline?.termAE': props.baseline?.termAE,
+            'canEditTerms': canEditTerms.value,
+            'store.originalTransactionData?.termAE': store.originalTransactionData?.termAE,
+            'store.transactionData.termAE': store.transactionData.termAE
+        });
+        if (props.baseline && props.baseline.termAE !== undefined && !canEditTerms.value) {
+            console.log('[RequestInfoTab displayTermAE GET] ✓ USING BASELINE.termAE:', props.baseline.termAE);
+            return props.baseline.termAE;
+        }
+        if (!canEditTerms.value && store.originalTransactionData?.termAE !== undefined) return store.originalTransactionData.termAE;
+        return store.transactionData.termAE;
+    },
+    set: (val) => { 
+        console.log('[RequestInfoTab displayTermAE SET]:', val);
+        store.transactionData.termAE = val; 
     }
-    if (!canEditTerms.value && store.originalTransactionData?.termAE !== undefined) return store.originalTransactionData.termAE;
-    return store.transactionData.termAE;
-  },
-  set: (val) => { store.transactionData.termAE = val; }
-});
-
 const displayTermYC = computed({
   get: () => {
-    if (props.baseline && props.baseline.termYC !== undefined && !canEditTerms.value) {
-      console.debug('[RequestInfoTab] displayTermYC using baseline.termYC:', props.baseline.termYC, 'canEditTerms=', canEditTerms.value);
-      return props.baseline.termYC;
+        console.log('[RequestInfoTab displayTermYC GET]', {
+            'props.baseline?.termYC': props.baseline?.termYC,
+            'canEditTerms': canEditTerms.value,
+            'store.originalTransactionData?.termYC': store.originalTransactionData?.termYC,
+            'store.transactionData.termYC': store.transactionData.termYC
+        });
+        if (props.baseline && props.baseline.termYC !== undefined && !canEditTerms.value) {
+            console.log('[RequestInfoTab displayTermYC GET] ✓ USING BASELINE.termYC:', props.baseline.termYC);
+            return props.baseline.termYC;
+        }
+        if (!canEditTerms.value && store.originalTransactionData?.termYC !== undefined) return store.originalTransactionData.termYC;
+        return store.transactionData.termYC;
+    },
+    set: (val) => { 
+        console.log('[RequestInfoTab displayTermYC SET]:', val);
+        store.transactionData.termYC = val; 
     }
-    if (!canEditTerms.value && store.originalTransactionData?.termYC !== undefined) return store.originalTransactionData.termYC;
-    return store.transactionData.termYC;
-  },
-  set: (val) => { store.transactionData.termYC = val; }
-});
-
 const handleAmountInput = (event) => {
     let val = event.target.value;
     val = val.replace(/[^0-9]/g, '');

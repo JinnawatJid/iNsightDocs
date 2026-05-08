@@ -32,7 +32,10 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const props = defineProps(['readOnly', 'viewMode', 'baseline']);
 onMounted(() => {
-  console.debug('[ApplicationTabs] mounted, baseline prop:', props.baseline);
+  console.log('[ApplicationTabs MOUNT] mounted');
+  console.log('[ApplicationTabs MOUNT] props.baseline:', props.baseline);
+  console.log('[ApplicationTabs MOUNT] props.readOnly:', props.readOnly);
+  console.log('[ApplicationTabs MOUNT] props.viewMode:', props.viewMode);
 });
 const store = useCreditRequestStore();
 
