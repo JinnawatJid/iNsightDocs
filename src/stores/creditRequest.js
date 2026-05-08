@@ -355,12 +355,17 @@ const rbacStore = useRbacStore();
           });
         }
 
-        this.originalRequestedAmount = data.request_amount;
-        this.originalRequestedTerms = {
-            termGS: data.term_gs,
-            termAE: data.term_ae,
-            termYC: data.term_yc
-        };
+        // Preserve original requested amount/terms; only set if not already present
+        if (this.originalRequestedAmount === null || this.originalRequestedAmount === undefined) {
+          this.originalRequestedAmount = data.request_amount;
+        }
+        if (!this.originalRequestedTerms) {
+          this.originalRequestedTerms = {
+              termGS: data.term_gs,
+              termAE: data.term_ae,
+              termYC: data.term_yc
+          };
+        }
 
         this.transactionData = {
           amount: data.request_amount,
@@ -825,12 +830,17 @@ const rbacStore = useRbacStore();
             const parsedSnapshotTransactionData = parsedSnapshotData.transaction_data || {};
             const parsedSnapshotCustomerData = parsedSnapshotData.customer || {};
 
-            this.originalRequestedAmount = resData.request_amount || "";
-            this.originalRequestedTerms = {
-                termGS: resData.term_gs || "",
-                termAE: resData.term_ae || "",
-                termYC: resData.term_yc || ""
-            };
+            // Preserve original requested amount/terms; only set if not already present
+            if (this.originalRequestedAmount === null || this.originalRequestedAmount === undefined) {
+              this.originalRequestedAmount = resData.request_amount || "";
+            }
+            if (!this.originalRequestedTerms) {
+              this.originalRequestedTerms = {
+                  termGS: resData.term_gs || "",
+                  termAE: resData.term_ae || "",
+                  termYC: resData.term_yc || ""
+              };
+            }
 
             this.transactionData = {
               amount: resData.request_amount || "",
