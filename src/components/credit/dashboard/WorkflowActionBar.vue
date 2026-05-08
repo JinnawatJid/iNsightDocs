@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
 import { useWorkflowConfig } from '@/composables/useWorkflowConfig';
@@ -43,49 +43,6 @@ const { approvalThreshold } = useApprovalThreshold();
 const emit = defineEmits(['update:comment']);
 
 const currentStatus = computed(() => store.requestStatus);
-
-const sessionInitialState = ref({});
-
-const initializeSessionInitialState = () => {
-  if (!store.requestId) return;
-  if (Object.keys(sessionInitialState.value).length > 0) return;
-
-  const hasLoadedRequestedAmount = store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined;
-  const hasLoadedRequestedTerms = store.originalRequestedTerms && (
-    store.originalRequestedTerms.termGS !== null ||
-    store.originalRequestedTerms.termAE !== null ||
-    store.originalRequestedTerms.termYC !== null
-  );
-
-  // Guard against capturing defaults before request detail is fully loaded.
-  if (!hasLoadedRequestedAmount && !hasLoadedRequestedTerms) return;
-
-  sessionInitialState.value = {
-    amount: hasLoadedRequestedAmount ? store.originalRequestedAmount : store.transactionData.amount,
-    termGS: hasLoadedRequestedTerms ? store.originalRequestedTerms.termGS : store.transactionData.termGS,
-    termAE: hasLoadedRequestedTerms ? store.originalRequestedTerms.termAE : store.transactionData.termAE,
-    termYC: hasLoadedRequestedTerms ? store.originalRequestedTerms.termYC : store.transactionData.termYC,
-  };
-};
-
-watch(() => store.requestId, () => {
-  // Reset baseline when switching requests.
-  sessionInitialState.value = {};
-  initializeSessionInitialState();
-}, { immediate: true });
-
-watch(() => [
-  store.originalRequestedAmount,
-  store.originalRequestedTerms?.termGS,
-  store.originalRequestedTerms?.termAE,
-  store.originalRequestedTerms?.termYC,
-  store.transactionData?.amount,
-  store.transactionData?.termGS,
-  store.transactionData?.termAE,
-  store.transactionData?.termYC,
-], () => {
-  initializeSessionInitialState();
-}, { immediate: true });
 
 onMounted(async () => {
   await Promise.all([
@@ -216,37 +173,72 @@ const availableActions = computed(() => {
 });
 
 
-  const generateAuditTrailMessage = () => {
+    const generateAuditTrailMessage = () => {
+      const formatNum = (v) => {
+        if (v === null || v === undefined || v === '') return '0';
+        const val = parseFloat(String(v).replace(/,/g, ''));
+        if (isNaN(val)) return '0';
+        return val.toLocaleString('th-TH');
+      };
+
+      // Helper: try to extract the last known modified values from existing comments
+      const extractLastAmountFromComments = () => {
+        const comments = store.comments || [];
+        // Find the LAST comment that changed the limit
+        const limitChanges = comments.filter(c => c.comment_text && c.comment_text.includes('ปรับวงเงินจาก'));
+        if (limitChanges.length > 0) {
+          const lastLimitChange = limitChanges[limitChanges.length - 1];
+          const match = lastLimitChange.comment_text.match(/ปรับวงเงินจาก\s+[\d,]+\s+เป็น\s+([\d,]+)\s+บาท/);
+          if (match && match[1]) return match[1].replace(/,/g, '');
+        }
+        return null;
+      };
+
+      const extractLastTermsFromComments = () => {
+        const comments = store.comments || [];
+        const termChanges = comments.filter(c => c.comment_text && c.comment_text.includes('ปรับเครดิตเทอมจาก'));
+        if (termChanges.length > 0) {
+          const lastTermChange = termChanges[termChanges.length - 1];
+          const match = lastTermChange.comment_text.match(/ปรับเครดิตเทอมจาก\s+\d+\/\d+\/\d+\s+เป็น\s+(\d+)\/(\d+)\/(\d+)/);
+          if (match) return { termGS: Number(match[1]), termAE: Number(match[2]), termYC: Number(match[3]) };
+        }
+        return null;
+      };
+
+      // To calculate incremental change, we prioritize the last known changed value from comments.
+      // If no changes exist in comments, we fall back to originalTransactionData, and finally originalRequestedAmount.
+      const fromCommentsAmt = extractLastAmountFromComments();
+      const fromCommentsTerms = extractLastTermsFromComments();
+
+      let baseline = {
+        amount: fromCommentsAmt ?? store.originalTransactionData?.amount ?? store.originalRequestedAmount,
+        termGS: fromCommentsTerms?.termGS ?? store.originalTransactionData?.termGS ?? store.originalRequestedTerms?.termGS,
+        termAE: fromCommentsTerms?.termAE ?? store.originalTransactionData?.termAE ?? store.originalRequestedTerms?.termAE,
+        termYC: fromCommentsTerms?.termYC ?? store.originalTransactionData?.termYC ?? store.originalRequestedTerms?.termYC,
+      };
+
       let msg = '';
-      if (sessionInitialState.value && Object.keys(sessionInitialState.value).length > 0) {
-          const formatNum = (v) => {
-              if (v === null || v === undefined || v === '') return '0';
-              const val = parseFloat(String(v).replace(/,/g, ''));
-              if (isNaN(val)) return '0';
-              return val.toLocaleString('th-TH');
-          };
+      const origAmt = formatNum(baseline.amount);
+      const newAmt = formatNum(store.transactionData.amount);
 
-          const origAmt = formatNum(sessionInitialState.value.amount);
-          const newAmt = formatNum(store.transactionData.amount);
-
-          if (origAmt !== newAmt) {
-              msg += `ปรับวงเงินจาก ${origAmt} เป็น ${newAmt} บาท\n`;
-          }
-
-          const origGS = sessionInitialState.value.termGS || 0;
-          const origAE = sessionInitialState.value.termAE || 0;
-          const origYC = sessionInitialState.value.termYC || 0;
-
-          const newGS = store.transactionData.termGS || 0;
-          const newAE = store.transactionData.termAE || 0;
-          const newYC = store.transactionData.termYC || 0;
-
-          if (origGS != newGS || origAE != newAE || origYC != newYC) {
-              msg += `ปรับเครดิตเทอมจาก ${origGS}/${origAE}/${origYC} เป็น ${newGS}/${newAE}/${newYC}\n`;
-          }
+      if (origAmt !== newAmt) {
+        msg += `ปรับวงเงินจาก ${origAmt} เป็น ${newAmt} บาท\n`;
       }
+
+      const origGS = baseline.termGS || 0;
+      const origAE = baseline.termAE || 0;
+      const origYC = baseline.termYC || 0;
+
+      const newGS = store.transactionData.termGS || 0;
+      const newAE = store.transactionData.termAE || 0;
+      const newYC = store.transactionData.termYC || 0;
+
+      if (origGS != newGS || origAE != newAE || origYC != newYC) {
+        msg += `ปรับเครดิตเทอมจาก ${origGS}/${origAE}/${origYC} เป็น ${newGS}/${newAE}/${newYC}\n`;
+      }
+
       return msg;
-  };
+    };
 
 
 const handleAction = async (action) => {
