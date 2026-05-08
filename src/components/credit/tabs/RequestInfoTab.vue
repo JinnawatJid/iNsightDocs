@@ -588,10 +588,12 @@ const isFinanceOfficerReviewMode = computed(() => {
 });
 
 const canEditAmount = computed(() => {
+    if (props.readOnly) return false;
     if (isFinanceOfficerReviewMode.value) return true;
     return isEditing.value && isDraftMode.value && (isRequestIncrease.value || isNewRequest.value || isProjectCredit.value);
 });
 const canEditTerms = computed(() => {
+    if (props.readOnly) return false;
     if (isFinanceOfficerReviewMode.value) return true;
     return isEditing.value && isDraftMode.value && (isChangeTerm.value || isNewRequest.value || isProjectCredit.value);
 });
