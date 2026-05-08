@@ -19,7 +19,7 @@ export const useRbacStore = defineStore('rbac', {
   getters: {
     hasPermission: (state) => {
       return (permissionKey) => {
-        // If config isn't loaded yet, default to false (secure by default)
+        // If config isn't loaded yet, default to false
         if (!state.matrixConfig || !state.matrixConfig.matrix) return false;
 
         const authStore = useAuthStore();
@@ -40,6 +40,7 @@ export const useRbacStore = defineStore('rbac', {
       this.isLoading = true;
       this.error = null;
       try {
+        // read api too
         const response = await axiosInstance.get('/api/config/rbac');
         if (response.data && response.data.success) {
           this.matrixConfig = response.data.data;

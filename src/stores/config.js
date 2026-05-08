@@ -3,7 +3,7 @@ import { configApi } from '../services/api/config';
 
 export const useConfigStore = defineStore('config', {
   state: () => ({
-    configurations: {}, // Grouped by category: { 'System': [{...}], 'API': [{...}] }
+    configurations: {},
     isLoading: false,
     error: null,
   }),
