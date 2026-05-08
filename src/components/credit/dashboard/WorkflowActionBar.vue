@@ -181,14 +181,41 @@ const availableActions = computed(() => {
         return val.toLocaleString('th-TH');
       };
 
-      const baseline = store.originalTransactionData && Object.keys(store.originalTransactionData).length > 0
-      ? store.originalTransactionData
-      : {
-        amount: store.originalRequestedAmount,
-        termGS: store.originalRequestedTerms?.termGS,
-        termAE: store.originalRequestedTerms?.termAE,
-        termYC: store.originalRequestedTerms?.termYC,
+      // Helper: try to extract original values from existing comments (useful if originalTransactionData was updated)
+      const extractOriginalAmountFromComments = () => {
+        const comments = store.comments || [];
+        const firstLimitChange = comments.find(c => c.comment_text && c.comment_text.includes('ปรับวงเงินจาก'));
+        if (firstLimitChange && firstLimitChange.comment_text) {
+          const match = firstLimitChange.comment_text.match(/ปรับวงเงินจาก\s+([\d,]+)\s+เป็น/);
+          if (match && match[1]) return match[1].replace(/,/g, '');
+        }
+        return null;
+      };
+
+      const extractOriginalTermsFromComments = () => {
+        const comments = store.comments || [];
+        const firstTermChange = comments.find(c => c.comment_text && c.comment_text.includes('ปรับเครดิตเทอมจาก'));
+        if (firstTermChange && firstTermChange.comment_text) {
+          const match = firstTermChange.comment_text.match(/ปรับเครดิตเทอมจาก\s+(\d+)\/(\d+)\/(\d+)\s+เป็น/);
+          if (match) return { termGS: Number(match[1]), termAE: Number(match[2]), termYC: Number(match[3]) };
+        }
+        return null;
+      };
+
+      // Base baseline on originalTransactionData if present; otherwise try comments, then fall back to stored originals
+      let baseline = null;
+      if (store.originalTransactionData && Object.keys(store.originalTransactionData).length > 0) {
+        baseline = store.originalTransactionData;
+      } else {
+        const fromCommentsAmt = extractOriginalAmountFromComments();
+        const fromCommentsTerms = extractOriginalTermsFromComments();
+        baseline = {
+          amount: fromCommentsAmt ?? store.originalRequestedAmount,
+          termGS: fromCommentsTerms?.termGS ?? store.originalRequestedTerms?.termGS,
+          termAE: fromCommentsTerms?.termAE ?? store.originalRequestedTerms?.termAE,
+          termYC: fromCommentsTerms?.termYC ?? store.originalRequestedTerms?.termYC,
         };
+      }
 
       let msg = '';
       const origAmt = formatNum(baseline.amount);
