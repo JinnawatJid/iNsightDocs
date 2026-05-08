@@ -136,6 +136,33 @@ const rbacStore = useRbacStore();
   },
 
   actions: {
+    getOriginalSnapshotStorageKey(txId) {
+      return txId ? `creditRequestOriginalSnapshot_${txId}` : null;
+    },
+
+    persistOriginalSnapshot(txId, snapshot) {
+      try {
+        const key = this.getOriginalSnapshotStorageKey(txId);
+        if (!key || snapshot === null || snapshot === undefined) return;
+        localStorage.setItem(key, JSON.stringify(snapshot));
+      } catch (e) {
+        console.warn("Failed to persist original snapshot", e);
+      }
+    },
+
+    loadPersistedOriginalSnapshot(txId) {
+      try {
+        const key = this.getOriginalSnapshotStorageKey(txId);
+        if (!key) return null;
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) {
+        console.warn("Failed to load persisted original snapshot", e);
+        return null;
+      }
+    },
+
     parseExistingCredits(credits) {
       if (!credits) return [];
       if (Array.isArray(credits)) return credits;
@@ -210,6 +237,8 @@ const rbacStore = useRbacStore();
 
         this.requestId = data.txId; // tx_id
         this.requestStatus = data.status;
+
+        const persistedOriginal = this.loadPersistedOriginalSnapshot(txId);
 
         let parsedSnapshot = data.snapshot_data || {};
         if (typeof parsedSnapshot === "string") {
@@ -355,16 +384,28 @@ const rbacStore = useRbacStore();
           });
         }
 
-        // Preserve original requested amount/terms; only set if not already present
-        if (this.originalRequestedAmount === null || this.originalRequestedAmount === undefined) {
-          this.originalRequestedAmount = data.request_amount;
-        }
-        if (!this.originalRequestedTerms) {
-          this.originalRequestedTerms = {
-              termGS: data.term_gs,
-              termAE: data.term_ae,
-              termYC: data.term_yc
+        // Preserve original requested amount/terms; prefer persisted baseline for reloads
+        if (persistedOriginal) {
+          this.originalRequestedAmount = persistedOriginal.originalRequestedAmount ?? persistedOriginal.amount ?? data.request_amount;
+          this.originalRequestedTerms = persistedOriginal.originalRequestedTerms ?? {
+            termGS: persistedOriginal.termGS ?? data.term_gs,
+            termAE: persistedOriginal.termAE ?? data.term_ae,
+            termYC: persistedOriginal.termYC ?? data.term_yc,
           };
+          if (persistedOriginal.originalTransactionData) {
+            this.originalTransactionData = JSON.parse(JSON.stringify(persistedOriginal.originalTransactionData));
+          }
+        } else {
+          if (this.originalRequestedAmount === null || this.originalRequestedAmount === undefined) {
+            this.originalRequestedAmount = data.request_amount;
+          }
+          if (!this.originalRequestedTerms) {
+            this.originalRequestedTerms = {
+                termGS: data.term_gs,
+                termAE: data.term_ae,
+                termYC: data.term_yc
+            };
+          }
         }
 
         this.transactionData = {
@@ -394,6 +435,13 @@ const rbacStore = useRbacStore();
         // Keep originalTransactionData immutable by only setting it on first load
         if (!this.originalTransactionData || Object.keys(this.originalTransactionData).length === 0) {
           this.originalTransactionData = parsedSnapshot.transaction_data ? JSON.parse(JSON.stringify(parsedSnapshot.transaction_data)) : JSON.parse(JSON.stringify(this.transactionData));
+        }
+        if (!persistedOriginal) {
+          this.persistOriginalSnapshot(txId, {
+            originalRequestedAmount: this.originalRequestedAmount,
+            originalRequestedTerms: this.originalRequestedTerms,
+            originalTransactionData: this.originalTransactionData,
+          });
         }
         this.originalInitiatorCustomer = parsedSnapshot.customer ? JSON.parse(JSON.stringify(parsedSnapshot.customer)) : JSON.parse(JSON.stringify(this.customer));
 
@@ -831,15 +879,28 @@ const rbacStore = useRbacStore();
             const parsedSnapshotCustomerData = parsedSnapshotData.customer || {};
 
             // Preserve original requested amount/terms; only set if not already present
-            if (this.originalRequestedAmount === null || this.originalRequestedAmount === undefined) {
-              this.originalRequestedAmount = resData.request_amount || "";
-            }
-            if (!this.originalRequestedTerms) {
-              this.originalRequestedTerms = {
-                  termGS: resData.term_gs || "",
-                  termAE: resData.term_ae || "",
-                  termYC: resData.term_yc || ""
+            const persistedOriginal = this.loadPersistedOriginalSnapshot(this.requestId || resData.txId);
+            if (persistedOriginal) {
+              this.originalRequestedAmount = persistedOriginal.originalRequestedAmount ?? persistedOriginal.amount ?? (resData.request_amount || "");
+              this.originalRequestedTerms = persistedOriginal.originalRequestedTerms ?? {
+                termGS: persistedOriginal.termGS ?? (resData.term_gs || ""),
+                termAE: persistedOriginal.termAE ?? (resData.term_ae || ""),
+                termYC: persistedOriginal.termYC ?? (resData.term_yc || "")
               };
+              if (persistedOriginal.originalTransactionData) {
+                this.originalTransactionData = JSON.parse(JSON.stringify(persistedOriginal.originalTransactionData));
+              }
+            } else {
+              if (this.originalRequestedAmount === null || this.originalRequestedAmount === undefined) {
+                this.originalRequestedAmount = resData.request_amount || "";
+              }
+              if (!this.originalRequestedTerms) {
+                this.originalRequestedTerms = {
+                    termGS: resData.term_gs || "",
+                    termAE: resData.term_ae || "",
+                    termYC: resData.term_yc || ""
+                };
+              }
             }
 
             this.transactionData = {
@@ -868,6 +929,13 @@ const rbacStore = useRbacStore();
             // Keep originalTransactionData immutable by only setting it on first load
             if (!this.originalTransactionData || Object.keys(this.originalTransactionData).length === 0) {
               this.originalTransactionData = Object.keys(parsedSnapshotTransactionData).length > 0 ? JSON.parse(JSON.stringify(parsedSnapshotTransactionData)) : JSON.parse(JSON.stringify(this.transactionData));
+            }
+            if (!persistedOriginal) {
+              this.persistOriginalSnapshot(this.requestId || resData.txId, {
+                originalRequestedAmount: this.originalRequestedAmount,
+                originalRequestedTerms: this.originalRequestedTerms,
+                originalTransactionData: this.originalTransactionData,
+              });
             }
             this.originalInitiatorCustomer = Object.keys(parsedSnapshotCustomerData).length > 0 ? JSON.parse(JSON.stringify(parsedSnapshotCustomerData)) : JSON.parse(JSON.stringify(this.customer));
           }
