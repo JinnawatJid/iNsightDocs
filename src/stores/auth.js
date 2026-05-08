@@ -27,7 +27,6 @@ export const useAuthStore = defineStore('auth', {
       return state.user?.roles || [];
     },
     isAdmin: (state) => {
-      // Standardizes admin check for settings/configurations
       return state.user?.roles?.some(r => r.role === 'ผู้ดูแลระบบ');
     },
     isInitiator: (state) => {
@@ -46,21 +45,17 @@ export const useAuthStore = defineStore('auth', {
       return state.user?.roles?.some(r => ['ผู้อนุมัติ (วงเงินต่ำกว่าเกณฑ์)', 'ผู้อนุมัติ (วงเงิน <300K)', 'ผู้จัดการฝ่ายการเงิน'].includes(r.role));
     },
     isCreditCommittee: (state) => {
-      return state.user?.roles?.some(r => ['ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)', 'ผู้อนุมัติ (วงเงิน > 300K)', 'กรรมการเครดิต', 'กรรมการเครดิต (Legacy)'].includes(r.role));
+      return state.user?.roles?.some(r => ['ผู้อนุมัติ (วงเงินสูงกว่าเกณฑ์)', 'ผู้อนุมัติ (วงเงิน > 300K)', 'กรรมการเครดิต'].includes(r.role));
     }
   },
 
   actions: {
     resolveBranchCode(user) {
       if (!user || typeof user !== 'object') return '';
-
-      if (Array.isArray(user.branches) && user.branches.length > 0) {
-        return user.branches[0] || '';
-      }
-
-      return user.branchCode || user.branch_code || user.branch || user.office || user.officeCode || '';
+      return user.branches?.[0] || '';
     },
 
+    //also need to read the /api/config/auth
     async fetchAuthConfig() {
       try {
         const response = await fetch('/api/config/auth');
@@ -101,6 +96,7 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
+        // need to looks at this
         const response = await fetch('/api/auth/me', {
           method: 'GET',
           headers: {
@@ -118,15 +114,11 @@ export const useAuthStore = defineStore('auth', {
             roles: data.user.roles,
             branches: data.user.branches,
             branchCode,
-            branch_code: data.user.branch_code,
-            branch: data.user.branch,
-            office: data.user.office,
-            officeCode: data.user.officeCode
           };
           this.token = null;
           this.isAuthenticated = true;
 
-          // Fetch RBAC config so router has it before proceeding
+          // need to looks at this
           const rbacStore = useRbacStore();
           await rbacStore.fetchRbacConfig();
         } else {

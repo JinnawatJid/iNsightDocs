@@ -10,9 +10,9 @@ router.get('/me', authMiddleware, (req, res) => {
 router.post('/logout', (req, res) => {
     // Clear the token cookie
     res.clearCookie('token', {
-        httpOnly: true, // Should match how the cookie was originally set
+        httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax', // Adjust based on your original cookie settings
+        sameSite: 'lax',
         path: '/'
     });
 

@@ -4,16 +4,16 @@ const configController = require('../controllers/configController');
 const checkIsAdmin = require('../middleware/checkIsAdmin');
 
 // Define routes for configurations
-// Feature flags (no auth required)
+// Feature flags
 router.get('/features', configController.getFeatures);
 
-// Public read-only: workflow config needed by all roles for sidebar/action bar rendering
+//workflow config needed by all roles for sidebar/action bar rendering
 router.get('/workflow', configController.getWorkflowConfig);
 
-// Public read-only: RBAC config needed by all roles for UI rendering (e.g. NPL toggle)
+//RBAC config needed by all roles for UI rendering (e.g. NPL toggle)
 router.get('/rbac', configController.getRbacConfig);
 
-// Admin-only: full config read/write
+//config read/write
 router.get('/', checkIsAdmin, configController.getConfig);
 router.put('/', checkIsAdmin, configController.updateConfig);
 
