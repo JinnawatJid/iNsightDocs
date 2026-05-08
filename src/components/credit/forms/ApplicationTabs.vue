@@ -15,7 +15,7 @@
 
     <div class="tab-content">
       <keep-alive>
-        <component :is="currentTabComponent" :readOnly="readOnly" :viewMode="viewMode" />
+        <component :is="currentTabComponent" :readOnly="props.readOnly" :viewMode="props.viewMode" :baseline="props.baseline" />
       </keep-alive>
     </div>
   </div>
@@ -30,12 +30,10 @@ import StoreStatementTab from '../tabs/StoreStatementTab.vue';
 import RequestInfoTab from '../tabs/RequestInfoTab.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
-const props = defineProps(['readOnly', 'viewMode']);
 const props = defineProps(['readOnly', 'viewMode', 'baseline']);
 onMounted(() => {
   console.debug('[ApplicationTabs] mounted, baseline prop:', props.baseline);
 });
-  <component :is="currentTabComponent" :readOnly="readOnly" :viewMode="viewMode" :baseline="props.baseline" />
 const store = useCreditRequestStore();
 
 const currentTab = computed({
