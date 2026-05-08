@@ -788,6 +788,8 @@ const formattedAmount = computed({
     set: (val) => {
         const num = val.replace(/[^0-9]/g, '');
         console.log('[RequestInfoTab formattedAmount SET] Setting amount to:', num);
+        store.transactionData.amount = num;
+    }
 });
 
 
