@@ -1028,7 +1028,13 @@ const rbacStore = useRbacStore();
         ];
         fieldsToCheck = fields.filter((f) => essential.includes(f));
 
-        filesToCheck = ["credit_application_doc"];
+        // Do NOT override `filesToCheck` here. Previously we limited
+        // filesToCheck to only `credit_application_doc`, which caused
+        // other mandatory files (e.g. `bank_statement` for individuals)
+        // to be skipped for special request types like "เครดิตเพิ่ม".
+        // Keep the default `files` list so downstream logic (including
+        // the `isFinancialMandatory` flag) can append and validate the
+        // appropriate financial and other mandatory documents.
       }
 
       fieldsToCheck.forEach((key) => {
