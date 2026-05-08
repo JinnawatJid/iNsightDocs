@@ -1218,7 +1218,7 @@ const rbacStore = useRbacStore();
 
           if (!file && !isUploaded) {
             missingFiles.push(key);
-          } else if (Array.isArray(file) && file.length === 0) {
+          } else if (Array.isArray(file) && file.length === 0 && !isUploaded) {
             missingFiles.push(key);
           }
         });
@@ -1232,7 +1232,7 @@ const rbacStore = useRbacStore();
           const isUploaded = this.uploadedDocuments[qKey];
           if (
             (!file && !isUploaded) ||
-            (Array.isArray(file) && file.length === 0)
+            (Array.isArray(file) && file.length === 0 && !isUploaded)
           ) {
             missingFiles.push(qKey);
           }
