@@ -853,8 +853,7 @@ const displayTermYC = computed({
         store.transactionData.termYC = val; 
     }
 });
-        store.transactionData.termYC = val; 
-    }
+
 const handleAmountInput = (event) => {
     let val = event.target.value;
     val = val.replace(/[^0-9]/g, '');
