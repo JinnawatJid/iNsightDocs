@@ -878,28 +878,14 @@ const rbacStore = useRbacStore();
             const parsedSnapshotTransactionData = parsedSnapshotData.transaction_data || {};
             const parsedSnapshotCustomerData = parsedSnapshotData.customer || {};
 
-            // Preserve original requested amount/terms; only set if not already present
+            // Never overwrite originalRequestedAmount/originalRequestedTerms here.
+            // These must come from the first loaded snapshot, not the current saved edit.
             const persistedOriginal = this.loadPersistedOriginalSnapshot(this.requestId || resData.txId);
             if (persistedOriginal) {
-              this.originalRequestedAmount = persistedOriginal.originalRequestedAmount ?? persistedOriginal.amount ?? (resData.request_amount || "");
-              this.originalRequestedTerms = persistedOriginal.originalRequestedTerms ?? {
-                termGS: persistedOriginal.termGS ?? (resData.term_gs || ""),
-                termAE: persistedOriginal.termAE ?? (resData.term_ae || ""),
-                termYC: persistedOriginal.termYC ?? (resData.term_yc || "")
-              };
+              this.originalRequestedAmount = persistedOriginal.originalRequestedAmount ?? persistedOriginal.amount ?? this.originalRequestedAmount;
+              this.originalRequestedTerms = persistedOriginal.originalRequestedTerms ?? this.originalRequestedTerms;
               if (persistedOriginal.originalTransactionData) {
                 this.originalTransactionData = JSON.parse(JSON.stringify(persistedOriginal.originalTransactionData));
-              }
-            } else {
-              if (this.originalRequestedAmount === null || this.originalRequestedAmount === undefined) {
-                this.originalRequestedAmount = resData.request_amount || "";
-              }
-              if (!this.originalRequestedTerms) {
-                this.originalRequestedTerms = {
-                    termGS: resData.term_gs || "",
-                    termAE: resData.term_ae || "",
-                    termYC: resData.term_yc || ""
-                };
               }
             }
 
@@ -926,11 +912,10 @@ const rbacStore = useRbacStore();
               customerTeam: parsedSnapshotTransactionData.customerTeam || "",
               projects: parsedSnapshotTransactionData.projects || [],
             };
-            // Keep originalTransactionData immutable by only setting it on first load
             if (!this.originalTransactionData || Object.keys(this.originalTransactionData).length === 0) {
               this.originalTransactionData = Object.keys(parsedSnapshotTransactionData).length > 0 ? JSON.parse(JSON.stringify(parsedSnapshotTransactionData)) : JSON.parse(JSON.stringify(this.transactionData));
             }
-            if (!persistedOriginal) {
+            if (!persistedOriginal && this.originalTransactionData && Object.keys(this.originalTransactionData).length > 0) {
               this.persistOriginalSnapshot(this.requestId || resData.txId, {
                 originalRequestedAmount: this.originalRequestedAmount,
                 originalRequestedTerms: this.originalRequestedTerms,
