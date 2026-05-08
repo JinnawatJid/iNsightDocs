@@ -285,11 +285,9 @@ const rbacStore = useRbacStore();
 
                 // 2. Backfill missing address fields (handles old snapshots pre-dating subdistrict mapping)
                 if (needsAddressBackfill) {
+                  // Canonical keyword list — aligned with backend nameNormalizer.js BUSINESS_KEYWORDS
                   const companyKeywords = [
-                    "บริษัท",
-                    "ห้างหุ้นส่วนจำกัด",
-                    "บ.",
-                    "หจก.",
+                    "บริษัท", "ห้างหุ้นส่วน", "หจก", "บจก", "จำกัด", "มหาชน"
                   ];
                   const isCompany = companyKeywords.some((k) =>
                     (freshCustomer.name || "").includes(k),
@@ -484,7 +482,8 @@ const rbacStore = useRbacStore();
           const data = results[0];
 
           const name = data.customer.name || "";
-          const keywords = ["บริษัท", "ห้างหุ้นส่วนจำกัด", "บ.", "หจก."];
+          // Canonical keyword list — aligned with backend nameNormalizer.js BUSINESS_KEYWORDS
+          const keywords = ["บริษัท", "ห้างหุ้นส่วน", "หจก", "บจก", "จำกัด", "มหาชน"];
           const isCompany = keywords.some((keyword) => name.includes(keyword));
 
           if (!isCompany) {

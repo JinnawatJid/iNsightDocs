@@ -58,6 +58,18 @@ function normalizeName(name) {
 }
 
 /**
+ * Determines whether a customer name belongs to a juristic entity (Company)
+ * by checking for Thai and English business entity keywords.
+ * This is the canonical classification function used across the entire system.
+ * @param {string} name - Customer name from NAV / database
+ * @returns {boolean} true if Company, false if Individual
+ */
+function isCompanyByName(name) {
+    if (!name || typeof name !== 'string') return false;
+    return BUSINESS_KEYWORDS.some(keyword => name.includes(keyword));
+}
+
+/**
  * Extracts the last name from a normalized name.
  * @param {string} normalizedName
  * @returns {string|null} The last name, or null if single word
@@ -77,5 +89,6 @@ function extractLastName(normalizedName) {
 
 module.exports = {
     normalizeName,
-    extractLastName
+    extractLastName,
+    isCompanyByName
 };

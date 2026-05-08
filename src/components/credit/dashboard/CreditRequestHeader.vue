@@ -139,7 +139,7 @@ export default {
   setup(props, { emit }) {
     const creditStore = useCreditRequestStore();
     const authStore = useAuthStore();
-const rbacStore = useRbacStore();
+    const rbacStore = useRbacStore();
     const showMenu = ref(false);
     const menuContainer = ref(null);
 
@@ -227,9 +227,7 @@ const rbacStore = useRbacStore();
               this.selectedTypes = [newVal];
           }
         } else {
-            // Default if empty? Maybe nothing or default to 'เครดิตใหม่'
-            // Only set default if truly empty/null to avoid overriding user's clear action?
-            // Actually store init sets it to 'เครดิตใหม่'
+            // store init sets it to 'เครดิตใหม่'
             this.selectedTypes = ['เครดิตใหม่'];
         }
       }
@@ -263,26 +261,13 @@ const rbacStore = useRbacStore();
               // If added a combinable item, remove any exclusive items
               final = final.filter(x => !exclusives.includes(x));
           }
-      } else {
-          // Nothing added (item removed), usually fine.
-          // But check if we removed the last item?
-          if (final.length === 0) {
-               // Optional: prevent empty selection?
-               // For now allow it, or default back to 'เครดิตใหม่'?
-               // User might be clearing to select something else.
-               // Let's leave it empty or maybe enforce at least one?
-               // If empty, maybe default to 'เครดิตใหม่' to be safe?
-               // No, let user decide.
-          }
       }
 
       this.selectedTypes = final;
       this.updateType();
     },
     updateType() {
-      // Sort the types to ensure consistent string order? Not strictly necessary but good practice
-      // But maybe order matters? 'Increase' then 'Change Term'.
-      // Let's just join them.
+      // Sort the types to ensure consistent string order
       const typeStr = this.selectedTypes.join(',');
 
       this.creditStore.updateTransactionData({ requestType: typeStr });
@@ -308,6 +293,7 @@ const rbacStore = useRbacStore();
     async fetchSuggestions() {
       if (!this.searchQuery) return;
       
+      // read customer service
       const results = await CustomerService.getSuggestions(this.searchQuery);
       this.suggestions = results;
       this.showDropdown = true;

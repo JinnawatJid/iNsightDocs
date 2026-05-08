@@ -2,7 +2,7 @@ const logger = require('../utils/logger');
 const db = require('../db');
 const axios = require('axios');
 const { calculateSlope, calculateTrendRatio, generateContinuousTimeline } = require('../services/financialCalculator');
-const { normalizeName, extractLastName } = require('../utils/nameNormalizer');
+const { normalizeName, extractLastName, isCompanyByName } = require('../utils/nameNormalizer');
 
 // Configuration
 const API_URL = process.env.CUSTOMER_API_URL || "http://192.192.0.37:8280/customer-sp682/1.0.0";
@@ -741,8 +741,8 @@ const searchCustomersFallback = async (req, res, query) => {
 
         const fullAddress = addressParts.join(' ');
 
-        // Company vs Individual
-        const isCompany = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
+        // Company vs Individual — classified by name keywords (canonical, consistent with frontend)
+        const isCompany = isCompanyByName(row["Name"]);
         const customerType = isCompany ? 'Company' : 'Individual';
 
         // Phone Number Fallback
@@ -884,8 +884,6 @@ exports.searchCustomers = async (req, res) => {
 
           if (uniqueCustomers.length === 0) {
               // API returned no results.
-              // Unless the user wants fallback on "empty result", we return empty list.
-              // Current policy: API is master.
               return res.json([]);
           }
 
@@ -904,10 +902,11 @@ exports.searchCustomers = async (req, res) => {
               ].filter(part => part && part.trim() !== "");
               const fullAddress = addressParts.join(' ');
 
-              const isCompany = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
+              // Company vs Individual — classified by name keywords (canonical, consistent with frontend)
+              const isCompany = isCompanyByName(row["Name"]);
               const customerType = isCompany ? 'Company' : 'Individual';
 
-              // Extract Customer Date (New Field)
+              // Extract Customer Date
               const customerSince = row["Customer Date"] || null;
 
               // Side-load History & Financials from Local DB
@@ -915,13 +914,13 @@ exports.searchCustomers = async (req, res) => {
               const taxIdForEnrich = row["VAT Registration No_"] ? row["VAT Registration No_"].trim() : null;
               const enriched = await enrichCustomerData(row["No_"], currentCreditLimit, taxIdForEnrich, fetchPurchaseBy);
 
-              // Improved Blacklist Logic: Gather Tax ID and Names (from API + Local Fallback)
+              // Improved Blacklist Logic: Gather Tax ID and Names
               let taxId = row["VAT Registration No_"];
               const personNames = [row["Contact"]]; // API Contact
               const companyNames = [];
 
-              // API Name Field classification
-              const isCompanyCheck = taxId && taxId.trim().length > 0;
+              // Blacklist name classification — use same name-based logic
+              const isCompanyCheck = isCompanyByName(row["Name"]);
               if (isCompanyCheck) {
                    companyNames.push(row["Name"]);
               } else {
@@ -1118,8 +1117,8 @@ exports.searchCustomers = async (req, res) => {
 
       const fullAddress = addressParts.join(' ');
 
-      // Company vs Individual
-      const isCompany = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
+      // Company vs Individual — classified by name keywords (canonical, consistent with frontend)
+      const isCompany = isCompanyByName(row["Name"]);
       const customerType = isCompany ? 'Company' : 'Individual';
 
       // Phone Number Fallback
@@ -1137,8 +1136,8 @@ exports.searchCustomers = async (req, res) => {
       const fetchPurchaseBy = req.query.fetch_purchase_by || 'vat';
       const enriched = await enrichCustomerData(row["No_"], currentCreditLimit, taxIdForEnrich, fetchPurchaseBy);
 
-      // Blacklist Check (Advanced)
-      const isCompanyRec = row["VAT Registration No_"] && row["VAT Registration No_"].trim().length > 0;
+      // Blacklist name classification — use same name-based logic
+      const isCompanyRec = isCompanyByName(row["Name"]);
       const personNamesRec = [row["Contact"], row["authorized_person"], row["authorized_person_2"]];
       const companyNamesRec = [];
 
