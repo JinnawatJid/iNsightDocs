@@ -31,7 +31,7 @@
         <div class="deal-item highlight-terms">
             <label>เครดิตเทอม (GS/AE/YC)</label>
             <div class="value terms-amount">{{ formatTerms(requestedTermsData) }}</div>
-            <div v-if="showOriginalValues && store.originalTransactionData && hasTermsChanged" class="original-value-label">
+            <div v-if="showOriginalValues && store.originalTransactionData && hasTermsChanged && !termsDisplayIsOriginal" class="original-value-label">
                 เดิม: {{ formatTerms(store.originalTransactionData) }}
             </div>
             <div v-else-if="showOriginalValues && erpFallbackData && erpFallbackData.payment_terms_code && !isTermsEqual(store.transactionData, erpFallbackData.payment_terms_code)" class="original-value-label">
@@ -294,22 +294,16 @@ const requestedAmount = computed(() => {
 
 const requestedTermsData = computed(() => {
     if (store.requestStatus !== 'Draft' && store.originalRequestedTerms !== null) {
-        // Try to find the original terms from the first term change comment
-        const comments = store.comments || [];
-        const firstTermChange = comments.find(c => c.comment_text && c.comment_text.includes('ปรับเครดิตเทอมจาก'));
-        if (firstTermChange) {
-            const match = firstTermChange.comment_text.match(/ปรับเครดิตเทอมจาก\s+([\d]+)\/([\d]+)\/([\d]+)\s+เป็น/);
-            if (match && match.length === 4) {
-                return {
-                    termGS: match[1],
-                    termAE: match[2],
-                    termYC: match[3]
-                };
-            }
-        }
         return store.originalRequestedTerms;
     }
     return store.transactionData;
+});
+
+const termsDisplayIsOriginal = computed(() => {
+    if (!store.originalTransactionData || !requestedTermsData.value) return false;
+    return String(requestedTermsData.value.termGS ?? '') === String(store.originalTransactionData.termGS ?? '')
+        && String(requestedTermsData.value.termAE ?? '') === String(store.originalTransactionData.termAE ?? '')
+        && String(requestedTermsData.value.termYC ?? '') === String(store.originalTransactionData.termYC ?? '');
 });
 
 const requestedAmountFormatted = computed(() => {
