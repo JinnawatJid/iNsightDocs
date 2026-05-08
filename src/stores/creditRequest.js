@@ -253,6 +253,7 @@ const rbacStore = useRbacStore();
         this.displayCustomer = { ...this.customer };
         this.financialSummary = parsedSnapshot.financial_summary || {};
         this.creditScore = parsedSnapshot.credit_score || {};
+        this.isScoreCalculated = !!this.financialSummary?.analysis_result;
 
         // Refresh financial summary if missing, AND backfill any address fields absent in old snapshots
         const needsFinancialRefresh =
@@ -767,6 +768,7 @@ const rbacStore = useRbacStore();
 
               if (parsedSnapshot.financial_summary) {
                 this.financialSummary = parsedSnapshot.financial_summary;
+                this.isScoreCalculated = !!parsedSnapshot.financial_summary?.analysis_result;
               }
               if (parsedSnapshot.credit_score) {
                 this.creditScore = parsedSnapshot.credit_score;
@@ -1239,11 +1241,12 @@ const rbacStore = useRbacStore();
       }
 
       // Check if financial analysis has been completed (when submitting)
+      const hasPersistedAnalysisResult = !!this.financialSummary?.analysis_result;
       const missingScoreCalculation =
         isSubmit &&
         isFinancialMandatory &&
         !this.transactionData.noFinancialData &&
-        !this.isScoreCalculated;
+        (!this.isScoreCalculated || !hasPersistedAnalysisResult);
 
       if (missingScoreCalculation) {
         missingFields.push("score_calculation");
@@ -1312,6 +1315,7 @@ const rbacStore = useRbacStore();
       this.viewingHistory = false;
       this.showValidationErrors = false;
       this.showScoreCalculationWarning = false;
+      this.isScoreCalculated = false;
       this.blacklistAlert = null;
       this.loadedFromPrevious = false;
       this.transactionData = {
@@ -1337,6 +1341,7 @@ const rbacStore = useRbacStore();
     clearFormData() {
       this.showValidationErrors = false;
       this.showScoreCalculationWarning = false;
+      this.isScoreCalculated = false;
       this.blacklistAlert = null;
       this.loadedFromPrevious = false;
       this.customer = {
