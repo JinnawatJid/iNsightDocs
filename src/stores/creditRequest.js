@@ -1028,7 +1028,13 @@ const rbacStore = useRbacStore();
         ];
         fieldsToCheck = fields.filter((f) => essential.includes(f));
 
-        filesToCheck = ["credit_application_doc"];
+        // Do NOT override `filesToCheck` here. Previously we limited
+        // filesToCheck to only `credit_application_doc`, which caused
+        // other mandatory files (e.g. `bank_statement` for individuals)
+        // to be skipped for special request types like "เครดิตเพิ่ม".
+        // Keep the default `files` list so downstream logic (including
+        // the `isFinancialMandatory` flag) can append and validate the
+        // appropriate financial and other mandatory documents.
       }
 
       fieldsToCheck.forEach((key) => {
@@ -1218,7 +1224,7 @@ const rbacStore = useRbacStore();
 
           if (!file && !isUploaded) {
             missingFiles.push(key);
-          } else if (Array.isArray(file) && file.length === 0) {
+          } else if (Array.isArray(file) && file.length === 0 && !isUploaded) {
             missingFiles.push(key);
           }
         });
@@ -1232,7 +1238,7 @@ const rbacStore = useRbacStore();
           const isUploaded = this.uploadedDocuments[qKey];
           if (
             (!file && !isUploaded) ||
-            (Array.isArray(file) && file.length === 0)
+            (Array.isArray(file) && file.length === 0 && !isUploaded)
           ) {
             missingFiles.push(qKey);
           }

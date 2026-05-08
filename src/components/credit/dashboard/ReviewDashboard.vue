@@ -225,10 +225,18 @@ const totalCreditAmount = computed(() => {
     const requestAmount = parseFloat(String(requestedAmount.value || '0').replace(/,/g, ''));
     let baseAmount = 0;
 
-    if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
-        baseAmount = parseFloat(String(store.originalTransactionData.amount).replace(/,/g, ''));
-    } else if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
-        baseAmount = parseFloat(String(erpFallbackData.value.current_credit_limit).replace(/,/g, ''));
+    // For credit increases, always use current ERP limit as base, not original transaction data
+    if (isCreditIncrease.value) {
+        if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
+            baseAmount = parseFloat(String(erpFallbackData.value.current_credit_limit).replace(/,/g, ''));
+        }
+    } else {
+        // For other request types, use original transaction data if available
+        if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
+            baseAmount = parseFloat(String(store.originalTransactionData.amount).replace(/,/g, ''));
+        } else if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
+            baseAmount = parseFloat(String(erpFallbackData.value.current_credit_limit).replace(/,/g, ''));
+        }
     }
 
     return isNaN(requestAmount) ? baseAmount : (baseAmount + requestAmount);
@@ -236,6 +244,11 @@ const totalCreditAmount = computed(() => {
 
 const requestedAmount = computed(() => {
     if (store.requestStatus !== 'Draft' && store.originalRequestedAmount !== null) {
+        // For credit increases, always use the stored amount (the increase amount)
+        if (isCreditIncrease.value) {
+            return store.transactionData.amount;
+        }
+        
         // Try to find the original amount from the first limit change comment
         const comments = store.comments || [];
         const firstLimitChange = comments.find(c => c.comment_text && c.comment_text.includes('ปรับวงเงินจาก'));
