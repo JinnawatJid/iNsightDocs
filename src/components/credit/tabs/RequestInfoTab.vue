@@ -528,7 +528,7 @@ import { useCreditRequestStore } from '@/stores/creditRequest';
 import { useAuthStore } from '@/stores/auth';
 import { mandatoryStoreKeys } from '@/config/mandatoryFields';
 
-const props = defineProps(['readOnly', 'viewMode']);
+const props = defineProps(['readOnly', 'viewMode', 'baseline']);
 const store = useCreditRequestStore();
 
 const isEditing = ref(!props.readOnly);
@@ -762,7 +762,12 @@ const totalLimit = computed(() => {
 
 const formattedAmount = computed({
     get: () => {
-        const val = (!canEditAmount.value && store.originalTransactionData?.amount !== undefined) ? store.originalTransactionData.amount : store.transactionData.amount;
+    // Prefer explicit baseline when provided (frozen snapshot for full-details view)
+    if (props.baseline && props.baseline.amount !== undefined && !canEditAmount.value) {
+        console.debug('[RequestInfoTab] using baseline.amount for formattedAmount:', props.baseline.amount, 'canEditAmount=', canEditAmount.value);
+        return props.baseline.amount ? Number(props.baseline.amount).toLocaleString('en-US') : '';
+    }
+    const val = (!canEditAmount.value && store.originalTransactionData?.amount !== undefined) ? store.originalTransactionData.amount : store.transactionData.amount;
         return val ? Number(val).toLocaleString('en-US') : '';
     },
     set: (val) => {
@@ -773,27 +778,39 @@ const formattedAmount = computed({
 
 
 const displayTermGS = computed({
-    get: () => {
-        if (!canEditTerms.value && store.originalTransactionData?.termGS !== undefined) return store.originalTransactionData.termGS;
-        return store.transactionData.termGS;
-    },
-    set: (val) => { store.transactionData.termGS = val; }
+  get: () => {
+    if (props.baseline && props.baseline.termGS !== undefined && !canEditTerms.value) {
+      console.debug('[RequestInfoTab] displayTermGS using baseline.termGS:', props.baseline.termGS, 'canEditTerms=', canEditTerms.value);
+      return props.baseline.termGS;
+    }
+    if (!canEditTerms.value && store.originalTransactionData?.termGS !== undefined) return store.originalTransactionData.termGS;
+    return store.transactionData.termGS;
+  },
+  set: (val) => { store.transactionData.termGS = val; }
 });
 
 const displayTermAE = computed({
-    get: () => {
-        if (!canEditTerms.value && store.originalTransactionData?.termAE !== undefined) return store.originalTransactionData.termAE;
-        return store.transactionData.termAE;
-    },
-    set: (val) => { store.transactionData.termAE = val; }
+  get: () => {
+    if (props.baseline && props.baseline.termAE !== undefined && !canEditTerms.value) {
+      console.debug('[RequestInfoTab] displayTermAE using baseline.termAE:', props.baseline.termAE, 'canEditTerms=', canEditTerms.value);
+      return props.baseline.termAE;
+    }
+    if (!canEditTerms.value && store.originalTransactionData?.termAE !== undefined) return store.originalTransactionData.termAE;
+    return store.transactionData.termAE;
+  },
+  set: (val) => { store.transactionData.termAE = val; }
 });
 
 const displayTermYC = computed({
-    get: () => {
-        if (!canEditTerms.value && store.originalTransactionData?.termYC !== undefined) return store.originalTransactionData.termYC;
-        return store.transactionData.termYC;
-    },
-    set: (val) => { store.transactionData.termYC = val; }
+  get: () => {
+    if (props.baseline && props.baseline.termYC !== undefined && !canEditTerms.value) {
+      console.debug('[RequestInfoTab] displayTermYC using baseline.termYC:', props.baseline.termYC, 'canEditTerms=', canEditTerms.value);
+      return props.baseline.termYC;
+    }
+    if (!canEditTerms.value && store.originalTransactionData?.termYC !== undefined) return store.originalTransactionData.termYC;
+    return store.transactionData.termYC;
+  },
+  set: (val) => { store.transactionData.termYC = val; }
 });
 
 const handleAmountInput = (event) => {

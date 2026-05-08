@@ -166,7 +166,7 @@
 
     <!-- Section 4: Full Application Form (Conditional) -->
     <div v-if="showFullDetails" class="full-details-wrapper">
-        <ApplicationTabs :readOnly="true" viewMode="full" />
+        <ApplicationTabs :readOnly="true" viewMode="full" :baseline="baselineSnapshot" />
     </div>
 
     <!-- Section 5: Additional/Reviewer Documents -->
@@ -191,6 +191,28 @@ import CustomerService from '@/services/CustomerService';
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
 const showFullDetails = ref(false);
+// Baseline snapshot to freeze original request details when opening full-details view
+const baselineSnapshot = ref(null);
+
+watch(showFullDetails, (val) => {
+    if (val) {
+        // When opening full details, freeze a snapshot to avoid showing live edits
+        if (store.originalTransactionData && Object.keys(store.originalTransactionData).length > 0) {
+            baselineSnapshot.value = JSON.parse(JSON.stringify(store.originalTransactionData));
+            console.debug('[ReviewDashboard] baselineSnapshot set from originalTransactionData:', baselineSnapshot.value);
+        } else {
+            baselineSnapshot.value = JSON.parse(JSON.stringify({
+                amount: store.originalRequestedAmount ?? store.transactionData.amount,
+                termGS: store.originalRequestedTerms?.termGS ?? store.transactionData.termGS,
+                termAE: store.originalRequestedTerms?.termAE ?? store.transactionData.termAE,
+                termYC: store.originalRequestedTerms?.termYC ?? store.transactionData.termYC,
+            }));
+            console.debug('[ReviewDashboard] baselineSnapshot constructed from store fields:', baselineSnapshot.value);
+        }
+    } else {
+        baselineSnapshot.value = null;
+    }
+});
 
 const formatNumber = (num) => {
     if (!num) return '0';

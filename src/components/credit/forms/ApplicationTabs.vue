@@ -22,7 +22,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import ResidenceTab from '../tabs/ResidenceTab.vue';
 import GeneralInfoTab from '../tabs/GeneralInfoTab.vue';
 import StoreCompanyTab from '../tabs/StoreCompanyTab.vue';
@@ -31,6 +31,11 @@ import RequestInfoTab from '../tabs/RequestInfoTab.vue';
 import { useCreditRequestStore } from '@/stores/creditRequest';
 
 const props = defineProps(['readOnly', 'viewMode']);
+const props = defineProps(['readOnly', 'viewMode', 'baseline']);
+onMounted(() => {
+  console.debug('[ApplicationTabs] mounted, baseline prop:', props.baseline);
+});
+  <component :is="currentTabComponent" :readOnly="readOnly" :viewMode="viewMode" :baseline="props.baseline" />
 const store = useCreditRequestStore();
 
 const currentTab = computed({
