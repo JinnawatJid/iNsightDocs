@@ -221,8 +221,13 @@ const availableActions = computed(() => {
       const origAmt = formatNum(baseline.amount);
       const newAmt = formatNum(store.transactionData.amount);
 
-      if (origAmt !== newAmt) {
-        msg += `ปรับวงเงินจาก ${origAmt} เป็น ${newAmt} บาท\n`;
+      const amountMsg = `ปรับวงเงินจาก ${origAmt} เป็น ${newAmt} บาท`;
+
+      const comments = store.comments || [];
+      const hasAmountMsg = comments.some(c => c.comment_text && c.comment_text.includes(amountMsg));
+
+      if (origAmt !== newAmt && !hasAmountMsg) {
+        msg += `${amountMsg}\n`;
       }
 
       const origGS = baseline.termGS || 0;
@@ -233,8 +238,11 @@ const availableActions = computed(() => {
       const newAE = store.transactionData.termAE || 0;
       const newYC = store.transactionData.termYC || 0;
 
-      if (origGS != newGS || origAE != newAE || origYC != newYC) {
-        msg += `ปรับเครดิตเทอมจาก ${origGS}/${origAE}/${origYC} เป็น ${newGS}/${newAE}/${newYC}\n`;
+      const termMsg = `ปรับเครดิตเทอมจาก ${origGS}/${origAE}/${origYC} เป็น ${newGS}/${newAE}/${newYC}`;
+      const hasTermMsg = comments.some(c => c.comment_text && c.comment_text.includes(termMsg));
+
+      if ((origGS != newGS || origAE != newAE || origYC != newYC) && !hasTermMsg) {
+        msg += `${termMsg}\n`;
       }
 
       return msg;
