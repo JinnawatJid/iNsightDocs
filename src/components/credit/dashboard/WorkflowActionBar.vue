@@ -181,41 +181,41 @@ const availableActions = computed(() => {
         return val.toLocaleString('th-TH');
       };
 
-      // Helper: try to extract original values from existing comments (useful if originalTransactionData was updated)
-      const extractOriginalAmountFromComments = () => {
+      // Helper: try to extract the last known modified values from existing comments
+      const extractLastAmountFromComments = () => {
         const comments = store.comments || [];
-        const firstLimitChange = comments.find(c => c.comment_text && c.comment_text.includes('ปรับวงเงินจาก'));
-        if (firstLimitChange && firstLimitChange.comment_text) {
-          const match = firstLimitChange.comment_text.match(/ปรับวงเงินจาก\s+([\d,]+)\s+เป็น/);
+        // Find the LAST comment that changed the limit
+        const limitChanges = comments.filter(c => c.comment_text && c.comment_text.includes('ปรับวงเงินจาก'));
+        if (limitChanges.length > 0) {
+          const lastLimitChange = limitChanges[limitChanges.length - 1];
+          const match = lastLimitChange.comment_text.match(/ปรับวงเงินจาก\s+[\d,]+\s+เป็น\s+([\d,]+)\s+บาท/);
           if (match && match[1]) return match[1].replace(/,/g, '');
         }
         return null;
       };
 
-      const extractOriginalTermsFromComments = () => {
+      const extractLastTermsFromComments = () => {
         const comments = store.comments || [];
-        const firstTermChange = comments.find(c => c.comment_text && c.comment_text.includes('ปรับเครดิตเทอมจาก'));
-        if (firstTermChange && firstTermChange.comment_text) {
-          const match = firstTermChange.comment_text.match(/ปรับเครดิตเทอมจาก\s+(\d+)\/(\d+)\/(\d+)\s+เป็น/);
+        const termChanges = comments.filter(c => c.comment_text && c.comment_text.includes('ปรับเครดิตเทอมจาก'));
+        if (termChanges.length > 0) {
+          const lastTermChange = termChanges[termChanges.length - 1];
+          const match = lastTermChange.comment_text.match(/ปรับเครดิตเทอมจาก\s+\d+\/\d+\/\d+\s+เป็น\s+(\d+)\/(\d+)\/(\d+)/);
           if (match) return { termGS: Number(match[1]), termAE: Number(match[2]), termYC: Number(match[3]) };
         }
         return null;
       };
 
-      // Base baseline on originalTransactionData if present; otherwise try comments, then fall back to stored originals
-      let baseline = null;
-      if (store.originalTransactionData && Object.keys(store.originalTransactionData).length > 0) {
-        baseline = store.originalTransactionData;
-      } else {
-        const fromCommentsAmt = extractOriginalAmountFromComments();
-        const fromCommentsTerms = extractOriginalTermsFromComments();
-        baseline = {
-          amount: fromCommentsAmt ?? store.originalRequestedAmount,
-          termGS: fromCommentsTerms?.termGS ?? store.originalRequestedTerms?.termGS,
-          termAE: fromCommentsTerms?.termAE ?? store.originalRequestedTerms?.termAE,
-          termYC: fromCommentsTerms?.termYC ?? store.originalRequestedTerms?.termYC,
-        };
-      }
+      // To calculate incremental change, we prioritize the last known changed value from comments.
+      // If no changes exist in comments, we fall back to originalTransactionData, and finally originalRequestedAmount.
+      const fromCommentsAmt = extractLastAmountFromComments();
+      const fromCommentsTerms = extractLastTermsFromComments();
+
+      let baseline = {
+        amount: fromCommentsAmt ?? store.originalTransactionData?.amount ?? store.originalRequestedAmount,
+        termGS: fromCommentsTerms?.termGS ?? store.originalTransactionData?.termGS ?? store.originalRequestedTerms?.termGS,
+        termAE: fromCommentsTerms?.termAE ?? store.originalTransactionData?.termAE ?? store.originalRequestedTerms?.termAE,
+        termYC: fromCommentsTerms?.termYC ?? store.originalTransactionData?.termYC ?? store.originalRequestedTerms?.termYC,
+      };
 
       let msg = '';
       const origAmt = formatNum(baseline.amount);
