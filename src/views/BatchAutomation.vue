@@ -699,6 +699,16 @@ const formatDays = (val) => {
   return val + " วัน";
 };
 
+// Helper: Format File Size
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes';
+  if (!bytes) return 'ไม่ระบุ';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
 const getGradeClass = (grade) => {
   if (grade === "A") return "text-success";
   if (grade === "B") return "text-warning";
@@ -1177,31 +1187,36 @@ const showDebugFiles = async (item) => {
           item.debugFiles = {
             profile: {
               type: "local",
-              filename: "DBD_Profile.pdf",
+              filename: localCheck.files?.profile?.filename || "DBD_Profile.pdf",
               mime: "application/pdf",
+              size: localCheck.files?.profile?.size
             },
             balanceSheet: {
               type: "local",
-              filename: "DBD_BalanceSheet.xlsx",
+              filename: localCheck.files?.balanceSheet?.filename || "DBD_BalanceSheet.xlsx",
               mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              size: localCheck.files?.balanceSheet?.size
             },
             incomeStatement: {
               type: "local",
-              filename: "DBD_IncomeStatement.xlsx",
+              filename: localCheck.files?.incomeStatement?.filename || "DBD_IncomeStatement.xlsx",
               mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              size: localCheck.files?.incomeStatement?.size
             },
             financialRatios: {
               type: "local",
-              filename: "DBD_FinancialRatios.xlsx",
+              filename: localCheck.files?.financialRatios?.filename || "DBD_FinancialRatios.xlsx",
               mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              size: localCheck.files?.financialRatios?.size
             },
           };
         } else {
           item.debugFiles = {
             profile: {
               type: "local",
-              filename: "DBD_Profile.pdf",
+              filename: localCheck.files?.profile?.filename || "DBD_Profile.pdf",
               mime: "application/pdf",
+              size: localCheck.files?.profile?.size
             },
           };
         }
@@ -1255,7 +1270,7 @@ const showDebugFiles = async (item) => {
   files.forEach((f) => {
     const fileData = item.debugFiles ? item.debugFiles[f.key] : null;
     if (fileData) {
-      const size = fileData.size || "ไม่ระบุ";
+      const size = fileData.size ? formatFileSize(fileData.size) : "ไม่ระบุ";
       const style = "color: #333;";
       const icon = f.icon;
 
@@ -1424,31 +1439,36 @@ const uploadLocalFiles = async (item, data) => {
         item.debugFiles = {
           profile: {
             type: "local",
-            filename: "DBD_Profile.pdf",
+            filename: data.profile?.name || "DBD_Profile.pdf",
             mime: "application/pdf",
+            size: data.profile?.size
           },
           balanceSheet: {
             type: "local",
-            filename: "DBD_BalanceSheet.xlsx",
+            filename: data.balanceSheet?.name || "DBD_BalanceSheet.xlsx",
             mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            size: data.balanceSheet?.size
           },
           incomeStatement: {
             type: "local",
-            filename: "DBD_IncomeStatement.xlsx",
+            filename: data.incomeStatement?.name || "DBD_IncomeStatement.xlsx",
             mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            size: data.incomeStatement?.size
           },
           financialRatios: {
             type: "local",
-            filename: "DBD_FinancialRatios.xlsx",
+            filename: data.financialRatios?.name || "DBD_FinancialRatios.xlsx",
             mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            size: data.financialRatios?.size
           },
         };
       } else {
         item.debugFiles = {
           profile: {
             type: "local",
-            filename: "DBD_Profile.pdf",
+            filename: data.profile?.name || "DBD_Profile.pdf",
             mime: "application/pdf",
+            size: data.profile?.size
           },
         };
       }
@@ -1549,31 +1569,36 @@ const checkReadiness = async () => {
               item.debugFiles = {
                 profile: {
                   type: "local",
-                  filename: "DBD_Profile.pdf",
+                  filename: checkRes.files?.profile?.filename || "DBD_Profile.pdf",
                   mime: "application/pdf",
+                  size: checkRes.files?.profile?.size
                 },
                 balanceSheet: {
                   type: "local",
-                  filename: "DBD_BalanceSheet.xlsx",
+                  filename: checkRes.files?.balanceSheet?.filename || "DBD_BalanceSheet.xlsx",
                   mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                  size: checkRes.files?.balanceSheet?.size
                 },
                 incomeStatement: {
                   type: "local",
-                  filename: "DBD_IncomeStatement.xlsx",
+                  filename: checkRes.files?.incomeStatement?.filename || "DBD_IncomeStatement.xlsx",
                   mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                  size: checkRes.files?.incomeStatement?.size
                 },
                 financialRatios: {
                   type: "local",
-                  filename: "DBD_FinancialRatios.xlsx",
+                  filename: checkRes.files?.financialRatios?.filename || "DBD_FinancialRatios.xlsx",
                   mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                  size: checkRes.files?.financialRatios?.size
                 },
               };
             } else {
               item.debugFiles = {
                 profile: {
                   type: "local",
-                  filename: "DBD_Profile.pdf",
+                  filename: checkRes.files?.profile?.filename || "DBD_Profile.pdf",
                   mime: "application/pdf",
+                  size: checkRes.files?.profile?.size
                 },
               };
             }
