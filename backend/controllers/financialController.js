@@ -122,6 +122,38 @@ const sanitizeInvoices = (invoices) => {
 };
 
 // Helper: Fetch Purchasing Behavior from External API
+
+// Helper: Deduplicate Invoices (Keep the row with max Late_Days)
+const deduplicateInvoices = (invoices) => {
+    if (!invoices || !Array.isArray(invoices)) return invoices;
+
+    const invoiceMap = new Map();
+    const missingInvoiceNo = [];
+
+    invoices.forEach(inv => {
+        const invoiceNo = inv.Invoice_No || inv.invoice_no || inv.Document_No;
+        if (!invoiceNo) {
+            missingInvoiceNo.push(inv);
+            return;
+        }
+
+        if (invoiceMap.has(invoiceNo)) {
+            const existingInv = invoiceMap.get(invoiceNo);
+            const existingLateDays = Number(existingInv.Late_Days || existingInv.late_days || 0);
+            const currentLateDays = Number(inv.Late_Days || inv.late_days || 0);
+
+            if (currentLateDays > existingLateDays) {
+                invoiceMap.set(invoiceNo, inv);
+            }
+        } else {
+            invoiceMap.set(invoiceNo, inv);
+        }
+    });
+
+    return [...Array.from(invoiceMap.values()), ...missingInvoiceNo];
+};
+
+
 const fetchPurchasingBehavior = async (customerNo, taxId = null, fetchBy = 'vat') => {
     if (MOCK_EXTERNAL_APIS || MOCK_FINANCIAL_API) {
         logger.info(`[Financial API] Using Mock Data for ${customerNo}`);
@@ -210,6 +242,8 @@ const fetchLatePaymentData = async (customerNo) => {
 
         // Sanitize Data (Handle 1753 / Future Checks)
         invoices = sanitizeInvoices(invoices);
+        // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
+        invoices = deduplicateInvoices(invoices);
 
         // Filter invoices: Only consider those with a valid Effective Payment Date (Paid Invoices)
         // Invoices with null/empty Effective Payment are Outstanding/Unpaid and should not skew the average (as 0 late days).
@@ -377,6 +411,8 @@ const fetchWADLData = async (customerNo) => {
 
         // Sanitize Data (Handle 1753 / Future Checks)
         invoices = sanitizeInvoices(invoices);
+        // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
+        invoices = deduplicateInvoices(invoices);
 
         return calculateWADL(invoices);
 
@@ -1373,6 +1409,8 @@ exports.getLatePaymentBenchmark = async (req, res) => {
 
         // Sanitize Data (Handle 1753 / Future Checks)
         invoices = sanitizeInvoices(invoices);
+        // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
+        invoices = deduplicateInvoices(invoices);
 
         // 2. Calculate Traditional (Simple Average) based on this dataset
         // Filter paid invoices first for fair comparison
