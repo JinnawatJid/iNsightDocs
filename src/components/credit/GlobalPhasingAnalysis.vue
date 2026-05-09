@@ -454,18 +454,113 @@ const chartData = computed(() => {
     };
 });
 
-const actualEvents = computed(() => {
-    const events = globalEvents.value;
-    return events.map(ev => {
-        const delayDays = ev.type === 'add' ? 3 : 7; // Simulation delay: drawdowns 3 days late, repayments 7 days late
-        const delayedTime = ev.time + (delayDays * 24 * 60 * 60 * 1000);
-        return {
-            ...ev,
-            time: delayedTime,
-            isActual: true
-        };
-    }).sort((a, b) => a.time - b.time);
-});
+const actualEvents = ref([]);
+
+const fetchActualProjectData = async () => {
+    const customerNo = store.customer?.id || store.customer?.No_;
+    const projects = store.transactionData.projects || [];
+    if (!customerNo || projects.length === 0) {
+        actualEvents.value = [];
+        return;
+    }
+
+    try {
+        console.log(`[GlobalPhasingAnalysis] Fetching actual invoices and payments for ${customerNo}`);
+        let allEvents = [];
+
+        // Fetch payments once per customer
+        const authStore = useAuthStore();
+        const paymentsResponse = await axios.post(
+            `/api/financials/project-payments/${encodeURIComponent(customerNo)}`,
+            {},
+            { headers: { Authorization: `Bearer ${authStore.token}` } }
+        );
+        const paymentsData = paymentsResponse.data?.data || [];
+
+        // We deduplicate payments by Document No. to keep the highest late days / latest effective date as per standard
+        const paymentsMap = new Map();
+        paymentsData.forEach(p => {
+            const invoiceNo = p['Invoice_No'] || p['Document No_'];
+            if (!invoiceNo) return;
+
+            if (!paymentsMap.has(invoiceNo)) {
+                paymentsMap.set(invoiceNo, p);
+            } else {
+                const existing = paymentsMap.get(invoiceNo);
+                if ((p['Late_Days'] || 0) > (existing['Late_Days'] || 0)) {
+                    paymentsMap.set(invoiceNo, p);
+                }
+            }
+        });
+
+
+        // Fetch invoices per project
+        for (let pIndex = 0; pIndex < projects.length; pIndex++) {
+            const proj = projects[pIndex];
+            const projectCode = proj.projectData?.projectCode || '';
+
+            const invoicesResponse = await axios.post(
+                `/api/financials/project-invoices/${encodeURIComponent(customerNo)}`,
+                { project_no: projectCode },
+                { headers: { Authorization: `Bearer ${authStore.token}` } }
+            );
+            const invoicesData = invoicesResponse.data?.data || [];
+
+            invoicesData.forEach(inv => {
+                const docNo = inv['Document No.'] || inv['Invoice_No'];
+                const invoiceDateStr = inv['Posting Date'] || inv['Invoice_Date'];
+                const amt = parseFloat(inv['Line_Amount']) || parseFloat(inv['Amount']) || 0;
+
+                if (amt > 0 && invoiceDateStr) {
+                    const invTime = parseDate(invoiceDateStr);
+                    if (invTime) {
+                        // 1. Add the debt event (Invoice)
+                        allEvents.push({
+                            time: invTime,
+                            type: 'add',
+                            amount: amt,
+                            projectId: pIndex,
+                            projectName: proj.projectData?.name || `โครงการ ${pIndex + 1}`,
+                            isActual: true,
+                            docNo: docNo
+                        });
+
+                        // 2. Add the payment event if it exists for this invoice
+                        if (docNo && paymentsMap.has(docNo)) {
+                            const payment = paymentsMap.get(docNo);
+                            const payDateStr = payment['Effective_Payment_Date'] || payment['Payment_Date'] || payment['Cleared Date'];
+
+                            // Check if valid payment date exists and not an empty string or 1753 date
+                            if (payDateStr && !payDateStr.includes('1753')) {
+                                const payTime = parseDate(payDateStr);
+                                if (payTime) {
+                                    allEvents.push({
+                                        time: payTime,
+                                        type: 'sub',
+                                        amount: amt, // Using invoice amount as we deduplicated it
+                                        projectId: pIndex,
+                                        projectName: proj.projectData?.name || `โครงการ ${pIndex + 1}`,
+                                        isActual: true,
+                                        docNo: docNo
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        actualEvents.value = allEvents.sort((a, b) => a.time - b.time);
+        console.log('[GlobalPhasingAnalysis] actualEvents computed:', actualEvents.value);
+    } catch (error) {
+        console.error('[GlobalPhasingAnalysis] Failed to fetch actual events:', error);
+    }
+};
+
+watch(() => [store.customer?.id, store.customer?.No_, store.transactionData.projects], () => {
+    fetchActualProjectData();
+}, { deep: true, immediate: true });
 
 const comparisonChartData = computed(() => {
     const pEvents = globalEvents.value;

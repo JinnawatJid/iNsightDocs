@@ -30,3 +30,7 @@ module.exports = router;
 
 // New Route for DBD Data Table API
 router.get('/:customer_no/dbd-data', financialController.getDBDData);
+
+// New endpoints for Project Actual Tracking
+router.post('/project-invoices/:customer_no', financialController.getProjectInvoices);
+router.post('/project-payments/:customer_no', financialController.getProjectPayments);
