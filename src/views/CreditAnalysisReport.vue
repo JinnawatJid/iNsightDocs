@@ -266,8 +266,16 @@ const latePaymentInvoices = computed(() => {
     const source = wadlInvoices || standardInvoices;
 
     if (source && Array.isArray(source)) {
-        // Sort descending by Invoice Date (Newest first)
-        return [...source].sort((a, b) => {
+        // Force deduplicate in frontend just in case backend fails or returns raw data
+        const uniqueMap = new Map();
+        source.forEach(inv => {
+             const invoiceNo = inv.Invoice_No || inv.invoice_no || inv.Document_No;
+             if (!uniqueMap.has(invoiceNo)) {
+                 uniqueMap.set(invoiceNo, inv);
+             }
+        });
+
+        return Array.from(uniqueMap.values()).sort((a, b) => {
             const dateA = new Date(a.Invoice_Date);
             const dateB = new Date(b.Invoice_Date);
             return dateB - dateA;
