@@ -142,8 +142,19 @@ const deduplicateInvoices = (invoices) => {
             const existingLateDays = Number(existingInv.Late_Days || existingInv.late_days || 0);
             const currentLateDays = Number(inv.Late_Days || inv.late_days || 0);
 
+            // FIX: We need to also check the Effective Payment Date if Late_Days are equal
+            // Sometimes Late_Days are both 0, but one row is paid and one is not (or dates differ)
+            // Or just replace if the existing record has a null Effective_Payment_Date
             if (currentLateDays > existingLateDays) {
                 invoiceMap.set(invoiceNo, inv);
+            } else if (currentLateDays === existingLateDays) {
+                const existingDate = existingInv.Effective_Payment_Date || existingInv.effective_payment_date;
+                const currentDate = inv.Effective_Payment_Date || inv.effective_payment_date;
+                if (!existingDate && currentDate) {
+                    invoiceMap.set(invoiceNo, inv);
+                } else if (existingDate && currentDate && new Date(currentDate) > new Date(existingDate)) {
+                    invoiceMap.set(invoiceNo, inv);
+                }
             }
         } else {
             invoiceMap.set(invoiceNo, inv);
