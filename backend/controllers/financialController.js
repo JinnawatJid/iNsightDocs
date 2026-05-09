@@ -1314,7 +1314,8 @@ exports.checkLocalFilesBatch = async (req, res) => {
             noFinancialData: result.noFinancialData || result.isNoFinancialData || false,
             reason: result.reason || 'Ready',
             date: result.date || null,
-            dbdCompanyName: result.dbdCompanyName || null
+            dbdCompanyName: result.dbdCompanyName || null,
+            files: result.files || {}
         });
     }
 
