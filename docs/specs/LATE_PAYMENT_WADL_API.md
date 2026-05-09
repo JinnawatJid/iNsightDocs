@@ -76,5 +76,6 @@ The response returns a list of invoices with payment details, including the `Amo
    $$ WADL = \frac{\sum (Amount \times LateDays)}{\sum Amount} $$
 
 ## Implementation Notes
+- **Duplicate Rows Resolution**: The raw API may return duplicate rows for a single `Invoice_No` if the invoice was paid via multiple cheques or transactions. The Node.js consumer automatically deduplicates these by tracking the `Invoice_No` and retaining the record with the maximum `Late_Days` (or latest `Effective_Payment_Date`) to ensure WADL calculations and UI tables remain accurate.
 - The API key in the screenshots was truncated. A placeholder is used in the codebase until the full key is provided.
 - The endpoint supports `POST` method, which differs from some other `GET` based APIs in the system.
