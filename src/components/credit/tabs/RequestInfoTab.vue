@@ -540,11 +540,26 @@ const isDraftMode = computed(() => {
   return !store.requestStatus || store.requestStatus === 'Draft';
 });
 
-const isRequestIncrease = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตเพิ่ม'));
-const isChangePayment = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เปลี่ยนแปลงเงื่อนไขการชำระเงิน'));
-const isChangeTerm = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เปลี่ยนแปลงระยะเวลาเครดิต'));
-const isNewRequest = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตใหม่'));
-const isProjectCredit = computed(() => store.transactionData.requestType && store.transactionData.requestType.includes('เครดิตโครงการ'));
+const isRequestIncrease = computed(() => {
+    const type = props.baseline?.requestType || store.originalTransactionData?.requestType || store.transactionData.requestType || '';
+    return type.includes('เครดิตเพิ่ม');
+});
+const isChangePayment = computed(() => {
+    const type = props.baseline?.requestType || store.originalTransactionData?.requestType || store.transactionData.requestType || '';
+    return type.includes('เปลี่ยนแปลงเงื่อนไขการชำระเงิน');
+});
+const isChangeTerm = computed(() => {
+    const type = props.baseline?.requestType || store.originalTransactionData?.requestType || store.transactionData.requestType || '';
+    return type.includes('เปลี่ยนแปลงระยะเวลาเครดิต');
+});
+const isNewRequest = computed(() => {
+    const type = props.baseline?.requestType || store.originalTransactionData?.requestType || store.transactionData.requestType || '';
+    return type.includes('เครดิตใหม่');
+});
+const isProjectCredit = computed(() => {
+    const type = props.baseline?.requestType || store.originalTransactionData?.requestType || store.transactionData.requestType || '';
+    return type.includes('เครดิตโครงการ');
+});
 
 
 // VISIBILITY LOGIC
@@ -794,10 +809,19 @@ const formattedAmount = computed({
         
         let val = amt;
         if (!canEdit) {
-             if (origReqAmt !== null && origReqAmt !== undefined) {
-                 val = origReqAmt;
-             } else if (origTxAmt !== undefined && origTxAmt !== null) {
-                 val = origTxAmt;
+             // For Credit Increases, originalRequestedAmount holds the increase amount.
+             if (isRequestIncrease.value) {
+                 if (origReqAmt !== null && origReqAmt !== undefined) {
+                     val = origReqAmt;
+                 } else if (origTxAmt !== undefined && origTxAmt !== null) {
+                     val = origTxAmt;
+                 }
+             } else {
+                 if (origReqAmt !== null && origReqAmt !== undefined) {
+                     val = origReqAmt;
+                 } else if (origTxAmt !== undefined && origTxAmt !== null) {
+                     val = origTxAmt;
+                 }
              }
         }
         console.log('[RequestInfoTab formattedAmount GET] Using fallback value:', val);

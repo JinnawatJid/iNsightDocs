@@ -246,11 +246,12 @@ const formatTerms = (data) => {
 };
 
 const isCreditIncrease = computed(() => {
-    return store.transactionData.requestType?.includes('เครดิตเพิ่ม') || false;
+    const type = store.originalTransactionData?.requestType || store.transactionData.requestType || '';
+    return type.includes('เครดิตเพิ่ม');
 });
 
 const showOriginalValues = computed(() => {
-    const type = store.transactionData.requestType || '';
+    const type = store.originalTransactionData?.requestType || store.transactionData.requestType || '';
     return !type.includes('เครดิตใหม่') && !type.includes('เครดิตโครงการ');
 });
 
