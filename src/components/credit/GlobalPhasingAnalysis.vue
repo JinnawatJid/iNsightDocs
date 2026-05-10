@@ -497,7 +497,11 @@ const fetchActualProjectData = async () => {
         // Fetch invoices per project
         for (let pIndex = 0; pIndex < projects.length; pIndex++) {
             const proj = projects[pIndex];
-            const projectCode = proj.projectData?.projectCode || '';
+            const projectCode = proj.projectData?.id || proj.projectData?.projectCode || '';
+
+            if (!projectCode) {
+                continue; // Skip if no project code exists to avoid fetching general/blank debt
+            }
 
             const invoicesResponse = await axios.post(
                 `/api/financials/project-invoices/${encodeURIComponent(customerNo)}`,
