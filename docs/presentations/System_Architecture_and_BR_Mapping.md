@@ -119,7 +119,9 @@ graph TD
 
 ### 1.4 การติดตั้งและรันระบบ (Deployment & Setup)
 *   **Local Development:** ฝั่ง Backend รันด้วย `npm run start` (Port 3000) และ Frontend รันด้วย `npm run dev` (Vite Port 5173) โดย Frontend จะ Proxy API calls ไปหา Backend
-*   **Production Deployment:** ระบบใช้วิธี **Zero-dependency deployment** โดยรวม `node.exe` ไว้ในชุดติดตั้ง ทำให้ Server ปลายทางไม่ต้องลง Node.js เอง สามารถรันสคริปต์ `.bat` หรือ PowerShell เพื่อ Start service ได้เลย
+*   **Production Build & Deployment:**
+    *   **การสร้าง Release Package:** สามารถรันคำสั่ง `create_release.bat` (หรือรันสคริปต์ที่เทียบเท่า) ที่ Root ของ Repository ระบบจะทำการ Build โค้ดฝั่ง Frontend ให้เป็น Static files และรวบรวมโค้ดฝั่ง Backend พร้อมกับนำเอา `node.exe` (Standalone) มาแพ็กรวมกันเป็นโฟลเดอร์ Release เดียว
+    *   **Zero-dependency deployment:** จากโฟลเดอร์ Release ที่ได้ สามารถนำไปวางบน Server ปลายทาง และรันระบบได้ทันทีผ่าน `.bat` หรือ PowerShell โดยที่ Server ปลายทาง**ไม่จำเป็น**ต้องติดตั้ง Node.js หรือ Dependencies อื่นๆ ให้ยุ่งยาก
 
 ---
 
