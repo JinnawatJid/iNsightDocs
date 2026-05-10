@@ -17,8 +17,10 @@ const LATE_PAYMENT_API_URL = "http://192.192.0.37:8280/customer-late-payment/1.0
 // New WADL API Endpoint
 const LATE_PAYMENT_WADL_API_URL = "http://192.192.0.37:8280/weight-baselatepayment/1.0.0";
 const REMAINING_CREDIT_API_URL = "http://192.192.0.37:8280/silver_customerremainingcredit/1.0.0";
+const INVOICE_API_URL = process.env.INVOICE_API_URL || "http://192.192.0.37:8280/silver_invoice_sp682/1.0.0";
 
 const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
+const INVOICE_API_KEY = process.env.INVOICE_API_KEY || API_KEY;
 // Separate API Key for Late Payment Service (if different from Customer API)
 const LATE_PAYMENT_API_KEY = process.env.LATE_PAYMENT_API_KEY || API_KEY;
 // Dedicated API Key for WADL Service
@@ -1604,5 +1606,75 @@ exports.getCustomerRemainingCredit = async (req, res) => {
     } catch (error) {
         logger.error(`[Remaining Credit API] Error fetching for ${customerNo}:`, error.message);
         res.status(500).json({ error: "Failed to fetch remaining credit", details: error.message });
+    }
+};
+
+exports.getProjectInvoices = async (req, res) => {
+    const { customer_no } = req.params;
+    const { project_no } = req.body;
+
+    if (!customer_no) {
+        return res.status(400).json({ error: "Customer number is required" });
+    }
+
+    try {
+        logger.info(`[Project Invoices API] Fetching invoices for ${customer_no}, project ${project_no} from ${INVOICE_API_URL}`);
+
+        let data;
+        if (MOCK_EXTERNAL_APIS) {
+            // Mock empty data or some default
+            data = { data: [] };
+        } else {
+            const response = await axios.post(INVOICE_API_URL, {
+                "customer_code": customer_no,
+                "Project_No": project_no || ""
+            }, {
+                headers: {
+                    "apikey": INVOICE_API_KEY,
+                    "Content-Type": "application/json"
+                },
+                timeout: 5000
+            });
+            data = response.data;
+        }
+
+        res.json(data);
+    } catch (error) {
+        logger.error(`[Project Invoices API] Error fetching for ${customer_no}:`, error.message);
+        res.status(500).json({ error: "Failed to fetch project invoices", details: error.message });
+    }
+};
+
+exports.getProjectPayments = async (req, res) => {
+    const { customer_no } = req.params;
+
+    // We can just use the existing LATE_PAYMENT_WADL_API_URL which gets payments
+    if (!customer_no) {
+        return res.status(400).json({ error: "Customer number is required" });
+    }
+
+    try {
+        logger.info(`[Project Payments API] Fetching payments for ${customer_no} from ${LATE_PAYMENT_WADL_API_URL}`);
+
+        let data;
+        if (MOCK_EXTERNAL_APIS) {
+            data = getMockLatePaymentData(customer_no);
+        } else {
+            const response = await axios.post(LATE_PAYMENT_WADL_API_URL, {
+                "Customer No_": customer_no
+            }, {
+                headers: {
+                    "apikey": LATE_PAYMENT_WADL_API_KEY,
+                    "Content-Type": "application/json"
+                },
+                timeout: 5000
+            });
+            data = response.data;
+        }
+
+        res.json(data);
+    } catch (error) {
+        logger.error(`[Project Payments API] Error fetching for ${customer_no}:`, error.message);
+        res.status(500).json({ error: "Failed to fetch project payments", details: error.message });
     }
 };
