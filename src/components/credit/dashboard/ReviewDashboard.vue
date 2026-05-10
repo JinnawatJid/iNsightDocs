@@ -237,12 +237,12 @@ const formatNumber = (num) => {
 
 const formatTerms = (data) => {
     if (!data) return '-';
-    const gs = data.termGS || 0;
-    const ae = data.termAE || 0;
-    const yc = data.termYC || 0;
+    const gs = String(data.termGS ?? 0).trim();
+    const ae = String(data.termAE ?? 0).trim();
+    const yc = String(data.termYC ?? 0).trim();
 
     if (gs === ae && ae === yc) {
-        return `${gs}`;
+        return gs;
     }
     return `${gs} / ${ae} / ${yc}`;
 };
