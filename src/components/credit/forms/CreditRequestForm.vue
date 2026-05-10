@@ -305,20 +305,26 @@ const handleNextTab = () => {
     }
 };
 
-const newComment = computed({
-    get: () => {
-        if (store.requestId) {
-            return localStorage.getItem(`draftComment_${store.requestId}`) || '';
-        }
-        return '';
-    },
-    set: (val) => {
-        if (store.requestId) {
-            if (val === '') {
-                localStorage.removeItem(`draftComment_${store.requestId}`);
-            } else {
-                localStorage.setItem(`draftComment_${store.requestId}`, val);
-            }
+// Simple ref — always captures what the user types regardless of store.requestId.
+// The localStorage computed approach silently dropped comments for new requests
+// where store.requestId was null at typing time.
+const newComment = ref('');
+
+// Initialize from localStorage or draftComment when a requestId is available (revise drafts).
+watch(() => store.requestId, (id) => {
+    if (id && !newComment.value) {
+        const saved = localStorage.getItem(`draftComment_${id}`);
+        newComment.value = saved || store.transactionData.draftComment || '';
+    }
+}, { immediate: true });
+
+// Persist to localStorage on every keystroke so SaveDraft can recover the comment.
+watch(newComment, (val) => {
+    if (store.requestId) {
+        if (val) {
+            localStorage.setItem(`draftComment_${store.requestId}`, val);
+        } else {
+            localStorage.removeItem(`draftComment_${store.requestId}`);
         }
     }
 });
@@ -639,17 +645,31 @@ const submitTransaction = async (btn) => {
             if (btn.action !== 'saveDraft') {
                 // For actual submission, send as a permanent comment
                 formData.append('comment', newComment.value.trim());
-                formData.append('actor_role', currentRoleLabel.value);
+                formData.append('actor_role', currentRoleLabel.value || 'ผู้จัดการสาขา');
 
+                // Clear localStorage immediately so the comment box empties on success.
+                // Do NOT call saveDraftCommentToDB here — that fires a second API call
+                // that can race with (and overwrite) the main submission below.
                 if (store.requestId) {
                     localStorage.removeItem(`draftComment_${store.requestId}`);
-                    store.saveDraftCommentToDB('');
                 }
             } else {
                 if (store.requestId) {
                     store.saveDraftCommentToDB(newComment.value.trim());
                 }
             }
+        }
+
+        // When submitting a Draft, sync originals before getSnapshot() so the
+        // snapshot bakes in the initiator's actual input as the canonical baseline.
+        if (btn.action !== 'saveDraft' && (store.requestStatus === 'Draft' || !store.requestStatus)) {
+            store.originalTransactionData = JSON.parse(JSON.stringify(store.transactionData));
+            store.originalRequestedAmount = store.transactionData.amount;
+            store.originalRequestedTerms = {
+                termGS: store.transactionData.termGS,
+                termAE: store.transactionData.termAE,
+                termYC: store.transactionData.termYC,
+            };
         }
 
         const snapshot = store.getSnapshot();
