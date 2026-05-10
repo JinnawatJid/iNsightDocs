@@ -276,12 +276,7 @@ const totalCreditAmount = computed(() => {
 });
 
 const requestedAmount = computed(() => {
-    if (store.requestStatus !== 'Draft' && store.originalRequestedAmount !== null) {
-        // For credit increases, always use the stored amount (the increase amount)
-        if (isCreditIncrease.value) {
-            return store.transactionData.amount;
-        }
-        
+    if (store.requestStatus !== 'Draft') {
         // Try to find the original amount from the first limit change comment
         const comments = store.comments || [];
         const firstLimitChange = comments.find(c => c.comment_text && c.comment_text.includes('ปรับวงเงินจาก'));
@@ -291,14 +286,25 @@ const requestedAmount = computed(() => {
                 return match[1].replace(/,/g, '');
             }
         }
-        return store.originalRequestedAmount;
+
+        if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
+            return store.originalRequestedAmount;
+        }
+        if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
+            return store.originalTransactionData.amount;
+        }
     }
     return store.transactionData.amount;
 });
 
 const requestedTermsData = computed(() => {
-    if (store.requestStatus !== 'Draft' && store.originalRequestedTerms !== null) {
-        return store.originalRequestedTerms;
+    if (store.requestStatus !== 'Draft') {
+        if (store.originalRequestedTerms !== null && store.originalRequestedTerms !== undefined) {
+            return store.originalRequestedTerms;
+        }
+        if (store.originalTransactionData && Object.keys(store.originalTransactionData).length > 0) {
+            return store.originalTransactionData;
+        }
     }
     return store.transactionData;
 });

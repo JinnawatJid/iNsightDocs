@@ -754,7 +754,14 @@ const totalLimit = computed(() => {
     if (!isRequestIncrease.value) return 'N/A';
 
     const currentLimit = Number(store.customer.current_credit_limit || 0);
-    const amountStr = (!canEditAmount.value && store.originalTransactionData?.amount !== undefined) ? store.originalTransactionData.amount : store.transactionData.amount;
+    let amountStr = store.transactionData.amount;
+    if (!canEditAmount.value) {
+        if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
+             amountStr = store.originalRequestedAmount;
+        } else if (store.originalTransactionData?.amount !== undefined) {
+             amountStr = store.originalTransactionData.amount;
+        }
+    }
     const requestedAmount = Number(amountStr || 0);
 
     const sum = currentLimit + requestedAmount;
@@ -767,6 +774,7 @@ const formattedAmount = computed({
         const baseline = props.baseline;
         const amt = store.transactionData.amount;
         const origTxAmt = store.originalTransactionData?.amount;
+        const origReqAmt = store.originalRequestedAmount;
         const canEdit = canEditAmount.value;
         
         console.log('[RequestInfoTab formattedAmount GET]', {
@@ -774,7 +782,8 @@ const formattedAmount = computed({
             'baseline?.amount': baseline?.amount,
             'canEditAmount': canEdit,
             'store.transactionData.amount': amt,
-            'store.originalTransactionData?.amount': origTxAmt
+            'store.originalTransactionData?.amount': origTxAmt,
+            'store.originalRequestedAmount': origReqAmt
         });
         
         // Prefer explicit baseline when provided (frozen snapshot for full-details view)
@@ -783,7 +792,14 @@ const formattedAmount = computed({
             return baseline.amount ? Number(baseline.amount).toLocaleString('en-US') : '';
         }
         
-        const val = (!canEdit && origTxAmt !== undefined) ? origTxAmt : amt;
+        let val = amt;
+        if (!canEdit) {
+             if (origReqAmt !== null && origReqAmt !== undefined) {
+                 val = origReqAmt;
+             } else if (origTxAmt !== undefined && origTxAmt !== null) {
+                 val = origTxAmt;
+             }
+        }
         console.log('[RequestInfoTab formattedAmount GET] Using fallback value:', val);
         return val ? Number(val).toLocaleString('en-US') : '';
     },
@@ -807,7 +823,10 @@ const displayTermGS = computed({
             console.log('[RequestInfoTab displayTermGS GET] ✓ USING BASELINE.termGS:', props.baseline.termGS);
             return props.baseline.termGS;
         }
-        if (!canEditTerms.value && store.originalTransactionData?.termGS !== undefined) return store.originalTransactionData.termGS;
+        if (!canEditTerms.value) {
+             if (store.originalRequestedTerms?.termGS !== undefined && store.originalRequestedTerms?.termGS !== null) return store.originalRequestedTerms.termGS;
+             if (store.originalTransactionData?.termGS !== undefined) return store.originalTransactionData.termGS;
+        }
         return store.transactionData.termGS;
     },
     set: (val) => { 
@@ -827,7 +846,10 @@ const displayTermAE = computed({
             console.log('[RequestInfoTab displayTermAE GET] ✓ USING BASELINE.termAE:', props.baseline.termAE);
             return props.baseline.termAE;
         }
-        if (!canEditTerms.value && store.originalTransactionData?.termAE !== undefined) return store.originalTransactionData.termAE;
+        if (!canEditTerms.value) {
+             if (store.originalRequestedTerms?.termAE !== undefined && store.originalRequestedTerms?.termAE !== null) return store.originalRequestedTerms.termAE;
+             if (store.originalTransactionData?.termAE !== undefined) return store.originalTransactionData.termAE;
+        }
         return store.transactionData.termAE;
     },
     set: (val) => { 
@@ -847,7 +869,10 @@ const displayTermYC = computed({
             console.log('[RequestInfoTab displayTermYC GET] ✓ USING BASELINE.termYC:', props.baseline.termYC);
             return props.baseline.termYC;
         }
-        if (!canEditTerms.value && store.originalTransactionData?.termYC !== undefined) return store.originalTransactionData.termYC;
+        if (!canEditTerms.value) {
+             if (store.originalRequestedTerms?.termYC !== undefined && store.originalRequestedTerms?.termYC !== null) return store.originalRequestedTerms.termYC;
+             if (store.originalTransactionData?.termYC !== undefined) return store.originalTransactionData.termYC;
+        }
         return store.transactionData.termYC;
     },
     set: (val) => { 

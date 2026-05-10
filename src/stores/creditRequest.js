@@ -408,6 +408,12 @@ const rbacStore = useRbacStore();
           if (persistedOriginal.originalTransactionData) {
             this.originalTransactionData = JSON.parse(JSON.stringify(persistedOriginal.originalTransactionData));
           }
+        } else if (parsedSnapshot.originalRequestedAmount !== undefined) {
+          this.originalRequestedAmount = parsedSnapshot.originalRequestedAmount;
+          this.originalRequestedTerms = parsedSnapshot.originalRequestedTerms;
+          if (parsedSnapshot.transaction_data) {
+            this.originalTransactionData = JSON.parse(JSON.stringify(parsedSnapshot.transaction_data));
+          }
         } else {
           if (this.originalRequestedAmount === null || this.originalRequestedAmount === undefined) {
             this.originalRequestedAmount = data.request_amount;
@@ -899,6 +905,12 @@ const rbacStore = useRbacStore();
               this.originalRequestedTerms = persistedOriginal.originalRequestedTerms ?? this.originalRequestedTerms;
               if (persistedOriginal.originalTransactionData) {
                 this.originalTransactionData = JSON.parse(JSON.stringify(persistedOriginal.originalTransactionData));
+              }
+            } else if (parsedSnapshotData.originalRequestedAmount !== undefined) {
+              this.originalRequestedAmount = parsedSnapshotData.originalRequestedAmount;
+              this.originalRequestedTerms = parsedSnapshotData.originalRequestedTerms;
+              if (parsedSnapshotData.transaction_data) {
+                this.originalTransactionData = JSON.parse(JSON.stringify(parsedSnapshotData.transaction_data));
               }
             }
 
