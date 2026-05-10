@@ -583,6 +583,7 @@ const isTermsVisible = computed(() => {
 
 // Field Visibility / Editability Logic
 const isFinanceOfficerReviewMode = computed(() => {
+    if (props.readOnly) return false;
     const authStore = useAuthStore();
     return authStore.isFinanceOfficer && store.requestStatus === 'SalesSubmitted';
 });
@@ -598,6 +599,7 @@ const canEditTerms = computed(() => {
     return isEditing.value && isDraftMode.value && (isChangeTerm.value || isNewRequest.value || isProjectCredit.value);
 });
 const canEditBillingAndPayment = computed(() => {
+    if (props.readOnly) return false;
     return isEditing.value || isFinanceOfficerReviewMode.value;
 });
 

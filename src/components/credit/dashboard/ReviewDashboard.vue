@@ -276,10 +276,15 @@ const totalCreditAmount = computed(() => {
 });
 
 const requestedAmount = computed(() => {
-    if (store.requestStatus !== 'Draft' && store.originalRequestedAmount !== null) {
-        // For credit increases, always use the stored amount (the increase amount)
-        if (isCreditIncrease.value) {
-            return store.transactionData.amount;
+    // If we have an original stored value, we should always use it for the "requested" summary,
+    // regardless of whether we are currently in Draft or submitted status.
+    if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
+        // For credit increases, the original requested amount is the increase amount.
+        // Even if edited in draft, we want the baseline of what was initially requested,
+        // or we fallback to the first modified comment.
+        if (isCreditIncrease.value && store.requestStatus === 'Draft') {
+             // In draft mode of an increase, if originalRequestedAmount is present, it's what was loaded.
+             return store.originalRequestedAmount;
         }
         
         // Try to find the original amount from the first limit change comment
@@ -297,7 +302,7 @@ const requestedAmount = computed(() => {
 });
 
 const requestedTermsData = computed(() => {
-    if (store.requestStatus !== 'Draft' && store.originalRequestedTerms !== null) {
+    if (store.originalRequestedTerms !== null && store.originalRequestedTerms !== undefined) {
         return store.originalRequestedTerms;
     }
     return store.transactionData;
