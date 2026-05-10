@@ -221,6 +221,10 @@ watch(showFullDetails, (val) => {
     }
 });
 
+watch(() => store.requestId, () => {
+    showFullDetails.value = false;
+});
+
 const formatNumber = (num) => {
     if (!num) return '0';
     // If num is string with comma, return as is, else format
