@@ -809,19 +809,10 @@ const formattedAmount = computed({
         
         let val = amt;
         if (!canEdit) {
-             // For Credit Increases, originalRequestedAmount holds the increase amount.
-             if (isRequestIncrease.value) {
-                 if (origReqAmt !== null && origReqAmt !== undefined) {
-                     val = origReqAmt;
-                 } else if (origTxAmt !== undefined && origTxAmt !== null) {
-                     val = origTxAmt;
-                 }
-             } else {
-                 if (origReqAmt !== null && origReqAmt !== undefined) {
-                     val = origReqAmt;
-                 } else if (origTxAmt !== undefined && origTxAmt !== null) {
-                     val = origTxAmt;
-                 }
+             if (origReqAmt !== null && origReqAmt !== undefined) {
+                 val = origReqAmt;
+             } else if (origTxAmt !== undefined && origTxAmt !== null) {
+                 val = origTxAmt;
              }
         }
         console.log('[RequestInfoTab formattedAmount GET] Using fallback value:', val);
