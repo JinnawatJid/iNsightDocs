@@ -17,9 +17,10 @@ const LATE_PAYMENT_API_URL = "http://192.192.0.37:8280/customer-late-payment/1.0
 // New WADL API Endpoint
 const LATE_PAYMENT_WADL_API_URL = "http://192.192.0.37:8280/weight-baselatepayment/1.0.0";
 const REMAINING_CREDIT_API_URL = "http://192.192.0.37:8280/silver_customerremainingcredit/1.0.0";
-const INVOICE_API_URL = process.env.INVOICE_API_URL || "http://192.192.0.37:8280/invoice-sp681/1.0.0";
+const INVOICE_API_URL = process.env.INVOICE_API_URL || "http://192.192.0.37:8280/silver_invoice_sp682/1.0.0";
 
 const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
+const INVOICE_API_KEY = process.env.INVOICE_API_KEY || API_KEY;
 // Separate API Key for Late Payment Service (if different from Customer API)
 const LATE_PAYMENT_API_KEY = process.env.LATE_PAYMENT_API_KEY || API_KEY;
 // Dedicated API Key for WADL Service
@@ -1629,7 +1630,7 @@ exports.getProjectInvoices = async (req, res) => {
                 "Project_No": project_no || ""
             }, {
                 headers: {
-                    "apikey": API_KEY,
+                    "apikey": INVOICE_API_KEY,
                     "Content-Type": "application/json"
                 },
                 timeout: 5000
