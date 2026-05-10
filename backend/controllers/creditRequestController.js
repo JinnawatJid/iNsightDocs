@@ -1449,6 +1449,20 @@ exports.reviseRequest = async (req, res) => {
 
     // 4. Duplicate the request record (exclude approval flags, comments, set status to Draft)
     let snapshotDataObj = {};
+
+    // Fetch audit trail comments for this request — needed to reconstruct
+    // original values for old requests that pre-date the originalTransactionData fix.
+    let requestComments = [];
+    try {
+      const { rows: commentRows } = await db.query(
+        'SELECT comment_text, created_at FROM RequestComments WHERE tx_id = ? ORDER BY created_at ASC',
+        [id]
+      );
+      requestComments = commentRows || [];
+    } catch (e) {
+      logger.warn('Could not fetch comments for revise original reconstruction', e);
+    }
+
     if (oldRequest.snapshot_data) {
       try {
         snapshotDataObj =
@@ -1463,20 +1477,63 @@ exports.reviseRequest = async (req, res) => {
         if (snapshotDataObj.sales_review_comment)
           snapshotDataObj.sales_review_comment = "";
 
-        // Reset the transaction data back to the initial original requested values
+        // Reset the transaction data back to the initial original requested values.
+        // Prefer the embedded originalTransactionData (new requests); fall back to
+        // reconstructing from audit trail comments (old requests).
         if (snapshotDataObj.originalTransactionData && snapshotDataObj.transaction_data) {
-            snapshotDataObj.transaction_data = {
+          // New-style: originalTransactionData was embedded at submission time
+          snapshotDataObj.transaction_data = {
+            ...snapshotDataObj.transaction_data,
+            ...snapshotDataObj.originalTransactionData
+          };
+          if (snapshotDataObj.transaction_data.draftComment) {
+            snapshotDataObj.transaction_data.draftComment = "";
+          }
+        } else if (snapshotDataObj.transaction_data && requestComments.length > 0) {
+          // Old-style: reconstruct original values from the audit trail.
+          // Find the FIRST amount-change comment to get the "before" amount.
+          const firstAmountChange = requestComments.find(c =>
+            c.comment_text && c.comment_text.includes('ปรับวงเงินจาก')
+          );
+          if (firstAmountChange) {
+            const match = firstAmountChange.comment_text.match(/ปรับวงเงินจาก\s+([\d,]+)\s+เป็น/);
+            if (match && match[1]) {
+              snapshotDataObj.transaction_data = {
                 ...snapshotDataObj.transaction_data,
-                ...snapshotDataObj.originalTransactionData
-            };
-            if (snapshotDataObj.transaction_data.draftComment) {
-                snapshotDataObj.transaction_data.draftComment = "";
+                amount: match[1].replace(/,/g, ''),
+                draftComment: ''
+              };
+              logger.info(`[revise] Restored amount from audit: ${match[1]}`);
             }
+          }
+
+          // Find the FIRST term-change comment to restore GS/AE/YC.
+          // Format: "ปรับเครดิตเทอมจาก 7/7/7 เป็น 10/7/10"
+          const firstTermChange = requestComments.find(c =>
+            c.comment_text && c.comment_text.includes('ปรับเครดิตเทอมจาก')
+          );
+          if (firstTermChange) {
+            const match = firstTermChange.comment_text.match(/ปรับเครดิตเทอมจาก\s+(\d+)\/(\d+)\/(\d+)\s+เป็น/);
+            if (match) {
+              snapshotDataObj.transaction_data.termGS = match[1];
+              snapshotDataObj.transaction_data.termAE = match[2];
+              snapshotDataObj.transaction_data.termYC = match[3];
+              logger.info(`[revise] Restored terms from audit: ${match[1]}/${match[2]}/${match[3]}`);
+            }
+          }
         }
+
+        // Strip the review-chain originals so loadRequestDetail treats this
+        // revise as a fresh initiator submission.
+        delete snapshotDataObj.originalRequestedAmount;
+        delete snapshotDataObj.originalRequestedTerms;
+        delete snapshotDataObj.originalTransactionData;
+
       } catch (e) {
         logger.error("Error parsing old snapshot data for revision", e);
       }
     }
+
 
     // Convert back to string for db storage
     const newSnapshotData = JSON.stringify(snapshotDataObj);
@@ -1498,12 +1555,12 @@ exports.reviseRequest = async (req, res) => {
         oldRequest.customer_no,
         oldRequest.customer_name,
         newTxId,
-        snapshotDataObj.originalTransactionData?.amount || oldRequest.request_amount,
+        snapshotDataObj.transaction_data?.amount || oldRequest.request_amount,
         oldRequest.request_reason,
         oldRequest.request_credit_term,
-        snapshotDataObj.originalTransactionData?.termGS || oldRequest.term_gs,
-        snapshotDataObj.originalTransactionData?.termAE || oldRequest.term_ae,
-        snapshotDataObj.originalTransactionData?.termYC || oldRequest.term_yc,
+        snapshotDataObj.transaction_data?.termGS || oldRequest.term_gs,
+        snapshotDataObj.transaction_data?.termAE || oldRequest.term_ae,
+        snapshotDataObj.transaction_data?.termYC || oldRequest.term_yc,
         oldRequest.request_type,
         newSnapshotData,
         new Date().toISOString(),
@@ -1523,12 +1580,12 @@ exports.reviseRequest = async (req, res) => {
         oldRequest.customer_no,
         oldRequest.customer_name,
         newTxId,
-        snapshotDataObj.originalTransactionData?.amount || oldRequest.request_amount,
+        snapshotDataObj.transaction_data?.amount || oldRequest.request_amount,
         oldRequest.request_reason,
         oldRequest.request_credit_term,
-        snapshotDataObj.originalTransactionData?.termGS || oldRequest.term_gs,
-        snapshotDataObj.originalTransactionData?.termAE || oldRequest.term_ae,
-        snapshotDataObj.originalTransactionData?.termYC || oldRequest.term_yc,
+        snapshotDataObj.transaction_data?.termGS || oldRequest.term_gs,
+        snapshotDataObj.transaction_data?.termAE || oldRequest.term_ae,
+        snapshotDataObj.transaction_data?.termYC || oldRequest.term_yc,
         oldRequest.request_type,
         newSnapshotData,
         new Date().toISOString(),

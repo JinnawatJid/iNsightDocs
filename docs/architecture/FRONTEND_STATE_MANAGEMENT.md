@@ -137,3 +137,56 @@ The feedback is presented via a SweetAlert (`Swal.fire`) popup. However, the HTM
 ```
 
 This ensures the user does not feel overwhelmed by a wall of text and knows exactly which tab to navigate to in order to resolve the errors. The internal logic maps database field keys (e.g., `address_no`) to these readable labels using the `src/utils/validationLabels.js` dictionary.
+
+---
+
+## 5. Credit Data Isolation — Reviewer Suggestion Pattern (2026-05-10)
+
+A critical architectural pattern governs how reviewer edits are isolated from read-only display components during the credit review workflow.
+
+### The Problem
+
+The `CreditReviewSection` allows reviewers to suggest modified credit amounts and terms before formally submitting. Without isolation, binding these inputs directly to `store.transactionData` causes live contamination: the Deal Summary, Expanded Details (RequestInfoTab), and other read-only components update dynamically as the reviewer types — showing reviewer drafts as if they were the approved values.
+
+### Three Layers of Credit State
+
+| Layer | Store field | Purpose |
+|-------|------------|---------|
+| **Initiator's original** | `originalTransactionData`, `originalRequestedAmount`, `originalRequestedTerms` | Frozen at Draft → Opened submission. Never mutated after that. |
+| **Current DB state** | `transactionData` | Reflects what the DB says right now (may include prior reviewer modifications). Populated by `loadRequestDetail`. |
+| **Reviewer's draft edit** | `reviewerSuggestion` | Isolated buffer for in-progress reviewer input. Cleared on load. Only written to `transactionData` on formal submission. |
+
+### How it Works
+
+**`CreditReviewSection.vue`** binds its inputs to `reviewerSuggestion` via `store.updateReviewerSuggestion(field, value)`. It never writes directly to `transactionData`.
+
+**`store.getEffectiveValue(field)`** is a read helper:
+```js
+getEffectiveValue(field) {
+  if (this.reviewerSuggestion[field] !== '' && this.reviewerSuggestion[field] !== null) {
+    return this.reviewerSuggestion[field];  // reviewer's draft
+  }
+  return this.transactionData[field];       // current DB value
+}
+```
+Only `CreditReviewSection` uses this — it shows the reviewer what they are typing.
+
+**`ReviewDashboard.vue`** — Deal Summary reads `store.originalRequestedAmount` and `store.originalRequestedTerms` (immutable originals). It never reads `reviewerSuggestion`.
+
+**`RequestInfoTab.vue`** — in the expanded view (`readOnly=true` with a `baseline` prop), reads `props.baseline.amount` / `props.baseline.termGS` etc. The `baseline` prop is a deep-frozen snapshot set when the user opens the full details view.
+
+**`store.applyReviewerSuggestion()`** — atomically writes `reviewerSuggestion` → `transactionData` on formal submission (Approve/Reject action). Only at this point does the DB state update.
+
+### Rules for Display Components
+
+| Component | Should read from |
+|-----------|-----------------|
+| Deal Summary (`ReviewDashboard`) | `originalRequestedAmount` / `originalRequestedTerms` |
+| Expanded Details (`RequestInfoTab`, readOnly+baseline) | `props.baseline` (deep copy of `originalTransactionData`) |
+| Reviewer input form (`CreditReviewSection`) | `getEffectiveValue()` → `reviewerSuggestion` first |
+| Initiator draft form (`RequestInfoTab`, edit mode) | `transactionData` |
+
+### Key Rule: snapshot embeds originals at Draft submission
+
+In `saveTransactionData()`, when `requestStatus === 'Draft'`, the store syncs `originalTransactionData = transactionData` **before** calling `getSnapshot()`. This ensures the snapshot bakes in the initiator's actual input as the canonical original that all reviewers will see.
+

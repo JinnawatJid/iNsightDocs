@@ -33,7 +33,7 @@
                 <input
                 type="text"
                 class="form-input"
-                v-model="store.transactionData.termGS"
+                :value="store.getEffectiveValue('termGS')"
                 @input="restrictNumber('termGS', $event)"
                 :disabled="readOnly"
                 placeholder="0"
@@ -44,7 +44,7 @@
                 <input
                 type="text"
                 class="form-input"
-                v-model="store.transactionData.termAE"
+                :value="store.getEffectiveValue('termAE')"
                 @input="restrictNumber('termAE', $event)"
                 :disabled="readOnly"
                 placeholder="0"
@@ -55,7 +55,7 @@
                 <input
                 type="text"
                 class="form-input"
-                v-model="store.transactionData.termYC"
+                :value="store.getEffectiveValue('termYC')"
                 @input="restrictNumber('termYC', $event)"
                 :disabled="readOnly"
                 placeholder="0"
@@ -212,8 +212,10 @@ const getBaseAmount = () => {
 
 const formattedAmount = computed({
     get: () => {
-        if (store.transactionData.amount === null || store.transactionData.amount === undefined || store.transactionData.amount === '') return '';
-        const requestAmount = parseFloat(String(store.transactionData.amount).replace(/,/g, ''));
+        // Use reviewer suggestion if available, otherwise use original transaction data
+        const effectiveAmount = store.getEffectiveValue('amount');
+        if (effectiveAmount === null || effectiveAmount === undefined || effectiveAmount === '') return '';
+        const requestAmount = parseFloat(String(effectiveAmount).replace(/,/g, ''));
         if (isNaN(requestAmount)) return '';
         
         if (isCreditIncrease.value) {
@@ -229,22 +231,22 @@ const formattedAmount = computed({
         
         let totalInput = parseFloat(num);
         if (isNaN(totalInput)) {
-            store.transactionData.amount = num;
+            store.updateReviewerSuggestion('amount', num);
             return;
         }
 
         if (isCreditIncrease.value) {
             const delta = totalInput - getBaseAmount();
-            store.transactionData.amount = delta.toString();
+            store.updateReviewerSuggestion('amount', delta.toString());
         } else {
-            store.transactionData.amount = num;
+            store.updateReviewerSuggestion('amount', num);
         }
     }
 });
 
 function restrictNumber(field, e) {
   const val = e.target.value.replace(/\D/g, '');
-  store.transactionData[field] = val;
+  store.updateReviewerSuggestion(field, val);
   e.target.value = val;
 }
 </script>
