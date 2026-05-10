@@ -162,6 +162,15 @@ const rbacStore = useRbacStore();
         return null;
       }
     },
+    clearPersistedOriginalSnapshot(txId) {
+      try {
+        const key = this.getOriginalSnapshotStorageKey(txId);
+        if (!key) return;
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.warn("Failed to clear persisted original snapshot", e);
+      }
+    },
 
     parseExistingCredits(credits) {
       if (!credits) return [];
@@ -230,6 +239,10 @@ const rbacStore = useRbacStore();
       if (!this.activeTab) {
         this.activeTab = "requestInfo";
       }
+
+      this.originalRequestedAmount = null;
+      this.originalRequestedTerms = null;
+      this.originalTransactionData = {};
       try {
         const response =
           await CreditRequestService.getCreditRequestDetail(txId);
@@ -935,6 +948,7 @@ const rbacStore = useRbacStore();
       try {
         await CreditRequestService.cancelCreditRequest(this.requestId);
         this.requestStatus = "Canceled";
+        this.clearPersistedOriginalSnapshot(this.requestId);
       } catch (err) {
         console.error("Failed to cancel request", err);
         throw err;
@@ -1039,6 +1053,7 @@ const rbacStore = useRbacStore();
         }
 
         await CreditRequestService.createCreditRequest(formData);
+        this.clearPersistedOriginalSnapshot(this.requestId);
       } catch (e) {
         console.error("Failed to save transaction data:", e);
         if (e.response && e.response.status === 409) {
@@ -1432,6 +1447,8 @@ const rbacStore = useRbacStore();
       this.originalCustomer = {};
       this.originalInitiatorCustomer = {};
       this.originalTransactionData = {};
+      this.originalRequestedAmount = null;
+      this.originalRequestedTerms = null;
       this.history = [];
       this.financialSummary = {};
       this.creditScore = {};
@@ -1546,6 +1563,7 @@ const rbacStore = useRbacStore();
           this.requestStatus = result.data.data.status;
           await this.fetchComments();
           let listStatus = "Approved,Rejected,Closed,Canceled";
+          this.clearPersistedOriginalSnapshot(this.requestId);
           if (this.activeTab !== "history") {
             const authStore = useAuthStore();
             const rbacStore = useRbacStore();
