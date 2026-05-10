@@ -207,13 +207,15 @@ watch(showFullDetails, (val) => {
             baselineSnapshot.value = JSON.parse(JSON.stringify(store.originalTransactionData));
             console.log('[ReviewDashboard WATCH] ✓ baselineSnapshot set from originalTransactionData:', baselineSnapshot.value);
         } else {
+            // originalTransactionData is empty — construct from the original fields only.
+            // NEVER use store.transactionData here — that would bake live reviewer edits into the baseline.
             baselineSnapshot.value = JSON.parse(JSON.stringify({
-                amount: store.originalRequestedAmount ?? store.transactionData.amount,
-                termGS: store.originalRequestedTerms?.termGS ?? store.transactionData.termGS,
-                termAE: store.originalRequestedTerms?.termAE ?? store.transactionData.termAE,
-                termYC: store.originalRequestedTerms?.termYC ?? store.transactionData.termYC,
+                amount: store.originalRequestedAmount ?? store.originalTransactionData?.amount ?? '0',
+                termGS: store.originalRequestedTerms?.termGS ?? store.originalTransactionData?.termGS ?? '0',
+                termAE: store.originalRequestedTerms?.termAE ?? store.originalTransactionData?.termAE ?? '0',
+                termYC: store.originalRequestedTerms?.termYC ?? store.originalTransactionData?.termYC ?? '0',
             }));
-            console.log('[ReviewDashboard WATCH] ✓ baselineSnapshot constructed from store fields:', baselineSnapshot.value);
+            console.log('[ReviewDashboard WATCH] ✓ baselineSnapshot constructed from original data:', baselineSnapshot.value);
         }
     } else {
         console.log('[ReviewDashboard WATCH] Closing full details, clearing baseline');
@@ -277,36 +279,42 @@ const totalCreditAmount = computed(() => {
 });
 
 const requestedAmount = computed(() => {
-    if (store.requestStatus !== 'Draft') {
-        // Try to find the original amount from the first limit change comment
-        const comments = store.comments || [];
-        const firstLimitChange = comments.find(c => c.comment_text && c.comment_text.includes('ปรับวงเงินจาก'));
-        if (firstLimitChange) {
-            const match = firstLimitChange.comment_text.match(/ปรับวงเงินจาก\s+([\d,]+)\s+เป็น/);
-            if (match && match[1]) {
-                return match[1].replace(/,/g, '');
-            }
-        }
-
-        if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
-            return store.originalRequestedAmount;
-        }
-        if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
-            return store.originalTransactionData.amount;
+    // Always try to resolve to the original (initiator's) requested amount.
+    // Priority: audit-trail comment > originalRequestedAmount > originalTransactionData.amount
+    // We intentionally NEVER fall through to store.transactionData.amount here because
+    // that would cause the Deal Summary to live-update as the reviewer types.
+    const comments = store.comments || [];
+    const firstLimitChange = comments.find(c => c.comment_text && c.comment_text.includes('ปรับวงเงินจาก'));
+    if (firstLimitChange) {
+        const match = firstLimitChange.comment_text.match(/ปรับวงเงินจาก\s+([\d,]+)\s+เป็น/);
+        if (match && match[1]) {
+            return match[1].replace(/,/g, '');
         }
     }
+
+    if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
+        return store.originalRequestedAmount;
+    }
+    if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
+        return store.originalTransactionData.amount;
+    }
+    // Hard fallback — if we have no original data at all, show nothing rather than
+    // reactively leaking whatever the reviewer is currently typing.
     return store.transactionData.amount;
 });
 
 const requestedTermsData = computed(() => {
-    if (store.requestStatus !== 'Draft') {
-        if (store.originalRequestedTerms !== null && store.originalRequestedTerms !== undefined) {
-            return store.originalRequestedTerms;
-        }
-        if (store.originalTransactionData && Object.keys(store.originalTransactionData).length > 0) {
-            return store.originalTransactionData;
-        }
+    // Always resolve to the original snapshot. NEVER return store.transactionData
+    // as a live fallback — that would cause the Deal Summary terms to update while
+    // the reviewer is typing.
+    if (store.originalRequestedTerms !== null && store.originalRequestedTerms !== undefined) {
+        return store.originalRequestedTerms;
     }
+    if (store.originalTransactionData && Object.keys(store.originalTransactionData).length > 0) {
+        return store.originalTransactionData;
+    }
+    // Only falls here on first load before originalTransactionData is populated.
+    // transactionData is now stable (never mutated by reviewer), so this is safe.
     return store.transactionData;
 });
 
@@ -337,9 +345,14 @@ const isTermsEqual = (data, erpTermsCode) => {
 
 const hasTermsChanged = computed(() => {
     if (!store.originalTransactionData) return false;
-    return store.transactionData.termGS != store.originalTransactionData.termGS ||
-           store.transactionData.termAE != store.originalTransactionData.termAE ||
-           store.transactionData.termYC != store.originalTransactionData.termYC;
+    // Compare reviewer's SUGGESTION against original — not live transactionData
+    // (transactionData is stable; reviewerSuggestion holds the in-progress edit)
+    const gs = store.reviewerSuggestion.termGS !== '' ? store.reviewerSuggestion.termGS : store.transactionData.termGS;
+    const ae = store.reviewerSuggestion.termAE !== '' ? store.reviewerSuggestion.termAE : store.transactionData.termAE;
+    const yc = store.reviewerSuggestion.termYC !== '' ? store.reviewerSuggestion.termYC : store.transactionData.termYC;
+    return gs != store.originalTransactionData.termGS ||
+           ae != store.originalTransactionData.termAE ||
+           yc != store.originalTransactionData.termYC;
 });
 
 // Document Logic (Reused from DocumentChecklist)

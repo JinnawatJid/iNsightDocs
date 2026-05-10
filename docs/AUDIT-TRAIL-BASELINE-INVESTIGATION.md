@@ -119,3 +119,69 @@ If you want, I can also:
 - generate a short PR description summarizing these points,
 - add unit tests for `creditRequest` store immutability, or
 - open an issue requesting a backend API field `original_snapshot` to make this robust server-side.
+
+---
+
+## Phase 2 Follow-up — Post-Submit Contamination (2026-05-10)
+
+**Status:** Resolved
+
+### Problem (Phase 2)
+
+After the Phase 1 fixes, the UI no longer updated *while typing*. However, subsequent reviewers in the chain (e.g. ผู้พิจารณาฝ่ายขาย loading a request previously modified by ผู้พิจารณาของพื้นที่) still saw the **previous reviewer's modified values** in the Deal Summary and Expanded Details rather than the initiator's original values.
+
+Additionally, the **revise flow** (สร้างคำขอใหม่ (แก้ไข)) pre-filled the form with the last reviewer's rejected values, and even after manually correcting them and submitting, the pending-requests page continued to show the wrong values.
+
+### Diagnostic Method
+
+Added `watch()` diagnostics directly in `ReviewDashboard.vue` targeting `store.transactionData.amount`, `store.transactionData.termGS`, `store.reviewerSuggestion.amount`, and `store.reviewerSuggestion.termGS`. This confirmed:
+
+- `transactionData` was **correctly stable** during typing (only mutated on initial load via `RequestSidebar`)
+- `reviewerSuggestion` correctly received typing — **live-typing contamination was already fixed**
+- The contamination was happening **after a reviewer submitted** — a persistence problem, not a reactivity problem
+
+### Root Causes (Phase 2)
+
+#### RCA-1: `getSnapshot()` did not embed the initiator's original values
+
+`getSnapshot()` only saved `transaction_data: this.transactionData` (the current, potentially reviewer-modified values). It did **not** include `originalRequestedAmount`, `originalRequestedTerms`, or `originalTransactionData`.
+
+**Effect:** When a reviewer submitted, the snapshot in DB had no record of the initiator's originals. The next reviewer's `loadRequestDetail` would fall to `else` and set `originalRequestedAmount = data.request_amount` — now the reviewer's modified value.
+
+#### RCA-2: `loadRequestDetail` restored `originalTransactionData` from the wrong key
+
+Even after RCA-1 was fixed (so the snapshot now contains `parsedSnapshot.originalTransactionData`), the `else if` branch in `loadRequestDetail` still read from `parsedSnapshot.transaction_data` (current data) instead of `parsedSnapshot.originalTransactionData` (the preserved original).
+
+#### RCA-3: `reviseRequest` backend did not restore original values for old requests
+
+The `reviseRequest` backend relied on `snapshotDataObj.originalTransactionData` to restore the initiator's original into the new draft. For requests submitted **before** the `getSnapshot()` fix, this field doesn't exist, so the revise pre-filled with the reviewer's rejected values.
+
+#### RCA-4: `reviseRequest` carried over original-chain metadata into the revise snapshot
+
+Even after restoring the values, the snapshot still contained `originalRequestedAmount` / `originalTransactionData` from the *previous* review chain. The new revise draft inherited these, causing `loadRequestDetail` to believe the old chain's "original" was this request's original too.
+
+#### RCA-5: `saveTransactionData()` embedded stale `originalTransactionData` on Draft submission
+
+When the initiator manually corrected the revise form and clicked submit, `getSnapshot()` ran and embedded `this.originalTransactionData` — which was still set to the OLD rejected values (loaded from the DB during `loadRequestDetail`). The correct `transactionData` was saved to `request_amount`, but the snapshot's embedded originals were wrong, poisoning all subsequent reviewers.
+
+### Fixes Applied
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `src/stores/creditRequest.js` — `getSnapshot()` | Embeds `originalRequestedAmount`, `originalRequestedTerms`, and `originalTransactionData` in every snapshot payload |
+| 2 | `src/stores/creditRequest.js` — `loadRequestDetail()` | In the `else if` branch and the final fallback: prefer `parsedSnapshot.originalTransactionData` over `parsedSnapshot.transaction_data` |
+| 3 | `backend/controllers/creditRequestController.js` — `reviseRequest()` | Added audit trail comment parsing to reconstruct initiator's original amount/terms for old requests. Also deletes original-chain metadata (`originalRequestedAmount`, `originalTransactionData`, `originalRequestedTerms`) from the revise snapshot so the draft starts clean |
+| 4 | `backend/controllers/creditRequestController.js` — `reviseRequest()` INSERT | Changed `request_amount` / `term_*` params to read from `snapshotDataObj.transaction_data` (restored values) instead of the now-deleted `originalTransactionData` |
+| 5 | `src/stores/creditRequest.js` — `saveTransactionData()` | Before `getSnapshot()` on a Draft submission, syncs `originalTransactionData`, `originalRequestedAmount`, and `originalRequestedTerms` from the current `transactionData`. This ensures the snapshot captures the initiator's actual input as the canonical baseline |
+
+### Lessons Learned (Phase 2)
+
+1. **Snapshot is the source of truth across the reviewer chain.** The `snapshot_data` JSON stored in the DB travels with the request through every reviewer stage. If the "original" fields are not embedded in the snapshot, they are lost permanently at the first reviewer submission.
+
+2. **"Original" means the initiator's first submission, not "what was in the DB when I loaded the page."** The distinction between `originalTransactionData` (what the initiator submitted) and `transactionData` (what the current DB record says, after possible reviewer modifications) is critical. Always embed and preserve the former explicitly.
+
+3. **The revise flow resets the chain.** A revise request is a new initiator submission. The backend must strip all old-chain original metadata from the copied snapshot and restore the correct pre-review values using either `originalTransactionData` (new requests) or audit trail comment parsing (legacy requests).
+
+4. **Draft submission is the moment the "original" is born.** The `saveTransactionData()` call that transitions a Draft to Opened is the canonical moment to capture the initiator's intent. Syncing `originalTransactionData = transactionData` at that exact point ensures every downstream reviewer gets a clean, correct baseline.
+
+5. **Diagnostic watches pay off.** Adding `watch()` directly on store state fields in the ReviewDashboard quickly ruled out live-typing contamination and pointed to the post-submit persistence bug, saving significant debugging time.

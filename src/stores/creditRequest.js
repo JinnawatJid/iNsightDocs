@@ -65,6 +65,14 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
     activeTab: "requestInfo",
     activeProjectTab: "projectInfo",
+
+    // Reviewer suggestions - isolated from original transaction data
+    reviewerSuggestion: {
+      amount: "",
+      termGS: "",
+      termAE: "",
+      termYC: "",
+    },
   }),
 
   getters: {
@@ -243,6 +251,7 @@ const rbacStore = useRbacStore();
       this.originalRequestedAmount = null;
       this.originalRequestedTerms = null;
       this.originalTransactionData = {};
+      this.clearReviewerSuggestions();
       try {
         const response =
           await CreditRequestService.getCreditRequestDetail(txId);
@@ -411,7 +420,11 @@ const rbacStore = useRbacStore();
         } else if (parsedSnapshot.originalRequestedAmount !== undefined) {
           this.originalRequestedAmount = parsedSnapshot.originalRequestedAmount;
           this.originalRequestedTerms = parsedSnapshot.originalRequestedTerms;
-          if (parsedSnapshot.transaction_data) {
+          // Prefer the preserved originalTransactionData (initiator's values).
+          // Fall back to transaction_data only if originalTransactionData was not yet saved.
+          if (parsedSnapshot.originalTransactionData) {
+            this.originalTransactionData = JSON.parse(JSON.stringify(parsedSnapshot.originalTransactionData));
+          } else if (parsedSnapshot.transaction_data) {
             this.originalTransactionData = JSON.parse(JSON.stringify(parsedSnapshot.transaction_data));
           }
         } else {
@@ -451,9 +464,17 @@ const rbacStore = useRbacStore();
           customerTeam: parsedSnapshot.transaction_data?.customerTeam || "",
           projects: parsedSnapshot.transaction_data?.projects || [],
         };
-        // Keep originalTransactionData immutable by only setting it on first load
+        // Keep originalTransactionData immutable: only set on first load (initiator stage).
+        // After the first reviewer submits, parsedSnapshot.originalTransactionData holds
+        // the initiator's original values — always prefer that over the current transaction_data.
         if (!this.originalTransactionData || Object.keys(this.originalTransactionData).length === 0) {
-          this.originalTransactionData = parsedSnapshot.transaction_data ? JSON.parse(JSON.stringify(parsedSnapshot.transaction_data)) : JSON.parse(JSON.stringify(this.transactionData));
+          if (parsedSnapshot.originalTransactionData) {
+            this.originalTransactionData = JSON.parse(JSON.stringify(parsedSnapshot.originalTransactionData));
+          } else if (parsedSnapshot.transaction_data) {
+            this.originalTransactionData = JSON.parse(JSON.stringify(parsedSnapshot.transaction_data));
+          } else {
+            this.originalTransactionData = JSON.parse(JSON.stringify(this.transactionData));
+          }
         }
         if (!persistedOriginal) {
           this.persistOriginalSnapshot(txId, {
@@ -522,6 +543,22 @@ const rbacStore = useRbacStore();
          console.error('Failed to fetch draft comment from DB', e);
       }
       return "";
+    },
+
+    /**
+     * Returns the "effective" current value for a reviewer-editable field.
+     * If the reviewer has typed a suggestion, that suggestion is returned.
+     * Otherwise the stable transactionData value (from initial DB load) is returned.
+     * Used by hasTermsChanged in ReviewDashboard to detect reviewer edits
+     * without allowing read-only display components to depend on reviewerSuggestion.
+     * @param {'termGS'|'termAE'|'termYC'|'amount'} field
+     */
+    getEffectiveValue(field) {
+      const suggestion = this.reviewerSuggestion[field];
+      if (suggestion !== '' && suggestion !== null && suggestion !== undefined) {
+        return suggestion;
+      }
+      return this.transactionData[field];
     },
 
     async fetchComments() {
@@ -1023,6 +1060,11 @@ const rbacStore = useRbacStore();
         financial_summary: this.financialSummary,
         credit_score: this.creditScore,
         transaction_data: this.transactionData,
+        // Preserve the initiator's original requested values so every reviewer
+        // in the chain always sees the original, not a previous reviewer's suggestion.
+        originalRequestedAmount: this.originalRequestedAmount,
+        originalRequestedTerms: this.originalRequestedTerms,
+        originalTransactionData: this.originalTransactionData,
       };
 
       return snapshot;
@@ -1053,6 +1095,18 @@ const rbacStore = useRbacStore();
           this.transactionData.requestType || "เครดิตใหม่",
         );
 
+        // When submitting a Draft, the initiator's transactionData IS the canonical original.
+        // Sync originals before getSnapshot() so the embedded baseline is correct,
+        // not stale values from a prior review cycle (e.g. revise flow).
+        if (isSubmit && (this.requestStatus === 'Draft' || !this.requestStatus)) {
+          this.originalTransactionData = JSON.parse(JSON.stringify(this.transactionData));
+          this.originalRequestedAmount = this.transactionData.amount;
+          this.originalRequestedTerms = {
+            termGS: this.transactionData.termGS,
+            termAE: this.transactionData.termAE,
+            termYC: this.transactionData.termYC,
+          };
+        }
         formData.append("snapshot_data", JSON.stringify(this.getSnapshot()));
 
         formData.append("is_submit", isSubmit ? "true" : "false");
@@ -1437,6 +1491,12 @@ const rbacStore = useRbacStore();
         customerTeam: "",
         projects: [],
       };
+      this.reviewerSuggestion = {
+        amount: "",
+        termGS: "",
+        termAE: "",
+        termYC: "",
+      };
     },
 
     clearFormData() {
@@ -1630,6 +1690,43 @@ const rbacStore = useRbacStore();
       } finally {
         this.loading = false;
       }
+    },
+
+    // Reviewer suggestion management methods
+    updateReviewerSuggestion(field, value) {
+      this.reviewerSuggestion[field] = value;
+    },
+
+    clearReviewerSuggestions() {
+      this.reviewerSuggestion = {
+        amount: "",
+        termGS: "",
+        termAE: "",
+        termYC: "",
+      };
+    },
+
+    // Apply reviewer suggestions to transaction data (when approved)
+    applyReviewerSuggestions() {
+      if (this.reviewerSuggestion.amount) {
+        this.transactionData.amount = this.reviewerSuggestion.amount;
+      }
+      if (this.reviewerSuggestion.termGS) {
+        this.transactionData.termGS = this.reviewerSuggestion.termGS;
+      }
+      if (this.reviewerSuggestion.termAE) {
+        this.transactionData.termAE = this.reviewerSuggestion.termAE;
+      }
+      if (this.reviewerSuggestion.termYC) {
+        this.transactionData.termYC = this.reviewerSuggestion.termYC;
+      }
+      this.clearReviewerSuggestions();
+    },
+
+    // Get effective value (suggestion if exists, otherwise original)
+    getEffectiveValue(field) {
+      const suggestion = this.reviewerSuggestion[field];
+      return suggestion !== "" ? suggestion : this.transactionData[field];
     },
   },
 });

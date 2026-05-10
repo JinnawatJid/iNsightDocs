@@ -787,40 +787,32 @@ const totalLimit = computed(() => {
 const formattedAmount = computed({
     get: () => {
         const baseline = props.baseline;
-        const amt = store.transactionData.amount;
-        const origTxAmt = store.originalTransactionData?.amount;
-        const origReqAmt = store.originalRequestedAmount;
         const canEdit = canEditAmount.value;
-        
-        console.log('[RequestInfoTab formattedAmount GET]', {
-            'props.baseline': baseline,
-            'baseline?.amount': baseline?.amount,
-            'canEditAmount': canEdit,
-            'store.transactionData.amount': amt,
-            'store.originalTransactionData?.amount': origTxAmt,
-            'store.originalRequestedAmount': origReqAmt
-        });
-        
-        // Prefer explicit baseline when provided (frozen snapshot for full-details view)
+
+        // 1. Strict baseline path — for the full-details expanded view (readOnly + baseline prop)
         if (baseline && baseline.amount !== undefined && !canEdit) {
-            console.log('[RequestInfoTab formattedAmount GET] ✓ USING BASELINE.AMOUNT:', baseline.amount);
             return baseline.amount ? Number(baseline.amount).toLocaleString('en-US') : '';
         }
-        
-        let val = amt;
-        if (!canEdit) {
-             if (origReqAmt !== null && origReqAmt !== undefined) {
-                 val = origReqAmt;
-             } else if (origTxAmt !== undefined && origTxAmt !== null) {
-                 val = origTxAmt;
-             }
+
+        // 2. Edit mode — the initiator's own draft form uses transactionData directly
+        if (canEdit) {
+            return store.transactionData.amount ? Number(store.transactionData.amount).toLocaleString('en-US') : '';
         }
-        console.log('[RequestInfoTab formattedAmount GET] Using fallback value:', val);
-        return val ? Number(val).toLocaleString('en-US') : '';
+
+        // 3. Read-only reviewer view (no baseline prop) — use the original snapshot, NEVER the live transactionData
+        const origReqAmt = store.originalRequestedAmount;
+        if (origReqAmt !== null && origReqAmt !== undefined) {
+            return origReqAmt ? Number(origReqAmt).toLocaleString('en-US') : '';
+        }
+        const origTxAmt = store.originalTransactionData?.amount;
+        if (origTxAmt !== undefined && origTxAmt !== null) {
+            return origTxAmt ? Number(origTxAmt).toLocaleString('en-US') : '';
+        }
+        // Last resort — transactionData is stable (never mutated by reviewer)
+        return store.transactionData.amount ? Number(store.transactionData.amount).toLocaleString('en-US') : '';
     },
     set: (val) => {
         const num = val.replace(/[^0-9]/g, '');
-        console.log('[RequestInfoTab formattedAmount SET] Setting amount to:', num);
         store.transactionData.amount = num;
     }
 });
@@ -828,72 +820,54 @@ const formattedAmount = computed({
 
 const displayTermGS = computed({
   get: () => {
-        console.log('[RequestInfoTab displayTermGS GET]', {
-            'props.baseline?.termGS': props.baseline?.termGS,
-            'canEditTerms': canEditTerms.value,
-            'store.originalTransactionData?.termGS': store.originalTransactionData?.termGS,
-            'store.transactionData.termGS': store.transactionData.termGS
-        });
+        // 1. Baseline path — frozen full-details view
         if (props.baseline && props.baseline.termGS !== undefined && !canEditTerms.value) {
-            console.log('[RequestInfoTab displayTermGS GET] ✓ USING BASELINE.termGS:', props.baseline.termGS);
             return props.baseline.termGS;
         }
-        if (!canEditTerms.value) {
-             if (store.originalRequestedTerms?.termGS !== undefined && store.originalRequestedTerms?.termGS !== null) return store.originalRequestedTerms.termGS;
-             if (store.originalTransactionData?.termGS !== undefined) return store.originalTransactionData.termGS;
+        // 2. Edit mode
+        if (canEditTerms.value) {
+            return store.transactionData.termGS;
         }
+        // 3. Read-only: original snapshot only
+        if (store.originalRequestedTerms?.termGS !== undefined && store.originalRequestedTerms?.termGS !== null) return store.originalRequestedTerms.termGS;
+        if (store.originalTransactionData?.termGS !== undefined) return store.originalTransactionData.termGS;
         return store.transactionData.termGS;
     },
-    set: (val) => { 
-        console.log('[RequestInfoTab displayTermGS SET]:', val);
-        store.transactionData.termGS = val; 
-    }
+    set: (val) => { store.transactionData.termGS = val; }
 });
 const displayTermAE = computed({
   get: () => {
-        console.log('[RequestInfoTab displayTermAE GET]', {
-            'props.baseline?.termAE': props.baseline?.termAE,
-            'canEditTerms': canEditTerms.value,
-            'store.originalTransactionData?.termAE': store.originalTransactionData?.termAE,
-            'store.transactionData.termAE': store.transactionData.termAE
-        });
+        // 1. Baseline path — frozen full-details view
         if (props.baseline && props.baseline.termAE !== undefined && !canEditTerms.value) {
-            console.log('[RequestInfoTab displayTermAE GET] ✓ USING BASELINE.termAE:', props.baseline.termAE);
             return props.baseline.termAE;
         }
-        if (!canEditTerms.value) {
-             if (store.originalRequestedTerms?.termAE !== undefined && store.originalRequestedTerms?.termAE !== null) return store.originalRequestedTerms.termAE;
-             if (store.originalTransactionData?.termAE !== undefined) return store.originalTransactionData.termAE;
+        // 2. Edit mode
+        if (canEditTerms.value) {
+            return store.transactionData.termAE;
         }
+        // 3. Read-only: original snapshot only
+        if (store.originalRequestedTerms?.termAE !== undefined && store.originalRequestedTerms?.termAE !== null) return store.originalRequestedTerms.termAE;
+        if (store.originalTransactionData?.termAE !== undefined) return store.originalTransactionData.termAE;
         return store.transactionData.termAE;
     },
-    set: (val) => { 
-        console.log('[RequestInfoTab displayTermAE SET]:', val);
-        store.transactionData.termAE = val; 
-    }
+    set: (val) => { store.transactionData.termAE = val; }
 });
 const displayTermYC = computed({
   get: () => {
-        console.log('[RequestInfoTab displayTermYC GET]', {
-            'props.baseline?.termYC': props.baseline?.termYC,
-            'canEditTerms': canEditTerms.value,
-            'store.originalTransactionData?.termYC': store.originalTransactionData?.termYC,
-            'store.transactionData.termYC': store.transactionData.termYC
-        });
+        // 1. Baseline path — frozen full-details view
         if (props.baseline && props.baseline.termYC !== undefined && !canEditTerms.value) {
-            console.log('[RequestInfoTab displayTermYC GET] ✓ USING BASELINE.termYC:', props.baseline.termYC);
             return props.baseline.termYC;
         }
-        if (!canEditTerms.value) {
-             if (store.originalRequestedTerms?.termYC !== undefined && store.originalRequestedTerms?.termYC !== null) return store.originalRequestedTerms.termYC;
-             if (store.originalTransactionData?.termYC !== undefined) return store.originalTransactionData.termYC;
+        // 2. Edit mode
+        if (canEditTerms.value) {
+            return store.transactionData.termYC;
         }
+        // 3. Read-only: original snapshot only
+        if (store.originalRequestedTerms?.termYC !== undefined && store.originalRequestedTerms?.termYC !== null) return store.originalRequestedTerms.termYC;
+        if (store.originalTransactionData?.termYC !== undefined) return store.originalTransactionData.termYC;
         return store.transactionData.termYC;
     },
-    set: (val) => { 
-        console.log('[RequestInfoTab displayTermYC SET]:', val);
-        store.transactionData.termYC = val; 
-    }
+    set: (val) => { store.transactionData.termYC = val; }
 });
 
 const handleAmountInput = (event) => {

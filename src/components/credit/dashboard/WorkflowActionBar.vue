@@ -219,7 +219,8 @@ const availableActions = computed(() => {
 
       let msg = '';
       const origAmt = formatNum(baseline.amount);
-      const newAmt = formatNum(store.transactionData.amount);
+      // Use reviewer suggestion if available, otherwise use current transaction data
+      const newAmt = formatNum(store.getEffectiveValue('amount'));
 
       if (origAmt !== newAmt) {
         msg += `ปรับวงเงินจาก ${origAmt} เป็น ${newAmt} บาท\n`;
@@ -229,9 +230,10 @@ const availableActions = computed(() => {
       const origAE = baseline.termAE || 0;
       const origYC = baseline.termYC || 0;
 
-      const newGS = store.transactionData.termGS || 0;
-      const newAE = store.transactionData.termAE || 0;
-      const newYC = store.transactionData.termYC || 0;
+      // Use reviewer suggestions if available, otherwise use current transaction data
+      const newGS = store.getEffectiveValue('termGS') || 0;
+      const newAE = store.getEffectiveValue('termAE') || 0;
+      const newYC = store.getEffectiveValue('termYC') || 0;
 
       if (origGS != newGS || origAE != newAE || origYC != newYC) {
         msg += `ปรับเครดิตเทอมจาก ${origGS}/${origAE}/${origYC} เป็น ${newGS}/${newAE}/${newYC}\n`;
@@ -280,6 +282,9 @@ const handleAction = async (action) => {
       const auditTrailMsg = generateAuditTrailMessage();
       const finalActionCommentText = auditTrailMsg ? (commentText ? `${auditTrailMsg}\n${commentText}` : auditTrailMsg.trim()) : commentText;
 
+      // Apply reviewer suggestions before updating status
+      store.applyReviewerSuggestions();
+
       const ok = await store.updateStatus(action.targetStatus, finalActionCommentText);
       if (ok) {
         if (finalActionCommentText) {
@@ -311,6 +316,8 @@ const handleAction = async (action) => {
       const auditTrailMsg = generateAuditTrailMessage();
       const finalActionCommentText = auditTrailMsg ? (commentText ? `${auditTrailMsg}\n${commentText}` : auditTrailMsg.trim()) : commentText;
 
+      // Apply reviewer suggestions before updating status
+      store.applyReviewerSuggestions();
 
       const ok = await store.updateStatus(action.targetStatus, finalActionCommentText);
       if (ok) {
