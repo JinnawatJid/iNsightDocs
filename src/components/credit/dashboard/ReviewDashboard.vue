@@ -292,12 +292,6 @@ const totalCreditAmount = computed(() => {
 
 const requestedAmount = computed(() => {
     // Always try to resolve to the original (initiator's) requested amount.
-
-        <!-- Debug panel: enabled with ?debugBaseline=1 -->
-        <div v-if="showDebugPanel" class="debug-panel">
-            <h4>DEBUG: Baseline snapshot</h4>
-            <pre class="debug-pre">{{ JSON.stringify({ originalTransactionData: store.originalTransactionData, originalRequestedAmount: store.originalRequestedAmount, requestedAmount: requestedAmount, erpFallback: erpFallbackData }, null, 2) }}</pre>
-        </div>
     // Priority: audit-trail comment > originalRequestedAmount > originalTransactionData.amount
     // We intentionally NEVER fall through to store.transactionData.amount here because
     // that would cause the Deal Summary to live-update as the reviewer types.
