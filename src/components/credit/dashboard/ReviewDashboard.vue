@@ -12,6 +12,20 @@
         </div>
       </div>
 
+      <!-- DEBUG BLOCK -->
+      <div v-if="true" style="background: #f0e68c; padding: 10px; margin-bottom: 15px; font-size: 12px; font-family: monospace;">
+        <strong>[DEBUG BASELINE DATA]</strong><br/>
+        isCreditIncrease: {{ isCreditIncrease }}<br/>
+        requestedAmount: {{ requestedAmount }}<br/>
+        totalCreditAmount: {{ totalCreditAmount }}<br/>
+        store.transactionData.amount: {{ store.transactionData.amount }}<br/>
+        store.originalTransactionData.amount: {{ store.originalTransactionData?.amount }}<br/>
+        erpFallbackData.current_credit_limit: {{ erpFallbackData?.current_credit_limit }}<br/>
+        store.originalCustomer.current_credit_limit: {{ store.originalCustomer?.current_credit_limit }}<br/>
+        store.customer.current_credit_limit: {{ store.customer?.current_credit_limit }}<br/>
+        store.originalRequestedAmount: {{ store.originalRequestedAmount }}
+      </div>
+
       <div class="deal-grid">
         <div class="deal-item highlight">
             <label>วงเงินที่ขอ</label>
@@ -21,52 +35,39 @@
             </div>
             <div v-else class="value amount">{{ requestedAmountFormatted }} บาท</div>
 
-            <div v-if="showOriginalValues && store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null && requestedAmount != store.originalTransactionData.amount" class="original-value-label">
-                เดิม: {{ formatNumber(store.originalTransactionData.amount) }} บาท
+            <!-- The "Original" value for amount should always refer to the existing ERP limit -->
+            <div v-if="isCreditIncrease && erpFallbackData && erpFallbackData.current_credit_limit !== undefined" class="original-value-label">
+                เดิม: {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
             </div>
-            <div v-else-if="showOriginalValues && store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined && requestedAmount != store.originalRequestedAmount" class="original-value-label">
-                เดิม: {{ formatNumber(store.originalRequestedAmount) }} บาท
-            </div>
-            <div v-else-if="showOriginalValues && erpFallbackData && erpFallbackData.current_credit_limit !== undefined && requestedAmount != erpFallbackData.current_credit_limit" class="original-value-label">
+            <div v-else-if="!isCreditIncrease && showOriginalValues && erpFallbackData && erpFallbackData.current_credit_limit !== undefined && requestedAmount != erpFallbackData.current_credit_limit" class="original-value-label">
                 เดิม: {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
             </div>
         </div>
         <div class="deal-item highlight-terms">
             <label>เครดิตเทอม (GS/AE/YC)</label>
             <div class="value terms-amount">{{ formatTerms(requestedTermsData) }}</div>
-            <div v-if="showOriginalValues && store.originalTransactionData && hasTermsChanged && !termsDisplayIsOriginal" class="original-value-label">
-                เดิม: {{ formatTerms(store.originalTransactionData) }}
-            </div>
-            <div v-else-if="showOriginalValues && erpFallbackData && erpFallbackData.payment_terms_code && !isTermsEqual(store.transactionData, erpFallbackData.payment_terms_code)" class="original-value-label">
+            <!-- The "Original" value for terms should refer to the existing ERP limit -->
+            <div v-if="showOriginalValues && erpFallbackData && erpFallbackData.payment_terms_code && !isTermsEqual(requestedTermsData, erpFallbackData.payment_terms_code)" class="original-value-label">
                 เดิม: {{ erpFallbackData.payment_terms_code }}
             </div>
         </div>
         <div class="deal-item">
             <label>ที่มาของเครดิต</label>
-            <div class="value reason-text">{{ store.transactionData.reason || '-' }}</div>
+            <div class="value reason-text">{{ initiatorReason || '-' }}</div>
         </div>
         <div class="deal-item">
             <label>วิธีชำระเงิน</label>
-            <div class="value">{{ store.customer.payment_method || '-' }}</div>
-            <div v-if="showOriginalValues && store.originalInitiatorCustomer?.payment_method !== undefined && store.originalInitiatorCustomer?.payment_method !== null && store.customer.payment_method !== store.originalInitiatorCustomer.payment_method" class="original-value-label">
-                เดิม: {{ store.originalInitiatorCustomer.payment_method || '-' }}
-            </div>
-            <!-- NOTE: ERP API may not map payment method identically, so skipping ERP fallback here unless mapped -->
+            <div class="value">{{ initiatorPaymentMethod || '-' }}</div>
+            <!-- ERP API may not map payment method identically, so skipping ERP fallback here unless mapped -->
         </div>
         <div class="deal-item">
             <label>เงื่อนไขการวางบิล</label>
-            <div class="value">{{ store.customer.billing_schedule || '-' }}</div>
-            <div v-if="showOriginalValues && store.originalInitiatorCustomer?.billing_schedule !== undefined && store.originalInitiatorCustomer?.billing_schedule !== null && store.customer.billing_schedule !== store.originalInitiatorCustomer.billing_schedule" class="original-value-label">
-                เดิม: {{ store.originalInitiatorCustomer.billing_schedule || '-' }}
-            </div>
+            <div class="value">{{ initiatorBillingSchedule || '-' }}</div>
         </div>
         <div class="deal-item">
             <label>เงื่อนไขการชำระเงิน</label>
-            <div class="value">{{ store.customer.payment_condition || '-' }}</div>
-            <div v-if="showOriginalValues && store.originalInitiatorCustomer?.payment_condition !== undefined && store.originalInitiatorCustomer?.payment_condition !== null && store.customer.payment_condition !== store.originalInitiatorCustomer.payment_condition" class="original-value-label">
-                เดิม: {{ store.originalInitiatorCustomer.payment_condition || '-' }}
-            </div>
-            <div v-else-if="showOriginalValues && erpFallbackData && erpFallbackData.sales_billing_condition && store.customer.payment_condition !== erpFallbackData.sales_billing_condition" class="original-value-label">
+            <div class="value">{{ initiatorPaymentCondition || '-' }}</div>
+            <div v-if="showOriginalValues && erpFallbackData && erpFallbackData.sales_billing_condition && initiatorPaymentCondition !== erpFallbackData.sales_billing_condition" class="original-value-label">
                 เดิม: {{ erpFallbackData.sales_billing_condition }}
             </div>
         </div>
@@ -340,6 +341,30 @@ const termsDisplayIsOriginal = computed(() => {
 
 const requestedAmountFormatted = computed(() => {
     return formatNumber(requestedAmount.value);
+});
+
+const initiatorReason = computed(() => {
+    return (store.originalTransactionData && store.originalTransactionData.reason !== undefined)
+        ? store.originalTransactionData.reason
+        : store.transactionData.reason;
+});
+
+const initiatorPaymentMethod = computed(() => {
+    return (store.originalInitiatorCustomer && store.originalInitiatorCustomer.payment_method !== undefined)
+        ? store.originalInitiatorCustomer.payment_method
+        : store.customer.payment_method;
+});
+
+const initiatorBillingSchedule = computed(() => {
+    return (store.originalInitiatorCustomer && store.originalInitiatorCustomer.billing_schedule !== undefined)
+        ? store.originalInitiatorCustomer.billing_schedule
+        : store.customer.billing_schedule;
+});
+
+const initiatorPaymentCondition = computed(() => {
+    return (store.originalInitiatorCustomer && store.originalInitiatorCustomer.payment_condition !== undefined)
+        ? store.originalInitiatorCustomer.payment_condition
+        : store.customer.payment_condition;
 });
 
 const isTermsEqual = (data, erpTermsCode) => {
