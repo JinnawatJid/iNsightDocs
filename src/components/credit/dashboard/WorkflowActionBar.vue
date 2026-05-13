@@ -206,7 +206,7 @@ const availableActions = computed(() => {
       };
 
       // To calculate incremental change, we prioritize the last known changed value from comments.
-      // If no changes exist in comments, we fall back to originalTransactionData, and finally originalRequestedAmount.
+      // If no changes exist in comments, we fall back to the robust originalTransactionData from the backend's original_snapshot.
       const fromCommentsAmt = extractLastAmountFromComments();
       const fromCommentsTerms = extractLastTermsFromComments();
 

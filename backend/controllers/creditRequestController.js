@@ -59,6 +59,16 @@ exports.getCreditRequestDetail = async (req, res) => {
       }
     }
 
+    let originalSnapshot = request.original_snapshot;
+    if (typeof originalSnapshot === "string" && originalSnapshot) {
+      try {
+        originalSnapshot = JSON.parse(originalSnapshot);
+      } catch (e) {
+        logger.error("Error parsing original snapshot JSON:", e);
+        originalSnapshot = {};
+      }
+    }
+
     const responseData = {
       id: request.id,
       txId: request.tx_id,
@@ -75,6 +85,7 @@ exports.getCreditRequestDetail = async (req, res) => {
       created_at: request.created_at,
       updated_at: request.updated_at,
       snapshot_data: snapshotData,
+      original_snapshot: originalSnapshot,
       attachments: attachments || [],
       comments: comments || [],
     };
@@ -525,11 +536,14 @@ exports.createCreditRequest = async (req, res) => {
 
           // 2. Clone Parent Record with New ID (to satisfy FK constraints in MSSQL)
           // We insert a new record, move children, then delete the old record.
+          // We capture the original snapshot exactly at this moment of transitioning out of Draft
+          const newOriginalSnapshot = snapshot_data !== undefined ? snapshot_data : existing.snapshot_data;
+
           const insertSql = `INSERT INTO CreditRequests (
                 tx_id, customer_no, customer_name, status,
                 request_amount, request_reason, request_credit_term,
-                term_gs, term_ae, term_yc, request_type, snapshot_data, created_at, created_by, updated_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                term_gs, term_ae, term_yc, request_type, snapshot_data, original_snapshot, created_at, created_by, updated_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
           const insertResult = await db.runAsync(insertSql, [
             newRealTxId,
@@ -552,6 +566,7 @@ exports.createCreditRequest = async (req, res) => {
             snapshot_data !== undefined
               ? snapshot_data
               : existing.snapshot_data,
+            existing.original_snapshot || newOriginalSnapshot, // Preserve if exists, otherwise set now
             existing.created_at,
             existing.created_by || "Unknown",
             req.body.uploaded_by || req.user?.username || "Unknown",
@@ -694,8 +709,10 @@ exports.createCreditRequest = async (req, res) => {
 
       status = "Draft";
 
+      // If bypassing Draft (e.g., straight to Opened), we should capture original_snapshot now.
+      // But usually creation is 'Draft'. It is safe to just leave it NULL until it transitions.
       const result = await db.runAsync(
-        "INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data, updated_at, created_by, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO CreditRequests (tx_id, customer_no, customer_name, status, request_amount, request_reason, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data, original_snapshot, updated_at, created_by, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           txId,
           customer_no,
@@ -709,6 +726,7 @@ exports.createCreditRequest = async (req, res) => {
           term_yc,
           request_type,
           snapshot_data,
+          null, // original_snapshot
           new Date().toISOString(),
           req.body.uploaded_by || req.user?.username || "Unknown",
           req.body.uploaded_by || req.user?.username || "Unknown",
@@ -1544,10 +1562,10 @@ exports.reviseRequest = async (req, res) => {
                 INSERT INTO CreditRequests (
                     customer_no, customer_name, tx_id, status, request_amount,
                     request_reason, request_credit_term, term_gs, term_ae, term_yc,
-                    request_type, snapshot_data, updated_at, created_by, updated_by
+                    request_type, snapshot_data, original_snapshot, updated_at, created_by, updated_by
                 )
                 OUTPUT INSERTED.id
-                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
       insertParams = [
         oldRequest.customer_no,
@@ -1561,6 +1579,7 @@ exports.reviseRequest = async (req, res) => {
         snapshotDataObj.transaction_data?.termYC || oldRequest.term_yc,
         oldRequest.request_type,
         newSnapshotData,
+        null, // leave original_snapshot null; it will be captured on submit
         new Date().toISOString(),
         req.body.uploaded_by || req.user?.username || "Unknown",
         req.body.uploaded_by || req.user?.username || "Unknown",
@@ -1570,9 +1589,9 @@ exports.reviseRequest = async (req, res) => {
                 INSERT INTO CreditRequests (
                     customer_no, customer_name, tx_id, status, request_amount,
                     request_reason, request_credit_term, term_gs, term_ae, term_yc,
-                    request_type, snapshot_data, updated_at, created_by, updated_by
+                    request_type, snapshot_data, original_snapshot, updated_at, created_by, updated_by
                 )
-                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
       insertParams = [
         oldRequest.customer_no,
@@ -1586,6 +1605,7 @@ exports.reviseRequest = async (req, res) => {
         snapshotDataObj.transaction_data?.termYC || oldRequest.term_yc,
         oldRequest.request_type,
         newSnapshotData,
+        null, // leave original_snapshot null; it will be captured on submit
         new Date().toISOString(),
         req.body.uploaded_by || req.user?.username || "Unknown",
         req.body.uploaded_by || req.user?.username || "Unknown",
