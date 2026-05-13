@@ -196,8 +196,11 @@ const authStore = useAuthStore();
 const showFullDetails = ref(false);
 // Baseline snapshot to freeze original request details when opening full-details view
 const baselineSnapshot = ref(null);
-// Quick debug toggle via URL: add `?debugBaseline=1` to show baseline data in UI
-const showDebugPanel = typeof window !== 'undefined' && window.location && window.location.search && window.location.search.includes('debugBaseline=1');
+// Quick debug toggle via URL: add `?debugBaseline=1` to show baseline data in UI (reactive)
+const showDebugPanel = computed(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location && window.location.search && window.location.search.includes('debugBaseline=1');
+});
 
 watch(showFullDetails, (val) => {
     console.log('[ReviewDashboard WATCH] showFullDetails changed to:', val);
