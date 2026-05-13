@@ -196,6 +196,8 @@ const authStore = useAuthStore();
 const showFullDetails = ref(false);
 // Baseline snapshot to freeze original request details when opening full-details view
 const baselineSnapshot = ref(null);
+// Quick debug toggle via URL: add `?debugBaseline=1` to show baseline data in UI
+const showDebugPanel = typeof window !== 'undefined' && window.location && window.location.search && window.location.search.includes('debugBaseline=1');
 
 watch(showFullDetails, (val) => {
     console.log('[ReviewDashboard WATCH] showFullDetails changed to:', val);
@@ -290,6 +292,12 @@ const totalCreditAmount = computed(() => {
 
 const requestedAmount = computed(() => {
     // Always try to resolve to the original (initiator's) requested amount.
+
+        <!-- Debug panel: enabled with ?debugBaseline=1 -->
+        <div v-if="showDebugPanel" class="debug-panel">
+            <h4>DEBUG: Baseline snapshot</h4>
+            <pre class="debug-pre">{{ JSON.stringify({ originalTransactionData: store.originalTransactionData, originalRequestedAmount: store.originalRequestedAmount, requestedAmount: requestedAmount, erpFallback: erpFallbackData }, null, 2) }}</pre>
+        </div>
     // Priority: audit-trail comment > originalRequestedAmount > originalTransactionData.amount
     // We intentionally NEVER fall through to store.transactionData.amount here because
     // that would cause the Deal Summary to live-update as the reviewer types.
@@ -632,6 +640,21 @@ const openFinancialModal = async () => {
     font-size: 24px;
     font-weight: bold;
     color: #0056FF;
+
+.debug-panel {
+    background: #fff8e1;
+    border: 1px dashed #ffc107;
+    padding: 10px;
+    margin-top: 12px;
+    border-radius: 6px;
+}
+.debug-pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+    max-height: 220px;
+    overflow: auto;
+}
     display: flex;
     align-items: center;
     justify-content: center;
