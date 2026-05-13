@@ -62,3 +62,78 @@ describe('CreditRequest Store', () => {
         expect(validation.missingFiles).not.toContain('financial_ratios_doc');
     });
 });
+
+    it('should immutably preserve original fields when backend returns edited snapshot', async () => {
+        const store = useCreditRequestStore();
+
+        // Mock a response representing the initial load (Draft or Opened)
+        // Initiator sets amount to 500
+        const initialLoadData = {
+            data: {
+                data: {
+                    txId: 'TX-123',
+                    status: 'Opened',
+                    request_amount: '500',
+                    term_gs: '7', term_ae: '7', term_yc: '7',
+                    original_snapshot: {
+                        originalRequestedAmount: '500',
+                        originalRequestedTerms: { termGS: '7', termAE: '7', termYC: '7' },
+                        originalTransactionData: { amount: '500', termGS: '7', termAE: '7', termYC: '7' },
+                        transaction_data: { amount: '500', termGS: '7', termAE: '7', termYC: '7' }
+                    },
+                    snapshot_data: {
+                        transaction_data: { amount: '500', termGS: '7', termAE: '7', termYC: '7' }
+                    }
+                }
+            }
+        };
+
+        // We will directly mock the getCreditRequestDetail response via spying since vi.mock is hoisted
+        const CreditRequestService = (await import('@/services/CreditRequestService')).default;
+
+        vi.spyOn(CreditRequestService, 'getCreditRequestDetail').mockResolvedValue(initialLoadData);
+
+        await store.loadRequestDetail('TX-123');
+
+        expect(store.originalRequestedAmount).toBe('500');
+        expect(store.originalTransactionData.amount).toBe('500');
+        expect(store.transactionData.amount).toBe('500');
+
+        // Now simulate a reviewer saving an edit (amount -> 1000)
+        // createCreditRequest response includes the updated transactionData
+        // but it SHOULD NOT overwrite originalTransactionData
+
+        const editedSaveResponse = {
+            data: {
+                data: {
+                    txId: 'TX-123',
+                    status: 'Opened',
+                    request_amount: '1000',
+                    term_gs: '7', term_ae: '7', term_yc: '7',
+                    original_snapshot: {
+                        originalRequestedAmount: '500',
+                        originalRequestedTerms: { termGS: '7', termAE: '7', termYC: '7' },
+                        originalTransactionData: { amount: '500', termGS: '7', termAE: '7', termYC: '7' },
+                        transaction_data: { amount: '500', termGS: '7', termAE: '7', termYC: '7' }
+                    },
+                    snapshot_data: {
+                        transaction_data: { amount: '1000', termGS: '7', termAE: '7', termYC: '7' }
+                    }
+                }
+            }
+        };
+
+        vi.spyOn(CreditRequestService, 'createCreditRequest').mockResolvedValue(editedSaveResponse);
+
+        // This simulates what happens when the user hits 'save'
+        // We bypass actual HTTP and directly push the mock response in the store's action
+        store.transactionData.amount = '1000';
+        await store.createCreditRequest('123', 'Customer Name');
+
+        // The live editable state should reflect the edit
+        expect(store.transactionData.amount).toBe('1000');
+
+        // The original baseline MUST remain 500
+        expect(store.originalRequestedAmount).toBe('500');
+        expect(store.originalTransactionData.amount).toBe('500');
+    });

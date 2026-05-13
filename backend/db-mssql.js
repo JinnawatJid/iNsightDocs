@@ -352,6 +352,7 @@ const initDB = async () => {
             { name: 'request_reason', type: 'NVARCHAR(MAX)' },
             { name: 'request_credit_term', type: 'REAL' },
             { name: 'snapshot_data', type: 'NVARCHAR(MAX)' },
+            { name: 'original_snapshot', type: 'NVARCHAR(MAX)' },
             { name: 'term_gs', type: 'INT' },
             { name: 'term_ae', type: 'INT' },
             { name: 'term_yc', type: 'INT' },

@@ -144,42 +144,6 @@ const rbacStore = useRbacStore();
   },
 
   actions: {
-    getOriginalSnapshotStorageKey(txId) {
-      return txId ? `creditRequestOriginalSnapshot_${txId}` : null;
-    },
-
-    persistOriginalSnapshot(txId, snapshot) {
-      try {
-        const key = this.getOriginalSnapshotStorageKey(txId);
-        if (!key || snapshot === null || snapshot === undefined) return;
-        localStorage.setItem(key, JSON.stringify(snapshot));
-      } catch (e) {
-        console.warn("Failed to persist original snapshot", e);
-      }
-    },
-
-    loadPersistedOriginalSnapshot(txId) {
-      try {
-        const key = this.getOriginalSnapshotStorageKey(txId);
-        if (!key) return null;
-        const raw = localStorage.getItem(key);
-        if (!raw) return null;
-        return JSON.parse(raw);
-      } catch (e) {
-        console.warn("Failed to load persisted original snapshot", e);
-        return null;
-      }
-    },
-    clearPersistedOriginalSnapshot(txId) {
-      try {
-        const key = this.getOriginalSnapshotStorageKey(txId);
-        if (!key) return;
-        localStorage.removeItem(key);
-      } catch (e) {
-        console.warn("Failed to clear persisted original snapshot", e);
-      }
-    },
-
     parseExistingCredits(credits) {
       if (!credits) return [];
       if (Array.isArray(credits)) return credits;
@@ -260,8 +224,6 @@ const rbacStore = useRbacStore();
         this.requestId = data.txId; // tx_id
         this.requestStatus = data.status;
 
-        const persistedOriginal = this.loadPersistedOriginalSnapshot(txId);
-
         let parsedSnapshot = data.snapshot_data || {};
         if (typeof parsedSnapshot === "string") {
           try {
@@ -273,6 +235,23 @@ const rbacStore = useRbacStore();
             );
             parsedSnapshot = {};
           }
+        }
+
+        let serverOriginalSnapshot = data.original_snapshot || {};
+        if (typeof serverOriginalSnapshot === "string") {
+          try {
+            serverOriginalSnapshot = JSON.parse(serverOriginalSnapshot);
+          } catch (e) {
+             console.error("Failed to parse server original_snapshot", e);
+             serverOriginalSnapshot = {};
+          }
+        }
+
+        // Debug: log server-provided original_snapshot for investigation
+        try {
+          console.debug('[DEBUG loadRequestDetail] txId=', txId, 'request_amount=', data.request_amount, 'serverOriginalSnapshot=', serverOriginalSnapshot, 'parsedSnapshot=', parsedSnapshot);
+        } catch (dbgErr) {
+          console.warn('Failed to log debug info in loadRequestDetail', dbgErr);
         }
 
         this.customer = parsedSnapshot;
@@ -406,22 +385,23 @@ const rbacStore = useRbacStore();
           });
         }
 
-        // Preserve original requested amount/terms; prefer persisted baseline for reloads
-        if (persistedOriginal) {
-          this.originalRequestedAmount = persistedOriginal.originalRequestedAmount ?? persistedOriginal.amount ?? data.request_amount;
-          this.originalRequestedTerms = persistedOriginal.originalRequestedTerms ?? {
-            termGS: persistedOriginal.termGS ?? data.term_gs,
-            termAE: persistedOriginal.termAE ?? data.term_ae,
-            termYC: persistedOriginal.termYC ?? data.term_yc,
-          };
-          if (persistedOriginal.originalTransactionData) {
-            this.originalTransactionData = JSON.parse(JSON.stringify(persistedOriginal.originalTransactionData));
-          }
+        // Prefer the newly implemented robust server-provided original_snapshot.
+        // Fall back to reading from parsedSnapshot for old requests.
+        if (serverOriginalSnapshot && Object.keys(serverOriginalSnapshot).length > 0) {
+            this.originalRequestedAmount = serverOriginalSnapshot.originalRequestedAmount ?? serverOriginalSnapshot.transaction_data?.amount ?? data.request_amount;
+            this.originalRequestedTerms = serverOriginalSnapshot.originalRequestedTerms ?? {
+                termGS: serverOriginalSnapshot.transaction_data?.termGS ?? data.term_gs,
+                termAE: serverOriginalSnapshot.transaction_data?.termAE ?? data.term_ae,
+                termYC: serverOriginalSnapshot.transaction_data?.termYC ?? data.term_yc,
+            };
+            if (serverOriginalSnapshot.originalTransactionData) {
+                this.originalTransactionData = JSON.parse(JSON.stringify(serverOriginalSnapshot.originalTransactionData));
+            } else if (serverOriginalSnapshot.transaction_data) {
+                this.originalTransactionData = JSON.parse(JSON.stringify(serverOriginalSnapshot.transaction_data));
+            }
         } else if (parsedSnapshot.originalRequestedAmount !== undefined) {
           this.originalRequestedAmount = parsedSnapshot.originalRequestedAmount;
           this.originalRequestedTerms = parsedSnapshot.originalRequestedTerms;
-          // Prefer the preserved originalTransactionData (initiator's values).
-          // Fall back to transaction_data only if originalTransactionData was not yet saved.
           if (parsedSnapshot.originalTransactionData) {
             this.originalTransactionData = JSON.parse(JSON.stringify(parsedSnapshot.originalTransactionData));
           } else if (parsedSnapshot.transaction_data) {
@@ -476,13 +456,7 @@ const rbacStore = useRbacStore();
             this.originalTransactionData = JSON.parse(JSON.stringify(this.transactionData));
           }
         }
-        if (!persistedOriginal) {
-          this.persistOriginalSnapshot(txId, {
-            originalRequestedAmount: this.originalRequestedAmount,
-            originalRequestedTerms: this.originalRequestedTerms,
-            originalTransactionData: this.originalTransactionData,
-          });
-        }
+
         this.originalInitiatorCustomer = parsedSnapshot.customer ? JSON.parse(JSON.stringify(parsedSnapshot.customer)) : JSON.parse(JSON.stringify(this.customer));
 
 
@@ -936,12 +910,22 @@ const rbacStore = useRbacStore();
 
             // Never overwrite originalRequestedAmount/originalRequestedTerms here.
             // These must come from the first loaded snapshot, not the current saved edit.
-            const persistedOriginal = this.loadPersistedOriginalSnapshot(this.requestId || resData.txId);
-            if (persistedOriginal) {
-              this.originalRequestedAmount = persistedOriginal.originalRequestedAmount ?? persistedOriginal.amount ?? this.originalRequestedAmount;
-              this.originalRequestedTerms = persistedOriginal.originalRequestedTerms ?? this.originalRequestedTerms;
-              if (persistedOriginal.originalTransactionData) {
-                this.originalTransactionData = JSON.parse(JSON.stringify(persistedOriginal.originalTransactionData));
+            let serverOriginalSnapshot = resData.original_snapshot || {};
+            if (typeof serverOriginalSnapshot === "string") {
+                try {
+                    serverOriginalSnapshot = JSON.parse(serverOriginalSnapshot);
+                } catch (e) {
+                    serverOriginalSnapshot = {};
+                }
+            }
+
+            if (serverOriginalSnapshot && Object.keys(serverOriginalSnapshot).length > 0) {
+              this.originalRequestedAmount = serverOriginalSnapshot.originalRequestedAmount ?? serverOriginalSnapshot.transaction_data?.amount ?? this.originalRequestedAmount;
+              this.originalRequestedTerms = serverOriginalSnapshot.originalRequestedTerms ?? this.originalRequestedTerms;
+              if (serverOriginalSnapshot.originalTransactionData) {
+                this.originalTransactionData = JSON.parse(JSON.stringify(serverOriginalSnapshot.originalTransactionData));
+              } else if (serverOriginalSnapshot.transaction_data) {
+                this.originalTransactionData = JSON.parse(JSON.stringify(serverOriginalSnapshot.transaction_data));
               }
             } else if (parsedSnapshotData.originalRequestedAmount !== undefined) {
               this.originalRequestedAmount = parsedSnapshotData.originalRequestedAmount;
@@ -977,13 +961,7 @@ const rbacStore = useRbacStore();
             if (!this.originalTransactionData || Object.keys(this.originalTransactionData).length === 0) {
               this.originalTransactionData = Object.keys(parsedSnapshotTransactionData).length > 0 ? JSON.parse(JSON.stringify(parsedSnapshotTransactionData)) : JSON.parse(JSON.stringify(this.transactionData));
             }
-            if (!persistedOriginal && this.originalTransactionData && Object.keys(this.originalTransactionData).length > 0) {
-              this.persistOriginalSnapshot(this.requestId || resData.txId, {
-                originalRequestedAmount: this.originalRequestedAmount,
-                originalRequestedTerms: this.originalRequestedTerms,
-                originalTransactionData: this.originalTransactionData,
-              });
-            }
+
             this.originalInitiatorCustomer = Object.keys(parsedSnapshotCustomerData).length > 0 ? JSON.parse(JSON.stringify(parsedSnapshotCustomerData)) : JSON.parse(JSON.stringify(this.customer));
           }
         }
@@ -997,7 +975,6 @@ const rbacStore = useRbacStore();
       try {
         await CreditRequestService.cancelCreditRequest(this.requestId);
         this.requestStatus = "Canceled";
-        this.clearPersistedOriginalSnapshot(this.requestId);
       } catch (err) {
         console.error("Failed to cancel request", err);
         throw err;
@@ -1119,7 +1096,6 @@ const rbacStore = useRbacStore();
         }
 
         await CreditRequestService.createCreditRequest(formData);
-        this.clearPersistedOriginalSnapshot(this.requestId);
       } catch (e) {
         console.error("Failed to save transaction data:", e);
         if (e.response && e.response.status === 409) {
@@ -1635,7 +1611,6 @@ const rbacStore = useRbacStore();
           this.requestStatus = result.data.data.status;
           await this.fetchComments();
           let listStatus = "Approved,Rejected,Closed,Canceled";
-          this.clearPersistedOriginalSnapshot(this.requestId);
           if (this.activeTab !== "history") {
             const authStore = useAuthStore();
             const rbacStore = useRbacStore();
