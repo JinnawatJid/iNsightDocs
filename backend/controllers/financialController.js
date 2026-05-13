@@ -178,11 +178,11 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null, fetchBy = 'vat'
 
     try {
         if (taxId && taxId.trim().length > 0 && fetchBy === 'vat') {
-            logger.info(`[Financial API] Branch=tax_no customer=${customerNo} fetchBy=${fetchBy} taxId=present url=${FINANCIAL_API_TAX_URL}`);
-            const response = await axios.get(FINANCIAL_API_TAX_URL, {
+            logger.info(`[Financial API] Branch=tax_no customer=${customerNo} fetchBy=${fetchBy} taxId=present url=${FINANCIAL_API_URL}`);
+            const response = await axios.get(FINANCIAL_API_URL, {
                 params: { tax_no: taxId.trim() },
                 headers: {
-                    "apikey": API_KEY,
+                    "apikey": MONTHLY_SUMMARY_API_KEY,
                     "Content-Type": "application/json"
                 },
                 timeout: 5000
@@ -200,9 +200,8 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null, fetchBy = 'vat'
 
     try {
         logger.info(`[Financial API] Branch=customer_code customer=${customerNo} fetchBy=${fetchBy} taxId=${taxId ? 'present' : 'missing'} url=${FINANCIAL_API_URL}`);
-        const response = await axios.post(FINANCIAL_API_URL, {
-            customer_code: customerNo
-        }, {
+        const response = await axios.get(FINANCIAL_API_URL, {
+            params: { customer_code: customerNo },
             headers: {
                 "apikey": MONTHLY_SUMMARY_API_KEY,
                 "Content-Type": "application/json"
