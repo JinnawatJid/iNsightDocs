@@ -173,6 +173,8 @@ Only `CreditReviewSection` uses this — it shows the reviewer what they are typ
 
 **`ReviewDashboard.vue`** — Deal Summary reads `store.originalRequestedAmount` and `store.originalRequestedTerms` (immutable originals). It never reads `reviewerSuggestion`.
 
+The yellow `[DEBUG BASELINE DATA]` panel in `ReviewDashboard.vue` is hidden by default and can be enabled for diagnostics with `?debugBaseline=1`.
+
 **`RequestInfoTab.vue`** — in the expanded view (`readOnly=true` with a `baseline` prop), reads `props.baseline.amount` / `props.baseline.termGS` etc. The `baseline` prop is a deep-frozen snapshot set when the user opens the full details view.
 
 **`store.applyReviewerSuggestion()`** — atomically writes `reviewerSuggestion` → `transactionData` on formal submission (Approve/Reject action). Only at this point does the DB state update.

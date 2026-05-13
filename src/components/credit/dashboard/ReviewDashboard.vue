@@ -13,7 +13,7 @@
       </div>
 
       <!-- DEBUG BLOCK -->
-      <div v-if="true" style="background: #f0e68c; padding: 10px; margin-bottom: 15px; font-size: 12px; font-family: monospace;">
+            <div v-if="showDebugPanel" style="background: #f0e68c; padding: 10px; margin-bottom: 15px; font-size: 12px; font-family: monospace;">
         <strong>[DEBUG BASELINE DATA]</strong><br/>
         isCreditIncrease: {{ isCreditIncrease }}<br/>
         requestedAmount: {{ requestedAmount }}<br/>
@@ -270,21 +270,21 @@ const totalCreditAmount = computed(() => {
     const requestAmount = parseFloat(String(requestedAmount.value || '0').replace(/,/g, ''));
     let baseAmount = 0;
 
-    // For credit increases, always use current ERP limit as base, not original transaction data
     if (isCreditIncrease.value) {
-        if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
+        // For increase requests, the summary total must be based on the current
+        // ERP credit limit, not the requested amount stored in the snapshot.
+        if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
+            baseAmount = parseFloat(String(erpFallbackData.value.current_credit_limit).replace(/,/g, ''));
+        } else if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
             baseAmount = parseFloat(String(store.originalRequestedAmount).replace(/,/g, ''));
         } else if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
             baseAmount = parseFloat(String(store.originalTransactionData.amount).replace(/,/g, ''));
-        } else if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
-            baseAmount = parseFloat(String(erpFallbackData.value.current_credit_limit).replace(/,/g, ''));
         }
     } else {
-        // For other request types, use original transaction data if available
+        // For non-increase requests, use the persisted baseline amount first.
         if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
             baseAmount = parseFloat(String(store.originalRequestedAmount).replace(/,/g, ''));
-        } else 
-        if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
+        } else if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
             baseAmount = parseFloat(String(store.originalTransactionData.amount).replace(/,/g, ''));
         } else if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
             baseAmount = parseFloat(String(erpFallbackData.value.current_credit_limit).replace(/,/g, ''));
@@ -295,20 +295,8 @@ const totalCreditAmount = computed(() => {
 });
 
 const requestedAmount = computed(() => {
-    // Always try to resolve to the original (initiator's) requested amount.
-    // Priority: audit-trail comment > originalRequestedAmount > originalTransactionData.amount
-    // We intentionally NEVER fall through to store.transactionData.amount here because
-    // that would cause the Deal Summary to live-update as the reviewer types.
-    const comments = store.comments || [];
-    const firstLimitChange = comments.find(c => c.comment_text && c.comment_text.includes('ปรับวงเงินจาก'));
-    if (firstLimitChange) {
-        const match = firstLimitChange.comment_text.match(/ปรับวงเงินจาก\s+([\d,]+)\s+เป็น/);
-        if (match && match[1]) {
-            return match[1].replace(/,/g, '');
-        }
-    }
-
-    // Prefer the structured original transaction snapshot when available
+    // Summary values must come from the persisted baseline, not from audit-trail
+    // text or live reviewer edits.
     if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
         return store.originalTransactionData.amount;
     }
