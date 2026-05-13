@@ -607,9 +607,11 @@ exports.createCreditRequest = async (req, res) => {
         // Update Query (including tx_id in case it changed)
         // Use one shared timestamp so the request row and the workflow comment stay in sync.
         const statusEventAt = new Date().toISOString();
-        await db.runAsync(
-          "UPDATE CreditRequests SET tx_id = ?, request_amount = ?, request_reason = ?, request_credit_term = ?, term_gs = ?, term_ae = ?, term_yc = ?, request_type = ?, snapshot_data = ?, status = ?, updated_at = ? WHERE id = ?",
-          [
+
+        // If bypassing Draft (e.g. they save Draft, then submit Draft -> Opened directly without ID change),
+        // we capture the original snapshot.
+        let updateSql = "UPDATE CreditRequests SET tx_id = ?, request_amount = ?, request_reason = ?, request_credit_term = ?, term_gs = ?, term_ae = ?, term_yc = ?, request_type = ?, snapshot_data = ?, status = ?, updated_at = ? WHERE id = ?";
+        let updateParams = [
             txId,
             request_amount,
             request_reason,
@@ -622,8 +624,29 @@ exports.createCreditRequest = async (req, res) => {
             status,
             statusEventAt,
             requestId,
-          ],
-        );
+        ];
+
+        if (existing.status === "Draft" && newStatus !== "Draft") {
+            // They are transitioning from Draft to another state without creating a new record (this happens if they already have an ID)
+            updateSql = "UPDATE CreditRequests SET tx_id = ?, request_amount = ?, request_reason = ?, request_credit_term = ?, term_gs = ?, term_ae = ?, term_yc = ?, request_type = ?, snapshot_data = ?, original_snapshot = ?, status = ?, updated_at = ? WHERE id = ?";
+            updateParams = [
+              txId,
+              request_amount,
+              request_reason,
+              request_credit_term,
+              term_gs,
+              term_ae,
+              term_yc,
+              request_type,
+              snapshot_data,
+              existing.original_snapshot || snapshot_data || existing.snapshot_data, // Capture it!
+              status,
+              statusEventAt,
+              requestId,
+            ];
+        }
+
+        await db.runAsync(updateSql, updateParams);
 
         // Handle Comment insertion
         if (req.body.comment && req.body.actor_role) {
