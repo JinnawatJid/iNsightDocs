@@ -24,6 +24,9 @@
             <div v-if="showOriginalValues && store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null && requestedAmount != store.originalTransactionData.amount" class="original-value-label">
                 เดิม: {{ formatNumber(store.originalTransactionData.amount) }} บาท
             </div>
+            <div v-else-if="showOriginalValues && store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined && requestedAmount != store.originalRequestedAmount" class="original-value-label">
+                เดิม: {{ formatNumber(store.originalRequestedAmount) }} บาท
+            </div>
             <div v-else-if="showOriginalValues && erpFallbackData && erpFallbackData.current_credit_limit !== undefined && requestedAmount != erpFallbackData.current_credit_limit" class="original-value-label">
                 เดิม: {{ formatNumber(erpFallbackData.current_credit_limit) }} บาท
             </div>
@@ -263,11 +266,18 @@ const totalCreditAmount = computed(() => {
 
     // For credit increases, always use current ERP limit as base, not original transaction data
     if (isCreditIncrease.value) {
-        if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
+        if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
+            baseAmount = parseFloat(String(store.originalRequestedAmount).replace(/,/g, ''));
+        } else if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
+            baseAmount = parseFloat(String(store.originalTransactionData.amount).replace(/,/g, ''));
+        } else if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
             baseAmount = parseFloat(String(erpFallbackData.value.current_credit_limit).replace(/,/g, ''));
         }
     } else {
         // For other request types, use original transaction data if available
+        if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
+            baseAmount = parseFloat(String(store.originalRequestedAmount).replace(/,/g, ''));
+        } else 
         if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
             baseAmount = parseFloat(String(store.originalTransactionData.amount).replace(/,/g, ''));
         } else if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
@@ -292,11 +302,12 @@ const requestedAmount = computed(() => {
         }
     }
 
-    if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
-        return store.originalRequestedAmount;
-    }
+    // Prefer the structured original transaction snapshot when available
     if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
         return store.originalTransactionData.amount;
+    }
+    if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
+        return store.originalRequestedAmount;
     }
     // Hard fallback — if we have no original data at all, show nothing rather than
     // reactively leaking whatever the reviewer is currently typing.
@@ -492,6 +503,13 @@ onMounted(() => {
             checkDbdStatus();
         }
         fetchErpFallbackData();
+    }
+
+    // Debug: report resolved baseline values when dashboard mounts
+    try {
+        console.debug('[ReviewDashboard MOUNT] originalTransactionData=', store.originalTransactionData, 'originalRequestedAmount=', store.originalRequestedAmount, 'requestedAmount=', requestedAmount.value, 'erpFallback=', erpFallbackData.value);
+    } catch (e) {
+        console.warn('[ReviewDashboard MOUNT] debug log failed', e);
     }
 });
 

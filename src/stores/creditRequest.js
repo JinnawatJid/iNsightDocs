@@ -247,6 +247,13 @@ const rbacStore = useRbacStore();
           }
         }
 
+        // Debug: log server-provided original_snapshot for investigation
+        try {
+          console.debug('[DEBUG loadRequestDetail] txId=', txId, 'request_amount=', data.request_amount, 'serverOriginalSnapshot=', serverOriginalSnapshot, 'parsedSnapshot=', parsedSnapshot);
+        } catch (dbgErr) {
+          console.warn('Failed to log debug info in loadRequestDetail', dbgErr);
+        }
+
         this.customer = parsedSnapshot;
         if (this.customer["Billing Terms Code"]) {
           this.customer.billing_terms_code =
