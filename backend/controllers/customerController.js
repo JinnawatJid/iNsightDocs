@@ -7,9 +7,10 @@ const { normalizeName, extractLastName, isCompanyByName } = require('../utils/na
 // Configuration
 const API_URL = process.env.CUSTOMER_API_URL || "http://192.192.0.37:8280/customer-sp682/1.0.0";
 const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
+const MONTHLY_SUMMARY_API_KEY = process.env.MONTHLY_SUMMARY_API_KEY || API_KEY;
 
 // Configuration
-const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://192.192.0.37:8280/sales-summary-6-months/1.0.0";
+const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://192.192.0.37:8280/sp681_monthlysummary/1.0.0";
 const FINANCIAL_API_TAX_URL = process.env.FINANCIAL_API_TAX_URL || "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
 const CATEGORY_API_URL = process.env.CATEGORY_API_URL || "http://192.192.0.37:8280/sales-by-category-6-months/1.0.0";
 const CATEGORY_API_TAX_URL = process.env.CATEGORY_API_TAX_URL || "http://192.192.0.37:8000/api/customer-analytics/category-summary";
@@ -114,11 +115,11 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null, fetchBy = 'vat'
 
     try {
         if (taxId && taxId.trim().length > 0 && fetchBy === 'vat') {
-            logger.info(`[Financial API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
-            const response = await axios.get(FINANCIAL_API_TAX_URL, {
+            logger.info(`[Financial API] Branch=tax_no customer=${customerNo} fetchBy=${fetchBy} taxId=present url=${FINANCIAL_API_URL}`);
+            const response = await axios.get(FINANCIAL_API_URL, {
                 params: { tax_no: taxId.trim() },
                 headers: {
-                    "apikey": API_KEY,
+                    "apikey": MONTHLY_SUMMARY_API_KEY,
                     "Content-Type": "application/json"
                 },
                 timeout: 5000
@@ -134,12 +135,11 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null, fetchBy = 'vat'
     }
 
     try {
-        logger.info(`[Financial API] Fetching via customer_code for customer: ${customerNo}`);
-        const response = await axios.post(FINANCIAL_API_URL, {
-            customer_code: customerNo
-        }, {
+        logger.info(`[Financial API] Branch=customer_code customer=${customerNo} fetchBy=${fetchBy} taxId=${taxId ? 'present' : 'missing'} url=${FINANCIAL_API_URL}`);
+        const response = await axios.get(FINANCIAL_API_URL, {
+            params: { customer_code: customerNo },
             headers: {
-                "apikey": API_KEY, // Reuse API_KEY from customer search if applicable, or check if distinct key needed
+                "apikey": MONTHLY_SUMMARY_API_KEY,
                 "Content-Type": "application/json"
             },
             timeout: 5000
