@@ -11,7 +11,7 @@ const { isCompanyByName } = require('../utils/nameNormalizer');
 const pdf = require('pdf-parse');
 
 // Configuration
-const FINANCIAL_API_URL = "http://192.192.0.37:8280/sales-summary-6-months/1.0.0";
+const FINANCIAL_API_URL = process.env.FINANCIAL_API_URL || "http://192.192.0.37:8280/sp681_monthlysummary/1.0.0";
 const FINANCIAL_API_TAX_URL = "http://192.192.0.37:8000/api/customer-analytics/monthly-summary";
 const LATE_PAYMENT_API_URL = "http://192.192.0.37:8280/customer-late-payment/1.0.0";
 // New WADL API Endpoint
@@ -20,6 +20,7 @@ const REMAINING_CREDIT_API_URL = "http://192.192.0.37:8280/silver_customerremain
 const INVOICE_API_URL = process.env.INVOICE_API_URL || "http://192.192.0.37:8280/silver_invoice_sp682/1.0.0";
 
 const API_KEY = process.env.CUSTOMER_API_KEY || "YOUR_API_KEY";
+const MONTHLY_SUMMARY_API_KEY = process.env.MONTHLY_SUMMARY_API_KEY || API_KEY;
 const INVOICE_API_KEY = process.env.INVOICE_API_KEY || API_KEY;
 // Separate API Key for Late Payment Service (if different from Customer API)
 const LATE_PAYMENT_API_KEY = process.env.LATE_PAYMENT_API_KEY || API_KEY;
@@ -177,7 +178,7 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null, fetchBy = 'vat'
 
     try {
         if (taxId && taxId.trim().length > 0 && fetchBy === 'vat') {
-            logger.info(`[Financial API] Fetching via tax_no: ${taxId} for customer: ${customerNo}`);
+            logger.info(`[Financial API] Branch=tax_no customer=${customerNo} fetchBy=${fetchBy} taxId=present url=${FINANCIAL_API_TAX_URL}`);
             const response = await axios.get(FINANCIAL_API_TAX_URL, {
                 params: { tax_no: taxId.trim() },
                 headers: {
@@ -198,12 +199,12 @@ const fetchPurchasingBehavior = async (customerNo, taxId = null, fetchBy = 'vat'
     }
 
     try {
-        logger.info(`[Financial API] Fetching via customer_code for ${customerNo} from ${FINANCIAL_API_URL}`);
+        logger.info(`[Financial API] Branch=customer_code customer=${customerNo} fetchBy=${fetchBy} taxId=${taxId ? 'present' : 'missing'} url=${FINANCIAL_API_URL}`);
         const response = await axios.post(FINANCIAL_API_URL, {
             customer_code: customerNo
         }, {
             headers: {
-                "apikey": API_KEY, // Reuse existing API Key
+                "apikey": MONTHLY_SUMMARY_API_KEY,
                 "Content-Type": "application/json"
             },
             timeout: 5000
