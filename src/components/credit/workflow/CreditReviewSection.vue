@@ -200,14 +200,25 @@ const isCreditIncrease = computed(() => {
     return store.transactionData.requestType?.includes('เครดิตเพิ่ม') || false;
 });
 
+const parseAmount = (value) => {
+  if (value === null || value === undefined || value === '') return NaN;
+  const parsed = parseFloat(String(value).replace(/,/g, ''));
+  return isNaN(parsed) ? NaN : parsed;
+};
+
 const getBaseAmount = () => {
-    let base = 0;
-    if (store.originalTransactionData?.amount !== undefined && store.originalTransactionData?.amount !== null) {
-        base = parseFloat(String(store.originalTransactionData.amount).replace(/,/g, ''));
-    } else if (erpFallbackData.value && erpFallbackData.value.current_credit_limit !== undefined) {
-        base = parseFloat(String(erpFallbackData.value.current_credit_limit).replace(/,/g, ''));
-    }
-    return isNaN(base) ? 0 : base;
+  const currentLimitCandidates = [
+    store.customer?.current_credit_limit,
+    store.originalCustomer?.current_credit_limit,
+    erpFallbackData.value?.current_credit_limit,
+  ];
+
+  for (const candidate of currentLimitCandidates) {
+    const parsed = parseAmount(candidate);
+    if (!isNaN(parsed)) return parsed;
+  }
+
+  return 0;
 };
 
 const formattedAmount = computed({
