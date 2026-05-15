@@ -63,6 +63,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
     blacklistAlert: null,
     loadedFromPrevious: false,
 
+    // IDs of remote attachments the user has removed via the ✕ button.
+    // These will be soft-deleted on the next save/submit call.
+    pendingFileDeletions: [],
+
     activeTab: "requestInfo",
     activeProjectTab: "projectInfo",
 
@@ -215,6 +219,7 @@ const rbacStore = useRbacStore();
       this.originalRequestedAmount = null;
       this.originalRequestedTerms = null;
       this.originalTransactionData = {};
+      this.pendingFileDeletions = [];
       this.clearReviewerSuggestions();
       try {
         const response =
@@ -1008,7 +1013,18 @@ const rbacStore = useRbacStore();
     },
 
     removeFileKey(key) {
-      if (this.files[key]) {
+      // Before deleting the key, collect any remote file IDs so they get
+      // soft-deleted from the DB on the next save (same mechanism as ✕ in FileUploader).
+      const existing = this.files[key];
+      if (existing) {
+        const items = Array.isArray(existing) ? existing : [existing];
+        items.forEach(f => {
+          if (f && f.isRemote && f.id && !f.fromPrevious) {
+            if (!this.pendingFileDeletions.includes(f.id)) {
+              this.pendingFileDeletions.push(f.id);
+            }
+          }
+        });
         delete this.files[key];
       }
       if (this.uploadedDocuments[key]) {

@@ -267,12 +267,25 @@ export default {
       this.$refs.fileInput.value = '';
     },
     removeFile(index) {
+      const store = useCreditRequestStore();
       if (this.multiple) {
         const updatedFiles = [...this.file];
-        updatedFiles.splice(index, 1);
+        const removed = updatedFiles.splice(index, 1)[0];
+        // Track remote file so it gets deleted on next save
+        if (removed && removed.isRemote && removed.id && !removed.fromPrevious) {
+          if (!store.pendingFileDeletions.includes(removed.id)) {
+            store.pendingFileDeletions.push(removed.id);
+          }
+        }
         this.file = updatedFiles;
         this.$emit('update:modelValue', updatedFiles);
       } else {
+        // Track remote file so it gets deleted on next save
+        if (this.file && this.file.isRemote && this.file.id && !this.file.fromPrevious) {
+          if (!store.pendingFileDeletions.includes(this.file.id)) {
+            store.pendingFileDeletions.push(this.file.id);
+          }
+        }
         this.file = null;
         this.$emit('update:modelValue', null);
       }

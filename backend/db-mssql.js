@@ -310,6 +310,9 @@ const initDB = async () => {
                     } else {
                         alterTableQuery = `ALTER TABLE Customers ADD ${col} INT DEFAULT 0`;
                     }
+                } else if (col === 'existing_credits') {
+                    // existing_credits stores a JSON array — must be NVARCHAR(MAX)
+                    alterTableQuery = `ALTER TABLE Customers ADD ${col} NVARCHAR(MAX)`;
                 }
 
                 const checkSql = `
@@ -326,6 +329,24 @@ const initDB = async () => {
             } catch (err) {
                  logger.error(`Error adding column ${col}:`, err);
             }
+        }
+
+        // Migration: Widen existing_credits column to NVARCHAR(MAX) if it was created as NVARCHAR(255)
+        try {
+            const widenExistingCredits = `
+                IF EXISTS (
+                    SELECT * FROM sys.columns
+                    WHERE Name = 'existing_credits' AND Object_ID = Object_ID('Customers')
+                    AND max_length != -1
+                )
+                BEGIN
+                    ALTER TABLE Customers ALTER COLUMN existing_credits NVARCHAR(MAX)
+                END
+            `;
+            await pool.request().query(widenExistingCredits);
+            logger.info('Ensured existing_credits column is NVARCHAR(MAX) in Customers');
+        } catch (err) {
+            logger.error('Error widening existing_credits column:', err);
         }
 
         // Create CreditRequests table manually
