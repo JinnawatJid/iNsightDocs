@@ -1469,6 +1469,19 @@ const shouldShowFinancialAnalysis = computed(() => {
         return true;
     }
 
+    // 1.5. History/finalized requests should still show the analysis summary
+    // when the user opens full details from the request history sidebar.
+    const finalStatuses = [
+        'closed',
+        'approved',
+        'rejected',
+        'canceled'
+    ];
+
+    if (finalStatuses.some(s => cleanStatus.value.includes(s))) {
+        return true;
+    }
+
     // 2. Standard Visibility (Downstream roles)
     const visibleStatuses = [
         'opened',
