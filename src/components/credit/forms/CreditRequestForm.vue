@@ -675,6 +675,13 @@ const submitTransaction = async (btn) => {
         const snapshot = store.getSnapshot();
         formData.append('snapshot_data', JSON.stringify(snapshot));
 
+        // Files to delete (remote files the user removed via ✕)
+        if (store.pendingFileDeletions && store.pendingFileDeletions.length > 0) {
+            store.pendingFileDeletions.forEach(id => {
+                formData.append('files_to_delete', id);
+            });
+        }
+
         // Files
         for (const [key, file] of Object.entries(store.files)) {
             if (file) {

@@ -806,6 +806,34 @@ exports.createCreditRequest = async (req, res) => {
       }
     }
 
+    // Handle File Deletions (files the user removed via ✕ in the UI)
+    if (req.body.files_to_delete) {
+      const filesToDelete = Array.isArray(req.body.files_to_delete)
+        ? req.body.files_to_delete
+        : [req.body.files_to_delete];
+
+      for (const fileId of filesToDelete) {
+        const parsedId = parseInt(fileId, 10);
+        if (isNaN(parsedId)) continue;
+
+        // Security: ensure this file belongs to the current transaction
+        const { rows: ownCheck } = await db.query(
+          'SELECT id, file_path FROM CreditRequestAttachments WHERE id = ? AND tx_id = ? AND (is_deleted IS NULL OR is_deleted = 0)',
+          [parsedId, txId]
+        );
+
+        if (ownCheck && ownCheck.length > 0) {
+          await db.runAsync(
+            'UPDATE CreditRequestAttachments SET is_deleted = 1 WHERE id = ?',
+            [parsedId]
+          );
+          logger.info(`[FileDeletion] Soft-deleted attachment ${parsedId} from tx ${txId}`);
+        } else {
+          logger.warn(`[FileDeletion] Skipped attachment ${parsedId} — not found in tx ${txId} or already deleted`);
+        }
+      }
+    }
+
     // Handle explicitly referenced previous files
     let previousFiles = [];
     if (req.body.previous_files) {
