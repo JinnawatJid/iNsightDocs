@@ -1013,7 +1013,18 @@ const rbacStore = useRbacStore();
     },
 
     removeFileKey(key) {
-      if (this.files[key]) {
+      // Before deleting the key, collect any remote file IDs so they get
+      // soft-deleted from the DB on the next save (same mechanism as ✕ in FileUploader).
+      const existing = this.files[key];
+      if (existing) {
+        const items = Array.isArray(existing) ? existing : [existing];
+        items.forEach(f => {
+          if (f && f.isRemote && f.id && !f.fromPrevious) {
+            if (!this.pendingFileDeletions.includes(f.id)) {
+              this.pendingFileDeletions.push(f.id);
+            }
+          }
+        });
         delete this.files[key];
       }
       if (this.uploadedDocuments[key]) {
