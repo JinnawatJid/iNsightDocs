@@ -366,7 +366,7 @@ external-apis/
 ├── NAV API         ← Customer master & search endpoints (HTTP REST)
 ├── WADL API        ← Financial / statement extraction endpoints
 ├── SSO Hub         ← Authentication / token issuance (SSO)
-└── Other third-party services (credit bureaus, tax validation)
+└── Other third-party services
 ```
 
 ### External API / Data Summary
