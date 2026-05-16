@@ -363,19 +363,60 @@ sequenceDiagram
 
 ```
 external-apis/
-├── NAV API         ← Customer master & search endpoints (HTTP REST)
-├── WADL API        ← Financial / statement extraction endpoints
-├── SSO Hub         ← Authentication / token issuance (SSO)
-└── Other third-party services (credit bureaus, tax validation)
+├── CUSTOMER_API (CUSTOMER_API_URL / CUSTOMER_API_KEY)         ← Customer master & search endpoints
+├── FINANCIAL_API (FINANCIAL_API_URL / MONTHLY_SUMMARY_API_KEY)← Monthly purchasing-summary / behavior endpoints
+├── CATEGORY_API (CATEGORY_API_URL / CATEGORY_API_TAX_URL)     ← Sales-by-category endpoints
+├── LATE_PAYMENT_WADL_API (LATE_PAYMENT_WADL_API_URL / LATE_PAYMENT_WADL_API_KEY)
+│   ← WADL (Weighted Average Days Late) / invoice amount-enabled late-payment data
+├── LATE_PAYMENT_API (LATE_PAYMENT_API_URL / LATE_PAYMENT_API_KEY)
+│   ← Standard late-payment data (non-weighted)
+├── INVOICE_API (INVOICE_API_URL / INVOICE_API_KEY)            ← Invoice extraction / details
+├── REMAINING_CREDIT_API (REMAINING_CREDIT_API_URL)            ← Remaining credit checks
+├── SSO_HUB (SSO / Identity Provider)                          ← Authentication / token issuance
+└── DBD (DBD data warehouse scraping — implemented via puppeteer/pdf-parse)
 ```
 
-### External API / Data Summary
+### External API / Data Summary (per API)
 
-- **NAV API:** provides customer master records, tax IDs, and contact/address details; used for search and profile enrichment.
-- **WADL API:** returns financial statements and parsed accounting lines used by the scoring engine.
-- **SSO Hub:** issues authentication tokens and federates user identity between corporate SSO and the Express API.
-- **Data Characteristics:** JSON responses, paginated lists for search, occasional CSV/XLS attachments for reports, and rate limits on heavy endpoints.
-- **Auth & Reliability:** APIs use API keys / OAuth2 tokens; implement retries, backoff, and circuit-breaker patterns in services.
+- **CUSTOMER_API (`CUSTOMER_API_URL`, `CUSTOMER_API_KEY`)**
+     - Purpose: customer master records, search, tax ID, contact/address, basic profile enrichment.
+     - Used by: `backend/controllers/customerController.js`, frontend `src/services/CustomerService.js`, and API test tools (`tools/api-tests/*`).
+     - Characteristics: JSON responses, paginated search; calls use `apikey` header and 5s timeouts.
+
+- **FINANCIAL_API (`FINANCIAL_API_URL`, `MONTHLY_SUMMARY_API_KEY`)**
+     - Purpose: monthly purchasing summaries and purchasing-behavior datasets used by scoring.
+     - Used by: `backend/controllers/customerController.js`, `backend/controllers/financialController.js`.
+     - Notes: controller attempts `tax_no` first, then `customer_code` as fallback; supports MOCK mode via `MOCK_EXTERNAL_APIS`.
+
+- **CATEGORY_API (`CATEGORY_API_URL`, `CATEGORY_API_TAX_URL`)**
+     - Purpose: sales-by-category aggregation (6 months default) used to build category summaries.
+     - Used by: `backend/controllers/customerController.js` (fetchCategorySummary).
+
+- **LATE_PAYMENT_WADL_API (`LATE_PAYMENT_WADL_API_URL`, `LATE_PAYMENT_WADL_API_KEY`)**
+     - Purpose: provides invoices with `Amount` so the system can calculate Weighted Average Days Late (WADL).
+     - Used by: `backend/controllers/financialController.js` (`fetchWADLData`, `calculateWADL`).
+     - Important: WADL requires `Amount` field; controllers sanitize and deduplicate results before calculations.
+
+- **LATE_PAYMENT_API (`LATE_PAYMENT_API_URL`, `LATE_PAYMENT_API_KEY`)**
+     - Purpose: standard late-payment endpoint (may return late-days without amount), used as fallback or complementary data.
+     - Used by: `backend/controllers/financialController.js` (`fetchLatePaymentData`).
+
+- **INVOICE_API (`INVOICE_API_URL`, `INVOICE_API_KEY`)**
+     - Purpose: invoice extraction endpoints that return detailed invoice rows for reconciliation and UI display.
+     - Used by: `backend/controllers/financialController.js` and analysis endpoints.
+
+- **REMAINING_CREDIT_API (`REMAINING_CREDIT_API_URL`)**
+     - Purpose: checks for remaining approved credit from an external system.
+     - Used by: `backend/controllers/financialController.js` (when available).
+
+- **SSO_HUB (SSO / Identity Provider)**
+     - Purpose: issues authentication tokens and federates user identity between corporate SSO and the Express API.
+     - Used by: `backend/controllers/authController.js` and `middleware/authMiddleware.js` (SSO integration described in README).
+
+- **DBD (DBD data warehouse scraping)**
+     - Purpose: scrape DBD public data warehouse to download company profile PDFs (DBD Profile) and extract registration date / company profile values.
+     - Implemented in: `backend/controllers/externalController.js` (puppeteer + pdf-parse) and `backend/utils/pdfExtractor.js`.
+     - Note: not a configured URL environment variable — implemented as a scraper and optional local fallback.
 
 ### External API — Code Map (dive deep)
 
