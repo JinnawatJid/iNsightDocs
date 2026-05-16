@@ -64,6 +64,7 @@ import clockIcon from '@/assets/icons/clock-orange.svg';
 import rejectedIcon from '@/assets/icons/x-circle-red.svg';
 import approvedIcon from '@/assets/icons/check-circle-green.svg';
 import { useCreditRequestStore } from '@/stores/creditRequest';
+import { formatDateString as normalizeDateString } from '@/utils/dateUtils';
 
 export default {
   name: 'CreditHistorySidebar',
@@ -123,26 +124,19 @@ export default {
       formatDate(dateString) {
           if (!dateString) return '';
 
-          // Apply the same timezone offset fix as RequestTimeline (strip 'Z')
-          let normalizedDateString = dateString;
-          if (normalizedDateString.endsWith('Z')) {
-              normalizedDateString = normalizedDateString.slice(0, -1);
-          }
+          const date = dateString instanceof Date ? dateString : normalizeDateString(dateString);
 
-          const date = new Date(normalizedDateString);
-
-          // Check if date is invalid (e.g. if item.date is not an ISO string but pre-formatted)
-          if (isNaN(date.getTime())) {
+          if (!(date instanceof Date) || isNaN(date.getTime())) {
               return dateString; // Fallback to raw string if it can't be parsed
           }
 
-          const d = String(date.getDate()).padStart(2, '0');
-          const m = String(date.getMonth() + 1).padStart(2, '0');
-          const y = date.getFullYear(); // Gregorian year
-          const hh = String(date.getHours()).padStart(2, '0');
-          const mm = String(date.getMinutes()).padStart(2, '0');
-
-          return `${d}/${m}/${y} ${hh}:${mm} น.`;
+          return date.toLocaleString('th-TH', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
       }
   }
 };

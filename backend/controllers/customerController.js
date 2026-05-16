@@ -423,7 +423,7 @@ const enrichCustomerData = async (customerNo, currentCreditLimit = 0, taxId = nu
 
         history = rows.map(h => ({
             id: h.id,
-            date: new Date(h.created_at).toLocaleDateString('th-TH'),
+            date: h.created_at,
             txId: h.tx_id,
             requestAmount: h.request_amount,
             status: h.status,
