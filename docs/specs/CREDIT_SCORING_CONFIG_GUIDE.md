@@ -149,6 +149,17 @@ UI behavior:
 - The reviewer modal validates total weight before recalculation/save.
 - `Reset all weights` restores model default weights loaded from `/api/scorecard/:modelType`.
 
+## Versioning (Scorecard Management UI)
+
+Administrators can now preview previous scorecard configurations and restore defaults via the Scorecard Management UI:
+
+- **Versions dropdown:** A dropdown lists available versions (most recent history). Choosing a version loads it into the editor for preview only — it does not immediately overwrite the saved configuration.
+- **Immutable baseline:** The first option is a special baseline `เวอร์ชันต้นฉบับ (ค่าเริ่มต้น)` which always restores the original default weights and scores. This baseline cannot be deleted via the UI.
+- **Persisting changes:** After previewing a version, use `บันทึกการเปลี่ยนแปลง` to persist any edits. To discard previewed changes and return to the active saved state, use `คืนค่าเดิม`.
+- **Timestamps:** Dates are normalized on the client; if a version shows no date it likely came from a legacy record without a timezone-aware timestamp.
+
+For technical implementation details (endpoints, DB schema, and verification checklist), see `docs/specs/SCORECARD_VERSIONING.md`.
+
 ---
 
 ## Verification
