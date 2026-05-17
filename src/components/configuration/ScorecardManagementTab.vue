@@ -12,6 +12,12 @@
           <option value="new">ลูกค้าใหม่</option>
           <option value="existing">ลูกค้าปัจจุบัน</option>
         </select>
+        <select v-model="selectedVersion" @change="handleVersionChange" class="version-select">
+          <option value="">เวอร์ชันล่าสุด</option>
+          <option v-for="v in store.versions" :key="v.id" :value="v.id">
+            {{ v.comment || 'เวอร์ชัน' }} — {{ formatDate(v.created_at || v.createdAt || '') }}
+          </option>
+        </select>
         <button
           class="btn btn-primary"
           :disabled="!store.hasChanges || !isWeightValid || store.isLoading"
@@ -148,9 +154,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useScorecardStore } from '../../stores/scorecard';
 import Swal from 'sweetalert2';
+import { formatDateString } from '../../utils/dateUtils';
 
 const store = useScorecardStore();
 const selectedModel = ref('new');
+const selectedVersion = ref('');
 const expectedTotalWeight = ref(100); // Standard, will update dynamically based on initial load
 const activeAccordions = ref([]); // All collapsed by default
 
@@ -225,6 +233,41 @@ const toggleAccordion = (key) => {
 
 const handleReset = () => {
    store.resetChanges();
+};
+
+const formatDate = (dt) => {
+  try {
+    return formatDateString(dt).toLocaleString('th-TH');
+  } catch (e) {
+    return dt;
+  }
+};
+
+const handleVersionChange = async () => {
+  if (!selectedVersion.value) return;
+  const data = await store.fetchVersion(selectedVersion.value);
+  if (!data) return;
+
+  const createdAt = formatDate(data.created_at || data.createdAt || '');
+  const comment = data.comment || data.note || 'ไม่มีคำอธิบาย';
+
+  const res = await Swal.fire({
+    title: 'แสดงเวอร์ชัน',
+    html: `<div style="text-align:left"> <strong>คำอธิบาย:</strong> ${comment}<br/><strong>สร้างเมื่อ:</strong> ${createdAt}</div>`,
+    showCancelButton: true,
+    confirmButtonText: 'ดูตัวอย่าง',
+    cancelButtonText: 'ปิด',
+    width: 600
+  });
+
+  if (res.isConfirmed) {
+    try {
+      // Load version into editor for preview (does not alter originalConfigStr)
+      store.configData = JSON.parse(data.config_json || data.configJson || '{}');
+    } catch (e) {
+      Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดเวอร์ชันเพื่อแสดงตัวอย่างได้', 'error');
+    }
+  }
 };
 
  
@@ -306,6 +349,15 @@ onMounted(() => {
   border-radius: 4px;
   font-size: 13px;
   background-color: #fcfcfc;
+  cursor: pointer;
+}
+
+.version-select {
+  padding: 6px 10px;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+  font-size: 13px;
+  background-color: #ffffff;
   cursor: pointer;
 }
 
