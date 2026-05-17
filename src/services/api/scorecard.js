@@ -21,3 +21,33 @@ export const updateScorecardConfig = async (type, configData) => {
         throw error;
     }
 };
+
+export const listScorecardVersions = async (type) => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/scorecard/${type}/versions`);
+        return response.data;
+    } catch (error) {
+        console.error(`[API] Error listing scorecard versions (${type}):`, error);
+        throw error;
+    }
+};
+
+export const fetchScorecardVersion = async (type, id) => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/scorecard/${type}/versions/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error(`[API] Error fetching scorecard version (${type} #${id}):`, error);
+        throw error;
+    }
+};
+
+export const revertScorecardVersion = async (type, id) => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/scorecard/${type}/versions/${id}/revert`);
+        return response.data;
+    } catch (error) {
+        console.error(`[API] Error reverting scorecard version (${type} #${id}):`, error);
+        throw error;
+    }
+};

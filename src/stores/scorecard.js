@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
-import { fetchScorecardConfig, updateScorecardConfig } from '../services/api/scorecard';
+import { fetchScorecardConfig, updateScorecardConfig, listScorecardVersions, fetchScorecardVersion, revertScorecardVersion } from '../services/api/scorecard';
 
 export const useScorecardStore = defineStore('scorecard', {
     state: () => ({
         activeType: 'new', // 'new' or 'existing'
         configData: null,
         originalConfigStr: null,
+        versions: [],
         isLoading: false,
         error: null,
     }),
@@ -30,6 +31,8 @@ export const useScorecardStore = defineStore('scorecard', {
                 const data = await fetchScorecardConfig(type);
                 this.configData = JSON.parse(JSON.stringify(data)); // Deep clone
                 this.originalConfigStr = JSON.stringify(data);
+                // Load versions metadata
+                this.versions = await listScorecardVersions(type);
             } catch (err) {
                 this.error = err.response?.data?.message || 'Failed to load scorecard.';
                 console.error(err);
@@ -46,11 +49,43 @@ export const useScorecardStore = defineStore('scorecard', {
                 await updateScorecardConfig(this.activeType, this.configData);
                 // Update original state to reflect saved changes
                 this.originalConfigStr = JSON.stringify(this.configData);
+                // Refresh versions list
+                this.versions = await listScorecardVersions(this.activeType);
                 return true;
             } catch (err) {
                 this.error = err.response?.data?.message || 'Failed to save scorecard.';
                 console.error(err);
                 return false;
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        async fetchVersion(id) {
+            this.isLoading = true;
+            try {
+                const data = await fetchScorecardVersion(this.activeType, id);
+                return data;
+            } catch (err) {
+                this.error = err.response?.data?.message || 'Failed to fetch version.';
+                console.error(err);
+                return null;
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        async revertVersion(id) {
+            this.isLoading = true;
+            try {
+                const res = await revertScorecardVersion(this.activeType, id);
+                // After revert, reload active config and versions
+                await this.loadScorecard(this.activeType);
+                return res;
+            } catch (err) {
+                this.error = err.response?.data?.message || 'Failed to revert version.';
+                console.error(err);
+                return null;
             } finally {
                 this.isLoading = false;
             }

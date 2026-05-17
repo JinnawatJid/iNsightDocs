@@ -457,6 +457,19 @@ const initDB = async () => {
             updated_by TEXT
         )`);
 
+        // Create ScorecardVersions table for immutable versioning of scorecard configs
+        await db.runAsync(`CREATE TABLE IF NOT EXISTS ScorecardVersions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            type TEXT NOT NULL,
+            version_number INTEGER DEFAULT 1,
+            config_json TEXT NOT NULL,
+            created_by TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            comment TEXT,
+            checksum TEXT,
+            is_active INTEGER DEFAULT 0
+        )`);
+
         // Create Notifications table
         await db.runAsync(`CREATE TABLE IF NOT EXISTS Notifications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
