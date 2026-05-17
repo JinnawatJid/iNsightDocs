@@ -12,6 +12,11 @@
           <option value="new">ลูกค้าใหม่</option>
           <option value="existing">ลูกค้าปัจจุบัน</option>
         </select>
+        <select v-model="selectedVersionId" class="model-select versions-select">
+          <option value="">เลือกเวอร์ชันล่าสุด</option>
+          <option v-for="v in store.versions" :key="v.id" :value="v.id">{{ `v${v.version_number} — ${v.created_by || 'unknown'} (${new Date(v.created_at).toLocaleString('th-TH')})` }}</option>
+        </select>
+        <button class="btn btn-outline" :disabled="!selectedVersionId || store.isLoading" @click="handleSwitchVersion">ใช้เวอร์ชัน</button>
         <button
           class="btn btn-primary"
           :disabled="!store.hasChanges || !isWeightValid || store.isLoading"
@@ -151,6 +156,7 @@ import Swal from 'sweetalert2';
 
 const store = useScorecardStore();
 const selectedModel = ref('new');
+const selectedVersionId = ref('');
 const expectedTotalWeight = ref(100); // Standard, will update dynamically based on initial load
 const activeAccordions = ref([]); // All collapsed by default
 
@@ -225,6 +231,28 @@ const toggleAccordion = (key) => {
 
 const handleReset = () => {
    store.resetChanges();
+};
+
+const handleSwitchVersion = async () => {
+  if (!selectedVersionId.value) return;
+  const confirm = await Swal.fire({
+    title: 'สลับไปยังเวอร์ชันนี้?',
+    text: 'การกระทำนี้จะสร้างเวอร์ชันใหม่ที่เป็นสำเนาของเวอร์ชันที่เลือกและตั้งค่านี้เป็นเวอร์ชันปัจจุบัน',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'ใช่, สลับ',
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (confirm.isConfirmed) {
+    const res = await store.revertVersion(selectedVersionId.value);
+    if (res) {
+      Swal.fire({ icon: 'success', title: 'สลับเวอร์ชันสำเร็จ' });
+      selectedVersionId.value = '';
+    } else {
+      Swal.fire({ icon: 'error', title: 'สลับเวอร์ชันไม่สำเร็จ' });
+    }
+  }
 };
 
 
