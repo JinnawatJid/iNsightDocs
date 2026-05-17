@@ -8,16 +8,10 @@
         </div>
       </div>
       <div class="header-actions">
-            <select v-model="selectedModel" @change="handleModelChange" class="model-select">
+        <select v-model="selectedModel" @change="handleModelChange" class="model-select">
           <option value="new">ลูกค้าใหม่</option>
           <option value="existing">ลูกค้าปัจจุบัน</option>
         </select>
-            <select v-model="selectedVersionId" class="model-select versions-select">
-              <option value="">เลือกเวอร์ชันล่าสุด</option>
-              <option v-for="v in store.versions" :key="v.id" :value="v.id">{{ `v${v.version_number} — ${v.created_by || 'unknown'} (${new Date(v.created_at).toLocaleString('th-TH')})` }}</option>
-            </select>
-            <button class="btn btn-outline" :disabled="!selectedVersionId || store.isLoading" @click="handleViewVersion">ดูเวอร์ชัน</button>
-            <button class="btn btn-danger" :disabled="!selectedVersionId || store.isLoading" @click="handleRevert">ย้อนกลับไปที่เวอร์ชัน</button>
         <button
           class="btn btn-primary"
           :disabled="!store.hasChanges || !isWeightValid || store.isLoading"
@@ -157,7 +151,6 @@ import Swal from 'sweetalert2';
 
 const store = useScorecardStore();
 const selectedModel = ref('new');
-const selectedVersionId = ref('');
 const expectedTotalWeight = ref(100); // Standard, will update dynamically based on initial load
 const activeAccordions = ref([]); // All collapsed by default
 
@@ -234,41 +227,7 @@ const handleReset = () => {
    store.resetChanges();
 };
 
-const handleViewVersion = async () => {
-  if (!selectedVersionId.value) return;
-  const data = await store.fetchVersion(selectedVersionId.value);
-  if (data && data.config) {
-    Swal.fire({
-      title: `Version ${data.meta.version_number}`,
-      html: `<pre style="text-align:left;max-height:400px;overflow:auto">${JSON.stringify(data.config, null, 2).replace(/</g, '&lt;')}</pre>`,
-      width: '70%'
-    });
-  } else {
-    Swal.fire('ไม่พบข้อมูล', 'ไม่สามารถโหลดเวอร์ชันได้', 'error');
-  }
-};
 
-const handleRevert = async () => {
-  if (!selectedVersionId.value) return;
-  const confirm = await Swal.fire({
-    title: 'ยืนยันการย้อนกลับ',
-    text: 'การย้อนกลับจะสร้างเวอร์ชันใหม่และเปลี่ยนการตั้งค่าในระบบ คุณแน่ใจหรือไม่?',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'ใช่, ย้อนกลับ',
-    cancelButtonText: 'ยกเลิก'
-  });
-
-  if (confirm.isConfirmed) {
-    const res = await store.revertVersion(selectedVersionId.value);
-    if (res) {
-      Swal.fire({ icon: 'success', title: 'ย้อนกลับสำเร็จ' });
-      selectedVersionId.value = '';
-    } else {
-      Swal.fire({ icon: 'error', title: 'ย้อนกลับไม่สำเร็จ' });
-    }
-  }
-};
 
 const handleSave = async () => {
   if (!isWeightValid.value) {
