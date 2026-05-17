@@ -13,7 +13,6 @@
           <option value="existing">ลูกค้าปัจจุบัน</option>
         </select>
         <select v-model="selectedVersion" @change="handleVersionChange" class="version-select">
-          <option value="">เวอร์ชันล่าสุด</option>
           <option v-for="v in store.versions" :key="v.id" :value="v.id">
             {{ v.comment || 'เวอร์ชัน' }} — {{ formatDate(v.created_at || v.createdAt || '') }}
           </option>
