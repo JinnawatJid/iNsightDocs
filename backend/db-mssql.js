@@ -638,6 +638,23 @@ const initDB = async () => {
         `;
         await pool.request().query(createNotificationsSQL);
 
+        // Create ScorecardVersions table for immutable versioning of scorecard configs
+        const createScorecardVersionsSQL = `
+            IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='ScorecardVersions' and xtype='U')
+            CREATE TABLE ScorecardVersions (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                type NVARCHAR(50) NOT NULL,
+                version_number INT DEFAULT 1,
+                config_json NVARCHAR(MAX) NOT NULL,
+                created_by NVARCHAR(255),
+                created_at DATETIME DEFAULT GETUTCDATE(),
+                comment NVARCHAR(MAX),
+                checksum NVARCHAR(255),
+                is_active BIT DEFAULT 0
+            )
+        `;
+        await pool.request().query(createScorecardVersionsSQL);
+
         // Ensure new column exists in Configurations table (for existing DBs)
         try {
             await pool.request().query(`
