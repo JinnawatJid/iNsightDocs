@@ -236,10 +236,13 @@ const handleReset = () => {
 };
 
 const formatDate = (dt) => {
+  if (!dt) return '';
   try {
-    return formatDateString(dt).toLocaleString('th-TH');
+    const d = formatDateString(dt);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleString('th-TH');
   } catch (e) {
-    return dt;
+    return '';
   }
 };
 
@@ -248,25 +251,14 @@ const handleVersionChange = async () => {
   const data = await store.fetchVersion(selectedVersion.value);
   if (!data) return;
 
-  const createdAt = formatDate(data.created_at || data.createdAt || '');
-  const comment = data.comment || data.note || 'ไม่มีคำอธิบาย';
-
-  const res = await Swal.fire({
-    title: 'แสดงเวอร์ชัน',
-    html: `<div style="text-align:left"> <strong>คำอธิบาย:</strong> ${comment}<br/><strong>สร้างเมื่อ:</strong> ${createdAt}</div>`,
-    showCancelButton: true,
-    confirmButtonText: 'ดูตัวอย่าง',
-    cancelButtonText: 'ปิด',
-    width: 600
-  });
-
-  if (res.isConfirmed) {
-    try {
-      // Load version into editor for preview (does not alter originalConfigStr)
-      store.configData = JSON.parse(data.config_json || data.configJson || '{}');
-    } catch (e) {
-      Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดเวอร์ชันเพื่อแสดงตัวอย่างได้', 'error');
-    }
+  try {
+    // Load version into editor for preview (non-destructive)
+    const cfg = data.config_json || data.configJson || data.config || '{}';
+    store.configData = typeof cfg === 'string' ? JSON.parse(cfg) : JSON.parse(JSON.stringify(cfg));
+  } catch (e) {
+    // fallback: set an error in store so the UI can show it
+    store.error = 'ไม่สามารถโหลดเวอร์ชันเพื่อแสดงตัวอย่างได้';
+    console.error(e);
   }
 };
 
