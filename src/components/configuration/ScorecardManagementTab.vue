@@ -248,6 +248,14 @@ const formatDate = (dt) => {
 
 const handleVersionChange = async () => {
   if (!selectedVersion.value) return;
+  // Handle the immutable original/default version locally
+  if (selectedVersion.value === 'original') {
+    if (store.originalConfigStr) {
+      store.configData = JSON.parse(store.originalConfigStr);
+    }
+    return;
+  }
+
   const data = await store.fetchVersion(selectedVersion.value);
   if (!data) return;
 

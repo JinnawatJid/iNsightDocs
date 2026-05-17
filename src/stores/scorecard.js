@@ -32,7 +32,14 @@ export const useScorecardStore = defineStore('scorecard', {
                 this.configData = JSON.parse(JSON.stringify(data)); // Deep clone
                 this.originalConfigStr = JSON.stringify(data);
                 // Load versions metadata
-                this.versions = await listScorecardVersions(type);
+                const fetched = await listScorecardVersions(type);
+                // Insert an immutable original/default version at the top so users can always revert to baseline
+                const originalVersion = {
+                    id: 'original',
+                    comment: 'เวอร์ชันต้นฉบับ (ค่าเริ่มต้น)',
+                    created_at: null
+                };
+                this.versions = [originalVersion].concat(fetched || []);
             } catch (err) {
                 this.error = err.response?.data?.message || 'Failed to load scorecard.';
                 console.error(err);
