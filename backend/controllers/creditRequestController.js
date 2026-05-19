@@ -19,6 +19,8 @@ const UPLOAD_BASE = process.env.UPLOAD_PATH
   ? path.resolve(process.cwd(), process.env.UPLOAD_PATH)
   : defaultUploadPath;
 
+const ATTACHMENT_ORDER_BY = " ORDER BY file_type ASC, created_at ASC, id ASC";
+
 exports.getCreditRequestDetail = async (req, res) => {
   const id = decodeURIComponent(req.params.id); // tx_id
 
@@ -40,7 +42,7 @@ exports.getCreditRequestDetail = async (req, res) => {
 
     // Fetch Attachments (excluding soft-deleted)
     const attachmentsSql =
-      "SELECT * FROM CreditRequestAttachments WHERE tx_id = ? AND (is_deleted IS NULL OR is_deleted = 0)";
+      `SELECT * FROM CreditRequestAttachments WHERE tx_id = ? AND (is_deleted IS NULL OR is_deleted = 0)${ATTACHMENT_ORDER_BY}`;
     const { rows: attachments } = await db.query(attachmentsSql, [id]);
 
     // Fetch Comments
@@ -1043,7 +1045,7 @@ exports.createCreditRequest = async (req, res) => {
     // Fetch attachments to return in response (essential for auto-resume flow)
     let attachments = [];
     if (txId) {
-      const attSql = "SELECT * FROM CreditRequestAttachments WHERE tx_id = ?";
+      const attSql = `SELECT * FROM CreditRequestAttachments WHERE tx_id = ?${ATTACHMENT_ORDER_BY}`;
       const { rows } = await db.query(attSql, [txId]);
       attachments = rows || [];
     }
@@ -1110,7 +1112,7 @@ exports.getRecentApprovedRequest = async (req, res) => {
 
     // Fetch Attachments (excluding soft-deleted)
     const attachmentsSql =
-      "SELECT * FROM CreditRequestAttachments WHERE tx_id = ? AND (is_deleted IS NULL OR is_deleted = 0)";
+      `SELECT * FROM CreditRequestAttachments WHERE tx_id = ? AND (is_deleted IS NULL OR is_deleted = 0)${ATTACHMENT_ORDER_BY}`;
     const { rows: attachments } = await db.query(attachmentsSql, [request.tx_id]);
 
     // Parse snapshot data if string
@@ -1690,7 +1692,7 @@ exports.reviseRequest = async (req, res) => {
       // After copying physical files, copy the DB attachment records for the new revision
       // with updated relative paths.
       const oldAttSql =
-        "SELECT * FROM CreditRequestAttachments WHERE tx_id = ?";
+        `SELECT * FROM CreditRequestAttachments WHERE tx_id = ? AND (is_deleted IS NULL OR is_deleted = 0)${ATTACHMENT_ORDER_BY}`;
       const { rows: oldAttachments } = await db.query(oldAttSql, [id]);
 
       if (oldAttachments && oldAttachments.length > 0) {
