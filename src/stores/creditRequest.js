@@ -1167,6 +1167,12 @@ const rbacStore = useRbacStore();
           "payment_method",
           "billing_requirement",
           "has_tungnam_relationship",
+          "store_location_type",
+          "store_ownership",
+          "store_value",
+          "residence_location_type",
+          "residence_ownership",
+          "residence_value"
         ];
         fieldsToCheck = fields.filter((f) => essential.includes(f));
 
