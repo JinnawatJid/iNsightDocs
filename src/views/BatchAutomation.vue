@@ -1996,6 +1996,7 @@ const processNextItem = async () => {
 
       formData.append("customer_no", item.customerId);
       formData.append("customer_name", item.name);
+      formData.append("tax_id", item.taxId || "");
       formData.append("registered_capital", String(registeredCapital));
       formData.append("customer_duration", String(customerDuration));
       formData.append("years_in_business", String(yearsInBusiness));
