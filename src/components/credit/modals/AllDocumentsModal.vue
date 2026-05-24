@@ -64,7 +64,9 @@
                 </template>
                 <template v-else-if="['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(displayFileType)">
                   <div class="image-preview-container">
-                      <img :src="currentFileUrl" :alt="selectedFile.displayName" class="preview-image" />
+                      <viewer :images="[currentFileUrl]">
+                        <img :src="currentFileUrl" :alt="selectedFile.displayName" class="preview-image" />
+                      </viewer>
                   </div>
                 </template>
               <template v-else>
