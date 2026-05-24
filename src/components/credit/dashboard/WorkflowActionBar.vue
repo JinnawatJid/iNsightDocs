@@ -173,7 +173,11 @@ const availableActions = computed(() => {
 });
 
 
-    const generateAuditTrailMessage = () => {
+    const generateAuditTrailMessage = (action) => {
+      // Do not generate the 'Approved ...' text if the action is a rejection.
+      if (action && (action.targetStatus === 'Rejected' || action.key === 'reject')) {
+        return '';
+      }
       const formatNum = (v) => {
         if (v === null || v === undefined || v === '') return '0';
         const val = parseFloat(String(v).replace(/,/g, ''));
@@ -185,10 +189,14 @@ const availableActions = computed(() => {
       const extractLastAmountFromComments = () => {
         const comments = store.comments || [];
         // Find the LAST comment that changed the limit
-        const limitChanges = comments.filter(c => c.comment_text && c.comment_text.includes('ปรับวงเงินจาก'));
+        const limitChanges = comments.filter(c => c.comment_text && (c.comment_text.includes('ปรับวงเงินจาก') || c.comment_text.includes('อนุมัติวงเงินที่')));
         if (limitChanges.length > 0) {
           const lastLimitChange = limitChanges[limitChanges.length - 1];
-          const match = lastLimitChange.comment_text.match(/ปรับวงเงินจาก\s+[\d,]+\s+เป็น\s+([\d,]+)\s+บาท/);
+          // Try new format first
+          let match = lastLimitChange.comment_text.match(/อนุมัติวงเงินที่\s+([\d,]+)\s+บาท/);
+          if (match && match[1]) return match[1].replace(/,/g, '');
+          // Fallback to old format
+          match = lastLimitChange.comment_text.match(/ปรับวงเงินจาก\s+[\d,]+\s+เป็น\s+([\d,]+)\s+บาท/);
           if (match && match[1]) return match[1].replace(/,/g, '');
         }
         return null;
@@ -196,10 +204,14 @@ const availableActions = computed(() => {
 
       const extractLastTermsFromComments = () => {
         const comments = store.comments || [];
-        const termChanges = comments.filter(c => c.comment_text && c.comment_text.includes('ปรับเครดิตเทอมจาก'));
+        const termChanges = comments.filter(c => c.comment_text && (c.comment_text.includes('ปรับเครดิตเทอมจาก') || c.comment_text.includes('อนุมัติเงื่อนไขเครดิตที่')));
         if (termChanges.length > 0) {
           const lastTermChange = termChanges[termChanges.length - 1];
-          const match = lastTermChange.comment_text.match(/ปรับเครดิตเทอมจาก\s+\d+\/\d+\/\d+\s+เป็น\s+(\d+)\/(\d+)\/(\d+)/);
+          // Try new format first
+          let match = lastTermChange.comment_text.match(/อนุมัติเงื่อนไขเครดิตที่\s+(\d+)\/(\d+)\/(\d+)/);
+          if (match) return { termGS: Number(match[1]), termAE: Number(match[2]), termYC: Number(match[3]) };
+          // Fallback to old format
+          match = lastTermChange.comment_text.match(/ปรับเครดิตเทอมจาก\s+\d+\/\d+\/\d+\s+เป็น\s+(\d+)\/(\d+)\/(\d+)/);
           if (match) return { termGS: Number(match[1]), termAE: Number(match[2]), termYC: Number(match[3]) };
         }
         return null;
@@ -218,26 +230,27 @@ const availableActions = computed(() => {
       };
 
       let msg = '';
-      const origAmt = formatNum(baseline.amount);
-      // Use reviewer suggestion if available, otherwise use current transaction data
-      const newAmt = formatNum(store.getEffectiveValue('amount'));
+      // Calculate final total amount (handle credit increases by adding current limit)
+      const rawEffectiveAmt = store.getEffectiveValue('amount');
+      const parsedAmt = parseFloat(String(rawEffectiveAmt).replace(/,/g, '')) || 0;
 
-      if (origAmt !== newAmt) {
-        msg += `ปรับวงเงินจาก ${origAmt} เป็น ${newAmt} บาท\n`;
+      const requestType = store.originalTransactionData?.requestType || store.transactionData.requestType || '';
+      const isRequestIncrease = requestType.includes('เครดิตเพิ่ม');
+
+      let finalTotalAmt = parsedAmt;
+      if (isRequestIncrease) {
+        const currentLimit = parseFloat(String(store.customer.current_credit_limit || 0).replace(/,/g, '')) || 0;
+        finalTotalAmt = currentLimit + parsedAmt;
       }
 
-      const origGS = baseline.termGS || 0;
-      const origAE = baseline.termAE || 0;
-      const origYC = baseline.termYC || 0;
+      const newAmt = formatNum(finalTotalAmt);
+      msg += `อนุมัติวงเงินที่ ${newAmt} บาท\n`;
 
-      // Use reviewer suggestions if available, otherwise use current transaction data
+      // Always append the final approved payment terms, even if unchanged.
       const newGS = store.getEffectiveValue('termGS') || 0;
       const newAE = store.getEffectiveValue('termAE') || 0;
       const newYC = store.getEffectiveValue('termYC') || 0;
-
-      if (origGS != newGS || origAE != newAE || origYC != newYC) {
-        msg += `ปรับเครดิตเทอมจาก ${origGS}/${origAE}/${origYC} เป็น ${newGS}/${newAE}/${newYC}\n`;
-      }
+      msg += `อนุมัติเงื่อนไขเครดิตที่ ${newGS}/${newAE}/${newYC}\n`;
 
       return msg;
     };
@@ -279,7 +292,7 @@ const handleAction = async (action) => {
       // For popup text, default comment is 'text' variable
       let commentText = text;
 
-      const auditTrailMsg = generateAuditTrailMessage();
+      const auditTrailMsg = generateAuditTrailMessage(action);
       const finalActionCommentText = auditTrailMsg ? (commentText ? `${auditTrailMsg}\n${commentText}` : auditTrailMsg.trim()) : commentText;
 
       // Apply reviewer suggestions before updating status
@@ -309,11 +322,11 @@ const handleAction = async (action) => {
     if (result.isConfirmed) {
       // If comment was not required and box was empty, use default message
       if (!commentText.trim() && !action.requireComment) {
-          commentText = 'Approved/Verified';
+          commentText = 'ไม่มีความเห็น';
       }
 
 
-      const auditTrailMsg = generateAuditTrailMessage();
+      const auditTrailMsg = generateAuditTrailMessage(action);
       const finalActionCommentText = auditTrailMsg ? (commentText ? `${auditTrailMsg}\n${commentText}` : auditTrailMsg.trim()) : commentText;
 
       // Apply reviewer suggestions before updating status
