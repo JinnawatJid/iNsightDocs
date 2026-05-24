@@ -185,10 +185,14 @@ const availableActions = computed(() => {
       const extractLastAmountFromComments = () => {
         const comments = store.comments || [];
         // Find the LAST comment that changed the limit
-        const limitChanges = comments.filter(c => c.comment_text && c.comment_text.includes('ปรับวงเงินจาก'));
+        const limitChanges = comments.filter(c => c.comment_text && (c.comment_text.includes('ปรับวงเงินจาก') || c.comment_text.includes('อนุมัติวงเงินที่')));
         if (limitChanges.length > 0) {
           const lastLimitChange = limitChanges[limitChanges.length - 1];
-          const match = lastLimitChange.comment_text.match(/ปรับวงเงินจาก\s+[\d,]+\s+เป็น\s+([\d,]+)\s+บาท/);
+          // Try new format first
+          let match = lastLimitChange.comment_text.match(/อนุมัติวงเงินที่\s+([\d,]+)\s+บาท/);
+          if (match && match[1]) return match[1].replace(/,/g, '');
+          // Fallback to old format
+          match = lastLimitChange.comment_text.match(/ปรับวงเงินจาก\s+[\d,]+\s+เป็น\s+([\d,]+)\s+บาท/);
           if (match && match[1]) return match[1].replace(/,/g, '');
         }
         return null;
@@ -196,10 +200,14 @@ const availableActions = computed(() => {
 
       const extractLastTermsFromComments = () => {
         const comments = store.comments || [];
-        const termChanges = comments.filter(c => c.comment_text && c.comment_text.includes('ปรับเครดิตเทอมจาก'));
+        const termChanges = comments.filter(c => c.comment_text && (c.comment_text.includes('ปรับเครดิตเทอมจาก') || c.comment_text.includes('อนุมัติเงื่อนไขการชำระเงินที่')));
         if (termChanges.length > 0) {
           const lastTermChange = termChanges[termChanges.length - 1];
-          const match = lastTermChange.comment_text.match(/ปรับเครดิตเทอมจาก\s+\d+\/\d+\/\d+\s+เป็น\s+(\d+)\/(\d+)\/(\d+)/);
+          // Try new format first
+          let match = lastTermChange.comment_text.match(/อนุมัติเงื่อนไขการชำระเงินที่\s+(\d+)\/(\d+)\/(\d+)/);
+          if (match) return { termGS: Number(match[1]), termAE: Number(match[2]), termYC: Number(match[3]) };
+          // Fallback to old format
+          match = lastTermChange.comment_text.match(/ปรับเครดิตเทอมจาก\s+\d+\/\d+\/\d+\s+เป็น\s+(\d+)\/(\d+)\/(\d+)/);
           if (match) return { termGS: Number(match[1]), termAE: Number(match[2]), termYC: Number(match[3]) };
         }
         return null;
@@ -218,26 +226,15 @@ const availableActions = computed(() => {
       };
 
       let msg = '';
-      const origAmt = formatNum(baseline.amount);
-      // Use reviewer suggestion if available, otherwise use current transaction data
+      // Always append the final approved amount, even if unchanged.
       const newAmt = formatNum(store.getEffectiveValue('amount'));
+      msg += `อนุมัติวงเงินที่ ${newAmt} บาท\n`;
 
-      if (origAmt !== newAmt) {
-        msg += `ปรับวงเงินจาก ${origAmt} เป็น ${newAmt} บาท\n`;
-      }
-
-      const origGS = baseline.termGS || 0;
-      const origAE = baseline.termAE || 0;
-      const origYC = baseline.termYC || 0;
-
-      // Use reviewer suggestions if available, otherwise use current transaction data
+      // Always append the final approved payment terms, even if unchanged.
       const newGS = store.getEffectiveValue('termGS') || 0;
       const newAE = store.getEffectiveValue('termAE') || 0;
       const newYC = store.getEffectiveValue('termYC') || 0;
-
-      if (origGS != newGS || origAE != newAE || origYC != newYC) {
-        msg += `ปรับเครดิตเทอมจาก ${origGS}/${origAE}/${origYC} เป็น ${newGS}/${newAE}/${newYC}\n`;
-      }
+      msg += `อนุมัติเงื่อนไขการชำระเงินที่ ${newGS}/${newAE}/${newYC}\n`;
 
       return msg;
     };

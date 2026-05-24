@@ -1562,7 +1562,7 @@ exports.reviseRequest = async (req, res) => {
           }
         } else if (snapshotDataObj.transaction_data && requestComments.length > 0) {
           // Old-style: reconstruct original values from the audit trail.
-          // Find the FIRST amount-change comment to get the "before" amount.
+          // Find the FIRST amount-change comment to get the "before" amount (only old format contains this).
           const firstAmountChange = requestComments.find(c =>
             c.comment_text && c.comment_text.includes('ปรับวงเงินจาก')
           );
@@ -1578,7 +1578,7 @@ exports.reviseRequest = async (req, res) => {
             }
           }
 
-          // Find the FIRST term-change comment to restore GS/AE/YC.
+          // Find the FIRST term-change comment to restore GS/AE/YC (only old format contains this).
           // Format: "ปรับเครดิตเทอมจาก 7/7/7 เป็น 10/7/10"
           const firstTermChange = requestComments.find(c =>
             c.comment_text && c.comment_text.includes('ปรับเครดิตเทอมจาก')

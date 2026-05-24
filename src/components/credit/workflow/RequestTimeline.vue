@@ -25,11 +25,11 @@
           <div class="step-body" v-if="step.completed || step.rejected">
             <div v-if="step.comment" class="comment-text-wrapper">
               <template v-for="(line, lIndex) in step.comment.split('\n')" :key="'text-'+lIndex">
-                <div v-if="!line.startsWith('ปรับวงเงินจาก') && !line.startsWith('ปรับเครดิตเทอมจาก')" class="comment-text-line">{{ line }}</div>
+                <div v-if="!line.startsWith('ปรับวงเงินจาก') && !line.startsWith('ปรับเครดิตเทอมจาก') && !line.startsWith('อนุมัติวงเงินที่') && !line.startsWith('อนุมัติเงื่อนไขการชำระเงินที่')" class="comment-text-line">{{ line }}</div>
               </template>
-              <div v-if="step.comment.split('\n').some(l => l.startsWith('ปรับวงเงินจาก') || l.startsWith('ปรับเครดิตเทอมจาก'))" class="audit-trail-container">
+              <div v-if="step.comment.split('\n').some(l => l.startsWith('ปรับวงเงินจาก') || l.startsWith('ปรับเครดิตเทอมจาก') || l.startsWith('อนุมัติวงเงินที่') || l.startsWith('อนุมัติเงื่อนไขการชำระเงินที่'))" class="audit-trail-container">
                 <template v-for="(line, lIndex) in step.comment.split('\n')" :key="'audit-'+lIndex">
-                  <div v-if="line.startsWith('ปรับวงเงินจาก') || line.startsWith('ปรับเครดิตเทอมจาก')" class="audit-trail-line">
+                  <div v-if="line.startsWith('ปรับวงเงินจาก') || line.startsWith('ปรับเครดิตเทอมจาก') || line.startsWith('อนุมัติวงเงินที่') || line.startsWith('อนุมัติเงื่อนไขการชำระเงินที่')" class="audit-trail-line">
                     <i class="fas fa-history audit-icon"></i> {{ line }}
                   </div>
                 </template>
