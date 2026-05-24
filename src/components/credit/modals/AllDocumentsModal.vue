@@ -64,7 +64,35 @@
                 </template>
                 <template v-else-if="['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(displayFileType)">
                   <div class="image-preview-container">
-                      <img :src="currentFileUrl" :alt="selectedFile.displayName" class="preview-image" />
+                      <viewer
+                        :images="[currentFileUrl]"
+                        :options="{
+                          inline: true,
+                          button: false,
+                          navbar: false,
+                          title: false,
+                          toolbar: {
+                            zoomIn: 1,
+                            zoomOut: 1,
+                            oneToOne: 1,
+                            reset: 1,
+                            prev: 0,
+                            play: 0,
+                            next: 0,
+                            rotateLeft: 0,
+                            rotateRight: 0,
+                            flipHorizontal: 0,
+                            flipVertical: 0
+                          },
+                          tooltip: true,
+                          movable: true,
+                          zoomable: true,
+                          rotatable: true,
+                          scalable: true
+                        }"
+                      >
+                        <img :src="currentFileUrl" :alt="selectedFile.displayName" class="preview-image" style="display: none;" />
+                      </viewer>
                   </div>
                 </template>
               <template v-else>
@@ -664,10 +692,15 @@ const downloadFile = async (doc) => {
 .image-preview-container {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  overflow: hidden;
   background: transparent;
+}
+
+/* Ensure v-viewer takes up the full container */
+.image-preview-container :deep(.viewer-container) {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .preview-image {
