@@ -306,7 +306,7 @@ const handleAction = async (action) => {
     if (result.isConfirmed) {
       // If comment was not required and box was empty, use default message
       if (!commentText.trim() && !action.requireComment) {
-          commentText = 'Approved/Verified';
+          commentText = 'ไม่มีความเห็น';
       }
 
 
