@@ -226,8 +226,20 @@ const availableActions = computed(() => {
       };
 
       let msg = '';
-      // Always append the final approved amount, even if unchanged.
-      const newAmt = formatNum(store.getEffectiveValue('amount'));
+      // Calculate final total amount (handle credit increases by adding current limit)
+      const rawEffectiveAmt = store.getEffectiveValue('amount');
+      const parsedAmt = parseFloat(String(rawEffectiveAmt).replace(/,/g, '')) || 0;
+
+      const requestType = store.originalTransactionData?.requestType || store.transactionData.requestType || '';
+      const isRequestIncrease = requestType.includes('เครดิตเพิ่ม');
+
+      let finalTotalAmt = parsedAmt;
+      if (isRequestIncrease) {
+        const currentLimit = parseFloat(String(store.customer.current_credit_limit || 0).replace(/,/g, '')) || 0;
+        finalTotalAmt = currentLimit + parsedAmt;
+      }
+
+      const newAmt = formatNum(finalTotalAmt);
       msg += `อนุมัติวงเงินที่ ${newAmt} บาท\n`;
 
       // Always append the final approved payment terms, even if unchanged.
