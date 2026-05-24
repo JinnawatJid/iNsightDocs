@@ -281,7 +281,7 @@ const latePaymentStats = computed(() => {
     const invoices = latePaymentInvoices.value || [];
 
     // Identify Paid Invoices
-    const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '' && inv.Effective_Payment_Date.trim() !== 'null');
+    const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && String(inv.Effective_Payment_Date).trim() !== '' && String(inv.Effective_Payment_Date).trim() !== 'null');
 
     // Check if backend provided pre-calculated stats (Preferred)
     let avg = 0;
@@ -324,7 +324,7 @@ const wadlBreakdown = computed(() => {
 
     invoices.forEach(inv => {
         // 1. Check if Paid
-        if (!inv.Effective_Payment_Date || inv.Effective_Payment_Date.trim() === '' || inv.Effective_Payment_Date.trim() === 'null') {
+        if (!inv.Effective_Payment_Date || String(inv.Effective_Payment_Date).trim() === '' || String(inv.Effective_Payment_Date).trim() === 'null') {
             excludedOutstanding++;
             return;
         }
@@ -409,7 +409,7 @@ const visualizationSegments = computed(() => {
 
 // Helper Methods for Table Display
 const isPaid = (inv) => {
-    return inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '' && inv.Effective_Payment_Date.trim() !== 'null';
+    return inv.Effective_Payment_Date && String(inv.Effective_Payment_Date).trim() !== '' && String(inv.Effective_Payment_Date).trim() !== 'null';
 };
 
 const getPaymentMethod = (inv) => {
