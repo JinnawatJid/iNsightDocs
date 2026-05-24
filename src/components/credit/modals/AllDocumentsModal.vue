@@ -64,8 +64,22 @@
                 </template>
                 <template v-else-if="['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(displayFileType)">
                   <div class="image-preview-container">
-                      <viewer :images="[currentFileUrl]">
-                        <img :src="currentFileUrl" :alt="selectedFile.displayName" class="preview-image" />
+                      <viewer
+                        :images="[currentFileUrl]"
+                        :options="{
+                          inline: true,
+                          button: false,
+                          navbar: false,
+                          title: false,
+                          toolbar: true,
+                          tooltip: true,
+                          movable: true,
+                          zoomable: true,
+                          rotatable: true,
+                          scalable: true
+                        }"
+                      >
+                        <img :src="currentFileUrl" :alt="selectedFile.displayName" class="preview-image" style="display: none;" />
                       </viewer>
                   </div>
                 </template>
@@ -666,10 +680,15 @@ const downloadFile = async (doc) => {
 .image-preview-container {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  overflow: hidden;
   background: transparent;
+}
+
+/* Ensure v-viewer takes up the full container */
+.image-preview-container :deep(.viewer-container) {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .preview-image {
