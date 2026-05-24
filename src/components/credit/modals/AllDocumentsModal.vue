@@ -194,7 +194,40 @@ const documentGroups = computed(() => {
     }
   });
 
+  const SORT_ORDER = [
+    'credit_application_doc', // ใบขอเปิดเครดิต
+    'home_reg', // สำเนาทะเบียนบ้าน
+    'id_card', // สำเนาบัตรประชาชน
+    'legal_entity_certificate', // หนังสือรับรองนิติบุคคล
+    'vat_document', // ภพ.20
+    'company_photo', // รูปถ่ายบริษัท
+    'home_photo' // รูปถ่าย (บ้านพักอาศัย)
+  ];
+
   if (standardItems.length > 0) {
+      standardItems.sort((a, b) => {
+          // Extract base key by removing trailing _0, _1 etc if it's an array item
+          let baseKeyA = a.key;
+          let baseKeyB = b.key;
+
+          if (/_\d+$/.test(baseKeyA)) {
+              baseKeyA = baseKeyA.substring(0, baseKeyA.lastIndexOf('_'));
+          }
+          if (/_\d+$/.test(baseKeyB)) {
+              baseKeyB = baseKeyB.substring(0, baseKeyB.lastIndexOf('_'));
+          }
+
+          const indexA = SORT_ORDER.indexOf(baseKeyA);
+          const indexB = SORT_ORDER.indexOf(baseKeyB);
+
+          if (indexA !== -1 && indexB !== -1) {
+              return indexA - indexB; // Both in sort order
+          }
+          if (indexA !== -1) return -1; // Only A is in sort order
+          if (indexB !== -1) return 1;  // Only B is in sort order
+          return 0; // Neither in sort order, preserve relative order
+      });
+
       groups.push({ title: 'เอกสารหลัก', items: standardItems });
   }
   if (otherItems.length > 0) {
