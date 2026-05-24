@@ -178,17 +178,25 @@ function getCustomerFinancialData(customerNo) {
         return null;
     }
 
-    const latestFolder = dateFolders[0];
-    const latestPath = path.join(customerDir, latestFolder);
+    // Helper to find the newest occurrence of a specific file across all date folders
+    const findLatestFile = (fileName) => {
+        for (const folder of dateFolders) {
+            const currentPath = path.join(customerDir, folder, fileName);
+            if (fs.existsSync(currentPath)) {
+                return currentPath;
+            }
+        }
+        return null; // File not found in any folder
+    };
 
-    const positionFile = path.join(latestPath, 'DBD_BalanceSheet.xlsx');
-    const incomeFile = path.join(latestPath, 'DBD_IncomeStatement.xlsx');
-    const ratiosFile = path.join(latestPath, 'DBD_FinancialRatios.xlsx');
+    const positionFile = findLatestFile('DBD_BalanceSheet.xlsx');
+    const incomeFile = findLatestFile('DBD_IncomeStatement.xlsx');
+    const ratiosFile = findLatestFile('DBD_FinancialRatios.xlsx');
 
     return {
-        financialPosition: parseExcelFile(positionFile),
-        incomeStatement: parseExcelFile(incomeFile),
-        financialRatios: parseExcelFile(ratiosFile)
+        financialPosition: positionFile ? parseExcelFile(positionFile) : null,
+        incomeStatement: incomeFile ? parseExcelFile(incomeFile) : null,
+        financialRatios: ratiosFile ? parseExcelFile(ratiosFile) : null
     };
 }
 
