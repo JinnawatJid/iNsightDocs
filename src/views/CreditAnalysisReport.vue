@@ -57,10 +57,10 @@
           </table>
       </div>
 
-      <!-- PAYMENT HISTORY (DEBUG) -->
+      <!-- PAYMENT HISTORY -->
       <div class="section payment-history-section" v-if="latePaymentInvoices && latePaymentInvoices.length > 0">
           <div class="header-with-toggle">
-              <h2>ประวัติการชำระเงิน (Debug Log)</h2>
+              <h2>ประวัติการชำระเงิน</h2>
               <div class="text-right stats-wrapper">
                   <div class="calc-summary">
                       <strong>ค่าเฉลี่ยแบบนับจำนวน (Simple Average):</strong>
@@ -197,7 +197,7 @@
           </div>
       </div>
       <div class="section payment-history-section" v-else-if="latePaymentSummary">
-           <h2>ประวัติการชำระเงิน (Debug Log)</h2>
+           <h2>ประวัติการชำระเงิน</h2>
            <p class="text-muted">ไม่พบข้อมูลรายการ Invoice หรือไม่มีประวัติการชำระเงินล่าช้าในระบบ</p>
       </div>
 
@@ -260,24 +260,16 @@ const wadlStats = computed(() => {
 
 const latePaymentInvoices = computed(() => {
     // Prefer WADL invoices if available (contains Amount)
-    const wadlInvoices = wadlStats.value?.invoices;
-    const standardInvoices = latePaymentSummary.value?.invoices;
+    // Use rawInvoices to bypass backend strict WADL deduplication for the UI display
+    const wadlInvoices = wadlStats.value?.rawInvoices || wadlStats.value?.invoices;
+    const standardInvoices = latePaymentSummary.value?.rawInvoices || latePaymentSummary.value?.invoices;
 
     const source = wadlInvoices || standardInvoices;
 
     if (source && Array.isArray(source)) {
-        // Force deduplicate in frontend just in case backend fails or returns raw data
-        const uniqueMap = new Map();
-        source.forEach(inv => {
-             const invoiceNo = inv.Invoice_No || inv.invoice_no || inv.Document_No;
-             if (!uniqueMap.has(invoiceNo)) {
-                 uniqueMap.set(invoiceNo, inv);
-             }
-        });
-
-        return Array.from(uniqueMap.values()).sort((a, b) => {
-            const dateA = new Date(a.Invoice_Date);
-            const dateB = new Date(b.Invoice_Date);
+        return [...source].sort((a, b) => {
+            const dateA = new Date(a.Invoice_Date || a.Document_Date);
+            const dateB = new Date(b.Invoice_Date || b.Document_Date);
             return dateB - dateA;
         });
     }
