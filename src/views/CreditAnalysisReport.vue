@@ -268,9 +268,24 @@ const latePaymentInvoices = computed(() => {
 
     if (source && Array.isArray(source)) {
         return [...source].sort((a, b) => {
-            const dateA = new Date(a.Invoice_Date || a.Document_Date);
-            const dateB = new Date(b.Invoice_Date || b.Document_Date);
-            return dateB - dateA;
+            const valA = a.Invoice_Date || a.Document_Date;
+            const valB = b.Invoice_Date || b.Document_Date;
+
+            const timeA = valA ? new Date(valA).getTime() : 0;
+            const timeB = valB ? new Date(valB).getTime() : 0;
+
+            // Sort descending (newest first), push invalid dates (NaN) to the bottom safely
+            const numA = isNaN(timeA) ? 0 : timeA;
+            const numB = isNaN(timeB) ? 0 : timeB;
+
+            // Also if times are exactly equal, sort by Invoice_No string to ensure stable sort
+            if (numB === numA) {
+                 const noA = a.Invoice_No || '';
+                 const noB = b.Invoice_No || '';
+                 return noB.localeCompare(noA); // desc
+            }
+
+            return numB - numA;
         });
     }
     return [];

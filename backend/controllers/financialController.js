@@ -304,6 +304,14 @@ const fetchLatePaymentData = async (customerNo) => {
         // Ensure we filter out exact duplicates (same invoice + same amount + same dates) so they aren't spammed in the UI
         const rawInvoices = filterExactDuplicates(invoices);
 
+        const debugInvoices = rawInvoices.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
+            return no.includes('6905/0105') || no.includes('6905/0106');
+        });
+        if (debugInvoices.length > 0) {
+            logger.info(`[DEBUG WADL] Found target invoices in rawInvoices:`, JSON.stringify(debugInvoices));
+        }
+
         // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
         invoices = deduplicateInvoices(invoices);
 
@@ -478,6 +486,14 @@ const fetchWADLData = async (customerNo) => {
         // Save the raw invoices for UI display purposes before we deduplicate them for math
         // Ensure we filter out exact duplicates (same invoice + same amount + same dates) so they aren't spammed in the UI
         const rawInvoices = filterExactDuplicates(invoices);
+
+        const debugInvoices = rawInvoices.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
+            return no.includes('6905/0105') || no.includes('6905/0106');
+        });
+        if (debugInvoices.length > 0) {
+            logger.info(`[DEBUG WADL] Found target invoices in rawInvoices (fetchWADLData):`, JSON.stringify(debugInvoices));
+        }
 
         // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
         invoices = deduplicateInvoices(invoices);
@@ -1484,6 +1500,14 @@ exports.getLatePaymentBenchmark = async (req, res) => {
         // Save the raw invoices for UI display purposes before we deduplicate them for math
         // Ensure we filter out exact duplicates (same invoice + same amount + same dates) so they aren't spammed in the UI
         const rawInvoices = filterExactDuplicates(invoices);
+
+        const debugInvoices = rawInvoices.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
+            return no.includes('6905/0105') || no.includes('6905/0106');
+        });
+        if (debugInvoices.length > 0) {
+            logger.info(`[DEBUG getLatePaymentBenchmark] Found target invoices in rawInvoices:`, JSON.stringify(debugInvoices));
+        }
 
         // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
         invoices = deduplicateInvoices(invoices);
