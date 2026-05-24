@@ -409,11 +409,12 @@ const visualizationSegments = computed(() => {
 
 // Helper Methods for Table Display
 const isPaid = (inv) => {
-    return inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '';
+    return inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '' && inv.Effective_Payment_Date.trim() !== 'null';
 };
 
 const getPaymentMethod = (inv) => {
-    if (!isPaid(inv)) return null;
+    // We can still try to derive payment method even if it's not marked paid
+    // Sometimes partial info exists, or it's a cheque not yet cleared
 
     // Check various possible locations for the field
     let method = inv.payment_method || inv.Payment_Method;

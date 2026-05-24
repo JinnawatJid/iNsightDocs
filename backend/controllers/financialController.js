@@ -144,11 +144,10 @@ const filterExactDuplicates = (invoices) => {
         // Create a signature based on key fields to detect exact duplicates
         const amount = inv.Line_Amount || inv.line_amount || inv.Amount || inv.amount || 0;
         const dueDate = inv.Due_Date || inv.due_date || '';
-        const effectiveDate = inv.Effective_Payment_Date || inv.effective_payment_date || '';
+        const effectiveDate = inv.Effective_Payment_Date || inv.effective_payment_date || 'null';
         const lateDays = inv.Late_Days || inv.late_days || 0;
-        const status = inv.Status || inv.status || '';
 
-        const signature = `${invoiceNo}_${amount}_${dueDate}_${effectiveDate}_${lateDays}_${status}`;
+        const signature = `${invoiceNo}_${amount}_${dueDate}_${effectiveDate}_${lateDays}`;
 
         if (!seenSignatures.has(signature)) {
             seenSignatures.add(signature);
@@ -187,10 +186,15 @@ const deduplicateInvoices = (invoices) => {
             } else if (currentLateDays === existingLateDays) {
                 const existingDate = existingInv.Effective_Payment_Date || existingInv.effective_payment_date;
                 const currentDate = inv.Effective_Payment_Date || inv.effective_payment_date;
+
+                // If the new record is paid, but the existing one is unpaid, keep the paid one for math
                 if (!existingDate && currentDate) {
                     invoiceMap.set(invoiceNo, inv);
+                // If both are paid, keep the one with the later payment date
                 } else if (existingDate && currentDate && new Date(currentDate) > new Date(existingDate)) {
                     invoiceMap.set(invoiceNo, inv);
+                // IF we already have a PAID record, and the incoming one is UNPAID (currentDate is null),
+                // DO NOT overwrite. Keep the paid one so WADL math doesn't drop the payment info.
                 }
             }
         } else {
