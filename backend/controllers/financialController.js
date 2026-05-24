@@ -1470,6 +1470,17 @@ exports.getLatePaymentBenchmark = async (req, res) => {
         const data = response.data;
         let invoices = Array.isArray(data) ? data : (data.data || []);
 
+        logger.info(`[DEBUG WADL] Fetched ${invoices.length} invoices from API for ${customer_no}`);
+        const debugInvoices = invoices.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
+            return no.includes('6905/0105') || no.includes('0105') || no.includes('0106');
+        });
+        if(debugInvoices.length > 0) {
+            logger.info(`[DEBUG WADL] Found target invoices in RAW API response: ${JSON.stringify(debugInvoices, null, 2)}`);
+        } else {
+             logger.info(`[DEBUG WADL] Target invoices 6905/0105 or 0106 NOT FOUND in RAW API response.`);
+        }
+
         if (!invoices || invoices.length === 0) {
             return res.json({
                 customer_no,
@@ -1480,10 +1491,24 @@ exports.getLatePaymentBenchmark = async (req, res) => {
 
         // Sanitize Data (Handle 1753 / Future Checks)
         invoices = sanitizeInvoices(invoices);
+        const postSanitizeDebug = invoices.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
+            return no.includes('6905/0105') || no.includes('0105') || no.includes('0106');
+        });
+        if(postSanitizeDebug.length > 0) {
+            logger.info(`[DEBUG WADL] Target invoices survived sanitizeInvoices: ${JSON.stringify(postSanitizeDebug, null, 2)}`);
+        }
 
         // Save the raw invoices for UI display purposes before we deduplicate them for math
         // Ensure we filter out exact duplicates (same invoice + same amount + same dates) so they aren't spammed in the UI
         const rawInvoices = filterExactDuplicates(invoices);
+        const postFilterDebug = rawInvoices.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
+            return no.includes('6905/0105') || no.includes('0105') || no.includes('0106');
+        });
+        if(postFilterDebug.length > 0) {
+            logger.info(`[DEBUG WADL] Target invoices survived filterExactDuplicates: ${JSON.stringify(postFilterDebug, null, 2)}`);
+        }
 
         // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
         invoices = deduplicateInvoices(invoices);

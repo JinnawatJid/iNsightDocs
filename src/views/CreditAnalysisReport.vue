@@ -267,7 +267,18 @@ const latePaymentInvoices = computed(() => {
     const source = wadlInvoices || standardInvoices;
 
     if (source && Array.isArray(source)) {
-        return [...source].sort((a, b) => {
+        console.log('[DEBUG FRONTEND] Total invoices received for UI:', source.length);
+        const debugInvoices = source.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
+            return no.includes('6905/0105') || no.includes('0105') || no.includes('0106');
+        });
+        if (debugInvoices.length > 0) {
+            console.log('[DEBUG FRONTEND] Target invoices found in source array:', JSON.parse(JSON.stringify(debugInvoices)));
+        } else {
+             console.log('[DEBUG FRONTEND] Target invoices 6905/0105 or 0106 NOT FOUND in source array.');
+        }
+
+        const sorted = [...source].sort((a, b) => {
             const valA = a.Invoice_Date || a.Document_Date;
             const valB = b.Invoice_Date || b.Document_Date;
 
@@ -287,6 +298,18 @@ const latePaymentInvoices = computed(() => {
 
             return numB - numA;
         });
+
+        const debugSorted = sorted.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
+            return no.includes('6905/0105') || no.includes('0105') || no.includes('0106');
+        });
+        if (debugSorted.length > 0) {
+            console.log('[DEBUG FRONTEND] Target invoices SURVIVED sorting:', JSON.parse(JSON.stringify(debugSorted)));
+        } else {
+            console.log('[DEBUG FRONTEND] Target invoices DROPPED during sorting!');
+        }
+
+        return sorted;
     }
     return [];
 });
