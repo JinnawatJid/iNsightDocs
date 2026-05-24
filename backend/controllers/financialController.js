@@ -116,14 +116,14 @@ const sanitizeInvoices = (invoices) => {
 
         // If either condition is met, mark as NOT PAID (Effective Payment Date = null)
         if (isInvalidCleared || isFutureCheck) {
-            inv.Effective_Payment_Date = 'null';
+            inv.Effective_Payment_Date = null;
             // Ensure consistency: if not paid, it shouldn't have late days (or be counted as on time)
             // But main logic filters by Effective_Payment_Date, so nulling it is key.
         }
 
-        // Also sanitize empty string to explicit 'null' string so it passes through uniqueness correctly
+        // Sanitize empty strings to native null so downstream logic doesn't crash
         if (!inv.Effective_Payment_Date || String(inv.Effective_Payment_Date).trim() === '') {
-            inv.Effective_Payment_Date = 'null';
+            inv.Effective_Payment_Date = null;
         }
 
         return inv;
@@ -309,7 +309,7 @@ const fetchLatePaymentData = async (customerNo) => {
 
         // Filter invoices: Only consider those with a valid Effective Payment Date (Paid Invoices)
         // Invoices with null/empty Effective Payment are Outstanding/Unpaid and should not skew the average (as 0 late days).
-        const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '' && inv.Effective_Payment_Date.trim() !== 'null');
+        const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && String(inv.Effective_Payment_Date).trim() !== '' && String(inv.Effective_Payment_Date).trim() !== 'null');
 
         let totalLateDays = 0;
         let lateCount = 0;
@@ -1490,7 +1490,7 @@ exports.getLatePaymentBenchmark = async (req, res) => {
 
         // 2. Calculate Traditional (Simple Average) based on this dataset
         // Filter paid invoices first for fair comparison
-        const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '' && inv.Effective_Payment_Date.trim() !== 'null');
+        const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && String(inv.Effective_Payment_Date).trim() !== '' && String(inv.Effective_Payment_Date).trim() !== 'null');
 
         const totalLateDays = paidInvoices.reduce((sum, inv) => sum + (Number(inv.Late_Days) || 0), 0);
         const traditionalScore = paidInvoices.length > 0 ? (totalLateDays / paidInvoices.length) : 0;
