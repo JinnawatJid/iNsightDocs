@@ -93,6 +93,10 @@ const sanitizeInvoices = (invoices) => {
     today.setHours(0, 0, 0, 0);
 
     return invoices.map(inv => {
+        // Sanitize empty strings to native null so downstream logic doesn't crash
+        if (!inv.Effective_Payment_Date || String(inv.Effective_Payment_Date).trim() === '') {
+            inv.Effective_Payment_Date = null;
+        }
         // 1. Check for Invalid Cleared Date (1753-01-01 from SQL)
         const clearedDateStr = inv['Cleared Date'] || inv.cleared_date || inv.Cleared_Date;
         const checkDateStr = inv['Check Date'] || inv.check_date || inv.Check_Date;
@@ -120,12 +124,6 @@ const sanitizeInvoices = (invoices) => {
             // Ensure consistency: if not paid, it shouldn't have late days (or be counted as on time)
             // But main logic filters by Effective_Payment_Date, so nulling it is key.
         }
-
-        // Sanitize empty strings to native null so downstream logic doesn't crash
-        if (!inv.Effective_Payment_Date || String(inv.Effective_Payment_Date).trim() === '') {
-            inv.Effective_Payment_Date = null;
-        }
-
         return inv;
     });
 };
@@ -164,7 +162,6 @@ const filterExactDuplicates = (invoices) => {
     return uniqueInvoices;
 };
 
-
 // Helper: Deduplicate Invoices (Keep the row with max Late_Days)
 const deduplicateInvoices = (invoices) => {
     if (!invoices || !Array.isArray(invoices)) return invoices;
@@ -192,15 +189,10 @@ const deduplicateInvoices = (invoices) => {
             } else if (currentLateDays === existingLateDays) {
                 const existingDate = existingInv.Effective_Payment_Date || existingInv.effective_payment_date;
                 const currentDate = inv.Effective_Payment_Date || inv.effective_payment_date;
-
-                // If the new record is paid, but the existing one is unpaid, keep the paid one for math
                 if (!existingDate && currentDate) {
                     invoiceMap.set(invoiceNo, inv);
-                // If both are paid, keep the one with the later payment date
                 } else if (existingDate && currentDate && new Date(currentDate) > new Date(existingDate)) {
                     invoiceMap.set(invoiceNo, inv);
-                // IF we already have a PAID record, and the incoming one is UNPAID (currentDate is null),
-                // DO NOT overwrite. Keep the paid one so WADL math doesn't drop the payment info.
                 }
             }
         } else {
@@ -292,24 +284,51 @@ const fetchLatePaymentData = async (customerNo) => {
         }
         // Check if data is array (direct list) or object with data property
         let invoices = Array.isArray(data) ? data : (data.data || []);
+        let rawDataForLogging = Array.isArray(data) ? data : (data.data || []);
+        const apiDebug = rawDataForLogging.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || "";
+            return no.includes("6905/0105") || no.includes("0105") || no.includes("0106");
+        });
+        if(apiDebug.length > 0) {
+            logger.info(`[DEBUG WADL] TARGET INVOICES FOUND IN RAW API RESPONSE: ${JSON.stringify(apiDebug, null, 2)}`);
+        } else {
+            logger.warn(`[DEBUG WADL] Target invoices NOT FOUND in raw API response. length of raw response: ${rawDataForLogging.length}`);
+        }
+
+
+        let rawDataForLogging = Array.isArray(data) ? data : (data.data || []);
+        const apiDebug = rawDataForLogging.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || "";
+            return no.includes("6905/0105") || no.includes("0105") || no.includes("0106");
+        });
+        if(apiDebug.length > 0) {
+            logger.info(`[DEBUG WADL] TARGET INVOICES FOUND IN RAW API RESPONSE: ${JSON.stringify(apiDebug, null, 2)}`);
+        } else {
+            logger.warn(`[DEBUG WADL] Target invoices NOT FOUND in raw API response. length of raw response: ${rawDataForLogging.length}`);
+        }
 
         if (!invoices || invoices.length === 0) {
              return { average_late_days: 0, total_invoices: 0, late_count: 0 };
         }
 
         // Sanitize Data (Handle 1753 / Future Checks)
+        // Debug sanitize
+        let invoicesSan = sanitizeInvoices(invoices);
+        const postSanitizeDebug = invoicesSan.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || "";
+            return no.includes("6905/0105") || no.includes("0105") || no.includes("0106");
+        });
+        if(postSanitizeDebug.length > 0) {
+            logger.info(`[DEBUG WADL] TARGET INVOICES FOUND AFTER SANITIZE: ${JSON.stringify(postSanitizeDebug, null, 2)}`);
+        } else {
+            logger.warn(`[DEBUG WADL] Target invoices NOT FOUND after sanitize.`);
+        }
+
         invoices = sanitizeInvoices(invoices);
-
-        // Save the raw invoices for UI display purposes before we deduplicate them for math
-        // Ensure we filter out exact duplicates (same invoice + same amount + same dates) so they aren't spammed in the UI
-        const rawInvoices = filterExactDuplicates(invoices);
-
-        // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
-        invoices = deduplicateInvoices(invoices);
 
         // Filter invoices: Only consider those with a valid Effective Payment Date (Paid Invoices)
         // Invoices with null/empty Effective Payment are Outstanding/Unpaid and should not skew the average (as 0 late days).
-        const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && String(inv.Effective_Payment_Date).trim() !== '' && String(inv.Effective_Payment_Date).trim() !== 'null');
+        const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '');
 
         let totalLateDays = 0;
         let lateCount = 0;
@@ -346,8 +365,7 @@ const fetchLatePaymentData = async (customerNo) => {
             total_invoices: invoices.length,      // Total records (Paid + Outstanding)
             paid_invoices_count: paidInvoices.length, // Denominator for average
             late_count: lateCount,                // Count of late payments (among paid)
-            invoices: invoices,                   // Return deduped list for calculations
-            rawInvoices: rawInvoices              // Return raw list for UI rendering
+            invoices: invoices                    // Return raw list for debugging (UI can color code Outstanding)
         };
 
     } catch (error) {
@@ -395,7 +413,7 @@ const calculateWADL = (invoices) => {
 
     const paidInvoices = invoices.filter(inv => {
         // Must be paid
-        if (!inv.Effective_Payment_Date || String(inv.Effective_Payment_Date).trim() === 'null') return false;
+        if (!inv.Effective_Payment_Date) return false;
 
         // Must be within timeframe (Use Posting Date or Invoice Date as anchor)
         // Some APIs return Posting_Date, others Invoice_Date. Check both.
@@ -467,17 +485,43 @@ const fetchWADLData = async (customerNo) => {
             data = response.data;
         }
         let invoices = Array.isArray(data) ? data : (data.data || []);
+        let rawDataForLogging = Array.isArray(data) ? data : (data.data || []);
+        const apiDebug = rawDataForLogging.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || "";
+            return no.includes("6905/0105") || no.includes("0105") || no.includes("0106");
+        });
+        if(apiDebug.length > 0) {
+            logger.info(`[DEBUG WADL] TARGET INVOICES FOUND IN RAW API RESPONSE: ${JSON.stringify(apiDebug, null, 2)}`);
+        } else {
+            logger.warn(`[DEBUG WADL] Target invoices NOT FOUND in raw API response. length of raw response: ${rawDataForLogging.length}`);
+        }
+
 
         if (!invoices || invoices.length === 0) {
              return { score: 0, grade: 'N/A' };
         }
 
         // Sanitize Data (Handle 1753 / Future Checks)
+        // Debug sanitize
+        let invoicesSan = sanitizeInvoices(invoices);
+        const postSanitizeDebug = invoicesSan.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || "";
+            return no.includes("6905/0105") || no.includes("0105") || no.includes("0106");
+        });
+        if(postSanitizeDebug.length > 0) {
+            logger.info(`[DEBUG WADL] TARGET INVOICES FOUND AFTER SANITIZE: ${JSON.stringify(postSanitizeDebug, null, 2)}`);
+        } else {
+            logger.warn(`[DEBUG WADL] Target invoices NOT FOUND after sanitize.`);
+        }
+
         invoices = sanitizeInvoices(invoices);
+
 
         // Save the raw invoices for UI display purposes before we deduplicate them for math
         // Ensure we filter out exact duplicates (same invoice + same amount + same dates) so they aren't spammed in the UI
         const rawInvoices = filterExactDuplicates(invoices);
+
+
 
         // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
         invoices = deduplicateInvoices(invoices);
@@ -1469,17 +1513,17 @@ exports.getLatePaymentBenchmark = async (req, res) => {
 
         const data = response.data;
         let invoices = Array.isArray(data) ? data : (data.data || []);
-
-        logger.info(`[DEBUG WADL] Fetched ${invoices.length} invoices from API for ${customer_no}`);
-        const debugInvoices = invoices.filter(i => {
-            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
-            return no.includes('6905/0105') || no.includes('0105') || no.includes('0106');
+        let rawDataForLogging = Array.isArray(data) ? data : (data.data || []);
+        const apiDebug = rawDataForLogging.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || "";
+            return no.includes("6905/0105") || no.includes("0105") || no.includes("0106");
         });
-        if(debugInvoices.length > 0) {
-            logger.info(`[DEBUG WADL] Found target invoices in RAW API response: ${JSON.stringify(debugInvoices, null, 2)}`);
+        if(apiDebug.length > 0) {
+            logger.info(`[DEBUG WADL] TARGET INVOICES FOUND IN RAW API RESPONSE: ${JSON.stringify(apiDebug, null, 2)}`);
         } else {
-             logger.info(`[DEBUG WADL] Target invoices 6905/0105 or 0106 NOT FOUND in RAW API response.`);
+            logger.warn(`[DEBUG WADL] Target invoices NOT FOUND in raw API response. length of raw response: ${rawDataForLogging.length}`);
         }
+
 
         if (!invoices || invoices.length === 0) {
             return res.json({
@@ -1490,38 +1534,42 @@ exports.getLatePaymentBenchmark = async (req, res) => {
         }
 
         // Sanitize Data (Handle 1753 / Future Checks)
-        invoices = sanitizeInvoices(invoices);
-        const postSanitizeDebug = invoices.filter(i => {
-            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
-            return no.includes('6905/0105') || no.includes('0105') || no.includes('0106');
+        // Debug sanitize
+        let invoicesSan = sanitizeInvoices(invoices);
+        const postSanitizeDebug = invoicesSan.filter(i => {
+            const no = i.Invoice_No || i.invoice_no || i.Document_No || "";
+            return no.includes("6905/0105") || no.includes("0105") || no.includes("0106");
         });
         if(postSanitizeDebug.length > 0) {
-            logger.info(`[DEBUG WADL] Target invoices survived sanitizeInvoices: ${JSON.stringify(postSanitizeDebug, null, 2)}`);
+            logger.info(`[DEBUG WADL] TARGET INVOICES FOUND AFTER SANITIZE: ${JSON.stringify(postSanitizeDebug, null, 2)}`);
+        } else {
+            logger.warn(`[DEBUG WADL] Target invoices NOT FOUND after sanitize.`);
         }
 
-        // Save the raw invoices for UI display purposes before we deduplicate them for math
-        // Ensure we filter out exact duplicates (same invoice + same amount + same dates) so they aren't spammed in the UI
-        const rawInvoices = filterExactDuplicates(invoices);
-        const postFilterDebug = rawInvoices.filter(i => {
-            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
-            return no.includes('6905/0105') || no.includes('0105') || no.includes('0106');
-        });
-        if(postFilterDebug.length > 0) {
-            logger.info(`[DEBUG WADL] Target invoices survived filterExactDuplicates: ${JSON.stringify(postFilterDebug, null, 2)}`);
-        }
-
-        // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
-        invoices = deduplicateInvoices(invoices);
+        invoices = sanitizeInvoices(invoices);
 
         // 2. Calculate Traditional (Simple Average) based on this dataset
         // Filter paid invoices first for fair comparison
-        const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && String(inv.Effective_Payment_Date).trim() !== '' && String(inv.Effective_Payment_Date).trim() !== 'null');
+        const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '');
 
         const totalLateDays = paidInvoices.reduce((sum, inv) => sum + (Number(inv.Late_Days) || 0), 0);
         const traditionalScore = paidInvoices.length > 0 ? (totalLateDays / paidInvoices.length) : 0;
 
         // 3. Calculate WADL (Weighted Average)
+
+        // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
+        invoices = deduplicateInvoices(invoices);
+
+
+        // Save the raw invoices for UI display purposes before we deduplicate them for math
+        // Ensure we filter out exact duplicates (same invoice + same amount + same dates) so they aren't spammed in the UI
+        const rawInvoices = filterExactDuplicates(invoices);
+
+        // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
+        invoices = deduplicateInvoices(invoices);
+
         const wadlResult = calculateWADL(invoices);
+        wadlResult.rawInvoices = rawInvoices;
 
         res.json({
             customer_no,
@@ -1537,8 +1585,7 @@ exports.getLatePaymentBenchmark = async (req, res) => {
                     score: wadlResult.score,
                     grade: wadlResult.grade,
                     formula: "SUM(Amount * LateDays) / SUM(Amount)",
-                    interpretation: "Reflects financial impact; lower score if large bills are paid on time.",
-                    rawInvoices: rawInvoices // Add it inside the wadl object where the frontend expects it
+                    interpretation: "Reflects financial impact; lower score if large bills are paid on time."
                 }
             },
             data_source: "Real API"

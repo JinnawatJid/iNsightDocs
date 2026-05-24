@@ -57,10 +57,10 @@
           </table>
       </div>
 
-      <!-- PAYMENT HISTORY -->
+      <!-- PAYMENT HISTORY (DEBUG) -->
       <div class="section payment-history-section" v-if="latePaymentInvoices && latePaymentInvoices.length > 0">
           <div class="header-with-toggle">
-              <h2>ประวัติการชำระเงิน</h2>
+              <h2>ประวัติการชำระเงิน (Debug Log)</h2>
               <div class="text-right stats-wrapper">
                   <div class="calc-summary">
                       <strong>ค่าเฉลี่ยแบบนับจำนวน (Simple Average):</strong>
@@ -197,7 +197,7 @@
           </div>
       </div>
       <div class="section payment-history-section" v-else-if="latePaymentSummary">
-           <h2>ประวัติการชำระเงิน</h2>
+           <h2>ประวัติการชำระเงิน (Debug Log)</h2>
            <p class="text-muted">ไม่พบข้อมูลรายการ Invoice หรือไม่มีประวัติการชำระเงินล่าช้าในระบบ</p>
       </div>
 
@@ -260,56 +260,26 @@ const wadlStats = computed(() => {
 
 const latePaymentInvoices = computed(() => {
     // Prefer WADL invoices if available (contains Amount)
-    // Use rawInvoices to bypass backend strict WADL deduplication for the UI display
-    const wadlInvoices = wadlStats.value?.rawInvoices || wadlStats.value?.invoices;
-    const standardInvoices = latePaymentSummary.value?.rawInvoices || latePaymentSummary.value?.invoices;
+    const wadlInvoices = wadlStats.value?.invoices;
+    const standardInvoices = latePaymentSummary.value?.invoices;
 
     const source = wadlInvoices || standardInvoices;
 
     if (source && Array.isArray(source)) {
-        console.log('[DEBUG FRONTEND] Total invoices received for UI:', source.length);
-        const debugInvoices = source.filter(i => {
-            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
-            return no.includes('6905/0105') || no.includes('0105') || no.includes('0106');
-        });
-        if (debugInvoices.length > 0) {
-            console.log('[DEBUG FRONTEND] Target invoices found in source array:', JSON.parse(JSON.stringify(debugInvoices)));
-        } else {
-             console.log('[DEBUG FRONTEND] Target invoices 6905/0105 or 0106 NOT FOUND in source array.');
-        }
-
-        const sorted = [...source].sort((a, b) => {
-            const valA = a.Invoice_Date || a.Document_Date;
-            const valB = b.Invoice_Date || b.Document_Date;
-
-            const timeA = valA ? new Date(valA).getTime() : 0;
-            const timeB = valB ? new Date(valB).getTime() : 0;
-
-            // Sort descending (newest first), push invalid dates (NaN) to the bottom safely
-            const numA = isNaN(timeA) ? 0 : timeA;
-            const numB = isNaN(timeB) ? 0 : timeB;
-
-            // Also if times are exactly equal, sort by Invoice_No string to ensure stable sort
-            if (numB === numA) {
-                 const noA = a.Invoice_No || '';
-                 const noB = b.Invoice_No || '';
-                 return noB.localeCompare(noA); // desc
-            }
-
-            return numB - numA;
+        // Force deduplicate in frontend just in case backend fails or returns raw data
+        const uniqueMap = new Map();
+        source.forEach(inv => {
+             const invoiceNo = inv.Invoice_No || inv.invoice_no || inv.Document_No;
+             if (!uniqueMap.has(invoiceNo)) {
+                 uniqueMap.set(invoiceNo, inv);
+             }
         });
 
-        const debugSorted = sorted.filter(i => {
-            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
-            return no.includes('6905/0105') || no.includes('0105') || no.includes('0106');
+        return Array.from(uniqueMap.values()).sort((a, b) => {
+            const dateA = new Date(a.Invoice_Date);
+            const dateB = new Date(b.Invoice_Date);
+            return dateB - dateA;
         });
-        if (debugSorted.length > 0) {
-            console.log('[DEBUG FRONTEND] Target invoices SURVIVED sorting:', JSON.parse(JSON.stringify(debugSorted)));
-        } else {
-            console.log('[DEBUG FRONTEND] Target invoices DROPPED during sorting!');
-        }
-
-        return sorted;
     }
     return [];
 });
@@ -319,7 +289,7 @@ const latePaymentStats = computed(() => {
     const invoices = latePaymentInvoices.value || [];
 
     // Identify Paid Invoices
-    const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && String(inv.Effective_Payment_Date).trim() !== '' && String(inv.Effective_Payment_Date).trim() !== 'null');
+    const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '');
 
     // Check if backend provided pre-calculated stats (Preferred)
     let avg = 0;
@@ -362,7 +332,7 @@ const wadlBreakdown = computed(() => {
 
     invoices.forEach(inv => {
         // 1. Check if Paid
-        if (!inv.Effective_Payment_Date || String(inv.Effective_Payment_Date).trim() === '' || String(inv.Effective_Payment_Date).trim() === 'null') {
+        if (!inv.Effective_Payment_Date || inv.Effective_Payment_Date.trim() === '') {
             excludedOutstanding++;
             return;
         }
@@ -447,12 +417,11 @@ const visualizationSegments = computed(() => {
 
 // Helper Methods for Table Display
 const isPaid = (inv) => {
-    return inv.Effective_Payment_Date && String(inv.Effective_Payment_Date).trim() !== '' && String(inv.Effective_Payment_Date).trim() !== 'null';
+    return inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '';
 };
 
 const getPaymentMethod = (inv) => {
-    // We can still try to derive payment method even if it's not marked paid
-    // Sometimes partial info exists, or it's a cheque not yet cleared
+    if (!isPaid(inv)) return null;
 
     // Check various possible locations for the field
     let method = inv.payment_method || inv.Payment_Method;
@@ -510,7 +479,7 @@ const getStatusClass = (inv) => {
 };
 
 const formatDate = (dateStr) => {
-    if (!dateStr || dateStr === 'null') return '-';
+    if (!dateStr) return '-';
     try {
         const d = new Date(dateStr);
         if (isNaN(d.getTime())) return dateStr;
