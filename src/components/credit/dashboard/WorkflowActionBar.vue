@@ -173,7 +173,11 @@ const availableActions = computed(() => {
 });
 
 
-    const generateAuditTrailMessage = () => {
+    const generateAuditTrailMessage = (action) => {
+      // Do not generate the 'Approved ...' text if the action is a rejection.
+      if (action && (action.targetStatus === 'Rejected' || action.key === 'reject')) {
+        return '';
+      }
       const formatNum = (v) => {
         if (v === null || v === undefined || v === '') return '0';
         const val = parseFloat(String(v).replace(/,/g, ''));
@@ -200,11 +204,11 @@ const availableActions = computed(() => {
 
       const extractLastTermsFromComments = () => {
         const comments = store.comments || [];
-        const termChanges = comments.filter(c => c.comment_text && (c.comment_text.includes('ปรับเครดิตเทอมจาก') || c.comment_text.includes('อนุมัติเงื่อนไขการชำระเงินที่')));
+        const termChanges = comments.filter(c => c.comment_text && (c.comment_text.includes('ปรับเครดิตเทอมจาก') || c.comment_text.includes('อนุมัติเงื่อนไขเครดิตที่')));
         if (termChanges.length > 0) {
           const lastTermChange = termChanges[termChanges.length - 1];
           // Try new format first
-          let match = lastTermChange.comment_text.match(/อนุมัติเงื่อนไขการชำระเงินที่\s+(\d+)\/(\d+)\/(\d+)/);
+          let match = lastTermChange.comment_text.match(/อนุมัติเงื่อนไขเครดิตที่\s+(\d+)\/(\d+)\/(\d+)/);
           if (match) return { termGS: Number(match[1]), termAE: Number(match[2]), termYC: Number(match[3]) };
           // Fallback to old format
           match = lastTermChange.comment_text.match(/ปรับเครดิตเทอมจาก\s+\d+\/\d+\/\d+\s+เป็น\s+(\d+)\/(\d+)\/(\d+)/);
@@ -246,7 +250,7 @@ const availableActions = computed(() => {
       const newGS = store.getEffectiveValue('termGS') || 0;
       const newAE = store.getEffectiveValue('termAE') || 0;
       const newYC = store.getEffectiveValue('termYC') || 0;
-      msg += `อนุมัติเงื่อนไขการชำระเงินที่ ${newGS}/${newAE}/${newYC}\n`;
+      msg += `อนุมัติเงื่อนไขเครดิตที่ ${newGS}/${newAE}/${newYC}\n`;
 
       return msg;
     };
@@ -288,7 +292,7 @@ const handleAction = async (action) => {
       // For popup text, default comment is 'text' variable
       let commentText = text;
 
-      const auditTrailMsg = generateAuditTrailMessage();
+      const auditTrailMsg = generateAuditTrailMessage(action);
       const finalActionCommentText = auditTrailMsg ? (commentText ? `${auditTrailMsg}\n${commentText}` : auditTrailMsg.trim()) : commentText;
 
       // Apply reviewer suggestions before updating status
@@ -322,7 +326,7 @@ const handleAction = async (action) => {
       }
 
 
-      const auditTrailMsg = generateAuditTrailMessage();
+      const auditTrailMsg = generateAuditTrailMessage(action);
       const finalActionCommentText = auditTrailMsg ? (commentText ? `${auditTrailMsg}\n${commentText}` : auditTrailMsg.trim()) : commentText;
 
       // Apply reviewer suggestions before updating status
