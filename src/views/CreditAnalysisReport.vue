@@ -281,7 +281,7 @@ const latePaymentStats = computed(() => {
     const invoices = latePaymentInvoices.value || [];
 
     // Identify Paid Invoices
-    const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '');
+    const paidInvoices = invoices.filter(inv => inv.Effective_Payment_Date && inv.Effective_Payment_Date.trim() !== '' && inv.Effective_Payment_Date.trim() !== 'null');
 
     // Check if backend provided pre-calculated stats (Preferred)
     let avg = 0;
@@ -324,7 +324,7 @@ const wadlBreakdown = computed(() => {
 
     invoices.forEach(inv => {
         // 1. Check if Paid
-        if (!inv.Effective_Payment_Date || inv.Effective_Payment_Date.trim() === '') {
+        if (!inv.Effective_Payment_Date || inv.Effective_Payment_Date.trim() === '' || inv.Effective_Payment_Date.trim() === 'null') {
             excludedOutstanding++;
             return;
         }
@@ -472,7 +472,7 @@ const getStatusClass = (inv) => {
 };
 
 const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
+    if (!dateStr || dateStr === 'null') return '-';
     try {
         const d = new Date(dateStr);
         if (isNaN(d.getTime())) return dateStr;
