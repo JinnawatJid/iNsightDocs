@@ -29,3 +29,11 @@ Any other standard document types that are attached to the request but are **not
 ## 3. Multiple Files per Category
 
 The sorting logic is designed to support multiple files within a single category (e.g., `credit_application_doc_0`, `credit_application_doc_1`). The system strips the numerical index to identify the base document type and applies the sort order to the group as a whole.
+
+## 4. File Preview Capabilities
+
+The right pane of the modal acts as a file viewer, adapting its behavior based on the file type selected:
+
+- **PDF Files:** Rendered using the browser's native built-in PDF viewer via an `<iframe>`.
+- **Image Files (JPG, JPEG, PNG, WEBP, GIF):** Rendered using an interactive inline viewer (`v-viewer`). This allows users to pan (click and drag) and zoom (mouse wheel) the images. The interactive toolbar at the bottom is customized to show only relevant controls: **Zoom In, Zoom Out, 1:1 Actual Size, and Reset**. Slideshow, navigation, and rotation buttons are intentionally hidden for single-file preview clarity.
+- **Unsupported Files:** For file formats that cannot be previewed natively in the browser, the system displays a placeholder UI prompting the user to download the file directly.
