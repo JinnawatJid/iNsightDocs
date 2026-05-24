@@ -185,3 +185,7 @@ When the initiator manually corrected the revise form and clicked submit, `getSn
 4. **Draft submission is the moment the "original" is born.** The `saveTransactionData()` call that transitions a Draft to Opened is the canonical moment to capture the initiator's intent. Syncing `originalTransactionData = transactionData` at that exact point ensures every downstream reviewer gets a clean, correct baseline.
 
 5. **Diagnostic watches pay off.** Adding `watch()` directly on store state fields in the ReviewDashboard quickly ruled out live-typing contamination and pointed to the post-submit persistence bug, saving significant debugging time.
+
+
+## Addendum: Structural Resolution
+As of a later patch, the UI requirements were changed to completely remove the incremental `"ปรับวงเงินจาก...เป็น..."` logging logic in favor of logging absolute approved values (`"อนุมัติวงเงินที่..."` and `"อนุมัติเงื่อนไขเครดิตที่..."`) at **every** step of the workflow, effectively eliminating the false positive discrepancy documented here. Legacy parsing code is retained purely for backwards compatibility.

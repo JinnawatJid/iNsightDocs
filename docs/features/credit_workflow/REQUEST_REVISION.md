@@ -63,12 +63,14 @@ In `reviseRequest`, when `snapshotDataObj.originalTransactionData` exists, it is
 
 #### Strategy B — Audit Trail Comment Parsing (legacy requests)
 
-For requests submitted **before** the patch (no `originalTransactionData` in snapshot), `reviseRequest` fetches the `RequestComments` for the original `tx_id` and searches for the **first occurrence** of:
+For requests submitted **before** the snapshot patch, `reviseRequest` fetches the `RequestComments` for the original `tx_id` and searches for the **first occurrence** of:
 
 - `"ปรับวงเงินจาก {A} เป็น {B} บาท"` → restores amount to `A`
 - `"ปรับเครดิตเทอมจาก {GS}/{AE}/{YC} เป็น {GS'}/{AE'}/{YC'}"` → restores terms to `GS/AE/YC`
 
 This reconstructs the original values from the audit trail even without an embedded snapshot.
+
+*(Note: The modern UI workflow now logs the final approved values at every step: `"อนุมัติวงเงินที่ {A} บาท"` and `"อนุมัติเงื่อนไขเครดิตที่ {GS}/{AE}/{YC}"`. Because this new format omits the "old" value entirely, modern revisions strictly depend on **Strategy A** to restore values.)*
 
 ### Snapshot Cleanup
 
