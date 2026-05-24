@@ -1145,11 +1145,6 @@ const rbacStore = useRbacStore();
 
     validateRequest(isSubmit = false, isFinancialMandatory = false) {
       const reqType = this.transactionData.requestType;
-      const isSpecial = [
-        "เครดิตเพิ่ม",
-        "เปลี่ยนแปลงเงื่อนไขการชำระเงิน",
-        "เปลี่ยนแปลงระยะเวลาเครดิต",
-      ].includes(reqType);
       const isProject = reqType && reqType.includes("เครดิตโครงการ");
 
       const { fields, files } = getMandatoryKeys(this.isCompany);
@@ -1157,27 +1152,6 @@ const rbacStore = useRbacStore();
 
       let fieldsToCheck = fields;
       let filesToCheck = files;
-
-      if (isSpecial && !isProject) {
-        const essential = [
-          "amount",
-          "reason",
-          "contact_person",
-          "contact_phone_number",
-          "payment_method",
-          "billing_requirement",
-          "has_tungnam_relationship",
-        ];
-        fieldsToCheck = fields.filter((f) => essential.includes(f));
-
-        // Do NOT override `filesToCheck` here. Previously we limited
-        // filesToCheck to only `credit_application_doc`, which caused
-        // other mandatory files (e.g. `bank_statement` for individuals)
-        // to be skipped for special request types like "เครดิตเพิ่ม".
-        // Keep the default `files` list so downstream logic (including
-        // the `isFinancialMandatory` flag) can append and validate the
-        // appropriate financial and other mandatory documents.
-      }
 
       fieldsToCheck.forEach((key) => {
         // Skip specific validations based on requestType context
