@@ -197,7 +197,7 @@
           </div>
       </div>
       <div class="section payment-history-section" v-else-if="latePaymentSummary">
-           <h2>ประวัติการชำระเงิน</h2>
+           <h2>ประวัติการชำระเงิน (Debug Log)</h2>
            <p class="text-muted">ไม่พบข้อมูลรายการ Invoice หรือไม่มีประวัติการชำระเงินล่าช้าในระบบ</p>
       </div>
 
@@ -267,8 +267,6 @@ const latePaymentInvoices = computed(() => {
 
     if (source && Array.isArray(source)) {
         // Use rawInvoices to bypass backend strict WADL deduplication for the UI display
-
-
         const sorted = [...source].sort((a, b) => {
             // FIX: If Invoice_Date is null/undefined, new Date() returns invalid date, which breaks sorting and can drop items
             const dateA = a.Invoice_Date ? new Date(a.Invoice_Date) : new Date(0);
