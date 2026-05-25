@@ -1690,7 +1690,7 @@ exports.reviseRequest = async (req, res) => {
       // After copying physical files, copy the DB attachment records for the new revision
       // with updated relative paths.
       const oldAttSql =
-        "SELECT * FROM CreditRequestAttachments WHERE tx_id = ?";
+        "SELECT * FROM CreditRequestAttachments WHERE tx_id = ? AND (is_deleted IS NULL OR is_deleted = 0)";
       const { rows: oldAttachments } = await db.query(oldAttSql, [id]);
 
       if (oldAttachments && oldAttachments.length > 0) {
