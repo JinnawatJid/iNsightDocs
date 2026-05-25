@@ -267,16 +267,7 @@ const latePaymentInvoices = computed(() => {
 
     if (source && Array.isArray(source)) {
         // Use rawInvoices to bypass backend strict WADL deduplication for the UI display
-        console.log('[DEBUG FRONTEND] Total invoices received for UI:', source.length);
-        const debugInvoices = source.filter(i => {
-            const no = i.Invoice_No || i.invoice_no || i.Document_No || '';
-            return no.includes('6905/0105') || no.includes('0105') || no.includes('0106');
-        });
-        if (debugInvoices.length > 0) {
-            console.log('[DEBUG FRONTEND] Target invoices found in source array:', JSON.parse(JSON.stringify(debugInvoices)));
-        } else {
-             console.log('[DEBUG FRONTEND] Target invoices 6905/0105 or 0106 NOT FOUND in source array.');
-        }
+
 
         const sorted = [...source].sort((a, b) => {
             // FIX: If Invoice_Date is null/undefined, new Date() returns invalid date, which breaks sorting and can drop items
