@@ -34,6 +34,7 @@ A new record is inserted into the `CreditRequests` table with the following prop
 ### 4. Physical Document Duplication
 To save the user from re-uploading files, the system uses `fs-extra` to physically copy the entire document folder associated with the old Transaction ID to a new folder named after the new Revision ID.
 - Example: `uploads/01CA2310_001` is copied to `uploads/01CA2310_001-R1`.
+- **Soft-Delete Filtering:** When duplicating the database attachment records (`CreditRequestAttachments`), the system explicitly filters out any documents that were flagged as soft-deleted by the user (`is_deleted IS NULL OR is_deleted = 0`). This ensures that documents previously removed via the UI do not reappear in the new revision draft's upload box.
 
 ## Security & Access Control
 - The UI button is protected by a computed property `showReviseButton` which verifies both the status (`Rejected`) and the user's role via the Pinia auth store getter `authStore.isInitiator`.
