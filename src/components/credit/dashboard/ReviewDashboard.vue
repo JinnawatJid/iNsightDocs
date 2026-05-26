@@ -376,9 +376,9 @@ const hasTermsChanged = computed(() => {
     if (!store.originalTransactionData) return false;
     // Compare reviewer's SUGGESTION against original — not live transactionData
     // (transactionData is stable; reviewerSuggestion holds the in-progress edit)
-    const gs = store.reviewerSuggestion.termGS !== '' ? store.reviewerSuggestion.termGS : store.transactionData.termGS;
-    const ae = store.reviewerSuggestion.termAE !== '' ? store.reviewerSuggestion.termAE : store.transactionData.termAE;
-    const yc = store.reviewerSuggestion.termYC !== '' ? store.reviewerSuggestion.termYC : store.transactionData.termYC;
+    const gs = (store.reviewerSuggestion.termGS !== null && store.reviewerSuggestion.termGS !== undefined) ? store.reviewerSuggestion.termGS : store.transactionData.termGS;
+    const ae = (store.reviewerSuggestion.termAE !== null && store.reviewerSuggestion.termAE !== undefined) ? store.reviewerSuggestion.termAE : store.transactionData.termAE;
+    const yc = (store.reviewerSuggestion.termYC !== null && store.reviewerSuggestion.termYC !== undefined) ? store.reviewerSuggestion.termYC : store.transactionData.termYC;
     return gs != store.originalTransactionData.termGS ||
            ae != store.originalTransactionData.termAE ||
            yc != store.originalTransactionData.termYC;

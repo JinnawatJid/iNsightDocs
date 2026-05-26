@@ -72,10 +72,10 @@ export const useCreditRequestStore = defineStore("creditRequest", {
 
     // Reviewer suggestions - isolated from original transaction data
     reviewerSuggestion: {
-      amount: "",
-      termGS: "",
-      termAE: "",
-      termYC: "",
+      amount: null,
+      termGS: null,
+      termAE: null,
+      termYC: null,
     },
   }),
 
@@ -534,7 +534,7 @@ const rbacStore = useRbacStore();
      */
     getEffectiveValue(field) {
       const suggestion = this.reviewerSuggestion[field];
-      if (suggestion !== '' && suggestion !== null && suggestion !== undefined) {
+      if (suggestion !== null && suggestion !== undefined) {
         return suggestion;
       }
       return this.transactionData[field];
@@ -1664,10 +1664,10 @@ const rbacStore = useRbacStore();
 
     clearReviewerSuggestions() {
       this.reviewerSuggestion = {
-        amount: "",
-        termGS: "",
-        termAE: "",
-        termYC: "",
+        amount: null,
+        termGS: null,
+        termAE: null,
+        termYC: null,
       };
     },
 
@@ -1691,7 +1691,7 @@ const rbacStore = useRbacStore();
     // Get effective value (suggestion if exists, otherwise original)
     getEffectiveValue(field) {
       const suggestion = this.reviewerSuggestion[field];
-      return suggestion !== "" ? suggestion : this.transactionData[field];
+      return (suggestion !== null && suggestion !== undefined) ? suggestion : this.transactionData[field];
     },
   },
 });

@@ -240,6 +240,11 @@ const formattedAmount = computed({
         const parts = num.split('.');
         if (parts.length > 2) num = parts[0] + '.' + parts.slice(1).join('');
         
+        if (num === '') {
+            store.updateReviewerSuggestion('amount', '');
+            return;
+        }
+
         let totalInput = parseFloat(num);
         if (isNaN(totalInput)) {
             store.updateReviewerSuggestion('amount', num);
