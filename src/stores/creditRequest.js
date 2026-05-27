@@ -6,6 +6,15 @@ import { getMandatoryKeys } from "@/config/mandatoryFields";
 import { useRbacStore } from '@/stores/rbac';
 import { useAuthStore } from "@/stores/auth";
 
+const normalizeThaiText = (str) => {
+  if (!str) return "";
+  return str
+    .replace(/[\s\n\r]/g, "")
+    .replace(/[\u0e48-\u0e4c]/g, "")
+    .replace(/ยิบ/g, "ยิป")
+    .toLowerCase();
+};
+
 export const useCreditRequestStore = defineStore("creditRequest", {
   state: () => ({
     hasSearched: false,
@@ -425,11 +434,14 @@ const rbacStore = useRbacStore();
           }
         }
 
-        let draftCommentVal = parsedSnapshot.transaction_data?.draftComment || "";
+        const savedLocalDraft = localStorage.getItem(`draftComment_${data.txId}`);
+        let draftCommentVal = savedLocalDraft !== null ? savedLocalDraft : (parsedSnapshot.transaction_data?.draftComment || "");
         if (draftCommentVal && data.comments && Array.isArray(data.comments)) {
-          const isAlreadyFinalized = data.comments.some(c => c.comment_text && c.comment_text.includes(draftCommentVal));
+          const normDraft = normalizeThaiText(draftCommentVal);
+          const isAlreadyFinalized = data.comments.some(c => c.comment_text && normalizeThaiText(c.comment_text).includes(normDraft));
           if (isAlreadyFinalized) {
             draftCommentVal = "";
+            localStorage.removeItem(`draftComment_${data.txId}`);
             this.saveDraftCommentToDB("");
           }
         }
@@ -527,9 +539,11 @@ const rbacStore = useRbacStore();
                let parsed = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
                let draftCommentVal = parsed.transaction_data?.draftComment || "";
                if (draftCommentVal && data.comments && Array.isArray(data.comments)) {
-                   const isAlreadyFinalized = data.comments.some(c => c.comment_text && c.comment_text.includes(draftCommentVal));
+                   const normDraft = normalizeThaiText(draftCommentVal);
+                   const isAlreadyFinalized = data.comments.some(c => c.comment_text && normalizeThaiText(c.comment_text).includes(normDraft));
                    if (isAlreadyFinalized) {
                        draftCommentVal = "";
+                       localStorage.removeItem(`draftComment_${txId}`);
                        this.saveDraftCommentToDB("");
                    }
                }

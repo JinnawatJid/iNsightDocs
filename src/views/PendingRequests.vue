@@ -95,30 +95,26 @@ watch(newComment, (newVal) => {
             }
         } else {
             localStorage.setItem(`draftComment_${store.requestId}`, newVal);
-            // Auto-save to database after 1 second of inactivity to ensure cross-device persistence
-            clearTimeout(commentSaveTimeout);
-            commentSaveTimeout = setTimeout(() => {
-                store.saveDraftCommentToDB(newVal);
-            }, 1000);
+            
+            // Only auto-save to database if the value actually changed from the store value
+            if (newVal !== store.transactionData?.draftComment) {
+                clearTimeout(commentSaveTimeout);
+                commentSaveTimeout = setTimeout(() => {
+                    store.saveDraftCommentToDB(newVal);
+                }, 1000);
+            }
         }
     }
 });
 
-// Watch for request ID changes to reset comment box
-watch(() => store.requestId, async (newId) => {
-    if (newId) {
-        const savedDraft = localStorage.getItem(`draftComment_${newId}`);
-        if (savedDraft) {
-            newComment.value = savedDraft;
-        } else {
-            // Fallback to fetch from DB if no local storage draft exists
-            const dbDraft = await store.fetchDraftCommentFromDB(newId);
-            newComment.value = dbDraft || '';
-        }
+// Watch for request details load to populate the comment box reactively
+watch(() => store.transactionData?.draftComment, (newVal) => {
+    if (store.requestId) {
+        newComment.value = newVal || '';
     } else {
         newComment.value = '';
     }
-});
+}, { immediate: true });
 
 const handleRecalculateScore = async (payload) => {
     // If we have a request ID, we can trigger a recalculate by building a form data payload
