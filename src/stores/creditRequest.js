@@ -425,6 +425,15 @@ const rbacStore = useRbacStore();
           }
         }
 
+        let draftCommentVal = parsedSnapshot.transaction_data?.draftComment || "";
+        if (draftCommentVal && data.comments && Array.isArray(data.comments)) {
+          const isAlreadyFinalized = data.comments.some(c => c.comment_text && c.comment_text.includes(draftCommentVal));
+          if (isAlreadyFinalized) {
+            draftCommentVal = "";
+            this.saveDraftCommentToDB("");
+          }
+        }
+
         this.transactionData = {
           amount: data.request_amount,
           reason: data.request_reason,
@@ -433,7 +442,7 @@ const rbacStore = useRbacStore();
           termAE: data.term_ae,
           termYC: data.term_yc,
           requestType: data.request_type || "เครดิตใหม่",
-          draftComment: parsedSnapshot.transaction_data?.draftComment || "",
+          draftComment: draftCommentVal,
           noFinancialData:
             parsedSnapshot.transaction_data?.noFinancialData || false,
           bankGuaranteeDetails:
@@ -512,10 +521,19 @@ const rbacStore = useRbacStore();
         const { default: axios } = await import('axios');
         const response = await axios.get(`/api/credit-requests/${encodeURIComponent(txId)}/detail`);
         if (response.data && response.data.data) {
-           const snapshot = response.data.data.snapshot_data;
+           const data = response.data.data;
+           const snapshot = data.snapshot_data;
            if (snapshot) {
                let parsed = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
-               return parsed.transaction_data?.draftComment || "";
+               let draftCommentVal = parsed.transaction_data?.draftComment || "";
+               if (draftCommentVal && data.comments && Array.isArray(data.comments)) {
+                   const isAlreadyFinalized = data.comments.some(c => c.comment_text && c.comment_text.includes(draftCommentVal));
+                   if (isAlreadyFinalized) {
+                       draftCommentVal = "";
+                       this.saveDraftCommentToDB("");
+                   }
+               }
+               return draftCommentVal;
            }
         }
       } catch (e) {
