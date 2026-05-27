@@ -171,6 +171,30 @@
     <!-- Section 4: Full Application Form (Conditional) -->
     <div v-if="showFullDetails" class="full-details-wrapper">
         <ApplicationTabs :readOnly="true" viewMode="full" :baseline="baselineSnapshot" />
+
+        <!-- Project Tabs (Project Info) -->
+        <template v-if="isProjectCredit">
+            <div v-for="(project, index) in baselineProjects" :key="index" class="dashboard-card project-card" :class="{ 'collapsed-card': collapsedProjects[index] }" style="margin-top: 20px;">
+                <div class="card-header" :style="collapsedProjects[index] ? 'padding-bottom: 20px; align-items: center;' : 'padding-bottom: 20px; border-bottom: 1px solid #eee; align-items: center;'">
+                    <h3 style="flex: 1; margin-right: 20px; display: flex; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; align-items: center;">
+                        <span style="white-space: nowrap;">ข้อมูลและเงื่อนไขโครงการ:</span>
+                        <span style="font-weight: normal; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-left: 10px;" :title="project.projectData?.name">{{ project.projectData?.name }}</span>
+                    </h3>
+                    <div class="header-actions" style="flex-shrink: 0;">
+                        <button class="btn-toggle-details" style="padding: 6px 12px; font-size: 13px;" @click="toggleProjectCollapse(index)">
+                            {{ collapsedProjects[index] ? 'แสดงข้อมูลโครงการ' : 'พับข้อมูลโครงการ' }}
+                        </button>
+                    </div>
+                </div>
+                <ProjectApplicationTabs v-show="!collapsedProjects[index]" :projectIndex="index" :readOnly="true" />
+            </div>
+
+            <!-- Global Phasing Analysis (Cross-Project Cash Flow) -->
+            <div style="margin-top: 20px;">
+                <GlobalPhasingAnalysis v-if="baselineProjects && baselineProjects.length > 0" />
+            </div>
+        </template>
+
     </div>
 
     <!-- Section 5: Additional/Reviewer Documents -->
@@ -187,6 +211,9 @@ import { formatRequestType } from '@/utils/requestTypeFormatter';
 import ReviewerDocumentsSection from './ReviewerDocumentsSection.vue';
 import { getMandatoryKeys } from '@/config/mandatoryFields';
 import ApplicationTabs from '../forms/ApplicationTabs.vue';
+import ProjectApplicationTabs from '../forms/ProjectApplicationTabs.vue';
+import GlobalPhasingAnalysis from '../GlobalPhasingAnalysis.vue';
+
 import FinancialStatementModal from '../modals/FinancialStatementModal.vue';
 import AllDocumentsModal from '../modals/AllDocumentsModal.vue';
 import axios from '../../../utils/axios.js';
@@ -194,6 +221,25 @@ import CustomerService from '@/services/CustomerService';
 
 const store = useCreditRequestStore();
 const authStore = useAuthStore();
+
+const isProjectCredit = computed(() => {
+    const type = store.originalTransactionData?.requestType || store.transactionData.requestType || '';
+    return type.includes('เครดิตโครงการ');
+});
+
+const baselineProjects = computed(() => {
+    if (baselineSnapshot.value && baselineSnapshot.value.projects) {
+        return baselineSnapshot.value.projects;
+    }
+    return store.transactionData.projects || [];
+});
+
+const collapsedProjects = ref({});
+
+const toggleProjectCollapse = (index) => {
+    collapsedProjects.value[index] = !collapsedProjects.value[index];
+};
+
 const showFullDetails = ref(false);
 // Baseline snapshot to freeze original request details when opening full-details view
 const baselineSnapshot = ref(null);
