@@ -268,9 +268,9 @@ exports.createCreditRequest = async (req, res) => {
     term_ae,
     term_yc,
     request_type,
-    snapshot_data,
     is_submit,
   } = req.body;
+  let snapshot_data = req.body.snapshot_data;
 
   logger.info("createCreditRequest Body:", {
     tx_id,
@@ -434,10 +434,16 @@ exports.createCreditRequest = async (req, res) => {
       requestId = existing.id;
       status = existing.status;
 
-      // If is_submit is true, we update the data and possibly the status
-      // We also handle "status" passed explicitly in the body for status transitions
       if (is_submit === "true" || is_submit === true || req.body.status) {
         let newStatus = req.body.status || existing.status;
+
+        // Clear draft comment if request transitions to a new status
+        if (existing.status !== newStatus) {
+          if (parsedSnapshot && parsedSnapshot.transaction_data) {
+            parsedSnapshot.transaction_data.draftComment = "";
+            snapshot_data = JSON.stringify(parsedSnapshot);
+          }
+        }
 
         // --- TxID Generation Logic (Draft -> Opened) ---
         // If we are transitioning from Draft to Opened, we must generate the real ID

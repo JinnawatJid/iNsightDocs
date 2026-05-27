@@ -1564,6 +1564,12 @@ const rbacStore = useRbacStore();
         return false;
       }
 
+      // Clear draft comment locally and in localStorage before submitting the state transition
+      if (this.transactionData) {
+        this.transactionData.draftComment = "";
+      }
+      localStorage.removeItem(`draftComment_${this.requestId}`);
+
       this.loading = true;
       try {
         const formData = new FormData();
