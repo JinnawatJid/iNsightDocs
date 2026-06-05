@@ -50,17 +50,18 @@ const normalizeBranchCode = (rawBranchCode) => {
 #### A. User Branch Code Extraction
 **File**: `backend/controllers/creditRequestController.js` (getCreditRequests)
 
+We use `getBranchCodesFromUser` to support multiple branches (e.g. for Regional Managers overseeing multiple regions).
+
 ```javascript
-const userBranchCode = normalizeBranchCode(
-  getBranchCodeFromUser(req.user)
-);
-// Example: "00TR" → "TR"
+const rawBranchCodes = getBranchCodesFromUser(req.user);
+const userBranchCodes = rawBranchCodes.map(normalizeBranchCode).filter(c => c !== "XX");
+// Example: ["00TR", "01TJ"] → ["TR", "TJ"]
 ```
 
 #### B. Region Configuration Normalization
 **File**: `backend/controllers/creditRequestController.js` (getCreditRequests)
 
-For each region in the REGION_BRANCH_CONFIG, normalize all zone codes:
+For each region in the REGION_BRANCH_CONFIG, normalize all zone codes, and accumulate branches from ALL regions that match any of the user's assigned branches:
 
 ```javascript
 const normalizedZones = (region.zones || [])
@@ -69,6 +70,10 @@ const normalizedZones = (region.zones || [])
     normalizedCode: normalizeBranchCode(zone.code),  // "TR" → "TR"
   }))
   .filter((zone) => zone.normalizedCode !== "XX");
+
+const hasBranch = normalizedZones.some(
+  (zone) => userBranchCodes.includes(zone.normalizedCode)
+);
 ```
 
 #### C. TX_ID Filtering Pattern
@@ -194,9 +199,10 @@ Expected format:
 | 2026-05-07 | Fixed branch filter pattern in `getCreditRequests` | User branch `00TR` was not matching region zones; changed from `__${code}%` to `${code}%` pattern |
 | 2026-05-07 | Added comprehensive normalization logging | Enable debugging of branch filtering issues in production |
 | 2026-05-07 | Updated unit tests to validate region mapping | Ensure all normalization rules are tested |
+| 2026-06-05 | Added support for multiple branches per user (`getBranchCodesFromUser`) | Allow Regional Managers with multiple branches to oversee multiple regions |
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2026-05-07  
+**Document Version**: 1.1
+**Last Updated**: 2026-06-05
 **Maintained By**: Development Team
