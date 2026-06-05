@@ -7,6 +7,7 @@ const fileResolver = require("../utils/fileResolver");
 const {
   normalizeBranchCode,
   getBranchCodeFromUser,
+  getBranchCodesFromUser,
 } = require("../utils/branchCode");
 
 let projectRoot = path.resolve(__dirname, "../../../../");
@@ -1231,9 +1232,9 @@ exports.getCreditRequests = async (req, res) => {
           }
 
           if (regionConfig) {
-            const rawBranchCode = getBranchCodeFromUser(req.user);
-            const userBranchCode = normalizeBranchCode(rawBranchCode);
-            logger.info(`[DEBUG] Raw branch: "${rawBranchCode}", Normalized: "${userBranchCode}"`);
+            const rawBranchCodes = getBranchCodesFromUser(req.user);
+            const userBranchCodes = rawBranchCodes.map(normalizeBranchCode).filter(c => c !== "XX");
+            logger.info(`[DEBUG] Raw branches: ${JSON.stringify(rawBranchCodes)}, Normalized: ${JSON.stringify(userBranchCodes)}`);
             
             let allowedBranches = [];
 
@@ -1250,17 +1251,19 @@ exports.getCreditRequests = async (req, res) => {
               logger.info(`[DEBUG] Normalized zones in region: ${JSON.stringify(normalizedZones.map(z => ({ code: z.code, normalizedCode: z.normalizedCode })))}`);
 
               const hasBranch = normalizedZones.some(
-                (zone) => zone.normalizedCode === userBranchCode,
+                (zone) => userBranchCodes.includes(zone.normalizedCode)
               );
 
-              logger.info(`[DEBUG] Does region contain user branch "${userBranchCode}"? ${hasBranch}`);
+              logger.info(`[DEBUG] Does region contain any of user branches ${JSON.stringify(userBranchCodes)}? ${hasBranch}`);
 
               if (hasBranch) {
-                allowedBranches = [...new Set(normalizedZones.map((zone) => zone.normalizedCode))];
-                logger.info(`[DEBUG] Found matching region! allowedBranches: ${JSON.stringify(allowedBranches)}`);
-                break;
+                const regionBranches = normalizedZones.map((zone) => zone.normalizedCode);
+                allowedBranches = [...allowedBranches, ...regionBranches];
+                logger.info(`[DEBUG] Found matching region! Adding branches: ${JSON.stringify(regionBranches)}`);
               }
             }
+
+            allowedBranches = [...new Set(allowedBranches)];
 
             if (allowedBranches.length > 0) {
               // tx_id format is e.g. TRCA6905/01 or 00TRCA6905/01, so match on the branch code directly.
