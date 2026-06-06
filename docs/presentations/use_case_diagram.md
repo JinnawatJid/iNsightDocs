@@ -223,31 +223,32 @@ flowchart LR
 
 ---
 
-## 6. ระบบย่อยที่ 5: ระบบติดตามและตั้งค่า (Tracking & Configuration)
-อ้างอิง FR 5.1 - 5.2, 6.1 - 6.3, 8.2
+## 6. ระบบย่อยที่ 5: ระบบตั้งค่า (System Configuration)
+อ้างอิงการทำงานจริงของระบบ (Actual Codebase Implementation)
+
+**คำอธิบาย Diagram:**
+ภาพนี้แสดงการทำงานของ "ผู้ดูแลระบบ (Admin)" ในการจัดการตั้งค่าพารามิเตอร์และกฎเกณฑ์ต่างๆ ของระบบ (System Configuration) เพื่อให้ระบบมีความยืดหยุ่นและปรับเปลี่ยนได้โดยไม่ต้องแก้ไขโค้ด
 
 ```mermaid
 flowchart LR
     classDef actorStyle fill:#f9f9f9,stroke:#333,stroke-width:2px;
     classDef useCaseStyle fill:#fff,stroke:#333,stroke-width:1px;
 
-    AllActors(ผู้ใช้งานทุกบทบาท):::actorStyle
     Admin(ผู้ดูแลระบบ):::actorStyle
 
-    subgraph TrackConfigSystem [ระบบติดตามและตั้งค่า]
+    subgraph ConfigSystem [ระบบตั้งค่า]
         direction TB
-        UC1([ดูรายการคำขอทั้งหมด]):::useCaseStyle
-        UC2([ติดตามสถานะปัจจุบันของคำขอ]):::useCaseStyle
-        UC3([ดูประวัติกิจกรรม Audit Trail]):::useCaseStyle
-        UC4([รับการแจ้งเตือนจากระบบ Notification]):::useCaseStyle
-        UC5([จัดการตั้งค่าระบบ Configuration]):::useCaseStyle
+        UC1([จัดการการตั้งค่าระบบทั่วไป System Rules]):::useCaseStyle
+        UC2([จัดการสิทธิ์ผู้ใช้งาน User Roles]):::useCaseStyle
+        UC3([จัดการเส้นทางอนุมัติ Workflow]):::useCaseStyle
+        UC4([จัดการพื้นที่และสาขา Region Mapping]):::useCaseStyle
+        UC5([จัดการโมเดลให้คะแนน Scorecards]):::useCaseStyle
     end
 
-    AllActors --> UC1
-    AllActors --> UC2
-    AllActors --> UC4
-    AllActors --> UC3
-
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Admin --> UC4
     Admin --> UC5
 ```
 
