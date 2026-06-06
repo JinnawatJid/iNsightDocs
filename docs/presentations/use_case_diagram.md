@@ -147,41 +147,7 @@ flowchart LR
 
 ---
 
-## 4. ระบบย่อยที่ 3: ระบบอัตโนมัติ (Batch Automation Process)
-อ้างอิงการทำงานจริงของระบบ (Actual Codebase Implementation) และ NFR 9.1
-
-**คำอธิบาย Diagram:**
-ภาพนี้สะท้อนบทบาทของ **เจ้าหน้าที่ฝ่ายการเงิน** ที่สามารถเข้าถึงเมนู "ระบบอัตโนมัติ" เพื่อจัดการคิวงาน (Queue) แบบ Batch:
-1. ทำการ `ตรวจสอบสถานะคิวงานประมวลผล` แบบกลุ่ม
-2. สามารถสั่ง `ดาวน์โหลดข้อมูลนิติบุคคลและงบการเงินอัตโนมัติ` แบบเป็นชุดจากระบบ DBD
-3. สามารถสั่ง `ประมวลผลรายการที่ขัดข้องซ้ำ (Retry Failed Jobs)` กรณีที่การดึงข้อมูลผิดพลาด
-
-```mermaid
-flowchart LR
-    classDef actorStyle fill:#f9f9f9,stroke:#333,stroke-width:2px;
-    classDef systemStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
-    classDef useCaseStyle fill:#fff,stroke:#333,stroke-width:1px;
-
-    Fin(เจ้าหน้าที่ฝ่ายการเงิน):::actorStyle
-    DBD[[ระบบ DBD]]:::systemStyle
-
-    subgraph AutoSystem [ระบบอัตโนมัติ Batch Automation]
-        direction TB
-        UC1([ตรวจสอบสถานะคิวงานประมวลผล]):::useCaseStyle
-        UC2([ประมวลผลรายการที่ขัดข้องซ้ำ Retry Jobs]):::useCaseStyle
-        UC3([ดาวน์โหลดข้อมูลนิติบุคคลและงบการเงินอัตโนมัติ]):::useCaseStyle
-    end
-
-    Fin --> UC1
-    Fin --> UC2
-    Fin --> UC3
-
-    UC3 -. "<< communicates >>" .-> DBD
-```
-
----
-
-## 5. ระบบย่อยที่ 4: ระบบพิจารณาอนุมัติ (Approval Process)
+## 4. ระบบย่อยที่ 3: ระบบพิจารณาอนุมัติ (Approval Process)
 อ้างอิง FR 4.1 - 4.5
 
 ```mermaid
@@ -219,7 +185,7 @@ flowchart LR
 
 ---
 
-## 6. ระบบย่อยที่ 5: ระบบติดตามและตั้งค่า (Tracking & Configuration)
+## 5. ระบบย่อยที่ 4: ระบบติดตามและตั้งค่า (Tracking & Configuration)
 อ้างอิง FR 5.1 - 5.2, 6.1 - 6.3, 8.2
 
 ```mermaid
@@ -246,3 +212,11 @@ flowchart LR
 
     Admin --> UC5
 ```
+
+
+---
+
+> **📝 หมายเหตุถึงผู้อ่าน / Note to the User:**
+> เพื่อให้เอกสาร Use Case Diagram สอดคล้องและตรงกันกับไฟล์ **`docs/presentations/BR.txt`** โปรดอย่าลืมกลับไปลบข้อความที่ระบุถึง "ระบบอัตโนมัติ" ในไฟล์ BR.txt ดังนี้:
+> 1. ลบคำว่า **"ระบบอัตโนมัติ"** ออกจากข้อ **FR 1.2.3**
+> 2. ลบหัวข้อ **NFR 9.1** (เรื่องระบบทำงานประมวลผลข้อมูลแบบชุดอัตโนมัติ Batch Automation Process) ออกทั้งข้อ
