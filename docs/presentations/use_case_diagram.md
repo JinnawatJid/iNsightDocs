@@ -139,16 +139,23 @@ flowchart LR
 ---
 
 ## 4. ระบบย่อยที่ 3: ระบบประมวลผลอัตโนมัติและดึงข้อมูล (Automated Processing & Data Fetching)
-อ้างอิง FR 3.3 - 3.5
+อ้างอิง FR 3.3 - 3.5 และ FR 1.2.3
+
+**คำอธิบาย Diagram:**
+ภาพนี้แสดงกระบวนการดึงข้อมูลและประมวลผลความเสี่ยง โดยมี **เจ้าหน้าที่ฝ่ายการเงิน** เป็นผู้ใช้งานหลักที่เข้าถึงเมนู "ระบบอัตโนมัติ" (Trigger) เพื่อสั่งให้ระบบทำงาน:
+1. เจ้าหน้าที่ฝ่ายการเงินสามารถสั่ง `ดาวน์โหลดข้อมูลนิติบุคคลและงบการเงิน` (ซึ่งระบบจะไปเชื่อมต่อกับระบบ DBD)
+2. เจ้าหน้าที่ฝ่ายการเงินสามารถสั่ง `ดึงประวัติการซื้อย้อนหลัง` (ซึ่งระบบจะเชื่อมต่อกับระบบ ERP/UXP)
+3. เมื่อเจ้าหน้าที่สั่ง `คำนวณคะแนนความเสี่ยง Scoring Engine` ระบบจะบังคับให้ต้องทำการดาวน์โหลดข้อมูลจาก DBD และ ERP มาใช้ประกอบการคำนวณเสมอ (`<<includes>>`)
 
 ```mermaid
 flowchart LR
+    classDef actorStyle fill:#f9f9f9,stroke:#333,stroke-width:2px;
     classDef systemStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
     classDef useCaseStyle fill:#fff,stroke:#333,stroke-width:1px;
 
+    Fin(เจ้าหน้าที่ฝ่ายการเงิน):::actorStyle
     DBD[[ระบบ DBD]]:::systemStyle
     ERP[[ระบบ ERP/UXP]]:::systemStyle
-    InternalTrigger(ระบบประมวลผลอัตโนมัติ):::systemStyle
 
     subgraph AutoSystem [ระบบประมวลผลและดึงข้อมูล]
         direction TB
@@ -157,9 +164,9 @@ flowchart LR
         UC3([คำนวณคะแนนความเสี่ยง Scoring Engine]):::useCaseStyle
     end
 
-    InternalTrigger --> UC1
-    InternalTrigger --> UC2
-    InternalTrigger --> UC3
+    Fin --> UC1
+    Fin --> UC2
+    Fin --> UC3
 
     UC1 -. "<< communicates >>" .-> DBD
     UC2 -. "<< communicates >>" .-> ERP
