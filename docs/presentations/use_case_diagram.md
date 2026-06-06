@@ -240,16 +240,14 @@ flowchart LR
         direction TB
         UC1([จัดการการตั้งค่าระบบทั่วไป System Rules]):::useCaseStyle
         UC2([จัดการสิทธิ์ผู้ใช้งาน User Roles]):::useCaseStyle
-        UC3([จัดการเส้นทางอนุมัติ Workflow]):::useCaseStyle
-        UC4([จัดการพื้นที่และสาขา Region Mapping]):::useCaseStyle
-        UC5([จัดการโมเดลให้คะแนน Scorecards]):::useCaseStyle
+        UC3([จัดการพื้นที่และสาขา Region Mapping]):::useCaseStyle
+        UC4([จัดการโมเดลให้คะแนน Scorecards]):::useCaseStyle
     end
 
     Admin --> UC1
     Admin --> UC2
     Admin --> UC3
     Admin --> UC4
-    Admin --> UC5
 ```
 
 
