@@ -22,7 +22,6 @@ flowchart LR
 
     %% External Systems (Secondary Actors)
     SSO[[ระบบ SSO ขององค์กร]]:::systemStyle
-    DBD[[ระบบ กรมพัฒนาธุรกิจการค้า DBD]]:::systemStyle
     ERP[[ระบบ ERP/UXP]]:::systemStyle
 
     %% System Boundary
@@ -146,7 +145,37 @@ flowchart LR
 
 ---
 
-## 4. ระบบย่อยที่ 3: ระบบพิจารณาอนุมัติ (Approval Process)
+## 4. ระบบย่อยที่ 3: ระบบตรวจสอบและส่งต่อ (Review & Forward Process)
+อ้างอิง FR 4.1 - 4.2 และกระบวนการ Workflow
+
+**คำอธิบาย Diagram:**
+ภาพนี้แสดงกระบวนการทำงานของกลุ่ม "ผู้ตรวจสอบ" (ประกอบด้วย ผู้จัดการภูมิภาค, ผู้จัดการฝ่ายขาย, และเจ้าหน้าที่ฝ่ายการเงิน) เมื่อได้รับคำขอเครดิตที่ส่งมาจากสาขา ผู้ตรวจสอบมีหน้าที่พิจารณากลั่นกรองข้อมูล ให้ความคิดเห็นเพิ่มเติม และส่งต่อคำขอไปยังผู้อนุมัติในลำดับถัดไป โดยไม่มีสิทธิ์ในการตัดสินใจอนุมัติหรือปฏิเสธคำขอโดยตรง
+
+```mermaid
+flowchart LR
+    classDef actorStyle fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef useCaseStyle fill:#fff,stroke:#333,stroke-width:1px;
+
+    Rev(ผู้ตรวจสอบ <br>ผจก.ภูมิภาค / ผจก.ขาย / จนท.การเงิน):::actorStyle
+
+    subgraph ReviewSystem [ระบบตรวจสอบและส่งต่อ]
+        direction TB
+        UC1([ดูรายการเอกสารรอตรวจสอบ]):::useCaseStyle
+        UC2([เปิดอ่านคำขอและดาวน์โหลดไฟล์แนบ]):::useCaseStyle
+        UC3([ให้ความคิดเห็นและส่งต่อ]):::useCaseStyle
+        UC4([แจ้งเตือนไปยังผู้รับผิดชอบลำดับถัดไป]):::useCaseStyle
+    end
+
+    Rev --> UC1
+    Rev --> UC2
+    Rev --> UC3
+
+    UC3 -. "<< includes >>" .-> UC4
+```
+
+---
+
+## 5. ระบบย่อยที่ 4: ระบบพิจารณาอนุมัติ (Approval Process)
 อ้างอิง FR 4.1 - 4.5
 
 **คำอธิบาย Diagram:**
@@ -194,7 +223,7 @@ flowchart LR
 
 ---
 
-## 5. ระบบย่อยที่ 4: ระบบติดตามและตั้งค่า (Tracking & Configuration)
+## 6. ระบบย่อยที่ 5: ระบบติดตามและตั้งค่า (Tracking & Configuration)
 อ้างอิง FR 5.1 - 5.2, 6.1 - 6.3, 8.2
 
 ```mermaid
