@@ -65,7 +65,6 @@ flowchart LR
     UC3 -. "<< includes >>" .-> UC5
 
     %% System Connections
-    UC5 --> DBD
     UC5 --> ERP
 ```
 
@@ -150,12 +149,18 @@ flowchart LR
 ## 4. ระบบย่อยที่ 3: ระบบพิจารณาอนุมัติ (Approval Process)
 อ้างอิง FR 4.1 - 4.5
 
+**คำอธิบาย Diagram:**
+ระบบแบ่งระดับ "ผู้อนุมัติ" ตามมูลค่าวงเงินที่ร้องขอ (อ้างอิง FR 4.4):
+* **ผู้จัดการฝ่ายการเงิน:** อนุมัติวงเงินมูลค่า **ไม่เกิน 300,000 บาท**
+* **คณะกรรมการเครดิต:** อนุมัติวงเงินมูลค่า **มากกว่า 300,000 บาทขึ้นไป**
+
 ```mermaid
 flowchart LR
     classDef actorStyle fill:#f9f9f9,stroke:#333,stroke-width:2px;
     classDef useCaseStyle fill:#fff,stroke:#333,stroke-width:1px;
 
-    App(ผู้อนุมัติ):::actorStyle
+    App1(ผู้จัดการฝ่ายการเงิน <br>วงเงิน <= 300,000):::actorStyle
+    App2(คณะกรรมการเครดิต <br>วงเงิน > 300,000):::actorStyle
 
     subgraph ApprovalSystem [ระบบพิจารณาอนุมัติ]
         direction TB
@@ -168,15 +173,19 @@ flowchart LR
         UC7([แจ้งเตือนผลกลับไปยังผู้สร้างคำขอ]):::useCaseStyle
     end
 
-    App --> UC1
-    App --> UC2
-    App --> UC4
-    App --> UC5
-    App --> UC6
+    App1 --> UC1
+    App1 --> UC2
+    App1 --> UC4
+    App1 --> UC5
+    App1 --> UC6
 
-    UC4 -. "<< includes >>" .-> UC3
-    UC5 -. "<< includes >>" .-> UC3
-    UC6 -. "<< includes >>" .-> UC3
+    App2 --> UC1
+    App2 --> UC2
+    App2 --> UC4
+    App2 --> UC5
+    App2 --> UC6
+
+    UC2 -. "<< includes >>" .-> UC3
 
     UC4 -. "<< includes >>" .-> UC7
     UC5 -. "<< includes >>" .-> UC7
