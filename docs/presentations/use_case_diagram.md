@@ -5,38 +5,68 @@
 ---
 
 ## 1. ภาพรวมระดับสูง (High-Level Context Diagram)
-แสดงภาพรวมของ Actors หลักที่โต้ตอบกับระบบ CreditInsight และการเชื่อมต่อไปยังระบบภายนอก
+แสดงภาพรวมของระบบย่อย (Use Cases หลัก), Actors ที่โต้ตอบกับระบบ CreditInsight และการเชื่อมต่อไปยังระบบภายนอก
 
 ```mermaid
 flowchart LR
     %% Styling
     classDef actorStyle fill:#f9f9f9,stroke:#333,stroke-width:2px;
     classDef systemStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef useCaseStyle fill:#fff,stroke:#333,stroke-width:1px;
 
     %% Primary Actors
     BM(ผู้จัดการสาขา):::actorStyle
-    App(ผู้อนุมัติ):::actorStyle
-    Rev(ผู้ตรวจสอบ):::actorStyle
+    App(ผู้อนุมัติ <br>ผจก.การเงิน / คณะกรรมการ):::actorStyle
+    Rev(ผู้ตรวจสอบ <br>ผจก.ภูมิภาค / ผจก.ขาย / จนท.การเงิน):::actorStyle
     Admin(ผู้ดูแลระบบ):::actorStyle
 
-    %% External Systems
-    SSO[[ระบบ SSO]]:::systemStyle
-    DBD[[ระบบ DBD]]:::systemStyle
+    %% External Systems (Secondary Actors)
+    SSO[[ระบบ SSO ขององค์กร]]:::systemStyle
+    DBD[[ระบบ กรมพัฒนาธุรกิจการค้า DBD]]:::systemStyle
     ERP[[ระบบ ERP/UXP]]:::systemStyle
 
     %% System Boundary
-    System{{ระบบ CreditInsight}}:::systemStyle
+    subgraph CreditInsight [ระบบ CreditInsight]
+        direction TB
+        UC1([เข้าสู่ระบบและการจัดการสิทธิ์]):::useCaseStyle
+        UC2([ค้นหาและตรวจสอบสถานะลูกค้า]):::useCaseStyle
+        UC3([สร้างและส่งคำขอเครดิต]):::useCaseStyle
+        UC4([จัดการคำขอฉบับร่าง]):::useCaseStyle
+        UC5([ประมวลผลคะแนนความเสี่ยงและดึงข้อมูลอัตโนมัติ]):::useCaseStyle
+        UC6([พิจารณาและอนุมัติวงเงินเครดิต]):::useCaseStyle
+        UC7([ดูรายการคำขอและติดตามสถานะ]):::useCaseStyle
+        UC8([จัดการตั้งค่าระบบ]):::useCaseStyle
+    end
 
     %% Actor Connections
-    BM --> System
-    App --> System
-    Rev --> System
-    Admin --> System
+    BM --> UC1
+    App --> UC1
+    Rev --> UC1
+    Admin --> UC1
+
+    BM --> UC2
+    BM --> UC3
+    BM --> UC4
+    BM --> UC7
+
+    App --> UC2
+    App --> UC6
+    App --> UC7
+
+    Rev --> UC2
+    Rev --> UC7
+
+    Admin --> UC2
+    Admin --> UC7
+    Admin --> UC8
+
+    %% Relationships and Includes/Extends
+    UC1 -. "<< includes >>" .-> SSO
+    UC3 -. "<< includes >>" .-> UC5
 
     %% System Connections
-    System -.-> SSO
-    System -.-> DBD
-    System -.-> ERP
+    UC5 --> DBD
+    UC5 --> ERP
 ```
 
 ---
