@@ -29,29 +29,38 @@ sequenceDiagram
 
     participant SSO as ระบบ SSO ขององค์กร
 
-    User->>Vue: เปิดหน้าเว็บและกรอกรหัสพนักงาน + รหัสผ่าน
-    Vue->>SSO: ส่งข้อมูล Credential เพื่อยืนยันตัวตน (POST)
-    activate SSO
+    User->>Vue: เปิดหน้าเว็บแอปพลิเคชัน
+    Vue->>Vue: Router Check (beforeEach) ตรวจสอบ Token
 
-    alt Authentication Failed
-        SSO-->>Vue: 401 Unauthorized
-        Vue-->>User: แสดงข้อความ "ข้อมูลเข้าสู่ระบบไม่ถูกต้อง"
-    else Authentication Success
-        SSO-->>Vue: 200 OK (พร้อม JWT / Token)
-        deactivate SSO
+    alt ไม่มี Token หรือ Token หมดอายุ (Not Authenticated)
+        Vue->>SSO: พาผู้ใช้ไปยังหน้า Login ขององค์กร (Redirect)
+        activate SSO
 
-        Vue->>API: ขอข้อมูล Role และ RBAC Matrix (GET /api/config/rbac)
-        activate API
-        API->>DB: Query `RolePermissions` & `Configurations`
-        activate DB
-        DB-->>API: คืนค่า JSON Matrix Configuration
-        deactivate DB
-        API-->>Vue: 200 OK (JSON RBAC Matrix)
-        deactivate API
+        User->>SSO: กรอกรหัสพนักงาน + รหัสผ่านบนเว็บ SSO
 
-        Vue->>Vue: นำ Matrix โหลดเข้าสู่ `rbacStore` (Pinia)
-        Vue-->>User: แสดง Dashboard และเมนูตามสิทธิ์ (Role-based Menu)
+        alt Authentication Failed
+            SSO-->>User: แสดงข้อความแจ้งเตือนรหัสผิด (บนหน้า SSO)
+        else Authentication Success
+            SSO-->>Vue: Redirect กลับมาพร้อม JWT Token (Callback)
+            deactivate SSO
+        end
+    else มี Token อยู่แล้ว (Already Authenticated)
+        Vue->>Vue: ข้ามขั้นตอน SSO
     end
+
+    %% Proceed to RBAC Loading regardless of whether token came from SSO or cache
+    Vue->>API: ขอข้อมูล Role และ RBAC Matrix (GET /api/config/rbac พร้อมแนบ Token)
+    activate API
+    API->>API: Decode JWT เพื่อตรวจสอบสิทธิ์เบื้องต้น (ไม่จำกัดเฉพาะการ Sign)
+    API->>DB: Query `RolePermissions` & `Configurations`
+    activate DB
+    DB-->>API: คืนค่า JSON Matrix Configuration
+    deactivate DB
+    API-->>Vue: 200 OK (JSON RBAC Matrix)
+    deactivate API
+
+    Vue->>Vue: นำ Matrix โหลดเข้าสู่ `rbacStore` (Pinia)
+    Vue-->>User: แสดง Dashboard และเมนูตามสิทธิ์ (Role-based Menu)
 ```
 
 ---
