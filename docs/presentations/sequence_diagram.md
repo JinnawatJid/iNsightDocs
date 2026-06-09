@@ -1,8 +1,6 @@
 # Sequence Diagrams: ระบบ CreditInsight
 
-เอกสารนี้แสดง Sequence Diagrams ของระบบ CreditInsight ตามมาตรฐาน **UML 2.0** เพื่อใช้อธิบายลำดับการโต้ตอบระหว่าง Object หรือ Component ต่างๆ ในระบบตามเส้นเวลา (Timeline)
-
-เนื่องจากระบบมีการทำงานที่ซับซ้อน จึงได้ทำการแบ่ง Diagram ออกเป็น 3 ส่วนหลักตาม Business Workflow โดยนำเสนอในระดับ Technical Architecture (Frontend, Backend API, Database, External Systems)
+เพื่ออธิบายลำดับการแลกเปลี่ยนข้อมูลระหว่างผู้ใช้งาน ระบบส่วนติดต่อผู้ใช้ (Frontend) ระบบประมวลผล (Backend) ฐานข้อมูล (Database) และระบบภายนอก โดยแสดงลำดับการเรียกใช้งาน การประมวลผล และการตอบกลับของแต่ละองค์ประกอบในกระบวนการหลักของระบบ CreditInsight เพื่อให้เห็นภาพการทำงานของระบบตั้งแต่การเข้าสู่ระบบ การสร้างคำขอ การประเมินความเสี่ยง ไปจนถึงกระบวนการอนุมัติ
 
 **Participants (องค์ประกอบหลักในระบบ):**
 * `Actor`: ผู้ใช้งานระบบ (เช่น ผู้จัดการสาขา, ผู้อนุมัติ)
@@ -13,8 +11,8 @@
 
 ---
 
-## 1. Authentication & Authorization Flow
-แสดงกระบวนการเมื่อผู้ใช้งานเข้าสู่ระบบผ่าน SSO และระบบทำการดึงข้อมูลสิทธิ์ (RBAC Matrix) เพื่ออนุญาตการเข้าถึง
+## 1. กระบวนการยืนยันตัวตนและจัดการสิทธิ์ (Authentication & Authorization Flow)
+แสดงขั้นตอนการเข้าสู่ระบบ โดยระบบจะตรวจสอบ Token และ Redirect ไปยัง SSO ภายนอกหากยังไม่ได้ยืนยันตัวตน จากนั้น Backend จะทำการ Decode JWT และดึงสิทธิ์ (RBAC Matrix) ส่งกลับให้ Frontend เพื่อแสดงเมนูตามบทบาท
 
 ```mermaid
 sequenceDiagram
@@ -30,6 +28,7 @@ sequenceDiagram
     participant SSO as ระบบ SSO ขององค์กร
 
     User->>Vue: เปิดหน้าเว็บแอปพลิเคชัน
+    activate Vue
     Vue->>Vue: Router Check (beforeEach) ตรวจสอบ Token
 
     alt ไม่มี Token หรือ Token หมดอายุ (Not Authenticated)
@@ -61,12 +60,13 @@ sequenceDiagram
 
     Vue->>Vue: นำ Matrix โหลดเข้าสู่ `rbacStore` (Pinia)
     Vue-->>User: แสดง Dashboard และเมนูตามสิทธิ์ (Role-based Menu)
+    deactivate Vue
 ```
 
 ---
 
-## 2. Request Creation & Automated Scoring Flow
-แสดงกระบวนการสร้างคำขอเครดิตของผู้จัดการสาขา เริ่มตั้งแต่ค้นหาลูกค้า (ดึง UXP), บันทึกแบบร่าง (Draft), จนถึงส่งคำขอ (ประมวลผล Scoring อัตโนมัติ)
+## 2. กระบวนการสร้างคำขอ (Request Creation Flow)
+อธิบายลำดับตั้งแต่ผู้จัดการสาขาค้นหาลูกค้าผ่าน UXP การดึงประวัติการซื้อขาย การบันทึกแบบร่าง ไปจนถึงการแนบไฟล์เอกสารต่างๆ เพื่อเตรียมพร้อมสำหรับการส่งประเมิน
 
 ```mermaid
 sequenceDiagram
@@ -83,10 +83,13 @@ sequenceDiagram
 
     %% 1. Search & UXP Data Fetching
     BM->>Vue: กรอกเลขประจำตัวลูกค้า (ค้นหา)
+    activate Vue
     Vue->>API: GET /api/customers/:id
     activate API
     API->>DB: Query ข้อมูลลูกค้าเบื้องต้น
+    activate DB
     DB-->>API: ข้อมูลลูกค้า
+    deactivate DB
     API->>UXP: Request ประวัติการซื้อและชำระเงิน 3 เดือนย้อนหลัง
     activate UXP
     UXP-->>API: ข้อมูล Invoice & Payment History
@@ -94,29 +97,59 @@ sequenceDiagram
     API-->>Vue: 200 OK (รวมข้อมูลลูกค้าและ UXP)
     deactivate API
     Vue-->>BM: แสดงโปรไฟล์ลูกค้าและประวัติการซื้อ
+    deactivate Vue
 
     %% 2. Create Request & Draft
     BM->>Vue: กดสร้างคำขอและกรอกข้อมูลงบการเงิน
+    activate Vue
 
     opt บันทึกฉบับร่าง (Save Draft)
         BM->>Vue: กดปุ่ม "บันทึกฉบับร่าง"
         Vue->>Vue: แปลงฟอร์มเป็น Snapshot JSON
         Vue->>API: POST /api/credit-requests/draft
+        activate API
         API->>DB: บันทึกเข้าตารางสถานะ 'Draft'
+        activate DB
         DB-->>API: บันทึกสำเร็จ
+        deactivate DB
         API-->>Vue: 200 OK
+        deactivate API
         Vue-->>BM: แสดงข้อความ "บันทึกร่างสำเร็จ"
     end
+    deactivate Vue
 
-    %% 3. Form Validation & File Upload
+    %% 3. File Upload
     BM->>Vue: แนบไฟล์เอกสาร
+    activate Vue
     Vue->>API: POST /api/upload (Multer)
+    activate API
     API-->>Vue: URL/Path ของไฟล์แนบ
+    deactivate API
+    deactivate Vue
+```
 
+---
+
+## 3. กระบวนการประเมินความเสี่ยง (Automated Scoring Flow)
+อธิบายลำดับการทำงานเมื่อผู้ใช้งานกดส่งคำขอ ระบบจะทำการตรวจสอบความถูกต้องของข้อมูลเบื้องต้น (Validation) ก่อนให้ Backend คำนวณคะแนนความเสี่ยงและวงเงินแนะนำอัตโนมัติตาม Scorecard
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor BM as ผู้จัดการสาขา
+
+    box rgb(240, 248, 255) CreditInsight System
+        participant Vue as Frontend (Vue.js)
+        participant API as Backend (Node.js)
+        participant DB as Database
+    end
+
+    %% 1. Submit Request
     BM->>Vue: กดปุ่ม "ส่งคำขอ (Submit)"
+    activate Vue
     Vue->>Vue: Validate Mandatory Fields (เช็คความครบถ้วน)
 
-    %% 4. Scoring & Submission
+    %% 2. Scoring & Submission
     alt ข้อมูลไม่ครบถ้วน
         Vue-->>BM: แสดง Error ชี้จุดที่ต้องแก้ไข (Highlight Red)
     else ข้อมูลครบถ้วน
@@ -125,23 +158,28 @@ sequenceDiagram
 
         %% Scoring Engine Logic
         API->>DB: ดึงตั้งค่าคะแนน (Scorecard Config JSON)
+        activate DB
         DB-->>API: JSON Weights & Factors
+        deactivate DB
         API->>API: คำนวณคะแนนรวม (Total Score) และ Grade
         API->>API: คำนวณวงเงินแนะนำตามสูตร: BaseLimit * (Score/200)^Exponent
 
         %% Save & Workflow Transition
         API->>DB: บันทึกคำขอ, แนบ Score, และตั้งสถานะเป็น 'Pending Review'
+        activate DB
         DB-->>API: บันทึกสำเร็จ
+        deactivate DB
         API-->>Vue: 201 Created
         deactivate API
         Vue-->>BM: นำทางกลับหน้าจอรายการคำขอ
     end
+    deactivate Vue
 ```
 
 ---
 
-## 3. Review & Approval Workflow
-แสดงกระบวนการผู้ตรวจสอบ/ผู้อนุมัติทำการเปิดอ่านคำขอ ตรวจสอบวงเงินแนะนำ และทำการตัดสินใจ (อนุมัติ/ปรับแก้/ปฏิเสธ) พร้อมระบบ Audit Trail และแจ้งเตือน
+## 4. กระบวนการพิจารณาคำขอ (Review Process Flow)
+แสดงการทำงานของผู้อนุมัติที่เข้ามาดูรายการคำขอ เปิดอ่านรายละเอียด และตรวจสอบวงเงินแนะนำที่ระบบคำนวณไว้ให้ เพื่อใช้ประกอบการตัดสินใจ
 
 ```mermaid
 sequenceDiagram
@@ -154,21 +192,50 @@ sequenceDiagram
         participant DB as Database
     end
 
-    %% 1. View Pending List & Open Request
+    %% 1. View Pending List
     App->>Vue: เข้าหน้า "รายการเอกสารรออนุมัติ"
+    activate Vue
     Vue->>API: GET /api/credit-requests?status=pending
+    activate API
     API->>DB: Query กรองข้อมูลตามเขต (Region) และ Role
+    activate DB
     DB-->>API: รายการคำขอ
+    deactivate DB
     API-->>Vue: 200 OK (List of Requests)
+    deactivate API
     Vue-->>App: แสดงตารางข้อมูล
+    deactivate Vue
 
+    %% 2. Open Request
     App->>Vue: คลิกเปิดอ่านคำขอ (Review Dashboard)
+    activate Vue
     Vue->>API: GET /api/credit-requests/:id
+    activate API
     API-->>Vue: 200 OK (Full Request Data, Snapshot, Score)
+    deactivate API
     Vue-->>App: แสดงข้อมูลคำขอและวงเงินแนะนำ (System Recommendation)
+    deactivate Vue
+```
 
-    %% 2. Decision Making
+---
+
+## 5. กระบวนการอนุมัติ (Approval Decision Flow)
+อธิบายลำดับเมื่อผู้อนุมัติตัดสินใจอนุมัติ ปรับแก้ หรือปฏิเสธ ระบบจะดำเนินการอัปเดตสถานะและบันทึกข้อความ Audit Trail ลงในฐานข้อมูล
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor App as ผู้อนุมัติ <br>(ผจก.การเงิน / กรรมการ)
+
+    box rgb(240, 248, 255) CreditInsight System
+        participant Vue as Frontend (Vue.js)
+        participant API as Backend (Node.js)
+        participant DB as Database
+    end
+
+    %% 1. Decision Making
     App->>Vue: พิมพ์ความเห็นและเลือกการกระทำ (Action)
+    activate Vue
 
     alt ตัดสินใจ: ปฏิเสธ (Reject)
         App->>Vue: กดปุ่ม "ปฏิเสธคำขอ"
@@ -184,16 +251,43 @@ sequenceDiagram
         Vue->>API: PUT /api/credit-requests/:id/status (Approved)
     end
 
-    %% 3. Backend Processing & Notification
+    %% 2. Backend Processing
     activate API
     API->>DB: อัปเดตสถานะคำขอและแนบ Audit Trail Comment
+    activate DB
     DB-->>API: บันทึกสำเร็จ
+    deactivate DB
+    %% Return flow continues in Notification flow diagram
+```
 
-    %% Notification Trigger
+---
+
+## 6. กระบวนการแจ้งเตือน (Notification Flow)
+อธิบายลำดับการทำงานต่อเนื่องหลังจากที่คำขอได้รับการบันทึกสถานะเรียบร้อยแล้ว โดยระบบจะสร้างการแจ้งเตือนและส่งผลลัพธ์กลับไปยังผู้ใช้งาน
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor App as ผู้อนุมัติ <br>(ผจก.การเงิน / กรรมการ)
+
+    box rgb(240, 248, 255) CreditInsight System
+        participant Vue as Frontend (Vue.js)
+        participant API as Backend (Node.js)
+        participant DB as Database
+    end
+
+    %% 1. Notification Trigger (Continuing from Approval Flow)
+    activate Vue
+    activate API
     API->>DB: สร้าง Record ในตาราง Notifications (แจ้งกลับสาขา หรือ Role ถัดไป)
+    activate DB
     DB-->>API: สร้างแจ้งเตือนสำเร็จ
-    API-->>Vue: 200 OK (อัปเดตสถานะเรียบร้อย)
+    deactivate DB
+
+    %% 2. Response to Frontend
+    API-->>Vue: 200 OK (อัปเดตสถานะและแจ้งเตือนเรียบร้อย)
     deactivate API
 
     Vue-->>App: แสดง SweetAlert Success และพาคลับหน้าหลัก
+    deactivate Vue
 ```
