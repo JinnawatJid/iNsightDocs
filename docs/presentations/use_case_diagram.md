@@ -22,7 +22,7 @@ flowchart LR
 
     %% External Systems (Secondary Actors)
     SSO[[ระบบ SSO ขององค์กร]]:::systemStyle
-    ERP[[ระบบ ERP/UXP]]:::systemStyle
+    UXP[[ระบบ UXP]]:::systemStyle
 
     %% System Boundary
     subgraph CreditInsight [ระบบ CreditInsight]
@@ -64,7 +64,7 @@ flowchart LR
     UC3 -. "<< includes >>" .-> UC5
 
     %% System Connections
-    UC5 --> ERP
+    UC5 --> UXP
 ```
 
 ---
@@ -104,7 +104,7 @@ flowchart LR
 
 **คำอธิบาย Diagram:**
 ภาพนี้แสดงลำดับและเงื่อนไขในการจัดการคำขอของผู้จัดการสาขา:
-1. **การค้นหาลูกค้า:** ผู้จัดการสาขาเริ่มต้นจาก `ค้นหาและตรวจสอบสถานะลูกค้า` ซึ่งในขั้นตอนนี้ระบบจะบังคับทำการ `ดึงประวัติการซื้อย้อนหลัง 3 เดือน` จากระบบ ERP/UXP มาแสดงผลประกอบทันที (`<<includes>>`)
+1. **การค้นหาลูกค้า:** ผู้จัดการสาขาเริ่มต้นจาก `ค้นหาและตรวจสอบสถานะลูกค้า` ซึ่งในขั้นตอนนี้ระบบจะบังคับทำการ `ดึงประวัติการซื้อย้อนหลัง 3 เดือน` จากระบบ UXP มาแสดงผลประกอบทันที (`<<includes>>`)
 2. **การสร้างคำขอ:** ผู้จัดการสาขาสามารถ `สร้างคำขอเครดิต` โดยผู้ใช้ต้องทำการ `แนบไฟล์เอกสาร` งบการเงินหรือเอกสารอื่นๆ ด้วยตนเอง (`<<includes>>`) และมีทางเลือกให้พักการทำงานโดย `บันทึกฉบับร่าง` (`<<extends>>`) ได้
 3. **การส่งคำขอ:** เมื่อกรอกข้อมูลเสร็จสิ้นและกด `ส่งคำขอเครดิต` ระบบจะบังคับ `ตรวจสอบความครบถ้วน` ของฟอร์ม และทำการ `คำนวณคะแนนความเสี่ยง Scoring Engine` โดยอัตโนมัติก่อนส่งเข้าระบบ (`<<includes>>`)
 
@@ -115,7 +115,7 @@ flowchart LR
     classDef useCaseStyle fill:#fff,stroke:#333,stroke-width:1px;
 
     BM(ผู้จัดการสาขา):::actorStyle
-    ERP[[ระบบ ERP/UXP]]:::systemStyle
+    UXP[[ระบบ UXP]]:::systemStyle
 
     subgraph ReqSystem [ระบบสร้าง จัดการคำขอ และประมวลผล]
         direction TB
@@ -134,7 +134,7 @@ flowchart LR
     BM --> UC5
 
     UC1 -. "<< includes >>" .-> UC8
-    UC8 -. "<< communicates >>" .-> ERP
+    UC8 -. "<< communicates >>" .-> UXP
 
     UC2 -. "<< includes >>" .-> UC3
     UC2 -. "<< extends >>" .-> UC4

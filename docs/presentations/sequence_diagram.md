@@ -9,7 +9,7 @@
 * `Frontend (Vue.js)`: ระบบหน้าบ้านที่ทำงานบน Browser (Pinia Store, Vue Components)
 * `Backend (Node.js/Express)`: ระบบหลังบ้านที่จัดการ Business Logic และ API
 * `Database (MSSQL/SQLite)`: ฐานข้อมูลของระบบ
-* `External System`: ระบบภายนอก (SSO, ERP, DBD)
+* `External System`: ระบบภายนอก (SSO, UXP, DBD)
 
 ---
 
@@ -66,7 +66,7 @@ sequenceDiagram
 ---
 
 ## 2. Request Creation & Automated Scoring Flow
-แสดงกระบวนการสร้างคำขอเครดิตของผู้จัดการสาขา เริ่มตั้งแต่ค้นหาลูกค้า (ดึง ERP), บันทึกแบบร่าง (Draft), จนถึงส่งคำขอ (ประมวลผล Scoring อัตโนมัติ)
+แสดงกระบวนการสร้างคำขอเครดิตของผู้จัดการสาขา เริ่มตั้งแต่ค้นหาลูกค้า (ดึง UXP), บันทึกแบบร่าง (Draft), จนถึงส่งคำขอ (ประมวลผล Scoring อัตโนมัติ)
 
 ```mermaid
 sequenceDiagram
@@ -79,19 +79,19 @@ sequenceDiagram
         participant DB as Database
     end
 
-    participant ERP as ระบบ ERP/UXP
+    participant UXP as ระบบ UXP
 
-    %% 1. Search & ERP Data Fetching
+    %% 1. Search & UXP Data Fetching
     BM->>Vue: กรอกเลขประจำตัวลูกค้า (ค้นหา)
     Vue->>API: GET /api/customers/:id
     activate API
     API->>DB: Query ข้อมูลลูกค้าเบื้องต้น
     DB-->>API: ข้อมูลลูกค้า
-    API->>ERP: Request ประวัติการซื้อและชำระเงิน 3 เดือนย้อนหลัง
-    activate ERP
-    ERP-->>API: ข้อมูล Invoice & Payment History
-    deactivate ERP
-    API-->>Vue: 200 OK (รวมข้อมูลลูกค้าและ ERP)
+    API->>UXP: Request ประวัติการซื้อและชำระเงิน 3 เดือนย้อนหลัง
+    activate UXP
+    UXP-->>API: ข้อมูล Invoice & Payment History
+    deactivate UXP
+    API-->>Vue: 200 OK (รวมข้อมูลลูกค้าและ UXP)
     deactivate API
     Vue-->>BM: แสดงโปรไฟล์ลูกค้าและประวัติการซื้อ
 
