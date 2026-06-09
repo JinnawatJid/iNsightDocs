@@ -178,8 +178,8 @@ sequenceDiagram
 
 ---
 
-## 4. กระบวนการพิจารณาและอนุมัติคำขอ (Review & Approval Workflow)
-แสดงการทำงานของผู้อนุมัติที่เข้ามาดูรายการคำขอ เปิดอ่านรายละเอียด และตรวจสอบวงเงินแนะนำจากระบบ เมื่อตัดสินใจอนุมัติ ปรับแก้ หรือปฏิเสธ ระบบจะบันทึก Audit Trail เปลี่ยนสถานะ และแจ้งเตือนกลับไปยังผู้สร้าง
+## 4. กระบวนการพิจารณาคำขอ (Review Process Flow)
+แสดงการทำงานของผู้อนุมัติที่เข้ามาดูรายการคำขอ เปิดอ่านรายละเอียด และตรวจสอบวงเงินแนะนำที่ระบบคำนวณไว้ให้ เพื่อใช้ประกอบการตัดสินใจ
 
 ```mermaid
 sequenceDiagram
@@ -192,7 +192,7 @@ sequenceDiagram
         participant DB as Database
     end
 
-    %% 1. View Pending List & Open Request
+    %% 1. View Pending List
     App->>Vue: เข้าหน้า "รายการเอกสารรออนุมัติ"
     activate Vue
     Vue->>API: GET /api/credit-requests?status=pending
@@ -206,6 +206,7 @@ sequenceDiagram
     Vue-->>App: แสดงตารางข้อมูล
     deactivate Vue
 
+    %% 2. Open Request
     App->>Vue: คลิกเปิดอ่านคำขอ (Review Dashboard)
     activate Vue
     Vue->>API: GET /api/credit-requests/:id
@@ -214,8 +215,25 @@ sequenceDiagram
     deactivate API
     Vue-->>App: แสดงข้อมูลคำขอและวงเงินแนะนำ (System Recommendation)
     deactivate Vue
+```
 
-    %% 2. Decision Making
+---
+
+## 5. กระบวนการอนุมัติและแจ้งเตือน (Approval & Notification Flow)
+อธิบายลำดับเมื่อผู้อนุมัติตัดสินใจอนุมัติ ปรับแก้ หรือปฏิเสธ ระบบจะบันทึก Audit Trail เปลี่ยนสถานะในฐานข้อมูล และแจ้งเตือนกลับไปยังผู้สร้างหรือส่งต่อในลำดับถัดไป
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor App as ผู้อนุมัติ <br>(ผจก.การเงิน / กรรมการ)
+
+    box rgb(240, 248, 255) CreditInsight System
+        participant Vue as Frontend (Vue.js)
+        participant API as Backend (Node.js)
+        participant DB as Database
+    end
+
+    %% 1. Decision Making
     App->>Vue: พิมพ์ความเห็นและเลือกการกระทำ (Action)
     activate Vue
 
@@ -233,7 +251,7 @@ sequenceDiagram
         Vue->>API: PUT /api/credit-requests/:id/status (Approved)
     end
 
-    %% 3. Backend Processing & Notification
+    %% 2. Backend Processing & Notification
     activate API
     API->>DB: อัปเดตสถานะคำขอและแนบ Audit Trail Comment
     activate DB
