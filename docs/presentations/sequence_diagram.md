@@ -28,6 +28,7 @@ sequenceDiagram
     participant SSO as ระบบ SSO ขององค์กร
 
     User->>Vue: เปิดหน้าเว็บแอปพลิเคชัน
+    activate Vue
     Vue->>Vue: Router Check (beforeEach) ตรวจสอบ Token
 
     alt ไม่มี Token หรือ Token หมดอายุ (Not Authenticated)
@@ -59,6 +60,7 @@ sequenceDiagram
 
     Vue->>Vue: นำ Matrix โหลดเข้าสู่ `rbacStore` (Pinia)
     Vue-->>User: แสดง Dashboard และเมนูตามสิทธิ์ (Role-based Menu)
+    deactivate Vue
 ```
 
 ---
@@ -81,10 +83,13 @@ sequenceDiagram
 
     %% 1. Search & UXP Data Fetching
     BM->>Vue: กรอกเลขประจำตัวลูกค้า (ค้นหา)
+    activate Vue
     Vue->>API: GET /api/customers/:id
     activate API
     API->>DB: Query ข้อมูลลูกค้าเบื้องต้น
+    activate DB
     DB-->>API: ข้อมูลลูกค้า
+    deactivate DB
     API->>UXP: Request ประวัติการซื้อและชำระเงิน 3 เดือนย้อนหลัง
     activate UXP
     UXP-->>API: ข้อมูล Invoice & Payment History
@@ -92,26 +97,38 @@ sequenceDiagram
     API-->>Vue: 200 OK (รวมข้อมูลลูกค้าและ UXP)
     deactivate API
     Vue-->>BM: แสดงโปรไฟล์ลูกค้าและประวัติการซื้อ
+    deactivate Vue
 
     %% 2. Create Request & Draft
     BM->>Vue: กดสร้างคำขอและกรอกข้อมูลงบการเงิน
+    activate Vue
 
     opt บันทึกฉบับร่าง (Save Draft)
         BM->>Vue: กดปุ่ม "บันทึกฉบับร่าง"
         Vue->>Vue: แปลงฟอร์มเป็น Snapshot JSON
         Vue->>API: POST /api/credit-requests/draft
+        activate API
         API->>DB: บันทึกเข้าตารางสถานะ 'Draft'
+        activate DB
         DB-->>API: บันทึกสำเร็จ
+        deactivate DB
         API-->>Vue: 200 OK
+        deactivate API
         Vue-->>BM: แสดงข้อความ "บันทึกร่างสำเร็จ"
     end
+    deactivate Vue
 
     %% 3. Form Validation & File Upload
     BM->>Vue: แนบไฟล์เอกสาร
+    activate Vue
     Vue->>API: POST /api/upload (Multer)
+    activate API
     API-->>Vue: URL/Path ของไฟล์แนบ
+    deactivate API
+    deactivate Vue
 
     BM->>Vue: กดปุ่ม "ส่งคำขอ (Submit)"
+    activate Vue
     Vue->>Vue: Validate Mandatory Fields (เช็คความครบถ้วน)
 
     %% 4. Scoring & Submission
@@ -123,17 +140,22 @@ sequenceDiagram
 
         %% Scoring Engine Logic
         API->>DB: ดึงตั้งค่าคะแนน (Scorecard Config JSON)
+        activate DB
         DB-->>API: JSON Weights & Factors
+        deactivate DB
         API->>API: คำนวณคะแนนรวม (Total Score) และ Grade
         API->>API: คำนวณวงเงินแนะนำตามสูตร: BaseLimit * (Score/200)^Exponent
 
         %% Save & Workflow Transition
         API->>DB: บันทึกคำขอ, แนบ Score, และตั้งสถานะเป็น 'Pending Review'
+        activate DB
         DB-->>API: บันทึกสำเร็จ
+        deactivate DB
         API-->>Vue: 201 Created
         deactivate API
         Vue-->>BM: นำทางกลับหน้าจอรายการคำขอ
     end
+    deactivate Vue
 ```
 
 ---
@@ -154,19 +176,30 @@ sequenceDiagram
 
     %% 1. View Pending List & Open Request
     App->>Vue: เข้าหน้า "รายการเอกสารรออนุมัติ"
+    activate Vue
     Vue->>API: GET /api/credit-requests?status=pending
+    activate API
     API->>DB: Query กรองข้อมูลตามเขต (Region) และ Role
+    activate DB
     DB-->>API: รายการคำขอ
+    deactivate DB
     API-->>Vue: 200 OK (List of Requests)
+    deactivate API
     Vue-->>App: แสดงตารางข้อมูล
+    deactivate Vue
 
     App->>Vue: คลิกเปิดอ่านคำขอ (Review Dashboard)
+    activate Vue
     Vue->>API: GET /api/credit-requests/:id
+    activate API
     API-->>Vue: 200 OK (Full Request Data, Snapshot, Score)
+    deactivate API
     Vue-->>App: แสดงข้อมูลคำขอและวงเงินแนะนำ (System Recommendation)
+    deactivate Vue
 
     %% 2. Decision Making
     App->>Vue: พิมพ์ความเห็นและเลือกการกระทำ (Action)
+    activate Vue
 
     alt ตัดสินใจ: ปฏิเสธ (Reject)
         App->>Vue: กดปุ่ม "ปฏิเสธคำขอ"
@@ -185,13 +218,18 @@ sequenceDiagram
     %% 3. Backend Processing & Notification
     activate API
     API->>DB: อัปเดตสถานะคำขอและแนบ Audit Trail Comment
+    activate DB
     DB-->>API: บันทึกสำเร็จ
+    deactivate DB
 
     %% Notification Trigger
     API->>DB: สร้าง Record ในตาราง Notifications (แจ้งกลับสาขา หรือ Role ถัดไป)
+    activate DB
     DB-->>API: สร้างแจ้งเตือนสำเร็จ
+    deactivate DB
     API-->>Vue: 200 OK (อัปเดตสถานะเรียบร้อย)
     deactivate API
 
     Vue-->>App: แสดง SweetAlert Success และพาคลับหน้าหลัก
+    deactivate Vue
 ```
