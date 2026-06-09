@@ -219,8 +219,8 @@ sequenceDiagram
 
 ---
 
-## 5. กระบวนการอนุมัติและแจ้งเตือน (Approval & Notification Flow)
-อธิบายลำดับเมื่อผู้อนุมัติตัดสินใจอนุมัติ ปรับแก้ หรือปฏิเสธ ระบบจะบันทึก Audit Trail เปลี่ยนสถานะในฐานข้อมูล และแจ้งเตือนกลับไปยังผู้สร้างหรือส่งต่อในลำดับถัดไป
+## 5. กระบวนการอนุมัติ (Approval Decision Flow)
+อธิบายลำดับเมื่อผู้อนุมัติตัดสินใจอนุมัติ ปรับแก้ หรือปฏิเสธ ระบบจะดำเนินการอัปเดตสถานะและบันทึกข้อความ Audit Trail ลงในฐานข้อมูล
 
 ```mermaid
 sequenceDiagram
@@ -251,19 +251,41 @@ sequenceDiagram
         Vue->>API: PUT /api/credit-requests/:id/status (Approved)
     end
 
-    %% 2. Backend Processing & Notification
+    %% 2. Backend Processing
     activate API
     API->>DB: อัปเดตสถานะคำขอและแนบ Audit Trail Comment
     activate DB
     DB-->>API: บันทึกสำเร็จ
     deactivate DB
+    %% Return flow continues in Notification flow diagram
+```
 
-    %% Notification Trigger
+---
+
+## 6. กระบวนการแจ้งเตือน (Notification Flow)
+อธิบายลำดับการทำงานต่อเนื่องหลังจากที่คำขอได้รับการบันทึกสถานะเรียบร้อยแล้ว โดยระบบจะสร้างการแจ้งเตือนและส่งผลลัพธ์กลับไปยังผู้ใช้งาน
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor App as ผู้อนุมัติ <br>(ผจก.การเงิน / กรรมการ)
+
+    box rgb(240, 248, 255) CreditInsight System
+        participant Vue as Frontend (Vue.js)
+        participant API as Backend (Node.js)
+        participant DB as Database
+    end
+
+    %% 1. Notification Trigger (Continuing from Approval Flow)
+    activate Vue
+    activate API
     API->>DB: สร้าง Record ในตาราง Notifications (แจ้งกลับสาขา หรือ Role ถัดไป)
     activate DB
     DB-->>API: สร้างแจ้งเตือนสำเร็จ
     deactivate DB
-    API-->>Vue: 200 OK (อัปเดตสถานะเรียบร้อย)
+
+    %% 2. Response to Frontend
+    API-->>Vue: 200 OK (อัปเดตสถานะและแจ้งเตือนเรียบร้อย)
     deactivate API
 
     Vue-->>App: แสดง SweetAlert Success และพาคลับหน้าหลัก
