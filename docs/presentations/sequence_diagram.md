@@ -15,7 +15,6 @@
 แสดงขั้นตอนการเข้าสู่ระบบ โดยระบบจะตรวจสอบ Token และ Redirect ไปยัง SSO ภายนอกหากยังไม่ได้ยืนยันตัวตน จากนั้น Backend จะทำการ Decode JWT และดึงสิทธิ์ (RBAC Matrix) ส่งกลับให้ Frontend เพื่อแสดงเมนูตามบทบาท
 
 ```mermaid
-%%{init: {"sequence": {"messageMargin": 10}}}%%
 sequenceDiagram
     autonumber
     actor User as ผู้ใช้งาน
@@ -68,7 +67,6 @@ sequenceDiagram
 อธิบายลำดับตั้งแต่ผู้จัดการสาขาค้นหาลูกค้าผ่าน UXP การบันทึกแบบร่าง การแนบไฟล์เอกสาร และเมื่อกดส่งคำขอ ระบบจะทำการตรวจสอบความถูกต้อง ก่อนให้ Backend คำนวณคะแนนความเสี่ยงและวงเงินแนะนำอัตโนมัติ
 
 ```mermaid
-%%{init: {"sequence": {"messageMargin": 10}}}%%
 sequenceDiagram
     autonumber
     actor BM as ผู้จัดการสาขา
@@ -144,7 +142,6 @@ sequenceDiagram
 แสดงการทำงานของผู้อนุมัติที่เข้ามาดูรายการคำขอ เปิดอ่านรายละเอียด และตรวจสอบวงเงินแนะนำจากระบบ เมื่อตัดสินใจอนุมัติ ปรับแก้ หรือปฏิเสธ ระบบจะบันทึก Audit Trail เปลี่ยนสถานะ และแจ้งเตือนกลับไปยังผู้สร้าง
 
 ```mermaid
-%%{init: {"sequence": {"messageMargin": 10}}}%%
 sequenceDiagram
     autonumber
     actor App as ผู้อนุมัติ <br>(ผจก.การเงิน / กรรมการ)
