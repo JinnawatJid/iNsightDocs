@@ -65,8 +65,8 @@ sequenceDiagram
 
 ---
 
-## 2. กระบวนการสร้างคำขอและประเมินความเสี่ยง (Request Creation & Automated Scoring Flow)
-อธิบายลำดับตั้งแต่ผู้จัดการสาขาค้นหาลูกค้าผ่าน UXP การบันทึกแบบร่าง การแนบไฟล์เอกสาร และเมื่อกดส่งคำขอ ระบบจะทำการตรวจสอบความถูกต้อง ก่อนให้ Backend คำนวณคะแนนความเสี่ยงและวงเงินแนะนำอัตโนมัติ
+## 2. กระบวนการสร้างคำขอ (Request Creation Flow)
+อธิบายลำดับตั้งแต่ผู้จัดการสาขาค้นหาลูกค้าผ่าน UXP การดึงประวัติการซื้อขาย การบันทึกแบบร่าง ไปจนถึงการแนบไฟล์เอกสารต่างๆ เพื่อเตรียมพร้อมสำหรับการส่งประเมิน
 
 ```mermaid
 sequenceDiagram
@@ -118,7 +118,7 @@ sequenceDiagram
     end
     deactivate Vue
 
-    %% 3. Form Validation & File Upload
+    %% 3. File Upload
     BM->>Vue: แนบไฟล์เอกสาร
     activate Vue
     Vue->>API: POST /api/upload (Multer)
@@ -126,12 +126,30 @@ sequenceDiagram
     API-->>Vue: URL/Path ของไฟล์แนบ
     deactivate API
     deactivate Vue
+```
 
+---
+
+## 3. กระบวนการประเมินความเสี่ยง (Automated Scoring Flow)
+อธิบายลำดับการทำงานเมื่อผู้ใช้งานกดส่งคำขอ ระบบจะทำการตรวจสอบความถูกต้องของข้อมูลเบื้องต้น (Validation) ก่อนให้ Backend คำนวณคะแนนความเสี่ยงและวงเงินแนะนำอัตโนมัติตาม Scorecard
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor BM as ผู้จัดการสาขา
+
+    box rgb(240, 248, 255) CreditInsight System
+        participant Vue as Frontend (Vue.js)
+        participant API as Backend (Node.js)
+        participant DB as Database
+    end
+
+    %% 1. Submit Request
     BM->>Vue: กดปุ่ม "ส่งคำขอ (Submit)"
     activate Vue
     Vue->>Vue: Validate Mandatory Fields (เช็คความครบถ้วน)
 
-    %% 4. Scoring & Submission
+    %% 2. Scoring & Submission
     alt ข้อมูลไม่ครบถ้วน
         Vue-->>BM: แสดง Error ชี้จุดที่ต้องแก้ไข (Highlight Red)
     else ข้อมูลครบถ้วน
@@ -160,7 +178,7 @@ sequenceDiagram
 
 ---
 
-## 3. กระบวนการพิจารณาและอนุมัติคำขอ (Review & Approval Workflow)
+## 4. กระบวนการพิจารณาและอนุมัติคำขอ (Review & Approval Workflow)
 แสดงการทำงานของผู้อนุมัติที่เข้ามาดูรายการคำขอ เปิดอ่านรายละเอียด และตรวจสอบวงเงินแนะนำจากระบบ เมื่อตัดสินใจอนุมัติ ปรับแก้ หรือปฏิเสธ ระบบจะบันทึก Audit Trail เปลี่ยนสถานะ และแจ้งเตือนกลับไปยังผู้สร้าง
 
 ```mermaid
