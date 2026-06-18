@@ -245,6 +245,7 @@
           v-model="files.balanceSheet"
           :disabled="!isEditing || store.transactionData.noFinancialData"
           accept=".xlsx, .xls"
+          description="รองรับ XLSX, XLS (สูงสุด 20MB)"
         />
         <FileUploader
           label="งบกำไรขาดทุน (Profit & Loss)"
@@ -252,6 +253,7 @@
           v-model="files.profitLoss"
           :disabled="!isEditing || store.transactionData.noFinancialData"
           accept=".xlsx, .xls"
+          description="รองรับ XLSX, XLS (สูงสุด 20MB)"
         />
         <FileUploader
           label="งบอัตราส่วนทางการเงิน (Ratios)"
@@ -259,6 +261,7 @@
           v-model="files.financialRatios"
           :disabled="!isEditing || store.transactionData.noFinancialData"
           accept=".xlsx, .xls"
+          description="รองรับ XLSX, XLS (สูงสุด 20MB)"
         />
       </div>
 

@@ -32,7 +32,7 @@
     </div>
 
     <div class="info-text" v-if="!disabled">
-        {{ multiple ? 'รองรับ JPG, PNG, PDF (สูงสุด 20MB / อัปโหลดได้สูงสุด 10 ไฟล์)' : 'รองรับ JPG, PNG, PDF (สูงสุด 20MB)' }}
+        {{ description ? description : (multiple ? 'รองรับ JPG, PNG, PDF (สูงสุด 20MB / อัปโหลดได้สูงสุด 10 ไฟล์)' : 'รองรับ JPG, PNG, PDF (สูงสุด 20MB)') }}
     </div>
 
     <!-- File List (Outside box, scrollable) -->
@@ -133,6 +133,10 @@ export default {
     accept: {
       type: String,
       default: '.jpg, .jpeg, .png, .pdf'
+    },
+    description: {
+      type: String,
+      default: ''
     },
     modelValue: {
       type: [Object, Array],
