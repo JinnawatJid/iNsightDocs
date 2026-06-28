@@ -5,11 +5,6 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue()],
-  test: {
-    globals: true,
-    environment: "jsdom",
-    setupFiles: ["vitest.setup.js"]
-  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
