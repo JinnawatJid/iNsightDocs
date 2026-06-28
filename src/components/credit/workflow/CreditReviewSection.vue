@@ -8,7 +8,7 @@
     <div class="review-content">
       <!-- Request Timeline (Moved to Top) -->
       <div class="comments-history-wrapper">
-         <RequestTimeline :comments="comments" :currentStatus="store.requestStatus" :requestAmount="store.transactionData?.amount" />
+         <RequestTimeline :comments="comments" :currentStatus="store.requestStatus" :requestAmount="store.originalRequestedAmount || store.transactionData?.amount" />
       </div>
 
       <!-- Separator if we have terms -->
