@@ -117,8 +117,9 @@ watch(() => store.transactionData?.draftComment, (newVal) => {
 }, { immediate: true });
 
 const handleRecalculateScore = async (payload) => {
+    const customerNo = store.customer?.id || store.customer?.No_ || '';
     // If we have a request ID, we can trigger a recalculate by building a form data payload
-    if (!store.requestId || !store.customer?.id) return;
+    if (!store.requestId || !customerNo) return;
 
     // Calculate total guarantee sum from snapshot data accurately
     let totalGuaranteeSum = 0;
@@ -154,20 +155,32 @@ const handleRecalculateScore = async (payload) => {
     const t3 = parseInt(tData.termYC || 0);
     const requestTerm = tData.creditTerm || Math.max(t1, t2, t3) || '30';
 
-    const cleanCapital = tData.registeredCapital ? String(tData.registeredCapital).replace(/,/g, '') : '0';
+    const rawCapital = store.customer?.registered_capital || store.customer?.registeredCapital || tData.registeredCapital || '0';
+    const cleanCapital = String(rawCapital).replace(/,/g, '');
+
+    const customerDurationVal = store.customer?.customer_duration ?? store.customer?.customer_duration_years ?? tData.customerDuration ?? '0';
+    const wadlScore = store.financialSummary?.analysis_result?.financialSummary?.wadlData?.score ?? 
+                      store.financialSummary?.analysis_result?.financial?.wadlData?.score ?? 
+                      tData.wadl ?? 
+                      0;
+
+    const taxId = store.customer?.tax_id || store.customer?.['VAT Registration No_'] || store.customer?.vat_registration_no || '';
 
     const formData = new FormData();
-    formData.append('customer_no', store.customer.id);
+    formData.append('customer_no', customerNo);
+    if (taxId) {
+        formData.append('tax_id', taxId);
+    }
     formData.append('use_local', 'true');
-    formData.append('model_type', tData.modelType || 'new');
+    formData.append('model_type', tData.modelType || store.currentModelType || 'new');
     formData.append('registered_capital', cleanCapital);
     formData.append('request_amount', String(tData.amount || 0).replace(/,/g, ''));
     formData.append('request_credit_term', requestTerm);
-    formData.append('customer_duration', tData.customerDuration || '0');
+    formData.append('customer_duration', String(customerDurationVal));
     formData.append('years_in_business', store.customer.years_in_business || '0');
     formData.append('residence_ownership', store.customer.residence_ownership || '');
     formData.append('residence_ownership_other', store.customer.residence_ownership_other || '');
-    formData.append('wadl', tData.wadl || 0);
+    formData.append('wadl', String(wadlScore));
     formData.append('total_guarantee_amount', totalGuaranteeSum);
 
     if (payload.force_full_purchase_score) {

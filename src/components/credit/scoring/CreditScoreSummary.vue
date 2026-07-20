@@ -471,7 +471,7 @@ const rbacStore = useRbacStore();
           const { applyToCustom = true } = options;
           this.isLoadingWeights = true;
           try {
-              const modelType = this.creditScore?.modelType || 'new';
+              const modelType = this.creditScore?.modelType || this.store.currentModelType || 'new';
               const axios = (await import('@/utils/axios')).default;
               const response = await axios.get(`/api/scorecard/${modelType}`);
               if (response.data && response.data.components) {

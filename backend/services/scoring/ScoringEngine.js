@@ -27,7 +27,9 @@ class ScoringEngine {
      */
     static score(context) {
         const strategy = this.getStrategy(context);
-        return strategy.calculateScore(context);
+        const result = strategy.calculateScore(context);
+        result.modelType = context.modelType || 'new';
+        return result;
     }
 }
 
