@@ -29,3 +29,8 @@ backend/*.db
 backend/uploads
 *.sqlite
 *.sqlite-journal
+
+# Temporary UAT utility scripts
+scripts/patch_request_score.js
+scripts/debug_context.js
+scripts/query_customer_limit.js

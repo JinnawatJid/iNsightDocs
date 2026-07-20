@@ -294,7 +294,7 @@ const currentProjectValueLimit = computed(() => {
 
 // Credit Calculation Logic
 const currentCreditLimit = computed(() => {
-  return Number(store.customer?.current_credit_limit) || 0;
+  return parseFloat(String(store.customer?.current_credit_limit || 0).replace(/,/g, '')) || 0;
 });
 
 // Helper to parse dates securely

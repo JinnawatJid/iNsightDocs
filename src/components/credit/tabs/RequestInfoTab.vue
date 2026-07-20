@@ -762,13 +762,15 @@ function removeCreditRow(index) {
 }
 
 const formattedCurrentCreditLimit = computed(() => {
-    return store.customer.current_credit_limit ? Number(store.customer.current_credit_limit).toLocaleString('en-US') : 'N/A';
+    if (!store.customer.current_credit_limit) return 'N/A';
+    const parsed = parseFloat(String(store.customer.current_credit_limit).replace(/,/g, ''));
+    return isNaN(parsed) ? 'N/A' : parsed.toLocaleString('en-US');
 });
 
 const totalLimit = computed(() => {
     if (!isRequestIncrease.value) return 'N/A';
 
-    const currentLimit = Number(store.customer.current_credit_limit || 0);
+    const currentLimit = parseFloat(String(store.customer.current_credit_limit || 0).replace(/,/g, '')) || 0;
     let amountStr = store.transactionData.amount;
     if (!canEditAmount.value) {
         if (store.originalRequestedAmount !== null && store.originalRequestedAmount !== undefined) {
