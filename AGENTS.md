@@ -36,3 +36,11 @@ Files created but not yet committed may disappear if the environment resets or "
 
 ## 5. Workflow Timeline Component
 * **Timeline Rendering Logic:** The visual workflow timeline (`RequestTimeline.vue`) determines the required approval steps (e.g., Credit Committee vs. Finance Manager) by evaluating the `originalRequestedAmount` from the `creditRequest` Pinia store. This ensures the timeline consistently reflects the initial routing path, even if the final approved amount is later negotiated downwards.
+
+## 6. Scorecard Selection and Override Modal Recalculation
+
+* **Scorecard Strategy Resolution:** The system dynamically selects either the `NewCustomerScorecard` or the `ExistingCustomerScorecard` based on the request type and the presence of existing customer credit limit/history in the store (`currentModelType` getter in `creditRequest.js` store).
+* **Override Weights Modal Recalculation:** When reviews recalculate or preview overridden weights inside the modal, they call the `/api/financials/analyze` POST API. This API requires the correct customer details:
+  * `customer_no` must be retrieved via `store.customer?.id || store.customer?.No_` (fallback path, as snapshot fields vary).
+  * `tax_id` must be passed explicitly from `store.customer?.tax_id || store.customer?.['VAT Registration No_'] || store.customer?.vat_registration_no` to avoid failing queries under sandboxed/UAT environments.
+  * `registered_capital`, `customer_duration`, and `wadl` must be read from the correct state locations (i.e., `store.customer` and `store.financialSummary`) rather than `store.transactionData` (which does not store customer profile/API metrics).
