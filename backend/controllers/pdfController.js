@@ -230,6 +230,18 @@ const generateCreditRequestPDF = async (req, res) => {
     let scoreData = snapshot.credit_score || {};
     let requestType = data.request_type || 'เครดิตใหม่';
 
+    // Determine scorecard strategy / request category alignment
+    // Check if the actual evaluated score has the WADL factor (Existing model indicator)
+    const hasWadl = !!(scoreData.breakdown?.c3?.items && scoreData.breakdown.c3.items.some(item => item.key === 'wadl'));
+    
+    // If not evaluated yet, fallback to request type matching
+    const isExistingModel = scoreData.breakdown 
+        ? hasWadl 
+        : (requestType === 'ขอเครดิตเพิ่ม' || 
+           requestType === 'เครดิตเพิ่ม' || 
+           requestType === 'เปลี่ยนแปลงระยะเวลาเครดิต' || 
+           requestType === 'เปลี่ยนแปลงเงื่อนไขการชำระเงิน');
+
     // If financial data is empty, try to fetch from DB (Live Data Fallback)
     const hasFinancials = financial.stats || (financial.monthly_history && financial.monthly_history.length > 0);
     if (!hasFinancials) {
@@ -265,7 +277,7 @@ const generateCreditRequestPDF = async (req, res) => {
     // Filter history based on request type
     if (requestType === 'เครดิตใหม่') {
         monthlyHistory = monthlyHistory.slice(0, 3);
-    } else if (requestType === 'ขอเครดิตเพิ่ม') {
+    } else if (isExistingModel) {
         monthlyHistory = monthlyHistory.slice(0, 6);
     }
 
@@ -312,27 +324,40 @@ const generateCreditRequestPDF = async (req, res) => {
     let limitVal = isDefined(scoreData.recommendedLimit) ? scoreData.recommendedLimit : scoreData.recommended_limit;
     let recommendedLimit = isDefined(limitVal) ? formatCurrency(limitVal) + ' บาท' : '-';
 
-    // Calculate Max Scores based on request type
-    let configFileName = requestType === 'ขอเครดิตเพิ่ม' ? 'credit_scorecard_existing_v1.json' : 'credit_scorecard_v1.json';
-    let configPath = path.resolve(__dirname, `../config/${configFileName}`);
+    // Calculate Max Scores dynamically from the saved breakdown weights if available
     let maxC1 = 0, maxC2 = 0, maxC3 = 0;
-    try {
-        const rawConfig = fs.readFileSync(configPath, 'utf8');
-        const config = JSON.parse(rawConfig);
-        const components = config.components || {};
-
-        const sumWeights = (componentKey) => {
-            if (components[componentKey] && Array.isArray(components[componentKey].factors)) {
-                return components[componentKey].factors.reduce((sum, factor) => sum + (factor.weight || 0), 0);
-            }
-            return 0;
+    if (scoreData.breakdown) {
+        const sumWeightsFromBreakdown = (comp) => {
+            const items = comp?.items || comp?.factors || [];
+            return items.reduce((sum, item) => sum + (item.weight || 0), 0);
         };
+        maxC1 = sumWeightsFromBreakdown(scoreData.breakdown.c1);
+        maxC2 = sumWeightsFromBreakdown(scoreData.breakdown.c2);
+        maxC3 = sumWeightsFromBreakdown(scoreData.breakdown.c3);
+    }
 
-        maxC1 = sumWeights('c1');
-        maxC2 = sumWeights('c2');
-        maxC3 = sumWeights('c3');
-    } catch (e) {
-        logger.error('Error calculating max scores:', e);
+    // Fallback to reading the configuration JSON files if breakdown is missing or empty
+    if (maxC1 === 0 || maxC2 === 0 || maxC3 === 0) {
+        let configFileName = isExistingModel ? 'credit_scorecard_existing_v1.json' : 'credit_scorecard_v1.json';
+        let configPath = path.resolve(__dirname, `../config/${configFileName}`);
+        try {
+            const rawConfig = fs.readFileSync(configPath, 'utf8');
+            const config = JSON.parse(rawConfig);
+            const components = config.components || {};
+
+            const sumWeights = (componentKey) => {
+                if (components[componentKey] && Array.isArray(components[componentKey].factors)) {
+                    return components[componentKey].factors.reduce((sum, factor) => sum + (factor.weight || 0), 0);
+                }
+                return 0;
+            };
+
+            maxC1 = sumWeights('c1');
+            maxC2 = sumWeights('c2');
+            maxC3 = sumWeights('c3');
+        } catch (e) {
+            logger.error('Error calculating max scores:', e);
+        }
     }
 
     // Score Breakdown
@@ -535,7 +560,8 @@ const generateCreditRequestPDF = async (req, res) => {
         const components = ['c1', 'c2', 'c3'];
         components.forEach(compKey => {
             const comp = scoreData.breakdown[compKey];
-            if (comp && comp.factors) {
+            const factors = comp?.items || comp?.factors;
+            if (comp && factors) {
                 // Section Header for component
                 let compName = compKey === 'c1' ? 'C1: ความแข็งแกร่งของบริษัท' :
                                compKey === 'c2' ? 'C2: กระแสเงินสด' :
@@ -546,8 +572,8 @@ const generateCreditRequestPDF = async (req, res) => {
                     {}, {}
                 ]);
 
-                // Factors
-                comp.factors.forEach(factor => {
+                // Factors / Items
+                factors.forEach(factor => {
                     let fVal = factor.displayValue !== undefined ? factor.displayValue : (factor.value !== undefined ? factor.value : '-');
                     if(typeof factor.value === 'number') {
                         if(factor.value % 1 !== 0) {

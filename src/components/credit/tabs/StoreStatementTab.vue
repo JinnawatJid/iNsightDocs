@@ -387,7 +387,7 @@
                 </template>
 
                 <div v-if="store.customer.current_credit_limit" class="current-limit-sub">
-                    (ปัจจุบัน: {{ formatNumber(Number(store.customer.current_credit_limit)) }})
+                    (ปัจจุบัน: {{ formatNumber(parseFloat(String(store.customer.current_credit_limit).replace(/,/g, '')) || 0) }})
                 </div>
             </div>
         </div>
@@ -1460,7 +1460,12 @@ const currentModelType = computed(() => {
     // if the customer has an existing credit record or a non-zero current limit.
     const customer = store.customer || {};
     const hasExistingCredits = Array.isArray(customer.existing_credits) && customer.existing_credits.length > 0;
-    const currentLimit = Number(customer.current_credit_limit || customer.Fixed_Credit_Limit || customer.currentLimit || 0) || 0;
+    const cleanLimit = (val) => {
+        if (!val) return 0;
+        const cleaned = String(val).replace(/,/g, '');
+        return parseFloat(cleaned) || 0;
+    };
+    const currentLimit = cleanLimit(customer.current_credit_limit || customer.Fixed_Credit_Limit || customer.currentLimit);
 
     return hasExistingCredits || currentLimit > 0 ? 'existing' : 'new';
 });
