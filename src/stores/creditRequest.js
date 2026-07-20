@@ -89,6 +89,21 @@ export const useCreditRequestStore = defineStore("creditRequest", {
   }),
 
   getters: {
+    currentModelType: (state) => {
+      const reqType = state.transactionData?.requestType || 'เครดิตใหม่';
+      if (reqType === 'เครดิตใหม่') return 'new';
+
+      const customer = state.customer || {};
+      const hasExistingCredits = Array.isArray(customer.existing_credits) && customer.existing_credits.length > 0;
+      const cleanLimit = (val) => {
+          if (!val) return 0;
+          const cleaned = String(val).replace(/,/g, '');
+          return parseFloat(cleaned) || 0;
+      };
+      const currentLimit = cleanLimit(customer.current_credit_limit || customer.Fixed_Credit_Limit || customer.currentLimit);
+
+      return hasExistingCredits || currentLimit > 0 ? 'existing' : 'new';
+    },
     userRole: (state) => {
       const s = state.requestStatus;
       if (!s || s === "Draft") return "ผู้จัดการสาขา";
