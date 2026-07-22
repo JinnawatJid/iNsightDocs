@@ -954,7 +954,7 @@ if (custom_weights) {
     // --- 3. SCORING ENGINE INTEGRATION ---
 
     // Determine if Company (Check Name) — use canonical shared function
-    const finalName = customer_name || customerData.Name || "";
+    const finalName = customer_name || customerData.Name || customerData.name || customerData.customer_name || customerData.Customer_Name || "";
     const isCorp = isCompanyByName(finalName);
     const c2Inputs = { ...results, dscr: calculations.dscr };
 
