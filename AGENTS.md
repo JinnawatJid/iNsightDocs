@@ -22,6 +22,7 @@ Files created but not yet committed may disappear if the environment resets or "
 
 ## 3. General Directives
 *   **Verification:** Always verify file creation and content using `read_file` or `list_files` before marking a task as complete.
+*   **Architecture Verification:** Never infer or assume module locations (e.g. `backend/models`) without inspecting the filesystem via code search or listing tools. This project executes database operations directly via `db.query` rather than ORM/Model abstractions.
 *   **Testing:** Run relevant tests (or verify manually via `curl` for backend / Playwright for frontend) before submitting.
 
 ## 4. Verification Protocol for Autonomous Agents
@@ -44,3 +45,6 @@ Files created but not yet committed may disappear if the environment resets or "
   * `customer_no` must be retrieved via `store.customer?.id || store.customer?.No_` (fallback path, as snapshot fields vary).
   * `tax_id` must be passed explicitly from `store.customer?.tax_id || store.customer?.['VAT Registration No_'] || store.customer?.vat_registration_no` to avoid failing queries under sandboxed/UAT environments.
   * `registered_capital`, `customer_duration`, and `wadl` must be read from the correct state locations (i.e., `store.customer` and `store.financialSummary`) rather than `store.transactionData` (which does not store customer profile/API metrics).
+* **Juristic Entity Name Resolution in Financial Analysis:** When evaluating whether a customer is a juristic entity (`isCompanyByName`), the customer name must check all cased variants (`customer_name || customerData.Name || customerData.name || customerData.customer_name || customerData.Customer_Name`). Failing to match lowercase/cased properties causes `isCompanyByName` to return `false`, which mistakenly treats corporate entities as individual persons and zeroes out all C2 Cashflow scores.
+* **Automatic Credit Score Evaluation on Request Submission:** When submitting a credit request (`createCreditRequest`), if `snapshot_data.credit_score.totalScore` is missing (e.g. when `noFinancialData === true` or when the initiator skipped manual evaluation), `creditRequestController.js` automatically runs `ScoringEngine.score()` to calculate C1, C2 fallback, and C3 purchase history scores. This guarantees that every submitted request in the system always contains a valid `credit_score` object for reviewer screens.
+* **Zeroing C2 Scores for Requests Without Financial Statements:** In `NewCustomerScorecard` and `ExistingCustomerScorecard`, when `noFinancialData === true` (or when no financial statements are provided), all C2 Cashflow factors (D/E ratio, Inventory Turnover, DSCR) are explicitly zeroed out (`score = 0`) with `matchedRule = "N/A (ไม่ส่งงบการเงิน)"`. In addition, `creditRequestController.js` always populates an `analysis_result` structure during auto-evaluation so that `StoreStatementTab.vue` renders the main financial analysis summary card.

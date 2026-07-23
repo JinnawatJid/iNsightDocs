@@ -19,12 +19,13 @@ class ExistingCustomerScorecard extends BaseScorecard {
             customerDuration,
             isCompany,
             wadl,
+            noFinancialData,
             limitExponent
         } = context;
 
         // 1. Calculate Component Scores
         const c1 = this.calculateC1(customer, registeredCapital, requestAmount);
-        const c2 = this.calculateC2(financials, isCompany);
+        const c2 = this.calculateC2(financials, isCompany, noFinancialData);
         const c3 = this.calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration, wadl);
 
         // 2. Aggregate Total Score
@@ -157,15 +158,19 @@ class ExistingCustomerScorecard extends BaseScorecard {
     /**
      * Override BaseScorecard.calculateC2 to use Evaluator with Existing Customer Config
      */
-    calculateC2(financials, isCompany = true) {
+    calculateC2(financials, isCompany = true, noFinancialData = false) {
         let score = 0;
         const items = [];
         const debug = [];
+        const isEligible = isCompany && !noFinancialData;
 
         // 1. D/E Ratio
         const de = financials.deRatio.value || 0;
         let deRes = this.evaluator.evaluate('c2', 'de_ratio', de);
-        if (!isCompany) deRes.score = 0;
+        if (!isEligible) {
+            deRes.score = 0;
+            if (noFinancialData) deRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+        }
 
         score += deRes.score;
         items.push(deRes);
@@ -181,7 +186,10 @@ class ExistingCustomerScorecard extends BaseScorecard {
         // 2. Inventory Turnover
         const inv = financials.inventoryTurnover.value || 0;
         let invRes = this.evaluator.evaluate('c2', 'inventory_turnover', inv);
-        if (!isCompany) invRes.score = 0;
+        if (!isEligible) {
+            invRes.score = 0;
+            if (noFinancialData) invRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+        }
 
         score += invRes.score;
         items.push(invRes);
@@ -197,7 +205,10 @@ class ExistingCustomerScorecard extends BaseScorecard {
         // 3. DSCR
         const dscr = financials.dscr || 0;
         let dscrRes = this.evaluator.evaluate('c2', 'dscr', dscr);
-        if (!isCompany) dscrRes.score = 0;
+        if (!isEligible) {
+            dscrRes.score = 0;
+            if (noFinancialData) dscrRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+        }
 
         score += dscrRes.score;
         items.push(dscrRes);

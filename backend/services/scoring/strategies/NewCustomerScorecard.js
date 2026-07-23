@@ -18,12 +18,13 @@ class NewCustomerScorecard extends BaseScorecard {
             requestTerm,
             customerDuration,
             isCompany,
+            noFinancialData,
             limitExponent
         } = context;
 
         // 1. Calculate Component Scores
         const c1 = this.calculateC1(customer, registeredCapital, requestAmount);
-        const c2 = this.calculateC2(financials, isCompany);
+        const c2 = this.calculateC2(financials, isCompany, noFinancialData);
         const c3 = this.calculateC3(accumData, financials, registeredCapital, requestAmount, requestTerm, customerDuration);
 
         // 2. Aggregate Total Score
@@ -148,28 +149,18 @@ class NewCustomerScorecard extends BaseScorecard {
     /**
      * Override BaseScorecard.calculateC2 to use Evaluator
      */
-    calculateC2(financials, isCompany = true) {
+    calculateC2(financials, isCompany = true, noFinancialData = false) {
         let score = 0;
         const items = [];
         const debug = [];
-
-        // Helper to force 0 score if not company
-        const handleScore = (res, isComp) => {
-            if (!isComp) {
-                return { ...res, score: 0, finalScore: 0, matchedRule: "N/A (Individual)" };
-            }
-            return res;
-        };
+        const isEligible = isCompany && !noFinancialData;
 
         // 1. D/E Ratio
         const de = financials.deRatio.value || 0;
         let deRes = this.evaluator.evaluate('c2', 'de_ratio', de);
-        if (!isCompany) deRes.score = 0; // Manual Override for logic that isn't purely weight-based?
-        // Actually, the Evaluator calculates score based on rules.
-        // If !isCompany, the score should be 0.
-        // Let's stick to the old logic pattern: Calculate raw, then zero out if individual.
-        if (!isCompany) {
-             deRes.score = 0;
+        if (!isEligible) {
+            deRes.score = 0;
+            if (noFinancialData) deRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
         }
 
         score += deRes.score;
@@ -180,13 +171,16 @@ class NewCustomerScorecard extends BaseScorecard {
             weight: deRes.weight,
             score: deRes.score,
             column: financials.deRatio.column,
-            matchedRule: deRes.matchedRule // NEW
+            matchedRule: deRes.matchedRule
         });
 
         // 2. Inventory Turnover
         const inv = financials.inventoryTurnover.value || 0;
         let invRes = this.evaluator.evaluate('c2', 'inventory_turnover', inv);
-        if (!isCompany) invRes.score = 0;
+        if (!isEligible) {
+            invRes.score = 0;
+            if (noFinancialData) invRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+        }
 
         score += invRes.score;
         items.push(invRes);
@@ -196,13 +190,16 @@ class NewCustomerScorecard extends BaseScorecard {
             weight: invRes.weight,
             score: invRes.score,
             column: financials.inventoryTurnover.column,
-            matchedRule: invRes.matchedRule // NEW
+            matchedRule: invRes.matchedRule
         });
 
         // 3. DSCR
         const dscr = financials.dscr || 0;
         let dscrRes = this.evaluator.evaluate('c2', 'dscr', dscr);
-        if (!isCompany) dscrRes.score = 0;
+        if (!isEligible) {
+            dscrRes.score = 0;
+            if (noFinancialData) dscrRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+        }
 
         score += dscrRes.score;
         items.push(dscrRes);
@@ -212,7 +209,7 @@ class NewCustomerScorecard extends BaseScorecard {
             weight: dscrRes.weight,
             score: dscrRes.score,
             column: '-',
-            matchedRule: dscrRes.matchedRule // NEW
+            matchedRule: dscrRes.matchedRule
         });
 
         return { total: score, items, debug };

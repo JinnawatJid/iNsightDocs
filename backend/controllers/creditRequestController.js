@@ -9,6 +9,8 @@ const {
   getBranchCodeFromUser,
   getBranchCodesFromUser,
 } = require("../utils/branchCode");
+const ScoringEngine = require("../services/scoring/ScoringEngine");
+const { isCompanyByName } = require("../utils/nameNormalizer");
 
 let projectRoot = path.resolve(__dirname, "../../../../");
 if (!fs.existsSync(path.join(projectRoot, "customers"))) {
@@ -329,6 +331,94 @@ exports.createCreditRequest = async (req, res) => {
       error:
         "กรุณากดปุ่มวิเคราะห์และคำนวณคะแนนในหน้าเอกสารการเงินก่อนส่งคำขอ",
     });
+  }
+
+  // Auto-evaluate credit score on submission if missing (e.g. when noFinancialData === true or skipped manual calculation)
+  if (isForwardSubmission && (!parsedSnapshot?.credit_score?.totalScore || typeof parsedSnapshot.credit_score.totalScore !== 'number')) {
+    try {
+      logger.info("Auto-evaluating credit score during request submission:", { customer_no, customer_name, tx_id });
+      const custNo = customer_no || parsedSnapshot.customer?.id;
+      const taxId = parsedSnapshot.customer?.tax_id || parsedSnapshot.customer?.['VAT Registration No_'] || parsedSnapshot.customer?.vat_registration_no;
+
+      let stats = parsedSnapshot.financial_summary?.stats;
+      let monthlyHistory = parsedSnapshot.financial_summary?.monthlyHistory;
+
+      let hasLimitHistory = false;
+      const curLimit = parseFloat(parsedSnapshot.customer?.current_credit_limit || parsedSnapshot.customer?.['Credit Limit'] || 0);
+      if (curLimit > 0) hasLimitHistory = true;
+
+      const isCorp = isCompanyByName(customer_name || parsedSnapshot.customer?.name || "");
+      const modelType = (request_type?.includes('เครดิตเพิ่ม') || hasLimitHistory) ? 'existing' : 'new';
+      const analysisExtracted = parsedSnapshot.financial_summary?.analysis_result?.extractedData || {};
+
+      const financials = {
+        deRatio: { value: analysisExtracted.deRatio?.value || 0 },
+        inventoryTurnover: { value: analysisExtracted.inventoryTurnover?.value || 0 },
+        dscr: parsedSnapshot.financial_summary?.analysis_result?.calculations?.dscr || 0,
+        grossProfit: { value: analysisExtracted.grossProfit?.value || 0 },
+        totalRevenue: { value: analysisExtracted.totalRevenue?.value || 0 },
+        averageRevenue: analysisExtracted.totalRevenue?.value || 0,
+        nonCurrentLiabilities: { value: analysisExtracted.nonCurrentLiabilities?.value || 0 },
+        shareholdersEquity: { value: analysisExtracted.shareholdersEquity?.value || 0 }
+      };
+
+      const scoringContext = {
+        customer: {
+          name: customer_name,
+          years_in_business: parsedSnapshot.customer?.years_in_business || 0,
+          residence_ownership: parsedSnapshot.customer?.residence_ownership || 'ไม่ระบุ/อื่นๆ',
+          customer_duration_years: parsedSnapshot.customer?.customer_duration_years || 0,
+          wadl: stats?.WADL || 0
+        },
+        registeredCapital: parseFloat(parsedSnapshot.customer?.registered_capital || parsedSnapshot.registeredCapital || 0),
+        requestAmount: parseFloat(request_amount || 0),
+        financials: financials,
+        accumData: stats || { SecondAccum: 0, AccumTrend: 1.0, Slope: 0 },
+        requestTerm: parseFloat(term_gs || request_credit_term || 30),
+        customerDuration: parseFloat(parsedSnapshot.customer?.customer_duration_years || 0),
+        isCompany: isCorp,
+        noFinancialData: noFinancialData,
+        modelType: modelType
+      };
+
+      const scoringResult = ScoringEngine.score(scoringContext);
+
+      parsedSnapshot.credit_score = {
+        ...scoringResult,
+        total_score: scoringResult.totalScore,
+        totalScore: scoringResult.totalScore,
+        recommended_limit: scoringResult.recommendedLimit,
+        recommendedLimit: scoringResult.recommendedLimit,
+        size_result: scoringResult.sizeResult,
+        sizeResult: scoringResult.sizeResult,
+        grade_result: scoringResult.gradeResult,
+        gradeResult: scoringResult.gradeResult
+      };
+
+      if (!parsedSnapshot.financial_summary) parsedSnapshot.financial_summary = {};
+      if (!parsedSnapshot.financial_summary.analysis_result) {
+        parsedSnapshot.financial_summary.analysis_result = {
+          scoringResult: scoringResult,
+          extractedData: {
+            totalRevenue: { value: 0, column: '-' },
+            grossProfit: { value: 0, column: '-' },
+            nonCurrentLiabilities: { value: 0, column: '-' },
+            shareholdersEquity: { value: 0, column: '-' },
+            inventoryTurnover: { value: 0, column: '-' },
+            deRatio: { value: 0, column: '-' }
+          },
+          calculations: { dscr: 0, creditCapitalRatio: 0 }
+        };
+      } else {
+        parsedSnapshot.financial_summary.analysis_result.scoringResult = scoringResult;
+      }
+      if (stats) parsedSnapshot.financial_summary.stats = stats;
+      if (monthlyHistory) parsedSnapshot.financial_summary.monthlyHistory = monthlyHistory;
+
+      snapshot_data = JSON.stringify(parsedSnapshot);
+    } catch (autoEvalErr) {
+      logger.error("Auto-evaluate error during credit request submission:", autoEvalErr);
+    }
   }
 
   try {
