@@ -10,8 +10,6 @@ const {
   getBranchCodesFromUser,
 } = require("../utils/branchCode");
 const ScoringEngine = require("../services/scoring/ScoringEngine");
-const Customer = require("../models/Customer");
-const FinancialSummary = require("../models/FinancialSummary");
 const { isCompanyByName } = require("../utils/nameNormalizer");
 
 let projectRoot = path.resolve(__dirname, "../../../../");
@@ -344,24 +342,10 @@ exports.createCreditRequest = async (req, res) => {
 
       let stats = parsedSnapshot.financial_summary?.stats;
       let monthlyHistory = parsedSnapshot.financial_summary?.monthlyHistory;
-      if (!stats && taxId) {
-        try {
-          const perf = await FinancialSummary.getSalesPerformanceData(taxId);
-          stats = perf?.stats;
-          monthlyHistory = perf?.monthlyHistory;
-        } catch (e) {
-          logger.warn("Auto-evaluate failed to fetch sales performance data:", e.message);
-        }
-      }
 
       let hasLimitHistory = false;
-      if (custNo) {
-        try {
-          const custDetails = await Customer.getDetailsByNo(custNo);
-          const curLimit = parseFloat(custDetails?.customer?.current_credit_limit || 0);
-          if (curLimit > 0) hasLimitHistory = true;
-        } catch (e) {}
-      }
+      const curLimit = parseFloat(parsedSnapshot.customer?.current_credit_limit || parsedSnapshot.customer?.['Credit Limit'] || 0);
+      if (curLimit > 0) hasLimitHistory = true;
 
       const isCorp = isCompanyByName(customer_name || parsedSnapshot.customer?.name || "");
       const modelType = (request_type?.includes('เครดิตเพิ่ม') || hasLimitHistory) ? 'existing' : 'new';

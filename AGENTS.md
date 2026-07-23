@@ -22,6 +22,7 @@ Files created but not yet committed may disappear if the environment resets or "
 
 ## 3. General Directives
 *   **Verification:** Always verify file creation and content using `read_file` or `list_files` before marking a task as complete.
+*   **Architecture Verification:** Never infer or assume module locations (e.g. `backend/models`) without inspecting the filesystem via code search or listing tools. This project executes database operations directly via `db.query` rather than ORM/Model abstractions.
 *   **Testing:** Run relevant tests (or verify manually via `curl` for backend / Playwright for frontend) before submitting.
 
 ## 4. Verification Protocol for Autonomous Agents
