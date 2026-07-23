@@ -37,3 +37,4 @@ scripts/query_customer_limit.js
 scripts/recalculate_3588_original.js
 scripts/patch_3588_commit.js
 scripts/calc_weights.js
+scripts/inspect_nsc.js
