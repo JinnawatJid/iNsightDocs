@@ -1246,7 +1246,8 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 exports.getCreditRequests = async (req, res) => {
 
-  const { status, search } = req.query;
+  const { status, search, limit: reqLimit } = req.query;
+  const limit = parseInt(reqLimit, 10) || 0;
 
   // Determine user info and roles from req.user
   const username = req.user?.username || "";
@@ -1255,7 +1256,7 @@ exports.getCreditRequests = async (req, res) => {
 
   try {
     let sql = `
-      SELECT id, tx_id, customer_no, customer_name, status, request_amount, request_credit_term, term_gs, term_ae, term_yc, request_type, snapshot_data, created_at, updated_at
+      SELECT id, tx_id, customer_no, customer_name, status, request_amount, request_credit_term, term_gs, term_ae, term_yc, request_type, created_at, updated_at
       FROM CreditRequests
     `;
     const params = [];
@@ -1387,8 +1388,12 @@ exports.getCreditRequests = async (req, res) => {
     }
 
     if (search) {
-      conditions.push(`customer_name LIKE ?`);
-      params.push(`%${search}%`);
+      const cleanSearch = String(search).trim();
+      if (cleanSearch) {
+        const escapedSearch = cleanSearch.replace(/[%_]/g, '\\$&');
+        conditions.push(`(customer_name LIKE ? OR customer_no LIKE ? OR tx_id LIKE ?)`);
+        params.push(`%${escapedSearch}%`, `%${escapedSearch}%`, `%${escapedSearch}%`);
+      }
     }
 
     if (conditions.length > 0) {
@@ -1396,6 +1401,15 @@ exports.getCreditRequests = async (req, res) => {
     }
 
     sql += ` ORDER BY updated_at DESC`;
+
+    if (limit > 0) {
+      if (db.dbType === 'mssql') {
+        sql = sql.replace(/^(\s*SELECT\s+)/i, `$1TOP ${limit} `);
+      } else {
+        sql += ` LIMIT ?`;
+        params.push(limit);
+      }
+    }
 
     logger.info(`[DEBUG] Final SQL: ${sql}`);
     logger.info(`[DEBUG] SQL params: ${JSON.stringify(params)}`);

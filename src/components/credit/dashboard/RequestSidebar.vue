@@ -167,7 +167,7 @@ const switchTab = (tab) => {
   fetchData();
 };
 
-const fetchData = () => {
+const fetchData = async () => {
   const query = searchQuery.value;
 
   if (activeTab.value === 'pending') {
@@ -225,13 +225,19 @@ const fetchData = () => {
     console.log('[DEBUG] RequestSidebar fetchData - Final uniqueStatuses:', uniqueStatuses);
 
     if (statusQuery) {
-      store.fetchRequests(statusQuery, query);
+      await store.fetchRequests(statusQuery, query, 20);
+      if (store.requestsList.length === 20) {
+        store.fetchRequests(statusQuery, query);
+      }
     } else {
       store.requestsList = [];
     }
   } else {
     // History tab: everyone can see final statuses
-    store.fetchRequests('Approved,Rejected,Closed,Canceled', query);
+    await store.fetchRequests('Approved,Rejected,Closed,Canceled', query, 20);
+    if (store.requestsList.length === 20) {
+      store.fetchRequests('Approved,Rejected,Closed,Canceled', query);
+    }
   }
 };
 
@@ -243,6 +249,12 @@ const debouncedSearch = debounce(() => {
 watch(searchQuery, () => {
     currentPage.value = 1;
     debouncedSearch();
+});
+
+watch(totalPages, (newTotal) => {
+    if (currentPage.value > newTotal) {
+        currentPage.value = Math.max(1, newTotal);
+    }
 });
 
 const formatDate = (dateString) => {

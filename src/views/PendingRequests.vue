@@ -269,6 +269,9 @@ const showTerms = computed(() => {
     padding-top: 80px; /* Navbar height */
     min-height: 100vh;
     background-color: #F5F5F5;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
 }
 
 .page-content {
@@ -276,6 +279,10 @@ const showTerms = computed(() => {
     max-width: 1600px;
     margin: 0 auto;
     position: relative;
+    width: 100%;
+    flex: 1;
+    min-height: calc(100vh - 80px);
+    box-sizing: border-box;
 }
 
 .main-grid {
@@ -283,7 +290,8 @@ const showTerms = computed(() => {
     grid-template-columns: 300px 1fr 300px; /* Adjusted left column width for the list */
     gap: 20px;
     align-items: stretch;
-    height: calc(100vh - 120px); /* Fill remaining height */
+    min-height: calc(100vh - 120px); /* Fill remaining height */
+    height: 100%;
 }
 
 /* Responsive adjustments */

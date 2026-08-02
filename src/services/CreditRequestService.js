@@ -20,7 +20,7 @@ export default {
     });
   },
 
-  async getCreditRequests(status, search) {
+  async getCreditRequests(status, search, limit) {
     let url = API_URL;
     const params = [];
     if (status) {
@@ -28,6 +28,9 @@ export default {
     }
     if (search) {
       params.push(`search=${encodeURIComponent(search)}`);
+    }
+    if (limit) {
+      params.push(`limit=${encodeURIComponent(limit)}`);
     }
     if (params.length > 0) {
       url += `?${params.join('&')}`;
