@@ -1434,11 +1434,11 @@ const rbacStore = useRbacStore();
       return { valid: true };
     },
 
-    async fetchRequests(status) {
+    async fetchRequests(status, search) {
       this.loading = true;
       this.error = null;
       try {
-        const response = await CreditRequestService.getCreditRequests(status);
+        const response = await CreditRequestService.getCreditRequests(status, search);
         if (response && response.data && response.data.data) {
           this.requestsList = response.data.data;
         } else {

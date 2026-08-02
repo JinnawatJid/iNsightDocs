@@ -20,10 +20,17 @@ export default {
     });
   },
 
-  async getCreditRequests(status) {
+  async getCreditRequests(status, search) {
     let url = API_URL;
+    const params = [];
     if (status) {
-      url += `?status=${status}`;
+      params.push(`status=${encodeURIComponent(status)}`);
+    }
+    if (search) {
+      params.push(`search=${encodeURIComponent(search)}`);
+    }
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
     }
     return axios.get(url);
   },

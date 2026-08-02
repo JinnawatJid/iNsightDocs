@@ -41,7 +41,7 @@
       </div>
       <div
         v-else
-        v-for="req in requests"
+        v-for="req in paginatedRequests"
         :key="req.id"
         class="request-item"
         :class="{ active: store.requestId === req.tx_id }"
@@ -92,6 +92,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Pagination Controls (Compact Option B) -->
+    <div v-if="totalPages > 1" class="pagination-container">
+      <button
+        class="pagination-btn"
+        :disabled="currentPage === 1"
+        @click="currentPage--"
+        aria-label="Previous page"
+      >
+        &lt; ย้อนกลับ
+      </button>
+      <span class="pagination-info">
+        หน้า {{ currentPage }} จาก {{ totalPages }}
+      </span>
+      <button
+        class="pagination-btn"
+        :disabled="currentPage === totalPages"
+        @click="currentPage++"
+        aria-label="Next page"
+      >
+        ถัดไป &gt;
+      </button>
+    </div>
   </div>
 </template>
 
@@ -119,9 +142,20 @@ const { workflowStates, fetchWorkflowConfig } = useWorkflowConfig();
 const activeTab = ref('pending');
 const searchQuery = ref('');
 
+const currentPage = ref(1);
+const pageSize = ref(10);
+
 const requests = computed(() => store.requestsList);
 const loading = computed(() => store.loading);
 
+const totalPages = computed(() => {
+  return Math.ceil(requests.value.length / pageSize.value) || 1;
+});
+
+const paginatedRequests = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return requests.value.slice(start, start + pageSize.value);
+});
 
 const pendingTabLabel = computed(() => {
   return rbacStore.hasPermission('create_request') ? 'ติดตามคำขอ' : 'รออนุมัติ';
@@ -129,6 +163,7 @@ const pendingTabLabel = computed(() => {
 
 const switchTab = (tab) => {
   activeTab.value = tab;
+  currentPage.value = 1;
   fetchData();
 };
 
@@ -206,6 +241,7 @@ const debouncedSearch = debounce(() => {
 }, 500);
 
 watch(searchQuery, () => {
+    currentPage.value = 1;
     debouncedSearch();
 });
 
@@ -499,5 +535,47 @@ watch(workflowStates, (newVal) => {
   padding: 30px 20px;
   color: #888;
   font-size: 14px;
+}
+
+/* Pagination Styling */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-top: 1px solid #eee;
+  background-color: #fcfcfc;
+  flex-shrink: 0;
+}
+
+.pagination-btn {
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #f0f0f0;
+  border-color: #999;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #fafafa;
+  border-color: #e0e0e0;
+}
+
+.pagination-info {
+  font-size: 12.5px;
+  color: #555;
+  font-weight: 600;
 }
 </style>
