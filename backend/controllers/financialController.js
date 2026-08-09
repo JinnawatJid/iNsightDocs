@@ -969,8 +969,8 @@ if (custom_weights) {
         customerDuration: customer_duration,
         isCompany: isCorp,
         currentCreditLimit: customerData['Fixed Credit Limit'] || 0, // Pass Current Limit
-        // New Parameters for Existing Customer Model
-        modelType: model_type || 'new',
+        // Model Type resolution: check provided model_type, request_type, current credit limit, or purchase history
+        modelType: model_type || ((customerData.current_credit_limit > 0 || customerData['Credit Limit'] > 0 || (accumData && (accumData.SumLast6 > 0 || accumData.sumLast6 > 0))) ? 'existing' : 'new'),
         limitExponent: limit_exponent ? parseFloat(limit_exponent) : undefined,
         // Priority: Manual Input > API Result > 0 (Safe check)
         wadl: wadl ? parseFloat(wadl) : (typeof wadlDataResult !== 'undefined' && wadlDataResult ? wadlDataResult.score : 0),
