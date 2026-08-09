@@ -91,7 +91,7 @@ export const useCreditRequestStore = defineStore("creditRequest", {
   getters: {
     currentModelType: (state) => {
       const reqType = state.transactionData?.requestType || 'เครดิตใหม่';
-      if (reqType === 'เครดิตใหม่') return 'new';
+      const isCreditIncrease = reqType.includes('เครดิตเพิ่ม') || reqType.includes('เปลี่ยนแปลง');
 
       const customer = state.customer || {};
       const hasExistingCredits = Array.isArray(customer.existing_credits) && customer.existing_credits.length > 0;
@@ -100,9 +100,22 @@ export const useCreditRequestStore = defineStore("creditRequest", {
           const cleaned = String(val).replace(/,/g, '');
           return parseFloat(cleaned) || 0;
       };
-      const currentLimit = cleanLimit(customer.current_credit_limit || customer.Fixed_Credit_Limit || customer.currentLimit);
+      const currentLimit = cleanLimit(
+          customer.current_credit_limit ||
+          customer['Credit Limit'] ||
+          customer.credit_limit_real ||
+          customer.Fixed_Credit_Limit ||
+          customer.currentLimit
+      );
+      const sum6 = parseFloat(
+          state.financialSummary?.stats?.sumLast6 ||
+          state.financialSummary?.stats?.SumLast6 ||
+          customer.financial_summary?.stats?.sumLast6 ||
+          customer.financial_summary?.stats?.SumLast6 ||
+          0
+      );
 
-      return hasExistingCredits || currentLimit > 0 ? 'existing' : 'new';
+      return isCreditIncrease || hasExistingCredits || currentLimit > 0 || sum6 > 0 ? 'existing' : 'new';
     },
     userRole: (state) => {
       const s = state.requestStatus;
