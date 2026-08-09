@@ -337,17 +337,21 @@ exports.createCreditRequest = async (req, res) => {
   if (isForwardSubmission && (!parsedSnapshot?.credit_score?.totalScore || typeof parsedSnapshot.credit_score.totalScore !== 'number')) {
     try {
       logger.info("Auto-evaluating credit score during request submission:", { customer_no, customer_name, tx_id });
-      const custNo = customer_no || parsedSnapshot.customer?.id;
-      const taxId = parsedSnapshot.customer?.tax_id || parsedSnapshot.customer?.['VAT Registration No_'] || parsedSnapshot.customer?.vat_registration_no;
+      // Resolved against exact database & snapshot data model:
+      // 1. CreditRequests table & req.body store customer_no, customer_name
+      // 2. getSnapshot() spreads customer state at snapshot root (name, Name, company_name, id, No_, tax_id, current_credit_limit)
+      const custNo = customer_no || parsedSnapshot.id || parsedSnapshot.No_ || parsedSnapshot.customer_no;
+      const taxId = parsedSnapshot.tax_id || parsedSnapshot['VAT Registration No_'] || parsedSnapshot.vat_registration_no || parsedSnapshot.customer?.tax_id;
 
       let stats = parsedSnapshot.financial_summary?.stats;
       let monthlyHistory = parsedSnapshot.financial_summary?.monthlyHistory;
 
       let hasLimitHistory = false;
-      const curLimit = parseFloat(parsedSnapshot.customer?.current_credit_limit || parsedSnapshot.customer?.['Credit Limit'] || 0);
+      const curLimit = parseFloat(parsedSnapshot.current_credit_limit || parsedSnapshot['Credit Limit'] || parsedSnapshot.customer?.current_credit_limit || 0);
       if (curLimit > 0) hasLimitHistory = true;
 
-      const isCorp = isCompanyByName(customer_name || parsedSnapshot.customer?.name || "");
+      const resolvedCustomerName = customer_name || parsedSnapshot.name || parsedSnapshot.Name || parsedSnapshot.company_name || parsedSnapshot.customer_name || "";
+      const isCorp = isCompanyByName(resolvedCustomerName);
       const modelType = (request_type?.includes('เครดิตเพิ่ม') || hasLimitHistory) ? 'existing' : 'new';
       const analysisExtracted = parsedSnapshot.financial_summary?.analysis_result?.extractedData || {};
 

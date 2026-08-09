@@ -354,3 +354,26 @@ Possible values:
 - [CREATE_CREDIT_REQUEST_FLOW.md](./CREATE_CREDIT_REQUEST_FLOW.md) - Overall credit request workflow
 - [MULTI_PROJECT_CREDIT.md](./MULTI_PROJECT_CREDIT.md) - Project credit context and guarantee handling
 - [dynamic_rbac_and_workflow.md](../dynamic_rbac_and_workflow.md) - RBAC and permission system
+
+## 12. Data Model Specifications for Name Resolution & Purchase Stats
+
+### 12.1 Customer Name Resolution & Corporate Detection (`isCompanyByName`)
+When auto-evaluating credit scores or rendering financial summaries, customer name resolution follows strict data model hierarchy:
+1. **Primary Database Field:** `CreditRequests.customer_name` (or `req.body.customer_name`)
+2. **Snapshot Root Fields:** `parsedSnapshot.name`, `parsedSnapshot.Name`, `parsedSnapshot.company_name` (spread from `this.customer` in `getSnapshot()`)
+
+> [!CAUTION]
+> **Anti-Pattern Warning:** Do NOT check `parsedSnapshot.customer?.name`. In `getSnapshot()` (`src/stores/creditRequest.js`), customer properties are spread at the snapshot **root level**, leaving `parsedSnapshot.customer` `undefined`. Attempting to read `parsedSnapshot.customer?.name` returns `""`, which causes `isCompanyByName("")` to return `false` (falsely treating companies as individuals and zeroing out C2 scores).
+
+### 12.2 Purchase Statistics (`accumData`) Property Key Normalization
+Purchase statistics fetched from history APIs or stored in database snapshots may use either camelCase or PascalCase keys. `ExistingCustomerScorecard.js` and `NewCustomerScorecard.js` implement `normalizeAccumData()` to guarantee compatibility:
+
+- **Supported Keys:**
+  - 6-Month Purchase Accumulation: `sumLast6` / `SumLast6`
+  - 3-Month Purchase Accumulation: `sumLast3` / `SecondAccum`
+  - Purchase Trend Slope: `slope` / `Slope` / `Slope6`
+  - Payment Delay Days (WADL): `wadl` / `WADL`
+  - Trend Ratio: `trendRatio` / `Trend6` / `AccumTrend`
+
+This key normalization ensures that the credit limit formula $\text{Limit} = (\frac{\text{SumLast6}}{4}) \times (\frac{\text{TotalScore}}{200})^2$ never evaluates to `0` due to casing mismatches.
+

@@ -8,13 +8,30 @@ class ExistingCustomerScorecard extends BaseScorecard {
         this.evaluator = new ScorecardEvaluator('credit_scorecard_existing_v1.json', customWeights, options);
     }
 
+    normalizeAccumData(rawAccum) {
+        if (!rawAccum) return null;
+        const sum6 = rawAccum.SumLast6 !== undefined ? rawAccum.SumLast6 : (rawAccum.sumLast6 !== undefined ? rawAccum.sumLast6 : undefined);
+        const sum3 = rawAccum.SecondAccum !== undefined ? rawAccum.SecondAccum : (rawAccum.sumLast3 !== undefined ? rawAccum.sumLast3 : undefined);
+        const slopeVal = rawAccum.Slope6 !== undefined ? rawAccum.Slope6 : (rawAccum.Slope !== undefined ? rawAccum.Slope : (rawAccum.slope !== undefined ? rawAccum.slope : 0));
+        const trendVal = rawAccum.Trend6 !== undefined ? rawAccum.Trend6 : (rawAccum.AccumTrend !== undefined ? rawAccum.AccumTrend : (rawAccum.trendRatio !== undefined ? rawAccum.trendRatio : 1.0));
+
+        return {
+            ...rawAccum,
+            SumLast6: sum6,
+            SecondAccum: sum3,
+            Slope6: rawAccum.Slope6 !== undefined ? rawAccum.Slope6 : slopeVal,
+            Slope: rawAccum.Slope !== undefined ? rawAccum.Slope : slopeVal,
+            Trend6: rawAccum.Trend6 !== undefined ? rawAccum.Trend6 : trendVal,
+            AccumTrend: rawAccum.AccumTrend !== undefined ? rawAccum.AccumTrend : trendVal
+        };
+    }
+
     calculateScore(context) {
         const {
             customer,
             registeredCapital,
             requestAmount,
             financials,
-            accumData,
             requestTerm,
             customerDuration,
             isCompany,
@@ -22,6 +39,8 @@ class ExistingCustomerScorecard extends BaseScorecard {
             noFinancialData,
             limitExponent
         } = context;
+
+        const accumData = this.normalizeAccumData(context.accumData);
 
         // 1. Calculate Component Scores
         const c1 = this.calculateC1(customer, registeredCapital, requestAmount);
