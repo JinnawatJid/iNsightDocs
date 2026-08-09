@@ -347,7 +347,8 @@ exports.createCreditRequest = async (req, res) => {
       const curLimit = parseFloat(parsedSnapshot.customer?.current_credit_limit || parsedSnapshot.customer?.['Credit Limit'] || 0);
       if (curLimit > 0) hasLimitHistory = true;
 
-      const isCorp = isCompanyByName(customer_name || parsedSnapshot.customer?.name || "");
+      const resolvedCustName = customer_name || parsedSnapshot.name || parsedSnapshot.company_name || parsedSnapshot.customer_name || parsedSnapshot.Customer_Name || parsedSnapshot.customer?.name || parsedSnapshot.customer?.company_name || parsedSnapshot.customer?.customer_name || parsedSnapshot.customer?.Customer_Name || "";
+      const isCorp = isCompanyByName(resolvedCustName);
       const modelType = (request_type?.includes('เครดิตเพิ่ม') || hasLimitHistory) ? 'existing' : 'new';
       const analysisExtracted = parsedSnapshot.financial_summary?.analysis_result?.extractedData || {};
 
