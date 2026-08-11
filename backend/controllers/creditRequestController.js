@@ -184,13 +184,13 @@ exports.downloadCreditRequestFile = async (req, res) => {
     let sql;
     if (db.dbType === "mssql") {
       sql =
-        "SELECT TOP 1 * FROM CreditRequestAttachments WHERE id = ? AND tx_id = ?";
+        "SELECT TOP 1 * FROM CreditRequestAttachments WHERE id = ?";
     } else {
       sql =
-        "SELECT * FROM CreditRequestAttachments WHERE id = ? AND tx_id = ? LIMIT 1";
+        "SELECT * FROM CreditRequestAttachments WHERE id = ? LIMIT 1";
     }
 
-    const { rows } = await db.query(sql, [fileId, id]);
+    const { rows } = await db.query(sql, [fileId]);
 
     if (!rows || rows.length === 0) {
       return res.status(404).json({ error: "File not found" });
