@@ -219,6 +219,7 @@ exports.downloadCreditRequestFile = async (req, res) => {
       normalizedPath,
       UPLOAD_BASE,
       projectRoot,
+      fileRecord.original_name,
     );
 
     if (!foundPath) {
