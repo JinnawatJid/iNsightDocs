@@ -12,9 +12,9 @@ const {
 const ScoringEngine = require("../services/scoring/ScoringEngine");
 const { isCompanyByName } = require("../utils/nameNormalizer");
 
-let projectRoot = path.resolve(__dirname, "../../../../");
-if (!fs.existsSync(path.join(projectRoot, "customers"))) {
-  projectRoot = path.resolve(__dirname, "../../");
+let projectRoot = path.resolve(__dirname, "../../");
+if (!fs.existsSync(path.join(projectRoot, "customers")) && !fs.existsSync(path.join(projectRoot, "uploads"))) {
+  projectRoot = path.resolve(__dirname, "../../../../");
 }
 const defaultUploadPath = path.join(projectRoot, "uploads");
 
