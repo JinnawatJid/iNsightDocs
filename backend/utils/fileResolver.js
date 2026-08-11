@@ -4,93 +4,85 @@ const logger = require('./logger');
 
 /**
  * Robustly resolves a file path given a normalized DB path.
- * Handles exact matches, fallback bases, and loose matching for txId directory differences
- * (e.g., "10KKCA2604_01" vs "10KKCA2604_001").
+ * Handles exact matches, fallback bases, revision folder variations (-R1, -R2),
+ * and loose matching across customer subdirectories.
  */
 async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot) {
+    if (!normalizedDbPath) return null;
     logger.debug(`[FileResolver] Attempting to resolve path: ${normalizedDbPath}`);
+
+    // Normalize slashes and strip legacy prefixes
+    let cleanPath = String(normalizedDbPath).replace(/\\/g, '/');
+    if (cleanPath.startsWith("customers/")) cleanPath = cleanPath.replace(/^customers\//, "");
+    if (cleanPath.startsWith("uploads/")) cleanPath = cleanPath.replace(/^uploads\//, "");
+
+    const cwd = process.cwd();
+    const root = projectRoot || cwd;
 
     // Candidate base directories to search within
     const baseDirs = [
         uploadBase,
-        path.join(projectRoot, 'uploads'),
-        path.join(projectRoot, 'customers')
-    ];
+        path.join(root, 'uploads'),
+        path.join(root, 'customers'),
+        path.resolve(cwd, 'uploads'),
+        path.resolve(cwd, '../uploads'),
+        cwd
+    ].filter(Boolean);
 
-    // 1. Try exact match first
-    if (path.isAbsolute(normalizedDbPath) && await fs.pathExists(normalizedDbPath)) {
-        logger.debug(`[FileResolver] Found exact absolute path: ${normalizedDbPath}`);
-        return normalizedDbPath;
+    // 1. Try exact absolute path first
+    if (path.isAbsolute(cleanPath) && await fs.pathExists(cleanPath)) {
+        logger.debug(`[FileResolver] Found exact absolute path: ${cleanPath}`);
+        return cleanPath;
     }
 
+    // 2. Try exact candidate in baseDirs
     for (const base of baseDirs) {
-        const exactCandidate = path.join(base, normalizedDbPath);
+        const exactCandidate = path.join(base, cleanPath);
         if (await fs.pathExists(exactCandidate)) {
             logger.debug(`[FileResolver] Found exact relative path at: ${exactCandidate}`);
             return exactCandidate;
         }
     }
 
-    logger.debug(`[FileResolver] Exact match failed. Falling back to loose matching for txId differences.`);
+    logger.debug(`[FileResolver] Exact match failed. Searching customer subdirectories...`);
 
-    // 2. Loose matching logic
-    // The DB path format is usually: [CustomerNo]/[TxId_With_Underscores]/[Filename]
-    // Example: "6903019KK/10KKCA2604_01/some_file.pdf"
-    const pathParts = normalizedDbPath.split('/');
-    if (pathParts.length >= 3) {
+    // 3. Fallback search by Customer Dir & Filename across all revision subfolders
+    const pathParts = cleanPath.split('/');
+    if (pathParts.length >= 2) {
         const customerDirName = pathParts[0];
-        const txIdDirName = pathParts[1];
-        // The rest is the filename/subpath
-        const fileNamePart = pathParts.slice(2).join('/');
+        const fileNamePart = pathParts[pathParts.length - 1];
+        const targetBasename = path.basename(fileNamePart);
 
-        // Extract the base txId part (e.g. "10KKCA2604") and the running number part (e.g. "_01")
-        const txIdMatch = txIdDirName.match(/^(.*?)_(\d+)$/);
+        for (const base of baseDirs) {
+            const customerDirPath = path.join(base, customerDirName);
+            if (await fs.pathExists(customerDirPath)) {
+                try {
+                    // Check files directly in customerDirPath
+                    const directFile = path.join(customerDirPath, targetBasename);
+                    if (await fs.pathExists(directFile)) {
+                        logger.debug(`[FileResolver] Found file directly under customer dir: ${directFile}`);
+                        return directFile;
+                    }
 
-        if (txIdMatch) {
-            const baseTxId = txIdMatch[1];
-            const runningNumberStr = txIdMatch[2];
-            const runningNumber = parseInt(runningNumberStr, 10);
-
-            logger.debug(`[FileResolver] Extracted TxId base: ${baseTxId}, running number: ${runningNumber}`);
-
-            // Search through each candidate base directory
-            for (const base of baseDirs) {
-                const customerDirPath = path.join(base, customerDirName);
-
-                if (await fs.pathExists(customerDirPath)) {
-                    // Read all directories under the customer folder
-                    try {
-                        const subDirs = (await fs.readdir(customerDirPath, { withFileTypes: true }))
-                                          .filter(dirent => dirent.isDirectory())
-                                          .map(dirent => dirent.name);
-
-                        // Look for a matching txId directory
-                        for (const subDir of subDirs) {
-                            const subDirMatch = subDir.match(/^(.*?)_(\d+)$/);
-                            if (subDirMatch) {
-                                const subBaseTxId = subDirMatch[1];
-                                const subRunningNumber = parseInt(subDirMatch[2], 10);
-
-                                // If base txId and integer value of running number match (e.g. _01 == _001)
-                                if (baseTxId === subBaseTxId && runningNumber === subRunningNumber) {
-                                    const looseCandidate = path.join(customerDirPath, subDir, fileNamePart);
-                                    logger.debug(`[FileResolver] Testing loose candidate: ${looseCandidate}`);
-                                    if (await fs.pathExists(looseCandidate)) {
-                                        logger.debug(`[FileResolver] Found file via loose matching: ${looseCandidate}`);
-                                        return looseCandidate;
-                                    }
-                                }
+                    // Check subfolders (e.g. TLCA6908_01, TLCA6908_01-R1, TLCA6908_01-R2)
+                    const entries = await fs.readdir(customerDirPath, { withFileTypes: true });
+                    for (const entry of entries) {
+                        if (entry.isDirectory()) {
+                            const subCandidate = path.join(customerDirPath, entry.name, targetBasename);
+                            if (await fs.pathExists(subCandidate)) {
+                                logger.debug(`[FileResolver] Found file in subfolder ${entry.name}: ${subCandidate}`);
+                                return subCandidate;
                             }
                         }
-                    } catch (err) {
-                        logger.warn(`[FileResolver] Error reading directory ${customerDirPath}: ${err.message}`);
                     }
+                } catch (err) {
+                    logger.warn(`[FileResolver] Error searching ${customerDirPath}: ${err.message}`);
                 }
             }
         }
     }
 
-    logger.debug(`[FileResolver] File could not be resolved.`);
+    logger.debug(`[FileResolver] File could not be resolved for ${normalizedDbPath}`);
     return null;
 }
 
