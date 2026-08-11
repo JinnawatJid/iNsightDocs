@@ -223,10 +223,20 @@ exports.downloadCreditRequestFile = async (req, res) => {
     );
 
     if (!foundPath) {
+      const debugInfo = {
+        fileId,
+        txId: id,
+        dbFilePath: fileRecord.file_path,
+        normalizedPath,
+        originalName: fileRecord.original_name,
+        uploadBase: UPLOAD_BASE,
+        projectRoot,
+        cwd: process.cwd()
+      };
       logger.error(
-        `File not found on server. DB Path: ${fileRecord.file_path}, Normalized: ${normalizedPath}`,
+        `File not found on server. Details: ${JSON.stringify(debugInfo)}`,
       );
-      return res.status(404).json({ error: "File not found on server" });
+      return res.status(404).json({ error: "File not found on server", debug: debugInfo });
     }
 
     filePath = foundPath;
