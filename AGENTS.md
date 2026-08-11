@@ -57,3 +57,15 @@ Files created but not yet committed may disappear if the environment resets or "
 * **Instant Chunk Loading & Pagination:** `RequestSidebar.vue` fetches an initial 20-item chunk for instant page 1 (10 items/page) rendering, followed by progressive background loading for subsequent items.
 * **Layout Background Continuity:** Global `:root` / `body` background is set to `#F5F5F5` and `.pending-requests` container uses `box-sizing: border-box` and `min-height: 100vh` to eliminate white space gaps.
 * **Pending Queue Visibility Policy:** Regional Managers (`ผู้พิจารณาของพื้นที่`) have actionable-only pending visibility (fetching `status = Opened` filtered by assigned branch codes via `REGION_BRANCH_CONFIG`). Other approver-chain roles (`broadPendingVisibilityRoles`: Sales, Finance, Credit Committee) see all active open workflow statuses for queue monitoring. See [PENDING_REQUESTS_VISIBILITY_POLICY.md](file:///c:/Users/Jinna/Desktop/Test/iNsightDocs/docs/features/credit_workflow/PENDING_REQUESTS_VISIBILITY_POLICY.md) and [BOARD_ACCESS_USER_VISIBILITY.md](file:///c:/Users/Jinna/Desktop/Test/iNsightDocs/docs/features/core_system/BOARD_ACCESS_USER_VISIBILITY.md).
+
+## 8. Attachment File Path Resolution & Cross-Revision Document Preview
+
+* **Physical File Resolution Architecture:** `fileResolver.js` (`resolveFilePath`) resolves uploaded attachment relative paths from `CreditRequestAttachments.file_path` against physical server storage across multiple candidate base roots (`uploadBase`, `projectRoot/uploads`, `projectRoot/backend/uploads`, `projectRoot/customers`, `process.cwd()/uploads`, etc.).
+* **Cross-Revision & Subdirectory Fallback:** When requests undergo revision (e.g. `TLCA6908/01` -> `TLCA6908/01-R1` -> `TLCA6908/01-R2`), attachment DB records inherit original relative paths or new revision path segments. `resolveFilePath` handles:
+  1. Primary key lookup in `CreditRequestAttachments` (`WHERE id = ?`) to support preview endpoints regardless of whether the preview modal requests via base TxID or revision TxID.
+  2. Revision folder variations (`-R1`, `-R2`, etc.) under customer folders (`uploads/{customer_no}/...`).
+  3. 3-part timestamp stripping (`_YYYYMMDD_HHMMSS_rrr.ext`) from DB filenames to extract core keywords.
+  4. Token-based substring matching across Thai/English file names (`originalName` and `targetBasename`).
+  5. 4-level deep recursive directory fallback scanning across candidate upload roots when exact relative paths fail.
+* **Server Root Priority:** `projectRoot` resolution in `creditRequestController.js` prioritizes local release bundle directories (`path.resolve(__dirname, "../../")`) over parent workspace levels to prevent root leakage in production environment builds.
+
