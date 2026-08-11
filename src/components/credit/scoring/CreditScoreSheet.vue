@@ -206,17 +206,34 @@ const isExistingModel = computed(() => props.inputs.model_type === 'existing');
 const purchaseMonthCount = computed(() => isExistingModel.value ? 6 : 3);
 
 const purchaseHistory = computed(() => {
-    let history = financialSummary.value.monthlyHistory || [];
-    // Backend scoring excludes the current (incomplete) month.
-    // Ensure table displays the same 3 months used for calculation.
-    if (history.length > 0 && String(history[0].label).includes('เดือนปัจจุบัน')) {
-        history = history.slice(1);
+    let history = financialSummary.value.monthlyHistory || financialSummary.value.monthly_history || props.analysisResults.monthlyHistory || props.analysisResults.monthly_history || props.inputs.monthlyHistory || props.inputs.monthly_history || [];
+
+    let normalized = history.map(item => ({
+        label: item.label || item.month,
+        amount: item.amount !== undefined ? item.amount : (item.value !== undefined ? item.value : 0)
+    }));
+
+    if (normalized.length > 0 && String(normalized[0].label).includes('เดือนปัจจุบัน')) {
+        normalized = normalized.slice(1);
     }
-    // Return 6 months for existing, 3 for new
-    return history.slice(0, purchaseMonthCount.value);
+    return normalized.slice(0, purchaseMonthCount.value);
 });
 
-const stats = computed(() => financialSummary.value.stats || { sumLast3: 0, trendRatio: 1 });
+const stats = computed(() => {
+    if (financialSummary.value.stats && Object.keys(financialSummary.value.stats).length > 0) {
+        return financialSummary.value.stats;
+    }
+    const history = purchaseHistory.value;
+    const sumLast3 = history.slice(0, 3).reduce((a, c) => a + (Number(c.amount) || 0), 0);
+    const sumLast6 = history.slice(0, 6).reduce((a, c) => a + (Number(c.amount) || 0), 0);
+    return {
+        sumLast3,
+        sumLast6,
+        avg1_5m: isExistingModel.value ? (sumLast6 / 4) : (sumLast3 / 2),
+        trendRatio: 1.0,
+        slope: 0
+    };
+});
 
 const formatMoney = (val) => {
     if (val === undefined || val === null) return '-';

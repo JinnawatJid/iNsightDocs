@@ -145,9 +145,13 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
 }
 
 async function matchFileInDir(dirPath, candidateKeywords) {
+    const validExts = new Set(['.xlsx', '.xls', '.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx']);
     try {
         const files = await fs.readdir(dirPath);
         for (const file of files) {
+            const ext = path.extname(file).toLowerCase();
+            if (!validExts.has(ext)) continue;
+
             const fileLower = file.toLowerCase();
             const fileNameNoExt = path.parse(fileLower).name;
 
@@ -167,12 +171,16 @@ async function matchFileInDir(dirPath, candidateKeywords) {
 
 async function searchDirRecursive(dir, candidateKeywords, currentDepth, maxDepth) {
     if (currentDepth > maxDepth) return null;
-    const ignoreDirs = new Set(['node_modules', '.git', '.vscode', 'dist', 'build']);
+    const ignoreDirs = new Set(['node_modules', '.git', '.vscode', 'dist', 'build', 'backend', 'src', 'docs']);
+    const validExts = new Set(['.xlsx', '.xls', '.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx']);
     try {
         const entries = await fs.readdir(dir, { withFileTypes: true });
         for (const entry of entries) {
             const fullPath = path.join(dir, entry.name);
             if (entry.isFile()) {
+                const ext = path.extname(entry.name).toLowerCase();
+                if (!validExts.has(ext)) continue;
+
                 const entryLower = entry.name.toLowerCase();
                 const entryNameNoExt = path.parse(entryLower).name;
 

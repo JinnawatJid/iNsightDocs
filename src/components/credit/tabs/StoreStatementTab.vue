@@ -1432,11 +1432,20 @@ const getGradeClass = (grade) => {
 
 const openFullReport = () => {
     // Save current data to localStorage to pass to new tab
+    const mergedFinancialSummary = {
+        ...(analysisResults.value?.financialSummary || {}),
+        ...(store.financialSummary || {})
+    };
+
     const data = {
-        analysisResults: analysisResults.value,
+        analysisResults: {
+            ...(analysisResults.value || {}),
+            financialSummary: mergedFinancialSummary
+        },
         inputs: {
             ...sheetInputs.value,
-            model_type: currentModelType.value
+            model_type: currentModelType.value,
+            monthly_history: store.financialSummary?.monthly_history || store.financialSummary?.monthlyHistory || []
         }
     };
     localStorage.setItem('credit_report_data', JSON.stringify(data));
