@@ -175,11 +175,20 @@ class NewCustomerScorecard extends BaseScorecard {
         const isEligible = isCompany && !noFinancialData;
 
         // 1. D/E Ratio
-        const de = financials.deRatio.value || 0;
+        const de = financials.deRatio ? (financials.deRatio.value || 0) : 0;
         let deRes = this.evaluator.evaluate('c2', 'de_ratio', de);
-        if (!isEligible) {
+        const hasDeColumn = Boolean(financials.deRatio?.column && financials.deRatio.column !== '');
+        const hasFinancialValues = Boolean(
+            (financials.totalLiabilities?.value && financials.totalLiabilities.value !== 0) ||
+            (financials.shareholdersEquity?.value && financials.shareholdersEquity.value !== 0) ||
+            (financials.totalRevenue?.value && financials.totalRevenue.value !== 0)
+        );
+
+        if (!isEligible || (de === 0 && !hasDeColumn && !hasFinancialValues)) {
             deRes.score = 0;
-            if (noFinancialData) deRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+            if (noFinancialData || !hasFinancialValues) {
+                deRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+            }
         }
 
         score += deRes.score;
@@ -189,12 +198,12 @@ class NewCustomerScorecard extends BaseScorecard {
             value: de,
             weight: deRes.weight,
             score: deRes.score,
-            column: financials.deRatio.column,
+            column: financials.deRatio?.column || '',
             matchedRule: deRes.matchedRule
         });
 
         // 2. Inventory Turnover
-        const inv = financials.inventoryTurnover.value || 0;
+        const inv = financials.inventoryTurnover?.value || 0;
         let invRes = this.evaluator.evaluate('c2', 'inventory_turnover', inv);
         if (!isEligible) {
             invRes.score = 0;
@@ -208,7 +217,7 @@ class NewCustomerScorecard extends BaseScorecard {
             value: inv,
             weight: invRes.weight,
             score: invRes.score,
-            column: financials.inventoryTurnover.column,
+            column: financials.inventoryTurnover?.column || '',
             matchedRule: invRes.matchedRule
         });
 
