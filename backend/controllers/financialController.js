@@ -8,6 +8,7 @@ const { calculateSlope, calculateTrendRatio, generateContinuousTimeline, findYea
 const ScoringEngine = require('../services/scoring/ScoringEngine');
 const { extractDBDData } = require('../utils/pdfExtractor');
 const { isCompanyByName } = require('../utils/nameNormalizer');
+const { resolveFilePath } = require('../utils/fileResolver');
 const pdf = require('pdf-parse');
 
 // Configuration
@@ -1087,126 +1088,136 @@ const checkSingleCustomerFiles = async (customer_no) => {
             projectRoot = path.resolve(__dirname, '../../');
         }
 
-        const customerRoot = path.join(projectRoot, 'customers', customer_no);
-        logger.info(`[DEBUG-CHECK] Resolved customerRoot: ${customerRoot}`);
-
-        if (!await fs.pathExists(customerRoot)) {
-            logger.info(`[DEBUG-CHECK] FAIL: No customer directory at ${customerRoot}`);
-            return { exists: false, reason: 'No customer directory' };
-        }
-
-        const subdirs = await fs.readdir(customerRoot);
-        const dateFolders = subdirs.filter(d => /^\d{8}$/.test(d)).sort().reverse();
-        logger.info(`[DEBUG-CHECK] Found dateFolders: ${dateFolders}`);
-
-        if (dateFolders.length === 0) {
-            logger.info(`[DEBUG-CHECK] FAIL: No 8-digit date folders in ${customerRoot}`);
-            return { exists: false, reason: 'No date folders' };
-        }
-
-                // We will scan all dateFolders to find the newest occurrence of each required file
-        // or the No Financial Data marker.
-        const requiredFiles = [
-            { key: 'profile', name: 'DBD_Profile.pdf' },
-            { key: 'balanceSheet', name: 'DBD_BalanceSheet.xlsx' },
-            { key: 'incomeStatement', name: 'DBD_IncomeStatement.xlsx' },
-            { key: 'financialRatios', name: 'DBD_FinancialRatios.xlsx' }
-        ];
+        const uploadBase = process.env.UPLOAD_PATH
+            ? path.resolve(process.cwd(), process.env.UPLOAD_PATH)
+            : path.join(__dirname, '../uploads');
 
         let fileDetails = {};
         let dbdCompanyName = null;
         let dbdYearsInBusiness = null;
         let dbdRegisteredCapital = null;
         let hasNoDataMarker = false;
-        let primaryFolder = dateFolders[0]; // defaults to newest folder
+        let primaryFolder = null;
+        let diffDays = 0;
 
-        // Search for required files across all folders (newest first)
-        for (const file of requiredFiles) {
-            for (const folder of dateFolders) {
-                const currentPath = path.join(customerRoot, folder);
-                const filePath = path.join(currentPath, file.name);
+        // 1. Scan DBD scraper folder under customers/:customer_no if it exists
+        const customerRoot = path.join(projectRoot, 'customers', customer_no);
+        if (await fs.pathExists(customerRoot)) {
+            const subdirs = await fs.readdir(customerRoot);
+            const dateFolders = subdirs.filter(d => /^\d{8}$/.test(d)).sort().reverse();
 
-                if (await fs.pathExists(filePath)) {
-                    logger.info(`[DEBUG] File FOUND: ${filePath}`);
+            if (dateFolders.length > 0) {
+                primaryFolder = dateFolders[0];
+                const requiredFiles = [
+                    { key: 'profile', name: 'DBD_Profile.pdf' },
+                    { key: 'balanceSheet', name: 'DBD_BalanceSheet.xlsx' },
+                    { key: 'incomeStatement', name: 'DBD_IncomeStatement.xlsx' },
+                    { key: 'financialRatios', name: 'DBD_FinancialRatios.xlsx' }
+                ];
 
-                    const stats = await fs.stat(filePath);
-                    fileDetails[file.key] = {
-                        filename: file.name,
-                        size: stats.size,
-                        date: stats.mtime,
-                        path: filePath,
-                        folderDate: folder // track which folder it came from
-                    };
+                for (const file of requiredFiles) {
+                    for (const folder of dateFolders) {
+                        const currentPath = path.join(customerRoot, folder);
+                        const filePath = path.join(currentPath, file.name);
 
-                    if (file.key === 'profile') {
-                        try {
-                            const dataBuffer = await fs.readFile(filePath);
-                            const extracted = await extractDBDData(dataBuffer);
-                            if (extracted.success) {
-                                if (extracted.companyName) dbdCompanyName = extracted.companyName;
-                                if (extracted.yearsInBusiness) dbdYearsInBusiness = extracted.yearsInBusiness;
-                                if (extracted.registeredCapital) dbdRegisteredCapital = extracted.registeredCapital;
+                        if (await fs.pathExists(filePath)) {
+                            const stats = await fs.stat(filePath);
+                            fileDetails[file.key] = {
+                                filename: file.name,
+                                size: stats.size,
+                                date: stats.mtime,
+                                path: filePath,
+                                folderDate: folder
+                            };
+
+                            if (file.key === 'profile') {
+                                try {
+                                    const dataBuffer = await fs.readFile(filePath);
+                                    const extracted = await extractDBDData(dataBuffer);
+                                    if (extracted.success) {
+                                        if (extracted.companyName) dbdCompanyName = extracted.companyName;
+                                        if (extracted.yearsInBusiness) dbdYearsInBusiness = extracted.yearsInBusiness;
+                                        if (extracted.registeredCapital) dbdRegisteredCapital = extracted.registeredCapital;
+                                    }
+                                } catch (pdfErr) {
+                                    logger.warn('Failed to parse profile for name:', pdfErr.message);
+                                }
                             }
-                        } catch (pdfErr) {
-                            logger.warn('Failed to parse profile for name:', pdfErr.message);
+                            break;
                         }
                     }
-                    // Found the newest version of this file, break inner loop to check next file
-                    break;
                 }
-            }
-        }
 
-        // Update primary folder based on the newest found file (if any)
-        const foundFolders = Object.values(fileDetails).map(f => f.folderDate).sort().reverse();
-        if (foundFolders.length > 0) {
-            primaryFolder = foundFolders[0];
-        }
-
-        // Check if actual financial data files (balanceSheet, incomeStatement, financialRatios) exist
-        const hasFinancialFiles = fileDetails.balanceSheet || fileDetails.incomeStatement || fileDetails.financialRatios;
-
-        // Search for marker
-        for (const folder of dateFolders) {
-            const currentPath = path.join(customerRoot, folder);
-            const markerPath = path.join(currentPath, 'DBD_NoFinancialData.txt');
-            if (await fs.pathExists(markerPath)) {
-                // If we found actual financial files, we ignore the marker.
-                if (!hasFinancialFiles) {
-                    hasNoDataMarker = true;
-                    // If we don't have ANY files (not even profile), update primaryFolder
-                    // If we have profile but no financial files, we keep the profile's folder as primary
-                    if (Object.keys(fileDetails).length === 0) {
-                        primaryFolder = folder;
+                // Check marker
+                const hasFinancialFiles = fileDetails.balanceSheet || fileDetails.incomeStatement || fileDetails.financialRatios;
+                for (const folder of dateFolders) {
+                    const currentPath = path.join(customerRoot, folder);
+                    const markerPath = path.join(currentPath, 'DBD_NoFinancialData.txt');
+                    if (await fs.pathExists(markerPath)) {
+                        if (!hasFinancialFiles) {
+                            hasNoDataMarker = true;
+                            if (Object.keys(fileDetails).length === 0) primaryFolder = folder;
+                        }
+                        break;
                     }
-                } else {
-                    logger.info(`[DEBUG] Found DBD_NoFinancialData.txt at ${markerPath} but ignoring it because actual financial files exist.`);
                 }
-                break;
+
+                if (primaryFolder) {
+                    const folderDate = new Date(
+                        parseInt(primaryFolder.substring(0, 4)),
+                        parseInt(primaryFolder.substring(4, 6)) - 1,
+                        parseInt(primaryFolder.substring(6, 8))
+                    );
+                    diffDays = Math.ceil(Math.abs(new Date() - folderDate) / (1000 * 60 * 60 * 24));
+                }
             }
         }
 
-        // Check Freshness against primary folder (configurable, defaults to 180 days)
-        const freshnessLimit = process.env.DBD_FILE_FRESHNESS_DAYS ? parseInt(process.env.DBD_FILE_FRESHNESS_DAYS, 10) : 180;
-        const effectiveLimit = isNaN(freshnessLimit) ? 180 : freshnessLimit;
+        // 2. Query CreditRequestAttachments for physical uploaded files belonging to customer_no
+        const attachmentTypeMap = {
+            'company_profile_doc': 'profile',
+            'balance_sheet_doc': 'balanceSheet',
+            'profit_loss_doc': 'incomeStatement',
+            'financial_ratios_doc': 'financialRatios'
+        };
 
-        const folderDate = new Date(
-            parseInt(primaryFolder.substring(0, 4)),
-            parseInt(primaryFolder.substring(4, 6)) - 1,
-            parseInt(primaryFolder.substring(6, 8))
-        );
-        const now = new Date();
-        const diffTime = Math.abs(now - folderDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays > effectiveLimit) {
-            logger.info(`[DEBUG] Local files for ${customer_no} (${primaryFolder}) rejected. diffDays=${diffDays} > ${effectiveLimit}`);
-            return { exists: false, reason: 'Files too old', days: diffDays, limit: effectiveLimit };
+        const attQuery = `
+            SELECT a.file_type, a.file_path, a.original_name
+            FROM CreditRequestAttachments a
+            JOIN CreditRequests r ON a.tx_id = r.tx_id
+            WHERE (r.customer_no = ? OR r.tx_id = ?) AND (a.is_deleted IS NULL OR a.is_deleted = 0)
+              AND a.file_type IN ('company_profile_doc', 'balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc')
+            ORDER BY a.id DESC
+        `;
+        try {
+            const { rows: attRows } = await db.query(attQuery, [customer_no, customer_no]);
+            if (attRows && attRows.length > 0) {
+                for (const att of attRows) {
+                    const targetKey = attachmentTypeMap[att.file_type];
+                    if (targetKey && !fileDetails[targetKey]) {
+                        const resolvedPath = await resolveFilePath(att.file_path, uploadBase, projectRoot);
+                        if (resolvedPath && await fs.pathExists(resolvedPath)) {
+                            const stats = await fs.stat(resolvedPath);
+                            fileDetails[targetKey] = {
+                                filename: att.original_name || path.basename(resolvedPath),
+                                size: stats.size,
+                                date: stats.mtime,
+                                path: resolvedPath,
+                                fromAttachment: true
+                            };
+                        }
+                    }
+                }
+            }
+        } catch (attErr) {
+            logger.warn(`Failed to check CreditRequestAttachments for ${customer_no}:`, attErr.message);
         }
 
-        const primaryPath = path.join(customerRoot, primaryFolder);
+        const totalFilesFound = Object.keys(fileDetails).length;
 
-        if (hasNoDataMarker) {
+        const primaryPath = primaryFolder ? path.join(customerRoot, primaryFolder) : null;
+
+        if (hasNoDataMarker && !fileDetails.balanceSheet && !fileDetails.incomeStatement && !fileDetails.financialRatios) {
             return {
                 exists: true,
                 isNoFinancialData: true,
@@ -1215,24 +1226,24 @@ const checkSingleCustomerFiles = async (customer_no) => {
                 daysOld: diffDays,
                 path: primaryPath,
                 reason: 'ลูกค้าไม่ส่งงบการเงิน',
-                dbdCompanyName: dbdCompanyName,
-                dbdYearsInBusiness: dbdYearsInBusiness,
-                dbdRegisteredCapital: dbdRegisteredCapital,
+                dbdCompanyName,
+                dbdYearsInBusiness,
+                dbdRegisteredCapital,
                 files: fileDetails.profile ? { profile: fileDetails.profile } : {}
             };
         }
 
         return {
-            exists: Object.keys(fileDetails).length > 0,
+            exists: totalFilesFound > 0,
             isNoFinancialData: false,
             noFinancialData: false,
             date: primaryFolder,
             daysOld: diffDays,
             path: primaryPath,
             files: fileDetails,
-            dbdCompanyName: dbdCompanyName,
-            dbdYearsInBusiness: dbdYearsInBusiness,
-            dbdRegisteredCapital: dbdRegisteredCapital
+            dbdCompanyName,
+            dbdYearsInBusiness,
+            dbdRegisteredCapital
         };
     } catch (error) {
         logger.error(`Check Local Files Error for ${customer_no}:`, error);

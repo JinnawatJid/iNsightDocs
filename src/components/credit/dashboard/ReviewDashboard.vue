@@ -502,7 +502,10 @@ const dbdStatus = ref({
 const isDbdLoading = ref(false);
 
 const checkDbdStatus = async () => {
-    if (!store.customer?.id) return;
+    if (!store.customer?.id) {
+        dbdStatus.value = { profile: false, position: false, income: false, ratios: false, isNoDataFlag: false };
+        return;
+    }
 
     isDbdLoading.value = true;
     try {
@@ -512,7 +515,7 @@ const checkDbdStatus = async () => {
             if (response.data.isNoFinancialData) {
                 // If the customer has been flagged as having no financial data explicitly
                 dbdStatus.value = {
-                    profile: !!(response.data.files && response.data.files.profile) || !!store.uploadedDocuments['company_profile_doc'],
+                    profile: !!(response.data.files && response.data.files.profile),
                     position: false,
                     income: false,
                     ratios: false,
@@ -521,19 +524,19 @@ const checkDbdStatus = async () => {
             } else {
                 const files = response.data.files || {};
                 dbdStatus.value = {
-                    profile: !!files.profile || !!store.uploadedDocuments['company_profile_doc'],
-                    position: !!files.balanceSheet || !!store.uploadedDocuments['balance_sheet_doc'],
-                    income: !!files.incomeStatement || !!store.uploadedDocuments['profit_loss_doc'],
-                    ratios: !!files.financialRatios || !!store.uploadedDocuments['financial_ratios_doc'],
+                    profile: !!files.profile,
+                    position: !!files.balanceSheet,
+                    income: !!files.incomeStatement,
+                    ratios: !!files.financialRatios,
                     isNoDataFlag: false
                 };
             }
         } else {
-            // Reset to false if not found
             dbdStatus.value = { profile: false, position: false, income: false, ratios: false, isNoDataFlag: false };
         }
     } catch (err) {
         console.error('Failed to fetch DBD status', err);
+        dbdStatus.value = { profile: false, position: false, income: false, ratios: false, isNoDataFlag: false };
     } finally {
         isDbdLoading.value = false;
     }
@@ -545,6 +548,12 @@ watch(() => store.customer?.id, (newVal) => {
         financialData.value = null; // reset cache
     }
 });
+
+watch([() => store.files, () => store.uploadedDocuments], () => {
+    if (store.isCompany) {
+        checkDbdStatus();
+    }
+}, { deep: true });
 
 const erpFallbackData = ref(null);
 
