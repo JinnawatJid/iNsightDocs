@@ -223,6 +223,11 @@ exports.downloadCreditRequestFile = async (req, res) => {
     );
 
     if (!foundPath) {
+      const searchedRoots = await fileResolver.getSearchedRootsInfo(
+        normalizedPath,
+        UPLOAD_BASE,
+        projectRoot,
+      );
       const debugInfo = {
         fileId,
         txId: id,
@@ -231,7 +236,8 @@ exports.downloadCreditRequestFile = async (req, res) => {
         originalName: fileRecord.original_name,
         uploadBase: UPLOAD_BASE,
         projectRoot,
-        cwd: process.cwd()
+        cwd: process.cwd(),
+        searchedRoots,
       };
       logger.error(
         `File not found on server. Details: ${JSON.stringify(debugInfo)}`,

@@ -58,8 +58,8 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
 
     // Extract core keyword by stripping customer prefix (e.g. 40088RY_) and timestamp suffix (e.g. _20260805_152253_969.pdf)
     const coreKeyword = targetBasename
-        .replace(/^[\w]+_/, '')
-        .replace(/(_\d+){2,3}\.\w+$/, '')
+        .replace(/^[A-Za-z0-9]+_/, '')
+        .replace(/(_\d+){2,4}\.\w+$/, '')
         .replace(/\.\w+$/, '');
 
     const candidateKeywords = new Set([
@@ -68,9 +68,16 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
         originalName,
         originalName ? originalName.toLowerCase() : null,
         originalName ? path.parse(originalName).name : null,
+        originalName ? path.parse(originalName).name.toLowerCase() : null,
         coreKeyword,
         coreKeyword.toLowerCase()
     ].filter(Boolean));
+
+    // Also extract Thai / English word tokens > 2 chars
+    const tokens = (originalName || targetBasename).split(/[\s_\-\.]+/).filter(t => t && t.length >= 3);
+    for (const tok of tokens) {
+        candidateKeywords.add(tok.toLowerCase());
+    }
 
     logger.info(`[FileResolver] Candidate keywords: ${Array.from(candidateKeywords).join(', ')}`);
 
@@ -103,17 +110,11 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
                         return matchDirect;
                     }
 
-                    // Scan all subfolders under customerDirPath
-                    const entries = await fs.readdir(customerDirPath, { withFileTypes: true });
-                    for (const entry of entries) {
-                        if (entry.isDirectory()) {
-                            const subDir = path.join(customerDirPath, entry.name);
-                            const subMatch = await matchFileInDir(subDir, candidateKeywords);
-                            if (subMatch) {
-                                logger.info(`[FileResolver] Found file in customer subfolder ${entry.name}: ${subMatch}`);
-                                return subMatch;
-                            }
-                        }
+                    // Recursively scan customerDirPath for ANY matching file
+                    const subMatch = await searchDirRecursive(customerDirPath, candidateKeywords, 0, 5);
+                    if (subMatch) {
+                        logger.info(`[FileResolver] Found file in customer dir recursive search: ${subMatch}`);
+                        return subMatch;
                     }
                 } catch (err) {
                     logger.warn(`[FileResolver] Error searching ${customerDirPath}: ${err.message}`);
@@ -126,7 +127,7 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
     logger.info(`[FileResolver] Falling back to recursive scan across baseDirs...`);
     for (const base of baseDirs) {
         if (await fs.pathExists(base)) {
-            const found = await searchDirRecursive(base, candidateKeywords, 0, 3);
+            const found = await searchDirRecursive(base, candidateKeywords, 0, 4);
             if (found) {
                 logger.info(`[FileResolver] Found file via recursive base scan: ${found}`);
                 return found;
@@ -148,7 +149,7 @@ async function matchFileInDir(dirPath, candidateKeywords) {
             for (const cand of candidateKeywords) {
                 if (!cand) continue;
                 const candLower = String(cand).toLowerCase();
-                if (fileLower === candLower || fileLower.includes(candLower) || (fileNameNoExt.length > 3 && candLower.includes(fileNameNoExt))) {
+                if (fileLower === candLower || fileLower.includes(candLower) || (fileNameNoExt.length >= 3 && candLower.includes(fileNameNoExt))) {
                     return path.join(dirPath, file);
                 }
             }
@@ -172,7 +173,7 @@ async function searchDirRecursive(dir, candidateKeywords, currentDepth, maxDepth
                 for (const cand of candidateKeywords) {
                     if (!cand) continue;
                     const candLower = String(cand).toLowerCase();
-                    if (entryLower === candLower || entryLower.includes(candLower) || (entryNameNoExt.length > 3 && candLower.includes(entryNameNoExt))) {
+                    if (entryLower === candLower || entryLower.includes(candLower) || (entryNameNoExt.length >= 3 && candLower.includes(entryNameNoExt))) {
                         return fullPath;
                     }
                 }
@@ -187,6 +188,65 @@ async function searchDirRecursive(dir, candidateKeywords, currentDepth, maxDepth
     return null;
 }
 
+async function getSearchedRootsInfo(normalizedDbPath, uploadBase, projectRoot) {
+    let cleanPath = String(normalizedDbPath || '').replace(/\\/g, '/');
+    if (cleanPath.startsWith("customers/")) cleanPath = cleanPath.replace(/^customers\//, "");
+    if (cleanPath.startsWith("uploads/")) cleanPath = cleanPath.replace(/^uploads\//, "");
+
+    const pathParts = cleanPath.split('/');
+    const customerDirName = pathParts[0] || '';
+
+    const cwd = process.cwd();
+    const root = projectRoot || cwd;
+
+    const baseDirs = Array.from(new Set([
+        uploadBase,
+        path.join(root, 'uploads'),
+        path.join(root, 'backend', 'uploads'),
+        path.join(root, 'customers'),
+        path.resolve(cwd, 'uploads'),
+        path.resolve(cwd, '../uploads'),
+        path.resolve(cwd, 'backend/uploads'),
+        cwd
+    ].filter(Boolean)));
+
+    const info = {};
+
+    for (const base of baseDirs) {
+        try {
+            const baseExists = await fs.pathExists(base);
+            info[base] = { exists: baseExists };
+            if (baseExists) {
+                const baseEntries = await fs.readdir(base);
+                info[base].topEntries = baseEntries.slice(0, 15);
+
+                if (customerDirName) {
+                    const custPath = path.join(base, customerDirName);
+                    const custExists = await fs.pathExists(custPath);
+                    if (custExists) {
+                        const custEntries = await fs.readdir(custPath, { withFileTypes: true });
+                        const custContents = {};
+                        for (const entry of custEntries) {
+                            if (entry.isDirectory()) {
+                                const subPath = path.join(custPath, entry.name);
+                                const subFiles = await fs.readdir(subPath);
+                                custContents[entry.name] = subFiles;
+                            } else {
+                                custContents[entry.name] = 'FILE';
+                            }
+                        }
+                        info[base][`customer_${customerDirName}`] = custContents;
+                    }
+                }
+            }
+        } catch (e) {
+            info[base] = { error: e.message };
+        }
+    }
+    return info;
+}
+
 module.exports = {
-    resolveFilePath
+    resolveFilePath,
+    getSearchedRootsInfo
 };
