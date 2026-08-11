@@ -73,8 +73,16 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
         coreKeyword.toLowerCase()
     ].filter(Boolean));
 
-    // Also extract Thai / English word tokens > 2 chars
-    const tokens = (originalName || targetBasename).split(/[\s_\-\.]+/).filter(t => t && t.length >= 3);
+    // Filter out file extensions and generic short numbers from tokens
+    const ignoreTokens = new Set(['xlsx', 'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'txt', 'csv', 'js', 'json', 'njs', 'bits']);
+    const tokens = (originalName || targetBasename).split(/[\s_\-\.]+/).filter(t => {
+        if (!t || t.length < 3) return false;
+        const lower = t.toLowerCase();
+        if (ignoreTokens.has(lower)) return false;
+        if (/^\d{1,4}$/.test(t)) return false;
+        return true;
+    });
+
     for (const tok of tokens) {
         candidateKeywords.add(tok.toLowerCase());
     }
@@ -113,17 +121,15 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
                     // Recursively scan customerDirPath for ANY matching file
                     const subMatch = await searchDirRecursive(customerDirPath, candidateKeywords, 0, 5);
                     if (subMatch) {
-                        logger.info(`[FileResolver] Found file in customer dir recursive search: ${subMatch}`);
+                        logger.info(`[FileResolver] Found file inside customer subfolder: ${subMatch}`);
                         return subMatch;
                     }
-                } catch (err) {
-                    logger.warn(`[FileResolver] Error searching ${customerDirPath}: ${err.message}`);
-                }
+                } catch (e) {}
             }
         }
     }
 
-    // 4. Fallback: Search all baseDirs recursively for any file matching candidateKeywords
+    // 4. Full Fallback Search across candidate base roots
     logger.info(`[FileResolver] Falling back to recursive scan across baseDirs...`);
     for (const base of baseDirs) {
         if (await fs.pathExists(base)) {
@@ -135,7 +141,6 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
         }
     }
 
-    logger.warn(`[FileResolver] File could NOT be resolved on disk for ${normalizedDbPath} (checked bases: ${baseDirs.join('; ')})`);
     return null;
 }
 
@@ -162,6 +167,7 @@ async function matchFileInDir(dirPath, candidateKeywords) {
 
 async function searchDirRecursive(dir, candidateKeywords, currentDepth, maxDepth) {
     if (currentDepth > maxDepth) return null;
+    const ignoreDirs = new Set(['node_modules', '.git', '.vscode', 'dist', 'build']);
     try {
         const entries = await fs.readdir(dir, { withFileTypes: true });
         for (const entry of entries) {
@@ -177,7 +183,7 @@ async function searchDirRecursive(dir, candidateKeywords, currentDepth, maxDepth
                         return fullPath;
                     }
                 }
-            } else if (entry.isDirectory() && !entry.name.startsWith('.')) {
+            } else if (entry.isDirectory() && !entry.name.startsWith('.') && !ignoreDirs.has(entry.name.toLowerCase())) {
                 const subFound = await searchDirRecursive(fullPath, candidateKeywords, currentDepth + 1, maxDepth);
                 if (subFound) return subFound;
             }
@@ -206,8 +212,7 @@ async function getSearchedRootsInfo(normalizedDbPath, uploadBase, projectRoot) {
         path.join(root, 'customers'),
         path.resolve(cwd, 'uploads'),
         path.resolve(cwd, '../uploads'),
-        path.resolve(cwd, 'backend/uploads'),
-        cwd
+        path.resolve(cwd, 'backend/uploads')
     ].filter(Boolean)));
 
     const info = {};

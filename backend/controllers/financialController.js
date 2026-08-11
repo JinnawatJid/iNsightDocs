@@ -612,11 +612,13 @@ if (custom_weights) {
         }
     }
 
-    // --- LOCAL FILE HANDLING ---
+    // --- LOCAL FILE HANDLING & ATTACHMENT FALLBACK ---
     let localRegisteredCapital = 0;
     let localYearsInBusiness = 0;
 
-    if (req.body.use_local === 'true' && customer_no) {
+    const hasMissingFiles = !files['balance_sheet'] || !files['profit_loss'] || !files['financial_ratios'];
+
+    if ((req.body.use_local === 'true' || hasMissingFiles) && customer_no) {
         try {
              let projectRoot = path.resolve(__dirname, '../../../../');
              // Fallback for dev/sandbox environment (2 levels up)
@@ -625,7 +627,7 @@ if (custom_weights) {
              }
 
              const customerRoot = path.join(projectRoot, 'customers', customer_no);
-        logger.info(`[DEBUG] Checking local files for ${customer_no} at path: ${customerRoot}`);
+             logger.info(`[DEBUG] Checking local files for ${customer_no} at path: ${customerRoot}`);
 
              // Find latest folder logic again (safety)
              if (await fs.pathExists(customerRoot)) {
@@ -680,10 +682,49 @@ if (custom_weights) {
                      }
                  }
              }
-        } catch (localErr) {
-            logger.error('[Financial Analysis] Error loading local files:', localErr);
-        }
-    }
+             // Check CreditRequestAttachments if files are still missing
+             if ((!files['balance_sheet'] || !files['profit_loss'] || !files['financial_ratios']) && customer_no) {
+                 try {
+                     const fileResolver = require('../utils/fileResolver');
+                     const defaultUploadPath = path.join(projectRoot, 'uploads');
+                     const UPLOAD_BASE = process.env.UPLOAD_PATH
+                         ? path.resolve(process.cwd(), process.env.UPLOAD_PATH)
+                         : defaultUploadPath;
+
+                     const attQuery = `
+                         SELECT a.file_type, a.file_path, a.original_name
+                         FROM CreditRequestAttachments a
+                         JOIN CreditRequests r ON a.tx_id = r.tx_id
+                         WHERE (r.customer_no = ? OR r.tx_id = ?) AND (a.is_deleted IS NULL OR a.is_deleted = 0)
+                           AND a.file_type IN ('balance_sheet_doc', 'profit_loss_doc', 'financial_ratios_doc', 'company_profile_doc')
+                         ORDER BY a.id DESC
+                     `;
+                     const { rows: attRows } = await db.query(attQuery, [customer_no, customer_no]);
+                     const attMap = {
+                         'balance_sheet_doc': 'balance_sheet',
+                         'profit_loss_doc': 'profit_loss',
+                         'financial_ratios_doc': 'financial_ratios',
+                         'company_profile_doc': 'company_profile'
+                     };
+
+                     for (const att of (attRows || [])) {
+                         const fieldKey = attMap[att.file_type];
+                         if (fieldKey && (!files[fieldKey] || files[fieldKey].length === 0)) {
+                             const resolvedPath = await fileResolver.resolveFilePath(att.file_path, UPLOAD_BASE, projectRoot, att.original_name);
+                             if (resolvedPath && await fs.pathExists(resolvedPath)) {
+                                 const buf = await fs.readFile(resolvedPath);
+                                 files[fieldKey] = [{ buffer: buf, originalname: att.original_name }];
+                             }
+                         }
+                     }
+                 } catch (attErr) {
+                     logger.warn(`[Financial Analysis] Error loading attachments for ${customer_no}:`, attErr.message);
+                 }
+             }
+         } catch (localErr) {
+             logger.error('[Financial Analysis] Error loading local files:', localErr);
+         }
+     }
 
 
     // --- PERSISTENT STORAGE (Project Requirement) ---
@@ -807,6 +848,82 @@ if (custom_weights) {
       } catch (e) {
           logger.error("Error parsing financial ratios:", e);
       }
+    }
+
+    // --- 1.5. SECONDARY FALLBACK FROM DBD EXCEL PARSER ---
+    if ((results.totalRevenue.value === 0 || results.totalLiabilities.value === 0) && customer_no && req.body.is_no_financial_data !== 'true') {
+        try {
+            const dbdExcelParser = require('../utils/dbdExcelParser');
+            const dbdData = dbdExcelParser.getCustomerFinancialData(customer_no);
+
+            if (dbdData) {
+                const findMetricRow = (parsedTable, keywords) => {
+                    if (!parsedTable || !parsedTable.rows) return null;
+                    const searchLabels = Array.isArray(keywords) ? keywords : [keywords];
+                    return parsedTable.rows.find(row => {
+                        const m = String(row.metric || '').replace(/\s+/g, '').toLowerCase();
+                        return searchLabels.every(lbl => m.includes(lbl.replace(/\s+/g, '').toLowerCase()));
+                    });
+                };
+
+                const getLatestAmount = (row, years) => {
+                    if (!row || !row.values || !years || years.length === 0) return 0;
+                    const latestYear = years[years.length - 1];
+                    const val = row.values[latestYear]?.amount;
+                    if (val === null || val === undefined) return 0;
+                    const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/,/g, ''));
+                    return isNaN(num) ? 0 : num;
+                };
+
+                // Income Statement
+                if (results.totalRevenue.value === 0 && dbdData.incomeStatement && dbdData.incomeStatement.years) {
+                    const years = dbdData.incomeStatement.years;
+                    const revRow = findMetricRow(dbdData.incomeStatement, 'รายได้รวม');
+                    if (revRow) {
+                        results.totalRevenue = { value: getLatestAmount(revRow, years), column: 'DBD' };
+                        const last3Years = years.slice(-3);
+                        results.revenueHistory = last3Years.map(y => {
+                            const val = revRow.values[y]?.amount;
+                            const num = typeof val === 'number' ? val : parseFloat(String(val || 0).replace(/,/g, ''));
+                            return { year: parseInt(y), amount: isNaN(num) ? 0 : num };
+                        });
+                        if (results.revenueHistory.length > 0) {
+                            const sum = results.revenueHistory.reduce((a, c) => a + c.amount, 0);
+                            results.averageRevenue = sum / results.revenueHistory.length;
+                        }
+                    }
+                    const gpRow = findMetricRow(dbdData.incomeStatement, 'กำไร(ขาดทุน)ขั้นต้น') || findMetricRow(dbdData.incomeStatement, 'กำไรขั้นต้น');
+                    if (gpRow) {
+                        results.grossProfit = { value: getLatestAmount(gpRow, years), column: 'DBD' };
+                    }
+                }
+
+                // Balance Sheet
+                if (results.totalLiabilities.value === 0 && dbdData.financialPosition && dbdData.financialPosition.years) {
+                    const years = dbdData.financialPosition.years;
+                    const nclRow = findMetricRow(dbdData.financialPosition, 'หนี้สินไม่หมุนเวียน');
+                    if (nclRow) results.nonCurrentLiabilities = { value: getLatestAmount(nclRow, years), column: 'DBD' };
+
+                    const tlRow = findMetricRow(dbdData.financialPosition, 'หนี้สินรวม') || findMetricRow(dbdData.financialPosition, 'รวมหนี้สิน');
+                    if (tlRow) results.totalLiabilities = { value: getLatestAmount(tlRow, years), column: 'DBD' };
+
+                    const eqRow = findMetricRow(dbdData.financialPosition, 'ส่วนของผู้ถือหุ้น');
+                    if (eqRow) results.shareholdersEquity = { value: getLatestAmount(eqRow, years), column: 'DBD' };
+                }
+
+                // Financial Ratios
+                if (results.deRatio.value === 0 && dbdData.financialRatios && dbdData.financialRatios.years) {
+                    const years = dbdData.financialRatios.years;
+                    const deRow = findMetricRow(dbdData.financialRatios, 'หนี้สินรวมต่อส่วนของผู้ถือหุ้น') || findMetricRow(dbdData.financialRatios, 'อัตราส่วนหนี้สิน');
+                    if (deRow) results.deRatio = { value: getLatestAmount(deRow, years), column: 'DBD' };
+
+                    const invRow = findMetricRow(dbdData.financialRatios, ['หมุนเวียน', 'สินค้าคงเหลือ']);
+                    if (invRow) results.inventoryTurnover = { value: getLatestAmount(invRow, years), column: 'DBD' };
+                }
+            }
+        } catch (dbdErr) {
+            logger.warn(`[Financial Analysis] Error in DBD parser fallback for ${customer_no}:`, dbdErr.message);
+        }
     }
 
     // Calculations for C2 inputs
