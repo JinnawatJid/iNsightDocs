@@ -73,8 +73,9 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
         coreKeyword.toLowerCase()
     ].filter(Boolean));
 
-    // Also extract Thai / English word tokens > 2 chars
-    const tokens = (originalName || targetBasename).split(/[\s_\-\.]+/).filter(t => t && t.length >= 3);
+    // Also extract Thai / English word tokens > 2 chars, excluding file extensions
+    const ignoredTokens = new Set(['xlsx', 'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'txt', 'csv']);
+    const tokens = (originalName || targetBasename).split(/[\s_\-\.]+/).filter(t => t && t.length >= 3 && !ignoredTokens.has(t.toLowerCase()));
     for (const tok of tokens) {
         candidateKeywords.add(tok.toLowerCase());
     }
@@ -177,7 +178,7 @@ async function searchDirRecursive(dir, candidateKeywords, currentDepth, maxDepth
                         return fullPath;
                     }
                 }
-            } else if (entry.isDirectory() && !entry.name.startsWith('.')) {
+            } else if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules' && entry.name !== 'dist' && entry.name !== 'release' && entry.name !== 'build') {
                 const subFound = await searchDirRecursive(fullPath, candidateKeywords, currentDepth + 1, maxDepth);
                 if (subFound) return subFound;
             }
