@@ -2,6 +2,26 @@ const fs = require('fs-extra');
 const path = require('path');
 const logger = require('./logger');
 
+async function isRegularFile(filePath) {
+    if (!filePath) return false;
+    try {
+        const stat = await fs.stat(filePath);
+        return stat.isFile();
+    } catch {
+        return false;
+    }
+}
+
+async function isDirectory(dirPath) {
+    if (!dirPath) return false;
+    try {
+        const stat = await fs.stat(dirPath);
+        return stat.isDirectory();
+    } catch {
+        return false;
+    }
+}
+
 /**
  * Robustly resolves a file path given a normalized DB path and optional originalName.
  * Performs exact matching, customer/txId subdirectory matching, timestamp stripping,
@@ -19,32 +39,33 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
     const cwd = process.cwd();
     const root = projectRoot || cwd;
 
-    // Comprehensive list of candidate base directories
+    // Comprehensive list of candidate base directories (prioritizing shared persistent root outside release folder)
     const baseDirs = Array.from(new Set([
         uploadBase,
+        path.resolve(__dirname, '../../../../uploads'),
+        path.resolve(__dirname, '../../../../customers'),
         path.join(root, 'uploads'),
-        path.join(root, 'backend', 'uploads'),
         path.join(root, 'customers'),
+        path.resolve(__dirname, '../../uploads'),
+        path.resolve(__dirname, '../../customers'),
         path.resolve(cwd, 'uploads'),
         path.resolve(cwd, '../uploads'),
-        path.resolve(cwd, 'backend/uploads'),
+        path.resolve(cwd, '../../uploads'),
+        path.resolve(cwd, '../../../uploads'),
         path.resolve(__dirname, '../uploads'),
-        path.resolve(__dirname, '../../uploads'),
-        path.resolve(__dirname, '../../../uploads'),
-        path.resolve(__dirname, '../../../../uploads'),
         cwd
     ].filter(Boolean)));
 
-    // 1. Try exact absolute path first
-    if (path.isAbsolute(cleanPath) && await fs.pathExists(cleanPath)) {
+    // 1. Try exact absolute path first (strictly verifying it is a regular file)
+    if (path.isAbsolute(cleanPath) && await isRegularFile(cleanPath)) {
         logger.info(`[FileResolver] Found exact absolute path: ${cleanPath}`);
         return cleanPath;
     }
 
-    // 2. Try exact relative candidate in baseDirs
+    // 2. Try exact relative candidate in baseDirs (strictly verifying it is a regular file)
     for (const base of baseDirs) {
         const exactCandidate = path.join(base, cleanPath);
-        if (await fs.pathExists(exactCandidate)) {
+        if (await isRegularFile(exactCandidate)) {
             logger.info(`[FileResolver] Found exact relative path at: ${exactCandidate}`);
             return exactCandidate;
         }
@@ -73,9 +94,14 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
         coreKeyword.toLowerCase()
     ].filter(Boolean));
 
-    // Also extract Thai / English word tokens > 2 chars, excluding file extensions
-    const ignoredTokens = new Set(['xlsx', 'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'txt', 'csv']);
-    const tokens = (originalName || targetBasename).split(/[\s_\-\.]+/).filter(t => t && t.length >= 3 && !ignoredTokens.has(t.toLowerCase()));
+    // Also extract Thai / English word tokens > 2 chars, excluding file extensions, generic words, and pure dates
+    const ignoredTokens = new Set([
+        'xlsx', 'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'txt', 'csv',
+        'file', 'files', 'doc', 'docs', 'document', 'documents', 'image', 'images',
+        'upload', 'uploads', 'download', 'downloads', 'temp', 'test', 'unknown',
+        'name', 'null', 'undefined', 'folder', 'directory'
+    ]);
+    const tokens = (originalName || targetBasename).split(/[\s_\-\.]+/).filter(t => t && t.length >= 3 && !ignoredTokens.has(t.toLowerCase()) && !/^\d{4,8}$/.test(t));
     for (const tok of tokens) {
         candidateKeywords.add(tok.toLowerCase());
     }
@@ -88,10 +114,22 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
         const txIdDirName = pathParts.length >= 3 ? pathParts[1] : null;
 
         for (const base of baseDirs) {
+            // Check customer + txId folder (e.g. uploads/25002CB/CBCA6908_01/filename)
+            if (customerDirName && txIdDirName) {
+                const custTxIdDirPath = path.join(base, customerDirName, txIdDirName);
+                if (await isDirectory(custTxIdDirPath)) {
+                    const match = await matchFileInDir(custTxIdDirPath, candidateKeywords);
+                    if (match) {
+                        logger.info(`[FileResolver] Found file in customer/txId dir: ${match}`);
+                        return match;
+                    }
+                }
+            }
+
             // Check direct txId folder under base (e.g. uploads/TLCA6908_01-R2/filename)
             if (txIdDirName) {
                 const txIdDirPath = path.join(base, txIdDirName);
-                if (await fs.pathExists(txIdDirPath)) {
+                if (await isDirectory(txIdDirPath)) {
                     const match = await matchFileInDir(txIdDirPath, candidateKeywords);
                     if (match) {
                         logger.info(`[FileResolver] Found file in txId dir: ${match}`);
@@ -102,7 +140,7 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
 
             // Check customer dir under base (e.g. uploads/40088RY/...)
             const customerDirPath = path.join(base, customerDirName);
-            if (await fs.pathExists(customerDirPath)) {
+            if (await isDirectory(customerDirPath)) {
                 try {
                     // Check direct files under customerDirPath
                     const matchDirect = await matchFileInDir(customerDirPath, candidateKeywords);
@@ -127,7 +165,7 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
     // 4. Fallback: Search all baseDirs recursively for any file matching candidateKeywords
     logger.info(`[FileResolver] Falling back to recursive scan across baseDirs...`);
     for (const base of baseDirs) {
-        if (await fs.pathExists(base)) {
+        if (await isDirectory(base)) {
             const found = await searchDirRecursive(base, candidateKeywords, 0, 4);
             if (found) {
                 logger.info(`[FileResolver] Found file via recursive base scan: ${found}`);
@@ -140,17 +178,51 @@ async function resolveFilePath(normalizedDbPath, uploadBase, projectRoot, origin
     return null;
 }
 
+const NON_ATTACHMENT_EXTENSIONS = new Set([
+    '.js', '.cjs', '.mjs', '.ts', '.jsx', '.tsx', '.json', '.md', '.lock', '.env', '.sqlite', '.log', '.map', '.html', '.css'
+]);
+
+function isCandidateMatch(fileLower, fileNameNoExt, candLower) {
+    if (!candLower) return false;
+
+    // Ignore source code and internal system files
+    const fileExt = path.extname(fileLower);
+    if (NON_ATTACHMENT_EXTENSIONS.has(fileExt)) return false;
+
+    // Exact match
+    if (fileLower === candLower) return true;
+
+    const candNameNoExt = path.parse(candLower).name;
+    if (candNameNoExt && fileNameNoExt === candNameNoExt) return true;
+
+    // Pure numeric dates/timestamps (e.g. 20260811) should NOT match as random substrings in longer names
+    if (/^\d{4,14}$/.test(candLower)) {
+        return fileNameNoExt === candLower || fileLower.startsWith(candLower);
+    }
+
+    // Meaningful keyword / substring matching (minimum 3 characters)
+    if (candLower.length >= 3) {
+        return fileLower.includes(candLower);
+    }
+
+    return false;
+}
+
 async function matchFileInDir(dirPath, candidateKeywords) {
     try {
-        const files = await fs.readdir(dirPath);
-        for (const file of files) {
+        const entries = await fs.readdir(dirPath, { withFileTypes: true });
+        for (const entry of entries) {
+            // Strictly only files - ignore subdirectories completely
+            if (!entry.isFile()) continue;
+
+            const file = entry.name;
             const fileLower = file.toLowerCase();
             const fileNameNoExt = path.parse(fileLower).name;
 
             for (const cand of candidateKeywords) {
                 if (!cand) continue;
                 const candLower = String(cand).toLowerCase();
-                if (fileLower === candLower || fileLower.includes(candLower) || (fileNameNoExt.length >= 3 && candLower.includes(fileNameNoExt))) {
+                if (isCandidateMatch(fileLower, fileNameNoExt, candLower)) {
                     return path.join(dirPath, file);
                 }
             }
@@ -174,7 +246,7 @@ async function searchDirRecursive(dir, candidateKeywords, currentDepth, maxDepth
                 for (const cand of candidateKeywords) {
                     if (!cand) continue;
                     const candLower = String(cand).toLowerCase();
-                    if (entryLower === candLower || entryLower.includes(candLower) || (entryNameNoExt.length >= 3 && candLower.includes(entryNameNoExt))) {
+                    if (isCandidateMatch(entryLower, entryNameNoExt, candLower)) {
                         return fullPath;
                     }
                 }
@@ -202,12 +274,16 @@ async function getSearchedRootsInfo(normalizedDbPath, uploadBase, projectRoot) {
 
     const baseDirs = Array.from(new Set([
         uploadBase,
+        path.resolve(__dirname, '../../../../uploads'),
+        path.resolve(__dirname, '../../../../customers'),
         path.join(root, 'uploads'),
-        path.join(root, 'backend', 'uploads'),
         path.join(root, 'customers'),
+        path.resolve(__dirname, '../../uploads'),
+        path.resolve(__dirname, '../../customers'),
         path.resolve(cwd, 'uploads'),
         path.resolve(cwd, '../uploads'),
-        path.resolve(cwd, 'backend/uploads'),
+        path.resolve(cwd, '../../uploads'),
+        path.resolve(cwd, '../../../uploads'),
         cwd
     ].filter(Boolean)));
 

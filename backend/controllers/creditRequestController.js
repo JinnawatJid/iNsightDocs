@@ -12,9 +12,9 @@ const {
 const ScoringEngine = require("../services/scoring/ScoringEngine");
 const { isCompanyByName } = require("../utils/nameNormalizer");
 
-let projectRoot = path.resolve(__dirname, "../../");
+let projectRoot = path.resolve(__dirname, "../../../../");
 if (!fs.existsSync(path.join(projectRoot, "customers")) && !fs.existsSync(path.join(projectRoot, "uploads"))) {
-  projectRoot = path.resolve(__dirname, "../../../../");
+  projectRoot = path.resolve(__dirname, "../../");
 }
 const defaultUploadPath = path.join(projectRoot, "uploads");
 
@@ -149,7 +149,10 @@ exports.deleteAdditionalDocument = async (req, res) => {
     // Try to delete physically
     try {
       if (await fs.pathExists(fullPath)) {
-        fs.unlinkSync(fullPath);
+        const fileStat = await fs.stat(fullPath);
+        if (fileStat.isFile()) {
+          fs.unlinkSync(fullPath);
+        }
       }
     } catch (fsError) {
       logger.error(`Failed to delete file physically: ${fullPath}`, fsError);
@@ -247,6 +250,18 @@ exports.downloadCreditRequestFile = async (req, res) => {
 
     filePath = foundPath;
 
+    // Verify target is actually a readable regular file (prevent EISDIR on directories)
+    try {
+      const fileStat = await fs.stat(filePath);
+      if (!fileStat.isFile()) {
+        logger.error(`Resolved path is not a regular file (directory or special file): ${filePath}`);
+        return res.status(404).json({ error: "Resolved target is not a valid file on server" });
+      }
+    } catch (statErr) {
+      logger.error(`Failed to stat resolved file path: ${filePath}`, statErr);
+      return res.status(404).json({ error: "File not accessible on server" });
+    }
+
     const mimeType = mime.lookup(filePath) || "application/octet-stream";
     res.setHeader("Content-Type", mimeType);
 
@@ -263,6 +278,14 @@ exports.downloadCreditRequestFile = async (req, res) => {
     );
 
     const fileStream = fs.createReadStream(filePath);
+    fileStream.on("error", (streamError) => {
+      logger.error(`Stream error reading file ${filePath}:`, streamError);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Error reading file stream" });
+      } else {
+        res.end();
+      }
+    });
     fileStream.pipe(res);
   } catch (error) {
     logger.error("Error downloading file:", error);
