@@ -138,7 +138,7 @@
                      <tbody>
                          <tr v-for="(m, i) in purchaseHistory" :key="i">
                              <td>{{ m.label }}</td>
-                             <td class="text-right">{{ formatMoney(m.amount) }}</td>
+                             <td class="text-right">{{ formatMoney(getMonthlyAmount(m)) }}</td>
                          </tr>
                          <!-- Fallback if empty -->
                          <tr v-if="purchaseHistory.length === 0">
@@ -205,11 +205,21 @@ const recommendedLimit = computed(() => scoring.value.recommendedLimit || 0);
 const isExistingModel = computed(() => props.inputs.model_type === 'existing');
 const purchaseMonthCount = computed(() => isExistingModel.value ? 6 : 3);
 
+const getMonthlyAmount = (m) => {
+    if (!m) return null;
+    if (m.amount !== undefined && m.amount !== null && m.amount !== '') return m.amount;
+    if (m.value !== undefined && m.value !== null && m.value !== '') return m.value;
+    return null;
+};
+
 const purchaseHistory = computed(() => {
-    let history = financialSummary.value.monthlyHistory || [];
+    let history = financialSummary.value.monthlyHistory || 
+                  financialSummary.value.monthly_history || 
+                  props.analysisResults.monthlyHistory || 
+                  props.analysisResults.monthly_history || [];
     // Backend scoring excludes the current (incomplete) month.
-    // Ensure table displays the same 3 months used for calculation.
-    if (history.length > 0 && String(history[0].label).includes('เดือนปัจจุบัน')) {
+    // Ensure table displays the same months used for calculation.
+    if (history.length > 0 && String(history[0]?.label || '').includes('เดือนปัจจุบัน')) {
         history = history.slice(1);
     }
     // Return 6 months for existing, 3 for new
@@ -219,8 +229,10 @@ const purchaseHistory = computed(() => {
 const stats = computed(() => financialSummary.value.stats || { sumLast3: 0, trendRatio: 1 });
 
 const formatMoney = (val) => {
-    if (val === undefined || val === null) return '-';
-    return Number(val).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (val === undefined || val === null || val === '') return '-';
+    const num = typeof val === 'number' ? val : Number(String(val).replace(/,/g, ''));
+    if (isNaN(num)) return '-';
+    return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const formatScore = (val) => {

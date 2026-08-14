@@ -183,12 +183,26 @@ class ExistingCustomerScorecard extends BaseScorecard {
         const debug = [];
         const isEligible = isCompany && !noFinancialData;
 
+        // Check if financial statement data is actually present
+        // A de ratio of 0 without any liabilities, equity, or revenue extracted indicates missing financial data, not legitimate 0 debt.
+        const hasEquity = (financials.shareholdersEquity?.value !== undefined && financials.shareholdersEquity?.value > 0) ||
+                          (financials.totalLiabilities?.value !== undefined && financials.totalLiabilities?.value > 0) ||
+                          (financials.totalRevenue?.value !== undefined && financials.totalRevenue?.value > 0) ||
+                          (financials.deRatio?.column && String(financials.deRatio.column).trim() !== '') ||
+                          financials.hasFinancialStatements === true;
+
+        const isDeValid = isEligible && (financials.deRatio?.value > 0 || (financials.deRatio?.value === 0 && hasEquity));
+
         // 1. D/E Ratio
-        const de = financials.deRatio.value || 0;
+        const de = financials.deRatio?.value || 0;
         let deRes = this.evaluator.evaluate('c2', 'de_ratio', de);
-        if (!isEligible) {
+        if (!isEligible || !isDeValid) {
             deRes.score = 0;
-            if (noFinancialData) deRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+            if (noFinancialData) {
+                deRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+            } else if (!isDeValid) {
+                deRes.matchedRule = "N/A (ไม่มีข้อมูลงบการเงิน)";
+            }
         }
 
         score += deRes.score;
@@ -198,16 +212,20 @@ class ExistingCustomerScorecard extends BaseScorecard {
             value: de,
             weight: deRes.weight,
             score: deRes.score,
-            column: financials.deRatio.column,
+            column: financials.deRatio?.column || '',
             matchedRule: deRes.matchedRule
         });
 
         // 2. Inventory Turnover
-        const inv = financials.inventoryTurnover.value || 0;
+        const inv = financials.inventoryTurnover?.value || 0;
         let invRes = this.evaluator.evaluate('c2', 'inventory_turnover', inv);
-        if (!isEligible) {
+        if (!isEligible || (!hasEquity && inv === 0)) {
             invRes.score = 0;
-            if (noFinancialData) invRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+            if (noFinancialData) {
+                invRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+            } else if (!hasEquity) {
+                invRes.matchedRule = "N/A (ไม่มีข้อมูลงบการเงิน)";
+            }
         }
 
         score += invRes.score;
@@ -217,16 +235,20 @@ class ExistingCustomerScorecard extends BaseScorecard {
             value: inv,
             weight: invRes.weight,
             score: invRes.score,
-            column: financials.inventoryTurnover.column,
+            column: financials.inventoryTurnover?.column || '',
             matchedRule: invRes.matchedRule
         });
 
         // 3. DSCR
         const dscr = financials.dscr || 0;
         let dscrRes = this.evaluator.evaluate('c2', 'dscr', dscr);
-        if (!isEligible) {
+        if (!isEligible || (!hasEquity && dscr === 0)) {
             dscrRes.score = 0;
-            if (noFinancialData) dscrRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+            if (noFinancialData) {
+                dscrRes.matchedRule = "N/A (ไม่ส่งงบการเงิน)";
+            } else if (!hasEquity) {
+                dscrRes.matchedRule = "N/A (ไม่มีข้อมูลงบการเงิน)";
+            }
         }
 
         score += dscrRes.score;

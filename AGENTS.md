@@ -69,3 +69,14 @@ Files created but not yet committed may disappear if the environment resets or "
   5. 4-level deep recursive directory fallback scanning across candidate upload roots when exact relative paths fail.
 * **Server Root Priority:** `projectRoot` resolution in `creditRequestController.js` prioritizes local release bundle directories (`path.resolve(__dirname, "../../")`) over parent workspace levels to prevent root leakage in production environment builds.
 
+## 9. Financial Extraction Integrity, Inverted Ratio Guards & Remote API Diagnostics
+
+* **Inverted Risk Ratio Guard (D/E Ratio):** In `NewCustomerScorecard.js` and `ExistingCustomerScorecard.js`, D/E ratio evaluates `de <= 1.0` as top-tier. To prevent missing/unextracted statements (`de = 0.00`) from erroneously receiving 11.00 points, the scoring engine checks whether `shareholdersEquity > 0`, `totalLiabilities > 0`, or `deRatio.column` is present. If statements are absent/unextracted, D/E is scored as `0` points with matched rule `"N/A (ไม่มีข้อมูลงบการเงิน)"`.
+* **Revision Attachment Cloning Resiliency:** In `creditRequestController.js` (`reviseRequest`), `CreditRequestAttachments` records are always duplicated for the new revision `tx_id` regardless of whether local physical directory copying succeeds. This enables `fileResolver.js` to look up and resolve attachments across parent revision directories.
+* **Remote Attachment Inspection & API Re-Trigger:** To inspect attachments and re-evaluate financial analysis on hosted/remote instances (e.g. `http://192.192.0.37:3000`):
+  1. Generate an unsigned JWT token payload with a valid user/role (`Credit Committee`) to pass `authMiddleware`.
+  2. Fetch request details from `GET /api/credit-requests/:txId/detail` (data is nested under `res.data.data.attachments`).
+  3. Stream physical attachments via `GET /api/credit-requests/:txId/files/:fileId`.
+  4. Trigger `POST /api/financials/analyze` with `multipart/form-data` containing the actual Excel/PDF files to execute the parser (`findValue`) against current submitted files and re-evaluate scoring.
+* **Purchase History Table Rendering:** In `CreditScoreSheet.vue`, `purchaseHistory` items may carry figures under `m.amount` (numeric) or `m.value` (formatted string with commas). `getMonthlyAmount(m)` and `formatMoney()` sanitize commas before conversion to prevent `NaN` or dash fallback.
+

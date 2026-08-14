@@ -377,3 +377,22 @@ Purchase statistics fetched from history APIs or stored in database snapshots ma
 
 This key normalization ensures that the credit limit formula $\text{Limit} = (\frac{\text{SumLast6}}{4}) \times (\frac{\text{TotalScore}}{200})^2$ never evaluates to `0` due to casing mismatches.
 
+## 13. Financial Extraction Integrity & Inverted Ratio Missing-Data Guards
+
+### 13.1 Inverted Risk Ratio Guard (D/E Ratio)
+For ratios where lower values indicate lower risk (such as D/E Ratio $\le 1.0$), missing or unextracted financial data defaults to `0.00`. If evaluated without presence verification, `0.00 <= 1.0` evaluates to true, falsely awarding maximum 11.00 points.
+
+**Integrity Rule:**
+- The scoring engine verifies that `shareholdersEquity > 0`, `totalLiabilities > 0`, or `deRatio.column` is present before scoring D/E ratio.
+- If statements are missing or extraction returned all zeros, D/E ratio evaluates to **0 points** with matched rule `"N/A (ไม่มีข้อมูลงบการเงิน)"`.
+
+### 13.2 Extraction Health Flag (`hasExtractedMetrics`)
+In `financialController.js`, `analyzeFinancials` computes `hasExtractedMetrics: boolean`:
+- Verified if any core statement metric (`totalRevenue`, `grossProfit`, `nonCurrentLiabilities`, `totalLiabilities`, `shareholdersEquity`, `deRatio`, `inventoryTurnover`) is greater than 0.
+- Returned in API response and snapshot data to prevent false-positive validation passes when empty files are parsed.
+
+### 13.3 Purchase History Rendering Resiliency
+In `CreditScoreSheet.vue`, monthly purchase history rendering supports both numeric `amount` and formatted string `value` (e.g. `"986,969.81"`):
+- `getMonthlyAmount(m)` helper dynamically resolves `m.amount || m.value`.
+- `formatMoney()` strips commas before `Number()` conversion to eliminate `NaN` / dash (`-`) display errors.
+

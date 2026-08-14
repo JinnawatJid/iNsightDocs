@@ -1818,11 +1818,18 @@ exports.reviseRequest = async (req, res) => {
     );
 
     if (await fs.pathExists(oldDirPath)) {
-      await fs.copy(oldDirPath, newDirPath);
-      logger.info(`Copied files from ${oldDirPath} to ${newDirPath}`);
+      try {
+        await fs.copy(oldDirPath, newDirPath);
+        logger.info(`Copied files from ${oldDirPath} to ${newDirPath}`);
+      } catch (copyErr) {
+        logger.warn(`Could not copy physical directory from ${oldDirPath} to ${newDirPath}:`, copyErr.message);
+      }
+    } else {
+      logger.info(`No physical files found to copy at ${oldDirPath}`);
+    }
 
-      // After copying physical files, copy the DB attachment records for the new revision
-      // with updated relative paths.
+    // Always clone attachment metadata to ensure cross-revision document resolution
+    try {
       const oldAttSql =
         "SELECT * FROM CreditRequestAttachments WHERE tx_id = ? AND (is_deleted IS NULL OR is_deleted = 0)";
       const { rows: oldAttachments } = await db.query(oldAttSql, [id]);
@@ -1832,10 +1839,10 @@ exports.reviseRequest = async (req, res) => {
           // Path format: customer_no/oldTxId/file.ext
           const oldPathSegment = `${cleanOldId}/`;
           const newPathSegment = `${cleanNewId}/`;
-          const newRelativePath = att.file_path.replace(
+          const newRelativePath = att.file_path ? att.file_path.replace(
             oldPathSegment,
             newPathSegment,
-          );
+          ) : att.file_path;
 
           await db.runAsync(
             "INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name, uploaded_by, updated_by) VALUES (?, ?, ?, ?, ?, ?)",
@@ -1849,9 +1856,10 @@ exports.reviseRequest = async (req, res) => {
             ],
           );
         }
+        logger.info(`Cloned ${oldAttachments.length} attachment records for revision ${newTxId}`);
       }
-    } else {
-      logger.info(`No files found to copy at ${oldDirPath}`);
+    } catch (attCloneErr) {
+      logger.error("Error cloning attachment DB records for revision:", attCloneErr);
     }
 
     res.status(200).json({
