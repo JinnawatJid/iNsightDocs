@@ -10,8 +10,9 @@ This document details the multi-level file path resolution architecture implemen
 
 ## Key Challenges Solved
 
-1. **Path Leakage in Release Bundles:**
-   In packaged production releases (e.g. `C:\Users\kongd\Desktop\SP682\SP682_1_6_35\release\backend`), naive `path.resolve(__dirname, "../../../../")` traverses up 4 levels out of the release bundle into parent desktop directories. `projectRoot` resolution now prioritizes local bundle directories (`path.resolve(__dirname, "../../")`) first.
+1. **Persistent Shared Storage Architecture (`uploads/` & `customers/` Outside Release Directory):**
+   In production deployment, the server runs packaged release versions (e.g. `C:\Users\kongd\Desktop\SP682\SP682_1_6_36\release\backend`). The persistent uploads (`SP682\uploads`) and DBD customer cache (`SP682\customers`) reside **outside the versioned release folders at the parent persistent root** (`C:\Users\kongd\Desktop\SP682`).
+   All backend services (`creditRequestController.js`, `upload.js`, `financialController.js`, `pdfController.js`, `dbdExcelParser.js`) resolve `projectRoot` to `path.resolve(__dirname, '../../../../')` first (with fallback to `../../` for local development), ensuring that uploading, deleting, and downloading documents seamlessly targets the persistent shared `uploads/` and `customers/` directory across all release version deployments.
 
 2. **Cross-Revision Attachment Lookups:**
    When a request revision is created, attachment records retain relative paths or create new revision path segments (e.g. `40088RY/TLCA6908_01-R2/...`). `getAttachmentFile` queries `CreditRequestAttachments` by primary key `id` (`WHERE id = ?`) to support preview URLs regardless of whether base TxID or revision TxID was passed in the request route.
@@ -19,11 +20,16 @@ This document details the multi-level file path resolution architecture implemen
 3. **3-Part Timestamp Filename Variations:**
    Uploaded files stored in DB often contain 3-part timestamps (e.g. `40088RY_Company_Profile สหวัฒน์_20260805_152253_969.pdf`), whereas files on disk may be saved under original names (`Company_Profile สหวัฒน์.pdf`) or customer-prefixed names without timestamps. `fileResolver` cleans 3-part timestamps (`(_\d+){2,4}\.\w+$`) and generates candidate token sets for fuzzy matching.
 
-4. **Recursive Multi-Root Fallback:**
+4. **Recursive Multi-Root Fallback & Strict File-Type Guard:**
    When exact relative path matching fails, `fileResolver.js` scans:
+   - Direct `customerDirPath/txIdDir` subfolders (e.g. `uploads/25002CB/CBCA6908_01/`)
    - Direct `txIdDir` subfolders (e.g. `uploads/TLCA6908_01-R2/`)
    - All subfolders under `customerDirPath` (e.g. `uploads/40088RY/*`)
    - 4-level deep recursive scans across all candidate base upload roots (`uploadBase`, `root/uploads`, `root/backend/uploads`, `cwd/uploads`, `cwd/../uploads`).
+   - **Regular File Guard:** In all steps, `fileResolver.js` strictly validates `stat.isFile()` (ignoring directories such as DBD date subfolders `20260811`) to prevent `EISDIR` errors when reading or streaming files.
+
+5. **Stream Error Resilience:**
+   `creditRequestController.js` validates `stat.isFile()` before piping and attaches standard `fileStream.on('error', ...)` handlers to prevent unhandled stream errors from terminating the Node.js process.
 
 ---
 

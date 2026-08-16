@@ -12,9 +12,9 @@ const {
 const ScoringEngine = require("../services/scoring/ScoringEngine");
 const { isCompanyByName } = require("../utils/nameNormalizer");
 
-let projectRoot = path.resolve(__dirname, "../../");
+let projectRoot = path.resolve(__dirname, "../../../../");
 if (!fs.existsSync(path.join(projectRoot, "customers")) && !fs.existsSync(path.join(projectRoot, "uploads"))) {
-  projectRoot = path.resolve(__dirname, "../../../../");
+  projectRoot = path.resolve(__dirname, "../../");
 }
 const defaultUploadPath = path.join(projectRoot, "uploads");
 
@@ -149,7 +149,10 @@ exports.deleteAdditionalDocument = async (req, res) => {
     // Try to delete physically
     try {
       if (await fs.pathExists(fullPath)) {
-        fs.unlinkSync(fullPath);
+        const fileStat = await fs.stat(fullPath);
+        if (fileStat.isFile()) {
+          fs.unlinkSync(fullPath);
+        }
       }
     } catch (fsError) {
       logger.error(`Failed to delete file physically: ${fullPath}`, fsError);
@@ -247,6 +250,18 @@ exports.downloadCreditRequestFile = async (req, res) => {
 
     filePath = foundPath;
 
+    // Verify target is actually a readable regular file (prevent EISDIR on directories)
+    try {
+      const fileStat = await fs.stat(filePath);
+      if (!fileStat.isFile()) {
+        logger.error(`Resolved path is not a regular file (directory or special file): ${filePath}`);
+        return res.status(404).json({ error: "Resolved target is not a valid file on server" });
+      }
+    } catch (statErr) {
+      logger.error(`Failed to stat resolved file path: ${filePath}`, statErr);
+      return res.status(404).json({ error: "File not accessible on server" });
+    }
+
     const mimeType = mime.lookup(filePath) || "application/octet-stream";
     res.setHeader("Content-Type", mimeType);
 
@@ -263,6 +278,14 @@ exports.downloadCreditRequestFile = async (req, res) => {
     );
 
     const fileStream = fs.createReadStream(filePath);
+    fileStream.on("error", (streamError) => {
+      logger.error(`Stream error reading file ${filePath}:`, streamError);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Error reading file stream" });
+      } else {
+        res.end();
+      }
+    });
     fileStream.pipe(res);
   } catch (error) {
     logger.error("Error downloading file:", error);
@@ -1818,11 +1841,18 @@ exports.reviseRequest = async (req, res) => {
     );
 
     if (await fs.pathExists(oldDirPath)) {
-      await fs.copy(oldDirPath, newDirPath);
-      logger.info(`Copied files from ${oldDirPath} to ${newDirPath}`);
+      try {
+        await fs.copy(oldDirPath, newDirPath);
+        logger.info(`Copied files from ${oldDirPath} to ${newDirPath}`);
+      } catch (copyErr) {
+        logger.warn(`Could not copy physical directory from ${oldDirPath} to ${newDirPath}:`, copyErr.message);
+      }
+    } else {
+      logger.info(`No physical files found to copy at ${oldDirPath}`);
+    }
 
-      // After copying physical files, copy the DB attachment records for the new revision
-      // with updated relative paths.
+    // Always clone attachment metadata to ensure cross-revision document resolution
+    try {
       const oldAttSql =
         "SELECT * FROM CreditRequestAttachments WHERE tx_id = ? AND (is_deleted IS NULL OR is_deleted = 0)";
       const { rows: oldAttachments } = await db.query(oldAttSql, [id]);
@@ -1832,10 +1862,10 @@ exports.reviseRequest = async (req, res) => {
           // Path format: customer_no/oldTxId/file.ext
           const oldPathSegment = `${cleanOldId}/`;
           const newPathSegment = `${cleanNewId}/`;
-          const newRelativePath = att.file_path.replace(
+          const newRelativePath = att.file_path ? att.file_path.replace(
             oldPathSegment,
             newPathSegment,
-          );
+          ) : att.file_path;
 
           await db.runAsync(
             "INSERT INTO CreditRequestAttachments (tx_id, file_type, file_path, original_name, uploaded_by, updated_by) VALUES (?, ?, ?, ?, ?, ?)",
@@ -1849,9 +1879,10 @@ exports.reviseRequest = async (req, res) => {
             ],
           );
         }
+        logger.info(`Cloned ${oldAttachments.length} attachment records for revision ${newTxId}`);
       }
-    } else {
-      logger.info(`No files found to copy at ${oldDirPath}`);
+    } catch (attCloneErr) {
+      logger.error("Error cloning attachment DB records for revision:", attCloneErr);
     }
 
     res.status(200).json({

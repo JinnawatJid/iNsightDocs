@@ -1024,8 +1024,19 @@ if (custom_weights) {
         ...scoringResult.debug // Merged debug from engine
     ];
 
+    const hasExtractedMetrics = !!(
+      (results.totalRevenue && results.totalRevenue.value > 0) ||
+      (results.grossProfit && results.grossProfit.value > 0) ||
+      (results.totalLiabilities && results.totalLiabilities.value > 0) ||
+      (results.shareholdersEquity && results.shareholdersEquity.value > 0) ||
+      (results.nonCurrentLiabilities && results.nonCurrentLiabilities.value > 0) ||
+      (results.deRatio && results.deRatio.value > 0) ||
+      (results.inventoryTurnover && results.inventoryTurnover.value > 0)
+    );
+
     res.json({
       success: true,
+      hasExtractedMetrics: hasExtractedMetrics,
       extractedData: results,
       calculations: calculations,
       scoringResult: scoringResult,

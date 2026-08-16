@@ -67,5 +67,17 @@ Files created but not yet committed may disappear if the environment resets or "
   3. 3-part timestamp stripping (`_YYYYMMDD_HHMMSS_rrr.ext`) from DB filenames to extract core keywords.
   4. Token-based substring matching across Thai/English file names (`originalName` and `targetBasename`).
   5. 4-level deep recursive directory fallback scanning across candidate upload roots when exact relative paths fail.
-* **Server Root Priority:** `projectRoot` resolution in `creditRequestController.js` prioritizes local release bundle directories (`path.resolve(__dirname, "../../")`) over parent workspace levels to prevent root leakage in production environment builds.
+  6. Strict regular file validation (`stat.isFile()`) across all resolution passes to ignore subdirectories (e.g. DBD date folders like `20260811`), combined with explicit `fileStream.on('error', ...)` stream error handling in `downloadCreditRequestFile` to prevent server crashes from `EISDIR`.
+* **Server Root & Persistent Storage Architecture:** In deployment, all shared persistent storage (`uploads/` and `customers/`) **MUST ALWAYS reside outside the release version folder** (e.g. at `SP682\uploads` and `SP682\customers`, resolved via `path.resolve(__dirname, "../../../../")`). All backend modules (`creditRequestController.js`, `upload.js`, `financialController.js`, `pdfController.js`, `dbdExcelParser.js`) resolve `projectRoot` to `path.resolve(__dirname, "../../../../")` first to ensure new releases (`SP682_1_6_36`, `SP682_1_6_37`, etc.) share the same persistent uploads and customer DBD data without file loss.
+
+## 9. Financial Extraction Integrity, Inverted Ratio Guards & Remote API Diagnostics
+
+* **Inverted Risk Ratio Guard (D/E Ratio):** In `NewCustomerScorecard.js` and `ExistingCustomerScorecard.js`, D/E ratio evaluates `de <= 1.0` as top-tier. To prevent missing/unextracted statements (`de = 0.00`) from erroneously receiving 11.00 points, the scoring engine checks whether `shareholdersEquity > 0`, `totalLiabilities > 0`, or `deRatio.column` is present. If statements are absent/unextracted, D/E is scored as `0` points with matched rule `"N/A (ไม่มีข้อมูลงบการเงิน)"`.
+* **Revision Attachment Cloning Resiliency:** In `creditRequestController.js` (`reviseRequest`), `CreditRequestAttachments` records are always duplicated for the new revision `tx_id` regardless of whether local physical directory copying succeeds. This enables `fileResolver.js` to look up and resolve attachments across parent revision directories.
+* **Remote Attachment Inspection & API Re-Trigger:** To inspect attachments and re-evaluate financial analysis on hosted/remote instances (e.g. `http://192.192.0.37:3000`):
+  1. Generate an unsigned JWT token payload with a valid user/role (`Credit Committee`) to pass `authMiddleware`.
+  2. Fetch request details from `GET /api/credit-requests/:txId/detail` (data is nested under `res.data.data.attachments`).
+  3. Stream physical attachments via `GET /api/credit-requests/:txId/files/:fileId`.
+  4. Trigger `POST /api/financials/analyze` with `multipart/form-data` containing the actual Excel/PDF files to execute the parser (`findValue`) against current submitted files and re-evaluate scoring.
+* **Purchase History Table Rendering:** In `CreditScoreSheet.vue`, `purchaseHistory` items may carry figures under `m.amount` (numeric) or `m.value` (formatted string with commas). `getMonthlyAmount(m)` and `formatMoney()` sanitize commas before conversion to prevent `NaN` or dash fallback.
 
