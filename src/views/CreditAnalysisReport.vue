@@ -60,7 +60,7 @@
       <!-- PAYMENT HISTORY (DEBUG) -->
       <div class="section payment-history-section" v-if="latePaymentInvoices && latePaymentInvoices.length > 0">
           <div class="header-with-toggle">
-              <h2>ประวัติการชำระเงิน (Debug Log)</h2>
+              <h2>ประวัติการชำระเงิน</h2>
               <div class="text-right stats-wrapper">
                   <div class="calc-summary">
                       <strong>ค่าเฉลี่ยแบบนับจำนวน (Simple Average):</strong>
@@ -260,26 +260,20 @@ const wadlStats = computed(() => {
 
 const latePaymentInvoices = computed(() => {
     // Prefer WADL invoices if available (contains Amount)
-    const wadlInvoices = wadlStats.value?.invoices;
-    const standardInvoices = latePaymentSummary.value?.invoices;
+    const wadlInvoices = wadlStats.value?.rawInvoices || wadlStats.value?.invoices;
+    const standardInvoices = latePaymentSummary.value?.rawInvoices || latePaymentSummary.value?.invoices;
 
     const source = wadlInvoices || standardInvoices;
 
     if (source && Array.isArray(source)) {
-        // Force deduplicate in frontend just in case backend fails or returns raw data
-        const uniqueMap = new Map();
-        source.forEach(inv => {
-             const invoiceNo = inv.Invoice_No || inv.invoice_no || inv.Document_No;
-             if (!uniqueMap.has(invoiceNo)) {
-                 uniqueMap.set(invoiceNo, inv);
-             }
-        });
-
-        return Array.from(uniqueMap.values()).sort((a, b) => {
-            const dateA = new Date(a.Invoice_Date);
-            const dateB = new Date(b.Invoice_Date);
+        // Use rawInvoices to bypass backend strict WADL deduplication for the UI display
+        const sorted = [...source].sort((a, b) => {
+            // FIX: If Invoice_Date is null/undefined, new Date() returns invalid date, which breaks sorting and can drop items
+            const dateA = a.Invoice_Date ? new Date(a.Invoice_Date) : new Date(0);
+            const dateB = b.Invoice_Date ? new Date(b.Invoice_Date) : new Date(0);
             return dateB - dateA;
         });
+        return sorted;
     }
     return [];
 });

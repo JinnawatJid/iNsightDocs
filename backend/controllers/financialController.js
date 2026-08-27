@@ -93,6 +93,10 @@ const sanitizeInvoices = (invoices) => {
     today.setHours(0, 0, 0, 0);
 
     return invoices.map(inv => {
+        // Sanitize empty strings to native null so downstream logic doesn't crash
+        if (!inv.Effective_Payment_Date || String(inv.Effective_Payment_Date).trim() === '') {
+            inv.Effective_Payment_Date = null;
+        }
         // 1. Check for Invalid Cleared Date (1753-01-01 from SQL)
         const clearedDateStr = inv['Cleared Date'] || inv.cleared_date || inv.Cleared_Date;
         const checkDateStr = inv['Check Date'] || inv.check_date || inv.Check_Date;
@@ -125,6 +129,38 @@ const sanitizeInvoices = (invoices) => {
 };
 
 // Helper: Fetch Purchasing Behavior from External API
+
+// Helper: Filter Exact Duplicates (Used for UI Display)
+const filterExactDuplicates = (invoices) => {
+    if (!invoices || !Array.isArray(invoices)) return invoices;
+
+    const uniqueInvoices = [];
+    const seenSignatures = new Set();
+
+    invoices.forEach(inv => {
+        const invoiceNo = inv.Invoice_No || inv.invoice_no || inv.Document_No;
+
+        if (!invoiceNo) {
+            uniqueInvoices.push(inv);
+            return;
+        }
+
+        // Create a signature based on key fields to detect exact duplicates
+        const amount = inv.Line_Amount || inv.line_amount || inv.Amount || inv.amount || 0;
+        const dueDate = inv.Due_Date || inv.due_date || '';
+        const effectiveDate = inv.Effective_Payment_Date || inv.effective_payment_date || 'null';
+        const lateDays = inv.Late_Days || inv.late_days || 0;
+
+        const signature = `${invoiceNo}_${amount}_${dueDate}_${effectiveDate}_${lateDays}`;
+
+        if (!seenSignatures.has(signature)) {
+            seenSignatures.add(signature);
+            uniqueInvoices.push(inv);
+        }
+    });
+
+    return uniqueInvoices;
+};
 
 // Helper: Deduplicate Invoices (Keep the row with max Late_Days)
 const deduplicateInvoices = (invoices) => {
@@ -424,10 +460,16 @@ const fetchWADLData = async (customerNo) => {
 
         // Sanitize Data (Handle 1753 / Future Checks)
         invoices = sanitizeInvoices(invoices);
+        // Save the raw invoices for UI display purposes before we deduplicate them for math
+        // Ensure we filter out exact duplicates (same invoice + same amount + same dates) so they aren't spammed in the UI
+        const rawInvoices = filterExactDuplicates(invoices);
+
         // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
         invoices = deduplicateInvoices(invoices);
 
-        return calculateWADL(invoices);
+        const wadlResult = calculateWADL(invoices);
+        wadlResult.rawInvoices = rawInvoices;
+        return wadlResult;
 
     } catch (error) {
         logger.error(`[WADL API] Error fetching data for ${customerNo}:`, error.message);
@@ -1434,6 +1476,10 @@ exports.getLatePaymentBenchmark = async (req, res) => {
 
         // Sanitize Data (Handle 1753 / Future Checks)
         invoices = sanitizeInvoices(invoices);
+        // Save the raw invoices for UI display purposes before we deduplicate them for math
+        // Ensure we filter out exact duplicates (same invoice + same amount + same dates) so they aren't spammed in the UI
+        const rawInvoices = filterExactDuplicates(invoices);
+
         // Deduplicate invoices by Invoice_No to prevent inflating total WADL Amount
         invoices = deduplicateInvoices(invoices);
 
@@ -1448,6 +1494,7 @@ exports.getLatePaymentBenchmark = async (req, res) => {
         const wadlResult = calculateWADL(invoices);
 
         res.json({
+            rawInvoices,
             customer_no,
             comparison: {
                 traditional: {
